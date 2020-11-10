@@ -26,7 +26,7 @@ const Status = ({className, incident, disableIconColor}: Props) => {
   ) : isWarning ? (
     <IconWarning color={disableIconColor ? undefined : 'orange400'} />
   ) : (
-    <IconFire color={disableIconColor ? undefined : 'red400'} />
+    <IconFire color={disableIconColor ? undefined : 'red300'} />
   );
 
   const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');

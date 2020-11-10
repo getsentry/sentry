@@ -19,7 +19,7 @@ const PackageStatus = ({status, tooltip}: Props) => {
         return <IconCircle size="xs" />;
       case 'error':
       default:
-        return <IconFlag color="red400" size="xs" />;
+        return <IconFlag color="red300" size="xs" />;
     }
   };
 

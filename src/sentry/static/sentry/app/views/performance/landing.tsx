@@ -16,7 +16,6 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
-import FeatureBadge from 'app/components/featureBadge';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import space from 'app/styles/space';
@@ -266,9 +265,7 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (!organization.features.includes('key-transactions')) {
       views.push(FilterViews.KEY_TRANSACTIONS);
     }
-    if (organization.features.includes('trends')) {
-      views.push(FilterViews.TRENDS);
-    }
+    views.push(FilterViews.TRENDS);
     return (
       <ButtonBar merged active={this.getCurrentView()}>
         {views.map(viewKey => (
@@ -280,7 +277,6 @@ class PerformanceLanding extends React.Component<Props, State> {
             onClick={() => this.handleViewChange(viewKey)}
           >
             {this.getViewLabel(viewKey)}
-            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
           </Button>
         ))}
       </ButtonBar>
@@ -409,10 +405,6 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   margin-bottom: ${space(2)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  height: 12px;
 `;
 
 export default withApi(

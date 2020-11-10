@@ -752,8 +752,8 @@ const IconPad = styled('span')`
 
 const SelectAllNotice = styled('div')`
   background-color: ${p => p.theme.yellow100};
-  border-top: 1px solid ${p => p.theme.yellow400};
-  border-bottom: 1px solid ${p => p.theme.yellow400};
+  border-top: 1px solid ${p => p.theme.yellow300};
+  border-bottom: 1px solid ${p => p.theme.yellow300};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};

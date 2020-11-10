@@ -69,7 +69,7 @@ const TogglableAddress = ({
           title={isAbsolute ? t('Switch to absolute') : t('Switch to relative')}
           containerDisplayMode="inline-flex"
         >
-          <AddressToggleIcon onClick={onToggle} size="xs" color="purple400" />
+          <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
         </AddressIconTooltip>
       )}
       <Tooltip title={tooltipTitle} disabled={!(isFoundByStackScanning || isInlineFrame)}>
@@ -103,11 +103,11 @@ const getAddresstextBorderBottom = (
   p: Pick<Partial<Props>, 'isFoundByStackScanning' | 'isInlineFrame'> & {theme: Theme}
 ) => {
   if (p.isFoundByStackScanning) {
-    return `1px dashed ${p.theme.red400}`;
+    return `1px dashed ${p.theme.red300}`;
   }
 
   if (p.isInlineFrame) {
-    return `1px dashed ${p.theme.blue400}`;
+    return `1px dashed ${p.theme.blue300}`;
   }
 
   return 'none';

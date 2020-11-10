@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 from operator import attrgetter
+import re
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -24,6 +25,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
+from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
 
@@ -102,6 +104,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+    issues_ignored_fields_key = "issues_ignored_fields"
 
     @classproperty
     def use_email_scope(cls):
@@ -163,6 +166,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "When a ticket is assigned in Jira, assign its linked Sentry issue to the same user."
                 ),
             },
+            {
+                "name": self.issues_ignored_fields_key,
+                "label": "Ignored Fields",
+                "type": "textarea",
+                "placeholder": _('e.g. "components, security, customfield_10006"'),
+                "help": _(
+                    "Comma-separated list of Jira fields that you don't want to show in issue creation form"
+                ),
+            },
         ]
 
         client = self.get_client()
@@ -220,6 +232,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     unresolved_status=statuses["on_unresolve"],
                 )
 
+        if self.issues_ignored_fields_key in data:
+            ignored_fields_text = data.pop(self.issues_ignored_fields_key)
+            # While we describe the config as a "comma-separated list", users are likely to
+            # accidentally use newlines, so we explicitly handle that case. On page
+            # refresh, they will see how it got interpreted as `get_config_data` will
+            # re-serialize the config as a comma-separated list.
+            ignored_fields_list = filter(
+                None, [field.strip() for field in re.split(r"[,\n\r]+", ignored_fields_text)]
+            )
+            data[self.issues_ignored_fields_key] = ignored_fields_list
+
         config.update(data)
         self.org_integration.update(config=config)
 
@@ -235,6 +258,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "on_resolve": pm.resolved_status,
             }
         config["sync_status_forward"] = sync_status_forward
+        config[self.issues_ignored_fields_key] = ", ".join(
+            config.get(self.issues_ignored_fields_key, "")
+        )
         return config
 
     def sync_metadata(self):
@@ -275,6 +301,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_persisted_user_default_config_fields(self):
         return ["reporter"]
+
+    def get_persisted_ignored_fields(self):
+        return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_group_description(self, group, event, **kwargs):
         output = [
@@ -506,12 +535,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    def get_create_issue_config(self, group, **kwargs):
         kwargs["link_referrer"] = "jira_integration"
-        fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get("params", {})
 
-        defaults = self.get_defaults(group.project, user)
+        defaults = self.get_project_defaults(group.project_id)
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
@@ -575,15 +604,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]
-
-        # TODO(jess): are we going to allow ignored fields?
-        # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
         ignored_fields = set(
             k
             for k, v in six.iteritems(issue_type_meta["fields"])
             if v["name"] in HIDDEN_ISSUE_FIELDS["names"]
         )
         ignored_fields.update(HIDDEN_ISSUE_FIELDS["keys"])
+        ignored_fields.update(self.get_persisted_ignored_fields())
 
         # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
@@ -612,17 +639,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_versions(meta["key"]))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
-            elif field["name"] == "reporter":
-                reporter_id = defaults.get("reporter", "")
-                if not reporter_id:
-                    continue
-                reporter_info = client.get_user(reporter_id)
-                reporter_tuple = client.format_user(reporter_info)
-                if not reporter_tuple:
-                    continue
-                reporter_id, reporter_label = reporter_tuple
-                field["default"] = reporter_id
-                field["choices"] = [(reporter_id, reporter_label)]
 
         return fields
 

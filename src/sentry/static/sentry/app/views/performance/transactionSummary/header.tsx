@@ -4,16 +4,12 @@ import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
-import FeatureBadge from 'app/components/featureBadge';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
 import ButtonBar from 'app/components/buttonBar';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Breadcrumb from 'app/views/performance/breadcrumb';
@@ -148,16 +144,6 @@ class TransactionHeader extends React.Component<Props> {
             });
             return (
               <React.Fragment>
-                {currentTab === Tab.RealUserMonitoring && (
-                  <StyledAlert type="info" icon={<IconInfo size="md" />}>
-                    {t(
-                      "Web vitals is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
-                    )}{' '}
-                    <ExternalLink href="mailto:performance-feedback@sentry.io">
-                      performance-feedback@sentry.io
-                    </ExternalLink>
-                  </StyledAlert>
-                )}
                 <StyledNavTabs>
                   <ListLink
                     to={summaryTarget}
@@ -171,7 +157,6 @@ class TransactionHeader extends React.Component<Props> {
                       isActive={() => currentTab === Tab.RealUserMonitoring}
                     >
                       {t('Web Vitals')}
-                      <FeatureBadge type="beta" />
                     </ListLink>
                   )}
                 </StyledNavTabs>
@@ -183,11 +168,6 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 }
-
-const StyledAlert = styled(Alert)`
-  /* Makes sure the alert is pushed into another row */
-  width: 100%;
-`;
 
 const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;

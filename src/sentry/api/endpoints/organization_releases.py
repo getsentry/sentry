@@ -22,7 +22,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release, Project, ReleaseProject
+from sentry.models import Activity, Release, ReleaseStatus, Project, ReleaseProject
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
@@ -144,6 +144,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
+        status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
         health_stat = request.GET.get("healthStat") or "sessions"
@@ -170,10 +171,21 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         if with_health:
             debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = (
-            Release.objects.filter(organization=organization)
-            .select_related("owner")
-            .annotate(date=Coalesce("date_released", "date_added"),)
+        queryset = Release.objects.filter(organization=organization)
+
+        if status_filter:
+            try:
+                status_int = ReleaseStatus.from_string(status_filter)
+            except ValueError:
+                raise ParseError(detail="invalid value for status")
+
+            if status_int == ReleaseStatus.OPEN:
+                queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+            else:
+                queryset = queryset.filter(status=status_int)
+
+        queryset = queryset.select_related("owner").annotate(
+            date=Coalesce("date_released", "date_added"),
         )
 
         queryset = add_environment_to_queryset(queryset, filter_params)
@@ -305,6 +317,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                         return Response({"projects": ["Invalid project slugs"]}, status=400)
                     projects.append(allowed_projects[slug])
 
+                new_status = result.get("status")
+
                 # release creation is idempotent to simplify user
                 # experiences
                 try:
@@ -316,6 +330,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                             "url": result.get("url"),
                             "owner": result.get("owner"),
                             "date_released": result.get("dateReleased"),
+                            "status": new_status or ReleaseStatus.OPEN,
                         },
                     )
                 except IntegrityError:
@@ -324,6 +339,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     )
                 if created:
                     release_created.send_robust(release=release, sender=self.__class__)
+
+                if not created and new_status is not None and new_status != release.status:
+                    release.status = new_status
+                    release.save()
 
                 new_projects = []
                 for project in projects:

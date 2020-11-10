@@ -89,8 +89,8 @@ export const trendToColor = {
     default: theme.green300,
   },
   [TrendChangeType.REGRESSION]: {
-    lighter: theme.red300,
-    default: theme.red400,
+    lighter: theme.red200,
+    default: theme.red300,
   },
 };
 
