@@ -1870,11 +1870,12 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
 
 KAFKA_CLUSTERS = {
+    "test": "test",
     "default": {
         "bootstrap.servers": "127.0.0.1:9092",
         "compression.type": "lz4",
         "message.max.bytes": 50000000,  # 50MB, default is 1MB
-    }
+    },
 }
 
 KAFKA_EVENTS = "events"
