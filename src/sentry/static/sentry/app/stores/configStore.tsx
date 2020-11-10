@@ -4,7 +4,6 @@ import * as qs from 'query-string';
 
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
-import {prefersDark} from 'app/utils/matchMedia';
 
 type ConfigStoreInterface = {
   config: Config;
