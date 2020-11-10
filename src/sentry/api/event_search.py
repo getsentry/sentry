@@ -1489,7 +1489,12 @@ class CountColumn(FunctionArg):
         return value
 
 
-class DateArg(FunctionArg):
+class StringArg(FunctionArg):
+    def normalize(self, value, params):
+        return u"'{}'".format(value)
+
+
+class DateArg(StringArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
     def normalize(self, value, params):
@@ -1499,7 +1504,7 @@ class DateArg(FunctionArg):
             raise InvalidFunctionArgument(
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
-        return u"'{}'".format(value)
+        return super(DateArg, self).normalize(value, params)
 
 
 class NumericColumn(FunctionArg):
@@ -1559,6 +1564,13 @@ class StringArrayColumn(FunctionArg):
         if value in ["tags.key", "tags.value", "measurements_key"]:
             return value
         raise InvalidFunctionArgument(u"{} is not a valid string array column".format(value))
+
+
+class StringColumn(FunctionArg):
+    def normalize(self, value, params):
+        if value in ["release"]:
+            return value
+        raise InvalidFunctionArgument(u"{} is not a valid string column".format(value))
 
 
 class NumberRange(FunctionArg):
@@ -2195,6 +2207,19 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+        ),
+        Function(
+            "to_other",
+            required_args=[StringColumn("column"), StringArg("this")],
+            optional_args=[with_default("other", StringArg("that"))],
+            column=[
+                "if",
+                [
+                    ["equals", [ArgValue("column"), ArgValue("this")]],
+                    ArgValue("this"),
+                    ArgValue("that"),
+                ],
+            ],
         ),
     ]
 }

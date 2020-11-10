@@ -101,7 +101,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     try {
       if (yAxis === YAxis.CRASH_FREE) {
         data = await this.fetchRateData();
-      } else if (yAxis === YAxis.EVENTS) {
+      } else if (yAxis === YAxis.EVENTS || yAxis === YAxis.FAILURE_RATE) {
         data = await this.fetchEventData();
       } else {
         // session duration uses same endpoint as sessions
@@ -172,17 +172,16 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   fetchEventData = async () => {
-    const {api, orgId, location, selection, version, hasHealthData} = this.props;
+    const {api, orgId, location, selection, version, hasHealthData, yAxis} = this.props;
     const {crashFreeTimeBreakdown} = this.state.data || {};
     let userResponse, eventsCountResponse;
 
+    const eventView = getReleaseEventView(selection, version, yAxis);
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
     // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
     if (crashFreeTimeBreakdown || !hasHealthData) {
-      eventsCountResponse = await fetchTotalCount(
-        api,
-        orgId,
-        getReleaseEventView(selection, version).getEventsAPIPayload(location)
-      );
+      eventsCountResponse = await fetchTotalCount(api, orgId, apiPayload);
     } else {
       [userResponse, eventsCountResponse] = await Promise.all([
         api.requestPromise(this.statsPath, {
@@ -191,11 +190,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             type: YAxis.USERS,
           },
         }),
-        fetchTotalCount(
-          api,
-          orgId,
-          getReleaseEventView(selection, version).getEventsAPIPayload(location)
-        ),
+        fetchTotalCount(api, orgId, apiPayload),
       ]);
     }
 

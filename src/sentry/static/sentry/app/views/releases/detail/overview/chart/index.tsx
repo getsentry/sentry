@@ -7,6 +7,7 @@ import {Panel} from 'app/components/panels';
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
 import {t} from 'app/locale';
+import {decodeScalar} from 'app/utils/queryString';
 
 import ReleaseChartControls, {YAxis} from './releaseChartControls';
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
@@ -45,40 +46,54 @@ const ReleaseChartContainer = ({
 }: Props) => {
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
-  const eventView = getReleaseEventView(selection, version);
+
+  let chart: React.ReactNode = null;
+
+  if (hasDiscover && (yAxis === YAxis.EVENTS || yAxis === YAxis.FAILURE_RATE)) {
+    const eventView = getReleaseEventView(selection, version, yAxis);
+    const isFailureRate = yAxis === YAxis.FAILURE_RATE;
+    const seriesName = isFailureRate ? t('Failure Rate') : t('Events');
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
+    chart = (
+      <EventsChart
+        router={router}
+        organization={organization}
+        showLegend
+        yAxis={eventView.getYAxis()}
+        query={apiPayload.query}
+        api={api}
+        projects={projects}
+        environments={environments}
+        start={start}
+        end={end}
+        period={period}
+        utc={utc}
+        disablePrevious
+        disableReleases
+        field={isFailureRate ? apiPayload.field : undefined}
+        topEvents={isFailureRate ? 2 : undefined}
+        orderby={isFailureRate ? decodeScalar(apiPayload.sort) : undefined}
+        currentSeriesName={seriesName}
+      />
+    );
+  } else {
+    chart = (
+      <HealthChartContainer
+        loading={loading}
+        errored={errored}
+        reloading={reloading}
+        chartData={chartData}
+        selection={selection}
+        yAxis={yAxis}
+        router={router}
+      />
+    );
+  }
 
   return (
     <Panel>
-      {hasDiscover && yAxis === YAxis.EVENTS ? (
-        <EventsChart
-          router={router}
-          organization={organization}
-          showLegend
-          yAxis={eventView.getYAxis()}
-          query={eventView.getEventsAPIPayload(location).query}
-          api={api}
-          projects={projects}
-          environments={environments}
-          start={start}
-          end={end}
-          period={period}
-          utc={utc}
-          disablePrevious
-          disableReleases
-          currentSeriesName={t('Events')}
-        />
-      ) : (
-        <HealthChartContainer
-          loading={loading}
-          errored={errored}
-          reloading={reloading}
-          chartData={chartData}
-          selection={selection}
-          yAxis={yAxis}
-          router={router}
-        />
-      )}
-
+      {chart}
       <ReleaseChartControls
         summary={chartSummary}
         yAxis={yAxis}

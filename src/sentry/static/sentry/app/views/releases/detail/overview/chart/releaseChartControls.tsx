@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {
@@ -8,7 +9,8 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import OptionSelector from 'app/components/charts/optionSelector';
-import styled from 'app/styled';
+// something is busted about this, dont wanna look at it for now
+// import styled from '@emotion/styled';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -18,6 +20,7 @@ export enum YAxis {
   CRASH_FREE = 'crashFree',
   SESSION_DURATION = 'sessionDuration',
   EVENTS = 'events',
+  FAILURE_RATE = 'failureRate',
 }
 
 type Props = {
@@ -72,6 +75,12 @@ const ReleaseChartControls = ({
       disabled: !hasDiscover,
       tooltip: noDiscoverTooltip,
     },
+    {
+      value: YAxis.FAILURE_RATE,
+      label: t('Failure Rate'),
+      disabled: !hasDiscover,
+      tooltip: noDiscoverTooltip,
+    },
   ];
 
   const getSummaryHeading = () => {
@@ -83,6 +92,8 @@ const ReleaseChartControls = ({
       case YAxis.SESSION_DURATION:
         return t('Median Duration');
       case YAxis.EVENTS:
+        return t('Total Events');
+      case YAxis.FAILURE_RATE:
         return t('Total Events');
       case YAxis.SESSIONS:
       default:
