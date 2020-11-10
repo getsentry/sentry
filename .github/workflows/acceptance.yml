@@ -96,7 +96,7 @@ jobs:
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
-      TEST_GROUP_STRATEGY: individual
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@v2
