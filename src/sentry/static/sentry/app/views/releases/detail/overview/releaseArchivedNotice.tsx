@@ -31,7 +31,7 @@ function ReleaseArchivedNotice({onRestore, multi}: Props) {
 }
 
 const UnarchiveButton = styled(Button)`
-  font-size: inherit; // to match font-size of alert
+  font-size: inherit;
   text-decoration: underline;
   &,
   &:hover,
