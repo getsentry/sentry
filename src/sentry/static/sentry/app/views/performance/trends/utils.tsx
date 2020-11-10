@@ -129,6 +129,10 @@ export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
   return confidenceLevel || CONFIDENCE_LEVELS[0];
 }
 
+export function getCurrentPivotDate(location: Location): ConfidenceLevel {
+  return decodeScalar(location?.query?.pivotDate);
+}
+
 export function getIntervalRatio(location: Location): number {
   const intervalFromLocation = decodeScalar(location?.query?.intervalRatio);
   return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
@@ -168,6 +172,7 @@ export function modifyTrendView(
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const confidenceLevel = getCurrentConfidenceLevel(location);
+  const pivotDate = getCurrentPivotDate(location);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({
@@ -196,6 +201,7 @@ export function modifyTrendView(
   trendView.interval = getQueryInterval(location, trendView);
 
   trendView.sorts = [trendSort];
+  trendView.pivotDate = pivotDate;
   trendView.fields = fields;
 }
 

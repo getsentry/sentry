@@ -8,12 +8,14 @@ export type TrendView = EventView & {
   orderby?: string;
   trendFunction?: string;
   trendType?: string;
+  pivotDate?: string;
 };
 
 export type TrendsQuery = EventQuery &
   LocationQuery & {
     trendFunction?: string;
     trendType?: string;
+    pivotDate?: string;
     intervalRatio?: number;
     interval?: string;
   };

@@ -20,7 +20,7 @@ import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
 import {
   getCurrentTrendFunction,
-  getIntervalRatio,
+  getCurrentPivotDate,
   transformEventStatsSmoothed,
   getUnselectedSeries,
   trendToColor,
@@ -94,7 +94,7 @@ function getLegend(trendFunction: string) {
 
 function getIntervalLine(
   series: Series[],
-  intervalRatio: number,
+  pivotDate: string,
   transaction?: NormalizedTrendsTransaction
 ) {
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
@@ -150,8 +150,7 @@ function getIntervalLine(
     seriesName: 'Period split',
   };
 
-  const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
+  const seriesLine = new Date(pivotDate);
 
   previousPeriod.markLine.data = [
     [
@@ -256,7 +255,7 @@ class Chart extends React.Component<Props> {
     const end = props.end ? getUtcToLocalDateObject(props.end) : undefined;
     const utc = decodeScalar(router.location.query.utc);
 
-    const intervalRatio = getIntervalRatio(router.location);
+    const pivotDate = getCurrentPivotDate(router.location);
     const seriesSelection = (
       decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
     ).reduce((selection, metric) => {
@@ -329,7 +328,7 @@ class Chart extends React.Component<Props> {
 
             const intervalSeries = getIntervalLine(
               smoothedResults || [],
-              intervalRatio,
+              pivotDate,
               transaction
             );
 

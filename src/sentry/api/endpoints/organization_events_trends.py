@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
+import six
 import sentry_sdk
 
 from datetime import datetime, timedelta
@@ -11,6 +12,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.api.event_search import DateArg, parse_function
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.search.utils import parse_datetime_string, InvalidQuery
 from sentry.snuba import discover
 
 
@@ -152,9 +154,17 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             return Response([])
 
         with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates"):
-            middle = params["start"] + timedelta(
-                seconds=(params["end"] - params["start"]).total_seconds() * 0.5
-            )
+            pivot_date = request.GET.get("pivotDate")
+            if pivot_date is None:
+                middle = params["start"] + timedelta(
+                    seconds=(params["end"] - params["start"]).total_seconds() * 0.5
+                )
+            else:
+                try:
+                    middle = parse_datetime_string(pivot_date)
+                except InvalidQuery as e:
+                    raise ParseError(six.text_type(e))
+
             start, middle, end = (
                 datetime.strftime(params["start"], DateArg.date_format),
                 datetime.strftime(middle, DateArg.date_format),
