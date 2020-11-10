@@ -8,8 +8,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 type Props = DefaultSettings['props'];
 
 type State = DefaultSettings['state'] & {
-  editing?: boolean;
   page: number;
+  editing?: boolean;
 };
 
 class Settings extends DefaultSettings<Props, State> {
