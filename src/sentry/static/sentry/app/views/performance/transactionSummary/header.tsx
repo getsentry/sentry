@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
+import FeatureBadge from 'app/components/featureBadge';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
@@ -106,6 +107,20 @@ class TransactionHeader extends React.Component<Props> {
       hasWebVitals,
     } = this.props;
 
+    const summaryTarget = transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
+    const vitalsTarget = vitalsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
     return (
       <Layout.Header>
         <Layout.HeaderContent>
@@ -125,45 +140,25 @@ class TransactionHeader extends React.Component<Props> {
             {this.renderKeyTransactionButton()}
           </ButtonBar>
         </Layout.HeaderActions>
-        <Feature organization={organization} features={['measurements']}>
-          {({hasFeature}) => {
-            if (!hasFeature) {
-              return null;
-            }
-            const summaryTarget = transactionSummaryRouteWithQuery({
-              orgSlug: organization.slug,
-              transaction: transactionName,
-              projectID: decodeScalar(location.query.project),
-              query: location.query,
-            });
-            const vitalsTarget = vitalsRouteWithQuery({
-              orgSlug: organization.slug,
-              transaction: transactionName,
-              projectID: decodeScalar(location.query.project),
-              query: location.query,
-            });
-            return (
-              <React.Fragment>
-                <StyledNavTabs>
-                  <ListLink
-                    to={summaryTarget}
-                    isActive={() => currentTab === Tab.TransactionSummary}
-                  >
-                    {t('Overview')}
-                  </ListLink>
-                  {hasWebVitals && (
-                    <ListLink
-                      to={vitalsTarget}
-                      isActive={() => currentTab === Tab.RealUserMonitoring}
-                    >
-                      {t('Web Vitals')}
-                    </ListLink>
-                  )}
-                </StyledNavTabs>
-              </React.Fragment>
-            );
-          }}
-        </Feature>
+        <React.Fragment>
+          <StyledNavTabs>
+            <ListLink
+              to={summaryTarget}
+              isActive={() => currentTab === Tab.TransactionSummary}
+            >
+              {t('Overview')}
+            </ListLink>
+            {hasWebVitals && (
+              <ListLink
+                to={vitalsTarget}
+                isActive={() => currentTab === Tab.RealUserMonitoring}
+              >
+                {t('Web Vitals')}
+                <FeatureBadge type="new" />
+              </ListLink>
+            )}
+          </StyledNavTabs>
+        </React.Fragment>
       </Layout.Header>
     );
   }

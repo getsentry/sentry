@@ -155,7 +155,7 @@ type HasBorderProp = {
 };
 
 const RuleType = styled('div')<RowSpansProp>`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
   text-transform: uppercase;
@@ -197,7 +197,7 @@ const ConditionsWithHeader = styled('div')`
 const MatchTypeHeader = styled('div')`
   font-weight: bold;
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-bottom: ${space(1)};
 `;
 
@@ -220,8 +220,8 @@ const TriggerDescription = styled('div')`
 `;
 
 const StatusBadge = styled('div')`
-  background-color: ${p => p.theme.gray300};
-  color: ${p => p.theme.gray700};
+  background-color: ${p => p.theme.gray200};
+  color: ${p => p.theme.gray500};
   text-transform: uppercase;
   padding: ${space(0.25)} ${space(0.5)};
   font-weight: 600;

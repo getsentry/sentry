@@ -196,7 +196,7 @@ const StyledSidebarItem = styled(Link)`
 
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
   }
 
   &.focus-visible {

@@ -20,7 +20,7 @@ const TraceView = (props: Props) => {
   if (!isTransactionEvent(baselineEvent) || !isTransactionEvent(regressionEvent)) {
     return (
       <EmptyMessage>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
         <p>{t('One of the given events is not a transaction.')}</p>
       </EmptyMessage>
     );
@@ -32,7 +32,7 @@ const TraceView = (props: Props) => {
   if (!baselineTraceContext || !regressionTraceContext) {
     return (
       <EmptyMessage>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
         <p>{t('There is no trace found in either of the given transactions.')}</p>
       </EmptyMessage>
     );

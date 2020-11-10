@@ -27,7 +27,7 @@ export const HeaderTitle = styled('h3')`
   grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   padding-left: ${space(1)};
   line-height: 1.1;
   margin-bottom: 0;

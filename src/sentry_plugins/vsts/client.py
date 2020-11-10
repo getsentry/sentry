@@ -18,7 +18,7 @@ class VstsClient(AuthApiClient):
 
     def request(self, method, path, data=None, params=None):
         headers = {
-            "Accept": "application/json; api-version={}".format(self.api_version),
+            u"Accept": u"application/json; api-version={}".format(self.api_version),
             "Content-Type": "application/json-patch+json"
             if method == "PATCH"
             else "application/json",
@@ -49,7 +49,7 @@ class VstsClient(AuthApiClient):
         #     })
 
         return self.patch(
-            "https://{}/{}/_apis/wit/workitems/$Bug".format(instance, project), data=data
+            u"https://{}/{}/_apis/wit/workitems/$Bug".format(instance, project), data=data
         )
 
     def update_work_item(
@@ -79,22 +79,22 @@ class VstsClient(AuthApiClient):
             data.append({"op": "add", "path": FIELD_MAP["comment"], "value": comment})
 
         return self.patch(
-            "https://{}/DefaultCollection/_apis/wit/workitems/{}".format(instance, id), data=data
+            u"https://{}/DefaultCollection/_apis/wit/workitems/{}".format(instance, id), data=data
         )
 
     def get_work_item(self, instance, id):
-        return self.get("https://{}/DefaultCollection/_apis/wit/workitems/{}".format(instance, id))
+        return self.get(u"https://{}/DefaultCollection/_apis/wit/workitems/{}".format(instance, id))
 
     def get_repo(self, instance, name_or_id, project=None):
         return self.get(
-            "https://{}/DefaultCollection/{}_apis/git/repositories/{}".format(
+            u"https://{}/DefaultCollection/{}_apis/git/repositories/{}".format(
                 instance, "{}/".format(project) if project else "", name_or_id
             )
         )
 
     def get_commits(self, instance, repo_id, commit, limit=100):
         return self.get(
-            "https://{}/DefaultCollection/_apis/git/repositories/{}/commits".format(
+            u"https://{}/DefaultCollection/_apis/git/repositories/{}/commits".format(
                 instance, repo_id
             ),
             params={"commit": commit, "$top": limit},
@@ -103,7 +103,7 @@ class VstsClient(AuthApiClient):
     def get_commit_filechanges(self, instance, repo_id, commit):
 
         resp = self.get(
-            "https://{}/DefaultCollection/_apis/git/repositories/{}/commits/{}/changes".format(
+            u"https://{}/DefaultCollection/_apis/git/repositories/{}/commits/{}/changes".format(
                 instance, repo_id, commit
             )
         )
@@ -112,7 +112,7 @@ class VstsClient(AuthApiClient):
 
     def get_commit_range(self, instance, repo_id, start_sha, end_sha):
         return self.post(
-            "https://{}/DefaultCollection/_apis/git/repositories/{}/commitsBatch".format(
+            u"https://{}/DefaultCollection/_apis/git/repositories/{}/commitsBatch".format(
                 instance, repo_id
             ),
             data={
@@ -125,6 +125,6 @@ class VstsClient(AuthApiClient):
         # TODO(dcramer): VSTS doesn't provide a way to search, so we're
         # making the assumption that a user has 100 or less projects today.
         return self.get(
-            "https://{}/DefaultCollection/_apis/projects".format(instance),
+            u"https://{}/DefaultCollection/_apis/projects".format(instance),
             params={"stateFilter": "WellFormed"},
         )
