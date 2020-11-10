@@ -16,34 +16,34 @@ const ENDPOINT = '/users/me/social-identities/';
 type Props = RouteComponentProps<{}, {}>;
 
 type State = {
-  identities: Identity[];
+  identities: Identity[] | null;
 } & AsyncView['state'];
 
 class AccountIdentities extends AsyncView<Props, State> {
-  getDefaultState(): State {
+  getDefaultState() {
     return {
       ...super.getDefaultState(),
       identities: [],
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['identities', ENDPOINT]];
   }
 
   getTitle() {
-    return 'Identities';
+    return t('Identities');
   }
 
-  handleDisconnect = identity => {
+  handleDisconnect = (identity: Identity) => {
     const {identities} = this.state;
 
     this.setState(
       state => {
-        const newIdentities = state.identities.filter(({id}) => id !== identity.id);
+        const newIdentities = state.identities?.filter(({id}) => id !== identity.id);
 
         return {
-          identities: newIdentities,
+          identities: newIdentities ? newIdentities : null,
         };
       },
       () =>
@@ -56,7 +56,7 @@ class AccountIdentities extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const isEmpty = this.state.identities.length === 0;
+    const isEmpty = this.state.identities?.length === 0;
 
     return (
       <div>
@@ -71,7 +71,7 @@ class AccountIdentities extends AsyncView<Props, State> {
             )}
 
             {!isEmpty &&
-              this.state.identities.map(identity => (
+              this.state.identities?.map(identity => (
                 <IdentityPanelItem key={identity.id}>
                   <div>{identity.providerLabel}</div>
 
