@@ -153,7 +153,7 @@ class Settings extends DefaultSettings<Props, State> {
       onSubmit = this.onSubmit;
       submitLabel = this.isLastPage() ? 'Finish' : 'Save and Continue';
     } else {
-      fields = this.state.fieldList?.map(f => Object.assign({}, f, {readonly: true}));
+      fields = this.state.fieldList?.map(f => ({...f, readonly: true}));
       onSubmit = this.startEditing;
       submitLabel = 'Edit';
     }
