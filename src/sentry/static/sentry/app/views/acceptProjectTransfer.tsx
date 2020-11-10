@@ -18,11 +18,11 @@ type TransferDetails = {
 };
 
 type State = {
-  transferDetails: TransferDetails;
+  transferDetails: TransferDetails | null;
 } & AsyncView['state'];
 
 class AcceptProjectTransfer extends AsyncView<Props, State> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];
   }
@@ -58,7 +58,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
   };
 
   renderError(error) {
-    let disableLog: boolean = false;
+    let disableLog = false;
     // Check if there is an error message with `transferDetails` endpoint
     // If so, show as toast and ignore, otherwise log to sentry
     if (error && error.responseJSON && typeof error.responseJSON.detail === 'string') {
@@ -71,7 +71,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
 
   renderBody() {
     const {transferDetails} = this.state;
-    const choices = transferDetails.organizations.map(org => [org.slug, org.slug]);
+    const choices = transferDetails?.organizations.map(org => [org.slug, org.slug]);
 
     return (
       <NarrowLayout>
@@ -88,17 +88,22 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
             }
           )}
         </p>
-        <p>
-          {tct('Please select which [organization] you want for the project [project].', {
-            organization: <strong>{t('Organization')}</strong>,
-            project: transferDetails.project.slug,
-          })}
-        </p>
+        {transferDetails && (
+          <p>
+            {tct(
+              'Please select which [organization] you want for the project [project].',
+              {
+                organization: <strong>{t('Organization')}</strong>,
+                project: transferDetails.project.slug,
+              }
+            )}
+          </p>
+        )}
         <Form
           onSubmit={this.handleSubmit}
           submitLabel={t('Transfer Project')}
           submitPriority="danger"
-          initialData={{organization: choices[0] && choices[0][0]}}
+          initialData={{organization: choices && choices[0] && choices[0][0]}}
         >
           <SelectField
             deprecatedSelectControl
