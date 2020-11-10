@@ -9,7 +9,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.tasks.deletion import delete_groups
 
 
-def delete_group(group):
+def delete_group(group, delete_in_snuba=True):
     updated = (
         Group.objects.filter(id=group.id)
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
@@ -19,7 +19,11 @@ def delete_group(group):
     if not updated:
         return
 
-    eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
+    if delete_in_snuba:
+        eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
+    else:
+        eventstream_state = None
+
     transaction_id = uuid4().hex
 
     GroupHash.objects.filter(project_id=group.project_id, group__id=group.id).delete()

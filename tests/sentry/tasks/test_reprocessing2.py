@@ -113,7 +113,7 @@ def test_basic(
     with burst_task_runner() as burst:
         reprocess_group(default_project.id, event.group_id)
 
-    burst(max_jobs=10)
+    burst(max_jobs=100)
 
     (event,) = get_event_by_processing_counter("x1")
 
@@ -182,12 +182,9 @@ def test_concurrent_events_go_into_new_group(
 
     burst_reprocess()
 
-    (event3,) = eventstore.get_events(
-        eventstore.Filter(
-            project_ids=[default_project.id],
-            conditions=[["tags[original_event_id]", "=", event_id]],
-        )
-    )
+    event3 = eventstore.get_event_by_id(default_project.id, event_id)
+    assert event3.event_id == event.event_id
+    assert event3.group_id != event.group_id
 
     assert is_group_finished(event.group_id)
 

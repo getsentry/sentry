@@ -217,6 +217,17 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
+    def tombstone_events(self, project_id, event_ids):
+        state = {
+            "project_id": project_id,
+            "event_ids": event_ids,
+        }
+        self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
+
+    def exclude_groups(self, project_id, group_ids):
+        state = {"project_id": project_id, "group_ids": group_ids}
+        self._send(project_id, "exclude_groups", extra_data=(state,), asynchronous=False)
+
     def _send(
         self,
         project_id,
