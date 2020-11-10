@@ -5,6 +5,7 @@ import space from 'app/styles/space';
 import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 import {Event, ExceptionType} from 'app/types';
+import {STACK_TYPE} from 'app/types/stacktrace';
 
 import ExceptionStacktraceContent from './exceptionStacktraceContent';
 import ExceptionTitle from './exceptionTitle';
@@ -15,12 +16,11 @@ type ExceptionStacktraceContentProps = React.ComponentProps<
 
 type Props = {
   event: Event;
-  type: 'original' | 'minified';
+  type: STACK_TYPE;
   stackView: ExceptionStacktraceContentProps['stackView'];
   platform: ExceptionStacktraceContentProps['platform'];
-  values: Array<ExceptionType>;
   newestFirst?: boolean;
-};
+} & Pick<ExceptionType, 'values'>;
 
 const ExceptionContent = ({
   newestFirst,
@@ -30,6 +30,10 @@ const ExceptionContent = ({
   values,
   type,
 }: Props) => {
+  if (!values) {
+    return null;
+  }
+
   const children = values.map((exc, excIdx) => (
     <div key={excIdx} className="exception">
       <ExceptionTitle type={exc.type} exceptionModule={exc?.module} />
@@ -38,7 +42,11 @@ const ExceptionContent = ({
       </Annotated>
       {exc.mechanism && <ExceptionMechanism data={exc.mechanism} platform={platform} />}
       <ExceptionStacktraceContent
-        data={type === 'original' ? exc.stacktrace : exc.rawStacktrace || exc.stacktrace}
+        data={
+          type === STACK_TYPE.ORIGINAL
+            ? exc.stacktrace
+            : exc.rawStacktrace || exc.stacktrace
+        }
         stackView={stackView}
         stacktrace={exc.stacktrace}
         expandFirstFrame={excIdx === values.length - 1}

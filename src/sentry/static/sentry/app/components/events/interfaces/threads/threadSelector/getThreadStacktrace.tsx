@@ -1,5 +1,6 @@
 import {Thread} from 'app/types/events';
 import {Event} from 'app/types';
+import {StacktraceType} from 'app/types/stacktrace';
 
 import getThreadException from './getThreadException';
 
@@ -7,7 +8,12 @@ import getThreadException from './getThreadException';
 function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {
   const exc = getThreadException(thread, event);
   if (exc) {
-    let rv = undefined;
+    let rv: StacktraceType | undefined = undefined;
+
+    if (!exc.values) {
+      return rv;
+    }
+
     for (const singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
         rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
