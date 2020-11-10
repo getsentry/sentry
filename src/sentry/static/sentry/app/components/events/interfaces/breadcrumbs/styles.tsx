@@ -72,7 +72,7 @@ const GridCellLeft = styled(GridCell)`
     top: 0;
     bottom: 0;
     left: 21px;
-    background: ${p => (p.hasError ? p.theme.red300 : p.theme.gray200)};
+    background: ${p => (p.hasError ? p.theme.red300 : p.theme.innerBorder)};
     position: absolute;
     @media (min-width: ${p => p.theme.breakpoints[0]}) {
       left: 29px;
