@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.utils.compat.mock import patch
 
 from sentry.models import IdentityProvider, Identity, Integration, OrganizationIntegration
@@ -224,6 +226,82 @@ class FinishPipelineTestCase(IntegrationTestCase):
             organization_id=self.organization.id, integration_id=integration.id
         )
         assert org_integration.default_auth_id == identity.id
+
+    def test_new_external_id_same_user(self, *args):
+        # we need to make sure any other org_integrations have the same
+        # identity that we use for the new one
+        self.provider.needs_default_identity = True
+        integration = Integration.objects.create(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            metadata={"url": "https://example.com"},
+        )
+        identity_provider = IdentityProvider.objects.create(
+            external_id=self.external_id, type="plugin"
+        )
+        identity = Identity.objects.create(
+            idp_id=identity_provider.id, external_id="AccountId", user_id=self.user.id
+        )
+        org2 = self.create_organization(owner=self.user)
+        integration.add_organization(org2, default_auth_id=identity.id)
+        self.pipeline.state.data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+            "user_identity": {
+                "type": "plugin",
+                "external_id": "new_external_id",
+                "scopes": [],
+                "data": {
+                    "access_token": "token12345",
+                    "expires_in": "123456789",
+                    "refresh_token": "refresh12345",
+                    "token_type": "typetype",
+                },
+            },
+        }
+        resp = self.pipeline.finish_pipeline()
+        self.assertDialogSuccess(resp)
+
+        org_integrations = OrganizationIntegration.objects.filter(integration_id=integration.id)
+        identity = Identity.objects.get(idp_id=identity_provider.id, external_id="new_external_id")
+        for org_integration in org_integrations:
+            assert org_integration.default_auth_id == identity.id
+
+    def test_different_user_same_external_id(self, *args):
+        new_user = self.create_user()
+        # self.create_member(organization=self.organization, user=new_user, role="admin")
+        self.provider.needs_default_identity = True
+        integration = Integration.objects.create(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            metadata={"url": "https://example.com"},
+        )
+        identity_provider = IdentityProvider.objects.create(
+            external_id=self.external_id, type="gitlab"  # need to use a real provider here
+        )
+        Identity.objects.create(
+            idp_id=identity_provider.id, external_id="AccountId", user_id=new_user.id
+        )
+        self.pipeline.state.data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+            "user_identity": {
+                "type": "gitlab",
+                "external_id": "AccountId",
+                "scopes": [],
+                "data": {
+                    "access_token": "token12345",
+                    "expires_in": "123456789",
+                    "refresh_token": "refresh12345",
+                    "token_type": "typetype",
+                },
+            },
+        }
+        resp = self.pipeline.finish_pipeline()
+        assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
+        assert "account is linked to a different Sentry user" in six.text_type(resp.content)
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
