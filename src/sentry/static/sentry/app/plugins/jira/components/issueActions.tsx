@@ -2,9 +2,7 @@ import React from 'react';
 
 import {Form, FormState} from 'app/components/forms';
 import DefaultIssueActions from 'app/plugins/components/issueActions';
-
-//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
-type Writable<T> = {-readonly [K in keyof T]: T[K]};
+import {Writable} from 'app/types';
 
 class IssueActions extends DefaultIssueActions {
   changeField = (
@@ -66,7 +64,7 @@ class IssueActions extends DefaultIssueActions {
     this.setState(state);
   };
 
-  renderForm() {
+  renderForm(): React.ReactNode {
     let form: React.ReactNode = null;
 
     // For create form, split into required and optional fields

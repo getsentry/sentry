@@ -5,6 +5,12 @@ import {Form, FormState} from 'app/components/forms';
 import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
+type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
+
+type FieldWithValues = Field & {value?: any; defaultValue?: any};
+
+type ApiData = {default_project?: string; config: FieldWithValues[]};
+
 type Props = DefaultSettings['props'];
 
 type State = DefaultSettings['state'] & {
@@ -12,12 +18,13 @@ type State = DefaultSettings['state'] & {
   editing?: boolean;
 };
 
+const PAGE_FIELD_LIST = {
+  0: ['instance_url', 'username', 'password'],
+  1: ['default_project'],
+  2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
+};
+
 class Settings extends DefaultSettings<Props, State> {
-  PAGE_FIELD_LIST = {
-    0: ['instance_url', 'username', 'password'],
-    1: ['default_project'],
-    2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
-  };
   constructor(props: Props, context: any) {
     super(props, context);
 
@@ -38,7 +45,7 @@ class Settings extends DefaultSettings<Props, State> {
     // This is mostly copy paste of parent class
     // except for setting edit state
     this.api.request(this.getPluginEndpoint(), {
-      success: data => {
+      success: (data: ApiData) => {
         const formData: Record<string, any> = {};
         const initialData = {};
         data.config.forEach(field => {
@@ -85,7 +92,7 @@ class Settings extends DefaultSettings<Props, State> {
     this.api.request(this.getPluginEndpoint(), {
       data: body,
       method: 'PUT',
-      success: this.onSaveSuccess.bind(this, data => {
+      success: this.onSaveSuccess.bind(this, (data: ApiData) => {
         const formData = {};
         const initialData = {};
         data.config.forEach(field => {
@@ -117,7 +124,7 @@ class Settings extends DefaultSettings<Props, State> {
     });
   }
 
-  back = ev => {
+  back = (ev: React.MouseEvent) => {
     ev.preventDefault();
     if (this.state.state === FormState.SAVING) {
       return;
@@ -143,12 +150,12 @@ class Settings extends DefaultSettings<Props, State> {
 
     const isSaving = this.state.state === FormState.SAVING;
 
-    let fields;
-    let onSubmit;
-    let submitLabel;
+    let fields: Field[] | undefined;
+    let onSubmit: () => void;
+    let submitLabel: string;
     if (this.state.editing) {
       fields = this.state.fieldList?.filter(f =>
-        this.PAGE_FIELD_LIST[this.state.page].includes(f.name)
+        PAGE_FIELD_LIST[this.state.page].includes(f.name)
       );
       onSubmit = this.onSubmit;
       submitLabel = this.isLastPage() ? 'Finish' : 'Save and Continue';
@@ -181,7 +188,7 @@ class Settings extends DefaultSettings<Props, State> {
             </ul>
           </div>
         )}
-        {fields.map(f =>
+        {fields?.map(f =>
           this.renderField({
             config: f,
             formData: this.state.formData,
