@@ -39,7 +39,7 @@ class Settings extends DefaultSettings<Props, State> {
     // except for setting edit state
     this.api.request(this.getPluginEndpoint(), {
       success: data => {
-        const formData: any = {};
+        const formData: Record<string, any> = {};
         const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
