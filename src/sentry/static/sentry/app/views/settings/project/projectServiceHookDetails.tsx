@@ -27,8 +27,9 @@ type Params = {orgId: string; projectId: string; hookId: string};
 type StatsProps = {
   params: Params;
 };
+
 type StatsState = {
-  stats: {ts: number; total: number}[];
+  stats: {ts: number; total: number}[] | null;
 } & AsyncComponent['state'];
 
 class HookStats extends AsyncComponent<StatsProps, StatsState> {
