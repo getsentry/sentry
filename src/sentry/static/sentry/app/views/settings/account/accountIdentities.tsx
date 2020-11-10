@@ -43,7 +43,7 @@ class AccountIdentities extends AsyncView<Props, State> {
         const newIdentities = state.identities?.filter(({id}) => id !== identity.id);
 
         return {
-          identities: newIdentities ?? null,
+          identities: newIdentities ?? [],
         };
       },
       () =>
