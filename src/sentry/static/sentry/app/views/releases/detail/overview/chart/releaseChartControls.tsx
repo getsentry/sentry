@@ -10,7 +10,7 @@ import {
 } from 'app/components/charts/styles';
 import OptionSelector from 'app/components/charts/optionSelector';
 // something is busted about this, dont wanna look at it for now
-// import styled from '@emotion/styled';
+// import styled from 'app/styled';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
