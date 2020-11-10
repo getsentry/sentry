@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncView from 'app/views/asyncView';
@@ -7,9 +8,21 @@ import NarrowLayout from 'app/components/narrowLayout';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {t, tct} from 'app/locale';
+import {Organization, Project} from 'app/types';
 
-class AcceptProjectTransfer extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{}, {}>;
+
+type TransferDetails = {
+  organizations: Organization[];
+  project: Project;
+};
+
+type State = {
+  transferDetails: TransferDetails | null;
+} & AsyncView['state'];
+
+class AcceptProjectTransfer extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];
   }
@@ -53,16 +66,14 @@ class AcceptProjectTransfer extends AsyncView {
       disableLog = true;
     }
 
-    super.renderError(error, disableLog);
+    return super.renderError(error, disableLog);
   }
 
   renderBody() {
     const {transferDetails} = this.state;
-    const choices = [];
+    const choices = transferDetails?.organizations.map(org => [org.slug, org.slug]);
+    const organization = choices?.[0]?.[0];
 
-    transferDetails.organizations.forEach(org => {
-      choices.push([org.slug, org.slug]);
-    });
     return (
       <NarrowLayout>
         <SettingsPageHeader title={t('Approve Transfer Project Request')} />
@@ -78,17 +89,22 @@ class AcceptProjectTransfer extends AsyncView {
             }
           )}
         </p>
-        <p>
-          {tct('Please select which [organization] you want for the project [project].', {
-            organization: <strong>{t('Organization')}</strong>,
-            project: transferDetails.project.slug,
-          })}
-        </p>
+        {transferDetails && (
+          <p>
+            {tct(
+              'Please select which [organization] you want for the project [project].',
+              {
+                organization: <strong>{t('Organization')}</strong>,
+                project: transferDetails.project.slug,
+              }
+            )}
+          </p>
+        )}
         <Form
           onSubmit={this.handleSubmit}
           submitLabel={t('Transfer Project')}
           submitPriority="danger"
-          initialData={{organization: choices[0] && choices[0][0]}}
+          initialData={organization ? {organization} : undefined}
         >
           <SelectField
             deprecatedSelectControl
