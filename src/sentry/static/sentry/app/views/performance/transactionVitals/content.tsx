@@ -12,6 +12,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SearchBar from 'app/views/events/searchBar';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
@@ -63,7 +64,13 @@ class VitalsContent extends React.Component<Props, State> {
   };
 
   handleResetView = () => {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.reset_view',
+      eventName: 'Performance Views: Reset vitals view',
+      organization_id: organization.id,
+    });
 
     const query = {...location.query};
     // reset all zoom parameters when resetting the view
@@ -85,7 +92,14 @@ class VitalsContent extends React.Component<Props, State> {
   }
 
   handleFilterChange = (value: string) => {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.filter_changed',
+      eventName: 'Performance Views: Change vitals filter',
+      organization_id: organization.id,
+      value,
+    });
 
     const query = {
       ...location.query,

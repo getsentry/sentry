@@ -167,7 +167,7 @@ const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
   background: ${p => p.theme.white};
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.border};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};

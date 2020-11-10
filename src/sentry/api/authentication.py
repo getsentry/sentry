@@ -163,6 +163,7 @@ class TokenAuthentication(StandardAuthentication):
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)
             scope.set_tag("api_token", token.id)
+            scope.set_tag("api_token_is_sentry_app", getattr(token.user, "is_sentry_app", False))
 
         return (token.user, token)
 

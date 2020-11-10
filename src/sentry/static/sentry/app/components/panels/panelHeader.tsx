@@ -34,7 +34,7 @@ const PanelHeader = styled('div')<Props>`
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.gray100};
   line-height: 1;

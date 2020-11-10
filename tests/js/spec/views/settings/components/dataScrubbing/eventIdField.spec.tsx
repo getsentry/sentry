@@ -58,7 +58,7 @@ describe('EventIdField', () => {
     const iconCheckmark = eventIdField.find('IconCheckmark');
     expect(iconCheckmark).toHaveLength(1);
     const iconCheckmarkColor = iconCheckmark.prop('color');
-    expect(theme[iconCheckmarkColor]).toBe(theme.green400);
+    expect(theme[iconCheckmarkColor]).toBe(theme.green300);
   });
 
   it('ERROR status', () => {

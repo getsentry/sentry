@@ -95,7 +95,7 @@ const Section = styled('div')`
 `;
 
 const StyledIssueCard = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 

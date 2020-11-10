@@ -13,11 +13,6 @@ from sentry.utils.samples import load_data
 
 from .page_objects.base import BasePage
 
-FEATURE_NAMES = (
-    "organizations:trends",
-    "organizations:performance-view",
-)
-
 
 class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     def make_trend(
@@ -71,7 +66,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
-        with self.feature(FEATURE_NAMES):
+        with self.feature("organizations:performance-view"):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
             trend_item = '[data-test-id="trends-list-item-regression"]'

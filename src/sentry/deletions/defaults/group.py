@@ -24,6 +24,7 @@ GROUP_RELATED_MODELS = (
     models.GroupSeen,
     models.GroupShare,
     models.GroupSnooze,
+    models.GroupInbox,
     models.GroupEmailThread,
     models.GroupSubscription,
     models.UserReport,

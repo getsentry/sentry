@@ -2,6 +2,7 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import memoize from 'lodash/memoize';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
@@ -51,6 +52,8 @@ class ReleaseSeries extends React.Component {
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
     tooltip: SentryTypes.EChartsTooltip,
+
+    memoized: PropTypes.bool,
   };
 
   state = {
@@ -88,8 +91,23 @@ class ReleaseSeries extends React.Component {
     this.props.api.clear();
   }
 
+  getOrganizationReleasesMemoized = memoize(
+    async (api, conditions, organization) =>
+      await getOrganizationReleases(api, conditions, organization),
+    (_, __, conditions) => `${Object.values(conditions).map(JSON.stringify).join('-')}`
+  );
+
   async fetchData() {
-    const {api, organization, projects, environments, period, start, end} = this.props;
+    const {
+      api,
+      organization,
+      projects,
+      environments,
+      period,
+      start,
+      end,
+      memoized,
+    } = this.props;
     const conditions = {
       start,
       end,
@@ -101,11 +119,10 @@ class ReleaseSeries extends React.Component {
     const releases = [];
     while (hasMore) {
       try {
-        const [newReleases, , xhr] = await getOrganizationReleases(
-          api,
-          organization,
-          conditions
-        );
+        const getReleases = memoized
+          ? this.getOrganizationReleasesMemoized
+          : getOrganizationReleases;
+        const [newReleases, , xhr] = await getReleases(api, organization, conditions);
         releases.push(...newReleases);
         if (this._isMounted) {
           this.setReleasesWithSeries(releases);
@@ -140,9 +157,10 @@ class ReleaseSeries extends React.Component {
       seriesName: 'Releases',
       data: [],
       markLine: MarkLine({
+        animation: false,
         lineStyle: {
           normal: {
-            color: theme.purple400,
+            color: theme.purple300,
             opacity: 0.3,
             type: 'solid',
           },

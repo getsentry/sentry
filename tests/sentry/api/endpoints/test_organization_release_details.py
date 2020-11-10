@@ -603,3 +603,9 @@ class ReleaseSerializerTest(unittest.TestCase):
         assert serializer.is_valid()
         serializer = OrganizationReleaseSerializer(data={"ref": "a" * (MAX_VERSION_LENGTH + 1)})
         assert not serializer.is_valid()
+
+    def test_author_email_patch(self):
+        serializer = OrganizationReleaseSerializer(
+            data={"commits": [{"id": "a", "author_email": "email[test]@example.org"}]}
+        )
+        assert serializer.is_valid()

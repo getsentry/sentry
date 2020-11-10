@@ -41,7 +41,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
-          if (!shouldDisplay) {
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
 
@@ -99,11 +99,13 @@ const StyledLabelContainer = styled('div')`
   top: 0;
   height: 100%;
   user-select: none;
+  white-space: nowrap;
 `;
 
 const Label = styled('div')`
   transform: translateX(-50%);
   font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
 `;
 
 export default MeasurementsPanel;

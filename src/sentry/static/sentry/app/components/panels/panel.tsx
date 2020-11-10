@@ -31,7 +31,7 @@ const Panel = styled(
   background: ${p => (p.dashedBorder ? p.theme.gray100 : '#fff')};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px
-    ${p => (p.dashedBorder ? 'dashed' + p.theme.gray500 : 'solid ' + p.theme.borderDark)};
+    ${p => (p.dashedBorder ? 'dashed' + p.theme.gray500 : 'solid ' + p.theme.border)};
   box-shadow: ${p => (p.dashedBorder ? 'none' : p.theme.dropShadowLight)};
   margin-bottom: ${space(3)};
   position: relative;

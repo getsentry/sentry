@@ -71,12 +71,12 @@ class SeenInfo extends React.Component<Props> {
           <React.Fragment>
             {toTitleCase(environment)}
             {': '}
-            <TimeSince date={date} />
+            <TimeSince date={date} disabledAbsoluteTooltip />
             <br />
           </React.Fragment>
         )}
         {t('Globally: ')}
-        <TimeSince date={dateGlobal} />
+        <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
       </div>
     );
   }
@@ -97,13 +97,13 @@ class SeenInfo extends React.Component<Props> {
           <TooltipWrapper>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
               <IconInfo size="xs" color="gray500" />
-              <TimeSince date={date} />
+              <TimeSince date={date} disabledAbsoluteTooltip />
             </Tooltip>
           </TooltipWrapper>
         ) : dateGlobal && environment === '' ? (
           <React.Fragment>
             <Tooltip title={this.getTooltipTitle()} disableForVisualTest>
-              <TimeSince date={dateGlobal} />
+              <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
             </Tooltip>
           </React.Fragment>
         ) : (

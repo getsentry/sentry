@@ -19,7 +19,6 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     failureThreshold: 3000,
     type: measurementType(WebVital.FP),
-    includeInSummary: true,
   },
   [WebVital.FCP]: {
     slug: 'fcp',
@@ -30,7 +29,6 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     failureThreshold: 3000,
     type: measurementType(WebVital.FCP),
-    includeInSummary: true,
   },
   [WebVital.LCP]: {
     slug: 'lcp',
@@ -41,7 +39,6 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     failureThreshold: 4000,
     type: measurementType(WebVital.LCP),
-    includeInSummary: true,
   },
   [WebVital.FID]: {
     slug: 'fid',
@@ -52,7 +49,6 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     ),
     failureThreshold: 300,
     type: measurementType(WebVital.FID),
-    includeInSummary: true,
   },
   [WebVital.CLS]: {
     slug: 'cls',

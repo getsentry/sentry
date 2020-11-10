@@ -1,4 +1,5 @@
 import {EChartOption} from 'echarts';
+import 'echarts/lib/component/markPoint';
 
 /**
  * eCharts markPoint

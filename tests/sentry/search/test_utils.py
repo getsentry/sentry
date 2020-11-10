@@ -404,6 +404,10 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("is:assigned")
         assert result == {"unassigned": False, "tags": {}, "query": ""}
 
+    def test_is_inbox(self):
+        result = self.parse_query("is:inbox")
+        assert result == {"inbox": True, "tags": {}, "query": ""}
+
     def test_age_from(self):
         result = self.parse_query("age:-24h")
         assert result["age_from"] > timezone.now() - timedelta(hours=25)

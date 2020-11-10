@@ -238,7 +238,7 @@ class ProjectSerializer(Serializer):
                 for project in projects:
                     for feature_name, active in batch_features.get(
                         "project:{}".format(project.id), {}
-                    ):
+                    ).items():
                         if active:
                             features_by_project[project].append(
                                 feature_name[len(_PROJECT_SCOPE_PREFIX) :]

@@ -8,7 +8,7 @@ import {tracing} from './platformCategories';
 const otherPlatform = {
   integrations: [
     {
-      link: 'https://docs.sentry.io/clients/',
+      link: 'https://docs.sentry.io/platforms/',
       type: 'language',
       id: 'other',
       name: t('Other'),

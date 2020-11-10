@@ -130,13 +130,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       case 'found':
         return (
           <IconWrapper>
-            <IconCheckmark isCircled color="green500" />
+            <IconCheckmark isCircled color="green300" />
           </IconWrapper>
         );
       default:
         return (
           <IconWrapper>
-            <IconFlag color="red400" />
+            <IconFlag color="red300" />
           </IconWrapper>
         );
     }

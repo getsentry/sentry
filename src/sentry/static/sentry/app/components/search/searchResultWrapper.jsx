@@ -18,12 +18,12 @@ const SearchResultWrapper = styled(props => (
   ${p =>
     p.highlighted &&
     css`
-      color: ${p.theme.purple500};
+      color: ${p.theme.purple300};
       background: ${p.theme.gray100};
     `};
 
   &:not(:first-child) {
-    border-top: 1px solid ${p => p.theme.borderLight};
+    border-top: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 

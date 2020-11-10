@@ -68,7 +68,7 @@ const Edit = styled('a')`
 
 const Remove = styled('span')`
   ${getActionStyle};
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.border};
 
   &:hover {
     color: ${p => p.theme.error};

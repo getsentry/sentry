@@ -73,6 +73,6 @@ class MergedList extends React.Component {
 export default MergedList;
 
 const MergedItems = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-top: none;
 `;

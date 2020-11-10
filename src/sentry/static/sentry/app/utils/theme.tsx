@@ -15,23 +15,17 @@ const colors = {
   gray700: '#4A3E56',
   gray800: '#302839',
 
-  yellow100: '#FFF9DF',
-  yellow200: '#FFF8C4',
-  yellow300: '#FFF492',
-  yellow400: '#FFC227',
-  yellow500: '#E2A301',
+  yellow100: '#FDE8b4',
+  yellow200: '#FFD577',
+  yellow300: '#FFC227',
 
-  purple100: '#F5E9FF',
-  purple200: '#E7D3FF',
-  purple300: '#B9A2FD',
-  purple400: '#6C5FC7',
-  purple500: '#3E2C73',
+  purple100: '#D4D1EC',
+  purple200: '#A396DA',
+  purple300: '#6C5FC7',
 
-  blue100: '#E9F2FF',
-  blue200: '#AFC7EE',
-  blue300: '#7199DD',
-  blue400: '#3D74DB',
-  blue500: '#194591',
+  blue100: '#D2DFF7',
+  blue200: '#92A8EA',
+  blue300: '#3D74DB',
 
   orange100: '#FFF1ED',
   orange200: '#F9C7B9',
@@ -39,35 +33,17 @@ const colors = {
   orange400: '#FF7738',
   orange500: '#BA4A23',
 
-  red100: '#FFECF0',
-  red200: '#F4B1BB',
-  red300: '#EA7282',
-  red400: '#FA4747',
-  red500: '#AC1025',
+  red100: '#FCC6C8',
+  red200: '#FD918F',
+  red300: '#F55459',
 
-  green100: '#E4F9F0',
-  green200: '#C0F3DD',
-  green300: '#8FE7BF',
-  green400: '#4DC771',
-  green500: '#1C8952',
+  green100: '#B6ECDF',
+  green200: '#7DD6BE',
+  green300: '#33BF9E',
 
-  pink100: '#FFE1ED',
-  pink200: '#FFCEE4',
-  pink300: '#FF99BC',
-  pink400: '#E1567C',
-  pink500: '#902D4C',
-
-  get borderLighter() {
-    return colors.gray100;
-  },
-
-  get borderLight() {
-    return colors.gray300;
-  },
-
-  get borderDark() {
-    return colors.gray400;
-  },
+  pink100: '#FDC9D7',
+  pink200: '#FA93AB',
+  pink300: '#F05781',
 } as const;
 
 const aliases = {
@@ -104,19 +80,24 @@ const aliases = {
   /**
    * Primary border color
    */
-  border: colors.gray200,
+  border: colors.gray400,
+
+  /**
+   * Inner borders, e.g. borders inside of a grid
+   */
+  innerBorder: colors.gray300,
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: colors.green400, // TODO(dark): colors.green300,
+  success: colors.green300, // TODO(dark): colors.green200,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: colors.red400, // TODO(dark): colors.red300,
+  error: colors.red300, // TODO(dark): colors.red300,
 
-  /**
+  /**red200
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
@@ -128,14 +109,19 @@ const aliases = {
   active: colors.pink300,
 
   /**
+   * Inactive
+   */
+  inactive: colors.gray300,
+
+  /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.purple300,
+  linkColor: colors.purple200,
 
   /**
    * ...
    */
-  secondaryButton: colors.purple300,
+  secondaryButton: colors.purple200,
 
   /**
    * Gradient for sidebar
@@ -170,38 +156,38 @@ const aliases = {
 } as const;
 
 const warning = {
-  background: colors.yellow500,
-  backgroundLight: colors.yellow100,
-  border: colors.yellow400,
-  iconColor: colors.yellow500,
+  background: colors.yellow100,
+  backgroundLight: color(colors.yellow100).alpha(0.3).string(),
+  border: colors.yellow300,
+  iconColor: colors.yellow300,
 } as const;
 
 const alert = {
   muted: {
     background: colors.gray400,
     backgroundLight: colors.gray100,
-    border: colors.borderDark,
+    border: aliases.border,
     iconColor: 'inherit',
   },
   info: {
-    background: colors.blue400,
-    backgroundLight: colors.blue100,
+    background: colors.blue300,
+    backgroundLight: color(colors.blue100).alpha(0.3).string(),
     border: colors.blue200,
-    iconColor: colors.blue400,
+    iconColor: colors.blue300,
   },
   warning,
   warn: warning,
   success: {
-    background: colors.green400,
-    backgroundLight: colors.green100,
-    border: colors.green300,
-    iconColor: colors.green500,
+    background: colors.green300,
+    backgroundLight: color(colors.green100).alpha(0.3).string(),
+    border: colors.green200,
+    iconColor: colors.green300,
   },
   error: {
-    background: colors.red400,
-    backgroundLight: colors.red100,
+    background: colors.red300,
+    backgroundLight: color(colors.red100).alpha(0.3).string(),
     border: colors.red200,
-    iconColor: colors.red400,
+    iconColor: colors.red300,
     textLight: colors.red200,
   },
 } as const;
@@ -212,19 +198,19 @@ const badge = {
     indicatorColor: colors.orange400,
   },
   beta: {
-    background: `linear-gradient(90deg, ${colors.pink400}, ${colors.purple400})`,
-    indicatorColor: colors.purple400,
+    background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
+    indicatorColor: colors.purple300,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green400}, ${colors.green500})`,
-    indicatorColor: colors.green400,
+    background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
+    indicatorColor: colors.green300,
   },
 };
 
 const tag = {
   default: {
     background: colors.gray200,
-    iconColor: colors.purple400,
+    iconColor: colors.purple300,
   },
   promotion: {
     background: colors.orange100,
@@ -232,23 +218,23 @@ const tag = {
   },
   highlight: {
     background: colors.purple100,
-    iconColor: colors.purple400,
+    iconColor: colors.purple300,
   },
   warning: {
     background: colors.yellow100,
-    iconColor: colors.yellow400,
+    iconColor: colors.yellow300,
   },
   success: {
     background: colors.green100,
-    iconColor: colors.green400,
+    iconColor: colors.green300,
   },
   error: {
     background: colors.red100,
-    iconColor: colors.red400,
+    iconColor: colors.red300,
   },
   info: {
     background: colors.blue100,
-    iconColor: colors.blue400,
+    iconColor: colors.blue300,
   },
   white: {
     background: colors.white,
@@ -271,33 +257,33 @@ const generateButtonTheme = alias => ({
   primary: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.purple400,
+    background: colors.purple300,
     backgroundActive: '#4e3fb4',
     border: '#3d328e',
     borderActive: '#352b7b',
-    focusShadow: color(colors.purple400).alpha(0.4).string(),
+    focusShadow: color(colors.purple300).alpha(0.4).string(),
   },
   success: {
     color: colors.white,
     colorActive: colors.white,
     background: '#3fa372',
-    backgroundActive: colors.green400,
+    backgroundActive: colors.green300,
     border: '#7ccca5',
     borderActive: '#7ccca5',
-    focusShadow: color(colors.green400).alpha(0.5).string(),
+    focusShadow: color(colors.green300).alpha(0.5).string(),
   },
   danger: {
     color: colors.white,
     colorActive: colors.white,
-    background: colors.red400,
+    background: colors.red300,
     backgroundActive: '#bf2a1d',
     border: '#bf2a1d',
     borderActive: '#7d1c13',
-    focusShadow: color(colors.red400).alpha(0.5).string(),
+    focusShadow: color(colors.red300).alpha(0.5).string(),
   },
   link: {
-    color: colors.blue400,
-    colorActive: colors.blue400,
+    color: colors.blue300,
+    colorActive: colors.blue300,
     background: 'transparent',
     border: false,
     borderActive: false,

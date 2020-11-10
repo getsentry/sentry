@@ -115,7 +115,7 @@ export default styled(RRWebReplayer)`
     position: absolute;
     top: 2px;
     transform: translate(-50%, -50%);
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
   }
 
   .rr-controller__btns {
@@ -144,7 +144,7 @@ export default styled(RRWebReplayer)`
 
   .rr-controller__btns button.active {
     color: #fff;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
   }
 
   .rr-controller__btns button:disabled {
@@ -189,7 +189,7 @@ export default styled(RRWebReplayer)`
     height: 1em;
     left: 0.1em;
     transition: background 0.1s ease;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     border-radius: 50px;
   }
 
@@ -208,7 +208,7 @@ export default styled(RRWebReplayer)`
   }
 
   .switch input[type='checkbox']:checked + label:before {
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
   }
 
   .switch input[type='checkbox']:checked + label:after {

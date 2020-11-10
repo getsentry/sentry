@@ -29,7 +29,7 @@ const getMarginLeft = (p: StyleFuncProps) =>
   p.inline ? `margin-left: ${p.size === 'small' ? '0.25em' : '0.5em'};` : '';
 
 const getBorder = (p: StyleFuncProps) =>
-  p.border ? `border: 1px solid ${getPriority(p)?.border ?? p.theme.borderDark};` : '';
+  p.border ? `border: 1px solid ${getPriority(p)?.border ?? p.theme.border};` : '';
 
 const Tag = styled(
   ({

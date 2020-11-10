@@ -65,7 +65,7 @@ class IntegrationEventAction(EventAction):
         :raises: Integration.DoesNotExist
         :return: Integration
         """
-        return Integration.objects.filter(
+        return Integration.objects.get(
             id=self.get_option(self.integration_key),
             provider=self.provider,
             organizations=self.project.organization,

@@ -10,28 +10,24 @@ import theme from 'app/utils/theme';
 type Props = {
   statsPeriod: string;
   data: Group;
-  hasDynamicIssueCounts?: boolean;
   height?: number;
   showSecondaryPoints?: boolean;
 };
 
 function GroupChart({
   data,
-  hasDynamicIssueCounts,
   statsPeriod,
   showSecondaryPoints = false,
   height = 24,
 }: Props) {
   const stats: TimeseriesValue[] = statsPeriod
-    ? hasDynamicIssueCounts && data.filtered
+    ? data.filtered
       ? data.filtered.stats[statsPeriod]
       : data.stats[statsPeriod]
     : null;
 
   const secondaryStats: TimeseriesValue[] | null =
-    statsPeriod && hasDynamicIssueCounts && data.filtered
-      ? data.stats[statsPeriod]
-      : null;
+    statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
 
   if (!stats || !stats.length) {
     return null;
@@ -54,7 +50,7 @@ function GroupChart({
     // Colors are custom to preserve historical appearance where the single series is
     // considerably darker than the two series results.
     colors = [theme.gray500];
-    emphasisColors = [theme.purple400];
+    emphasisColors = [theme.purple300];
     series.push({
       seriesName: t('Events'),
       data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),

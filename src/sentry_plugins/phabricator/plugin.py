@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.conf.urls import url
 from rest_framework.response import Response
 
@@ -226,8 +228,8 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
-                title=form_data["title"].encode("utf-8"),
-                description=form_data["description"].encode("utf-8"),
+                title=six.text_type(form_data["title"]),
+                description=six.text_type(form_data["description"]),
                 ownerPHID=form_data.get("assignee"),
                 projectPHIDs=form_data.get("tags"),
             )

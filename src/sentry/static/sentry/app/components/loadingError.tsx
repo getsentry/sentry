@@ -6,6 +6,7 @@ import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -36,22 +37,29 @@ class LoadingError extends React.Component<Props> {
   render() {
     const {message, onRetry} = this.props;
     return (
-      <Alert type="error">
+      <StyledAlert type="error">
         <Content>
           <IconInfo size="lg" />
           <div data-test-id="loading-error-message">{message}</div>
           {onRetry && (
-            <Button onClick={onRetry} priority="default" size="small">
+            <Button onClick={onRetry} type="button" priority="default" size="small">
               {t('Retry')}
             </Button>
           )}
         </Content>
-      </Alert>
+      </StyledAlert>
     );
   }
 }
 
 export default LoadingError;
+
+const StyledAlert = styled(Alert)`
+  ${/* sc-selector */ Panel} & {
+    border-radius: 0;
+    border-width: 1px 0;
+  }
+`;
 
 const Content = styled('div')`
   display: grid;

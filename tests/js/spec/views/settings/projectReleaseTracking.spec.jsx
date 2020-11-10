@@ -61,6 +61,10 @@ describe('ProjectReleaseTracking', function () {
     const mock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
+      body: {
+        webhookUrl: 'webhook-url',
+        token: 'token token token',
+      },
     });
 
     // Click Regenerate Token

@@ -104,12 +104,11 @@ class CloudflareWebhookEndpoint(Endpoint):
         }
         if not enum_choices:
             return self.on_organization_clear(request, data, is_test)
-        else:
-            if data["install"]["options"].get("organization") not in enum_choices:
-                data["install"]["options"]["organization"] = enum_choices[0]
-            return self.on_organization_change(request, data, is_test)
 
-        return Response({"install": data["install"], "proceed": True})
+        if data["install"]["options"].get("organization") not in enum_choices:
+            data["install"]["options"]["organization"] = enum_choices[0]
+
+        return self.on_organization_change(request, data, is_test)
 
     @requires_auth
     def on_organization_clear(self, request, data, is_test):
@@ -144,12 +143,11 @@ class CloudflareWebhookEndpoint(Endpoint):
         }
         if not enum_choices:
             return self.on_project_clear(request, data, is_test)
-        else:
-            if data["install"]["options"].get("project") not in enum_choices:
-                data["install"]["options"]["project"] = enum_choices[0]
-            return self.on_project_change(request, data, is_test)
 
-        return Response({"install": data["install"], "proceed": True})
+        if data["install"]["options"].get("project") not in enum_choices:
+            data["install"]["options"]["project"] = enum_choices[0]
+
+        return self.on_project_change(request, data, is_test)
 
     @requires_auth
     def on_project_clear(self, request, data, is_test):
@@ -177,7 +175,8 @@ class CloudflareWebhookEndpoint(Endpoint):
         }
         if not enum_choices:
             return self.on_dsn_clear(request, data, is_test)
-        elif data["install"]["options"].get("dsn") not in enum_choices:
+
+        if data["install"]["options"].get("dsn") not in enum_choices:
             data["install"]["options"]["dsn"] = enum_choices[0]
 
         return Response({"install": data["install"], "proceed": True})

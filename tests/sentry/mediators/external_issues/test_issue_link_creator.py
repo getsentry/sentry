@@ -52,6 +52,8 @@ class TestIssueLinkCreator(TestCase):
 
         external_issue = PlatformExternalIssue.objects.all()[0]
         assert result == external_issue
+        assert external_issue.group_id == self.group.id
+        assert external_issue.project_id == self.group.project.id
         assert external_issue.web_url == "https://example.com/project/issue-id"
         assert external_issue.display_name == "ProjectName#issue-1"
 

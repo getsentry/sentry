@@ -147,13 +147,13 @@ const StyledSelect = styled(SelectPicker)`
   font-size: 15px;
 
   .Select-control {
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.border};
     height: ${p => p.height}px;
     overflow: visible;
   }
 
   &.Select.is-focused > .Select-control {
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.border};
     border-color: ${p => p.theme.gray700};
     box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
@@ -190,7 +190,7 @@ const StyledSelect = styled(SelectPicker)`
 
   .Select-option.is-focused {
     color: white;
-    background-color: ${p => p.theme.purple400};
+    background-color: ${p => p.theme.purple300};
   }
   .Select-multi-value-wrapper {
     > a {

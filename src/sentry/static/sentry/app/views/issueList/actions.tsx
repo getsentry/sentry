@@ -1,22 +1,13 @@
 import capitalize from 'lodash/capitalize';
 import uniq from 'lodash/uniq';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import {Client} from 'app/api';
-import {
-  GlobalSelection,
-  Group,
-  Organization,
-  Project,
-  UpdateResolutionStatus,
-} from 'app/types';
+import {GlobalSelection, Group, Project, ResolutionStatus} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -29,11 +20,10 @@ import MenuItem from 'app/components/menuItem';
 import Projects from 'app/utils/projects';
 import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import SentryTypes from 'app/sentryTypes';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
-import QuestionTooltip from 'app/components/questionTooltip';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -154,7 +144,6 @@ const ExtraDescription = ({all, query, queryCount}: ExtraDescriptionProps) => {
 type Props = {
   api: Client;
   allResultsVisible: boolean;
-  organization: Organization;
   orgId: string;
   selection: GlobalSelection;
   groupIds: string[];
@@ -176,36 +165,25 @@ type State = {
   selectedProjectSlug?: string;
 };
 
-const IssueListActions = createReactClass<Props, State>({
-  displayName: 'IssueListActions',
+class IssueListActions extends React.Component<Props, State> {
+  state: State = {
+    datePickerActive: false,
+    anySelected: false,
+    multiSelected: false, // more than one selected
+    pageSelected: false, // all on current page selected (e.g. 25)
+    allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
+    selectedIds: new Set(),
+  };
 
-  propTypes: {
-    api: PropTypes.object,
-    allResultsVisible: PropTypes.bool,
-    organization: SentryTypes.Organization.isRequired,
-    orgId: PropTypes.string.isRequired,
-    selection: SentryTypes.GlobalSelection.isRequired,
-    groupIds: PropTypes.instanceOf(Array).isRequired,
-    onRealtimeChange: PropTypes.func.isRequired,
-    onSelectStatsPeriod: PropTypes.func.isRequired,
-    realtimeActive: PropTypes.bool.isRequired,
-    statsPeriod: PropTypes.string.isRequired,
-    query: PropTypes.string.isRequired,
-    queryCount: PropTypes.number,
-  },
+  componentDidMount() {
+    this.handleSelectedGroupChange();
+  }
 
-  mixins: [Reflux.listenTo(SelectedGroupStore, 'handleSelectedGroupChange') as any],
+  componentWillUnmount() {
+    callIfFunction(this.listener);
+  }
 
-  getInitialState() {
-    return {
-      datePickerActive: false,
-      anySelected: false,
-      multiSelected: false, // more than one selected
-      pageSelected: false, // all on current page selected (e.g. 25)
-      allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
-      selectedIds: new Set(),
-    };
-  },
+  listener = SelectedGroupStore.listen(() => this.handleSelectedGroupChange(), undefined);
 
   actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
     let selectedIds: string[] | undefined;
@@ -220,12 +198,12 @@ const IssueListActions = createReactClass<Props, State>({
     callback(selectedIds);
 
     this.deselectAll();
-  },
+  }
 
   deselectAll() {
     SelectedGroupStore.deselectAll();
     this.setState({allInQuerySelected: false});
-  },
+  }
 
   // Handler for when `SelectedGroupStore` changes
   handleSelectedGroupChange() {
@@ -240,7 +218,7 @@ const IssueListActions = createReactClass<Props, State>({
     // we only want selectedProjectSlug set if there is 1 project
     // more or fewer should result in a null so that the action toolbar
     // can behave correctly.
-    const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : null;
+    const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
 
     this.setState({
       pageSelected: SelectedGroupStore.allSelected(),
@@ -250,19 +228,19 @@ const IssueListActions = createReactClass<Props, State>({
       selectedIds: SelectedGroupStore.getSelectedIds(),
       selectedProjectSlug,
     });
-  },
+  }
 
   handleSelectStatsPeriod(period: string) {
     return this.props.onSelectStatsPeriod(period);
-  },
+  }
 
-  handleApplyToAll() {
+  handleApplyToAll = () => {
     this.setState({
       allInQuerySelected: true,
     });
-  },
+  };
 
-  handleUpdate(data: UpdateResolutionStatus) {
+  handleUpdate = (data?: any) => {
     const {selection} = this.props;
     this.actionSelectedGroups(itemIds => {
       addLoadingMessage(t('Saving changes\u2026'));
@@ -292,9 +270,9 @@ const IssueListActions = createReactClass<Props, State>({
         }
       );
     });
-  },
+  };
 
-  handleDelete() {
+  handleDelete = () => {
     const {selection} = this.props;
 
     addLoadingMessage(t('Removing events\u2026'));
@@ -316,9 +294,9 @@ const IssueListActions = createReactClass<Props, State>({
         }
       );
     });
-  },
+  };
 
-  handleMerge() {
+  handleMerge = () => {
     const {selection} = this.props;
 
     addLoadingMessage(t('Merging events\u2026'));
@@ -340,17 +318,17 @@ const IssueListActions = createReactClass<Props, State>({
         }
       );
     });
-  },
+  };
 
   handleSelectAll() {
     SelectedGroupStore.toggleSelectAll();
-  },
+  }
 
-  handleRealtimeChange() {
+  handleRealtimeChange = () => {
     this.props.onRealtimeChange(!this.props.realtimeActive);
-  },
+  };
 
-  shouldConfirm(
+  shouldConfirm = (
     action:
       | 'resolve'
       | 'unresolve'
@@ -359,7 +337,7 @@ const IssueListActions = createReactClass<Props, State>({
       | 'bookmark'
       | 'merge'
       | 'delete'
-  ) {
+  ) => {
     const selectedItems = SelectedGroupStore.getSelectedIds();
     switch (action) {
       case 'resolve':
@@ -374,25 +352,29 @@ const IssueListActions = createReactClass<Props, State>({
       default:
         return true; // By default, should confirm ...
     }
-  },
+  };
 
-  renderResolveActions({
-    hasReleases,
-    latestRelease,
-    projectId,
-    confirm,
-    label,
-    loadingProjects,
-    projectFetchError,
-  }) {
+  renderResolveActions(params: any) {
+    const {
+      hasReleases,
+      latestRelease,
+      projectId,
+      confirm,
+      label,
+      loadingProjects,
+      projectFetchError,
+    } = params;
+
     const {orgId} = this.props;
     const {anySelected} = this.state;
 
     // resolve requires a single project to be active in an org context
     // projectId is null when 0 or >1 projects are selected.
-    const resolveDisabled = !anySelected || projectFetchError;
-    const resolveDropdownDisabled =
-      !(anySelected && projectId) || loadingProjects || projectFetchError;
+    const resolveDisabled = Boolean(!anySelected || projectFetchError);
+    const resolveDropdownDisabled = Boolean(
+      !anySelected || !projectId || loadingProjects || projectFetchError
+    );
+
     return (
       <ResolveActions
         hasRelease={hasReleases}
@@ -408,12 +390,11 @@ const IssueListActions = createReactClass<Props, State>({
         projectFetchError={projectFetchError}
       />
     );
-  },
+  }
 
   render() {
     const {
       allResultsVisible,
-      organization,
       orgId,
       queryCount,
       query,
@@ -432,7 +413,6 @@ const IssueListActions = createReactClass<Props, State>({
     } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
-    const hasDynamicIssueCounts = organization.features.includes('dynamic-issue-counts');
 
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
@@ -550,7 +530,9 @@ const IssueListActions = createReactClass<Props, State>({
                   <ActionLink
                     className="action-unresolve"
                     disabled={!anySelected}
-                    onAction={() => this.handleUpdate({status: 'unresolved'})}
+                    onAction={() =>
+                      this.handleUpdate({status: ResolutionStatus.UNRESOLVED})
+                    }
                     shouldConfirm={this.shouldConfirm('unresolve')}
                     message={confirm('unresolve', true)}
                     confirmLabel={label('unresolve')}
@@ -603,52 +585,18 @@ const IssueListActions = createReactClass<Props, State>({
               >
                 {t('24h')}
               </GraphToggle>
-              {hasDynamicIssueCounts ? (
-                <GraphToggle
-                  active={statsPeriod === 'auto'}
-                  onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
-                >
-                  {selection.datetime.period || t('Custom')}
-                </GraphToggle>
-              ) : (
-                <GraphToggle
-                  active={statsPeriod === '14d'}
-                  onClick={this.handleSelectStatsPeriod.bind(this, '14d')}
-                >
-                  {t('14d')}
-                </GraphToggle>
-              )}
+              <GraphToggle
+                active={statsPeriod === 'auto'}
+                onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
+              >
+                {selection.datetime.period || t('Custom')}
+              </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
-          {hasDynamicIssueCounts ? (
-            <React.Fragment>
-              <EventsOrUsersLabel className="align-right">
-                {t('Events')}
-              </EventsOrUsersLabel>
-              <EventsOrUsersLabel className="align-right">
-                {t('Users')}
-              </EventsOrUsersLabel>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              <EventsOrUsersLabel className="align-right">
-                {t('Events')}
-                <StyledQuestionTooltip
-                  title={t('Number of events since the issue was created')}
-                  size="xs"
-                  position="top"
-                />
-              </EventsOrUsersLabel>
-              <EventsOrUsersLabel className="align-right">
-                {t('Users')}
-                <StyledQuestionTooltip
-                  title={t('Unique users affected since the issue was created')}
-                  size="xs"
-                  position="top"
-                />
-              </EventsOrUsersLabel>
-            </React.Fragment>
-          )}
+          <React.Fragment>
+            <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
+            <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
+          </React.Fragment>
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
@@ -694,8 +642,8 @@ const IssueListActions = createReactClass<Props, State>({
         )}
       </Sticky>
     );
-  },
-});
+  }
+}
 
 const Sticky = styled('div')`
   position: sticky;
@@ -709,7 +657,7 @@ const StyledFlex = styled('div')`
   padding-bottom: ${space(1)};
   align-items: center;
   background: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;
 `;
@@ -767,12 +715,6 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-
 const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
   grid-auto-flow: column;
@@ -810,8 +752,8 @@ const IconPad = styled('span')`
 
 const SelectAllNotice = styled('div')`
   background-color: ${p => p.theme.yellow100};
-  border-top: 1px solid ${p => p.theme.yellow400};
-  border-bottom: 1px solid ${p => p.theme.yellow400};
+  border-top: 1px solid ${p => p.theme.yellow300};
+  border-bottom: 1px solid ${p => p.theme.yellow300};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};

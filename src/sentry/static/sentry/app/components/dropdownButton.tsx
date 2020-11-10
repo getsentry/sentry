@@ -64,13 +64,13 @@ const StyledButton = styled(Button)<
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
   border-bottom-color: ${p =>
-    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.borderDark};
+    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
 
   &:active,
   &:focus,
   &:hover {
     border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.borderDark};
+      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
   }
 `;
 

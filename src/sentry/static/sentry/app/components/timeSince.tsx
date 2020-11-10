@@ -6,6 +6,9 @@ import moment from 'moment-timezone';
 
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
+
+import Tooltip from './tooltip';
 
 const ONE_MINUTE_IN_MS = 60000;
 
@@ -26,6 +29,11 @@ type Props = DefaultProps & {
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
   date: RelaxedDateType;
+
+  /**
+   * By default we show tooltip with absolute date on hover, this prop disables that
+   */
+  disabledAbsoluteTooltip?: boolean;
 
   className?: string;
 } & TimeProps;
@@ -79,21 +87,30 @@ class TimeSince extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {date, suffix: _suffix, className, ...props} = this.props;
+    const {
+      date,
+      suffix: _suffix,
+      disabledAbsoluteTooltip,
+      className,
+      ...props
+    } = this.props;
     const dateObj = getDateObj(date);
     const user = ConfigStore.get('user');
     const options = user ? user.options : null;
-    const format = options?.clock24Hours ? 'MMMM D YYYY HH:mm:ss z' : 'LLL z';
+    const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
+    const tooltip = getDynamicText({
+      fixed: options?.clock24Hours
+        ? 'November 3, 2020 08:57 UTC'
+        : 'November 3, 2020 8:58 AM UTC',
+      value: moment.tz(dateObj, options?.timezone ?? '').format(format),
+    });
 
     return (
-      <time
-        dateTime={dateObj.toISOString()}
-        title={moment.tz(dateObj, options?.timezone ?? '').format(format)}
-        className={className}
-        {...props}
-      >
-        {this.state.relative}
-      </time>
+      <Tooltip title={tooltip} disabled={disabledAbsoluteTooltip}>
+        <time dateTime={dateObj.toISOString()} className={className} {...props}>
+          {this.state.relative}
+        </time>
+      </Tooltip>
     );
   }
 }

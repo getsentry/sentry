@@ -395,7 +395,7 @@ const OverflowWrapper = styled('div')`
 `;
 
 const InviteSection = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   margin-top: ${space(2)};
   padding-top: ${space(2)};
 `;

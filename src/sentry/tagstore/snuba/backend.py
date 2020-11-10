@@ -723,19 +723,17 @@ class SnubaTagStorage(TagStorage):
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:
-            conditions.append(
-                [
-                    snuba_key,
-                    "IN",
-                    # Here we want to use the status codes during filtering,
-                    # but want to do this with names that include our query
-                    [
-                        span_key
-                        for span_key, value in six.iteritems(SPAN_STATUS_CODE_TO_NAME)
-                        if (query and query in value) or (not query)
-                    ],
-                ]
-            )
+            # Here we want to use the status codes during filtering,
+            # but want to do this with names that include our query
+            status_codes = [
+                span_key
+                for span_key, value in six.iteritems(SPAN_STATUS_CODE_TO_NAME)
+                if (query and query in value) or (not query)
+            ]
+            if status_codes:
+                conditions.append([snuba_key, "IN", status_codes])
+            else:
+                return SequencePaginator([])
         elif key in FUZZY_NUMERIC_KEYS:
             converted_query = int(query) if query is not None and query.isdigit() else None
             if converted_query is not None:

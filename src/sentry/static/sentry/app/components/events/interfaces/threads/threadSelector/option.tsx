@@ -44,14 +44,14 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="blue400">
+        <InnerCell color="blue300">
           <Tooltip title={label} position="top">
             <TextOverflow>{label}</TextOverflow>
           </Tooltip>
         </InnerCell>
       </GridCell>
       <GridCell>
-        <InnerCell color="purple400">
+        <InnerCell color="purple300">
           <Tooltip title={filename} position="top">
             <TextOverflow>{filename}</TextOverflow>
           </Tooltip>
@@ -68,10 +68,10 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
                 })}
                 position="top"
               >
-                <IconFire color="red400" />
+                <IconFire color="red300" />
               </Tooltip>
             ) : (
-              <IconFire color="red400" />
+              <IconFire color="red300" />
             )}
           </InnerCell>
         )}

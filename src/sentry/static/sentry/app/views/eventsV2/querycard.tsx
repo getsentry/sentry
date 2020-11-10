@@ -74,7 +74,7 @@ class QueryCard extends React.PureComponent<Props> {
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.borderLight};
+  border: 3px solid ${p => p.theme.border};
   border-radius: 50%;
   height: min-content;
 `;
@@ -135,7 +135,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
   padding-left: ${space(1)};
 `;
 

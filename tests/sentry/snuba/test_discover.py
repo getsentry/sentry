@@ -464,6 +464,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[1]["transaction"] == "c" * 32
         assert data[1]["count"] == 3
 
+    def test_count_with_or(self):
+        data = load_data("transaction", timestamp=before_now(seconds=3))
+        data["transaction"] = "a" * 32
+        self.store_event(data=data, project_id=self.project.id)
+
+        results = discover.query(
+            selected_columns=["transaction", "count()"],
+            query="event.type:transaction AND (count():<1 OR count():>0)",
+            params={"project_id": [self.project.id]},
+            orderby="transaction",
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0]["transaction"] == "a" * 32
+        assert data[0]["count"] == 1
+
     def test_access_to_private_functions(self):
         # using private functions directly without access should error
         with pytest.raises(InvalidSearchQuery, match="array_join: no access to private function"):
@@ -808,7 +826,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01, percentile_range_1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -860,7 +878,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
+                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01, avg_range_1)",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -888,70 +906,6 @@ class QueryTransformTest(TestCase):
                         ],
                     ],
                     "avg_range_1",
-                ]
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["transaction"],
-            conditions=[],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_selected_columns_user_misery_range_function(self, mock_query):
-        mock_query.return_value = {
-            "meta": [{"name": "transaction"}, {"name": "firstUserMisery"}],
-            "data": [{"transaction": "api.do_things", "firstUserMisery": 15}],
-        }
-        discover.query(
-            selected_columns=[
-                "transaction",
-                "user_misery_range(300, 2020-05-02T13:45:01, 2020-05-02T14:45:01, 1)",
-            ],
-            query="",
-            params={"project_id": [self.project.id]},
-            auto_fields=True,
-        )
-        mock_query.assert_called_with(
-            selected_columns=["transaction"],
-            aggregations=[
-                [
-                    "uniqIf",
-                    [
-                        "user",
-                        [
-                            "and",
-                            [
-                                ["greater", ["duration", 1200]],
-                                [
-                                    "and",
-                                    [
-                                        [
-                                            "lessOrEquals",
-                                            [
-                                                ["toDateTime", ["'2020-05-02T13:45:01'"]],
-                                                "timestamp",
-                                            ],
-                                        ],
-                                        [
-                                            "greater",
-                                            [
-                                                ["toDateTime", ["'2020-05-02T14:45:01'"]],
-                                                "timestamp",
-                                            ],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                    "user_misery_range_1",
                 ]
             ],
             filter_keys={"project_id": [self.project.id]},

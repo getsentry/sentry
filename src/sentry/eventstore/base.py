@@ -29,6 +29,7 @@ class Filter(object):
     groupby (Sequence[str]): List of columns to group results by
 
     condition_aggregates (Sequence[str]): List of aggregates used in the condition
+    aliases (Dict[str, Alias]): Endpoint specific aliases
     """
 
     def __init__(
@@ -48,6 +49,7 @@ class Filter(object):
         groupby=None,
         orderby=None,
         condition_aggregates=None,
+        aliases=None,
     ):
         self.start = start
         self.end = end
@@ -65,6 +67,7 @@ class Filter(object):
         self.groupby = groupby
         self.orderby = orderby
         self.condition_aggregates = condition_aggregates
+        self.aliases = aliases
 
     @property
     def filter_keys(self):

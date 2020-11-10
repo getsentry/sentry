@@ -196,7 +196,7 @@ class ExploreWidget extends React.Component {
 export default withOrganization(ExploreWidget);
 
 const ExploreRoot = styled('div')`
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.border};
   position: relative;
   ${p => p.isOpen && 'filter: drop-shadow(-7px -7px 12px rgba(47, 40, 55, 0.04));'};
 `;
@@ -208,13 +208,13 @@ const ExploreButton = styled(props => {
   return <ExploreAction {...remaining} />;
 })`
   position: relative;
-  color: ${p => (p.isOpen ? p.theme.purple400 : p.theme.gray500)};
+  color: ${p => (p.isOpen ? p.theme.purple300 : p.theme.gray500)};
   padding: ${space(1)} ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} 0;
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 
   &:hover {
-    color: ${p => p.theme.purple400};
+    color: ${p => p.theme.purple300};
   }
 
   /* covers up borders to create a continous shape */
@@ -233,7 +233,7 @@ const ExploreMenu = styled('div')`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
   background-color: white;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const ExploreRow = styled('li')`

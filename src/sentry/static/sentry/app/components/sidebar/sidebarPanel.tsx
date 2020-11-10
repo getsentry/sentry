@@ -83,7 +83,7 @@ const PanelContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   background: ${p => p.theme.gray100};
   color: ${p => p.theme.sidebar.background};
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   line-height: 24px;
@@ -93,7 +93,7 @@ const PanelContainer = styled('div')`
 `;
 
 const SidebarPanelHeader = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(3)};
   background: ${p => p.theme.white};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);

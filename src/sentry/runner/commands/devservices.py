@@ -20,6 +20,17 @@ def get_docker_client():
         raise click.ClickException("Make sure Docker is running.")
 
 
+def get_docker_low_level_client():
+    import docker
+
+    client = docker.APIClient()
+    try:
+        client.ping()
+        return client
+    except Exception:
+        raise click.ClickException("Make sure Docker is running.")
+
+
 def get_or_create(client, thing, name):
     from docker.errors import NotFound
 
@@ -28,6 +39,39 @@ def get_or_create(client, thing, name):
     except NotFound:
         click.secho("> Creating '%s' %s" % (name, thing), err=True, fg="yellow")
         return getattr(client, thing + "s").create(name)
+
+
+def wait_for_healthcheck(low_level_client, container_name, healthcheck_options):
+    # healthcheck_options should be the dictionary for docker-py.
+
+    # Convert ns -> s, float in both py2 + 3.
+    healthcheck_timeout = healthcheck_options["timeout"] / 1000.0 ** 3
+    healthcheck_interval = healthcheck_options["interval"] / 1000.0 ** 3
+    healthcheck_retries = healthcheck_options["retries"]
+
+    # This is the maximum elapsed timeout.
+    timeout = healthcheck_retries * (healthcheck_interval + healthcheck_timeout)
+
+    # And as for delay, polling is sort of cheap so we can do it quite often.
+    # Important to note that the interval also defines the initial delay,
+    # so the first polls will likely fail.
+    delay = 0.25
+
+    health_status = None
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        resp = low_level_client.inspect_container(container_name)
+        health_status = resp["State"]["Health"]["Status"]
+        if health_status == "healthy":
+            return
+        time.sleep(delay)
+
+    raise click.ClickException(
+        "Timed out waiting for {container_name}: healthcheck status {health_status}".format(
+            container_name=container_name, health_status=health_status
+        )
+    )
 
 
 def ensure_interface(ports):
@@ -50,6 +94,7 @@ def devservices(ctx):
     Do not use in production!
     """
     ctx.obj["client"] = get_docker_client()
+    ctx.obj["low_level_client"] = get_docker_low_level_client()
 
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
@@ -63,8 +108,7 @@ def devservices(ctx):
 @click.pass_context
 def attach(ctx, project, fast, service):
     """
-    Run a single devservice in foreground, as opposed to `up` which runs all of
-    them in the background.
+    Run a single devservice in the foreground.
 
     Accepts a single argument, the name of the service to spawn. The service
     will run with output printed to your terminal, and the ability to kill it
@@ -82,7 +126,13 @@ def attach(ctx, project, fast, service):
         raise click.ClickException("Service `{}` is not known or not enabled.".format(service))
 
     container = _start_service(
-        ctx.obj["client"], service, containers, project, fast=fast, always_start=True
+        ctx.obj["client"],
+        ctx.obj["low_level_client"],
+        service,
+        containers,
+        project,
+        fast=fast,
+        always_start=True,
     )
 
     def exit_handler(*_):
@@ -109,7 +159,7 @@ def attach(ctx, project, fast, service):
 @click.pass_context
 def up(ctx, services, project, exclude, fast):
     """
-    Run/update dependent services.
+    Run/update all devservices in the background.
 
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring up.
@@ -160,7 +210,9 @@ def up(ctx, services, project, exclude, fast):
     get_or_create(ctx.obj["client"], "network", project)
 
     for name in selected_services:
-        _start_service(ctx.obj["client"], name, containers, project, fast=fast)
+        _start_service(
+            ctx.obj["client"], ctx.obj["low_level_client"], name, containers, project, fast=fast
+        )
 
 
 def _prepare_containers(project, silent=False):
@@ -196,7 +248,9 @@ def _prepare_containers(project, silent=False):
     return containers
 
 
-def _start_service(client, name, containers, project, fast=False, always_start=False):
+def _start_service(
+    client, low_level_client, name, containers, project, fast=False, always_start=False
+):
     from django.conf import settings
     from docker.errors import NotFound
 
@@ -282,6 +336,9 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
             # Note that if the container is already running, this will noop.
             # This makes repeated `devservices up` quite fast.
             container.start()
+            healthcheck_options = options.get("healthcheck")
+            if healthcheck_options:
+                wait_for_healthcheck(low_level_client, container.name, healthcheck_options)
             return container
 
         click.secho("> Stopping container '%s'" % container.name, err=True, fg="yellow")
@@ -293,6 +350,9 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
     container = client.containers.create(**options)
     click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
     container.start()
+    healthcheck_options = options.get("healthcheck")
+    if healthcheck_options:
+        wait_for_healthcheck(low_level_client, container.name, healthcheck_options)
     return container
 
 

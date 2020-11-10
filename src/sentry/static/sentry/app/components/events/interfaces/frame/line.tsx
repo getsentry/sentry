@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -22,7 +21,7 @@ import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import {IconRefresh, IconChevron} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Frame, SentryAppComponent, PlatformType} from 'app/types';
+import {Frame, SentryAppComponent, PlatformType, Event} from 'app/types';
 import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
 
 import Context from './context';
@@ -32,22 +31,23 @@ import Symbol, {FunctionNameToggleIcon} from './symbol';
 
 type Props = {
   data: Frame;
-  nextFrame: Frame;
-  prevFrame: Frame;
-  platform: PlatformType;
-  emptySourceNotation: boolean;
-  isOnlyFrame: boolean;
-  timesRepeated: number;
+  event: Event;
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
-  showingAbsoluteAddress: boolean;
-  onAddressToggle: (event: React.MouseEvent<SVGElement>) => void;
-  onFunctionNameToggle: (event: React.MouseEvent<SVGElement>) => void;
-  showCompleteFunctionName: boolean;
-  image: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress: number;
-  isFrameAfterLastNonApp: boolean;
-  includeSystemFrames: boolean;
+  nextFrame?: Frame;
+  prevFrame?: Frame;
+  platform?: PlatformType;
+  emptySourceNotation?: boolean;
+  isOnlyFrame?: boolean;
+  timesRepeated?: number;
+  showingAbsoluteAddress?: boolean;
+  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  showCompleteFunctionName?: boolean;
+  image?: React.ComponentProps<typeof DebugImage>['image'];
+  maxLengthOfRelativeAddress?: number;
+  isFrameAfterLastNonApp?: boolean;
+  includeSystemFrames?: boolean;
   isExpanded?: boolean;
 };
 
@@ -56,25 +56,6 @@ type State = {
 };
 
 export class Line extends React.Component<Props, State> {
-  static propTypes: any = {
-    data: PropTypes.object.isRequired,
-    nextFrame: PropTypes.object,
-    prevFrame: PropTypes.object,
-    platform: PropTypes.string,
-    isExpanded: PropTypes.bool,
-    emptySourceNotation: PropTypes.bool,
-    isOnlyFrame: PropTypes.bool,
-    timesRepeated: PropTypes.number,
-    registers: PropTypes.objectOf(PropTypes.string.isRequired),
-    components: PropTypes.array.isRequired,
-    showingAbsoluteAddress: PropTypes.bool,
-    onFunctionNameToggle: PropTypes.func,
-    image: PropTypes.object,
-    maxLengthOfRelativeAddress: PropTypes.number,
-    onAddressToggle: PropTypes.func,
-    showCompleteFunctionName: PropTypes.bool,
-  };
-
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,
@@ -124,7 +105,7 @@ export class Line extends React.Component<Props, State> {
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
     // of the stacktrace / exception
-    return getPlatform(this.props.data.platform, this.props.platform);
+    return getPlatform(this.props.data.platform, this.props.platform ?? 'other');
   }
 
   isInlineFrame() {
@@ -234,7 +215,7 @@ export class Line extends React.Component<Props, State> {
 
   renderRepeats() {
     const timesRepeated = this.props.timesRepeated;
-    if (timesRepeated > 0) {
+    if (timesRepeated && timesRepeated > 0) {
       return (
         <RepeatedFrames
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
@@ -257,7 +238,10 @@ export class Line extends React.Component<Props, State> {
           <VertCenterWrapper>
             <div>
               {this.renderLeadHint()}
-              <DefaultTitle frame={this.props.data} platform={this.props.platform} />
+              <DefaultTitle
+                frame={this.props.data}
+                platform={this.props.platform ?? 'other'}
+              />
             </div>
             {this.renderRepeats()}
           </VertCenterWrapper>
@@ -286,11 +270,11 @@ export class Line extends React.Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title as-table">
-          <NativeLineContent isFrameAfterLastNonApp={isFrameAfterLastNonApp}>
+          <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
               <PackageLink
-                includeSystemFrames={includeSystemFrames}
+                includeSystemFrames={!!includeSystemFrames}
                 withLeadHint={leadHint !== null}
                 packagePath={data.package}
                 onClick={this.scrollToImage}
@@ -303,16 +287,16 @@ export class Line extends React.Component<Props, State> {
               <TogglableAddress
                 address={data.instructionAddr}
                 startingAddress={image ? image.image_addr : null}
-                isAbsolute={showingAbsoluteAddress}
+                isAbsolute={!!showingAbsoluteAddress}
                 isFoundByStackScanning={this.isFoundByStackScanning()}
-                isInlineFrame={this.isInlineFrame()}
+                isInlineFrame={!!this.isInlineFrame()}
                 onToggle={onAddressToggle}
                 relativeAddressMaxlength={maxLengthOfRelativeAddress}
               />
             )}
             <Symbol
               frame={data}
-              showCompleteFunctionName={showCompleteFunctionName}
+              showCompleteFunctionName={!!showCompleteFunctionName}
               onFunctionNameToggle={onFunctionNameToggle}
             />
           </NativeLineContent>
@@ -354,6 +338,7 @@ export class Line extends React.Component<Props, State> {
         {this.renderLine()}
         <Context
           frame={data}
+          event={this.props.event}
           registers={this.props.registers}
           components={this.props.components}
           hasContextSource={this.hasContextSource()}

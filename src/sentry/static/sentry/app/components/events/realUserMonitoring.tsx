@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization, Event} from 'app/types';
+import {Event} from 'app/types';
 import {IconSize} from 'app/utils/theme';
 import {t} from 'app/locale';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -16,9 +16,9 @@ import {
 import {formattedValue} from 'app/utils/measurements/index';
 
 type Props = {
-  organization: Organization;
   event: Event;
 };
+
 class RealUserMonitoring extends React.Component<Props> {
   hasMeasurements() {
     const {event} = this.props;
@@ -83,9 +83,7 @@ class RealUserMonitoring extends React.Component<Props> {
   }
 
   render() {
-    const {organization} = this.props;
-
-    if (!organization.features.includes('measurements') || !this.hasMeasurements()) {
+    if (!this.hasMeasurements()) {
       return null;
     }
 
@@ -110,7 +108,7 @@ const Container = styled('div')`
 `;
 
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
   margin-bottom: ${space(1)};
 
   ${p => {
@@ -119,7 +117,7 @@ const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
     }
 
     return `
-      border: 1px solid ${p.theme.red400};
+      border: 1px solid ${p.theme.red300};
     `;
   }};
 `;
@@ -135,8 +133,8 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  margin-right: ${space(1)};
-  color: ${p => p.theme.red400};
+  margin-right: ${space(0.5)};
+  color: ${p => p.theme.red300};
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
@@ -147,7 +145,7 @@ const Value = styled('span')<{failedThreshold: boolean}>`
     }
 
     return `
-      color: ${p.theme.red400};
+      color: ${p.theme.red300};
     `;
   }};
 `;

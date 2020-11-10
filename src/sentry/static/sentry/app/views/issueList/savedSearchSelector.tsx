@@ -104,27 +104,20 @@ export default class SavedSearchSelector extends React.Component<Props> {
 
   render() {
     return (
-      <Container>
-        <DropdownControl
-          menuWidth="35vw"
-          blendWithActor
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
-              <ButtonTitle>{this.getTitle()}</ButtonTitle>
-            </StyledDropdownButton>
-          )}
-        >
-          {this.renderList()}
-        </DropdownControl>
-      </Container>
+      <DropdownControl
+        menuWidth="35vw"
+        blendWithActor
+        button={({isOpen, getActorProps}) => (
+          <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+            <ButtonTitle>{this.getTitle()}</ButtonTitle>
+          </StyledDropdownButton>
+        )}
+      >
+        {this.renderList()}
+      </DropdownControl>
     );
   }
 }
-
-const Container = styled('div')`
-  position: relative;
-  display: block;
-`;
 
 const StyledDropdownButton = styled(DropdownButton)`
   border-right: 0;
@@ -135,6 +128,7 @@ const StyledDropdownButton = styled(DropdownButton)`
       : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
   white-space: nowrap;
   max-width: 200px;
+  margin-right: 0;
 
   &:hover,
   &:active {
@@ -184,7 +178,7 @@ const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
 
   position: relative;
-  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.borderLight}` : null)};
+  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 

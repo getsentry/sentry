@@ -33,6 +33,12 @@ export function getProjectRelease(api: Client, params: ParamsGet) {
       ReleaseActions.loadReleaseSuccess(projectSlug, releaseVersion, res);
     })
     .catch(err => {
+      // This happens when a Project is not linked to a specific Release
+      if (err.status === 404) {
+        ReleaseActions.loadReleaseSuccess(projectSlug, releaseVersion, null);
+        return;
+      }
+
       ReleaseActions.loadReleaseError(projectSlug, releaseVersion, err);
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
@@ -62,6 +68,12 @@ export function getReleaseDeploys(api: Client, params: ParamsGet) {
       ReleaseActions.loadDeploysSuccess(projectSlug, releaseVersion, res);
     })
     .catch(err => {
+      // This happens when a Project is not linked to a specific Release
+      if (err.status === 404) {
+        ReleaseActions.loadDeploysSuccess(projectSlug, releaseVersion, null);
+        return;
+      }
+
       ReleaseActions.loadDeploysError(projectSlug, releaseVersion, err);
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
