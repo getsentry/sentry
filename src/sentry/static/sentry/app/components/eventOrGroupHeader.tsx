@@ -57,7 +57,7 @@ class EventOrGroupHeader extends React.Component<Props> {
         )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="orange300" />
+            <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
         <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
