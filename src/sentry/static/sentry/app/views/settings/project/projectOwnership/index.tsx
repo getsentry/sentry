@@ -18,7 +18,7 @@ import {Organization, Project} from 'app/types';
 type Props = {
   organization: Organization;
   project: Project;
-}  & AsyncView['props'];
+} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 type State = {
   ownership: null | any;
