@@ -1,9 +1,15 @@
 import * as Sentry from '@sentry/react';
 
+import {t} from 'app/locale';
 import ReleaseActions from 'app/actions/releaseActions';
 import {Client} from 'app/api';
 import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';
-import {Deploy, Release} from 'app/types';
+import {Deploy, Release, ReleaseStatus} from 'app/types';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 
 type ParamsGet = {
   orgSlug: string;
@@ -80,5 +86,61 @@ export function getReleaseDeploys(api: Client, params: ParamsGet) {
         scope.setFingerprint(['getReleaseDeploys-action-creator']);
         Sentry.captureException(err);
       });
+    });
+}
+
+export function archiveRelease(api: Client, params: ParamsGet) {
+  const {orgSlug, projectSlug, releaseVersion} = params;
+
+  ReleaseActions.loadRelease(orgSlug, projectSlug, releaseVersion);
+  addLoadingMessage(t('Archiving Release...'));
+
+  return api
+    .requestPromise(`/organizations/${orgSlug}/releases/`, {
+      method: 'POST',
+      data: {
+        status: ReleaseStatus.Archived,
+        projects: [],
+        version: releaseVersion,
+      },
+    })
+    .then((release: Release) => {
+      ReleaseActions.loadReleaseSuccess(projectSlug, releaseVersion, release);
+      addSuccessMessage(t('Release was successfully archived.'));
+    })
+    .catch(error => {
+      ReleaseActions.loadReleaseError(projectSlug, releaseVersion, error);
+      addErrorMessage(
+        error.responseJSON?.detail ?? t('Release could not be be archived.')
+      );
+      throw error;
+    });
+}
+
+export function restoreRelease(api: Client, params: ParamsGet) {
+  const {orgSlug, projectSlug, releaseVersion} = params;
+
+  ReleaseActions.loadRelease(orgSlug, projectSlug, releaseVersion);
+  addLoadingMessage(t('Restoring Release...'));
+
+  return api
+    .requestPromise(`/organizations/${orgSlug}/releases/`, {
+      method: 'POST',
+      data: {
+        status: ReleaseStatus.Active,
+        projects: [],
+        version: releaseVersion,
+      },
+    })
+    .then((release: Release) => {
+      ReleaseActions.loadReleaseSuccess(projectSlug, releaseVersion, release);
+      addSuccessMessage(t('Release was successfully restored.'));
+    })
+    .catch(error => {
+      ReleaseActions.loadReleaseError(projectSlug, releaseVersion, error);
+      addErrorMessage(
+        error.responseJSON?.detail ?? t('Release could not be be restored.')
+      );
+      throw error;
     });
 }

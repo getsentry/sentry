@@ -1,72 +1,12 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
-import {browserHistory} from 'react-router';
 
-import {Client} from 'app/api';
-import {
-  CommitFile,
-  Commit,
-  FilesByRepository,
-  Repository,
-  ReleaseStatus,
-} from 'app/types';
+import {CommitFile, Commit, FilesByRepository, Repository} from 'app/types';
 import {t} from 'app/locale';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
-};
-
-export const archiveRelease = async (orgId: string, version: string) => {
-  const api = new Client();
-  addLoadingMessage(t('Archiving Release...'));
-  try {
-    await api.requestPromise(`/organizations/${orgId}/releases/`, {
-      method: 'POST',
-      data: {
-        status: ReleaseStatus.Archived,
-        projects: [],
-        version,
-      },
-    });
-
-    addSuccessMessage(t('Release was successfully archived.'));
-    browserHistory.push(`/organizations/${orgId}/releases/`);
-  } catch (error) {
-    const errorMessage =
-      error.responseJSON?.detail ?? t('Release could not be be archived.');
-    addErrorMessage(errorMessage);
-  }
-};
-
-export const restoreRelease = async (
-  orgId: string,
-  version: string,
-  onSuccess?: () => void
-) => {
-  const api = new Client();
-  addLoadingMessage(t('Restoring Release...'));
-  try {
-    await api.requestPromise(`/organizations/${orgId}/releases/`, {
-      method: 'POST',
-      data: {
-        status: ReleaseStatus.Active,
-        projects: [],
-        version,
-      },
-    });
-    addSuccessMessage(t('Release was successfully restored.'));
-    onSuccess?.();
-  } catch (error) {
-    const errorMessage =
-      error.responseJSON?.detail ?? t('Release could not be be restored.');
-    addErrorMessage(errorMessage);
-  }
 };
 
 /**

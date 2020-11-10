@@ -1,7 +1,9 @@
-/* eslint-disable react/prop-types */
 import React from 'react';
+import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import {browserHistory} from 'react-router';
 
+import SentryTypes from 'app/sentryTypes';
 import {t, tct, tn} from 'app/locale';
 import {Release} from 'app/types';
 import space from 'app/styles/space';
@@ -14,23 +16,43 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {formatVersion} from 'app/utils/formatters';
 import Tooltip from 'app/components/tooltip';
 import TextOverflow from 'app/components/textOverflow';
+import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
+import {Client} from 'app/api';
 
-import {archiveRelease, restoreRelease} from './utils';
 import {isReleaseArchived} from '../utils';
 
 type Props = {
-  orgId: string;
+  orgSlug: string;
+  projectSlug: string;
   release: Release;
   refetchData: () => void;
 };
 
-function ReleaseActions({orgId, release, refetchData}: Props) {
-  function handleArchive() {
-    archiveRelease(orgId, release.version);
+function ReleaseActions({orgSlug, projectSlug, release, refetchData}: Props) {
+  async function handleArchive() {
+    try {
+      await archiveRelease(new Client(), {
+        orgSlug,
+        projectSlug,
+        releaseVersion: release.version,
+      });
+      browserHistory.push(`/organizations/${orgSlug}/releases/`);
+    } catch {
+      // do nothing, action creator is already displaying error message
+    }
   }
 
-  function handleRestore() {
-    restoreRelease(orgId, release.version, refetchData);
+  async function handleRestore() {
+    try {
+      await restoreRelease(new Client(), {
+        orgSlug,
+        projectSlug,
+        releaseVersion: release.version,
+      });
+      refetchData();
+    } catch {
+      // do nothing, action creator is already displaying error message
+    }
   }
 
   function getProjectList() {
@@ -67,35 +89,15 @@ function ReleaseActions({orgId, release, refetchData}: Props) {
     );
   }
 
-  function getArchiveModalMessage() {
+  function getModalMessage(message: React.ReactNode) {
     return (
-      <div>
-        {tn(
-          'You are archiving this release for the following project:',
-          'By archiving this release, you are also archiving it for the following projects:',
-          release.projects.length
-        )}
+      <React.Fragment>
+        {message}
 
         <ProjectsWrapper>{getProjectList()}</ProjectsWrapper>
 
         {t('Are you sure you want to do this?')}
-      </div>
-    );
-  }
-
-  function getRestoreModalMessage() {
-    return (
-      <div>
-        {tn(
-          'You are restoring this release for the following project:',
-          'By restoring this release, you are also restoring it for the following projects:',
-          release.projects.length
-        )}
-
-        <ProjectsWrapper>{getProjectList()}</ProjectsWrapper>
-
-        {t('Are you sure you want to do this?')}
-      </div>
+      </React.Fragment>
     );
   }
 
@@ -114,7 +116,13 @@ function ReleaseActions({orgId, release, refetchData}: Props) {
                 release: formatVersion(release.version),
               })
             )}
-            message={getRestoreModalMessage()}
+            message={getModalMessage(
+              tn(
+                'You are restoring this release for the following project:',
+                'By restoring this release, you are also restoring it for the following projects:',
+                release.projects.length
+              )
+            )}
             cancelText={t('Nevermind')}
             confirmText={t('Restore')}
           >
@@ -128,7 +136,13 @@ function ReleaseActions({orgId, release, refetchData}: Props) {
                 release: formatVersion(release.version),
               })
             )}
-            message={getArchiveModalMessage()}
+            message={getModalMessage(
+              tn(
+                'You are archiving this release for the following project:',
+                'By archiving this release, you are also archiving it for the following projects:',
+                release.projects.length
+              )
+            )}
             cancelText={t('Nevermind')}
             confirmText={t('Archive')}
           >
@@ -139,6 +153,13 @@ function ReleaseActions({orgId, release, refetchData}: Props) {
     </Wrapper>
   );
 }
+
+ReleaseActions.propTypes = {
+  orgSlug: PropTypes.string.isRequired,
+  projectSlug: PropTypes.string.isRequired,
+  release: SentryTypes.Release.isRequired,
+  refetchData: PropTypes.func.isRequired,
+};
 
 const Wrapper = styled('div')`
   display: grid;

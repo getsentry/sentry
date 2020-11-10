@@ -117,7 +117,12 @@ const ReleaseHeader = ({
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions orgId={orgId} release={release} refetchData={refetchData} />
+          <ReleaseActions
+            orgSlug={orgId}
+            projectSlug={project.slug}
+            release={release}
+            refetchData={refetchData}
+          />
         </StatsWrapper>
       </HeaderInfoContainer>
 
