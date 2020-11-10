@@ -135,7 +135,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
   padding-left: ${space(1)};
 `;
 

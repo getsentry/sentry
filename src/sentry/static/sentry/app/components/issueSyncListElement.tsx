@@ -152,7 +152,7 @@ export const IntegrationLink = styled('a')`
 
   &,
   &:hover {
-    border-bottom: 1px solid ${p => p.theme.blue400};
+    border-bottom: 1px solid ${p => p.theme.blue300};
   }
 `;
 

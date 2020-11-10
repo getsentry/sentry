@@ -27,7 +27,7 @@ class MeasurementsHistogramSerializer(serializers.Serializer):
 
 class OrganizationEventsMeasurementsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
-        return features.has("organizations:measurements", organization, actor=request.user)
+        return features.has("organizations:performance-view", organization, actor=request.user)
 
     def get(self, request, organization):
         if not self.has_feature(organization, request):

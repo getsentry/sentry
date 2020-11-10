@@ -351,9 +351,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderMeasurements() {
-    const {organization, event, generateBounds} = this.props;
+    const {event, generateBounds} = this.props;
 
-    if (!organization.features.includes('measurements') || this.state.showDetail) {
+    if (this.state.showDetail) {
       return null;
     }
 
@@ -940,7 +940,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red400};
+  background-color: ${p => p.theme.red300};
   transform: translateX(-50%);
   height: 100%;
 `;

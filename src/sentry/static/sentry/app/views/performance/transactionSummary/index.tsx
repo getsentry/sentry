@@ -108,12 +108,13 @@ class TransactionSummary extends React.Component<Props, State> {
   ): [EventView, TotalValues] {
     const threshold = organization.apdexThreshold.toString();
 
-    const vitals = organization.features.includes('measurements')
-      ? VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-          vs.forEach(vital => keys.push(vital));
-          return keys;
-        }, [])
-      : [];
+    const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
+      (keys: WebVital[], vs) => {
+        vs.forEach(vital => keys.push(vital));
+        return keys;
+      },
+      []
+    );
 
     const totalsView = eventView.withColumns([
       {

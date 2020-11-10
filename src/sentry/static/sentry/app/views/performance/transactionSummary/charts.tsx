@@ -32,16 +32,13 @@ export enum DisplayModes {
   VITALS = 'vitals',
 }
 
-const DISPLAY_OPTIONS: Record<DisplayModes, SelectValue<string>> = {
-  [DisplayModes.DURATION]: {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
-  [DisplayModes.DURATION_PERCENTILE]: {
-    value: DisplayModes.DURATION_PERCENTILE,
-    label: t('Duration Percentiles'),
-  },
-  [DisplayModes.LATENCY]: {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
-  [DisplayModes.TREND]: {value: DisplayModes.TREND, label: t('Trends')},
-  [DisplayModes.VITALS]: {value: DisplayModes.VITALS, label: t('Web Vitals')},
-};
+const DISPLAY_OPTIONS: SelectValue<string>[] = [
+  {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
+  {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
+  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
+  {value: DisplayModes.TREND, label: t('Trends')},
+  {value: DisplayModes.VITALS, label: t('Web Vitals')},
+];
 
 const TREND_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(({field, label}) => ({
   value: field,
@@ -82,18 +79,6 @@ class TransactionSummaryCharts extends React.Component<Props> {
     }
     if (!Object.values(TrendFunctionField).includes(trendDisplay as TrendFunctionField)) {
       trendDisplay = TrendFunctionField.P50;
-    }
-
-    const displayOptions: SelectValue<string>[] = [
-      DISPLAY_OPTIONS[DisplayModes.DURATION],
-      DISPLAY_OPTIONS[DisplayModes.DURATION_PERCENTILE],
-      DISPLAY_OPTIONS[DisplayModes.LATENCY],
-    ];
-    if (organization.features.includes('trends')) {
-      displayOptions.push(DISPLAY_OPTIONS[DisplayModes.TREND]);
-    }
-    if (organization.features.includes('measurements')) {
-      displayOptions.push(DISPLAY_OPTIONS[DisplayModes.VITALS]);
     }
 
     return (
@@ -176,7 +161,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <OptionSelector
               title={t('Display')}
               selected={display}
-              options={displayOptions}
+              options={DISPLAY_OPTIONS}
               onChange={this.handleDisplayChange}
             />
           </InlineContainer>

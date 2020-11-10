@@ -195,6 +195,7 @@ export type Project = {
   isMember: boolean;
   teams: Team[];
   features: string[];
+  organization: Organization;
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
@@ -274,10 +275,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
-export type EntryTypeData = Record<string, any | Array<any>>;
+export type EntryData = Record<string, any | Array<any>>;
 
-type EntryType = {
-  data: EntryTypeData;
+export type Entry = {
+  data: EntryData;
   type: string;
 };
 
@@ -349,7 +350,7 @@ type SentryEventBase = {
   platform?: PlatformKey;
   dateReceived?: string;
   endTimestamp?: number;
-  entries: EntryType[];
+  entries: Entry[];
   errors: any[];
 
   previousEventID?: string;
@@ -387,19 +388,32 @@ type SentryEventBase = {
   release?: ReleaseData;
 };
 
-export type SentryTransactionEvent = {
-  type: 'transaction';
-  title?: string;
+export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
+  type: 'transaction';
+  title?: string;
   contexts?: {
     trace?: TraceContextType;
   };
-} & SentryEventBase;
+};
+
+export type ExceptionEntry = {
+  type: 'exception';
+  data: ExceptionType;
+};
+
+export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
+  entries: ExceptionEntry[];
+  type: 'error';
+};
 
 // This type is incomplete
-export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
+export type Event =
+  | SentryErrorEvent
+  | SentryTransactionEvent
+  | ({type: string} & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -697,6 +711,7 @@ export type EventOrGroupType =
 // TODO(ts): incomplete
 export type Group = {
   id: string;
+  latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
@@ -727,8 +742,6 @@ export type Group = {
   shareId: string;
   shortId: string;
   stats: Record<string, TimeseriesValue[]>;
-  filtered?: any; // TODO(ts)
-  lifetime?: any; // TODO(ts)
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
@@ -737,6 +750,8 @@ export type Group = {
   userCount: number;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  filtered?: any; // TODO(ts)
+  lifetime?: any; // TODO(ts)
 };
 
 export type GroupTombstone = {
@@ -1602,12 +1617,18 @@ export type FilesByRepository = {
   };
 };
 
-export type ExceptionType = {
+export type ExceptionValue = {
   type: string;
   value: string;
+  threadId: number | null;
   stacktrace: StacktraceType;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  threadId: number | null;
+};
+
+export type ExceptionType = {
+  excOmitted: any | null;
+  hasSystemFrames: boolean;
+  values?: Array<ExceptionValue>;
 };

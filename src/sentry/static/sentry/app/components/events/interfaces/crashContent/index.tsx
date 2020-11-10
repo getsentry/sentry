@@ -1,20 +1,17 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
-import {PlatformType} from 'app/types';
+import {PlatformType, ExceptionType} from 'app/types';
 
 import Exception from './exception';
 import Stacktrace from './stacktrace';
 
 type ExceptionProps = React.ComponentProps<typeof Exception>;
-type StacktraceProps = React.ComponentProps<typeof Stacktrace>;
 type Props = Pick<
   ExceptionProps,
   'stackType' | 'stackView' | 'projectId' | 'event' | 'newestFirst'
 > & {
-  exception?: ExceptionProps['exception'];
-  stacktrace?: StacktraceProps['stacktrace'];
+  exception?: ExceptionType;
+  stacktrace?: React.ComponentProps<typeof Stacktrace>['stacktrace'];
 };
 
 const CrashContent = ({
@@ -37,7 +34,7 @@ const CrashContent = ({
         newestFirst={newestFirst}
         event={event}
         platform={platform}
-        exception={exception}
+        values={exception.values}
       />
     );
   }
@@ -56,15 +53,4 @@ const CrashContent = ({
 
   return null;
 };
-
-CrashContent.propTypes = {
-  event: SentryTypes.Event.isRequired,
-  stackView: PropTypes.string.isRequired,
-  projectId: PropTypes.string.isRequired,
-  newestFirst: PropTypes.bool.isRequired,
-  stackType: PropTypes.string,
-  exception: PropTypes.object,
-  stacktrace: PropTypes.object,
-};
-
 export default CrashContent;

@@ -7,10 +7,10 @@ const DEFAULT_SIZE = '13px';
 function getLevelColor({level = '', theme}) {
   const COLORS = {
     error: theme.orange400,
-    info: theme.blue400,
+    info: theme.blue300,
     warning: theme.orange300,
-    fatal: theme.red400,
-    sample: theme.purple400,
+    fatal: theme.red300,
+    sample: theme.purple300,
   };
 
   return `background-color: ${COLORS[level] || theme.orange400};`;

@@ -261,14 +261,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
-    const {organization} = this.props;
-    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS];
-    if (!organization.features.includes('key-transactions')) {
-      views.push(FilterViews.KEY_TRANSACTIONS);
-    }
-    if (organization.features.includes('trends')) {
-      views.push(FilterViews.TRENDS);
-    }
+    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS, FilterViews.TRENDS];
     return (
       <ButtonBar merged active={this.getCurrentView()}>
         {views.map(viewKey => (
@@ -280,7 +273,7 @@ class PerformanceLanding extends React.Component<Props, State> {
             onClick={() => this.handleViewChange(viewKey)}
           >
             {this.getViewLabel(viewKey)}
-            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
+            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="new" />}
           </Button>
         ))}
       </ButtonBar>
