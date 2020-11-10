@@ -7,6 +7,7 @@ from sentry.utils.compat.mock import patch
 from sentry.models import IdentityProvider, Identity, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.example import ExampleIntegrationProvider, AliasedIntegrationProvider
+from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.models import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
@@ -269,6 +270,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert org_integration.default_auth_id == identity.id
 
     def test_different_user_same_external_id(self, *args):
+        self.provider = GitlabIntegrationProvider
         new_user = self.create_user()
         # self.create_member(organization=self.organization, user=new_user, role="admin")
         self.provider.needs_default_identity = True
@@ -278,7 +280,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             metadata={"url": "https://example.com"},
         )
         identity_provider = IdentityProvider.objects.create(
-            external_id=self.external_id, type="gitlab"  # need to use a real provider here
+            external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(
             idp_id=identity_provider.id, external_id="AccountId", user_id=new_user.id
@@ -288,7 +290,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             "name": "Name",
             "metadata": {"url": "https://example.com"},
             "user_identity": {
-                "type": "gitlab",
+                "type": self.provider.key,
                 "external_id": "AccountId",
                 "scopes": [],
                 "data": {
