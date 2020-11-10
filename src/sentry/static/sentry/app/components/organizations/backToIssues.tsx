@@ -14,7 +14,7 @@ const BackToIssues = styled(Link)`
   padding: ${space(1)};
   border-radius: 50%;
 
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   background: ${p => p.theme.gray200};
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 

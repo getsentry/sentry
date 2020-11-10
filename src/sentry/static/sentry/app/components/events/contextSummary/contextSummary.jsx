@@ -91,7 +91,7 @@ class ContextSummary extends React.Component {
 export default ContextSummary;
 
 const Wrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray200};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
