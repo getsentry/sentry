@@ -656,7 +656,7 @@ const StyledFlex = styled('div')`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;

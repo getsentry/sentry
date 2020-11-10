@@ -78,7 +78,7 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 

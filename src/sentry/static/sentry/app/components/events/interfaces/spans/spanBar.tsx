@@ -198,7 +198,7 @@ export const getBackgroundColor = ({
   if (showDetail) {
     return theme.gray500;
   }
-  return showStriping ? theme.gray100 : theme.white;
+  return showStriping ? theme.backgroundSecondary : theme.white;
 };
 
 type SpanBarProps = {
@@ -932,7 +932,8 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   user-select: none;
 
   &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p => (p.showDetail ? p.theme.gray500 : p.theme.gray100)};
+    background-color: ${p =>
+      p.showDetail ? p.theme.gray500 : p.theme.backgroundSecondary};
   }
 `;
 

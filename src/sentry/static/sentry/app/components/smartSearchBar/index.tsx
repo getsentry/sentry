@@ -1268,7 +1268,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   display: flex;
 
   .show-sidebar & {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 

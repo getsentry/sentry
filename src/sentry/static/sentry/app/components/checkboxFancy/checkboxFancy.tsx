@@ -16,7 +16,9 @@ type Props = {
 const disabledStyles = (p: Props & {theme: Theme}) =>
   p.isDisabled &&
   css`
-    background: ${p.isChecked || p.isIndeterminate ? p.theme.gray200 : p.theme.gray100};
+    background: ${p.isChecked || p.isIndeterminate
+      ? p.theme.gray200
+      : p.theme.backgroundSecondary};
     border-color: ${p.theme.border};
   `;
 

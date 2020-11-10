@@ -117,7 +117,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray400};
 
   font-size: ${p => p.theme.fontSizeSmall};
@@ -158,7 +158,7 @@ export const GridHeadCellStatic = styled('th')`
   display: flex;
   align-items: center;
   padding: 0 ${space(2)};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;

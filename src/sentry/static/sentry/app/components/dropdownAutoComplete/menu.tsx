@@ -423,7 +423,7 @@ const InputWrapper = styled('div')`
 `;
 
 const LabelWithPadding = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
   color: ${p => p.theme.gray400};

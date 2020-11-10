@@ -222,7 +222,7 @@ class Onboarding extends React.Component<Props, State> {
 
 const OnboardingWrapper = styled('main')`
   flex-grow: 1;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   padding-bottom: 50vh;
 `;
 

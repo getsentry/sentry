@@ -42,7 +42,7 @@ const StyledGridCell = styled(GridCell)`
   z-index: ${p => p.theme.zIndex.breadcrumbs.header};
   top: 0;
   border-bottom: 1px solid ${p => p.theme.border};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray400};
   font-weight: 600;
   text-transform: uppercase;

@@ -32,7 +32,7 @@ const Placeholder = styled((props: Props) => {
   flex-shrink: 0;
   justify-content: center;
 
-  background-color: ${p => (p.error ? p.theme.red100 : p.theme.gray100)};
+  background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundSecondary)};
   ${p => p.error && `color: ${p.theme.red200};`}
   width: ${p => p.width};
   height: ${p => p.height};

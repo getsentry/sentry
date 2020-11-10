@@ -183,7 +183,7 @@ const MenuItem = styled('li')<{last: boolean}>`
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 

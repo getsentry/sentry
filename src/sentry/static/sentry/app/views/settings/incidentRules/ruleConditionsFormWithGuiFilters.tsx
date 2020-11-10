@@ -311,7 +311,7 @@ const StyledSearchBar = styled(SearchBar)`
 const SearchEventTypeNote = styled('div')`
   font: ${p => p.theme.fontSizeExtraSmall} ${p => p.theme.text.familyMono};
   color: ${p => p.theme.gray400};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: 2px;
   padding: ${space(0.5)} ${space(0.75)};
   margin: 0 ${space(0.5)} 0 ${space(1)};

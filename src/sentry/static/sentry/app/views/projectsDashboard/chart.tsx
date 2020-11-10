@@ -137,7 +137,7 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
         inside: true,
         lineHeight: 12,
         formatter: (value: number) => axisLabelFormatter(value, 'count()', true),
-        textBorderColor: theme.gray100,
+        textBorderColor: theme.backgroundSecondary,
         textBorderWidth: 1,
       },
       zlevel: theme.zIndex.header,

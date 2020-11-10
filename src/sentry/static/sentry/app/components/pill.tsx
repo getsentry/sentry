@@ -99,7 +99,7 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     default:
       return `
-        background: ${theme.gray100};
+        background: ${theme.backgroundSecondary};
         font-family: ${theme.text.familyMono};
       `;
   }

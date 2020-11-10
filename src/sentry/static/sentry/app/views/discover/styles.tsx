@@ -127,7 +127,7 @@ export const BodyContent = styled('div')`
   padding: ${space(3)} ${space(4)} ${space(4)} ${space(4)};
   overflow-y: scroll;
   position: relative;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 export const LoadingContainer = styled('div')`
@@ -259,7 +259,8 @@ export const SavedQueryList = styled(Panel)`
 export const SavedQueryListItem = styled(PanelItem)<{isActive?: boolean | null}>`
   flex-direction: column;
   padding: 0;
-  background-color: ${(p: any) => (p.isActive ? p.theme.gray100 : p.theme.white)};
+  background-color: ${(p: any) =>
+    p.isActive ? p.theme.backgroundSecondary : p.theme.white};
 `;
 
 export const SavedQueryLink = styled(Link)`

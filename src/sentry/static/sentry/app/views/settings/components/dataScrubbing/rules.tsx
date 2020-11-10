@@ -86,7 +86,7 @@ const List = styled('ul')<{
     p.isDisabled &&
     `
       color: ${p.theme.gray200};
-      background: ${p.theme.gray100};
+      background: ${p.theme.backgroundSecondary};
   `}
 `;
 
@@ -98,7 +98,7 @@ const ListItem = styled('li')`
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   &:hover {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
   &:last-child {
     border-bottom: 0;

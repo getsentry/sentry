@@ -469,7 +469,7 @@ const ActionItem = styled('button')`
   line-height: 1.2;
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 
   &:last-child {

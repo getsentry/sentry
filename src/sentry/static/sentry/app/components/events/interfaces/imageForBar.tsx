@@ -40,13 +40,13 @@ const Wrapper = styled('div')`
   align-items: baseline;
   justify-content: space-between;
   padding: ${space(0.5)} ${space(2)};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   font-weight: 700;
   code {
     color: ${p => p.theme.blue300};
     font-size: ${p => p.theme.fontSizeSmall};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
   a {
     color: ${p => p.theme.blue300};

@@ -380,7 +380,7 @@ const FilterGrid = styled('div')`
 const FilterGridItem = styled('div')`
   display: flex;
   align-items: center;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: 3px;
   flex: 1;
   padding: 12px;

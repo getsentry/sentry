@@ -45,7 +45,7 @@ export const SpanRowMessage = styled(SpanRow)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
   color: ${p => p.theme.gray300};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   outline: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeSmall};
 

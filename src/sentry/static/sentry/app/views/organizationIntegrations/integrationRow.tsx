@@ -197,7 +197,7 @@ const CategoryTag = styled(
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray200)};
+  background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};
@@ -207,8 +207,7 @@ const CategoryTag = styled(
 `;
 
 const ResolveNowButton = styled(Button)`
-  color: ${p => p.theme.gray300};
-  background: #ffffff;
+  color: ${p => p.theme.gray400};
   float: right;
 `;
 

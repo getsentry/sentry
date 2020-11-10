@@ -19,7 +19,7 @@ const SearchResultWrapper = styled(props => (
     p.highlighted &&
     css`
       color: ${p.theme.purple300};
-      background: ${p.theme.gray100};
+      background: ${p.theme.backgroundSecondary};
     `};
 
   &:not(:first-child) {

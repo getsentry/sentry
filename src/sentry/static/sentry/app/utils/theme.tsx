@@ -6,8 +6,8 @@ const colors = {
   white: '#FFFFFF',
   black: '#1D1127',
 
-  gray100: '#FAF9FB',
-  gray200: '#F2F0F5',
+  gray100: '#F2F0F5',
+  gray200: '#C6BECF',
   gray300: '#9386A0',
   gray400: '#776589',
   gray500: '#2B1D38',
@@ -43,6 +43,9 @@ const colors = {
   pink300: '#F05781',
 } as const;
 
+/**
+ * This is not in the gray palette because it should [generally] only be used for backgrounds
+ */
 const backgroundSecondary = '#FAF9FB';
 
 const aliases = {
