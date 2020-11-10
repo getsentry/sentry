@@ -78,7 +78,7 @@ describe('IntegrationCodeMappings', function () {
       <IntegrationCodeMappings organization={org} integration={integration} />
     );
   });
-  
+
   it('shows the paths', () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
     expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
@@ -92,7 +92,7 @@ describe('IntegrationCodeMappings', function () {
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(1);
   });
 
-  it('create new config', async () => {
+  it('create new config', () => {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
     const defaultBranch = 'release';
@@ -136,7 +136,7 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('edit existing config', async () => {
+  it('edit existing config', () => {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
