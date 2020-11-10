@@ -31,6 +31,8 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import Times from 'app/components/group/timesBadge';
+import InboxReason from 'app/components/group/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -226,8 +228,10 @@ class StreamGroup extends React.Component<Props, State> {
       withChart,
       statsPeriod,
       selection,
+      organization,
     } = this.props;
 
+    const queryObj = queryToObj(query);
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
@@ -242,6 +246,10 @@ class StreamGroup extends React.Component<Props, State> {
     const showSecondaryPoints = Boolean(
       withChart && data && data.filtered && statsPeriod
     );
+
+    const orgFeatures = new Set(organization.features);
+    const hasInbox = orgFeatures.has('inbox');
+    const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
 
     return (
       <Wrapper data-test-id="group" onClick={this.toggleSelect}>
@@ -380,6 +388,21 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
+        {hasInbox && (
+          <React.Fragment>
+            {inboxTabActive && (
+              <Box width={80} mx={2} className="hidden-xs hidden-sm">
+                <InboxReason data={data} />
+              </Box>
+            )}
+            <Box width={150} mx={2} className="hidden-xs hidden-sm">
+              <StyledTimes
+                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+              />
+            </Box>
+          </React.Fragment>
+        )}
       </Wrapper>
     );
   }
@@ -453,6 +476,10 @@ const MenuItemText = styled('div')`
   font-weight: normal;
   text-align: left;
   padding-right: ${space(1)};
+`;
+
+const StyledTimes = styled(Times)`
+  margin-right: 0;
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

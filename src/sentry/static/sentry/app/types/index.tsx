@@ -708,6 +708,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+type InboxDetails = {
+  date_added?: string;
+  reason?: number;
+  reason_details?: {
+    until?: string;
+    count?: number;
+    window?: number;
+    user_count?: number;
+    user_window?: number;
+  };
+};
+
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -752,6 +764,7 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
+  inbox?: InboxDetails;
 };
 
 export type GroupTombstone = {
