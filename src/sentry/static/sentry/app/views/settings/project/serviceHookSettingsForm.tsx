@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import ApiForm from 'app/views/settings/components/forms/apiForm';
@@ -9,17 +8,18 @@ import FormField from 'app/views/settings/components/forms/formField';
 import TextField from 'app/views/settings/components/forms/textField';
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {ServiceHook} from 'app/types';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'].map(e => [e, e]);
 
-export default class ServiceHookSettingsForm extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    hookId: PropTypes.string,
-    initialData: PropTypes.object.isRequired,
-  };
+type Props = {
+  orgId: string;
+  projectId: string;
+  hookId: string;
+  initialData: Partial<ServiceHook> & {isActive: boolean};
+};
 
+export default class ServiceHookSettingsForm extends React.Component<Props> {
   onSubmitSuccess = () => {
     const {orgId, projectId} = this.props;
     browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
@@ -56,7 +56,6 @@ export default class ServiceHookSettingsForm extends React.Component {
             />
             <FormField
               name="events"
-              choices={EVENT_CHOICES}
               label={t('Events')}
               inline={false}
               help={t('The event types you wish to subscribe to.')}
