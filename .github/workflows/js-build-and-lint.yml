@@ -92,8 +92,7 @@ jobs:
           git push origin
 
       - name: tsc
-        if: steps.changes.outputs.frontend == 'true'
-        continue-on-error: true
+        if: always() && steps.changes.outputs.frontend == 'true'
         run: |
           yarn tsc -p config/tsconfig.build.json
 
