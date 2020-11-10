@@ -204,7 +204,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@fix-merge-base
         with:
           merge-base: ${{ steps.merge-base.outputs.sha }}
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
