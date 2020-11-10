@@ -94,7 +94,7 @@ function getLegend(trendFunction: string) {
 
 function getIntervalLine(
   series: Series[],
-  pivotDate: string,
+  pivotDate: string | undefined,
   transaction?: NormalizedTrendsTransaction
 ) {
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
@@ -150,7 +150,9 @@ function getIntervalLine(
     seriesName: 'Period split',
   };
 
-  const seriesLine = new Date(pivotDate);
+  const seriesDiff = seriesEnd - seriesStart;
+  const seriesLine =
+    pivotDate === undefined ? seriesDiff * 0.5 + seriesStart : new Date(pivotDate);
 
   previousPeriod.markLine.data = [
     [

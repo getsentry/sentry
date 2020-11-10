@@ -155,15 +155,15 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates"):
             pivot_date = request.GET.get("pivotDate")
-            if pivot_date is None:
-                middle = params["start"] + timedelta(
-                    seconds=(params["end"] - params["start"]).total_seconds() * 0.5
-                )
-            else:
+            if pivot_date:
                 try:
                     middle = parse_datetime_string(pivot_date)
                 except InvalidQuery as e:
                     raise ParseError(six.text_type(e))
+            else:
+                middle = params["start"] + timedelta(
+                    seconds=(params["end"] - params["start"]).total_seconds() * 0.5
+                )
 
             start, middle, end = (
                 datetime.strftime(params["start"], DateArg.date_format),

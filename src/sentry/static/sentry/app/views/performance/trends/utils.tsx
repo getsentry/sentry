@@ -129,7 +129,7 @@ export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
   return confidenceLevel || CONFIDENCE_LEVELS[0];
 }
 
-export function getCurrentPivotDate(location: Location): ConfidenceLevel {
+export function getCurrentPivotDate(location: Location): string | undefined {
   return decodeScalar(location?.query?.pivotDate);
 }
 
