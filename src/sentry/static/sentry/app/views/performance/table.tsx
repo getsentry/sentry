@@ -282,9 +282,7 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = organization.features.includes('key-transactions')
-      ? ['max-content']
-      : [];
+    const prependColumnWidths = ['max-content'];
 
     return (
       <div>
