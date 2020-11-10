@@ -35,12 +35,7 @@ class LinkedIssue extends AsyncComponent<
     eventId: PropTypes.string.isRequired,
   };
 
-  getEndpoints(): Array<[string, string]> {
-    const {groupId} = this.props;
-    const groupUrl = `/issues/${groupId}/`;
-
-    return [['group', groupUrl]];
-  }
+  getEndpoints(): Array<[string, string]> { const {groupId} = this.props; const groupUrl = `/issues/${groupId}/`; return [['group', groupUrl]]; }
 
   renderLoading() {
     return <Placeholder height="120px" bottomGutter={2} />;
