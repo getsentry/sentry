@@ -32,7 +32,7 @@ export function setupColorScheme(): void {
   // Set favicon to dark on load if necessary)
   if (prefersDark()) {
     changeFavicon('dark');
-    ConfigStore.set('theme', 'dark');
+    // TODO(dark): (currently manual opt in only): ConfigStore.set('theme', 'dark');
   }
 
   // Watch for changes in preferred color scheme

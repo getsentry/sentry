@@ -44,7 +44,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     this.config = {
       ...config,
       features: new Set(config.features || []),
-      theme: config.user.isStaff && prefersDark() ? 'dark' : 'light',
+      theme: 'light', // TODO(dark): The next step is to have this for staff: config.user.isStaff && prefersDark() ? 'dark' : 'light',
     };
 
     // Language code is passed from django
