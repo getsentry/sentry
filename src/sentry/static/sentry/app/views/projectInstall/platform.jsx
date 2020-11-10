@@ -234,6 +234,12 @@ const Actions = styled('div')`
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
   width: max-content;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: auto;
+    grid-row-gap: ${space(1)};
+    grid-auto-flow: row;
+  }
 `;
 
 const StyledAlert = styled(Alert)`
