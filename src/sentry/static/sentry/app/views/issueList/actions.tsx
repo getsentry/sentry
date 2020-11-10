@@ -809,7 +809,7 @@ const ReasonSpacerLabel = styled('div')`
 `;
 
 const TimesSpacerLabel = styled('div')`
-  width: 160px;
+  width: 150px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 `;

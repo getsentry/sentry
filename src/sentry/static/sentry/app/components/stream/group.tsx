@@ -395,7 +395,7 @@ class StreamGroup extends React.Component<Props, State> {
                 <InboxReason data={data} />
               </Box>
             )}
-            <Box width={160} mx={2} className="hidden-xs hidden-sm">
+            <Box width={150} mx={2} className="hidden-xs hidden-sm">
               <StyledTimes
                 lastSeen={data.lifetime?.lastSeen || data.lastSeen}
                 firstSeen={data.lifetime?.firstSeen || data.firstSeen}

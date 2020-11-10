@@ -354,6 +354,13 @@ class IssueListOverview extends React.Component<Props, State> {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
+    const orgFeatures = new Set(this.props.organization.features);
+    const hasInbox = orgFeatures.has('inbox');
+
+    if (hasInbox) {
+      requestParams.expand = 'inbox';
+    }
+
     if (this._lastRequest) {
       this._lastRequest.cancel();
     }

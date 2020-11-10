@@ -7,6 +7,7 @@ import moment from 'moment-timezone';
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
+import {getDuration} from 'app/utils/formatters';
 
 import Tooltip from './tooltip';
 
@@ -138,46 +139,11 @@ function getRelativeDate(
   const date = getDateObj(currentDateTime);
 
   if (shorten) {
-    moment.updateLocale('en', {
-      relativeTime: {
-        future: 'in %s',
-        past: '%s ago',
-        s: 'few s',
-        ss: '%ds',
-        m: '1 min',
-        mm: '%d min',
-        h: '1h',
-        hh: '%dh',
-        d: '1d',
-        dd: '%dd',
-        M: '1m',
-        MM: '%dm',
-        y: '1y',
-        yy: '%dy',
-      },
+    return t('%(time)s %(suffix)s', {
+      time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
+      suffix,
     });
-  } else {
-    moment.updateLocale('en', {
-      relativeTime: {
-        future: 'in %s',
-        past: '%s ago',
-        s: 'a few seconds',
-        ss: '%d seconds',
-        m: 'a minute',
-        mm: '%d minutes',
-        h: 'an hour',
-        hh: '%d hours',
-        d: 'a day',
-        dd: '%d days',
-        M: 'a month',
-        MM: '%d months',
-        y: 'a year',
-        yy: '%d years',
-      },
-    });
-  }
-
-  if (!suffix) {
+  } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {
     return moment(date).fromNow();

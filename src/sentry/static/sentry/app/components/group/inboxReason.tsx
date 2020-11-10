@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {t} from 'app/locale';
-import {IconSound, IconSync, IconWarning} from 'app/icons';
+import {IconSound, IconSwitch, IconSync, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
 import Tooltip from 'app/components/tooltip';
@@ -14,49 +15,59 @@ const GroupInboxReason = {
   MANUAL: 3,
 };
 
-const renderReason = (reason?: number, reasonDetails?: string) => {
-  const tooltip =
-    reasonDetails || 'This issue was unignored.\n' + '100 events within 1 hour occurred';
-
-  if (reason === GroupInboxReason.UNIGNORED) {
-    return (
-      <Tooltip title={tooltip}>
-        <FlexWrapper>
-          <StyledIconSound size="11px" color="purple300" />
-          {t('Unignored')}
-        </FlexWrapper>
-      </Tooltip>
-    );
-  }
-
-  if (reason === GroupInboxReason.REGRESSION) {
-    return (
-      <Tooltip title={tooltip}>
-        <FlexWrapper>
-          <StyledIconSync size="11px" color="purple300" />
-          {t('Regression')}
-        </FlexWrapper>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Tooltip title={tooltip}>
-      <FlexWrapper>
-        <StyledIconWarning size="11px" color="purple300" />
-        {t('New Issue')}
-      </FlexWrapper>
-    </Tooltip>
-  );
-};
-
 type Props = {
   data: Group;
 };
 
-const InboxReason = ({data}: Props) => (
-  <Container>{renderReason(data.inbox?.reason)}</Container>
-);
+const InboxReason = ({data}: Props) => {
+  const {reason, reason_details} = data.inbox || {};
+
+  let reasonIcon: React.ReactNode;
+  let reasonBadgeText: string;
+  let tooltipText: string;
+
+  const tooltipWindowCount = t('%(count)s events within %(window)s occured', {
+    count: reason_details?.count || 0,
+    window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
+  });
+
+  if (reason === GroupInboxReason.UNIGNORED) {
+    reasonIcon = <IconSound size="11px" color="purple300" />;
+    reasonBadgeText = t('Unignored');
+    tooltipText = 'This issue was unignored';
+  } else if (reason === GroupInboxReason.REGRESSION) {
+    reasonIcon = <IconSync size="11px" color="purple300" />;
+    reasonBadgeText = t('Regression');
+    tooltipText = 'This issue was a regression';
+  } else if (reason === GroupInboxReason.MANUAL) {
+    reasonIcon = <IconSwitch size="11px" color="purple300" />;
+    reasonBadgeText = t('Manual');
+    tooltipText = 'This issue was moved manually';
+  } else {
+    reasonIcon = <IconWarning size="11px" color="purple300" />;
+    reasonBadgeText = t('New Issue');
+    tooltipText = 'This is a new issue';
+  }
+
+  return (
+    <Container>
+      <Tooltip
+        title={
+          <TooltipTitle>
+            {tooltipText}
+            <br />
+            {tooltipWindowCount}
+          </TooltipTitle>
+        }
+      >
+        <Wrapper>
+          {reasonIcon}
+          <div>{reasonBadgeText}</div>
+        </Wrapper>
+      </Tooltip>
+    </Container>
+  );
+};
 
 const Container = styled('div')`
   display: flex;
@@ -64,29 +75,29 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const FlexWrapper = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 6px;
+  padding: ${space(0.25)} ${space(0.75)};
 
   background-color: ${p => p.theme.gray100};
   color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-align: center;
   border-radius: 17px;
+
+  > * :not(:last-child) {
+    margin-right: ${space(0.5)};
+  }
 `;
 
-const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(0.5)};
-`;
+const TooltipTitle = styled('div')`
+  text-align: left;
 
-const StyledIconSync = styled(IconSync)`
-  margin-right: ${space(0.5)};
-`;
-
-const StyledIconSound = styled(IconSound)`
-  margin-right: ${space(0.5)};
+  > * :last-child {
+    font-weight: 400;
+  }
 `;
 
 export default InboxReason;

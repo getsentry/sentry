@@ -21,7 +21,7 @@ type Props = {
 const Times = ({lastSeen, firstSeen}: Props) => {
   return (
     <Container>
-      <FlexWrapper>
+      <Wrapper>
         {lastSeen && (
           <React.Fragment>
             <StyledIconClock size="11px" color="purple300" />
@@ -39,7 +39,7 @@ const Times = ({lastSeen, firstSeen}: Props) => {
             shorten
           />
         )}
-      </FlexWrapper>
+      </Wrapper>
     </Container>
   );
 };
@@ -54,11 +54,11 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const FlexWrapper = styled('div')`
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 6px;
+  padding: ${space(0.25)} ${space(0.75)};
 
   background-color: ${p => p.theme.gray100};
   color: ${p => p.theme.gray600};
