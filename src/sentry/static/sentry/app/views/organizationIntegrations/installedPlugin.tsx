@@ -195,7 +195,7 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const IntegrationFlex = styled('div')`

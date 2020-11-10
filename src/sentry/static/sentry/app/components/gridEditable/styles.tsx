@@ -30,7 +30,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
 
 export const HeaderButtonContainer = styled('div')`
@@ -117,8 +117,8 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
 
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.gray400};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -158,7 +158,7 @@ export const GridHeadCellStatic = styled('th')`
   display: flex;
   align-items: center;
   padding: 0 ${space(2)};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: 1;
@@ -275,7 +275,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   }
 
   &:hover::after {
-    background-color: ${p => p.theme.gray400};
+    background-color: ${p => p.theme.gray200};
   }
 
   /**

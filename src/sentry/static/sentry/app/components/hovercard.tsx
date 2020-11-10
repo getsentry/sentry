@@ -235,7 +235,7 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
   /* Some hovercards overlap the toplevel header and sidebar, and we need to appear on top */
   z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.gray500};
   border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.white};
   background-clip: padding-box;
@@ -260,7 +260,7 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
 
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusTop};
   font-weight: 600;
@@ -311,7 +311,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::after {
     border: 10px solid transparent;
     border-${getTipDirection}-color: ${p =>
-  p.tipColor || (p.placement === 'bottom' ? p.theme.gray100 : p.theme.white)};
+  p.tipColor || (p.placement === 'bottom' ? p.theme.backgroundSecondary : p.theme.white)};
   }
 `;
 

@@ -25,7 +25,7 @@ export const NumberContainer = styled('div')`
 `;
 
 export const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;
 

@@ -348,5 +348,5 @@ const StyledErrorsOnlyButton = styled(Button)`
 
 const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
 `;
