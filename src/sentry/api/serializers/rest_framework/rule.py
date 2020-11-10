@@ -70,7 +70,7 @@ class RuleSerializer(serializers.Serializer):
     filterMatch = serializers.ChoiceField(
         choices=(("all", "all"), ("any", "any"), ("none", "none")), required=False
     )
-    actions = ListField(child=RuleNodeField(type="action/event"))
+    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
     conditions = ListField(child=RuleNodeField(type="condition/event"), required=False)
     filters = ListField(child=RuleNodeField(type="filter/event"), required=False)
     frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
@@ -87,11 +87,6 @@ class RuleSerializer(serializers.Serializer):
             raise serializers.ValidationError(u"This environment has not been created.")
 
         return environment
-
-    def validate_actions(self, value):
-        if not value:
-            raise serializers.ValidationError(u"Must select an action.")
-        return value
 
     def validate(self, attrs):
         # XXX(meredith): For rules that have the Slack integration as an action
