@@ -21,21 +21,8 @@ export type TableData = {
   meta?: MetaType;
 };
 
-type Props = DiscoverQueryProps & {
-  keyTransactions?: boolean;
-};
-
-function getRoute(keyTransactions?: boolean) {
-  if (keyTransactions) {
-    return 'key-transactions';
-  }
-  return 'eventsv2';
-}
-
-function DiscoverQuery(props: Props) {
-  const {keyTransactions} = props;
-  const route = getRoute(keyTransactions);
-  return <GenericDiscoverQuery<TableData, {}> route={route} {...props} />;
+function DiscoverQuery(props: DiscoverQueryProps) {
+  return <GenericDiscoverQuery<TableData, {}> route="eventsv2" {...props} />;
 }
 
 export default withApi(DiscoverQuery);

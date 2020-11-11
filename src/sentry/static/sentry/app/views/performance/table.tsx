@@ -44,7 +44,6 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  keyTransactions: boolean;
   summaryConditions: string;
 
   projects: Project[];
@@ -265,7 +264,7 @@ class Table extends React.Component<Props, State> {
   }
 
   render() {
-    const {eventView, organization, location, keyTransactions} = this.props;
+    const {eventView, organization, location} = this.props;
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
@@ -290,7 +289,6 @@ class Table extends React.Component<Props, State> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
-          keyTransactions={keyTransactions}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>
