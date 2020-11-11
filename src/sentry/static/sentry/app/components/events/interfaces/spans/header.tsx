@@ -488,7 +488,7 @@ const TimeAxis = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.white};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
 `;
@@ -530,7 +530,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
 const TickMarker = styled('div')`
   width: 1px;
   height: 4px;
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   top: 0;
   left: 0;
@@ -609,12 +609,12 @@ const ViewHandleContainer = styled('div')`
 const ViewHandleLine = styled('div')`
   height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
   width: 2px;
-  background-color: ${p => p.theme.gray800};
+  background-color: ${p => p.theme.gray500};
 `;
 
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.gray800};
+  background-color: ${p => p.theme.gray500};
   cursor: col-resize;
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
@@ -646,7 +646,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red400};
+  background-color: ${p => p.theme.red300};
   transform: translateX(-50%);
 `;
 

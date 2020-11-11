@@ -96,7 +96,7 @@ const StyledDropdownControl = styled(DropdownControl)<{
 
 const FilterText = styled('em')`
   font-style: normal;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-right: ${space(0.5)};
 `;
 

@@ -53,7 +53,7 @@ function Footer() {
 const FooterLink = styled(ExternalLink)`
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue400} 0 2px 0;
+    box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }
 `;
 
@@ -70,7 +70,7 @@ const LogoLink = styled(props => (
 
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-weight: bold;
   margin-left: ${space(1)};
 `;

@@ -139,7 +139,7 @@ class TrendChart extends React.Component<Props> {
       yAxis: {
         min: 0,
         axisLabel: {
-          color: theme.gray400,
+          color: theme.gray200,
           // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
@@ -181,7 +181,7 @@ class TrendChart extends React.Component<Props> {
                 if (errored) {
                   return (
                     <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
+                      <IconWarning color="gray300" size="lg" />
                     </ErrorPanel>
                   );
                 }
@@ -193,7 +193,7 @@ class TrendChart extends React.Component<Props> {
                       .map(values => {
                         return {
                           ...values,
-                          color: theme.purple400,
+                          color: theme.purple300,
                           lineStyle: {
                             opacity: 0.75,
                             width: 1,
@@ -212,7 +212,7 @@ class TrendChart extends React.Component<Props> {
                   ? smoothedResults.map(values => {
                       return {
                         ...values,
-                        color: theme.purple500,
+                        color: theme.purple300,
                         lineStyle: {
                           opacity: 1,
                         },

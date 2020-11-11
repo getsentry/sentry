@@ -29,13 +29,12 @@ function initializeData(projects, query, features = FEATURES) {
 }
 
 function initializeTrendsData(query, addDefaultQuery = true) {
-  const features = [...FEATURES, 'trends'];
   const projects = [
     TestStubs.Project({id: '1', firstTransactionEvent: false}),
     TestStubs.Project({id: '2', firstTransactionEvent: true}),
   ];
   const organization = TestStubs.Organization({
-    features,
+    FEATURES,
     projects,
   });
 
@@ -61,8 +60,6 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Landing', function () {
-  let eventsMock;
-  let keyTransactionsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
@@ -92,7 +89,7 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
-    eventsMock = MockApiClient.addMockResponse(
+    MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
         body: {
@@ -192,19 +189,6 @@ describe('Performance > Landing', function () {
         },
       }
     );
-    keyTransactionsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/key-transactions/',
-      body: {
-        meta: {},
-        data: [],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/key-transactions-stats/',
-      body: {
-        data: [],
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-meta/',
       body: {
@@ -436,35 +420,6 @@ describe('Performance > Landing', function () {
     );
   });
 
-  it('Changing views from all transactions to key transactions fires discover query', async function () {
-    const data = initializeTrendsData({view: FilterViews.ALL_TRANSACTIONS}, false);
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(keyTransactionsMock).toHaveBeenCalledTimes(0);
-
-    const changedViewData = initializeTrendsData(
-      {view: FilterViews.KEY_TRANSACTIONS},
-      false
-    );
-
-    wrapper.setProps({location: changedViewData.router.location});
-    await tick();
-    wrapper.update();
-
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(keyTransactionsMock).toHaveBeenCalledTimes(1);
-  });
-
   it('Tags are replaced with trends default query if navigating to trends', async function () {
     const data = initializeTrendsData(
       {view: FilterViews.ALL_TRANSACTIONS, query: 'device.family:Mac'},
@@ -529,62 +484,5 @@ describe('Performance > Landing', function () {
         },
       })
     );
-  });
-
-  it('should render correctly if key transaction feature is off', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
-    const data = initializeData(projects, {});
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
-
-    // Check to see if the key transaction column is not there
-    expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
-      0
-    );
-    expect(wrapper.find('IconStar[data-test-id="key-transaction-column"]')).toHaveLength(
-      0
-    );
-  });
-
-  it('should render correctly if key transaction feature is on', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
-    const data = initializeData(projects, {}, [...FEATURES, 'key-transactions']);
-
-    const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
-      data.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(1);
-
-    // Check to see if the key transaction column is there
-    expect(wrapper.find('IconStar[data-test-id="key-transaction-header"]')).toHaveLength(
-      1
-    );
-    const keyTransactionColumns = wrapper.find(
-      'IconStar[data-test-id="key-transaction-column"]'
-    );
-    expect(keyTransactionColumns).toHaveLength(2);
-    expect(keyTransactionColumns.first().props().isSolid).toEqual(true);
-    expect(keyTransactionColumns.last().props().isSolid).toEqual(false);
   });
 });

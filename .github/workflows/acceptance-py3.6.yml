@@ -18,6 +18,7 @@ jobs:
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@v2
@@ -104,5 +105,8 @@ jobs:
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
           USE_SNUBA: 1
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
 
       # TODO(joshuarli): snapshots, visual-diff needs py3-acceptance.

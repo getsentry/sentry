@@ -78,6 +78,11 @@ class ParseSearchQueryTest(TestCase):
             'Invalid value for "is" search, valid values are'
         )
 
+    def test_is_query_inbox(self):
+        assert parse_search_query("is:inbox") == [
+            SearchFilter(key=SearchKey(name="inbox"), operator="=", value=SearchValue(True))
+        ]
+
     def test_numeric_filter(self):
         # test numeric format
         assert parse_search_query("times_seen:500") == [

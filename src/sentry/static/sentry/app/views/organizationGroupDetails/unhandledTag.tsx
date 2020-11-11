@@ -24,7 +24,7 @@ const UnhandledTag = styled((props: React.ComponentProps<typeof Tag>) => (
       <Tooltip title={t('An unhandled error was detected in this Issue.')}>
         <Tag
           priority="error"
-          icon={<IconSubtract size="xs" color="red300" isCircled />}
+          icon={<IconSubtract size="xs" color="red200" isCircled />}
           {...props}
         >
           {t('Unhandled')}
@@ -35,7 +35,7 @@ const UnhandledTag = styled((props: React.ComponentProps<typeof Tag>) => (
 ))`
   /* TODO(matej): There is going to be a major Tag component refactor which should make Tags look something like this - then we can remove these one-off styles */
   background-color: #ffecf0;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   text-transform: none;
   padding: 0 ${space(0.75)};
   height: 17px;

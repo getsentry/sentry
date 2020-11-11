@@ -113,7 +113,7 @@ const EventRow = styled('div')`
 `;
 
 const Baseline = styled('div')`
-  background-color: ${p => p.theme.gray700};
+  background-color: ${p => p.theme.gray500};
   height: 100%;
   width: 4px;
 
@@ -121,7 +121,7 @@ const Baseline = styled('div')`
 `;
 
 const Regression = styled('div')`
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.purple200};
   height: 100%;
   width: 4px;
 
@@ -155,11 +155,11 @@ const ContentTitle = styled('div')`
 `;
 
 const EventId = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 function shortEventId(value: string): string {

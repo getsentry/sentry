@@ -195,7 +195,7 @@ const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
 
 const ChartContainer = styled('div')`
   position: relative;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
 `;
 
 const CardHeader = styled('div')`
@@ -217,7 +217,7 @@ const StyledProjectCard = styled('div')`
 
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   height: 334px;
 `;
 
@@ -239,7 +239,7 @@ const SummaryLinks = styled('div')`
   a {
     color: ${p => p.theme.formText};
     :hover {
-      color: ${p => p.theme.gray600};
+      color: ${p => p.theme.gray400};
     }
   }
   em {

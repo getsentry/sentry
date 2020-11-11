@@ -62,7 +62,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 {"name_with_namespace": "getsentry / hello", "id": 22},
             ],
         )
-        assert self.installation.get_create_issue_config(self.group, self.user) == [
+        assert self.installation.get_create_issue_config(self.group) == [
             {
                 "url": "/extensions/gitlab/search/baz/%d/" % self.installation.model.id,
                 "name": "project",
@@ -238,7 +238,7 @@ class GitlabIssuesTest(GitLabTestCase):
             u"https://example.gitlab.com/api/v4/projects/%s" % project_id,
             json={"path_with_namespace": project_name, "id": project_id},
         )
-        assert self.installation.get_create_issue_config(self.group, self.user) == [
+        assert self.installation.get_create_issue_config(self.group) == [
             {
                 "url": "/extensions/gitlab/search/baz/%d/" % self.installation.model.id,
                 "name": "project",
@@ -302,7 +302,7 @@ class GitlabIssuesTest(GitLabTestCase):
             u"https://example.gitlab.com/api/v4/projects/%s" % project_id,
             json={"name_with_namespace": project_name, "id": project_id},
         )
-        assert self.installation.get_create_issue_config(self.group, self.user) == [
+        assert self.installation.get_create_issue_config(self.group) == [
             {
                 "url": "/extensions/gitlab/search/baz/%d/" % self.installation.model.id,
                 "name": "project",
@@ -351,7 +351,7 @@ class GitlabIssuesTest(GitLabTestCase):
             % self.installation.model.metadata["group_id"],
             json=[],
         )
-        assert self.installation.get_create_issue_config(self.group, self.user) == [
+        assert self.installation.get_create_issue_config(self.group) == [
             {
                 "url": "/extensions/gitlab/search/baz/%d/" % self.installation.model.id,
                 "name": "project",

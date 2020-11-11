@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.conf.urls import url
 from rest_framework.response import Response
 
@@ -174,11 +176,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             try:
                 api.user.whoami()
             except phabricator.APIError as e:
-                raise PluginError("%s %s" % (e.code, e))
+                raise PluginError(u"%s %s" % (e.code, e))
             except HTTPException as e:
-                raise PluginError("Unable to reach Phabricator host: %s" % (e,))
+                raise PluginError(u"Unable to reach Phabricator host: %s" % (e,))
             except Exception as e:
-                raise PluginError("Unhandled error from Phabricator: %s" % (e,))
+                raise PluginError(u"Unhandled error from Phabricator: %s" % (e,))
         return config
 
     def is_configured(self, request, project, **kwargs):
@@ -194,11 +196,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         return "Create Maniphest Task"
 
     def get_issue_label(self, group, issue_id, **kwargs):
-        return "T%s" % issue_id
+        return u"T%s" % issue_id
 
     def get_issue_url(self, group, issue_id, **kwargs):
         host = self.get_option("host", group.project)
-        return urljoin(host, "T%s" % issue_id)
+        return urljoin(host, u"T%s" % issue_id)
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
@@ -226,13 +228,13 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
-                title=form_data["title"].encode("utf-8"),
-                description=form_data["description"].encode("utf-8"),
+                title=six.text_type(form_data["title"]),
+                description=six.text_type(form_data["description"]),
                 ownerPHID=form_data.get("assignee"),
                 projectPHIDs=form_data.get("tags"),
             )
         except phabricator.APIError as e:
-            raise PluginError("%s %s" % (e.code, e))
+            raise PluginError(u"%s %s" % (e.code, e))
         except HTTPException as e:
             raise PluginError("Unable to reach Phabricator host: %s" % e)
 

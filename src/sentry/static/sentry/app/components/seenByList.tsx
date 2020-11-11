@@ -64,7 +64,7 @@ const SeenByList = ({
       />
       <IconWrapper iconPosition={iconPosition}>
         <Tooltip title={iconTooltip}>
-          <IconShow size="sm" color="gray400" />
+          <IconShow size="sm" color="gray200" />
         </Tooltip>
       </IconWrapper>
     </SeenByWrapper>
@@ -80,7 +80,7 @@ const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
 
 const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   background-color: transparent;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   height: 28px;
   width: 24px;
   line-height: 26px;

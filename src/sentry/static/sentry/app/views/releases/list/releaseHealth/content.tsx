@@ -111,7 +111,7 @@ const Content = ({
                             size={20}
                             thickness={5}
                             radius={0}
-                            palette={Array(10).fill(theme.purple500)}
+                            palette={Array(10).fill(theme.purple300)}
                           />
                         </Tooltip>
                         <TextOverflow>
@@ -291,8 +291,8 @@ const StyledScoreBar = styled(ScoreBar)`
 const ChartWrapper = styled('div')`
   flex: 1;
   g > .barchart-rect {
-    background: ${p => p.theme.gray400};
-    fill: ${p => p.theme.gray400};
+    background: ${p => p.theme.gray200};
+    fill: ${p => p.theme.gray200};
   }
 `;
 

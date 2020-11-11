@@ -35,23 +35,23 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
 
 const StyledNavItem = styled(Link)`
   display: block;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 14px;
   line-height: 30px;
   position: relative;
 
   &.active {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
 
     &:before {
-      background: ${p => p.theme.purple400};
+      background: ${p => p.theme.purple300};
     }
   }
 
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
     outline: none;
   }
 

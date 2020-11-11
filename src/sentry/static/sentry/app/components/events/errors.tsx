@@ -89,9 +89,9 @@ class EventErrors extends React.Component<Props, State> {
 
 const linkStyle = ({theme}: {theme: Theme}) => css`
   font-weight: bold;
-  color: ${theme.gray600};
+  color: ${theme.gray400};
   :hover {
-    color: ${theme.gray700};
+    color: ${theme.gray500};
   }
 `;
 
@@ -107,7 +107,7 @@ const StyledBanner = styled(BannerContainer)`
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
 `;
 
 // TODO(theme) don't use a custom pink

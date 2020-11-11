@@ -49,7 +49,7 @@ const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) 
           hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
           onClick={hasFunctionNameHiddenDetails ? onFunctionNameToggle : undefined}
           size="xs"
-          color="purple400"
+          color="purple300"
         />
       </FunctionNameToggleTooltip>
       <Data>
@@ -89,7 +89,7 @@ const Wrapper = styled('div')`
 
   code {
     background: transparent;
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
     padding-right: ${space(0.5)};
   }
 
@@ -119,7 +119,7 @@ const FileNameTooltip = styled(Tooltip)`
 `;
 
 const Filename = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
 `;
 
 const FunctionNameToggleIcon = styled(IconFilter, {

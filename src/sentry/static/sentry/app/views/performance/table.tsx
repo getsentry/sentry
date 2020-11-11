@@ -44,7 +44,6 @@ type Props = {
   organization: Organization;
   location: Location;
   setError: (msg: string | undefined) => void;
-  keyTransactions: boolean;
   summaryConditions: string;
 
   projects: Project[];
@@ -187,7 +186,8 @@ class Table extends React.Component<Props, State> {
             };
           }
           const currentSort = eventView.sortForField(field, tableMeta);
-          const canSort = isFieldSortable(field, tableMeta);
+          const canSort =
+            isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
 
           return (
             <SortLink
@@ -222,7 +222,7 @@ class Table extends React.Component<Props, State> {
         const star = (
           <IconStar
             key="keyTransaction"
-            color="yellow400"
+            color="yellow300"
             isSolid
             data-test-id="key-transaction-header"
           />
@@ -254,24 +254,17 @@ class Table extends React.Component<Props, State> {
   getSortedEventView() {
     const {eventView} = this.props;
 
-    // We special case sort by key transactions here to include
-    // the transaction name and project as the secondary sorts.
-    const keyTransactionSort = eventView.sorts.find(
-      sort => sort.field === 'key_transaction'
-    );
-    if (keyTransactionSort) {
-      const sorts = ['key_transaction', 'transaction', 'project'].map(field => ({
-        field,
-        kind: keyTransactionSort.kind,
-      }));
-      return eventView.withSorts(sorts);
-    }
-
-    return eventView;
+    return eventView.withSorts([
+      {
+        field: 'key_transaction',
+        kind: 'desc',
+      },
+      ...eventView.sorts,
+    ]);
   }
 
   render() {
-    const {eventView, organization, location, keyTransactions} = this.props;
+    const {eventView, organization, location} = this.props;
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
@@ -288,9 +281,7 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = organization.features.includes('key-transactions')
-      ? ['max-content']
-      : [];
+    const prependColumnWidths = ['max-content'];
 
     return (
       <div>
@@ -298,7 +289,6 @@ class Table extends React.Component<Props, State> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
-          keyTransactions={keyTransactions}
         >
           {({pageLinks, isLoading, tableData}) => (
             <React.Fragment>

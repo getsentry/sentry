@@ -107,13 +107,13 @@ const QueryTitle = styled('div')`
 const QueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   line-height: 1.5;
   ${overflowEllipsis};
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   max-height: 100px;
   height: 100%;
   overflow: hidden;
@@ -131,11 +131,11 @@ const DateSelected = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   ${overflowEllipsis};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
   padding-left: ${space(1)};
 `;
 

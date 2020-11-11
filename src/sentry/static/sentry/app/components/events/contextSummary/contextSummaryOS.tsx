@@ -7,10 +7,11 @@ import {Meta} from 'app/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import space from 'app/styles/space';
-import {ParagraphOverflow} from 'app/components/textOverflow';
+import TextOverflow from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
+import Item from './item';
 
 type Props = {
   data: Data;
@@ -65,14 +66,13 @@ const ContextSummaryOS = ({data}: Props) => {
   const className = generateClassName(data.name);
 
   return (
-    <div className={`context-item ${className}`}>
-      <span className="context-item-icon" />
+    <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderName()}</h3>
-      <ParagraphOverflow>
+      <TextOverflow isParagraph>
         <Subject>{versionElement.subject}</Subject>
         <AnnotatedText value={versionElement.value} meta={versionElement.meta} />
-      </ParagraphOverflow>
-    </div>
+      </TextOverflow>
+    </Item>
   );
 };
 

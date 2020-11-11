@@ -13,18 +13,10 @@ const defaultProps = {
   hideGuide: false,
 };
 
-type Data = {
-  // TODO(ts): Check if we can use the StackTrace type here;
-  hasSystemFrames: boolean;
-  values: Array<ExceptionType>;
-  // TODO(ts): Check what values come when it's not null
-  excOmitted: any | null;
-};
-
 type Props = {
   event: Event;
   type: string;
-  data: Data;
+  data: ExceptionType;
   projectId: string;
 } & typeof defaultProps;
 

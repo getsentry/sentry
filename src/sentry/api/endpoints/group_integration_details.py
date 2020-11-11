@@ -139,7 +139,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         else:
             external_issue.update(**defaults)
 
-        installation.store_issue_last_defaults(group.project, request.user, request.data)
+        installation.store_issue_last_defaults(group.project_id, request.data)
         try:
             installation.after_link_issue(external_issue, data=request.data)
         except IntegrationFormError as exc:
@@ -231,7 +231,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 user=request.user,
                 sender=self.__class__,
             )
-        installation.store_issue_last_defaults(group.project, request.user, request.data)
+        installation.store_issue_last_defaults(group.project_id, request.data)
 
         self.create_issue_activity(request, group, installation, external_issue)
 

@@ -70,7 +70,7 @@ function IncompatibleQueryAlert({
   const pathname = `/organizations/${orgId}/discover/results/`;
 
   return (
-    <StyledAlert type="warning" icon={<IconInfo color="yellow400" size="sm" />}>
+    <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&
@@ -157,7 +157,7 @@ function IncompatibleQueryAlert({
         </React.Fragment>
       )}
       <StyledCloseButton
-        icon={<IconClose color="yellow400" size="sm" isCircled />}
+        icon={<IconClose color="yellow300" size="sm" isCircled />}
         aria-label={t('Close')}
         size="zero"
         onClick={onClose}
@@ -214,8 +214,15 @@ function incompatibleYAxis(eventView: EventView): boolean {
   const isNumericParameter = aggregation.parameters.some(
     param => param.kind === 'value' && param.dataType === 'number'
   );
+  // There are other measurements possible, but for the time being, only allow alerting
+  // on the predefined set of measurements for alerts.
+  const allowedParameters = [
+    '',
+    ...yAxisConfig.fields,
+    ...(yAxisConfig.measurementKeys ?? []),
+  ];
   const invalidParameter =
-    !isNumericParameter && !['', ...yAxisConfig.fields].includes(column.function[1]);
+    !isNumericParameter && !allowedParameters.includes(column.function[1]);
 
   return invalidFunction || invalidParameter;
 }
@@ -308,7 +315,7 @@ function CreateAlertButton({
 export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   margin-bottom: 0;
 `;
 

@@ -43,8 +43,8 @@ const StyledDelta = styled('div')`
     p.direction > 0
       ? p.theme.green300
       : p.direction < 0
-      ? p.theme.red400
-      : p.theme.gray500};
+      ? p.theme.red300
+      : p.theme.gray300};
 `;
 
 class PercentageTableChart extends React.Component {
@@ -216,7 +216,7 @@ const PercentageLabel = styled('div')`
 const BarWrapper = styled('div')`
   flex: 1;
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const Percentage = styled('div')`
@@ -228,7 +228,7 @@ const Percentage = styled('div')`
 const Bar = styled('div', {shouldForwardProp: isPropValid})`
   flex: 1;
   width: ${p => p.width}%;
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   height: 12px;
   border-radius: 2px;
 `;
@@ -244,7 +244,7 @@ const CountColumn = styled(Name)`
 `;
 
 const TableHeader = styled(PanelItem)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding: ${space(1)};
 `;
 
