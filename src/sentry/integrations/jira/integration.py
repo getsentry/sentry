@@ -30,6 +30,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
 
 from .client import JiraApiClient, JiraCloud
+from .utils import build_user_choice
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -535,12 +536,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, **kwargs):
+    def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "jira_integration"
-        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
+        fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
         params = kwargs.get("params", {})
 
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = self.get_defaults(group.project, user)
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
@@ -639,6 +640,29 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_versions(meta["key"]))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
+            elif field["name"] == "reporter":
+                reporter_id = defaults.get("reporter", "")
+                if not reporter_id:
+                    continue
+                try:
+                    reporter_info = client.get_user(reporter_id)
+                except ApiError as e:
+                    logger.info(
+                        "jira.get-create-issue-config.no-matching-reporter",
+                        extra={
+                            "integration_id": self.model.id,
+                            "organization_id": self.organization_id,
+                            "persisted_reporter_id": reporter_id,
+                            "error": six.text_type(e),
+                        },
+                    )
+                    continue
+                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
+                if not reporter_tuple:
+                    continue
+                reporter_id, reporter_label = reporter_tuple
+                field["default"] = reporter_id
+                field["choices"] = [(reporter_id, reporter_label)]
 
         return fields
 
