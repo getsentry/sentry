@@ -101,7 +101,7 @@ class LazyServiceWrapper(LazyObject):
         base = self._base
         base_instance = base()
         for key in itertools.chain(base.__all__, ("validate", "setup")):
-            if inspect.ismethod(getattr(base_instance, key)):
+            if inspect.isroutine(getattr(base_instance, key)):
                 context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
             else:
                 context[key] = getattr(base_instance, key)
@@ -274,7 +274,7 @@ class ServiceDelegator(Service):
         #    the ``AttributeError`` raised by ``getattr`` propagate (mirroring
         #    normal attribute access behavior for a missing/invalid name.)
         base_value = getattr(self.__backend_base, attribute_name)
-        if not inspect.ismethod(base_value):
+        if not inspect.isroutine(base_value):
             return base_value
 
         def execute(*args, **kwargs):
