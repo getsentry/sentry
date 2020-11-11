@@ -60,7 +60,10 @@ class GroupUserFeedback extends React.Component<Props, State> {
       error: false,
     });
 
-    fetchGroupUserReports(this.props.group.id, this.props.params)
+    fetchGroupUserReports(this.props.group.id, {
+      ...this.props.params,
+      cursor: this.props.location.query.cursor || '',
+    })
       .then(([data, _, jqXHR]) => {
         this.setState({
           error: false,
