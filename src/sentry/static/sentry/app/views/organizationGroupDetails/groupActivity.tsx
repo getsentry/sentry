@@ -117,6 +117,7 @@ class GroupActivity extends React.Component<Props, State> {
     const me = ConfigStore.get('user');
     const projectSlugs = group && group.project ? [group.project.slug] : [];
     const noteProps = {
+      minHeight: 140,
       group,
       projectSlugs,
       placeholder: t(
@@ -150,6 +151,7 @@ class GroupActivity extends React.Component<Props, State> {
                 return (
                   <ErrorBoundary mini key={`note-${item.id}`}>
                     <Note
+                      showTime
                       text={item.data.text}
                       modelId={item.id}
                       user={item.user as User}
