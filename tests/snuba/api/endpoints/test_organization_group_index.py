@@ -819,6 +819,86 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.get_valid_response(sort_by="date", limit=1, status_code=429)
 
+    def test_collapse_stats(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse="stats"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" not in response.data[0]
+        assert "firstSeen" not in response.data[0]
+        assert "lastSeen" not in response.data[0]
+        assert "count" not in response.data[0]
+        assert "lifetime" not in response.data[0]
+        assert "filtered" not in response.data[0]
+
+    def test_collapse_lifetime(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" not in response.data[0]
+        assert "filtered" in response.data[0]
+
+    def test_collapse_filtered(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" in response.data[0]
+        assert "filtered" not in response.data[0]
+
+    def test_collapse_lifetime_and_filtered(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" not in response.data[0]
+        assert "filtered" not in response.data[0]
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
