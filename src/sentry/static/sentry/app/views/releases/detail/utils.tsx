@@ -1,24 +1,12 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
 import {CommitFile, Commit, FilesByRepository, Repository} from 'app/types';
 import {t} from 'app/locale';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
-};
-
-export const deleteRelease = (orgId: string, version: string) => {
-  const api = new Client();
-
-  return api.requestPromise(
-    `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-    {
-      method: 'DELETE',
-    }
-  );
 };
 
 /**

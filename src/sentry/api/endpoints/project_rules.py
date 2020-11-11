@@ -71,7 +71,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 "action_match": data["actionMatch"],
                 "filter_match": data.get("filterMatch"),
                 "conditions": conditions,
-                "actions": data["actions"],
+                "actions": data.get("actions", []),
                 "frequency": data.get("frequency"),
             }
 
