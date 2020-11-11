@@ -98,24 +98,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def format_source_url(self, repo_name, filepath, branch):
+    def format_source_url(self, repo, filepath, branch):
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        return u"https://github.com/{}/blob/{}/{}".format(repo_name, branch, filepath)
-
-    def get_stacktrace_link(self, repo, filepath, default, version):
-        # If the version exists (we have a specific commit sha to point
-        # to), try to find that first.
-        if version:
-            file_exists = self.check_file(repo.name, filepath, version)
-            if file_exists:
-                return self.format_source_url(repo.name, filepath, version)
-
-        file_exists = self.check_file(repo.name, filepath, default)
-        if file_exists:
-            return self.format_source_url(repo.name, filepath, default)
-
-        return None
+        return u"https://github.com/{}/blob/{}/{}".format(repo.name, branch, filepath)
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()

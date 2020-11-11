@@ -10,13 +10,13 @@ class RepositoryMixin(object):
     # dynamically given a search query
     repo_search = False
 
-    def format_source_url(self, repo_name, filepath, branch):
+    def format_source_url(self, repo, filepath, branch):
         """
         Formats the source code url used for stack trace linking.
         """
         raise NotImplementedError
 
-    def check_file(self, repo_name, filepath, branch):
+    def check_file(self, repo, filepath, branch):
         """
         Calls the client's `check_file` method to see if the file exists.
         Returns `True` if it does, and `False` if we 404.
@@ -24,9 +24,13 @@ class RepositoryMixin(object):
         So far only GitHub and GitLab have this implemented, both of which
         give use back 404s. If for some reason an integration gives back
         a different status code, this method could be overwritten.
+
+        repo: Repository (object)
+        filepath: file from the stacktrace (string)
+        branch: commitsha or default_branch (string)
         """
         try:
-            self.get_client().check_file(repo_name, filepath, branch)
+            self.get_client().check_file(repo, filepath, branch)
         except ApiError as e:
             if e.code != 404:
                 raise
@@ -45,7 +49,16 @@ class RepositoryMixin(object):
         If no file was found return `None`, and re-raise for non "Not Found" errors
 
         """
-        raise NotImplementedError
+        if version:
+            file_exists = self.check_file(repo, filepath, version)
+            if file_exists:
+                return self.format_source_url(repo, filepath, version)
+
+        file_exists = self.check_file(repo, filepath, default)
+        if file_exists:
+            return self.format_source_url(repo, filepath, default)
+
+        return None
 
     def get_repositories(self, query=None):
         """
