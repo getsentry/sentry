@@ -143,7 +143,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_display_name(self, external_issue):
         return "display name: %s" % external_issue.key
 
-    def get_stacktrace_link(self, repo, path, version):
+    def get_stacktrace_link(self, repo, path, default, version):
         pass
 
 
