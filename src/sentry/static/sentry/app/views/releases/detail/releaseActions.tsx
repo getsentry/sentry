@@ -128,7 +128,7 @@ function ReleaseActions({
               tn(
                 'You are restoring this release for the following project:',
                 'By restoring this release, you are also restoring it for the following projects:',
-                release.projects.length
+                releaseMeta.projects.length
               )
             )}
             cancelText={t('Nevermind')}
@@ -148,7 +148,7 @@ function ReleaseActions({
               tn(
                 'You are archiving this release for the following project:',
                 'By archiving this release, you are also archiving it for the following projects:',
-                release.projects.length
+                releaseMeta.projects.length
               )
             )}
             cancelText={t('Nevermind')}
