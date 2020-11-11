@@ -14,11 +14,19 @@ def backfill_platformexternalissue_project_id(apps, schema_editor):
     Fill the PlatformExternalIssue.project_id from related Group.project_id.
     """
     PlatformExternalIssue = apps.get_model("sentry", "PlatformExternalIssue")
-    external_issues_with_group = PlatformExternalIssue.objects.filter(project_id__isnull=True).select_related("group")
-    for external_issue in RangeQuerySetWrapperWithProgressBar(queryset=external_issues_with_group, step=1000):
-        PlatformExternalIssue.objects.filter(id=external_issue.id).update(
-            project_id=external_issue.group.project_id
-        )
+    Group = apps.get_model("sentry", "Group")
+    external_issues_with_group = PlatformExternalIssue.objects.filter(
+        project_id__isnull=True
+    ).select_related("group")
+    for external_issue in RangeQuerySetWrapperWithProgressBar(
+        queryset=external_issues_with_group, step=1000
+    ):
+        try:
+            PlatformExternalIssue.objects.filter(id=external_issue.id).update(
+                project_id=external_issue.group.project_id
+            )
+        except Group.DoesNotExist:
+            pass
 
 
 class Migration(migrations.Migration):
@@ -39,9 +47,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0126_make_platformexternalissue_group_id_flexfk'),
+        ("sentry", "0126_make_platformexternalissue_group_id_flexfk"),
     ]
 
     operations = [
