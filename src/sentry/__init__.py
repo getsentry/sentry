@@ -19,7 +19,7 @@ def _get_git_revision(path):
     except Exception:
         # binary didn't exist, wasn't on path, etc
         return None
-    return revision.strip()
+    return revision.strip().decode("utf-8")
 
 
 def get_revision():
