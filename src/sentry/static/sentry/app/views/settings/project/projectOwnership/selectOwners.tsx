@@ -1,9 +1,8 @@
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Reflux from 'reflux';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
@@ -15,88 +14,84 @@ import TeamStore from 'app/stores/teamStore';
 import IdBadge from 'app/components/idBadge';
 import MultiSelectControl from 'app/components/forms/multiSelectControl';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
-import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import {IconAdd} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
+import withProjects from 'app/utils/withProjects';
+import withApi from 'app/utils/withApi';
+import {Actor, Member, Organization, Project, Team, User} from 'app/types';
 
-class ValueComponent extends React.Component {
-  static propTypes = {
-    value: PropTypes.object,
-    onRemove: PropTypes.func,
-  };
+export type Owner = {
+  value: string;
+  label: React.ReactNode;
+  searchKey: string;
+  actor: Actor;
+  disabled?: boolean;
+};
 
-  handleClick = () => {
-    this.props.onRemove(this.props.value);
-  };
+type ValueProps = {
+  value: Owner;
+  onRemove: (item: Owner) => void;
+};
 
-  render() {
-    return (
-      <a onClick={this.handleClick}>
-        <ActorAvatar actor={this.props.value.actor} size={28} />
-      </a>
-    );
-  }
+function ValueComponent({value, onRemove}: ValueProps) {
+  return (
+    <a onClick={() => onRemove(value)}>
+      <ActorAvatar actor={value.actor} size={28} />
+    </a>
+  );
 }
 
-const getSearchKeyForUser = user =>
+const getSearchKeyForUser = (user: User) =>
   `${user.email && user.email.toLowerCase()} ${user.name && user.name.toLowerCase()}`;
 
-export default class SelectOwners extends React.Component {
-  static propTypes = {
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
-    value: PropTypes.array,
-    onChange: PropTypes.func,
-    onInputChange: PropTypes.func,
-    disabled: PropTypes.bool,
-  };
+type Props = {
+  api: Client;
+  organization: Organization;
+  project: Project;
+  projects: Project[];
+  value: any;
+  onChange: (owners: Owner[]) => void;
+  disabled: boolean;
+  onInputChange?: (text: string) => void;
+};
 
-  constructor(...args) {
-    super(...args);
-    this.api = new Client();
+type State = {
+  loading: boolean;
+  inputValue: string;
+};
 
-    // See comments in `handleAddTeamToProject` for why we close the menu this way
-    this.projectsStoreMixin = Reflux.listenTo(ProjectsStore, () => {
-      this.closeSelectMenu();
-    });
-  }
-
+class SelectOwners extends React.Component<Props, State> {
   state = {
     loading: false,
     inputValue: '',
   };
 
-  componentDidMount() {
-    if (this.projectsStoreMixin) {
-      this.projectsStoreMixin.componentDidMount();
+  componentDidUpdate(prevProps: Props) {
+    // Once a team has been added to the project the menu can be closed.
+    if (!isEqual(this.props.projects, prevProps.projects)) {
+      this.closeSelectMenu();
     }
   }
 
-  componentWillUnmount() {
-    this.api = null;
+  private selectRef = React.createRef<React.Instance>();
 
-    if (this.projectsStoreMixin) {
-      this.projectsStoreMixin.componentWillUnmount();
-    }
-  }
-
-  renderUserBadge = user => (
+  renderUserBadge = (user: User) => (
     <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />
   );
 
-  createMentionableUser = user => ({
+  createMentionableUser = (user: User): Owner => ({
     value: buildUserId(user.id),
     label: this.renderUserBadge(user),
     searchKey: getSearchKeyForUser(user),
     actor: {
-      type: 'user',
+      type: 'user' as const,
       id: user.id,
       name: user.name,
     },
   });
 
-  createUnmentionableUser = ({user}) => ({
+  createUnmentionableUser = ({user}): Owner => ({
     ...this.createMentionableUser(user),
     disabled: true,
     label: (
@@ -111,18 +106,18 @@ export default class SelectOwners extends React.Component {
     ),
   });
 
-  createMentionableTeam = team => ({
+  createMentionableTeam = (team: Team): Owner => ({
     value: buildTeamId(team.id),
     label: <IdBadge team={team} />,
     searchKey: `#${team.slug}`,
     actor: {
-      type: 'team',
+      type: 'team' as const,
       id: team.id,
       name: team.slug,
     },
   });
 
-  createUnmentionableTeam = team => {
+  createUnmentionableTeam = (team: Team): Owner => {
     const {organization} = this.props;
     const canAddTeam = organization.access.includes('project:write');
 
@@ -176,10 +171,8 @@ export default class SelectOwners extends React.Component {
 
   /**
    * Get list of teams that are not in the current project, for use in `MultiSelectMenu`
-   *
-   * @param {Team[]} teamsInProject A list of teams that are in the current project
    */
-  getTeamsNotInProject(teamsInProject = []) {
+  getTeamsNotInProject(teamsInProject: Owner[] = []) {
     const teams = TeamStore.getAll() || [];
     const excludedTeamIds = teamsInProject.map(({actor}) => actor.id);
 
@@ -194,9 +187,10 @@ export default class SelectOwners extends React.Component {
    */
   closeSelectMenu() {
     // Close select menu
-    if (this.selectRef) {
+    if (this.selectRef.current) {
       // eslint-disable-next-line react/no-find-dom-node
-      const input = ReactDOM.findDOMNode(this.selectRef).querySelector(
+      const node = ReactDOM.findDOMNode(this.selectRef.current);
+      const input: HTMLInputElement | null = (node as Element)?.querySelector(
         '.Select-input input'
       );
       if (input) {
@@ -207,7 +201,7 @@ export default class SelectOwners extends React.Component {
   }
 
   async handleAddTeamToProject(team) {
-    const {organization, project, value} = this.props;
+    const {api, organization, project, value} = this.props;
     // Copy old value
     const oldValue = [...value];
 
@@ -220,7 +214,7 @@ export default class SelectOwners extends React.Component {
       // The reason for this is because we have little control over `react-select`'s `AsyncSelect`
       // We can't control when `handleLoadOptions` gets called, but it gets called when select closes, so
       // wait for store to update before closing the menu. Otherwise, we'll have stale items in the select menu
-      await addTeamToProject(this.api, organization.slug, project.slug, team);
+      await addTeamToProject(api, organization.slug, project.slug, team);
     } catch (err) {
       // Unable to add team to project, revert select menu value
       this.props.onChange(oldValue);
@@ -228,11 +222,11 @@ export default class SelectOwners extends React.Component {
     }
   }
 
-  handleChange = newValue => {
+  handleChange = (newValue: Owner[]) => {
     this.props.onChange(newValue);
   };
 
-  handleInputChange = inputValue => {
+  handleInputChange = (inputValue: string) => {
     this.setState({inputValue});
 
     if (this.props.onInputChange) {
@@ -241,20 +235,20 @@ export default class SelectOwners extends React.Component {
   };
 
   queryMembers = debounce((query, cb) => {
-    const {organization} = this.props;
+    const {api, organization} = this.props;
 
     // Because this function is debounced, the component can potentially be
     // unmounted before this fires, in which case, `this.api` is null
-    if (!this.api) {
+    if (!api) {
       return null;
     }
 
-    return this.api
+    return api
       .requestPromise(`/organizations/${organization.slug}/members/`, {
         query: {query},
       })
       .then(
-        data => cb(null, data),
+        (data: Member[]) => cb(null, data),
         err => cb(err)
       );
   }, 250);
@@ -279,7 +273,7 @@ export default class SelectOwners extends React.Component {
         // Be careful here as we actually want the `users` object, otherwise it means user
         // has not registered for sentry yet, but has been invited
         members
-          ? members
+          ? (members as Member[])
               .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
               .map(this.createUnmentionableUser)
           : []
@@ -296,7 +290,7 @@ export default class SelectOwners extends React.Component {
         filterOptions={(options, filterText) =>
           options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
         }
-        ref={ref => (this.selectRef = ref)}
+        ref={this.selectRef}
         loadOptions={this.handleLoadOptions}
         defaultOptions
         async
@@ -313,6 +307,8 @@ export default class SelectOwners extends React.Component {
     );
   }
 }
+
+export default withApi(withProjects(SelectOwners));
 
 const Container = styled('div')`
   display: flex;
