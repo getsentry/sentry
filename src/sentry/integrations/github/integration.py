@@ -98,31 +98,24 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def get_stacktrace_link(self, repo, filepath, default, version):
-        branch = version or default
-        try:
-            self.get_client().check_file(repo.name, filepath, branch)
-        except ApiError as e:
-            if e.code != 404:
-                raise
-            if branch == version:
-                # try to get the file one more time using the default instead
-                # of the version (commit sha)
-                try:
-                    self.get_client().check_file(repo.name, filepath, default)
-                except ApiError as e:
-                    if e.code != 404:
-                        raise
-                    return None
-
-                branch = default
-            else:
-                return None
+    def format_source_url(self, repo_name, filepath, branch):
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, branch, filepath)
+        return u"https://github.com/{}/blob/{}/{}".format(repo_name, branch, filepath)
 
-        return web_url
+    def get_stacktrace_link(self, repo, filepath, default, version):
+        # If the version exists (we have a specific commit sha to point
+        # to), try to find that first.
+        if version:
+            file_exists = self.check_file(repo.name, filepath, version)
+            if file_exists:
+                return self.format_source_url(repo.name, filepath, version)
+
+        file_exists = self.check_file(repo.name, filepath, default)
+        if file_exists:
+            return self.format_source_url(repo.name, filepath, default)
+        else:
+            return None
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()

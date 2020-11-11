@@ -92,26 +92,27 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         resp = self.get_client().search_group_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
-    def get_stacktrace_link(self, repo, filepath, default, version):
-        # (TODO):meredith retry with default
-        project_id = repo.config["project_id"]
-        repo_name = repo.config["path"]
-        try:
-            # repos are projects in GL so the project_id is the repo id which
-            # GL's API uses instead of slugs like GH
-            self.get_client().check_file(project_id, filepath, version)
-        except ApiError as e:
-            if e.code != 404:
-                raise
-            return None
-
+    def format_source_url(self, repo_name, filepath, branch):
         base_url = self.model.metadata["base_url"]
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        web_url = u"{}/{}/blob/{}/{}".format(base_url, repo_name, version, filepath)
+        return u"{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
 
-        return web_url
+    def get_stacktrace_link(self, repo, filepath, default, version):
+        project_id = repo.config["project_id"]
+        repo_name = repo.config["path"]
+
+        if version:
+            file_exists = self.check_file(project_id, filepath, version)
+            if file_exists:
+                return self.format_source_url(repo_name, filepath, version)
+
+        file_exists = self.check_file(project_id, filepath, default)
+        if file_exists:
+            return self.format_source_url(repo_name, filepath, default)
+        else:
+            return None
 
     def search_projects(self, query):
         client = self.get_client()

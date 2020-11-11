@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
+from sentry.shared_integrations.exceptions import ApiError
 
 
 class RepositoryMixin(object):
@@ -9,7 +10,31 @@ class RepositoryMixin(object):
     # dynamically given a search query
     repo_search = False
 
-    def get_stacktrace_link(self, repo, path, default, version):
+    def format_source_url(self, repo_name, filepath, branch):
+        """
+        Formats the source code url used for stack trace linking.
+        """
+        raise NotImplementedError
+
+    def check_file(self, repo_name, filepath, branch):
+        """
+        Calls the client's `check_file` method to see if the file exists.
+        Returns `True` if it does, and `False` if we 404.
+
+        So far only GitHub and GitLab have this implemented, both of which
+        give use back 404s. If for some reason an integration gives back
+        a different status code, this method could be overwritten.
+        """
+        try:
+            self.get_client().check_file(repo_name, filepath, branch)
+        except ApiError as e:
+            if e.code != 404:
+                raise
+            return False
+
+        return True
+
+    def get_stacktrace_link(self, repo, filepath, default, version):
         """
         Handle formatting and returning back the stack trace link if the client
         request was successful.
