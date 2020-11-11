@@ -312,7 +312,7 @@ const iconSizes = {
   xxl: '72px',
 };
 
-const theme = {
+const commonTheme = {
   breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
@@ -430,13 +430,9 @@ const theme = {
     lineHeightBody: '1.4',
   },
 
-  // Aliases
-  ...aliases,
-
   alert,
   badge,
   tag,
-  button: generateButtonTheme(aliases),
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -465,7 +461,42 @@ const theme = {
   space: [0, 8, 16, 20, 30],
 } as const;
 
-export type Theme = typeof theme;
+const darkAliases = {
+  bodyBackground: colors.black,
+  headerBackground: colors.gray500,
+  background: colors.black,
+  backgroundSecondary: colors.gray500,
+  border: colors.gray400,
+  innerBorder: colors.gray500,
+  textColor: colors.white,
+  subText: colors.gray200,
+  linkColor: colors.purple200,
+  disabled: colors.gray200,
+  active: colors.pink300,
+  inactive: colors.gray200,
+  error: colors.red300,
+  success: colors.green300,
+  secondaryButton: colors.purple200,
+  sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
+  formText: colors.white,
+  rowBackground: colors.gray500,
+  chartLineColor: colors.gray400,
+  chartLabel: colors.gray400,
+} as const;
+
+const theme = {
+  ...commonTheme,
+  ...aliases,
+  button: generateButtonTheme(aliases),
+} as const;
+
+export const darkTheme = {
+  ...commonTheme,
+  ...darkAliases,
+  button: generateButtonTheme(darkAliases),
+} as const;
+
+export type Theme = typeof theme | typeof darkTheme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 export type Aliases = typeof aliases;
