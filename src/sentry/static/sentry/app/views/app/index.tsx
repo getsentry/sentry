@@ -86,8 +86,11 @@ class App extends React.Component<Props, State> {
 
   componentDidMount() {
     this.props.api.request('/organizations/', {
-      query: { member: '1', },
-      success: data => { OrganizationsStore.load(data); this.setState({ loading: false, }); },
+      query: {member: '1'},
+      success: data => {
+        OrganizationsStore.load(data);
+        this.setState({loading: false});
+      },
       error: () => {
         this.setState({
           loading: false,
