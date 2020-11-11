@@ -116,6 +116,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                     sender=self,
                     referrer=referrer,
                     session_id=session_id,
+                    is_api_token=request.auth is not None,
                 )
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
