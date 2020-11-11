@@ -121,7 +121,7 @@ export function restoreRelease(api: Client, params: ParamsGet) {
   const {orgSlug, projectSlug, releaseVersion} = params;
 
   ReleaseActions.loadRelease(orgSlug, projectSlug, releaseVersion);
-  addLoadingMessage(t('Restoring Release...'));
+  addLoadingMessage(t('Restoring Release\u2026'));
 
   return api
     .requestPromise(`/organizations/${orgSlug}/releases/`, {
