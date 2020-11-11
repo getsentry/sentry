@@ -74,10 +74,10 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
 
     let frames: Frame[] = [];
     if (entry?.type === 'exception') {
-      frames = entry?.data?.values?.[0]?.stacktrace?.frames;
+      frames = entry?.data?.values?.[0]?.stacktrace?.frames ?? [];
     }
     if (entry?.type === 'stacktrace') {
-      frames = entry?.data?.frames;
+      frames = entry?.data?.frames ?? [];
     }
 
     // filter frames by inApp unless there would be 0
