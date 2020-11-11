@@ -100,6 +100,10 @@ export default function getConfiguration({
             "Configure a project's inbound filters (e.g. browsers, messages)"
           ),
         },
+        {
+          path: `${pathPrefix}/issue-grouping/`,
+          title: t('Issue Grouping'),
+        },
       ],
     },
     {

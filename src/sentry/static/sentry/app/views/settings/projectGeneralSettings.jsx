@@ -4,14 +4,12 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
-import Alert from 'app/components/alert';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
   removeProject,
   transferProject,
 } from 'app/actionCreators/projects';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -27,7 +25,6 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 
@@ -92,155 +89,6 @@ class ProjectGeneralSettings extends AsyncView {
       window.location.assign('/');
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
-
-  getGroupingChanges() {
-    let updateNotes = '';
-    const byId = {};
-    let riskLevel = 0;
-    let latestGroupingConfig = null;
-    let latestEnhancementsBase = null;
-
-    this.state.groupingConfigs.forEach(cfg => {
-      byId[cfg.id] = cfg;
-      if (cfg.latest && this.state.data.groupingConfig !== cfg.id) {
-        updateNotes = cfg.changelog;
-        latestGroupingConfig = cfg;
-        riskLevel = cfg.risk;
-      }
-    });
-
-    if (latestGroupingConfig) {
-      let next = latestGroupingConfig.base;
-      while (next !== this.state.data.groupingConfig) {
-        const cfg = byId[next];
-        if (!cfg) {
-          break;
-        }
-        riskLevel = Math.max(riskLevel, cfg.risk);
-        updateNotes = cfg.changelog + '\n' + updateNotes;
-        next = cfg.base;
-      }
-    }
-
-    this.state.groupingEnhancementBases.forEach(cfg => {
-      if (cfg.latest && this.state.data.groupingEnhancementsBase !== cfg.id) {
-        updateNotes += '\n\n' + cfg.changelog;
-        latestEnhancementsBase = cfg;
-      }
-    });
-
-    return {updateNotes, riskLevel, latestGroupingConfig, latestEnhancementsBase};
-  }
-
-  renderUpgradeGrouping() {
-    const {orgId, projectId} = this.props.params;
-
-    if (!this.state.groupingConfigs || !this.state.groupingEnhancementBases) {
-      return null;
-    }
-
-    const {
-      updateNotes,
-      riskLevel,
-      latestGroupingConfig,
-      latestEnhancementsBase,
-    } = this.getGroupingChanges();
-    const noUpdates = !latestGroupingConfig && !latestEnhancementsBase;
-    const newData = {};
-    if (latestGroupingConfig) {
-      newData.groupingConfig = latestGroupingConfig.id;
-    }
-    if (latestEnhancementsBase) {
-      newData.groupingEnhancementsBase = latestEnhancementsBase.id;
-    }
-
-    let riskNote;
-    let alertType;
-    switch (riskLevel) {
-      case 0:
-        riskNote = t('This upgrade has the chance to create some new issues.');
-        alertType = 'info';
-        break;
-      case 1:
-        riskNote = t('This upgrade will create some new issues.');
-        alertType = 'warning';
-        break;
-      case 2:
-        riskNote = (
-          <strong>
-            {t(
-              'The new grouping strategy is incompatible with the current and will create entirely new issues.'
-            )}
-          </strong>
-        );
-        alertType = 'error';
-        break;
-      default:
-    }
-
-    return (
-      <Field
-        label={t('Upgrade Grouping Strategy')}
-        help={tct(
-          'If the project uses an old grouping strategy an update is possible.[linebreak]Doing so will cause new events to group differently.',
-          {
-            linebreak: <br />,
-          }
-        )}
-      >
-        <Confirm
-          disabled={noUpdates}
-          onConfirm={() => {
-            addLoadingMessage(t('Changing grouping...'));
-            this.api
-              .requestPromise(`/projects/${orgId}/${projectId}/`, {
-                method: 'PUT',
-                data: newData,
-              })
-              .then(resp => {
-                clearIndicators();
-                ProjectActions.updateSuccess(resp);
-                this.fetchData();
-              }, handleXhrErrorResponse('Unable to upgrade config'));
-          }}
-          priority={riskLevel >= 2 ? 'danger' : 'primary'}
-          title={t('Upgrade grouping strategy?')}
-          confirmText={t('Upgrade')}
-          message={
-            <div>
-              <TextBlock>
-                <strong>{t('Upgrade Grouping Strategy')}</strong>
-              </TextBlock>
-              <TextBlock>
-                {t(
-                  'You can upgrade the grouping strategy to the latest but this is an irreversible operation.'
-                )}
-              </TextBlock>
-              <TextBlock>
-                <strong>{t('New Behavior')}</strong>
-                <div dangerouslySetInnerHTML={{__html: marked(updateNotes)}} />
-              </TextBlock>
-              <TextBlock>
-                <Alert type={alertType}>{riskNote}</Alert>
-              </TextBlock>
-            </div>
-          }
-        >
-          <div>
-            <Button
-              disabled={noUpdates}
-              title={noUpdates ? t('You are already on the latest version') : null}
-              className="ref-upgrade-grouping-strategy"
-              type="button"
-              priority={riskLevel >= 2 ? 'danger' : 'primary'}
-            >
-              {t('Update Grouping Strategy')}
-            </Button>
-          </div>
-        </Confirm>
-      </Field>
-    );
-  }
 
   isProjectAdmin = () => new Set(this.context.organization.access).has('project:admin');
 
@@ -383,8 +231,6 @@ class ProjectGeneralSettings extends AsyncView {
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
-        groupingConfigs: this.state.groupingConfigs,
-        groupingEnhancementBases: this.state.groupingEnhancementBases,
       },
       features: new Set(organization.features),
       access,
@@ -435,20 +281,6 @@ class ProjectGeneralSettings extends AsyncView {
             {...jsonFormProps}
             title={t('Event Settings')}
             fields={[fields.resolveAge]}
-          />
-
-          <JsonForm
-            {...jsonFormProps}
-            title={<React.Fragment>{t('Grouping Settings')}</React.Fragment>}
-            fields={[
-              fields.groupingConfig,
-              fields.groupingEnhancementsBase,
-              fields.groupingEnhancements,
-              fields.fingerprintingRules,
-            ]}
-            renderHeader={() => (
-              <React.Fragment>{this.renderUpgradeGrouping()}</React.Fragment>
-            )}
           />
 
           <JsonForm
