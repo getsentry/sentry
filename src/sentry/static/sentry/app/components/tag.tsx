@@ -12,7 +12,6 @@ import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 
 const TAG_HEIGHT = '20px';
-const ICON_AND_FONT_SIZE = '13px';
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
@@ -54,7 +53,7 @@ function Tag({
   ...props
 }: Props) {
   const iconsProps = {
-    size: ICON_AND_FONT_SIZE,
+    size: '12px',
     color: theme.tag[type].iconColor as Color,
   };
 
@@ -126,12 +125,11 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
 
 const IconWrapper = styled('span')`
   margin-right: 3px;
-  line-height: ${ICON_AND_FONT_SIZE};
 `;
 
 const Text = styled('span')`
   color: ${p => p.theme.gray700};
-  font-size: ${ICON_AND_FONT_SIZE};
+  font-size: 13px;
   max-width: 150px;
   overflow: hidden;
   white-space: nowrap;
