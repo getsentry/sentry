@@ -1,0 +1,106 @@
+---
+created: '2020-11-08T21:03:21.457954Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "a12d579fed7636c2a5d2fae110c95ce5"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            filename*
+              "eventsystem.cs"
+            function*
+              "UnityEngine.EventSystems.EventSystem:Update()"
+          frame (non app frame)
+            filename*
+              "executeevents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"
+          frame (non app frame)
+            filename*
+              "executeevents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"
+          frame (non app frame)
+            filename*
+              "button.cs"
+            function*
+              "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"
+          frame (non app frame)
+            filename*
+              "button.cs"
+            function*
+              "UnityEngine.UI.Button.Press ()"
+          frame (non app frame)
+            filename*
+              "unityevent_0.cs"
+            function*
+              "UnityEngine.Events.UnityEvent.Invoke ()"
+          frame (non app frame)
+            filename*
+              "unityevent.cs"
+            function*
+              "UnityEngine.Events.InvokableCall.Invoke ()"
+          frame*
+            filename*
+              "samplescript.cs"
+            function*
+              "SampleScript.ThrowNull ()"
+        type*
+          "NullReferenceException"
+        value (ignored because stacktrace takes precedence)
+          "Object reference not set to an instance of an object"
+--------------------------------------------------------------------------
+system:
+  hash: "c0dbeebf0430b3310ad1f7ceb48553a6"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "eventsystem.cs"
+            function*
+              "UnityEngine.EventSystems.EventSystem:Update()"
+          frame*
+            filename*
+              "executeevents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"
+          frame*
+            filename*
+              "executeevents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"
+          frame*
+            filename*
+              "button.cs"
+            function*
+              "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"
+          frame*
+            filename*
+              "button.cs"
+            function*
+              "UnityEngine.UI.Button.Press ()"
+          frame*
+            filename*
+              "unityevent_0.cs"
+            function*
+              "UnityEngine.Events.UnityEvent.Invoke ()"
+          frame*
+            filename*
+              "unityevent.cs"
+            function*
+              "UnityEngine.Events.InvokableCall.Invoke ()"
+          frame*
+            filename*
+              "samplescript.cs"
+            function*
+              "SampleScript.ThrowNull ()"
+        type*
+          "NullReferenceException"
+        value (ignored because stacktrace takes precedence)
+          "Object reference not set to an instance of an object"

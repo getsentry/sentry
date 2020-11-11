@@ -133,6 +133,7 @@ def get_function_component(
     function,
     platform,
     legacy_function_logic,
+    prefer_raw_function_name=False,
     sourcemap_used=False,
     context_line_available=False,
     raw_function=None,
@@ -149,13 +150,15 @@ def get_function_component(
     The `legacy_function_logic` parameter controls if the system should
     use the frame v1 function name logic or the frame v2 logic.  The difference
     is that v2 uses the function name consistently and v1 prefers raw function
-    or a trimmed version (of the truncated one) for native.
+    or a trimmed version (of the truncated one) for native.  Related to this is
+    the `prefer_raw_function_name` parameter which just flat out prefers the
+    raw function name over the non raw one.
     """
     from sentry.stacktraces.functions import trim_function_name
 
     behavior_family = get_behavior_family_for_platform(platform)
 
-    if legacy_function_logic:
+    if legacy_function_logic or prefer_raw_function_name:
         func = raw_function or function
     else:
         func = function or raw_function
@@ -238,6 +241,16 @@ def frame(frame, event, **meta):
     legacy_function_logic = id == "frame:v1"
     with_context_line_file_origin_bug = id == "frame:v3"
 
+    # We started trimming function names in csharp late which changed the
+    # inputs to the grouping code.  Where previously the `function` attribute
+    # contained the raw and untrimmed strings, it now contains the trimmed one
+    # which is preferred by the frame component.  Because of this we tell the
+    # component to prefer the raw function name over the function name for
+    # csharp.
+    # TODO: if a frame:v5 is added the raw function name should not be preferred
+    # for csharp.
+    prefer_raw_function_name = platform == "csharp"
+
     if id in ("frame:v3", "frame:v4"):
         javascript_fuzzing = True
         # These are platforms that we know have always source available and
@@ -259,6 +272,7 @@ def frame(frame, event, **meta):
         javascript_fuzzing=javascript_fuzzing,
         with_context_line_file_origin_bug=with_context_line_file_origin_bug,
         php_detect_anonymous_classes=php_detect_anonymous_classes,
+        prefer_raw_function_name=prefer_raw_function_name,
     )
 
 
@@ -299,6 +313,7 @@ def get_frame_component(
     javascript_fuzzing=False,
     with_context_line_file_origin_bug=False,
     php_detect_anonymous_classes=False,
+    prefer_raw_function_name=False,
 ):
     platform = frame.platform or event.platform
 
@@ -335,6 +350,7 @@ def get_frame_component(
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
         context_line_available=context_line_component and context_line_component.contributes,
         legacy_function_logic=legacy_function_logic,
+        prefer_raw_function_name=prefer_raw_function_name,
         javascript_fuzzing=javascript_fuzzing,
         php_detect_anonymous_classes=php_detect_anonymous_classes,
     )
