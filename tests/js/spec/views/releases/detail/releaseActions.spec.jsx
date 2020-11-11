@@ -29,6 +29,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
+        releaseMeta={{projects: release.projects}}
       />
     );
 
@@ -75,6 +76,7 @@ describe('ReleaseActions', function () {
         projectSlug={release.projects[0].slug}
         release={{...release, status: 'archived'}}
         refetchData={refetchDataMock}
+        releaseMeta={{projects: release.projects}}
       />
     );
 
