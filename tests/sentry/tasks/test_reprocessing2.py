@@ -253,27 +253,31 @@ def test_attachments_and_userfeedback(
 
         return data
 
+    event_id_to_delete = process_and_save({"message": "hello world"})
+    event_to_delete = eventstore.get_event_by_id(default_project.id, event_id_to_delete)
+
     event_id = process_and_save({"message": "hello world"})
     event = eventstore.get_event_by_id(default_project.id, event_id)
 
-    for type in ("event.attachment", "event.minidump"):
-        file = File.objects.create(name="foo", type=type)
-        file.putfile(six.BytesIO(b"hello world"))
-        EventAttachment.objects.create(
-            event_id=event_id,
-            group_id=event.group_id,
-            project_id=default_project.id,
-            file=file,
-            type=file.type,
-            name="foo",
+    for evt in (event, event_to_delete):
+        for type in ("event.attachment", "event.minidump"):
+            file = File.objects.create(name="foo", type=type)
+            file.putfile(six.BytesIO(b"hello world"))
+            EventAttachment.objects.create(
+                event_id=evt.event_id,
+                group_id=evt.group_id,
+                project_id=default_project.id,
+                file=file,
+                type=file.type,
+                name="foo",
+            )
+
+        UserReport.objects.create(
+            project_id=default_project.id, event_id=evt.event_id, name="User",
         )
 
-    UserReport.objects.create(
-        project_id=default_project.id, event_id=event_id, name="User",
-    )
-
     with burst_task_runner() as burst:
-        reprocess_group(default_project.id, event.group_id)
+        reprocess_group(default_project.id, event.group_id, max_events=1)
 
     burst(max_jobs=100)
 
@@ -282,10 +286,12 @@ def test_attachments_and_userfeedback(
 
     assert new_event.data["extra"]["attachments"] == [["event.attachment", "event.minidump"]]
 
-    att, mdmp = EventAttachment.objects.filter(event_id=event_id).order_by("type")
+    att, mdmp = EventAttachment.objects.filter(project_id=default_project.id).order_by("type")
     assert att.group_id == mdmp.group_id == new_event.group_id
+    assert att.event_id == mdmp.event_id == event_id
     assert att.type == "event.attachment"
     assert mdmp.type == "event.minidump"
 
-    (rep,) = UserReport.objects.filter(event_id=event_id)
+    (rep,) = UserReport.objects.filter(project_id=default_project.id)
     assert rep.group_id == new_event.group_id
+    assert rep.event_id == event_id

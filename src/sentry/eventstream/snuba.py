@@ -218,6 +218,13 @@ class SnubaProtocolEventStream(EventStream):
         self._send(state["project_id"], "end_delete_tag", extra_data=(state,), asynchronous=False)
 
     def tombstone_events(self, project_id, event_ids):
+        """
+        Tell Snuba to eventually delete these events.
+
+        This is not proper event deletion. Group deletion is still the way to
+        go. This is a hack specific for reprocessing.
+        """
+
         state = {
             "project_id": project_id,
             "event_ids": event_ids,

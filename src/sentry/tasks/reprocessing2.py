@@ -2,9 +2,10 @@ from __future__ import absolute_import
 
 import time
 
-from sentry import eventstore, eventstream
+from sentry import eventstore, eventstream, models, nodestore
+from sentry.eventstore.models import Event
 
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 
 GROUP_REPROCESSING_CHUNK_SIZE = 100
 
@@ -56,7 +57,9 @@ def reprocess_group(
 
     # len(tombstoned_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
     if tombstoned_event_ids:
-        eventstream.tombstone_events(project_id, tombstoned_event_ids)
+        tombstone_events.delay(
+            project_id=project_id, group_id=group_id, event_ids=tombstoned_event_ids
+        )
 
     reprocess_group.delay(
         project_id=project_id,
@@ -65,6 +68,39 @@ def reprocess_group(
         start_time=start_time,
         max_events=max_events,
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.reprocessing2.tombstone_events",
+    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    time_limit=60 * 5,
+    max_retries=5,
+)
+@retry
+def tombstone_events(project_id, group_id, event_ids):
+    """
+    Delete associated per-event data: nodestore, event attachments, user
+    reports. Mark the event as "tombstoned" in Snuba.
+
+    This is not full event deletion. Snuba can still only delete entire groups,
+    however we must only run this task for event IDs that we don't intend to
+    reuse for reprocessed events. An event ID that is once tombstoned cannot be
+    inserted over in eventstream.
+    """
+
+    from sentry.reprocessing2 import delete_unprocessed_events
+
+    models.EventAttachment.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
+    models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
+
+    # Remove from nodestore
+    node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
+    nodestore.delete_multi(node_ids)
+
+    delete_unprocessed_events(project_id, event_ids)
+
+    # Tell Snuba to delete the event data.
+    eventstream.tombstone_events(project_id, event_ids)
 
 
 @instrumented_task(

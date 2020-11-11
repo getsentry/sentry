@@ -14,14 +14,15 @@ from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
-from sentry.deletions.defaults.group import GROUP_RELATED_MODELS
+from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 
 logger = logging.getLogger("sentry.reprocessing")
 
 _REDIS_SYNC_TTL = 3600
 
 
-GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity,)
+# Note: Event attachments and group reports are migrated in save_event.
+GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
@@ -64,10 +65,8 @@ def backup_unprocessed_event(project, data):
     event_processing_store.store(data, unprocessed=True)
 
 
-def delete_unprocessed_events(events):
-    node_ids = [
-        _generate_unprocessed_event_node_id(event.project_id, event.event_id) for event in events
-    ]
+def delete_unprocessed_events(project_id, event_ids):
+    node_ids = [_generate_unprocessed_event_node_id(project_id, event_id) for event_id in event_ids]
     nodestore.delete_multi(node_ids)
 
 
