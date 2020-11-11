@@ -4,9 +4,8 @@ import logging
 
 from django import forms
 
-from sentry.rules.actions.base import IntegrationEventAction
+from sentry.rules.actions.base import TicketEventAction
 from sentry.models import ExternalIssue
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.rules")
 
@@ -20,7 +19,7 @@ class AzureDevopsNotifyServiceForm(forms.Form):
         return super(AzureDevopsNotifyServiceForm, self).clean()
 
 
-class AzureDevopsCreateTicketAction(IntegrationEventAction):
+class AzureDevopsCreateTicketAction(TicketEventAction):
     form_cls = AzureDevopsNotifyServiceForm
     label = u"TODO Create a {name} AzureDevops workitem"
     prompt = "Create an Azure DevOps work item"
@@ -35,20 +34,11 @@ class AzureDevopsCreateTicketAction(IntegrationEventAction):
     def render_label(self):
         return self.label.format(name=self.get_integration_name())
 
-    def build_description(self, event, installation):
-        rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
-            self.project.organization.slug, self.project.slug, self.rule.id
-        )
-        footer = u"\nThis ticket was automatically created by Sentry via [{}]({})".format(
-            self.rule.label, absolute_uri(rule_url),
-        )
-        return installation.get_group_description(event.group, event) + footer
-
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()
         installation = integration.get_installation(organization.id)
-        self.data["description"] = self.build_description(event, installation)
+        self.data["description"] = self.build_description(event, installation, newline=True)
 
         def create_issue(event, futures):
             """Create an Azure DevOps work item for a given event"""
