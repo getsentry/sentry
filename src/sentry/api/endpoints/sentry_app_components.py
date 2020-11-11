@@ -27,10 +27,12 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
     def get(self, request, organization):
+        project_id = request.GET["projectId"]
+        if not project_id:
+            return Response([], status=404)
+
         try:
-            project = Project.objects.get(
-                id=request.GET["projectId"], organization_id=organization.id
-            )
+            project = Project.objects.get(id=project_id, organization_id=organization.id)
         except Project.DoesNotExist:
             return Response([], status=404)
 

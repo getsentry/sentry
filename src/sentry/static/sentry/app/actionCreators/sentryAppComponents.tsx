@@ -7,6 +7,11 @@ export async function fetchSentryAppComponents(
   orgSlug: string,
   projectId: string
 ): Promise<SentryAppComponent[]> {
+  // Short-circuit if the API would just 404.
+  if (!projectId) {
+    return [];
+  }
+
   const componentsUri = `/organizations/${orgSlug}/sentry-app-components/?projectId=${projectId}`;
 
   const res = await api.requestPromise(componentsUri);
