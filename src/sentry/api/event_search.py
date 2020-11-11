@@ -1494,7 +1494,7 @@ class StringArg(FunctionArg):
         return u"'{}'".format(value)
 
 
-class DateArg(StringArg):
+class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
     def normalize(self, value, params):
@@ -1504,7 +1504,7 @@ class DateArg(StringArg):
             raise InvalidFunctionArgument(
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
-        return super(StringArg, self).normalize(value, params)
+        return u"'{}'".format(value)
 
 
 class Column(FunctionArg):
