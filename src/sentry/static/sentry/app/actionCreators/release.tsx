@@ -93,7 +93,7 @@ export function archiveRelease(api: Client, params: ParamsGet) {
   const {orgSlug, projectSlug, releaseVersion} = params;
 
   ReleaseActions.loadRelease(orgSlug, projectSlug, releaseVersion);
-  addLoadingMessage(t('Archiving Release...'));
+  addLoadingMessage(t('Archiving Release\u2026'));
 
   return api
     .requestPromise(`/organizations/${orgSlug}/releases/`, {
