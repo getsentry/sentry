@@ -1001,6 +1001,9 @@ export type Integration = {
     configure_integration?: {
       instructions: string[];
     };
+    integration_detail?: {
+      uninstallationUrl?: string;
+    };
   };
 };
 

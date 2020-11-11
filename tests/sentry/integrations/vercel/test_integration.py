@@ -477,3 +477,19 @@ class VercelIntegrationTest(IntegrationTestCase):
             ).encode("utf-8")
             in resp.content
         )
+
+    @responses.activate
+    def test_get_dynamic_display_information(self):
+        with self.tasks():
+            self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization.id)
+        dynamic_display_info = installation.get_dynamic_display_information()
+        instructions = dynamic_display_info["configure_integration"]["instructions"]
+        assert len(instructions) == 2
+        assert "Don't have a project yet?" in instructions[0]
+        assert "configure your repositories." in instructions[1]
+        assert (
+            dynamic_display_info["integration_detail"]["uninstallationUrl"]
+            == "https://vercel.com/dashboard/integrations/my_config_id"
+        )

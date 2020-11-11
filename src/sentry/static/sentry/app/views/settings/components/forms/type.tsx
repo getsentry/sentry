@@ -153,7 +153,6 @@ export type ProjectMapperType = {
     allowedDomain: string;
   };
   iconType: string;
-  manageUrl?: string;
 };
 
 //selects a sentry project with avatars
