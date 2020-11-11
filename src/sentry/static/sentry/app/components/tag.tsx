@@ -21,11 +21,11 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
    * Icon on the left side.
    */
-  icon?: React.ReactElement;
+  icon?: React.ReactNode;
   /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ReactElement | string;
+  tooltipText?: React.ReactNode | string;
   /**
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
