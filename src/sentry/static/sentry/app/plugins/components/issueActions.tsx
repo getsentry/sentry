@@ -378,7 +378,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     this.setState(prevState => ({...prevState, [formDataKey]: formData}), callback);
   }
 
-  renderForm() {
+  renderForm(): React.ReactNode {
     switch (this.props.actionType) {
       case 'create':
         if (this.state.createFieldList) {

@@ -15,12 +15,6 @@ class Settings extends DefaultSettings<Props, State> {
   REQUIRED_FIELDS = ['account_email', 'api_token', 'website_id'];
   ON_PREMISES_FIELDS = ['api_url', 'player_url'];
 
-  constructor(props: Props, context: any) {
-    super(props, context);
-
-    this.toggleOnPremisesConfiguration = this.toggleOnPremisesConfiguration.bind(this);
-  }
-
   renderFields(fields: State['fieldList']) {
     return fields?.map(f =>
       this.renderField({
@@ -36,11 +30,11 @@ class Settings extends DefaultSettings<Props, State> {
     return fields?.filter(field => fieldNames.includes(field.name)) ?? [];
   }
 
-  toggleOnPremisesConfiguration() {
+  toggleOnPremisesConfiguration = () => {
     this.setState({
       showOnPremisesConfiguration: !this.state.showOnPremisesConfiguration,
     });
-  }
+  };
 
   render() {
     if (this.state.state === FormState.LOADING) {
