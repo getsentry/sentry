@@ -47,5 +47,5 @@ class Command(BaseCommand):
         echo("-----------------")
         echo(version)
         with open(self.storage.path(VERSION_PATH), "wb") as fp:
-            fp.write(version)
+            fp.write(version.encode("utf-8"))
         return collected
