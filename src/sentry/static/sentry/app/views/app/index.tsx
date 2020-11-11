@@ -263,7 +263,7 @@ class App extends React.Component<Props, State> {
     }
 
     return (
-      <ThemeProvider theme={this.state.theme}>
+      <ThemeProvider<Theme> theme={this.state.theme}>
         <GlobalStyles theme={this.state.theme} />
         <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
           <GlobalModal onClose={this.handleGlobalModalClose} />
