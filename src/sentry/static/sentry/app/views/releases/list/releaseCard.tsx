@@ -149,18 +149,18 @@ const StyledPanelItem = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  /* a,b are here to match the health grid layout (offset because of gap on fewer columns) */
-  grid-template-areas: 'version created package-name a commits b new-issues';
-  grid-template-columns: 2fr 2fr 1.4fr 1.4fr 2.1fr 0fr 1.5fr;
+  /* 0fr a,b are here to match the health grid layout (offset because of gap on fewer columns) */
+  grid-template-areas: 'version package-name created a commits b new-issues';
+  grid-template-columns: 2fr 2fr 2.8fr 0fr 2.1fr 0fr 1.5fr;
   grid-column-gap: ${space(1.5)};
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'version created package-name commits a new-issues';
+    grid-template-areas: 'version package-name created commits a new-issues';
     grid-template-columns: 2fr 2fr 1.5fr 2.5fr 0fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'version created package-name a new-issues';
+    grid-template-areas: 'version package-name created a new-issues';
     grid-template-columns: 2fr 1.5fr 2.5fr 0fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -192,15 +192,8 @@ const VersionColumn = styled(Column)`
 
 const PackageNameColumn = styled(Column)`
   grid-area: package-name;
-  text-align: center;
-  display: flex;
-  justify-content: center;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    justify-content: flex-start;
-    text-align: left;
   }
 `;
 
@@ -240,7 +233,9 @@ const StyledDeployBadge = styled(DeployBadge)`
   position: relative;
   bottom: ${space(0.25)};
   margin-right: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  vertical-align: initial;
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
   }
 `;

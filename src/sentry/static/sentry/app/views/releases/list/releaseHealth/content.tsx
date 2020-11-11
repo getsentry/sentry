@@ -229,10 +229,6 @@ const RightColumn = styled(Column)`
   text-align: right;
 `;
 
-const CenterColumn = styled(Column)`
-  text-align: center;
-`;
-
 const ProjectColumn = styled(Column)`
   grid-area: project;
 `;
@@ -247,33 +243,32 @@ const DailyUsersColumn = styled(Column)`
     display: none;
   }
 `;
+
 const AdoptionColumn = styled(Column)`
   grid-area: adoption;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
 `;
-const CrashFreeUsersColumn = styled(CenterColumn)`
+
+const CrashFreeUsersColumn = styled(Column)`
   grid-area: crash-free-users;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    text-align: left;
-  }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
 `;
-const CrashFreeSessionsColumn = styled(CenterColumn)`
+
+const CrashFreeSessionsColumn = styled(Column)`
   grid-area: crash-free-sessions;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    text-align: left;
-  }
 `;
+
 const CrashesColumn = styled(RightColumn)`
   grid-area: crashes;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
 `;
+
 const NewIssuesColumn = styled(RightColumn)`
   grid-area: new-issues;
 `;
