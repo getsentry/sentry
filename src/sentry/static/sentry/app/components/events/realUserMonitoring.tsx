@@ -8,7 +8,7 @@ import {SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
-import {IconFire} from 'app/icons';
+import {IconFire, IconWarning} from 'app/icons';
 import {
   WEB_VITAL_DETAILS,
   LONG_WEB_VITAL_NAMES,
@@ -64,7 +64,7 @@ class RealUserMonitoring extends React.Component<Props> {
             <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
             <ValueRow>
               {failedThreshold ? (
-                <WarningIconContainer size="sm">
+                <FireIconContainer size="sm">
                   <Tooltip
                     title={t('Fails threshold at %s.', thresholdValue)}
                     position="top"
@@ -72,7 +72,7 @@ class RealUserMonitoring extends React.Component<Props> {
                   >
                     <IconFire size="sm" />
                   </Tooltip>
-                </WarningIconContainer>
+                </FireIconContainer>
               ) : null}
               <Value failedThreshold={failedThreshold}>{currentValue}</Value>
             </ValueRow>
@@ -82,6 +82,22 @@ class RealUserMonitoring extends React.Component<Props> {
     });
   }
 
+  isOutdatedSdk() {
+    const {event} = this.props;
+
+    if (!event.sdk?.version) {
+      return false;
+    }
+
+    const sdkVersion = event.sdk.version;
+    return (
+      sdkVersion.startsWith('5.26.') ||
+      sdkVersion.startsWith('5.27.0') ||
+      sdkVersion.startsWith('5.27.1') ||
+      sdkVersion.startsWith('5.27.2')
+    );
+  }
+
   render() {
     if (!this.hasMeasurements()) {
       return null;
@@ -89,7 +105,22 @@ class RealUserMonitoring extends React.Component<Props> {
 
     return (
       <Container>
-        <SectionHeading>{t('Web Vitals')}</SectionHeading>
+        <SectionHeading>
+          {t('Web Vitals')}
+          {this.isOutdatedSdk() && (
+            <WarningIconContainer size="sm">
+              <Tooltip
+                title={t(
+                  'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
+                )}
+                position="top"
+                containerDisplayMode="inline-block"
+              >
+                <IconWarning size="sm" />
+              </Tooltip>
+            </WarningIconContainer>
+          )}
+        </SectionHeading>
         <Measurements>{this.renderMeasurements()}</Measurements>
       </Container>
     );
@@ -102,7 +133,7 @@ const Measurements = styled('div')`
 `;
 
 const Container = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
 `;
@@ -110,16 +141,7 @@ const Container = styled('div')`
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
   padding: ${space(1)} ${space(1.5)};
   margin-bottom: ${space(1)};
-
-  ${p => {
-    if (!p.failedThreshold) {
-      return null;
-    }
-
-    return `
-      border: 1px solid ${p.theme.red300};
-    `;
-  }};
+  ${p => p.failedThreshold && `border: 1px solid ${p.theme.red300};`}
 `;
 
 const Name = styled('div')``;
@@ -133,21 +155,21 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.red300};
+`;
+
+const FireIconContainer = styled('span')<{size: IconSize | string}>`
+  display: inline-block;
+  height: ${p => p.theme.iconSizes[p.size] ?? p.size};
+  line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   margin-right: ${space(0.5)};
   color: ${p => p.theme.red300};
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => {
-    if (!p.failedThreshold) {
-      return null;
-    }
-
-    return `
-      color: ${p.theme.red300};
-    `;
-  }};
+  ${p => p.failedThreshold && `color: ${p.theme.red300};`}
 `;
 
 export default RealUserMonitoring;

@@ -49,7 +49,6 @@ import {
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
-  KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
   TRENDS = 'TRENDS',
 }
 
@@ -152,8 +151,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
         return t('By Transaction');
-      case FilterViews.KEY_TRANSACTIONS:
-        return t('By Key Transaction');
       case FilterViews.TRENDS:
         return t('By Trend');
       default:
@@ -261,12 +258,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
-    const {organization} = this.props;
-    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS];
-    if (!organization.features.includes('key-transactions')) {
-      views.push(FilterViews.KEY_TRANSACTIONS);
-    }
-    views.push(FilterViews.TRENDS);
+    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS, FilterViews.TRENDS];
     return (
       <ButtonBar merged active={this.getCurrentView()}>
         {views.map(viewKey => (
@@ -372,7 +364,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     router={router}
-                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                   />
                   <Table
                     eventView={eventView}
@@ -380,7 +371,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={this.setError}
-                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                     summaryConditions={summaryConditions}
                   />
                 </div>
@@ -398,7 +388,7 @@ export const StyledPageHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   height: 40px;
   margin-bottom: ${space(1)};
 `;

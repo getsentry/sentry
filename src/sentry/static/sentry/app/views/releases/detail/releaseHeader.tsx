@@ -31,9 +31,17 @@ type Props = {
   release: Release;
   project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
+  refetchData: () => void;
 };
 
-const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) => {
+const ReleaseHeader = ({
+  location,
+  orgId,
+  release,
+  project,
+  releaseMeta,
+  refetchData,
+}: Props) => {
   const {version, newGroups, url, lastDeploy, dateCreated} = release;
   const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
   const {hasHealthData, sessionsCrashed} = project.healthData;
@@ -109,7 +117,13 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions version={version} orgId={orgId} hasHealthData={hasHealthData} />
+          <ReleaseActions
+            orgSlug={orgId}
+            projectSlug={project.slug}
+            release={release}
+            releaseMeta={releaseMeta}
+            refetchData={refetchData}
+          />
         </StatsWrapper>
       </HeaderInfoContainer>
 
@@ -193,7 +207,7 @@ const StyledDeployBadge = styled(DeployBadge)`
 
 const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   display: flex;
   align-items: center;
 `;
@@ -204,11 +218,11 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.gray700};
+      color: ${p => p.theme.gray500};
     }
   }
 `;

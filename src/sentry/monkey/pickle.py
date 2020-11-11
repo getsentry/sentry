@@ -95,6 +95,10 @@ def patch_pickle_loaders():
     # property.
     #
     # I'm primarily leaving this here for consistency and documentation
+    #
+    # XXX(epurkhiser): BIG IMPORTANT NOTE! When changing this, we will have to
+    # make some updates to our data pipeline, which currently uses 'pickle.js'
+    # to depickle some data using javascript.
     pickle.DEFAULT_PROTOCOL = 2
 
     # Enforce protocol for kombu as well
@@ -117,6 +121,17 @@ def patch_pickle_loaders():
             args = tuple(largs)
 
         return original_pickle_dumps(*args, **kwargs)
+
+    def py3_compat_pickle_load(*args, **kwargs):
+        try:
+            return original_pickle_load(*args, **kwargs)
+        except UnicodeDecodeError:
+            from sentry.utils import metrics
+
+            metrics.incr("pickle.compat_pickle_load.had_unicode_decode_error", sample_rate=1)
+
+            kwargs["encoding"] = kwargs.get("encoding", "latin-1")
+            return original_pickle_load(*args, **kwargs)
 
     def py3_compat_pickle_loads(*args, **kwargs):
         try:
@@ -152,6 +167,7 @@ def patch_pickle_loaders():
     def py3_compat_kombu_pickle_loads(s, load=__py3_compat_kombu_pickle_load):
         return original_kombu_pickle_loads(s, load)
 
+    pickle.load = py3_compat_pickle_load
     pickle.loads = py3_compat_pickle_loads
     pickle.dumps = py3_compat_pickle_dumps
     kombu_serializer.pickle_loads = py3_compat_kombu_pickle_loads

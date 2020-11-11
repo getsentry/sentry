@@ -136,7 +136,7 @@ const Text = styled('span')`
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
   a:hover & {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 

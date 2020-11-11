@@ -1,40 +1,49 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {Identity} from 'app/types';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/social-identities/';
 
-class AccountIdentities extends AsyncView {
-  getEndpoints() {
-    return [['identities', ENDPOINT]];
-  }
+type Props = RouteComponentProps<{}, {}>;
 
-  getTitle() {
-    return 'Identities';
-  }
+type State = {
+  identities: Identity[] | null;
+} & AsyncView['state'];
 
+class AccountIdentities extends AsyncView<Props, State> {
   getDefaultState() {
     return {
+      ...super.getDefaultState(),
       identities: [],
     };
   }
 
-  handleDisconnect = identity => {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['identities', ENDPOINT]];
+  }
+
+  getTitle() {
+    return t('Identities');
+  }
+
+  handleDisconnect = (identity: Identity) => {
     const {identities} = this.state;
 
     this.setState(
       state => {
-        const newIdentities = state.identities.filter(({id}) => id !== identity.id);
+        const newIdentities = state.identities?.filter(({id}) => id !== identity.id);
 
         return {
-          identities: newIdentities,
+          identities: newIdentities ?? [],
         };
       },
       () =>
@@ -47,21 +56,17 @@ class AccountIdentities extends AsyncView {
   };
 
   renderBody() {
-    const isEmpty = this.state.identities.length === 0;
-
     return (
       <div>
         <SettingsPageHeader title="Identities" />
         <Panel>
           <PanelHeader>{t('Identities')}</PanelHeader>
           <PanelBody>
-            {isEmpty && (
+            {!this.state.identities?.length ? (
               <EmptyMessage>
                 {t('There are no identities associated with this account')}
               </EmptyMessage>
-            )}
-
-            {!isEmpty &&
+            ) : (
               this.state.identities.map(identity => (
                 <IdentityPanelItem key={identity.id}>
                   <div>{identity.providerLabel}</div>
@@ -73,7 +78,8 @@ class AccountIdentities extends AsyncView {
                     {t('Disconnect')}
                   </Button>
                 </IdentityPanelItem>
-              ))}
+              ))
+            )}
           </PanelBody>
         </Panel>
       </div>

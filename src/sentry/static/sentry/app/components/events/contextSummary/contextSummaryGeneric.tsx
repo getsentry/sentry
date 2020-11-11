@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import space from 'app/styles/space';
-import {ParagraphOverflow} from 'app/components/textOverflow';
+import TextOverflow from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';
@@ -36,10 +36,10 @@ const ContextSummaryGeneric = ({data, unknownTitle}: Props) => {
   return (
     <Item className={className} icon={<span className="context-item-icon" />}>
       <h3>{renderValue('name')}</h3>
-      <ParagraphOverflow>
+      <TextOverflow isParagraph>
         <Subject>{t('Version:')}</Subject>
         {!data.version ? t('Unknown') : renderValue('version')}
-      </ParagraphOverflow>
+      </TextOverflow>
     </Item>
   );
 };

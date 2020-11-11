@@ -1,21 +1,43 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import uniq from 'lodash/uniq';
+import {WithRouterProps} from 'react-router';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import SentryTypes from 'app/sentryTypes';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import {
+  Organization,
+  Project,
+  SentryErrorEvent,
+  TagWithTopValues,
+  Entry,
+  Frame,
+} from 'app/types';
 
-class ProjectOwnershipModal extends AsyncComponent {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    issueId: PropTypes.string,
-    onSave: PropTypes.func,
-  };
+type IssueOwnershipResponse = {
+  raw: string;
+  fallthrough: boolean;
+  dateCreated: string;
+  lastUpdated: string;
+  isActive: boolean;
+  autoAssignment: boolean;
+};
 
-  getEndpoints() {
+type Props = {
+  organization: Organization;
+  project: Project;
+  issueId: string;
+  onSave: () => void;
+} & WithRouterProps<{orgId: string; projectId: string; issueId: string}, {}>;
+
+type State = {
+  ownership: null | IssueOwnershipResponse;
+  eventData: null | SentryErrorEvent;
+  urlTagData: null | TagWithTopValues;
+} & AsyncComponent['state'];
+
+class ProjectOwnershipModal extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, project, issueId} = this.props;
     return [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
@@ -35,6 +57,9 @@ class ProjectOwnershipModal extends AsyncComponent {
 
   renderBody() {
     const {ownership, urlTagData, eventData} = this.state;
+    if (!ownership || !urlTagData || !eventData) {
+      return null;
+    }
     const urls = urlTagData
       ? urlTagData.topValues
           .sort((a, b) => a.count - b.count)
@@ -43,13 +68,19 @@ class ProjectOwnershipModal extends AsyncComponent {
       : [];
 
     // pull frame data out of exception or the stacktrace
-    let frames =
-      eventData.entries.find(({type}) => type === 'exception')?.data?.values?.[0]
-        ?.stacktrace?.frames ||
-      eventData.entries.find(({type}) => type === 'stacktrace')?.data?.frames ||
-      [];
+    const entry = (eventData.entries as Entry[]).find(({type}) =>
+      ['exception', 'stacktrace'].includes(type)
+    );
 
-    //filter frames by inApp unless there would be 0
+    let frames: Frame[] = [];
+    if (entry?.type === 'exception') {
+      frames = entry?.data?.values?.[0]?.stacktrace?.frames ?? [];
+    }
+    if (entry?.type === 'stacktrace') {
+      frames = entry?.data?.frames ?? [];
+    }
+
+    // filter frames by inApp unless there would be 0
     const inAppFrames = frames.filter(frame => frame.inApp);
     if (inAppFrames.length > 0) {
       frames = inAppFrames;

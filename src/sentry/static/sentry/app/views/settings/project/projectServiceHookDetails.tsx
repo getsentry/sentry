@@ -1,4 +1,4 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import React from 'react';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
@@ -20,9 +20,20 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
+import {ServiceHook} from 'app/types';
 
-class HookStats extends AsyncComponent {
-  getEndpoints() {
+type Params = {orgId: string; projectId: string; hookId: string};
+
+type StatsProps = {
+  params: Params;
+};
+
+type StatsState = {
+  stats: {ts: number; total: number}[] | null;
+} & AsyncComponent['state'];
+
+class HookStats extends AsyncComponent<StatsProps, StatsState> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
     const {hookId, orgId, projectId} = this.props.params;
@@ -43,6 +54,9 @@ class HookStats extends AsyncComponent {
 
   renderBody() {
     const {stats} = this.state;
+    if (stats === null) {
+      return null;
+    }
     let emptyStats = true;
 
     const series = {
@@ -65,7 +79,7 @@ class HookStats extends AsyncComponent {
           {!emptyStats ? (
             <MiniBarChart
               isGroupedByDate
-              showTimeinTooltip
+              showTimeInTooltip
               labelYAxisExtents
               series={[series]}
               height={150}
@@ -82,8 +96,13 @@ class HookStats extends AsyncComponent {
   }
 }
 
-export default class ProjectServiceHookDetails extends AsyncView {
-  getEndpoints() {
+type Props = WithRouterProps<Params, {}>;
+type State = {
+  hook: ServiceHook | null;
+} & AsyncView['state'];
+
+export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId, hookId} = this.props.params;
     return [['hook', `/projects/${orgId}/${projectId}/hooks/${hookId}/`]];
   }
@@ -106,8 +125,12 @@ export default class ProjectServiceHookDetails extends AsyncView {
   renderBody() {
     const {orgId, projectId, hookId} = this.props.params;
     const {hook} = this.state;
+    if (!hook) {
+      return null;
+    }
+
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader title={t('Service Hook Details')} />
 
         <ErrorBoundary>
@@ -115,7 +138,6 @@ export default class ProjectServiceHookDetails extends AsyncView {
         </ErrorBoundary>
 
         <ServiceHookSettingsForm
-          {...this.props}
           orgId={orgId}
           projectId={projectId}
           hookId={hookId}
@@ -156,13 +178,13 @@ export default class ProjectServiceHookDetails extends AsyncView {
             >
               <div>
                 <Button priority="danger" onClick={this.onDelete}>
-                  Delete Hook
+                  {t('Delete Hook')}
                 </Button>
               </div>
             </Field>
           </PanelBody>
         </Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }

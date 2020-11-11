@@ -51,7 +51,7 @@ class HealthStatsChart extends React.Component<Props> {
       return null;
     }
 
-    const colors = [theme.gray500];
+    const colors = [theme.gray300];
     const emphasisColors = [theme.purple300];
     const series: Series[] = [
       {
