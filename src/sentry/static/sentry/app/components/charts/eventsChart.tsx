@@ -4,7 +4,12 @@ import isEqual from 'lodash/isEqual';
 import {InjectedRouter} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
-import {DateString, OrganizationSummary} from 'app/types';
+import {
+  DateString,
+  OrganizationSummary,
+  EventsStats,
+  MultiSeriesEventsStats,
+} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {t} from 'app/locale';
 import {getInterval} from 'app/components/charts/utils';
@@ -220,6 +225,21 @@ type Props = {
    */
   query: string;
   /**
+   * The secondary discover query string to find events with.
+   * This is an optional prop that allows for a second query
+   * whose results will be merged with the first.
+   */
+  secondaryQuery?: string;
+  /**
+   * If a secondary query string was defined, this mergeResults
+   * call back will be used to merge the results of the primary
+   * and secondary queries together into a single result.
+   */
+  mergeResults?: (
+    primary: EventsStats | MultiSeriesEventsStats | null,
+    secondary: EventsStats | MultiSeriesEventsStats | null
+  ) => EventsStats | MultiSeriesEventsStats | null;
+  /**
    * The aggregate/metric to plot.
    */
   yAxis: string;
@@ -290,6 +310,8 @@ class EventsChart extends React.Component<Props> {
     environments: PropTypes.arrayOf(PropTypes.string),
     period: PropTypes.string,
     query: PropTypes.string,
+    secondaryQuery: PropTypes.string,
+    mergeResults: PropTypes.func,
     start: PropTypes.instanceOf(Date),
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
@@ -313,6 +335,8 @@ class EventsChart extends React.Component<Props> {
       period,
       utc,
       query,
+      secondaryQuery,
+      mergeResults,
       router,
       start,
       end,
@@ -418,6 +442,8 @@ class EventsChart extends React.Component<Props> {
             end={end}
             interval={intervalVal}
             query={query}
+            secondaryQuery={secondaryQuery}
+            mergeResults={mergeResults}
             includePrevious={includePrevious}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}

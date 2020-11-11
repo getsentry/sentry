@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {
@@ -8,7 +9,6 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import OptionSelector from 'app/components/charts/optionSelector';
-import styled from 'app/styled';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -18,6 +18,7 @@ export enum YAxis {
   CRASH_FREE = 'crashFree',
   SESSION_DURATION = 'sessionDuration',
   EVENTS = 'events',
+  FAILURE_COUNT = 'failureCount',
 }
 
 type Props = {
@@ -35,11 +36,16 @@ const ReleaseChartControls = ({
   hasHealthData,
   hasDiscover,
 }: Props) => {
+  // TODO(tonyx): actually get this value
+  const hasPerformance = hasDiscover;
   const noHealthDataTooltip = !hasHealthData
     ? t('This view is only available with release health data.')
     : undefined;
   const noDiscoverTooltip = !hasDiscover
     ? t('This view is only available with Discover feature.')
+    : undefined;
+  const noPerformanceTooltip = !hasPerformance
+    ? t('This view is only available with Performance feature.')
     : undefined;
   const yAxisOptions: SelectValue<YAxis>[] = [
     {
@@ -72,6 +78,12 @@ const ReleaseChartControls = ({
       disabled: !hasDiscover,
       tooltip: noDiscoverTooltip,
     },
+    {
+      value: YAxis.FAILURE_COUNT,
+      label: t('Failure Count'),
+      disabled: !hasPerformance,
+      tooltip: noPerformanceTooltip,
+    },
   ];
 
   const getSummaryHeading = () => {
@@ -83,6 +95,8 @@ const ReleaseChartControls = ({
       case YAxis.SESSION_DURATION:
         return t('Median Duration');
       case YAxis.EVENTS:
+        return t('Total Events');
+      case YAxis.FAILURE_COUNT:
         return t('Total Events');
       case YAxis.SESSIONS:
       default:

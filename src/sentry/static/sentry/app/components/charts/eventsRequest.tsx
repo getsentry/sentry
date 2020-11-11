@@ -76,6 +76,18 @@ type DefaultProps = {
    */
   query: string;
   /**
+   * The secondary string to search events by
+   */
+  secondaryQuery?: string;
+  /**
+   * The call back to use to merge the primary and secondary
+   * results into one.
+   */
+  mergeResults?: (
+    primary: EventsStats | MultiSeriesEventsStats | null,
+    secondary: EventsStats | MultiSeriesEventsStats | null
+  ) => EventsStats | MultiSeriesEventsStats | null;
+  /**
    * Include data for previous period
    */
   includePrevious: boolean;
@@ -177,6 +189,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     includePrevious: PropTypes.bool,
     limit: PropTypes.number,
     query: PropTypes.string,
+    secondaryQuery: PropTypes.string,
+    mergeResults: PropTypes.func,
     includeTransformedData: PropTypes.bool,
 
     /**
@@ -210,6 +224,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     interval: '1d',
     limit: 15,
     query: '',
+    secondaryQuery: undefined,
     includePrevious: true,
     includeTransformedData: true,
   };
@@ -238,8 +253,16 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {api, confirmedQuery, ...props} = this.props;
-    let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
+    const {
+      api,
+      confirmedQuery,
+      query,
+      secondaryQuery,
+      mergeResults,
+      ...props
+    } = this.props;
+    // let timeseriesData: EventsStats | MultiSeriesEventsStats | null = null;
+    let timeseriesDatas: (EventsStats | MultiSeriesEventsStats | null)[] = [];
 
     if (confirmedQuery === false) {
       return;
@@ -252,7 +275,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
 
     try {
       api.clear();
-      timeseriesData = await doEventsRequest(api, props);
+      // timeseriesData = await doEventsRequest(api, {query, ...props});
+      const queries = secondaryQuery && mergeResults ? [query, secondaryQuery] : [query];
+      timeseriesDatas = await Promise.all(
+        queries.map(q => doEventsRequest(api, {query: q, ...props}))
+      );
     } catch (resp) {
       if (resp && resp.responseJSON && resp.responseJSON.detail) {
         addErrorMessage(resp.responseJSON.detail);
@@ -267,6 +294,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     if (this.unmounting) {
       return;
     }
+
+    const timeseriesData =
+      secondaryQuery && mergeResults
+        ? mergeResults(timeseriesDatas[0] ?? null, timeseriesDatas[1] ?? null)
+        : timeseriesDatas[0] ?? null;
 
     this.setState({
       reloading: false,
