@@ -215,16 +215,17 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         filepath = "README.md"
         ref = "master"
-        version = None
+        version = "12345678"
         responses.add(
             responses.HEAD,
             u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                external_id, filepath, ref
+                external_id, filepath, version
             ),
         )
-        source_url = installation.get_stacktrace_link(repo, "README.md", version, ref)
+        source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
         assert (
-            source_url == "https://gitlab.example.com/getsentry/example-repo/blob/master/README.md"
+            source_url
+            == "https://gitlab.example.com/getsentry/example-repo/blob/12345678/README.md"
         )
 
     @responses.activate

@@ -251,7 +251,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         path = "README.md"
-        version = "master"
+        version = "1234567"
         default = "master"
         responses.add(
             responses.HEAD,
@@ -260,7 +260,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, default, version)
 
-        assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
+        assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
 
     @responses.activate
     def test_get_stacktrace_link_file_doesnt_exists(self):

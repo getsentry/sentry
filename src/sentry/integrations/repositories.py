@@ -36,7 +36,7 @@ class RepositoryMixin(object):
                 raise
             return False
 
-        return True
+        return self.format_source_url(repo, filepath, branch)
 
     def get_stacktrace_link(self, repo, filepath, default, version):
         """
@@ -50,15 +50,13 @@ class RepositoryMixin(object):
 
         """
         if version:
-            file_exists = self.check_file(repo, filepath, version)
-            if file_exists:
-                return self.format_source_url(repo, filepath, version)
+            source_url = self.check_file(repo, filepath, version)
+            if source_url:
+                return source_url
 
-        file_exists = self.check_file(repo, filepath, default)
-        if file_exists:
-            return self.format_source_url(repo, filepath, default)
+        source_url = self.check_file(repo, filepath, default)
 
-        return None
+        return source_url if source_url else None
 
     def get_repositories(self, query=None):
         """
