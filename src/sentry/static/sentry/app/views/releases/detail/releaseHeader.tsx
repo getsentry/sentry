@@ -121,6 +121,7 @@ const ReleaseHeader = ({
             orgSlug={orgId}
             projectSlug={project.slug}
             release={release}
+            releaseMeta={releaseMeta}
             refetchData={refetchData}
           />
         </StatsWrapper>

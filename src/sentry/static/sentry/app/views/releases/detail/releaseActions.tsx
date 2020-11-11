@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {t, tct, tn} from 'app/locale';
-import {Release} from 'app/types';
+import {Release, ReleaseMeta} from 'app/types';
 import space from 'app/styles/space';
 import Button from 'app/components/button';
 import {IconEllipsis} from 'app/icons';
@@ -25,10 +25,17 @@ type Props = {
   orgSlug: string;
   projectSlug: string;
   release: Release;
+  releaseMeta: ReleaseMeta;
   refetchData: () => void;
 };
 
-function ReleaseActions({orgSlug, projectSlug, release, refetchData}: Props) {
+function ReleaseActions({
+  orgSlug,
+  projectSlug,
+  release,
+  releaseMeta,
+  refetchData,
+}: Props) {
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
@@ -57,8 +64,9 @@ function ReleaseActions({orgSlug, projectSlug, release, refetchData}: Props) {
 
   function getProjectList() {
     const maxVisibleProjects = 5;
-    const visibleProjects = release.projects.slice(0, maxVisibleProjects);
-    const numberOfCollapsedProjects = release.projects.length - visibleProjects.length;
+    const visibleProjects = releaseMeta.projects.slice(0, maxVisibleProjects);
+    const numberOfCollapsedProjects =
+      releaseMeta.projects.length - visibleProjects.length;
 
     return (
       <React.Fragment>
@@ -158,6 +166,7 @@ ReleaseActions.propTypes = {
   orgSlug: PropTypes.string.isRequired,
   projectSlug: PropTypes.string.isRequired,
   release: SentryTypes.Release.isRequired,
+  releaseMeta: PropTypes.object.isRequired,
   refetchData: PropTypes.func.isRequired,
 };
 
@@ -189,6 +198,10 @@ const ProjectsWrapper = styled('div')`
   margin: ${space(2)} 0 ${space(2)} ${space(2)};
   display: grid;
   gap: ${space(0.5)};
+  img {
+    border: none !important;
+    box-shadow: none !important;
+  }
 `;
 
 export default ReleaseActions;
