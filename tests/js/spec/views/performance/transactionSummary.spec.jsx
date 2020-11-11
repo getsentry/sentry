@@ -7,8 +7,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionSummary from 'app/views/performance/transactionSummary';
 
-function initializeData() {
-  const features = ['discover-basic', 'performance-view'];
+function initializeData({features: additionalFeatures = []} = {}) {
+  const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],

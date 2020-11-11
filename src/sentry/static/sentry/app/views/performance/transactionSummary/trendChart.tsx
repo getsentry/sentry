@@ -14,7 +14,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -84,15 +84,6 @@ class TrendChart extends React.Component<Props> {
       trendDisplay,
     } = this.props;
 
-    const unselectedSeries = location.query.trendsUnselectedSeries ?? [];
-    const unselectedMetrics = Array.isArray(unselectedSeries)
-      ? unselectedSeries
-      : [unselectedSeries];
-    const seriesSelection = unselectedMetrics.reduce((selection, metric) => {
-      selection[metric] = false;
-      return selection;
-    }, {});
-
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
       : undefined;
@@ -113,7 +104,7 @@ class TrendChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      selected: seriesSelection,
+      selected: getSeriesSelection(location),
     };
 
     const datetimeSelection = {
