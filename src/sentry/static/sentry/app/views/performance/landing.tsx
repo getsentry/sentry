@@ -16,6 +16,7 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import Alert from 'app/components/alert';
+import FeatureBadge from 'app/components/featureBadge';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import space from 'app/styles/space';
@@ -48,7 +49,6 @@ import {
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
-  KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
   TRENDS = 'TRENDS',
 }
 
@@ -151,8 +151,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
         return t('By Transaction');
-      case FilterViews.KEY_TRANSACTIONS:
-        return t('By Key Transaction');
       case FilterViews.TRENDS:
         return t('By Trend');
       default:
@@ -260,14 +258,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
-    const {organization} = this.props;
-    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS];
-    if (!organization.features.includes('key-transactions')) {
-      views.push(FilterViews.KEY_TRANSACTIONS);
-    }
-    if (organization.features.includes('trends')) {
-      views.push(FilterViews.TRENDS);
-    }
+    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS, FilterViews.TRENDS];
     return (
       <ButtonBar merged active={this.getCurrentView()}>
         {views.map(viewKey => (
@@ -279,6 +270,7 @@ class PerformanceLanding extends React.Component<Props, State> {
             onClick={() => this.handleViewChange(viewKey)}
           >
             {this.getViewLabel(viewKey)}
+            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="new" />}
           </Button>
         ))}
       </ButtonBar>
@@ -372,7 +364,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     router={router}
-                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                   />
                   <Table
                     eventView={eventView}
@@ -380,7 +371,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={this.setError}
-                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                     summaryConditions={summaryConditions}
                   />
                 </div>
@@ -398,7 +388,7 @@ export const StyledPageHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   height: 40px;
   margin-bottom: ${space(1)};
 `;
@@ -407,6 +397,10 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   margin-bottom: ${space(2)};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  height: 12px;
 `;
 
 export default withApi(

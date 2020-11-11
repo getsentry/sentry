@@ -15,7 +15,7 @@ const Wrapper = styled('div')`
 
 const StyledInput = styled('input')`
   ${inputStyles};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   border-right-width: 0;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -23,7 +23,7 @@ const StyledInput = styled('input')`
 
   &:hover,
   &:focus {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
     border-right-width: 0;
   }
 `;

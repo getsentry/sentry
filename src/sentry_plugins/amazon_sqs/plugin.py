@@ -174,7 +174,7 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             if s3_bucket:
                 # we want something like 2020-08-29 so we can store it by the date
                 date = event.datetime.strftime("%Y-%m-%d")
-                key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
+                key = u"{}/{}/{}".format(event.project.slug, date, event.event_id)
                 logger.info("sentry_plugins.amazon_sqs.s3_put_object", extra=logging_params)
                 s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
 

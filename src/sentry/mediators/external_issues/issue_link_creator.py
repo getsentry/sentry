@@ -50,6 +50,7 @@ class IssueLinkCreator(Mediator):
         web_url, display_name = self._format_response_data()
         self.external_issue = PlatformExternalIssue.objects.create(
             group_id=self.group.id,
+            project_id=self.group.project_id,
             service_type=self.sentry_app.slug,
             display_name=display_name,
             web_url=web_url,

@@ -20,14 +20,13 @@ import * as Sentry from '@sentry/react';
 
 import {NODE_ENV, DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
 import {metric} from 'app/utils/analytics';
+import {setupColorScheme} from 'app/utils/matchMedia';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
-
-import {setupFavicon} from './favicon';
 
 if (NODE_ENV === 'development') {
   import(
@@ -134,9 +133,8 @@ const render = (Component: React.ComponentType) => {
   }
 };
 
-if (NODE_ENV === 'production') {
-  setupFavicon();
-}
+// setup darkmode + favicon
+setupColorScheme();
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load

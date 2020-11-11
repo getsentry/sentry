@@ -368,11 +368,7 @@ class SpanTree extends React.Component<PropType> {
   };
 
   renderSecondaryPanel() {
-    const {organization, event} = this.props;
-
-    if (!organization.features.includes('measurements')) {
-      return null;
-    }
+    const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
 
@@ -444,10 +440,10 @@ const TraceViewContainer = styled('div')`
 `;
 
 const SecondaryHeader = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   display: flex;
 
-  border-bottom: 1px solid ${p => p.theme.gray400};
+  border-bottom: 1px solid ${p => p.theme.gray200};
 `;
 
 const DividerSpacer = styled('div')`

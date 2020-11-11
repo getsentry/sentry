@@ -311,7 +311,6 @@ from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQuerie
 from sentry.discover.endpoints.discover_saved_query_detail import DiscoverSavedQueryDetailEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
-    KeyTransactionStatsEndpoint,
     IsKeyTransactionEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
@@ -720,11 +719,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
                     IsKeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-is-key-transactions",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/key-transactions-stats/$",
-                    KeyTransactionStatsEndpoint.as_view(),
-                    name="sentry-api-0-organization-key-transactions-stats",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/related-issues/$",
