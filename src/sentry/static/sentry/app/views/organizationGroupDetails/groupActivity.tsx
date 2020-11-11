@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import {Params} from 'react-router/lib/Router';
 
 import {
   addErrorMessage,
@@ -15,27 +15,36 @@ import ConfigStore from 'app/stores/configStore';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
-import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {Activity, Group, Organization, User} from 'app/types';
+import {Client} from 'app/api';
+import {CreateError} from 'app/components/activity/note/types';
 
 import GroupActivityItem from './groupActivityItem';
 
-function makeDefaultErrorJson() {
-  return {detail: t('Unknown error. Please try again.')};
-}
+const DEFAULT_ERROR_JSON = {detail: t('Unknown error. Please try again.')};
 
-class GroupActivity extends React.Component {
+type Props = {
+  api: Client;
+  organization: Organization;
+  group: Group;
+  params: Params;
+};
+
+type State = {
+  createBusy: boolean;
+  error: boolean;
+  errorJSON: CreateError | null;
+  inputId: string;
+};
+
+class GroupActivity extends React.Component<Props, State> {
   // TODO(dcramer): only re-render on group/activity change
-  static propTypes = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization.isRequired,
-    group: SentryTypes.Group,
-  };
-
-  state = {
+  state: State = {
     createBusy: false,
     error: false,
+    errorJSON: null,
     inputId: uniqueId(),
   };
 
@@ -80,7 +89,7 @@ class GroupActivity extends React.Component {
       this.setState({
         createBusy: false,
         error: true,
-        errorJSON: error.responseJSON || makeDefaultErrorJson(),
+        errorJSON: error.responseJSON || DEFAULT_ERROR_JSON,
       });
       addErrorMessage(t('Unable to post comment'));
     }
@@ -89,22 +98,15 @@ class GroupActivity extends React.Component {
   handleNoteUpdate = async (note, {modelId, text: oldText}) => {
     const {api, group} = this.props;
 
-    this.setState({
-      updateBusy: true,
-    });
     addLoadingMessage(t('Updating comment...'));
 
     try {
       await updateNote(api, group, note, modelId, oldText);
-      this.setState({
-        updateBusy: false,
-      });
       clearIndicators();
     } catch (error) {
       this.setState({
-        updateBusy: false,
         error: true,
-        errorJSON: error.responseJSON || makeDefaultErrorJson(),
+        errorJSON: error.responseJSON || DEFAULT_ERROR_JSON,
       });
       addErrorMessage(t('Unable to update comment'));
     }
@@ -141,7 +143,7 @@ class GroupActivity extends React.Component {
               )}
             </ActivityItem>
 
-            {group.activity.map(item => {
+            {group.activity.map((item: Activity) => {
               const authorName = item.user ? item.user.name : 'Sentry';
 
               if (item.type === 'note') {
@@ -150,12 +152,11 @@ class GroupActivity extends React.Component {
                     <Note
                       text={item.data.text}
                       modelId={item.id}
-                      user={item.user}
+                      user={item.user as User}
                       dateCreated={item.dateCreated}
                       authorName={authorName}
                       onDelete={this.handleNoteDelete}
                       onUpdate={this.handleNoteUpdate}
-                      busy={this.state.updateBusy}
                       {...noteProps}
                     />
                   </ErrorBoundary>
@@ -164,7 +165,6 @@ class GroupActivity extends React.Component {
                 return (
                   <ErrorBoundary mini key={`item-${item.id}`}>
                     <ActivityItem
-                      item={item}
                       author={{type: item.user ? 'user' : 'system', user: item.user}}
                       date={item.dateCreated}
                       header={
