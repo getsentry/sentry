@@ -101,6 +101,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
+        TODO(Chris F.): Add details on expand/collapse.
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
@@ -108,9 +109,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         except InvalidParams as e:
             raise ParseError(detail=six.text_type(e))
 
-        include_inbox = features.has(
-            "organizations:inbox", organization, actor=request.user
-        ) and "inbox" in request.GET.getlist("expand", [])
+        expand = request.GET.getlist("expand", [])
+        collapse = request.GET.getlist("collapse", [])
+        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -136,7 +137,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period=stats_period,
             stats_period_start=stats_period_start,
             stats_period_end=stats_period_end,
-            include_inbox=include_inbox,
+            expand=expand,
+            collapse=collapse,
+            has_inbox=has_inbox,
         )
 
         projects = self.get_projects(request, organization)

@@ -68,5 +68,5 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const StyledQueryCount = styled(QueryCount)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;

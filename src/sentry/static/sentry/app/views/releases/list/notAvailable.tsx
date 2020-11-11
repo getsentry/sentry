@@ -6,7 +6,7 @@ const NotAvailable = () => {
 };
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 `;
 
 export default NotAvailable;

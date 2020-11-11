@@ -95,6 +95,10 @@ def patch_pickle_loaders():
     # property.
     #
     # I'm primarily leaving this here for consistency and documentation
+    #
+    # XXX(epurkhiser): BIG IMPORTANT NOTE! When changing this, we will have to
+    # make some updates to our data pipeline, which currently uses 'pickle.js'
+    # to depickle some data using javascript.
     pickle.DEFAULT_PROTOCOL = 2
 
     # Enforce protocol for kombu as well

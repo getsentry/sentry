@@ -25,7 +25,7 @@ const Details = styled('div')`
 `;
 
 const Wrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.gray300};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(2)} 0 ${space(2)} 64px;
   display: flex;
   align-items: center;
