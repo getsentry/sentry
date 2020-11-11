@@ -404,8 +404,13 @@ export type ExceptionEntry = {
   data: ExceptionType;
 };
 
+export type StacktraceEntry = {
+  type: 'stacktrace';
+  data: StacktraceType;
+};
+
 export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: ExceptionEntry[];
+  entries: ExceptionEntry[] | StacktraceEntry[];
   type: 'error';
 };
 
@@ -1408,7 +1413,7 @@ export type TagWithTopValues = {
   name: string;
   totalValues: number;
   uniqueValues: number;
-  canDelete: boolean;
+  canDelete?: boolean;
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
@@ -1638,6 +1643,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
+  frames: Frame[];
 };
 
 export type ExceptionType = {
