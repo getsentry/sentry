@@ -31,9 +31,17 @@ type Props = {
   release: Release;
   project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
+  refetchData: () => void;
 };
 
-const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) => {
+const ReleaseHeader = ({
+  location,
+  orgId,
+  release,
+  project,
+  releaseMeta,
+  refetchData,
+}: Props) => {
   const {version, newGroups, url, lastDeploy, dateCreated} = release;
   const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
   const {hasHealthData, sessionsCrashed} = project.healthData;
@@ -109,7 +117,12 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions version={version} orgId={orgId} hasHealthData={hasHealthData} />
+          <ReleaseActions
+            orgSlug={orgId}
+            projectSlug={project.slug}
+            release={release}
+            refetchData={refetchData}
+          />
         </StatsWrapper>
       </HeaderInfoContainer>
 
