@@ -28,7 +28,7 @@ from sentry.models import (
     ReleaseCommitError,
     ReleaseProject,
     ReleaseStatus,
-    Project
+    Project,
 )
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
