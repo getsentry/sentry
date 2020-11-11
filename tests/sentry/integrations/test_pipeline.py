@@ -272,7 +272,6 @@ class FinishPipelineTestCase(IntegrationTestCase):
     def test_different_user_same_external_id(self, *args):
         self.provider = GitlabIntegrationProvider
         new_user = self.create_user()
-        # self.create_member(organization=self.organization, user=new_user, role="admin")
         self.provider.needs_default_identity = True
         integration = Integration.objects.create(
             provider=self.provider.key,
