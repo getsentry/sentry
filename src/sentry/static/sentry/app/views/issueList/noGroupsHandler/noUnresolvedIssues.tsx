@@ -72,7 +72,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.fontSizeMedium};

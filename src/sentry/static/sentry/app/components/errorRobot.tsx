@@ -153,7 +153,7 @@ const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
   ${p =>
     p.gradient
       ? `
-          background-image: linear-gradient(to bottom, #F8F9FA, #ffffff);
+          background-image: linear-gradient(to bottom, ${p.theme.backgroundSecondary}, ${p.theme.background});
          `
       : ''};
 

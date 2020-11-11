@@ -85,7 +85,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray500};
+  color: ${theme.textColor};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -1261,7 +1261,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   /* match button height */
   height: 40px;
   box-shadow: inset ${p => p.theme.dropShadowLight};
-  background: #fff;
+  background: ${p => p.theme.background};
 
   position: relative;
 
@@ -1281,7 +1281,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   background: transparent;
   border: 0;
   outline: none;

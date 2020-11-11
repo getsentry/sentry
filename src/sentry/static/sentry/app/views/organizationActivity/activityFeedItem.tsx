@@ -370,7 +370,7 @@ const ActivityAuthor = styled('span')`
 `;
 
 const Meta = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 const Project = styled('span')`

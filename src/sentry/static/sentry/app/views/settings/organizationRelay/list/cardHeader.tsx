@@ -72,7 +72,7 @@ const Name = styled('div')`
 `;
 
 const MainInfo = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   display: grid;
   grid-gap: ${space(1)};
 `;

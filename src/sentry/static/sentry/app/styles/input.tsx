@@ -11,10 +11,10 @@ type Props = {
 
 const inputStyles = (props: Props) =>
   css`
-    color: ${props.disabled ? props.theme.disabled : props.theme.gray500};
+    color: ${props.disabled ? props.theme.disabled : props.theme.formText};
     display: block;
     width: 100%;
-    background: #fff;
+    background: ${props.theme.background};
     border: 1px solid ${props.theme.border};
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
@@ -41,7 +41,7 @@ const inputStyles = (props: Props) =>
     }
 
     &::placeholder {
-      color: ${props.theme.gray300};
+      color: ${props.theme.formPlaceholder};
     }
 
     &[disabled] {

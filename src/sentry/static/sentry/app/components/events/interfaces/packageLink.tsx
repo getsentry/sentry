@@ -63,9 +63,9 @@ const Package = styled('a')<Partial<Props>>`
   font-size: 13px;
   font-weight: bold;
   padding: 0 0 0 ${space(0.5)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
   cursor: ${p => (p.isClickable ? 'pointer' : 'default')};
   display: flex;

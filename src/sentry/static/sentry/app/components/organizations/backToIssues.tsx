@@ -15,13 +15,13 @@ const BackToIssues = styled(Link)`
   border-radius: 50%;
 
   color: ${p => p.theme.textColor};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
   z-index: 1;
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    background: ${p => p.theme.background};
     transform: scale(1.125);
   }
 `;
