@@ -12,7 +12,7 @@ const styles = (theme: Theme) => css`
 
     /* TODO(dark): Move this to base.less when ready */
     color: ${theme.textColor};
-    background: ${theme.background};
+    background: ${theme.backgroundSecondary};
   }
 
   abbr {
