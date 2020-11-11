@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from django.db.models import Q
 
+from sentry import eventstore
 from sentry.api.base import Endpoint
 from sentry.incidents.models import Incident
 from sentry.models import Group, Project
@@ -19,27 +20,37 @@ from .utils import build_group_attachment, build_incident_attachment, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
-_link_regexp = re.compile(r"^https?\://[^/]+/[^/]+/[^/]+/(issues|incidents)/(\d+)")
+_link_regexp = re.compile(
+    r"^https?\://[^/]+/[^/]+/[^/]+/(issues|incidents)/(\d+)(?:/events/(\w+))?"
+)
 _org_slug_regexp = re.compile(r"^https?\://[^/]+/organizations/([^/]+)/")
 
 
-def unfurl_issues(integration, issue_map):
-    results = {
+def unfurl_issues(integration, url_by_issue_id, event_id_by_url=None):
+    group_by_id = {
         g.id: g
         for g in Group.objects.filter(
-            id__in=set(issue_map.keys()),
+            id__in=set(url_by_issue_id.keys()),
             project__in=Project.objects.filter(organization__in=integration.organizations.all()),
         )
     }
-    if not results:
+    if not group_by_id:
         return {}
 
-    return {
-        v: build_group_attachment(results[k]) for k, v in six.iteritems(issue_map) if k in results
-    }
+    out = {}
+    for issue_id, url in six.iteritems(url_by_issue_id):
+        if issue_id in group_by_id:
+            group = group_by_id[issue_id]
+            # lookup the event by the id
+            event_id = event_id_by_url.get(url)
+            event = eventstore.get_event_by_id(group.project_id, event_id) if event_id else None
+            out[url] = build_group_attachment(
+                group_by_id[issue_id], event=event, link_to_event=True
+            )
+    return out
 
 
-def unfurl_incidents(integration, incident_map):
+def unfurl_incidents(integration, incident_map, event_id_by_url=None):
     filter_query = Q()
     # Since we don't have real ids here, we have to also extract the org slug
     # from the url so that we can make sure the identifiers correspond to the
@@ -84,11 +95,14 @@ class SlackEventEndpoint(Endpoint):
         """
         match = _link_regexp.match(link)
         if not match:
-            return None, None
+            return None, None, None
         try:
-            return match.group(1), int(match.group(2))
+            if len(match.groups()) > 2:
+                return match.group(1), int(match.group(2)), match.group(3)
+            else:
+                return match.group(1), int(match.group(2)), None
         except (TypeError, ValueError):
-            return None, None
+            return None, None, None
 
     def _get_access_token(self, integration):
         # the classic bot tokens must use the user auth token for URL unfurling
@@ -142,19 +156,26 @@ class SlackEventEndpoint(Endpoint):
         return self.respond()
 
     def on_link_shared(self, request, integration, token, data):
-        parsed_events = defaultdict(dict)
+        parsed_issues = defaultdict(dict)
+        event_id_by_url = {}
         for item in data["links"]:
-            event_type, instance_id = self._parse_url(item["url"])
+            event_type, instance_id, event_id = self._parse_url(item["url"])
             if not instance_id:
                 continue
-            parsed_events[event_type][instance_id] = item["url"]
+            # note that because we store the url by the issue,
+            # we will only unfurl one link per issue even if there are
+            # multiple links to different events
+            parsed_issues[event_type][instance_id] = item["url"]
+            event_id_by_url[item["url"]] = event_id
 
-        if not parsed_events:
+        if not parsed_issues:
             return
 
         results = {}
-        for event_type, instance_map in parsed_events.items():
-            results.update(self.event_handlers[event_type](integration, instance_map))
+        for event_type, instance_map in parsed_issues.items():
+            results.update(
+                self.event_handlers[event_type](integration, instance_map, event_id_by_url)
+            )
 
         if not results:
             return
