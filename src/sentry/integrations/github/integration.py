@@ -114,8 +114,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         file_exists = self.check_file(repo.name, filepath, default)
         if file_exists:
             return self.format_source_url(repo.name, filepath, default)
-        else:
-            return None
+
+        return None
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()

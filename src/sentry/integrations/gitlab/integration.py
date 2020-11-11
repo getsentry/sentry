@@ -111,8 +111,8 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         file_exists = self.check_file(project_id, filepath, default)
         if file_exists:
             return self.format_source_url(repo_name, filepath, default)
-        else:
-            return None
+
+        return None
 
     def search_projects(self, query):
         client = self.get_client()
