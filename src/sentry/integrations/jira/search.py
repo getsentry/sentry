@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models import Integration
+from sentry.utils.compat import filter
+
+from .utils import build_user_choice
 
 
 class JiraSearchEndpoint(IntegrationEndpoint):
@@ -15,19 +18,6 @@ class JiraSearchEndpoint(IntegrationEndpoint):
         return Integration.objects.get(
             organizations=organization, id=integration_id, provider=self.provider
         )
-
-    def _get_formatted_user(self, id_field, user):
-        # The name field can be blank in jira-cloud, and the id_field varies by
-        # jira-cloud and jira-server
-        name = user.get("name", "")
-        email = user.get("emailAddress")
-
-        display = "%s %s%s" % (
-            user.get("displayName", name),
-            "- %s " % email if email else "",
-            "(%s)" % name if name else "",
-        )
-        return {"value": user[id_field], "label": display.strip()}
 
     def get(self, request, organization, integration_id):
         try:
@@ -66,12 +56,10 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             except (ApiUnauthorized, ApiError):
                 return Response({"detail": "Unable to fetch users from Jira"}, status=400)
 
-            user_id_field = jira_client.user_id_field()
-            users = [
-                self._get_formatted_user(user_id_field, user)
-                for user in response
-                if user_id_field in user
-            ]
+            user_tuples = filter(
+                None, [build_user_choice(user, jira_client.user_id_field()) for user in response]
+            )
+            users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
             return Response(users)
 
         # TODO(jess): handle other autocomplete urls

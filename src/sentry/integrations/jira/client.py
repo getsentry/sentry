@@ -58,11 +58,17 @@ class JiraCloud(object):
         """
         return "accountId"
 
-    def query_field(self):
+    def user_query_param(self):
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use query
         """
         return "query"
+
+    def user_id_get_param(self):
+        """
+        Jira-Cloud requires GDPR compliant API usage so we have to use accountId
+        """
+        return "accountId"
 
 
 class JiraApiClient(ApiClient):
@@ -78,6 +84,7 @@ class JiraApiClient(ApiClient):
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
+    USER_URL = "/rest/api/2/user"
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
@@ -116,11 +123,14 @@ class JiraApiClient(ApiClient):
         request_spec["headers"]["x-atlassian-force-account-id"] = "true"
         return self._request(**request_spec)
 
+    def user_id_get_param(self):
+        return self.jira_style.user_id_get_param()
+
     def user_id_field(self):
         return self.jira_style.user_id_field()
 
-    def query_field(self):
-        return self.jira_style.query_field()
+    def user_query_param(self):
+        return self.jira_style.user_query_param()
 
     def get_issue(self, issue_id):
         return self.get(self.ISSUE_URL % (issue_id,))
@@ -190,13 +200,17 @@ class JiraApiClient(ApiClient):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
         return self.get_cached(
-            self.USERS_URL, params={"project": project_key, self.query_field(): username}
+            self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
         )
 
     def search_users_for_issue(self, issue_key, email):
         return self.get_cached(
-            self.USERS_URL, params={"issueKey": issue_key, self.query_field(): email}
+            self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
+
+    def get_user(self, user_id):
+        user_id_get_param = self.user_id_get_param()
+        return self.get_cached(self.USER_URL, params={user_id_get_param: user_id})
 
     def create_issue(self, raw_form_data):
         data = {"fields": raw_form_data}
