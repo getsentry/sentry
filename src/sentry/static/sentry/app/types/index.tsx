@@ -1149,7 +1149,13 @@ type BaseRelease = {
   version: string;
   shortVersion: string;
   ref: string;
+  status: ReleaseStatus;
 };
+
+export enum ReleaseStatus {
+  Active = 'open',
+  Archived = 'archived',
+}
 
 export type ReleaseProject = {
   slug: string;

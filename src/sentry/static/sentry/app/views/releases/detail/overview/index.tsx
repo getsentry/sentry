@@ -7,12 +7,13 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {Organization, GlobalSelection} from 'app/types';
+import {Organization, GlobalSelection, ReleaseProject} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
+import {restoreRelease} from 'app/actionCreators/release';
 
 import ReleaseChart from './chart/';
 import Issues from './issues';
@@ -22,8 +23,10 @@ import OtherProjects from './otherProjects';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 import Deploys from './deploys';
 import ReleaseStatsRequest from './releaseStatsRequest';
+import ReleaseArchivedNotice from './releaseArchivedNotice';
 import {YAxis} from './chart/releaseChartControls';
 import {ReleaseContext} from '..';
+import {isReleaseArchived} from '../../utils';
 
 type RouteParams = {
   orgId: string;
@@ -55,6 +58,21 @@ class ReleaseOverview extends AsyncView<Props> {
     });
   };
 
+  handleRestore = async (project: ReleaseProject, successCallback: () => void) => {
+    const {params, organization} = this.props;
+
+    try {
+      await restoreRelease(new Client(), {
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        releaseVersion: params.release,
+      });
+      successCallback();
+    } catch {
+      // do nothing, action creator is already displaying error message
+    }
+  };
+
   getYAxis(hasHealthData: boolean): YAxis {
     const {yAxis} = this.props.location.query;
 
@@ -74,7 +92,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseMeta}) => {
+        {({release, project, deploys, releaseMeta, refetchData}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
@@ -95,6 +113,12 @@ class ReleaseOverview extends AsyncView<Props> {
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <StyledBody>
                   <Main>
+                    {isReleaseArchived(release) && (
+                      <ReleaseArchivedNotice
+                        onRestore={() => this.handleRestore(project, refetchData)}
+                      />
+                    )}
+
                     {(hasDiscover || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}

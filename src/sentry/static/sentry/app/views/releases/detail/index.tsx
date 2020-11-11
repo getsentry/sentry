@@ -35,6 +35,7 @@ type ReleaseContext = {
   project: Required<ReleaseProject>;
   deploys: Deploy[];
   releaseMeta: ReleaseMeta;
+  refetchData: () => void;
 };
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
@@ -144,9 +145,18 @@ class ReleasesDetail extends AsyncView<Props, State> {
             release={release}
             project={project}
             releaseMeta={releaseMeta}
+            refetchData={this.fetchData}
           />
           <Body>
-            <ReleaseContext.Provider value={{release, project, deploys, releaseMeta}}>
+            <ReleaseContext.Provider
+              value={{
+                release,
+                project,
+                deploys,
+                releaseMeta,
+                refetchData: this.fetchData,
+              }}
+            >
               {this.props.children}
             </ReleaseContext.Provider>
           </Body>
