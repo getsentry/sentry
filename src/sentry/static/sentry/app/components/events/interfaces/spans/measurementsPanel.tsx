@@ -51,14 +51,13 @@ class MeasurementsPanel extends React.PureComponent<Props> {
             names.includes(vital.slug)
           );
 
-          const failedThreshold =
-            records.find(record => {
-              const value = marks[record.slug];
-              if (typeof value === 'number') {
-                return value >= record.failureThreshold;
-              }
-              return false;
-            }) !== undefined;
+          const failedThreshold = records.some(record => {
+            const value = marks[record.slug];
+            if (typeof value === 'number') {
+              return value >= record.failureThreshold;
+            }
+            return false;
+          });
 
           const hoverMeasurementName = names.join('');
 
