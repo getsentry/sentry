@@ -92,7 +92,7 @@ class SnubaProtocolEventStream(EventStream):
         set_current_project(project.id)
         retention_days = quotas.get_event_retention(organization=project.organization)
 
-        event_data = event.get_raw_data()
+        event_data = event.get_raw_data(for_stream=True)
 
         unexpected_tags = set(
             [
