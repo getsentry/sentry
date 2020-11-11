@@ -221,8 +221,8 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         new_group.times_seen = 0
         new_group.save()
 
-        for model in GROUP_MODELS_TO_MIGRATE:
-            model.objects.filter(group_id=group_id).update(group_id=new_group.id)
+    for model in GROUP_MODELS_TO_MIGRATE:
+        model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 
     models.GroupRedirect.objects.create(
         organization_id=new_group.project.organization_id,
