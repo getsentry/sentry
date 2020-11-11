@@ -122,17 +122,6 @@ def patch_pickle_loaders():
 
         return original_pickle_dumps(*args, **kwargs)
 
-    def py3_compat_pickle_load(*args, **kwargs):
-        try:
-            return original_pickle_loads(*args, **kwargs)
-        except UnicodeDecodeError:
-            from sentry.utils import metrics
-
-            metrics.incr("pickle.compat_pickle_load.had_unicode_decode_error", sample_rate=1)
-
-            kwargs["encoding"] = kwargs.get("encoding", "latin-1")
-            return original_pickle_load(*args, **kwargs)
-
     def py3_compat_pickle_loads(*args, **kwargs):
         try:
             return original_pickle_loads(*args, **kwargs)
@@ -167,7 +156,6 @@ def patch_pickle_loaders():
     def py3_compat_kombu_pickle_loads(s, load=__py3_compat_kombu_pickle_load):
         return original_kombu_pickle_loads(s, load)
 
-    pickle.load = py3_compat_pickle_load
     pickle.loads = py3_compat_pickle_loads
     pickle.dumps = py3_compat_pickle_dumps
     kombu_serializer.pickle_loads = py3_compat_kombu_pickle_loads
