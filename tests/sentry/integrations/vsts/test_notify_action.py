@@ -66,5 +66,5 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
         assert data["fields"]["System.Title"] == "Hello"
         assert data["fields"]["System.Description"] == "Fix this."
 
-        external_issue = ExternalIssue.objects.get(key="309")
+        external_issue = ExternalIssue.objects.get(key="Fabrikam-Fiber-Git#309")
         assert external_issue
