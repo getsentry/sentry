@@ -6,6 +6,7 @@ import isNumber from 'lodash/isNumber';
 import {SentryTransactionEvent} from 'app/types';
 import {assert} from 'app/types/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 import {
   ParsedTraceType,
@@ -619,13 +620,33 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-type MeasurementMarks = {
+type Measurements = {
   [name: string]: number | undefined;
 };
 
+type VerticalMark = {
+  marks: Measurements;
+  failedThreshold: boolean;
+};
+
+function hasFailedThreshold(marks: Measurements): boolean {
+  const names = Object.keys(marks);
+  const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+    names.includes(vital.slug)
+  );
+
+  return records.some(record => {
+    const value = marks[record.slug];
+    if (typeof value === 'number') {
+      return value >= record.failureThreshold;
+    }
+    return false;
+  });
+}
+
 export function getMeasurements(
   event: SentryTransactionEvent
-): Map<number, MeasurementMarks> {
+): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }
@@ -642,23 +663,35 @@ export function getMeasurements(
       };
     });
 
-  const mergedMeasurements = new Map<number, MeasurementMarks>();
+  const mergedMeasurements = new Map<number, VerticalMark>();
 
   measurements.forEach(measurement => {
     const name = measurement.name.slice('mark.'.length);
     const value = measurement.value;
 
     if (mergedMeasurements.has(measurement.timestamp)) {
-      const marks = mergedMeasurements.get(measurement.timestamp) as MeasurementMarks;
-      mergedMeasurements.set(measurement.timestamp, {
-        ...marks,
+      const verticalMark = mergedMeasurements.get(measurement.timestamp) as VerticalMark;
+
+      verticalMark.marks = {
+        ...verticalMark.marks,
         [name]: value,
-      });
+      };
+
+      if (!verticalMark.failedThreshold) {
+        verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
+      }
+
+      mergedMeasurements.set(measurement.timestamp, verticalMark);
       return;
     }
 
-    mergedMeasurements.set(measurement.timestamp, {
+    const marks = {
       [name]: value,
+    };
+
+    mergedMeasurements.set(measurement.timestamp, {
+      marks,
+      failedThreshold: hasFailedThreshold(marks),
     });
   });
 

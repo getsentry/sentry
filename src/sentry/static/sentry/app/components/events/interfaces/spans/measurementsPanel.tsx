@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {SentryTransactionEvent} from 'app/types';
 import {defined} from 'app/utils';
 import {
-  WEB_VITAL_DETAILS,
   WEB_VITAL_ACRONYMS,
   LONG_WEB_VITAL_NAMES,
 } from 'app/views/performance/transactionVitals/constants';
@@ -37,7 +36,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
           width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
         }}
       >
-        {Array.from(measurements).map(([timestamp, marks]) => {
+        {Array.from(measurements).map(([timestamp, verticalMark]) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -46,18 +45,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
             return null;
           }
 
-          const names = Object.keys(marks);
-          const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
-            names.includes(vital.slug)
-          );
-
-          const failedThreshold = records.some(record => {
-            const value = marks[record.slug];
-            if (typeof value === 'number') {
-              return value >= record.failureThreshold;
-            }
-            return false;
-          });
+          const names = Object.keys(verticalMark.marks);
 
           const hoverMeasurementName = names.join('');
 
@@ -81,7 +69,7 @@ class MeasurementsPanel extends React.PureComponent<Props> {
                 return (
                   <LabelContainer
                     key={label}
-                    failedThreshold={failedThreshold}
+                    failedThreshold={verticalMark.failedThreshold}
                     label={label}
                     tooltipLabel={tooltipLabel}
                     left={toPercent(bounds.left || 0)}

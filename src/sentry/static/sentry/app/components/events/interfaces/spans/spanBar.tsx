@@ -11,7 +11,6 @@ import Tooltip from 'app/components/tooltip';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {IconChevron, IconWarning} from 'app/icons';
 import globalTheme from 'app/utils/theme';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 import {
   toPercent,
@@ -362,8 +361,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <React.Fragment>
-        {Array.from(measurements).map(([timestamp, marks]) => {
-          const names = Object.keys(marks);
+        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+          const names = Object.keys(verticalMark.marks);
 
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -372,18 +371,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
-
-          const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
-            names.includes(vital.slug)
-          );
-
-          const failedThreshold = records.some(record => {
-            const value = marks[record.slug];
-            if (typeof value === 'number') {
-              return value >= record.failureThreshold;
-            }
-            return false;
-          });
 
           const measurementName = names.join('');
 
@@ -395,7 +382,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                     style={{
                       left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                     }}
-                    failedThreshold={failedThreshold}
+                    failedThreshold={verticalMark.failedThreshold}
                     onMouseEnter={() => {
                       hoveringMeasurement(measurementName);
                     }}
