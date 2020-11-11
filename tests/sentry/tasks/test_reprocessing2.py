@@ -6,7 +6,8 @@ import uuid
 import six
 
 from sentry import eventstore
-from sentry.models import Group, GroupAssignee, Activity
+from sentry.attachments import attachment_cache
+from sentry.models import Group, GroupAssignee, Activity, EventAttachment, File, UserReport
 from sentry.event_manager import EventManager
 from sentry.eventstore.processing import event_processing_store
 from sentry.plugins.base.v2 import Plugin2
@@ -15,6 +16,7 @@ from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.cache import cache_key_for_event
 
 
 # pytestmark = pytest.mark.skip(reason="Deadlock on Travis")
@@ -180,7 +182,7 @@ def test_concurrent_events_go_into_new_group(
     assert event2.event_id != event.event_id
     assert event2.group_id != event.group_id
 
-    burst_reprocess()
+    burst_reprocess(max_jobs=100)
 
     event3 = eventstore.get_event_by_id(default_project.id, event_id)
     assert event3.event_id == event.event_id
@@ -227,3 +229,63 @@ def test_max_events(
         reprocess_group(default_project.id, event.group_id, max_events=0)
 
     assert is_group_finished(event.group_id)
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_attachments_and_userfeedback(
+    default_project,
+    reset_snuba,
+    register_event_preprocessor,
+    process_and_save,
+    burst_task_runner,
+    monkeypatch,
+):
+    @register_event_preprocessor
+    def event_preprocessor(data):
+        extra = data.setdefault("extra", {})
+        extra.setdefault("processing_counter", 0)
+        extra["processing_counter"] += 1
+
+        cache_key = cache_key_for_event(data)
+        attachments = attachment_cache.get(cache_key)
+        extra.setdefault("attachments", []).append([attachment.type for attachment in attachments])
+
+        return data
+
+    event_id = process_and_save({"message": "hello world"})
+    event = eventstore.get_event_by_id(default_project.id, event_id)
+
+    for type in ("event.attachment", "event.minidump"):
+        file = File.objects.create(name="foo", type=type)
+        file.putfile(six.BytesIO(b"hello world"))
+        EventAttachment.objects.create(
+            event_id=event_id,
+            group_id=event.group_id,
+            project_id=default_project.id,
+            file=file,
+            type=file.type,
+            name="foo",
+        )
+
+    UserReport.objects.create(
+        project_id=default_project.id, event_id=event_id, name="User",
+    )
+
+    with burst_task_runner() as burst:
+        reprocess_group(default_project.id, event.group_id)
+
+    burst(max_jobs=100)
+
+    new_event = eventstore.get_event_by_id(default_project.id, event_id)
+    assert new_event.group_id != event.group_id
+
+    assert new_event.data["extra"]["attachments"] == [["event.attachment", "event.minidump"]]
+
+    att, mdmp = EventAttachment.objects.filter(event_id=event_id).order_by("type")
+    assert att.group_id == mdmp.group_id == new_event.group_id
+    assert att.type == "event.attachment"
+    assert mdmp.type == "event.minidump"
+
+    (rep,) = UserReport.objects.filter(event_id=event_id)
+    assert rep.group_id == new_event.group_id
