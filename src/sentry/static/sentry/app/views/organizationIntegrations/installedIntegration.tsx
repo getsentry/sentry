@@ -230,7 +230,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const IntegrationFlex = styled('div')`
@@ -245,7 +245,7 @@ const IntegrationItemBox = styled('div')`
 const IntegrationStatus = styled(
   (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
     const {status, ...p} = props;
-    const color = status === 'active' ? theme.success : theme.gray500;
+    const color = status === 'active' ? theme.success : theme.gray300;
     const titleText =
       status === 'active'
         ? t('This Integration can be disabled by clicking the Uninstall button')
@@ -264,12 +264,12 @@ const IntegrationStatus = styled(
 )`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: light;
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
     font-weight: normal;
   }

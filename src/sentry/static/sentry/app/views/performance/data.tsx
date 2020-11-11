@@ -101,9 +101,6 @@ export function generatePerformanceEventView(
 ): EventView {
   const {query} = location;
 
-  const keyTransactionsFeature = organization.features.includes('key-transactions');
-  const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
-
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
@@ -111,7 +108,7 @@ export function generatePerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      ...keyTransactionFields,
+      'key_transaction',
       'transaction',
       'project',
       'tpm()',

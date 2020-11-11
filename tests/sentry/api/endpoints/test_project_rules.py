@@ -372,3 +372,45 @@ class CreateProjectRuleTest(APITestCase):
         assert json.loads(response.content) == {
             "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied."]
         }
+
+    def test_no_actions(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+
+        url = reverse(
+            "sentry-api-0-project-rules",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(
+            url,
+            data={
+                "name": "no action rule",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "conditions": conditions,
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"]
+        assert response.data["createdBy"] == {
+            "id": self.user.id,
+            "name": self.user.get_display_name(),
+            "email": self.user.email,
+        }
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == "no action rule"
+        assert rule.data["action_match"] == "any"
+        assert rule.data["filter_match"] == "any"
+        assert rule.data["actions"] == []
+        assert rule.data["conditions"] == conditions
+        assert rule.data["frequency"] == 30
+        assert rule.created_by == self.user
+
+        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()

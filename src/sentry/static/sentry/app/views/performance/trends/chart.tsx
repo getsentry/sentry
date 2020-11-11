@@ -110,13 +110,13 @@ function getIntervalLine(
 
   const periodLine = {
     data: [] as any[],
-    color: theme.gray700,
+    color: theme.gray500,
     markLine: {
       data: [] as any[],
       label: {} as any,
       lineStyle: {
         normal: {
-          color: theme.gray700,
+          color: theme.gray500,
           type: 'dashed',
           width: 1,
         },
@@ -175,7 +175,7 @@ function getIntervalLine(
     label: {show: false},
     lineStyle: {
       normal: {
-        color: theme.gray700,
+        color: theme.gray500,
         type: 'solid',
         width: 2,
       },
@@ -299,7 +299,7 @@ class Chart extends React.Component<Props> {
         min: Math.max(0, yMin - yMargin),
         max: yMax + yMargin,
         axisLabel: {
-          color: theme.gray400,
+          color: theme.gray200,
           // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },

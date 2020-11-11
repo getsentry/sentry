@@ -15,14 +15,18 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          # because we want to lint + fix + commit, we need to checkout the HEAD sha (otherwise
+          # it checks out the merge commit and we will not be able to commit to it)
+          ref: ${{ github.event.pull_request.head.ref || 'master' }}
 
       - name: Check for frontend file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
+          list-files: shell
           token: ${{ github.token }}
           filters: .github/file-filters.yml
-
 
       - uses: volta-cli/action@v1
         if: steps.changes.outputs.frontend == 'true'
@@ -55,11 +59,30 @@ jobs:
           echo "::add-matcher::.github/tsc.json"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      - name: eslint + fix
-        uses: getsentry/action-eslint-fix@v2
-        if: steps.changes.outputs.frontend == 'true'
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Lint entire frontend if this is on main branch
+      - name: eslint
+        if: github.ref == 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        run: |
+          # Run relax config on main branch (and stricter config for changed files)
+          yarn lint -c .eslintrc.relax.js
+          yarn lint:css
+
+      # Otherwise if it's not main branch, only lint modified files
+      - name: eslint (changed files only)
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        run: |
+          yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+
+      # Otherwise if it's not main branch, only lint modified files
+      - name: Commit any eslint fixed files
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions@sentry.io"
+          git add -A
+          git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
+          git push origin
 
       - name: tsc
         if: steps.changes.outputs.frontend == 'true'

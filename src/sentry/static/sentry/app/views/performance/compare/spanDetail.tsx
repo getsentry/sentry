@@ -288,7 +288,7 @@ const SpanBars = (props: {
         <SpanBarContainer>
           <SpanBarRectangle
             style={{
-              backgroundColor: theme.gray700,
+              backgroundColor: theme.gray500,
               width: generateCSSWidth(bounds.baseline),
               position: 'absolute',
               height: '16px',
@@ -296,7 +296,7 @@ const SpanBars = (props: {
           >
             <DurationPill
               durationDisplay={baselineDurationDisplay}
-              fontColors={{right: theme.gray700, inset: theme.white}}
+              fontColors={{right: theme.gray500, inset: theme.white}}
             >
               {getHumanDuration(getSpanDuration(baselineSpan))}
             </DurationPill>
@@ -315,7 +315,7 @@ const SpanBars = (props: {
           >
             <DurationPill
               durationDisplay={regressionDurationDisplay}
-              fontColors={{right: theme.gray700, inset: theme.gray700}}
+              fontColors={{right: theme.gray500, inset: theme.gray500}}
             >
               {getHumanDuration(getSpanDuration(regressionSpan))}
             </DurationPill>

@@ -1,0 +1,138 @@
+---
+created: '2020-11-08T21:03:06.179453Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "ca611011ce2c949c4371754b1754bba9"
+  component:
+    app*
+      exception*
+        stacktrace*
+          frame (non app frame)
+            filename*
+              "EventSystem.cs"
+            function*
+              "UnityEngine.EventSystems.EventSystem:Update()"
+            lineno (function takes precedence)
+              377
+          frame (non app frame)
+            filename*
+              "ExecuteEvents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"
+            lineno (function takes precedence)
+              261
+          frame (non app frame)
+            filename*
+              "ExecuteEvents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"
+            lineno (function takes precedence)
+              50
+          frame (non app frame)
+            filename*
+              "Button.cs"
+            function*
+              "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"
+            lineno (function takes precedence)
+              110
+          frame (non app frame)
+            filename*
+              "Button.cs"
+            function*
+              "UnityEngine.UI.Button.Press ()"
+            lineno (function takes precedence)
+              68
+          frame (non app frame)
+            filename*
+              "UnityEvent_0.cs"
+            function*
+              "UnityEngine.Events.UnityEvent.Invoke ()"
+            lineno (function takes precedence)
+              58
+          frame (non app frame)
+            filename*
+              "UnityEvent.cs"
+            function*
+              "UnityEngine.Events.InvokableCall.Invoke ()"
+            lineno (function takes precedence)
+              166
+          frame*
+            filename*
+              "SampleScript.cs"
+            function*
+              "SampleScript.ThrowNull ()"
+            lineno (function takes precedence)
+              123
+        type*
+          "NullReferenceException"
+        value (stacktrace and type take precedence)
+          "Object reference not set to an instance of an object"
+--------------------------------------------------------------------------
+system:
+  hash: "48fa46727e0f07477677a70d1e921f3f"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "EventSystem.cs"
+            function*
+              "UnityEngine.EventSystems.EventSystem:Update()"
+            lineno (function takes precedence)
+              377
+          frame*
+            filename*
+              "ExecuteEvents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute[T] (UnityEngine.GameObject target, UnityEngine.EventSystems.BaseEventData eventData, UnityEngine.EventSystems.ExecuteEvents+EventFunction`1[T1] functor)"
+            lineno (function takes precedence)
+              261
+          frame*
+            filename*
+              "ExecuteEvents.cs"
+            function*
+              "UnityEngine.EventSystems.ExecuteEvents.Execute (UnityEngine.EventSystems.IPointerClickHandler handler, UnityEngine.EventSystems.BaseEventData eventData)"
+            lineno (function takes precedence)
+              50
+          frame*
+            filename*
+              "Button.cs"
+            function*
+              "UnityEngine.UI.Button.OnPointerClick (UnityEngine.EventSystems.PointerEventData eventData)"
+            lineno (function takes precedence)
+              110
+          frame*
+            filename*
+              "Button.cs"
+            function*
+              "UnityEngine.UI.Button.Press ()"
+            lineno (function takes precedence)
+              68
+          frame*
+            filename*
+              "UnityEvent_0.cs"
+            function*
+              "UnityEngine.Events.UnityEvent.Invoke ()"
+            lineno (function takes precedence)
+              58
+          frame*
+            filename*
+              "UnityEvent.cs"
+            function*
+              "UnityEngine.Events.InvokableCall.Invoke ()"
+            lineno (function takes precedence)
+              166
+          frame*
+            filename*
+              "SampleScript.cs"
+            function*
+              "SampleScript.ThrowNull ()"
+            lineno (function takes precedence)
+              123
+        type*
+          "NullReferenceException"
+        value (stacktrace and type take precedence)
+          "Object reference not set to an instance of an object"

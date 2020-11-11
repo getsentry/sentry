@@ -102,9 +102,9 @@ const CrumbLink = styled(Link)`
     box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }
 
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.gray500};
   }
 `;
 
