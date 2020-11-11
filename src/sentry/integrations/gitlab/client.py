@@ -243,12 +243,13 @@ class GitLabApiClient(ApiClient):
         return self.get(path)
 
     @transaction_start("GitLabApiClient.check_file")
-    def check_file(self, project_id, path, ref):
+    def check_file(self, repo, path, ref):
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         """
         self.base_url = self.metadata["base_url"]
+        project_id = repo.config["project_id"]
         request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
         return self.head_cached(request_path, params={"ref": ref})

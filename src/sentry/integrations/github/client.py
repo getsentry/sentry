@@ -115,8 +115,9 @@ class GitHubClientMixin(ApiClient):
 
     @transaction_start("GitHubClientMixin.check_file")
     def check_file(self, repo, path, version):
+        repo_name = repo.name
         return self.head_cached(
-            path="/repos/{}/contents/{}".format(repo, path), params={"ref": version}
+            path="/repos/{}/contents/{}".format(repo_name, path), params={"ref": version}
         )
 
 

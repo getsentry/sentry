@@ -98,19 +98,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def search_issues(self, query):
         return self.get_client().search_issues(query)
 
-    def get_stacktrace_link(self, repo, filepath, version):
-        try:
-            self.get_client().check_file(repo.name, filepath, version)
-        except ApiError as e:
-            if e.code != 404:
-                raise
-            return None
-
+    def format_source_url(self, repo, filepath, branch):
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        web_url = u"https://github.com/{}/blob/{}/{}".format(repo.name, version, filepath)
-
-        return web_url
+        return u"https://github.com/{}/blob/{}/{}".format(repo.name, branch, filepath)
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()

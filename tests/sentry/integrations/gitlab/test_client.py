@@ -25,6 +25,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             "created_at": 1536798907,
             "scope": "api",
         }
+        self.repo = self.create_repo(name="Test-Org/foo", external_id=123)
         self.original_identity_data = dict(self.client.identity.data)
         self.gitlab_id = 123
 
@@ -137,7 +138,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             json={"text": 200},
         )
 
-        resp = self.client.check_file(self.gitlab_id, path, ref)
+        resp = self.client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 200
         assert resp.status_code == 200
 
@@ -153,5 +154,5 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             status=404,
         )
         with self.assertRaises(ApiError):
-            self.client.check_file(self.gitlab_id, path, ref)
+            self.client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
