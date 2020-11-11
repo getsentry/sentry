@@ -19,7 +19,7 @@ class RepositoryMixin(object):
     def check_file(self, repo, filepath, branch):
         """
         Calls the client's `check_file` method to see if the file exists.
-        Returns `True` if it does, and `False` if we 404.
+        Returns the link to the file if it's exists, otherwise return `None`.
 
         So far only GitHub and GitLab have this implemented, both of which
         give use back 404s. If for some reason an integration gives back
@@ -34,7 +34,7 @@ class RepositoryMixin(object):
         except ApiError as e:
             if e.code != 404:
                 raise
-            return False
+            return None
 
         return self.format_source_url(repo, filepath, branch)
 
@@ -44,7 +44,7 @@ class RepositoryMixin(object):
         request was successful.
 
         Uses the version first, and re-tries with the default branch if we 404
-        trying to use the version (commit sha)
+        trying to use the version (commit sha).
 
         If no file was found return `None`, and re-raise for non "Not Found" errors
 
@@ -56,7 +56,7 @@ class RepositoryMixin(object):
 
         source_url = self.check_file(repo, filepath, default)
 
-        return source_url if source_url else None
+        return source_url
 
     def get_repositories(self, query=None):
         """
