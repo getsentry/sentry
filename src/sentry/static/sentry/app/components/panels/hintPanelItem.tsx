@@ -6,7 +6,7 @@ const HintPanelItem = styled('div')`
   display: flex;
   padding: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   font-size: ${p => p.theme.fontSizeMedium};
 
   h2 {

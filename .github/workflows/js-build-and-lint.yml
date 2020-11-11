@@ -86,7 +86,6 @@ jobs:
 
       - name: tsc
         if: steps.changes.outputs.frontend == 'true'
-        continue-on-error: true
         run: |
           yarn tsc -p config/tsconfig.build.json
 

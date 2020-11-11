@@ -404,8 +404,13 @@ export type ExceptionEntry = {
   data: ExceptionType;
 };
 
+export type StacktraceEntry = {
+  type: 'stacktrace';
+  data: StacktraceType;
+};
+
 export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: ExceptionEntry[];
+  entries: ExceptionEntry[] | StacktraceEntry[];
   type: 'error';
 };
 
@@ -656,6 +661,7 @@ export type EnrolledAuthenticator = {
 };
 
 export interface Config {
+  theme: 'light' | 'dark';
   languageCode: string;
   csrfCookieName: string;
   features: Set<string>;
@@ -708,6 +714,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+type InboxDetails = {
+  date_added?: string;
+  reason?: number;
+  reason_details?: {
+    until?: string;
+    count?: number;
+    window?: number;
+    user_count?: number;
+    user_window?: number;
+  };
+};
+
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -752,6 +770,7 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
+  inbox?: InboxDetails;
 };
 
 export type GroupTombstone = {
@@ -1135,7 +1154,13 @@ type BaseRelease = {
   version: string;
   shortVersion: string;
   ref: string;
+  status: ReleaseStatus;
 };
+
+export enum ReleaseStatus {
+  Active = 'open',
+  Archived = 'archived',
+}
 
 export type ReleaseProject = {
   slug: string;
@@ -1395,7 +1420,7 @@ export type TagWithTopValues = {
   name: string;
   totalValues: number;
   uniqueValues: number;
-  canDelete: boolean;
+  canDelete?: boolean;
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
@@ -1625,10 +1650,20 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
+  frames: Frame[];
 };
 
 export type ExceptionType = {
   excOmitted: any | null;
   hasSystemFrames: boolean;
   values?: Array<ExceptionValue>;
+};
+
+/**
+ * Identity is used in Account Identities for SocialAuths
+ */
+export type Identity = {
+  id: string;
+  provider: IntegrationProvider;
+  providerLabel: string;
 };
