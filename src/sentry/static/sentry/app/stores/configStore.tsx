@@ -28,7 +28,10 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   set(key, value) {
-    this.config[key] = value;
+    this.config = {
+      ...this.config,
+      [key]: value,
+    };
     this.trigger({[key]: value});
   },
 
@@ -37,8 +40,11 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   loadInitialData(config): void {
-    config.features = new Set(config.features || []);
-    this.config = config;
+    this.config = {
+      ...config,
+      features: new Set(config.features || []),
+      theme: 'light', // TODO(dark): The next step is to have this for staff: config.user.isStaff && prefersDark() ? 'dark' : 'light',
+    };
 
     // Language code is passed from django
     let languageCode = config.languageCode;

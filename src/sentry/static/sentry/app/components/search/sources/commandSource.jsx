@@ -5,6 +5,7 @@ import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {openSudo, openHelpSearchModal} from 'app/actionCreators/modal';
 import {toggleLocaleDebug} from 'app/locale';
 import Access from 'app/components/acl/access';
+import ConfigStore from 'app/stores/configStore';
 
 const ACTIONS = [
   {
@@ -24,6 +25,14 @@ const ACTIONS = [
       openSudo({
         superuser: true,
       }),
+  },
+
+  {
+    title: 'Toggle dark mode',
+    description: 'Toggle dark mode (superuser only atm)',
+    requiresSuperuser: true,
+    action: () =>
+      ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark'),
   },
 
   {
