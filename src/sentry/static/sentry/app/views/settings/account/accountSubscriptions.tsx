@@ -132,7 +132,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                             </SubscribedDescription>
                           ) : (
                             <SubscribedDescription>
-                              Not currently subscribed
+                              {t('Not currently subscribed');}
                             </SubscribedDescription>
                           )}
                         </SubscriptionDetails>
