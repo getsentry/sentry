@@ -18,6 +18,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import Placeholder from 'app/components/placeholder';
 import PluginActions from 'app/components/group/pluginActions';
 import {IconGeneric} from 'app/icons';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
@@ -209,6 +210,14 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           </IssueSyncListElement>
         ))
       : null;
+  }
+
+  renderLoading() {
+    return (
+      <SidebarSection data-test-id="linked-issues" title={t('Linked Issues')}>
+        <Placeholder height="120px" />
+      </SidebarSection>
+    );
   }
 
   renderBody() {
