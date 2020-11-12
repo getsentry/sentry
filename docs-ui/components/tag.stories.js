@@ -4,7 +4,7 @@ import {select, text} from '@storybook/addon-knobs';
 
 import theme from 'app/utils/theme';
 import Tag from 'app/components/tag';
-import {IconFire} from 'app/icons';
+import {IconFire, IconWarning, IconClock, IconDelete, IconIssues} from 'app/icons';
 import {toTitleCase} from 'app/utils';
 
 export default {
@@ -25,9 +25,23 @@ export const Basic = () => (
 Basic.story = {name: 'basic'};
 
 export const WithIcon = () => (
-  <Tag icon={<IconFire />} type={select('type', types, 'error')}>
-    {text('children', 'Error')}
-  </Tag>
+  <div>
+    <Tag icon={<IconFire />} type={select('type', types, 'default')}>
+      {text('children', 'Error')}
+    </Tag>{' '}
+    <Tag icon={<IconWarning />} type={select('type', types, 'default')}>
+      {text('children', 'Error')}
+    </Tag>{' '}
+    <Tag icon={<IconClock />} type={select('type', types, 'default')}>
+      {text('children', 'Error')}
+    </Tag>{' '}
+    <Tag icon={<IconDelete />} type={select('type', types, 'default')}>
+      {text('children', 'Error')}
+    </Tag>{' '}
+    <Tag icon={<IconIssues />} type={select('type', types, 'default')}>
+      {text('children', 'Error')}
+    </Tag>
+  </div>
 );
 WithIcon.story = {name: 'with icon'};
 
