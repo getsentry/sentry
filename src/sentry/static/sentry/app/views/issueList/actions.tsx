@@ -802,14 +802,12 @@ const AssigneesLabel = styled('div')`
 
 const ReasonSpacerLabel = styled('div')`
   width: 80px;
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
+  margin: 0 ${space(0.25)} 0 ${space(1)};
 `;
 
 const TimesSpacerLabel = styled('div')`
-  width: 150px;
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
+  width: 130px;
+  margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 
 // New icons are misaligned inside bootstrap buttons.
