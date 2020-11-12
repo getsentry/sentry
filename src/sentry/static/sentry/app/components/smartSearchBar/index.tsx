@@ -1293,7 +1293,7 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.formPlaceholder};
   }
   &:focus {
     border-color: ${p => p.theme.border};
