@@ -1,0 +1,130 @@
+from __future__ import absolute_import, division, print_function
+
+import six
+
+
+from rest_framework.exceptions import ParseError, PermissionDenied
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
+from sentry.api.helpers.group_index import (
+    build_query_params_from_request,
+    rate_limit_endpoint,
+)
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
+from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.models import Group
+from sentry.utils.compat import map
+from sentry.api.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
+
+
+class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationEventPermission,)
+
+    @rate_limit_endpoint(limit=10, window=1)
+    def get(self, request, organization):
+        """
+        Get the stats on an Organization's Issues
+        `````````````````````````````
+        TODO(Chris F.): Write a better docstring
+        Return a list of issues (groups) with the requested stats.  All parameters are
+        supplied as query string parameters.
+
+        Accepts a list of group ids
+        Accepts a list of environments
+        Accepts a list `include` of strings, each string representing a requested stat
+        "i.e. "timerange_stats, lifetime_stats, filtered_stats"
+
+        The ``groupStatsPeriod`` parameter can be used to select the timeline
+        stats which should be present. Possible values are: '' (disable),
+        '24h', '14d'
+
+        The ``statsPeriod`` parameter can be used to select a date window starting
+        from now. Ex. ``14d``.
+
+        The ``start`` and ``end`` parameters can be used to select an absolute
+        date period to fetch issues from.
+
+        :qparam string statsPeriod: an optional stat period (can be one of
+                                    ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string groupStatsPeriod: an optional stat period (can be one of
+                                    ``"24h"``, ``"14d"``, and ``""``).
+        :qparam string start:       Beginning date. You must also provide ``end``.
+        :qparam string end:         End date. You must also provide ``start``.
+        """
+
+        stats_period = request.GET.get("groupStatsPeriod")
+        try:
+            start, end = get_date_range_from_params(request.GET)
+        except InvalidParams as e:
+            raise ParseError(detail=six.text_type(e))
+
+        expand = request.GET.getlist("expand", [])
+        collapse = request.GET.getlist("collapse", ["base"])
+        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
+        projects = self.get_projects(request, organization)
+        project_ids = [p.id for p in projects]
+
+        try:
+            group_ids = set(map(int, request.GET.getlist("groups")))
+        except ValueError:
+            return Response({"detail": "Group ids must be integers"}, status=400)
+
+        if not group_ids:
+            return Response(
+                {"detail": "You should include `groups` with your request. (i.e. groups=1,2,3)"},
+                status=400,
+            )
+        else:
+            # TODO(Chris F.): Is this neccessary?
+            groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
+            if not groups:
+                return Response({"detail": "No matching groups found"}, status=400)
+            elif len(groups) > 25:
+                return Response({"detail": "Too many groups requested."}, status=400)
+            elif any(g for g in groups if not request.access.has_project_access(g.project)):
+                raise PermissionDenied
+
+        if stats_period not in (None, "", "24h", "14d", "auto"):
+            return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
+        elif stats_period is None:
+            # default
+            stats_period = "24h"
+        elif stats_period == "":
+            # disable stats
+            stats_period = None
+
+        if stats_period == "auto":
+            stats_period_start = start
+            stats_period_end = end
+        else:
+            stats_period_start = None
+            stats_period_end = None
+
+        environments = self.get_environments(request, organization)
+        query_kwargs = build_query_params_from_request(
+            request, organization, projects, environments
+        )
+        context = serialize(
+            groups,
+            request.user,
+            StreamGroupSerializerSnuba(
+                environment_ids=[env.id for env in environments],
+                stats_period=stats_period,
+                stats_period_start=stats_period_start,
+                stats_period_end=stats_period_end,
+                collapse=collapse,
+                expand=expand,
+                has_inbox=has_inbox,
+                start=start,
+                end=end,
+                search_filters=query_kwargs["search_filters"]
+                if "search_filters" in query_kwargs
+                else None,
+            ),
+        )
+
+        response = Response(context)
+        return response

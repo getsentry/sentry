@@ -234,7 +234,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if search_filter.key.name == "status"
         ]
         if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
-            context = [r for r in context if r["status"] == "unresolved"]
+            context = [r for r in context if "status" not in r or r["status"] == "unresolved"]
 
         response = Response(context)
 
