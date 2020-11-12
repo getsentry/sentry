@@ -390,7 +390,7 @@ export const TableChartRowBar = styled(({width: _width, ...props}) => <div {...p
   bottom: 0;
   left: 0;
   right: ${p => 100 - p.width}%;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.backgroundSecondary};
   z-index: 1;
 `;
 

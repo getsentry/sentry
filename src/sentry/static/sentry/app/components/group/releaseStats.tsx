@@ -1,13 +1,13 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
+import Placeholder from 'app/components/placeholder';
 import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Environment, Group, Organization, Project} from 'app/types';
+
+import SidebarSection from './sidebarSection';
 
 type Props = {
   organization: Organization;
@@ -42,44 +42,44 @@ const GroupReleaseStats = ({
   const hasRelease = new Set(project.features).has('releases');
 
   return (
-    <div className="env-stats">
-      <h6>
-        <span data-test-id="env-label">{environmentLabel}</span>
-      </h6>
+    <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
+      {!group || !allEnvironments ? (
+        <Placeholder height="288px" />
+      ) : (
+        <React.Fragment>
+          <GroupReleaseChart
+            group={allEnvironments}
+            environment={environmentLabel}
+            environmentStats={group.stats}
+            release={group.currentRelease ? group.currentRelease.release : null}
+            releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+            statsPeriod="24h"
+            title={t('Last 24 Hours')}
+            firstSeen={group.firstSeen}
+            lastSeen={group.lastSeen}
+          />
+          <GroupReleaseChart
+            group={allEnvironments}
+            environment={environmentLabel}
+            environmentStats={group.stats}
+            release={group.currentRelease ? group.currentRelease.release : null}
+            releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+            statsPeriod="30d"
+            title={t('Last 30 Days')}
+            className="bar-chart-small"
+            firstSeen={group.firstSeen}
+            lastSeen={group.lastSeen}
+          />
 
-      <div className="env-content">
-        {!group || !allEnvironments ? (
-          <LoadingIndicator />
-        ) : (
-          <React.Fragment>
-            <GroupReleaseChart
-              group={allEnvironments}
-              environment={environmentLabel}
-              environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
-              statsPeriod="24h"
-              title={t('Last 24 Hours')}
-              firstSeen={group.firstSeen}
-              lastSeen={group.lastSeen}
-            />
-            <GroupReleaseChart
-              group={allEnvironments}
-              environment={environmentLabel}
-              environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
-              statsPeriod="30d"
-              title={t('Last 30 Days')}
-              className="bar-chart-small"
-              firstSeen={group.firstSeen}
-              lastSeen={group.lastSeen}
-            />
-
-            <Subheading>
-              <span>{t('Last seen')}</span>
-              {environments.length > 0 && <small>({environmentLabel})</small>}
-            </Subheading>
+          <SidebarSection
+            secondary
+            title={
+              <React.Fragment>
+                <span>{t('Last seen')}</span>
+                {environments.length > 0 && <small>({environmentLabel})</small>}
+              </React.Fragment>
+            }
+          >
             <SeenInfo
               orgSlug={orgSlug}
               projectId={projectId}
@@ -94,12 +94,17 @@ const GroupReleaseStats = ({
               release={group.lastRelease || null}
               title={t('Last seen')}
             />
+          </SidebarSection>
 
-            <Subheading>
-              <span>{t('First seen')}</span>
-              {environments.length > 0 && <small>({environmentLabel})</small>}
-            </Subheading>
-
+          <SidebarSection
+            secondary
+            title={
+              <React.Fragment>
+                <span>{t('First seen')}</span>
+                {environments.length > 0 && <small>({environmentLabel})</small>}
+              </React.Fragment>
+            }
+          >
             <SeenInfo
               orgSlug={orgSlug}
               projectId={projectId}
@@ -114,16 +119,11 @@ const GroupReleaseStats = ({
               release={group.firstRelease || null}
               title={t('First seen')}
             />
-          </React.Fragment>
-        )}
-      </div>
-    </div>
+          </SidebarSection>
+        </React.Fragment>
+      )}
+    </SidebarSection>
   );
 };
-
-const Subheading = styled('h6')`
-  margin-bottom: ${space(0.25)} !important;
-  margin-top: ${space(4)};
-`;
 
 export default React.memo(GroupReleaseStats);
