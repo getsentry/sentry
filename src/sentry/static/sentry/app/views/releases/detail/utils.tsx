@@ -1,9 +1,19 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {CommitFile, Commit, FilesByRepository, Repository} from 'app/types';
+import {
+  Commit,
+  CommitFile,
+  LightWeightOrganization,
+  FilesByRepository,
+  GlobalSelection,
+  Repository,
+} from 'app/types';
 import {t} from 'app/locale';
+import EventView from 'app/utils/discover/eventView';
+import {getUtcDateString} from 'app/utils/dates';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
@@ -85,4 +95,33 @@ export function getReposToRender(repos: Array<string>, activeRepository?: Reposi
     return repos;
   }
   return [activeRepository.name];
+}
+
+/**
+ * Get high level transaction information for this release
+ */
+export function getReleaseEventView(
+  selection: GlobalSelection,
+  version: string,
+  organization: LightWeightOrganization
+): EventView {
+  const {projects, environments, datetime} = selection;
+  const {start, end, period} = datetime;
+
+  const discoverQuery = {
+    id: undefined,
+    version: 2,
+    name: `${t('Release Apdex')}`,
+    fields: [`apdex(${organization.apdexThreshold})`],
+    query: stringifyQueryObject(
+      new QueryResults([`release:${version}`, 'event.type:transaction', 'count():>0'])
+    ),
+    range: period,
+    environment: environments,
+    projects,
+    start: start ? getUtcDateString(start) : undefined,
+    end: end ? getUtcDateString(end) : undefined,
+  } as const;
+
+  return EventView.fromSavedQuery(discoverQuery);
 }
