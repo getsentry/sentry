@@ -75,6 +75,8 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             )
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 if not monitor.mark_failed(last_checkin=checkin.date_added):
+                    if isinstance(request.auth, ProjectKey):
+                        return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)
             else:
                 monitor_params = {
@@ -86,5 +88,8 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 Monitor.objects.filter(id=monitor.id).exclude(
                     last_checkin__gt=checkin.date_added
                 ).update(**monitor_params)
+
+        if isinstance(request.auth, ProjectKey):
+            return self.respond(status=201)
 
         return self.respond(serialize(checkin, request.user), status=201)

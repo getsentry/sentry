@@ -21,6 +21,8 @@ class MonitorEndpoint(Endpoint):
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
+        # HACK: This doesn't work since we can't return a 400 from here,
+        # and actually just results in a 500.
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             return self.respond(status=400)
 

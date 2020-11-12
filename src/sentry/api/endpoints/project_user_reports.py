@@ -104,6 +104,9 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Conflict as e:
             return self.respond({"detail": six.text_type(e)}, status=409)
 
+        if isinstance(request.auth, ProjectKey):
+            return self.respond(status=200)
+
         return self.respond(
             serialize(
                 report_instance,

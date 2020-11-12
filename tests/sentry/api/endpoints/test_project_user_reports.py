@@ -227,6 +227,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
+        # DSN auth shouldn't return any data
+        assert not response.data
 
     def test_with_dsn_auth_invalid_project(self):
         project2 = self.create_project()

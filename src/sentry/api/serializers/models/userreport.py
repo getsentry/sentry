@@ -10,9 +10,15 @@ from sentry.utils.compat import zip
 @register(UserReport)
 class UserReportSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        queryset = list(EventUser.objects.filter(id__in=[i.event_user_id for i in item_list]))
+        event_user_ids = {i.event_user_id for i in item_list if i.event_user_id}
 
-        event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
+        # Avoid querying if there aren't any to actually query, it's possible
+        # for event_user_id to be None.
+        if event_user_ids:
+            queryset = list(EventUser.objects.filter(id__in=event_user_ids))
+            event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
+        else:
+            event_users = {}
 
         attrs = {}
         for item in item_list:
