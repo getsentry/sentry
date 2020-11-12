@@ -9,13 +9,20 @@ import ConfigStore from 'app/stores/configStore';
 import {IconQuestion} from 'app/icons';
 import space from 'app/styles/space';
 
-export default class AdminEnvironment extends AsyncView {
-  getEndpoints() {
-    return [['data', this.getEndpoint()]];
-  }
+type Data = {
+  environment: {
+    config: string;
+    start_date: string;
+  };
+  config: [key: string, value: string][];
+  pythonVersion: string;
+};
 
-  getEndpoint() {
-    return '/internal/environment/';
+type State = AsyncView['state'] & {data: Data};
+
+export default class AdminEnvironment extends AsyncView<{}, State> {
+  getEndpoints(): [string, string][] {
+    return [['data', '/internal/environment/']];
   }
 
   renderBody() {
