@@ -1,13 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {AvatarUser} from 'app/types';
+import {Actor, AvatarUser} from 'app/types';
 import {userDisplayName} from 'app/utils/formatters';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import SentryTypes from 'app/sentryTypes';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
-type RenderTooltipFunc = (user: AvatarUser) => React.ReactNode;
+type RenderTooltipFunc = (user: AvatarUser | Actor) => React.ReactNode;
 
 const defaultProps = {
   // Default gravatar to false in order to support transparent avatars
@@ -20,10 +20,14 @@ const defaultProps = {
 type DefaultProps = typeof defaultProps;
 
 type Props = {
-  user?: AvatarUser;
+  user?: Actor | AvatarUser;
   renderTooltip?: RenderTooltipFunc;
 } & Partial<DefaultProps> &
   Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
+
+function isActor(maybe: AvatarUser | Actor): maybe is Actor {
+  return typeof (maybe as AvatarUser).email === 'undefined';
+}
 
 class UserAvatar extends React.Component<Props> {
   static propTypes: any = {
@@ -35,7 +39,10 @@ class UserAvatar extends React.Component<Props> {
 
   static defaultProps = defaultProps;
 
-  getType = (user: AvatarUser, gravatar: boolean | undefined) => {
+  getType = (user: AvatarUser | Actor, gravatar: boolean | undefined) => {
+    if (isActor(user)) {
+      return 'letter_avatar';
+    }
     if (user.avatar) {
       return user.avatar.avatarType;
     }
@@ -63,17 +70,31 @@ class UserAvatar extends React.Component<Props> {
       tooltip = userDisplayName(user);
     }
 
+    const avatarData = isActor(user)
+      ? {
+          uploadId: '',
+          gravatarId: '',
+          letterId: user.name,
+          title: user.name,
+        }
+      : {
+          uploadId: user.avatar?.avatarUuid ?? '',
+          gravatarId: user.email?.toLowerCase(),
+          letterId: user.email || user.username || user.id || user.ip_address,
+          title: user.name || user.email || user.username || '',
+        };
+
     return (
       <BaseAvatar
         round
         {...props}
         type={type}
         uploadPath="avatar"
-        uploadId={user.avatar ? user.avatar.avatarUuid || '' : ''}
-        gravatarId={user && user.email && user.email.toLowerCase()}
-        letterId={user.email || user.username || user.id || user.ip_address}
+        uploadId={avatarData.uploadId}
+        gravatarId={avatarData.gravatarId}
+        letterId={avatarData.letterId}
+        title={avatarData.title}
         tooltip={tooltip}
-        title={user.name || user.email || user.username || ''}
       />
     );
   }

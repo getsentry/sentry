@@ -82,8 +82,11 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = User & {
+export type Actor = {
   type: 'user' | 'team';
+  id: string;
+  name: string;
+  email?: string;
 };
 
 /**

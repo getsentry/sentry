@@ -41,7 +41,7 @@ class ActorAvatar extends React.Component<Props> {
     const {actor, ...props} = this.props;
 
     if (actor.type === 'user') {
-      const user = actor.id ? MemberListStore.getById(actor.id) : actor;
+      const user = actor.id ? MemberListStore.getById(actor.id) ?? actor : actor;
       return <UserAvatar user={user} {...props} />;
     }
 

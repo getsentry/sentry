@@ -12,7 +12,7 @@ type AssignToUserParams = {
    * Issue id
    */
   id: string;
-  user: User;
+  user: User | Actor;
   member?: Member;
 };
 
