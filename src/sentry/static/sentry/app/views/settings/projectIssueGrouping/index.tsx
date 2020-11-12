@@ -269,7 +269,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
           <JsonForm
             {...jsonFormProps}
-            title={<React.Fragment>{t('Stacktrace Rules')}</React.Fragment>}
+            title={<React.Fragment>{t('Stack Trace Rules')}</React.Fragment>}
             fields={[fields.groupingEnhancements]}
           />
 
