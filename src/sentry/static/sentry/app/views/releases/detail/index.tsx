@@ -29,6 +29,7 @@ import Alert from 'app/components/alert';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
+import {getReleaseEventView} from './utils';
 
 type ReleaseContext = {
   release: ReleaseWithHealth;
@@ -127,6 +128,11 @@ class ReleasesDetail extends AsyncView<Props, State> {
     const {organization, location, selection, releaseMeta} = this.props;
     const {release, deploys, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
+    const releaseEventView = getReleaseEventView(
+      selection,
+      release?.version,
+      organization
+    );
 
     if (!project || !release) {
       if (reloading) {
@@ -141,7 +147,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
         <StyledPageContent>
           <ReleaseHeader
             location={location}
-            orgId={organization.slug}
+            organization={organization}
+            releaseEventView={releaseEventView}
             release={release}
             project={project}
             releaseMeta={releaseMeta}
