@@ -74,3 +74,21 @@ class IntegrationEventAction(EventAction):
 
     def get_form_instance(self):
         return self.form_cls(self.data, integrations=self.get_integrations())
+
+
+class TicketEventAction(IntegrationEventAction):
+    """Shared ticket actions"""
+
+    def generate_footer(self, rule_url):
+        raise NotImplementedError
+
+    def build_description(self, event, installation):
+        """
+        Format the description of the ticket/work item
+        """
+        rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
+            self.project.organization.slug, self.project.slug, self.rule.id
+        )
+        return installation.get_group_description(event.group, event) + self.generate_footer(
+            rule_url
+        )
