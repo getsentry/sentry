@@ -27,6 +27,14 @@ _org_slug_regexp = re.compile(r"^https?\://[^/]+/organizations/([^/]+)/")
 
 
 def unfurl_issues(integration, url_by_issue_id, event_id_by_url=None):
+    """
+    Returns a map of the attachments used in the response we send to Slack
+    for a particular issue by the URL of the yet-unfurled links a user included
+    in their Slack message.
+
+    url_by_issue_id: a map with URL as the value and the issue ID as the key
+    event_id_by_url: a map with the event ID in a URL as the value and the URL as the key
+    """
     group_by_id = {
         g.id: g
         for g in Group.objects.filter(
@@ -88,10 +96,11 @@ class SlackEventEndpoint(Endpoint):
 
     def _parse_url(self, link):
         """
-        Extracts event type and id from a url.
+        Extracts event type, issue id, and event id from a url.
         :param link: Url to parse to information from
-        :return: If successful, a tuple containing the event_type and id. If we
-        were unsuccessful at matching, a tuple containing two None values
+        :return: If successful, a tuple containing the event_type, issue id, and event id.
+        The event ID is optional and will be None if the link isn't to an event
+        If we were unsuccessful at matching, a tuple containing three None values
         """
         match = _link_regexp.match(link)
         if not match:
