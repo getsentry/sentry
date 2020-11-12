@@ -12,11 +12,11 @@ from sentry.db.models import FlexibleForeignKey, Model, JSONField
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
     "properties": {
-        "until": {"type": "string", "format": "date-time"},
-        "count": {"type": "integer"},
-        "window": {"type": "integer"},
-        "user_count": {"type": "integer"},
-        "user_window": {"type": "integer"},
+        "until": {"type": ["string", "null"], "format": "date-time"},
+        "count": {"type": ["integer", "null"]},
+        "window": {"type": ["integer", "null"]},
+        "user_count": {"type": ["integer", "null"]},
+        "user_window": {"type": ["integer", "null"]},
     },
     "required": [],
     "additionalProperties": False,
