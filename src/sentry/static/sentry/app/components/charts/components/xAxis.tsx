@@ -1,8 +1,8 @@
 import {EChartOption} from 'echarts';
 
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
+import {Theme} from 'app/utils/theme';
 import BaseChart from 'app/components/charts/baseChart';
-import theme from 'app/utils/theme';
 
 import {truncationFormatter, useShortInterval} from '../utils';
 
@@ -15,7 +15,7 @@ type HelperProps =
   | 'period'
   | 'utc';
 
-type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps>;
+type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps> & {theme: Theme};
 
 export default function XAxis({
   isGroupedByDate,
@@ -23,13 +23,14 @@ export default function XAxis({
   axisLabel,
   axisTick,
   axisLine,
+  theme,
 
   start,
   end,
   period,
   utc,
   ...props
-}: Props = {}): EChartOption.XAxis {
+}: Props): EChartOption.XAxis {
   const axisLabelFormatter = (value: string, index: number) => {
     if (isGroupedByDate) {
       const timeFormat = getTimeFormat();
@@ -50,13 +51,13 @@ export default function XAxis({
     boundaryGap: false,
     axisLine: {
       lineStyle: {
-        color: theme.gray200,
+        color: theme.chartLineColor,
       },
       ...(axisLine || {}),
     },
     axisTick: {
       lineStyle: {
-        color: theme.gray200,
+        color: theme.chartLineColor,
       },
       ...(axisTick || {}),
     },
