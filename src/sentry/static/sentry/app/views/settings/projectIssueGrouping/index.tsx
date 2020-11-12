@@ -261,6 +261,18 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             ProjectActions.updateSuccess(resp);
           }}
         >
+          <JsonForm
+            {...jsonFormProps}
+            title={<React.Fragment>{t('Fingerprint Rules')}</React.Fragment>}
+            fields={[fields.fingerprintingRules]}
+          />
+
+          <JsonForm
+            {...jsonFormProps}
+            title={<React.Fragment>{t('Stacktrace Rules')}</React.Fragment>}
+            fields={[fields.groupingEnhancements]}
+          />
+
           <Panel id="upgrade-grouping">
             <PanelHeader>{t('Upgrade Grouping')}</PanelHeader>
             <PanelBody>{this.renderUpgradeGrouping()}</PanelBody>
@@ -269,34 +281,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={<React.Fragment>{t('Change defaults')}</React.Fragment>}
-            fields={[
-              fields.groupingConfig,
-              fields.groupingEnhancementsBase,
-              // fields.groupingEnhancements,
-              // fields.fingerprintingRules,
-            ]}
-          />
-
-          <JsonForm
-            {...jsonFormProps}
-            title={<React.Fragment>{t('Stacktrace Rules')}</React.Fragment>}
-            fields={[
-              // fields.groupingConfig,
-              // fields.groupingEnhancementsBase,
-              fields.groupingEnhancements,
-              // fields.fingerprintingRules,
-            ]}
-          />
-
-          <JsonForm
-            {...jsonFormProps}
-            title={<React.Fragment>{t('Fingerprint Rules')}</React.Fragment>}
-            fields={[
-              // fields.groupingConfig,
-              // fields.groupingEnhancementsBase,
-              // fields.groupingEnhancements,
-              fields.fingerprintingRules,
-            ]}
+            fields={[fields.groupingConfig, fields.groupingEnhancementsBase]}
           />
         </Form>
       </React.Fragment>
