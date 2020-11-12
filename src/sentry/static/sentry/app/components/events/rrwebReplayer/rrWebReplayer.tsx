@@ -40,6 +40,7 @@ class RRWebReplayer extends React.Component<Props> {
       Sentry.captureException(err);
     }
   };
+
   render() {
     const {className} = this.props;
 
@@ -49,7 +50,7 @@ class RRWebReplayer extends React.Component<Props> {
       return <Panel>{content}</Panel>;
     }
 
-    return <div ref={this.wrapperRef} className={className} />;
+    return content;
   }
 }
 
