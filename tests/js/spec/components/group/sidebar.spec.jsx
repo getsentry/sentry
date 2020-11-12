@@ -85,7 +85,7 @@ describe('GroupSidebar', function () {
   });
 
   describe('renders without tags', function () {
-    beforeEach(function () {
+    beforeEach(async function () {
       group = TestStubs.Group();
 
       MockApiClient.addMockResponse({
@@ -108,10 +108,12 @@ describe('GroupSidebar', function () {
         />,
         routerContext
       );
+      await tick();
+      wrapper.update();
     });
 
     it('renders no tags', function () {
-      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(0);
+      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(0);
     });
 
     it('renders empty text', function () {
