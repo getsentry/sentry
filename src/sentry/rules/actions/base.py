@@ -81,6 +81,12 @@ class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
     def build_description(self, event, installation, newline=False, pipe=False):
+        """
+        Format the description of the ticket/work item
+        pass newline=True for Azure DevOps
+        pass pipe=True for Jira
+
+        """
         rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
             self.project.organization.slug, self.project.slug, self.rule.id
         )
