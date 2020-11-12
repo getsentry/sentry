@@ -4,7 +4,7 @@ import moment from 'moment';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {User} from 'app/types';
+import {AvatarUser, User} from 'app/types';
 import {IconShow} from 'app/icons';
 import {userDisplayName} from 'app/utils/formatters';
 import AvatarList from 'app/components/avatar/avatarList';
@@ -58,7 +58,7 @@ const SeenByList = ({
           <React.Fragment>
             {userDisplayName(user)}
             <br />
-            {moment(user.lastSeen).format('LL')}
+            {moment((user as AvatarUser).lastSeen).format('LL')}
           </React.Fragment>
         )}
       />
