@@ -284,6 +284,53 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 
+        assert build_group_attachment(group, event, link_to_event=True) == {
+            "color": "#E03E2F",
+            "text": "",
+            "actions": [
+                {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
+                {"text": "Ignore", "type": "button", "name": "status", "value": "ignored"},
+                {
+                    "option_groups": [
+                        {
+                            "text": "Teams",
+                            "options": [
+                                {
+                                    "text": u"#mariachi-band",
+                                    "value": u"team:" + six.text_type(self.team.id),
+                                }
+                            ],
+                        },
+                        {
+                            "text": "People",
+                            "options": [
+                                {
+                                    "text": u"foo@example.com",
+                                    "value": u"user:" + six.text_type(self.user.id),
+                                }
+                            ],
+                        },
+                    ],
+                    "text": "Select Assignee...",
+                    "selected_options": [None],
+                    "type": "select",
+                    "name": "assign",
+                },
+            ],
+            "mrkdwn_in": ["text"],
+            "title": event.title,
+            "fields": [],
+            "footer": u"BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
+            "ts": to_timestamp(ts),
+            "title_link": u"http://testserver/organizations/rowdy-tiger/issues/{}/events/{}/".format(
+                group.id, event.event_id
+            )
+            + "?referrer=slack",
+            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
+            "fallback": u"[{}] {}".format(self.project.slug, event.title),
+            "footer_icon": u"http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
+        }
+
     def test_build_group_attachment_color_no_event_error_fallback(self):
         group_with_no_events = self.create_group(project=self.project)
         assert build_group_attachment(group_with_no_events)["color"] == "#E03E2F"

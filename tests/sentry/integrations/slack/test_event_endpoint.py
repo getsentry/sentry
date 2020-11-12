@@ -8,6 +8,7 @@ from sentry.utils import json
 from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat import filter
 
 UNSET = object()
@@ -34,6 +35,10 @@ LINK_SHARED_EVENT = """{
         {
             "domain": "example.com",
             "url": "http://testserver/organizations/%(org1)s/issues/%(group1)s/bar/"
+        },
+        {
+            "domain": "example.com",
+            "url": "http://testserver/organizations/%(org1)s/issues/%(group3)s/events/%(event)s/"
         },
         {
             "domain": "example.com",
@@ -127,8 +132,13 @@ class LinkSharedEventTest(BaseEventTest):
         org2 = self.create_organization(name="biz")
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=org2)
+        min_ago = iso_format(before_now(minutes=1))
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
+        event = self.store_event(
+            data={"fingerprint": ["group3"], "timestamp": min_ago}, project_id=project1.id
+        )
+        group3 = event.group
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
@@ -140,9 +150,11 @@ class LinkSharedEventTest(BaseEventTest):
                 % {
                     "group1": group1.id,
                     "group2": group2.id,
+                    "group3": group3.id,
                     "incident": incident.identifier,
                     "org1": self.org.slug,
                     "org2": org2.slug,
+                    "event": event.event_id,
                 }
             )
         )
@@ -154,9 +166,16 @@ class LinkSharedEventTest(BaseEventTest):
             self.org.slug,
             incident.identifier,
         )
+        event_url = "http://testserver/organizations/%s/issues/%s/events/%s/" % (
+            self.org.slug,
+            group3.id,
+            event.event_id,
+        )
+
         assert unfurls == {
             issue_url: build_group_attachment(group1),
             incident_url: build_incident_attachment(incident),
+            event_url: build_group_attachment(group3, event=event, link_to_event=True),
         }
         assert data["token"] == "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
@@ -175,8 +194,13 @@ class LinkSharedEventTest(BaseEventTest):
         org2 = self.create_organization(name="biz")
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=org2)
+        min_ago = iso_format(before_now(minutes=1))
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
+        event = self.store_event(
+            data={"fingerprint": ["group3"], "timestamp": min_ago}, project_id=project1.id
+        )
+        group3 = event.group
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
@@ -188,9 +212,11 @@ class LinkSharedEventTest(BaseEventTest):
                 % {
                     "group1": group1.id,
                     "group2": group2.id,
+                    "group3": group3.id,
                     "incident": incident.identifier,
                     "org1": self.org.slug,
                     "org2": org2.slug,
+                    "event": event.event_id,
                 }
             )
         )

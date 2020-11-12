@@ -189,7 +189,9 @@ def build_upgrade_notice_attachment(group):
     }
 
 
-def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
+def build_group_attachment(
+    group, event=None, tags=None, identity=None, actions=None, rules=None, link_to_event=False
+):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
 
@@ -303,10 +305,15 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
             footer += u" (+{} other)".format(len(rules) - 1)
 
     obj = event if event is not None else group
+    if event and link_to_event:
+        title_link = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
+    else:
+        title_link = group.get_absolute_url(params={"referrer": "slack"})
+
     return {
         "fallback": u"[{}] {}".format(project.slug, obj.title),
         "title": build_attachment_title(obj),
-        "title_link": group.get_absolute_url(params={"referrer": "slack"}),
+        "title_link": title_link,
         "text": text,
         "fields": fields,
         "mrkdwn_in": ["text"],
