@@ -20,10 +20,9 @@ import withOrganization from 'app/utils/withOrganization';
 import {Activity, Group, Organization, User} from 'app/types';
 import {Client} from 'app/api';
 import {CreateError} from 'app/components/activity/note/types';
+import {DEFAULT_ERROR_JSON} from 'app/constants';
 
 import GroupActivityItem from './groupActivityItem';
-
-const DEFAULT_ERROR_JSON = {detail: t('Unknown error. Please try again.')};
 
 type Props = {
   api: Client;
