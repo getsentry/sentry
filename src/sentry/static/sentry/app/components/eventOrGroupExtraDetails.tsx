@@ -41,7 +41,11 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra>
-      {isUnhandled && hasInbox && <UnhandledTag />}
+      {isUnhandled && hasInbox && (
+        <TagWrapper>
+          <UnhandledTag />
+        </TagWrapper>
+      )}
       {shortId && (
         <GroupShortId
           shortId={shortId}
@@ -112,6 +116,12 @@ const GroupExtra = styled('div')`
 
   a {
     color: inherit;
+  }
+`;
+
+const TagWrapper = styled('div')`
+  & > div {
+    margin-right: 0;
   }
 `;
 
