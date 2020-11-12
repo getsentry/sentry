@@ -295,3 +295,5 @@ def test_attachments_and_userfeedback(
     (rep,) = UserReport.objects.filter(project_id=default_project.id)
     assert rep.group_id == new_event.group_id
     assert rep.event_id == event_id
+
+    assert is_group_finished(event.group_id)
