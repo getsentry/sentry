@@ -253,7 +253,7 @@ export default class DetailsBody extends React.Component<Props> {
 
                 <SeenByTab>
                   {incident && (
-                    <StyledSeenByList
+                    <SeenByList
                       iconPosition="right"
                       seenBy={incident.seenBy}
                       iconTooltip={t('People who have viewed this alert')}
@@ -397,10 +397,6 @@ const SeenByTab = styled('li')`
   .nav-tabs > & {
     margin-right: 0;
   }
-`;
-
-const StyledSeenByList = styled(SeenByList)`
-  margin-top: 0;
 `;
 
 const RuleDetails = styled('div')`

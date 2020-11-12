@@ -73,7 +73,6 @@ const SeenByList = ({
 
 const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   display: flex;
-  margin-top: 15px;
   float: right;
   ${p => (p.iconPosition === 'left' ? 'flex-direction: row-reverse' : '')};
 `;

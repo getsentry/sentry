@@ -76,7 +76,7 @@ class LinkedIssue extends AsyncComponent<
                 avatar={<ProjectBadge project={group.project} avatarSize={16} hideName />}
               />
             </StyledLink>
-            <StyledSeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
+            <SeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
           </IssueCardHeader>
           <IssueCardBody>
             <GroupChart statsPeriod="30d" data={group} height={56} />
@@ -113,10 +113,6 @@ const StyledLink = styled(Link)`
 const IssueCardBody = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   padding-top: ${space(1)};
-`;
-
-const StyledSeenByList = styled(SeenByList)`
-  margin: 0;
 `;
 
 const StyledShortId = styled(ShortId)`
