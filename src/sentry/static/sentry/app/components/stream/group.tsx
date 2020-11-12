@@ -31,7 +31,7 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import Times from 'app/components/group/timesBadge';
+import TimesBadge from 'app/components/group/timesBadge';
 import InboxReason from 'app/components/group/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
@@ -395,16 +395,20 @@ class StreamGroup extends React.Component<Props, State> {
         {hasInbox && (
           <React.Fragment>
             {inboxTabActive && (
-              <Box width={80} mx={2} className="hidden-xs hidden-sm">
-                <InboxReason data={data} />
-              </Box>
+              <ReasonBox width={80} mx={2} className="hidden-xs hidden-sm">
+                <BadgeWrapper>
+                  <InboxReason data={data} />
+                </BadgeWrapper>
+              </ReasonBox>
             )}
-            <Box width={150} mx={2} className="hidden-xs hidden-sm">
-              <StyledTimes
-                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-              />
-            </Box>
+            <TimesBox width={130} mx={2} className="hidden-xs hidden-sm">
+              <BadgeWrapper>
+                <TimesBadge
+                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+                />
+              </BadgeWrapper>
+            </TimesBox>
           </React.Fragment>
         )}
       </Wrapper>
@@ -420,6 +424,14 @@ const Wrapper = styled(PanelItem)`
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
+`;
+
+const ReasonBox = styled(Box)`
+  margin: 0 ${space(0.25)} 0 ${space(1)};
+`;
+
+const TimesBox = styled(Box)`
+  margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 
 const GroupCheckbox = styled(Box)`
@@ -486,8 +498,9 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const StyledTimes = styled(Times)`
-  margin-right: 0;
+const BadgeWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
