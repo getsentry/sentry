@@ -84,7 +84,9 @@ export const fields: Record<string, Field> = {
     type: 'string',
     // label: t('Stacktrace Rules'),
     label: null,
-    placeholder: t('function:raise_an_exception ^-group\nfunction:namespace::* +app'),
+    placeholder: t(
+      'stack.function:raise_an_exception ^-group\nstack.function:namespace::* +app'
+    ),
     multiline: true,
     monospace: true,
     autosize: true,
