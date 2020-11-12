@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 const Heading = styled('h5')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:after {
@@ -24,7 +24,7 @@ const Subheading = styled('h6')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;
 
 type Props = {
@@ -33,6 +33,9 @@ type Props = {
   secondary?: boolean;
 } & Omit<React.HTMLProps<HTMLHeadingElement>, 'title'>;
 
+/**
+ * Used to add a new section in Issue Details's sidebar.
+ */
 function SidebarSection({title, children, secondary, ...props}: Props) {
   const HeaderComponent = secondary ? Subheading : Heading;
 
