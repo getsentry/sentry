@@ -438,11 +438,6 @@ class EventManager(object):
                 group=job["group"], environment=job["environment"]
             )
 
-            if is_reprocessed_event:
-                EventAttachment.objects.filter(
-                    project_id=project.id, event_id=job["event"].event_id
-                ).update(group_id=job["group"].id)
-
         with metrics.timer("event_manager.filter_attachments_for_group"):
             attachments = filter_attachments_for_group(attachments, job)
 

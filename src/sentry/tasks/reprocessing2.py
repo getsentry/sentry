@@ -139,9 +139,12 @@ def wait_group_reprocessed(project_id, group_id):
     soft_time_limit=60 * 5,
 )
 def delete_old_group(project_id, group_id):
+    from sentry import similarity
     from sentry.models.group import Group
 
     group = Group.objects.get_from_cache(id=group_id)
+
+    similarity.delete(None, group)
 
     # All the associated models (groupassignee and eventattachments) should
     # have moved to a successor group that may be deleted independently.
