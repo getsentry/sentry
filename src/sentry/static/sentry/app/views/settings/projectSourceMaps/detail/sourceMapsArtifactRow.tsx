@@ -40,7 +40,7 @@ const SourceMapsArtifactRow = ({
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
           <TimeWrapper>
-            <IconClock size="xs" />
+            <IconClock size="sm" />
             <TimeSince date={dateCreated} />
           </TimeWrapper>
           <StyledTag
@@ -134,7 +134,8 @@ const TimeWrapper = styled('div')`
   display: grid;
   grid-gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
+  align-items: center;
   color: ${p => p.theme.gray400};
 `;
 

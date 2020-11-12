@@ -89,6 +89,7 @@ default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # 
 default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
+default_manager.add("organizations:release-performance-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA

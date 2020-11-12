@@ -294,6 +294,12 @@ function generateAdditionalConditions(
           ? String(value)
           : String(value).trim();
 
+      if (isMeasurement(column.field) && !nextValue) {
+        // Do not add measurement conditions if nextValue is falsey.
+        // It's expected that nextValue is a numeric value.
+        return;
+      }
+
       switch (column.field) {
         case 'timestamp':
           // normalize the "timestamp" field to ensure the payload works

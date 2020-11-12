@@ -105,9 +105,23 @@ def patch_pickle_loaders():
     kombu_serializer.pickle_protocol = 2
 
     original_pickle_load = pickle.load
+    original_pickle_dump = pickle.dump
     original_pickle_loads = pickle.loads
     original_pickle_dumps = pickle.dumps
     original_kombu_pickle_loads = kombu_serializer.pickle_loads
+
+    def py3_compat_pickle_dump(*args, **kwargs):
+        # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
+        # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
+        # to _pickle.
+        if len(args) == 1:
+            kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
+        else:
+            largs = list(args)
+            largs[1] = pickle.DEFAULT_PROTOCOL
+            args = tuple(largs)
+
+        return original_pickle_dump(*args, **kwargs)
 
     def py3_compat_pickle_dumps(*args, **kwargs):
         # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
@@ -121,6 +135,17 @@ def patch_pickle_loaders():
             args = tuple(largs)
 
         return original_pickle_dumps(*args, **kwargs)
+
+    def py3_compat_pickle_load(*args, **kwargs):
+        try:
+            return original_pickle_load(*args, **kwargs)
+        except UnicodeDecodeError:
+            from sentry.utils import metrics
+
+            metrics.incr("pickle.compat_pickle_load.had_unicode_decode_error", sample_rate=1)
+
+            kwargs["encoding"] = kwargs.get("encoding", "latin-1")
+            return original_pickle_load(*args, **kwargs)
 
     def py3_compat_pickle_loads(*args, **kwargs):
         try:
@@ -156,6 +181,8 @@ def patch_pickle_loaders():
     def py3_compat_kombu_pickle_loads(s, load=__py3_compat_kombu_pickle_load):
         return original_kombu_pickle_loads(s, load)
 
+    pickle.load = py3_compat_pickle_load
+    pickle.dump = py3_compat_pickle_dump
     pickle.loads = py3_compat_pickle_loads
     pickle.dumps = py3_compat_pickle_dumps
     kombu_serializer.pickle_loads = py3_compat_kombu_pickle_loads
