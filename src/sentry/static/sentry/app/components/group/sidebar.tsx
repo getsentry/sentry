@@ -15,7 +15,9 @@ import GroupReleaseStats from 'app/components/group/releaseStats';
 import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
+import Placeholder from 'app/components/placeholder';
 import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {
   Event,
@@ -52,65 +54,68 @@ class GroupSidebar extends React.Component<Props, State> {
     environments: this.props.environments,
   };
 
-  componentDidMount() {
+  async componentDidMount() {
     const {group, api} = this.props;
 
-    api.request(`/issues/${group.id}/participants/`, {
-      success: data => {
-        this.setState({
-          participants: data,
-          error: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
-
-    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
-    // The charts rely on having all environment data as well as the data for the selected env
-    this.props.api.request(`/issues/${group.id}/`, {
-      success: data => {
-        this.setState({
-          allEnvironmentsGroupData: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
-
+    this.fetchParticipants();
     this.fetchTagData();
+
+    try {
+      const allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`);
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({
+        allEnvironmentsGroupData,
+      });
+    } catch {
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({
+        error: true,
+      });
+    }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (!isEqual(nextProps.environments, this.props.environments)) {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
     }
   }
 
-  fetchTagData() {
+  async fetchParticipants() {
+    const {group, api} = this.props;
+
+    try {
+      const participants = await api.requestPromise(`/issues/${group.id}/participants/`);
+      this.setState({
+        participants,
+        error: false,
+      });
+      return participants;
+    } catch {
+      this.setState({
+        error: true,
+      });
+      return [];
+    }
+  }
+
+  async fetchTagData() {
     const {api, group} = this.props;
 
-    // Fetch the top values for the current group's top tags.
-    api.request(`/issues/${group.id}/tags/`, {
-      query: pickBy({
-        key: group.tags.map(data => data.key),
-        environment: this.state.environments.map(env => env.name),
-      }),
-      success: data => {
-        this.setState({tagsWithTopValues: keyBy(data, 'key')});
-      },
-      error: () => {
-        this.setState({
-          error: true,
-        });
-      },
-    });
+    try {
+      // Fetch the top values for the current group's top tags.
+      const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
+        query: pickBy({
+          key: group.tags.map(tag => tag.key),
+          environment: this.state.environments.map(env => env.name),
+        }),
+      });
+      this.setState({tagsWithTopValues: keyBy(data, 'key')});
+    } catch {
+      this.setState({
+        tagsWithTopValues: {},
+        error: true,
+      });
+    }
   }
 
   toggleSubscription() {
@@ -134,20 +139,9 @@ class GroupSidebar extends React.Component<Props, State> {
         },
       },
       {
-        complete: () => {
-          api.request(`/issues/${group.id}/participants/`, {
-            success: data => {
-              this.setState({
-                participants: data,
-                error: false,
-              });
-              clearIndicators();
-            },
-            error: () => {
-              this.setState({error: true});
-              clearIndicators();
-            },
-          });
+        complete: async () => {
+          await this.fetchParticipants();
+          clearIndicators();
         },
       }
     );
@@ -160,21 +154,23 @@ class GroupSidebar extends React.Component<Props, State> {
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
-          <dl key={plugin.slug}>
-            <dt>{`${plugin.shortName || plugin.name || plugin.title}: `}</dt>
-            <dd>
-              <a href={issue.url}>
-                {isObject(issue.label) ? issue.label.id : issue.label}
-              </a>
-            </dd>
-          </dl>
+          <React.Fragment key={plugin.slug}>
+            <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
+            <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
+          </React.Fragment>
         );
       }
     });
-    if (issues.length) {
-      return <SidebarSection title={t('External Issues')}>{issues}</SidebarSection>;
+
+    if (!issues.length) {
+      return null;
     }
-    return null;
+
+    return (
+      <SidebarSection title={t('External Issues')}>
+        <ExternalIssues>{issues}</ExternalIssues>
+      </SidebarSection>
+    );
   }
 
   renderParticipantData() {
@@ -223,7 +219,14 @@ class GroupSidebar extends React.Component<Props, State> {
             </GuideAnchor>
           }
         >
-          {tagsWithTopValues &&
+          {!tagsWithTopValues ? (
+            <TagPlaceholders>
+              <Placeholder height="40px" />
+              <Placeholder height="40px" />
+              <Placeholder height="40px" />
+              <Placeholder height="40px" />
+            </TagPlaceholders>
+          ) : (
             group.tags.map(tag => {
               const tagWithTopValues = tagsWithTopValues[tag.key];
               const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
@@ -236,13 +239,13 @@ class GroupSidebar extends React.Component<Props, State> {
                   totalValues={topValuesTotal}
                   topValues={topValues}
                   name={tag.name}
-                  data-test-id="group-tag"
                   organization={organization}
                   projectId={projectId}
                   group={group}
                 />
               );
-            })}
+            })
+          )}
           {group.tags.length === 0 && (
             <p data-test-id="no-tags">
               {environments.length
@@ -258,8 +261,20 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 }
 
+const TagPlaceholders = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-auto-flow: row;
+`;
+
 const StyledGroupSidebar = styled(GroupSidebar)`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const ExternalIssues = styled('div')`
+  display: grid;
+  grid-template-columns: auto max-content;
+  gap: ${space(2)};
 `;
 
 export default withApi(StyledGroupSidebar);
