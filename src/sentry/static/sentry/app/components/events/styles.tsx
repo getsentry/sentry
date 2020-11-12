@@ -19,7 +19,7 @@ export const DataSection = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(3)} ${space(4)} 0 40px;
+    padding: ${space(2)} ${space(4)} 0 ${space(4)};
   }
 `;
 
@@ -47,7 +47,7 @@ export const BannerContainer = styled('div')<BannerProps>`
 export const BannerSummary = styled('p')`
   display: flex;
   align-items: flex-start;
-  padding: ${space(2)} ${space(4)} ${space(2)} 40px;
+  padding: ${space(2)} ${space(4)};
   margin-bottom: 0;
 
   /* Get icons in top right of content box */

@@ -82,55 +82,49 @@ class GroupEventToolbar extends React.Component {
   }
 
   render() {
-    const evt = this.props.event;
-
-    const {orgId, location} = this.props;
-    const groupId = this.props.group.id;
+    const {className, event, group, orgId, location} = this.props;
+    const groupId = group.id;
 
     const baseEventsPath = `/organizations/${orgId}/issues/${groupId}/events/`;
 
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
-    const jsonUrl = `/organizations/${orgId}/issues/${groupId}/events/${evt.id}/json/`;
-    const style = {
-      borderBottom: '1px dotted #dfe3ea',
-    };
+    const jsonUrl = `/organizations/${orgId}/issues/${groupId}/events/${event.id}/json/`;
 
     const latencyThreshold = 30 * 60 * 1000; // 30 minutes
     const isOverLatencyThreshold =
-      evt.dateReceived &&
-      Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
+      event.dateReceived &&
+      Math.abs(+moment(event.dateReceived) - +moment(event.dateCreated)) >
+        latencyThreshold;
 
     return (
-      <div className="event-toolbar">
+      <div className={className}>
         <StyledNavigationButtonGroup
           location={location}
-          hasPrevious={evt.previousEventID}
-          hasNext={evt.nextEventID}
+          hasPrevious={event.previousEventID}
+          hasNext={event.nextEventID}
           urls={[
             `${baseEventsPath}oldest/`,
-            `${baseEventsPath}${evt.previousEventID}/`,
-            `${baseEventsPath}${evt.nextEventID}/`,
+            `${baseEventsPath}${event.previousEventID}/`,
+            `${baseEventsPath}${event.nextEventID}/`,
             `${baseEventsPath}latest/`,
           ]}
         />
-        <h4>
+        <EventHeading>
           {t('Event')}{' '}
-          <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
-            {evt.eventID}
-          </Link>
-        </h4>
+          <EventLink to={`${baseEventsPath}${event.id}/`}>{event.eventID}</EventLink>
+        </EventHeading>
+
         <span>
           <Tooltip title={this.getDateTooltip()} disableForVisualTest>
-            <DateTime
-              date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
-              style={style}
+            <EventDateTime
+              date={getDynamicText({value: event.dateCreated, fixed: 'Dummy timestamp'})}
             />
             {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
           </Tooltip>
-          <ExternalLink href={jsonUrl} className="json-link">
-            {'JSON'} (<FileSize bytes={evt.size} />)
-          </ExternalLink>
+          <JsonLink href={jsonUrl}>
+            {'JSON'} (<FileSize bytes={event.size} />)
+          </JsonLink>
         </span>
       </div>
     );
@@ -147,4 +141,44 @@ const StyledIconWarning = styled(IconWarning)`
   top: ${space(0.25)};
 `;
 
-export default GroupEventToolbar;
+const EventHeading = styled('h4')`
+  line-height: 1.3;
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const EventLink = styled(Link)`
+  font-weight: normal;
+`;
+
+const JsonLink = styled(ExternalLink)`
+  margin-left: ${space(1)};
+  padding-left: ${space(1)};
+  position: relative;
+
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 2px;
+    height: 14px;
+    border-left: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
+
+const EventDateTime = styled(DateTime)`
+  color: ${p => p.theme.subText};
+  border-bottom: 1px dotted ${p => p.theme.innerBorder};
+`;
+
+const StyledGroupEventToolbar = styled(GroupEventToolbar)`
+  position: relative;
+  padding: ${space(2)} ${space(4)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+export default StyledGroupEventToolbar;

@@ -77,7 +77,7 @@ class EventDataSection extends React.Component<Props> {
     const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
     return (
-      <DataSection className={className || ''}>
+      <DataSection className={className}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
             <Title>

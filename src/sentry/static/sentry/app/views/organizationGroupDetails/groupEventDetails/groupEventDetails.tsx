@@ -250,6 +250,11 @@ class GroupEventDetails extends React.Component<Props, State> {
 const Side = styled(Layout.Side)`
   border-left: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(4)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    border-left: none;
+    padding: );
+  }
 `;
 
-export default styled(GroupEventDetails)``;
+export default GroupEventDetails;

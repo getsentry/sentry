@@ -16,7 +16,8 @@ type Props = DefaultProps & {
   timeAndDate?: boolean;
   utc?: boolean;
   format?: string;
-};
+  className?: string;
+} & React.HTMLProps<HTMLTimeElement>;
 
 class DateTime extends React.Component<Props> {
   static propTypes = {
@@ -82,6 +83,7 @@ class DateTime extends React.Component<Props> {
     const {
       date,
       utc,
+      className,
       seconds: _seconds,
       shortDate: _shortDate,
       dateOnly: _dateOnly,
@@ -94,7 +96,7 @@ class DateTime extends React.Component<Props> {
     const format = this.getFormat(options);
 
     return (
-      <time {...carriedProps}>
+      <time className={className} {...carriedProps}>
         {utc
           ? moment.utc(date).format(format)
           : moment.tz(date, options?.timezone ?? '').format(format)}

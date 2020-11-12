@@ -38,7 +38,7 @@ class ContextSummary extends React.Component {
   };
 
   render() {
-    const evt = this.props.event;
+    const {className, event: evt} = this.props;
     let contextCount = 0;
 
     // Add defined contexts in the declared order, until we reach the limit
@@ -84,13 +84,11 @@ class ContextSummary extends React.Component {
       );
     }
 
-    return <Wrapper className="context-summary">{contexts}</Wrapper>;
+    return <div className={className}>{contexts}</div>;
   }
 }
 
-export default ContextSummary;
-
-const Wrapper = styled('div')`
+const StyledContextSummary = styled(ContextSummary)`
   border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -98,6 +96,20 @@ const Wrapper = styled('div')`
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, auto);
     grid-gap: ${space(4)};
-    padding: 25px ${space(4)} 25px 40px;
+    padding: ${space(2)} ${space(4)};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+    margin-top: 0;
+    padding: 0;
+
+    .context-item {
+      .context-item-icon {
+        top: 9px;
+      }
+    }
   }
 `;
+
+export default StyledContextSummary;

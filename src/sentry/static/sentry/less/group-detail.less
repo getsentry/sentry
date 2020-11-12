@@ -66,192 +66,190 @@
 * ============================================================================
 */
 
-.context-summary {
-  .context-item {
+.context-item {
+  .context-item-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 48px;
+    height: 48px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url(../images/logos/context/unknown.svg);
+    background-size: 48px 48px;
+  }
+
+  &:first-child {
+    border: 0;
+  }
+
+  h3,
+  p {
+    margin: 0 0 4px;
+  }
+
+  h3 {
+    .truncate;
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  p {
+    font-size: 13px;
+    line-height: 1.4;
+
+    &:last-child {
+      margin: 0;
+    }
+  }
+
+  &.arm .context-item-icon {
+    background-image: url(../images/logos/context/arm.png);
+    background-size: contain;
+  }
+
+  &.amd .context-item-icon,
+  &[class*='amd-'] .context-item-icon {
+    background-image: url(../images/logos/context/amd.png);
+    background-size: contain;
+  }
+
+  &.nvidia .context-item-icon,
+  &[class*='nvidia-'] .context-item-icon {
+    background-image: url(../images/logos/context/nvidia.png);
+    background-size: contain;
+  }
+
+  &.electron .context-item-icon {
+    background-image: url(../images/logos/context/electron.png);
+  }
+
+  &.crystal .context-item-icon {
+    background-image: url(../images/logos/context/crystal.svg);
+  }
+
+  &.net-framework .context-item-icon {
+    background-image: url(../images/logos/context/netframework.svg);
+  }
+
+  &.net-core .context-item-icon {
+    background-image: url(../images/logos/context/netcore.svg);
+  }
+
+  &.mono .context-item-icon {
+    background-image: url(../images/logos/context/mono-gorilla.svg);
+  }
+
+  &.php .context-item-icon {
+    background-image: url(../images/logos/context/php.svg);
+  }
+
+  &.ipad .context-item-icon {
+    background-image: url(../images/logos/context/ipad.svg);
+  }
+
+  &.ipod,
+  &.iphone {
     .context-item-icon {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 48px;
-      height: 48px;
-      background-repeat: no-repeat;
-      background-position: center;
-      background-image: url(../images/logos/context/unknown.svg);
-      background-size: 48px 48px;
+      background-image: url(../images/logos/context/iphone.svg);
     }
+  }
 
-    &:first-child {
-      border: 0;
+  &.appletv .context-item-icon {
+    background-image: url(../images/logos/context/apple-tv.svg);
+  }
+
+  &.watch .context-item-icon {
+    background-image: url(../images/logos/context/apple-watch.svg);
+  }
+
+  &.android-phone {
+    .context-item-icon {
+      background-image: url(../images/logos/context/android-phone.svg);
     }
+  }
 
-    h3,
-    p {
-      margin: 0 0 4px;
+  &.android-tablet {
+    .context-item-icon {
+      background-image: url(../images/logos/context/android-tablet.svg);
     }
+  }
 
-    h3 {
-      .truncate;
-      font-size: 16px;
-      line-height: 1.2;
+  &.darwin,
+  &.ios,
+  &.macos,
+  &.tvos,
+  &.mac-os-x,
+  &.mac,
+  &.apple,
+  &.watchos {
+    .context-item-icon {
+      background-image: url(../images/logos/context/apple-ios.svg);
+      top: -2px;
     }
+  }
 
-    p {
-      font-size: 13px;
-      line-height: 1.4;
+  &.android .context-item-icon {
+    background-image: url(../images/logos/context/android.svg);
+    top: -1px;
+  }
 
-      &:last-child {
-        margin: 0;
-      }
+  &.windows .context-item-icon {
+    background-image: url(../images/logos/context/windows.png);
+  }
+
+  &.linux .context-item-icon {
+    background-image: url(../images/logos/context/linux.png);
+  }
+
+  &.ubuntu .context-item-icon {
+    background-image: url(../images/logos/context/ubuntu.png);
+  }
+
+  &.amazon .context-item-icon {
+    background-image: url(../images/logos/context/amazon.svg);
+  }
+
+  &.firefox .context-item-icon {
+    background-image: url(../images/logos/context/firefox.svg);
+  }
+
+  &.chrome,
+  &.chrome-mobile,
+  &.chrome-mobile-ios {
+    .context-item-icon {
+      background-image: url(../images/logos/context/chrome.png);
     }
+  }
 
-    &.arm .context-item-icon {
-      background-image: url(../images/logos/context/arm.png);
-      background-size: contain;
-    }
+  &.chromium .context-item-icon {
+    background-image: url(../images/logos/context/chromium.png);
+  }
 
-    &.amd .context-item-icon,
-    &[class*='amd-'] .context-item-icon {
-      background-image: url(../images/logos/context/amd.png);
-      background-size: contain;
-    }
+  &.edge .context-item-icon {
+    background-image: url(../images/logos/context/edge.png);
+  }
 
-    &.nvidia .context-item-icon,
-    &[class*='nvidia-'] .context-item-icon {
-      background-image: url(../images/logos/context/nvidia.png);
-      background-size: contain;
-    }
+  &.internet-explorer .context-item-icon {
+    background-image: url(../images/logos/context/internet-explorer.png);
+  }
 
-    &.electron .context-item-icon {
-      background-image: url(../images/logos/context/electron.png);
-    }
+  &.opera .context-item-icon {
+    background-image: url(../images/logos/context/opera.png);
+  }
 
-    &.crystal .context-item-icon {
-      background-image: url(../images/logos/context/crystal.svg);
-    }
+  &.playstation .context-item-icon {
+    background-image: url(../images/logos/context/playstation.png);
+  }
 
-    &.net-framework .context-item-icon {
-      background-image: url(../images/logos/context/netframework.svg);
-    }
+  &.qq-browser .context-item-icon {
+    background-image: url(../images/logos/context/qq-browser.png);
+  }
 
-    &.net-core .context-item-icon {
-      background-image: url(../images/logos/context/netcore.svg);
-    }
-
-    &.mono .context-item-icon {
-      background-image: url(../images/logos/context/mono-gorilla.svg);
-    }
-
-    &.php .context-item-icon {
-      background-image: url(../images/logos/context/php.svg);
-    }
-
-    &.ipad .context-item-icon {
-      background-image: url(../images/logos/context/ipad.svg);
-    }
-
-    &.ipod,
-    &.iphone {
-      .context-item-icon {
-        background-image: url(../images/logos/context/iphone.svg);
-      }
-    }
-
-    &.appletv .context-item-icon {
-      background-image: url(../images/logos/context/apple-tv.svg);
-    }
-
-    &.watch .context-item-icon {
-      background-image: url(../images/logos/context/apple-watch.svg);
-    }
-
-    &.android-phone {
-      .context-item-icon {
-        background-image: url(../images/logos/context/android-phone.svg);
-      }
-    }
-
-    &.android-tablet {
-      .context-item-icon {
-        background-image: url(../images/logos/context/android-tablet.svg);
-      }
-    }
-
-    &.darwin,
-    &.ios,
-    &.macos,
-    &.tvos,
-    &.mac-os-x,
-    &.mac,
-    &.apple,
-    &.watchos {
-      .context-item-icon {
-        background-image: url(../images/logos/context/apple-ios.svg);
-        top: -2px;
-      }
-    }
-
-    &.android .context-item-icon {
-      background-image: url(../images/logos/context/android.svg);
-      top: -1px;
-    }
-
-    &.windows .context-item-icon {
-      background-image: url(../images/logos/context/windows.png);
-    }
-
-    &.linux .context-item-icon {
-      background-image: url(../images/logos/context/linux.png);
-    }
-
-    &.ubuntu .context-item-icon {
-      background-image: url(../images/logos/context/ubuntu.png);
-    }
-
-    &.amazon .context-item-icon {
-      background-image: url(../images/logos/context/amazon.svg);
-    }
-
-    &.firefox .context-item-icon {
-      background-image: url(../images/logos/context/firefox.svg);
-    }
-
-    &.chrome,
-    &.chrome-mobile,
-    &.chrome-mobile-ios {
-      .context-item-icon {
-        background-image: url(../images/logos/context/chrome.png);
-      }
-    }
-
-    &.chromium .context-item-icon {
-      background-image: url(../images/logos/context/chromium.png);
-    }
-
-    &.edge .context-item-icon {
-      background-image: url(../images/logos/context/edge.png);
-    }
-
-    &.internet-explorer .context-item-icon {
-      background-image: url(../images/logos/context/internet-explorer.png);
-    }
-
-    &.opera .context-item-icon {
-      background-image: url(../images/logos/context/opera.png);
-    }
-
-    &.playstation .context-item-icon {
-      background-image: url(../images/logos/context/playstation.png);
-    }
-
-    &.qq-browser .context-item-icon {
-      background-image: url(../images/logos/context/qq-browser.png);
-    }
-
-    &.safari,
-    &.mobile-safari {
-      .context-item-icon {
-        background-image: url(../images/logos/context/safari.png);
-      }
+  &.safari,
+  &.mobile-safari {
+    .context-item-icon {
+      background-image: url(../images/logos/context/safari.png);
     }
   }
 }
@@ -260,59 +258,6 @@
 * Event Toolbar
 * ============================================================================
 */
-
-.event-toolbar {
-  position: relative;
-  margin-bottom: -5px;
-  // z-index seems unnecessary, but increasing (instead of removing) just in case(billy)
-  // Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active
-  z-index: 3;
-  .clearfix;
-  padding: 20px 30px 20px 40px;
-
-  h4 {
-    line-height: 1.3;
-    margin: 0;
-    font-size: 16px;
-
-    .event-id {
-      font-weight: normal;
-    }
-  }
-
-  time {
-    color: @60;
-  }
-
-  .icon-alert {
-    margin-left: 5px;
-    color: @yellow-orange;
-    font-size: 14px;
-  }
-
-  .json-link {
-    margin-left: 8px;
-    padding-left: 8px;
-    position: relative;
-
-    &:before {
-      display: block;
-      position: absolute;
-      content: '';
-      left: 0;
-      top: 2px;
-      height: 14px;
-      border-left: 1px solid @trim;
-    }
-  }
-
-  .tooltip {
-    .tooltip-inner {
-      max-width: 250px;
-    }
-  }
-}
-
 .module-user .avatar {
   width: 64px;
   height: 64px;
@@ -1327,24 +1272,6 @@ ul.crumbs {
     .detailed-error {
       border-top: 1px solid @trim;
     }
-  }
-
-  // Context callout
-
-  .context-summary {
-    flex-direction: column;
-    margin-top: 0;
-    padding: 0;
-
-    .context-item {
-      .context-item-icon {
-        top: 9px;
-      }
-    }
-  }
-
-  .event-toolbar {
-    display: none;
   }
 
   .context {
