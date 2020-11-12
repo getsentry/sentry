@@ -138,7 +138,7 @@ const ReleaseHeader = ({
                   }
                   return (
                     <Count
-                      value={tableData.data[0][`apdex_${organization.apdexThreshold}`]}
+                      value={tableData.data[0][getAggregateAlias(`apdex(${organization.apdexThreshold})`)]}
                     />
                   );
                 }}
