@@ -19,6 +19,7 @@ import {ChartContainer} from '../styles';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
+import VitalsChart from './vitalsChart';
 import DurationPercentileChart from './durationPercentileChart';
 import {TrendFunctionField} from '../trends/types';
 import {TRENDS_FUNCTIONS} from '../trends/utils';
@@ -27,8 +28,8 @@ export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
   DURATION = 'duration',
   LATENCY = 'latency',
-  APDEX_THROUGHPUT = 'apdexthroughput',
   TREND = 'trend',
+  VITALS = 'vitals',
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
@@ -36,6 +37,7 @@ const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
   {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
   {value: DisplayModes.TREND, label: t('Trends')},
+  {value: DisplayModes.VITALS, label: t('Web Vitals')},
 ];
 
 const TREND_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(({field, label}) => ({
@@ -120,6 +122,17 @@ class TransactionSummaryCharts extends React.Component<Props> {
           {display === DisplayModes.TREND && (
             <TrendChart
               trendDisplay={trendDisplay}
+              organization={organization}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          )}
+          {display === DisplayModes.VITALS && (
+            <VitalsChart
               organization={organization}
               query={eventView.query}
               project={eventView.project}

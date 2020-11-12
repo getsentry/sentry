@@ -6,6 +6,7 @@ import {Location} from 'history';
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {getSeriesSelection} from 'app/components/charts/utils';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
@@ -163,14 +164,6 @@ class HealthChart extends React.Component<Props> {
 
     const Chart = this.getChart();
 
-    const seriesSelection = (decodeList(location.query.unselectedSeries) ?? []).reduce(
-      (selection, metric) => {
-        selection[metric] = false;
-        return selection;
-      },
-      {}
-    );
-
     const legend = {
       right: 22,
       top: 10,
@@ -185,7 +178,7 @@ class HealthChart extends React.Component<Props> {
         fontFamily: 'Rubik',
       },
       data: timeseriesData.map(d => d.seriesName).reverse(),
-      selected: seriesSelection,
+      selected: getSeriesSelection(location),
     };
 
     return (
