@@ -134,7 +134,7 @@ const ReleaseHeader = ({
               >
                 {({isLoading, error, tableData}) => {
                   if (isLoading || error || !tableData || tableData.data.length === 0) {
-                    return '-';
+                    return '\u2014';
                   }
                   return (
                     <Count
