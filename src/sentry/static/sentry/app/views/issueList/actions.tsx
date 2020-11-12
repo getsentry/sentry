@@ -801,12 +801,12 @@ const AssigneesLabel = styled('div')`
 `;
 
 const ReasonSpacerLabel = styled('div')`
-  width: 80px;
+  width: 95px;
   margin: 0 ${space(0.25)} 0 ${space(1)};
 `;
 
 const TimesSpacerLabel = styled('div')`
-  width: 130px;
+  width: 170px;
   margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 

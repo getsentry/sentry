@@ -395,13 +395,13 @@ class StreamGroup extends React.Component<Props, State> {
         {hasInbox && (
           <React.Fragment>
             {inboxTabActive && (
-              <ReasonBox width={80} mx={2} className="hidden-xs hidden-sm">
+              <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
                 <BadgeWrapper>
                   <InboxReason data={data} />
                 </BadgeWrapper>
               </ReasonBox>
             )}
-            <TimesBox width={130} mx={2} className="hidden-xs hidden-sm">
+            <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
               <BadgeWrapper>
                 <TimesBadge
                   lastSeen={data.lifetime?.lastSeen || data.lastSeen}
