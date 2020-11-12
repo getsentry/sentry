@@ -77,10 +77,7 @@ class QuerySubscriptionConsumer(object):
             },
         )
         self.admin_cluster_options = kafka_config.get_kafka_admin_cluster_options(
-            cluster_name, 
-            {
-              "allow.auto.create.topics": "true",
-            }
+            cluster_name, {"allow.auto.create.topics": "true"}
         )
 
     def run(self):
