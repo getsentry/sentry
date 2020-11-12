@@ -76,6 +76,7 @@ describe('EventsV2 > QueryList', function () {
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
+        renderPrebuilt
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
