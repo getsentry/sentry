@@ -71,5 +71,9 @@ class TwoFactorRequired(SentryAPIException):
     message = "Organization requires two-factor authentication to be enabled"
 
 
+class ConflictError(APIException):
+    status_code = status.HTTP_409_CONFLICT
+
+
 class InvalidRepository(Exception):
     pass
