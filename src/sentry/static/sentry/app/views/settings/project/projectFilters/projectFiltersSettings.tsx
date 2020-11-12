@@ -380,7 +380,7 @@ const FilterGrid = styled('div')`
 const FilterGridItem = styled('div')`
   display: flex;
   align-items: center;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: 3px;
   flex: 1;
   padding: 12px;
@@ -417,7 +417,7 @@ const FilterTitle = styled('div')`
 `;
 
 const FilterDescription = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;

@@ -192,13 +192,13 @@ export const getBackgroundColor = ({
   theme: any;
 }) => {
   if (!theme) {
-    return theme.white;
+    return theme.background;
   }
 
   if (showDetail) {
-    return theme.gray800;
+    return theme.textColor;
   }
-  return showStriping ? theme.gray100 : theme.white;
+  return showStriping ? theme.backgroundSecondary : theme.background;
 };
 
 type SpanBarProps = {
@@ -351,9 +351,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderMeasurements() {
-    const {organization, event, generateBounds} = this.props;
+    const {event, generateBounds} = this.props;
 
-    if (!organization.features.includes('measurements') || this.state.showDetail) {
+    if (this.state.showDetail) {
       return null;
     }
 
@@ -921,7 +921,7 @@ export const SpanRowCell = styled('div')<SpanRowCellProps>`
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
+  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
 `;
 
 export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
@@ -932,7 +932,8 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   user-select: none;
 
   &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
+    background-color: ${p =>
+      p.showDetail ? p.theme.textColor : p.theme.backgroundSecondary};
   }
 `;
 
@@ -946,7 +947,7 @@ const CursorGuide = styled('div')`
 `;
 
 export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   height: 100%;
   width: 1px;
@@ -965,7 +966,7 @@ export const DividerLine = styled('div')`
   }
 
   &.hovering {
-    background-color: ${p => p.theme.gray800};
+    background-color: ${p => p.theme.textColor};
     width: 3px;
     transform: translateX(-1px);
     margin-right: -2px;
@@ -1043,7 +1044,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 
   &:after {
     content: '';
-    background-color: ${p => p.theme.gray400};
+    background-color: ${p => p.theme.gray200};
     border-radius: 4px;
     height: 3px;
     width: 3px;
@@ -1126,7 +1127,7 @@ const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray500 : theme.white};
+        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
       `;
   }
 };
@@ -1143,7 +1144,7 @@ const DurationPill = styled('div')<{
   transform: translateY(-50%);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail === true ? p.theme.gray400 : p.theme.gray500)};
+  color: ${p => (p.showDetail === true ? p.theme.gray200 : p.theme.gray300)};
 
   ${getDurationPillAlignment}
 
@@ -1172,7 +1173,7 @@ const MeasurementMarker = styled('div')`
   background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
     100% no-repeat;
   z-index: ${zIndex.dividerLine};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

@@ -72,12 +72,12 @@ const Name = styled('div')`
 `;
 
 const MainInfo = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   display: grid;
   grid-gap: ${space(1)};
 `;
 
 const Date = styled('small')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

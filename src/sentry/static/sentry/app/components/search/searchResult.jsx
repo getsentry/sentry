@@ -166,7 +166,7 @@ const SearchDetail = styled('div')`
 
 const ExtraDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-top: ${space(0.5)};
 `;
 

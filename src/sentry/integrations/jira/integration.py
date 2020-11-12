@@ -30,6 +30,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
 
 from .client import JiraApiClient, JiraCloud
+from .utils import build_user_choice
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -643,8 +644,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 reporter_id = defaults.get("reporter", "")
                 if not reporter_id:
                     continue
-                reporter_info = client.get_user(reporter_id)
-                reporter_tuple = client.format_user(reporter_info)
+                try:
+                    reporter_info = client.get_user(reporter_id)
+                except ApiError as e:
+                    logger.info(
+                        "jira.get-create-issue-config.no-matching-reporter",
+                        extra={
+                            "integration_id": self.model.id,
+                            "organization_id": self.organization_id,
+                            "persisted_reporter_id": reporter_id,
+                            "error": six.text_type(e),
+                        },
+                    )
+                    continue
+                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
                 if not reporter_tuple:
                     continue
                 reporter_id, reporter_label = reporter_tuple

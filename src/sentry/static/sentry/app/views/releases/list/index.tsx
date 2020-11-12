@@ -7,7 +7,7 @@ import {forceCheck} from 'react-lazyload';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import AsyncView from 'app/views/asyncView';
-import {Organization, Release, GlobalSelection} from 'app/types';
+import {Organization, Release, GlobalSelection, ReleaseStatus} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import SearchBar from 'app/components/searchBar';
 import Pagination from 'app/components/pagination';
@@ -27,6 +27,8 @@ import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseLanding from './releaseLanding';
 import IntroBanner from './introBanner';
 import ReleaseCard from './releaseCard';
+import ReleaseListDisplayOptions from './releaseListDisplayOptions';
+import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 
 type RouteParams = {
   orgId: string;
@@ -53,6 +55,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
     const sort = this.getSort();
+    const display = this.getDisplay();
 
     const query = {
       ...pick(location.query, [
@@ -68,6 +71,7 @@ class ReleasesList extends AsyncView<Props, State> {
       per_page: 25,
       health: 1,
       flatten: sort === 'date' ? 0 : 1,
+      status: display === 'archived' ? ReleaseStatus.Archived : ReleaseStatus.Active,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
@@ -130,6 +134,12 @@ class ReleasesList extends AsyncView<Props, State> {
     return typeof sort === 'string' ? sort : 'date';
   }
 
+  getDisplay() {
+    const {display} = this.props.location.query;
+
+    return typeof display === 'string' ? display : 'active';
+  }
+
   handleSearch = (query: string) => {
     const {location, router} = this.props;
 
@@ -148,6 +158,15 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
+  handleDisplay = (display: string) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, cursor: undefined, display},
+    });
+  };
+
   shouldShowLoadingIndicator() {
     const {loading, releases, reloading} = this.state;
 
@@ -163,6 +182,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
+    const display = this.getDisplay();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -188,6 +208,14 @@ class ReleasesList extends AsyncView<Props, State> {
       return (
         <EmptyStateWarning small>
           {`${t('There are no releases with data in the')} ${relativePeriod}.`}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (display === 'archived') {
+      return (
+        <EmptyStateWarning small>
+          {t('There are no archived releases.')}
         </EmptyStateWarning>
       );
     }
@@ -226,7 +254,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {releasesPageLinks} = this.state;
+    const {releasesPageLinks, releases} = this.state;
 
     return (
       <GlobalSelectionHeader
@@ -240,6 +268,10 @@ class ReleasesList extends AsyncView<Props, State> {
             <StyledPageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
+                <ReleaseListDisplayOptions
+                  selected={this.getDisplay()}
+                  onSelect={this.handleDisplay}
+                />
                 <ReleaseListSortOptions
                   selected={this.getSort()}
                   onSelect={this.handleSort}
@@ -253,6 +285,10 @@ class ReleasesList extends AsyncView<Props, State> {
             </StyledPageHeader>
 
             <IntroBanner />
+
+            {this.getDisplay() === 'archived' && releases?.length > 0 && (
+              <ReleaseArchivedNotice multi />
+            )}
 
             {this.renderInnerBody()}
 
@@ -269,17 +305,18 @@ const StyledPageHeader = styled(PageHeader)`
   margin-bottom: 0;
   ${PageHeading} {
     margin-bottom: ${space(2)};
+    margin-right: ${space(2)};
   }
 `;
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     grid-template-columns: none;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     margin-bottom: ${space(4)};
   }
 `;

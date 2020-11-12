@@ -54,10 +54,10 @@ const Row = ({
 export default Row;
 
 const LabelWithBorder = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
   :first-child {
@@ -92,7 +92,8 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   justify-content: center;
 
   font-size: 0.9em;
-  background-color: ${p => (p.hasGrayBackground ? p.theme.gray100 : 'transparent')};
+  background-color: ${p =>
+    p.hasGrayBackground ? p.theme.backgroundSecondary : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -102,6 +103,6 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   }
 
   :hover {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;

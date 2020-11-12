@@ -11,7 +11,7 @@ import Tooltip from 'app/components/tooltip';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 
-const TAG_HEIGHT = '17px';
+const TAG_HEIGHT = '20px';
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
@@ -53,7 +53,7 @@ function Tag({
   ...props
 }: Props) {
   const iconsProps = {
-    size: '10px',
+    size: '12px',
     color: theme.tag[type].iconColor as Color,
   };
 
@@ -71,7 +71,7 @@ function Tag({
             priority="link"
             label={t('Dismiss')}
           >
-            <IconClose {...iconsProps} />
+            <IconClose isCircled {...iconsProps} />
           </DismissButton>
         )}
       </Background>
@@ -124,24 +124,25 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
 `;
 
 const IconWrapper = styled('span')`
-  margin-right: ${space(0.5)};
+  margin-right: 3px;
 `;
 
 const Text = styled('span')`
-  color: ${p => p.theme.gray700};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.textColor};
+  font-size: 13px;
   max-width: 150px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
   a:hover & {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.textColor};
   }
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: ${space(0.5)};
+  margin-left: 3px;
+  border: none;
 `;
 
 export default Tag;

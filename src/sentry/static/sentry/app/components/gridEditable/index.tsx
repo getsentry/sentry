@@ -347,7 +347,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning color="gray500" size="lg" />
+          <IconWarning color="gray300" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );

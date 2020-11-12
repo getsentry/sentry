@@ -94,13 +94,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   dragGhostRef = React.createRef<HTMLDivElement>();
 
   get fieldOptions() {
-    const {organization, measurementKeys} = this.props;
     return generateFieldOptions({
       organization: this.props.organization,
       tagKeys: this.props.tagKeys,
-      measurementKeys: organization.features.includes('measurements')
-        ? measurementKeys
-        : undefined,
+      measurementKeys: this.props.measurementKeys,
     });
   }
 
@@ -295,7 +292,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color="gray700" />}
+              icon={<IconGrabbable size="xs" color="gray500" />}
               size="zero"
               borderless
             />
@@ -313,7 +310,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete color="gray300" />}
               borderless
             />
           ) : (
@@ -381,7 +378,7 @@ const RowContainer = styled('div')`
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: block;
   position: absolute;
   padding: ${space(0.5)};

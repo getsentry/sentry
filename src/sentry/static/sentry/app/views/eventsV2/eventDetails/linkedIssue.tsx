@@ -111,7 +111,7 @@ const StyledLink = styled(Link)`
 `;
 
 const IssueCardBody = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   padding-top: ${space(1)};
 `;
 
@@ -121,11 +121,11 @@ const StyledSeenByList = styled(SeenByList)`
 
 const StyledShortId = styled(ShortId)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const IssueCardFooter = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(0.5)} ${space(1)};
 `;

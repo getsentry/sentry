@@ -154,7 +154,7 @@ const StyledSelect = styled(SelectPicker)`
 
   &.Select.is-focused > .Select-control {
     border: 1px solid ${p => p.theme.border};
-    border-color: ${p => p.theme.gray700};
+    border-color: ${p => p.theme.textColor};
     box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
 
@@ -180,7 +180,7 @@ const StyledSelect = styled(SelectPicker)`
     height: ${p => p.height}px;
     line-height: ${p => p.height}px;
     &:focus {
-      border: 1px solid ${p => p.theme.gray700};
+      border: 1px solid ${p => p.theme.gray500};
     }
   }
 

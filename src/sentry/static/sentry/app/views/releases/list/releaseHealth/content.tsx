@@ -291,8 +291,8 @@ const StyledScoreBar = styled(ScoreBar)`
 const ChartWrapper = styled('div')`
   flex: 1;
   g > .barchart-rect {
-    background: ${p => p.theme.gray400};
-    fill: ${p => p.theme.gray400};
+    background: ${p => p.theme.gray200};
+    fill: ${p => p.theme.gray200};
   }
 `;
 
