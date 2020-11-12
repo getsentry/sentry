@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
+import groupBy from 'lodash/groupBy';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -12,6 +13,7 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import Switch from 'app/components/switch';
 import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import {IconToggle} from 'app/icons';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -76,6 +78,8 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
   };
 
   renderBody() {
+    const subGroups = Object.entries(groupBy(this.state.subscriptions, sub => sub.email));
+
     return (
       <div>
         <SettingsPageHeader title="Subscriptions" />
@@ -97,41 +101,51 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
             <div>
               <PanelHeader>{t('Subscription')}</PanelHeader>
               <PanelBody>
-                {this.state.subscriptions.map((subscription, index) => (
-                  <PanelItem p={2} alignItems="center" key={subscription.listId}>
-                    <SubscriptionDetails>
-                      <SubscriptionName>{subscription.listName}</SubscriptionName>
-                      {subscription.listDescription && (
-                        <Description>{subscription.listDescription}</Description>
-                      )}
-                      {subscription.subscribed ? (
-                        <SubscribedDescription>
-                          <div>
-                            {tct('[email] on [date]', {
-                              email: subscription.email,
-                              date: (
-                                <DateTime
-                                  shortDate
-                                  date={moment(subscription.subscribedDate!)}
-                                />
-                              ),
-                            })}
-                          </div>
-                        </SubscribedDescription>
-                      ) : (
-                        <SubscribedDescription>
-                          Not currently subscribed
-                        </SubscribedDescription>
-                      )}
-                    </SubscriptionDetails>
-                    <div>
-                      <Switch
-                        isActive={subscription.subscribed}
-                        size="lg"
-                        toggle={this.handleToggle.bind(this, subscription, index)}
-                      />
-                    </div>
-                  </PanelItem>
+                {subGroups.map(([email, subscriptions]) => (
+                  <React.Fragment key={email}>
+                    {subGroups.length > 1 && (
+                      <Heading>
+                        <IconToggle /> {t('Subscriptions for %s', email)}
+                      </Heading>
+                    )}
+
+                    {subscriptions.map((subscription, index) => (
+                      <PanelItem p={2} alignItems="center" key={subscription.listId}>
+                        <SubscriptionDetails>
+                          <SubscriptionName>{subscription.listName}</SubscriptionName>
+                          {subscription.listDescription && (
+                            <Description>{subscription.listDescription}</Description>
+                          )}
+                          {subscription.subscribed ? (
+                            <SubscribedDescription>
+                              <div>
+                                {tct('[email] on [date]', {
+                                  email: subscription.email,
+                                  date: (
+                                    <DateTime
+                                      shortDate
+                                      date={moment(subscription.subscribedDate!)}
+                                    />
+                                  ),
+                                })}
+                              </div>
+                            </SubscribedDescription>
+                          ) : (
+                            <SubscribedDescription>
+                              Not currently subscribed
+                            </SubscribedDescription>
+                          )}
+                        </SubscriptionDetails>
+                        <div>
+                          <Switch
+                            isActive={subscription.subscribed}
+                            size="lg"
+                            toggle={this.handleToggle.bind(this, subscription, index)}
+                          />
+                        </div>
+                      </PanelItem>
+                    ))}
+                  </React.Fragment>
                 ))}
               </PanelBody>
             </div>
@@ -156,6 +170,17 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
     );
   }
 }
+
+const Heading = styled(PanelItem)`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-gap: ${space(1)};
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(1.5)} ${space(2)};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
+`;
 
 const SubscriptionDetails = styled('div')`
   width: 50%;
