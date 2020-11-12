@@ -36,7 +36,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
     return '/internal/options/';
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', this.endpoint]];
   }
 
