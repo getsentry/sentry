@@ -145,7 +145,7 @@ type FilterConfig = {
 };
 
 // XXX(ts): Using Partial here on the DefaultProps is not really correct, since
-// defaultProps gaurentees they'll be set. But because this component is
+// defaultProps guarantees they'll be set. But because this component is
 // wrapped with a HoC, we lose the defaultProps, and users of the component
 type Props = {
   api: Client;
