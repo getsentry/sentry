@@ -18,7 +18,7 @@ class IssueDetailsPage(BasePage):
         self.browser.get(
             u"/organizations/{}/issues/{}/?environment={}".format(org, groupid, environment)
         )
-        self.browser.wait_until(".group-detail")
+        self.browser.wait_until_test_id("group-detail")
 
     def visit_tag_values(self, org, groupid, tag):
         self.browser.get(u"/organizations/{}/issues/{}/tags/{}".format(org, groupid, tag))
@@ -34,7 +34,7 @@ class IssueDetailsPage(BasePage):
         return self.client.get(u"/api/0/issues/{}/".format(groupid))
 
     def go_to_subtab(self, name):
-        tabs = self.browser.find_element_by_css_selector(".group-detail .nav-tabs")
+        tabs = self.browser.find_element_by_css_selector('[data-test-id="group-detail"] .nav-tabs')
         tabs.find_element_by_partial_link_text(name).click()
         self.browser.wait_until_not(".loading-indicator")
 

@@ -2,6 +2,7 @@ import {Link} from 'react-router';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
@@ -73,17 +74,11 @@ class GroupHeader extends React.Component {
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
-    let className = '';
-
-    if (group.isBookmarked) {
-      className += ' isBookmarked';
-    }
-    if (group.hasSeen) {
-      className += ' hasSeen';
-    }
-    if (group.status === 'resolved') {
-      className += ' isResolved';
-    }
+    const className = classNames({
+      isBookmarked: group.isBookmarked,
+      hasSeen: group.hasSeen,
+      isResolved: group.status === 'resolved',
+    });
 
     const {memberList} = this.state;
     const orgId = organization.slug;
@@ -99,7 +94,7 @@ class GroupHeader extends React.Component {
     };
 
     return (
-      <Wrapper className={className}>
+      <Wrapper data-test-id="group-detail" className={className}>
         <Header>
           <HeaderContent>
             <GroupTitleWrapper>
@@ -191,11 +186,11 @@ class GroupHeader extends React.Component {
         </Header>
 
         <Header>
-          <SeenByList
+          <GroupActions group={group} project={project} />
+          <StyledSeenByList
             seenBy={group.seenBy}
             iconTooltip={t('People who have viewed this issue')}
           />
-          <GroupActions group={group} project={project} />
         </Header>
 
         <TabLayoutHeader>
@@ -294,6 +289,12 @@ const HeaderDetails = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     max-width: none;
+  }
+`;
+
+const StyledSeenByList = styled(SeenByList)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: none;
   }
 `;
 

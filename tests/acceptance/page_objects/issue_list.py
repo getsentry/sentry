@@ -23,7 +23,7 @@ class IssueListPage(BasePage):
 
     def navigate_to_issue(self, position):
         self.browser.click(u'[data-test-id="group"]:nth-child({}) a'.format(position))
-        self.browser.wait_until(".group-detail")
+        self.browser.wait_until_test_id("group-detail")
         self.issue_details = IssueDetailsPage(self.browser, self.client)
 
     def resolve_issues(self):
