@@ -245,7 +245,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const memberList = this.memberList();
 
     return (
-      <div className={className}>
+      <div className={className} data-test-id="assignee-selector">
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}

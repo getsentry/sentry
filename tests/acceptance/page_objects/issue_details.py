@@ -60,10 +60,10 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[aria-label="Remove bookmark"]')
 
     def assign_to(self, user):
-        assignee = self.browser.find_element_by_css_selector('[aria-label="Assign to"]')
+        assignee = self.browser.find_element_by_css_selector('[data-test-id="assignee-selector"]')
 
         # Open the assignee picker
-        assignee.click()
+        self.browser.find_element_by_css_selector('[aria-label="Assign to"]').click()
         assignee.find_element_by_tag_name("input").send_keys(user)
 
         # Click the member/team
