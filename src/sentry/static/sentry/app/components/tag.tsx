@@ -25,7 +25,7 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ReactNode | string;
+  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
   /**
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
