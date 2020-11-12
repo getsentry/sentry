@@ -74,7 +74,7 @@ const StyledPlatformIcon = styled(({size, ...props}: IconProps) => (
   <PlatformIcon size={`${size}px`} {...props} />
 ))`
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: 0 0 0 1px ${p => p.theme.white};
+  box-shadow: 0 0 0 1px ${p => p.theme.background};
   &:not(:first-child) {
     margin-left: ${p => `${p.size * -1 + getOverlapWidth(p.size)}px;`};
   }
