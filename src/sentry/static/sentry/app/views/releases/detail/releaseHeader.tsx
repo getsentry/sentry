@@ -25,6 +25,7 @@ import * as Layout from 'app/components/layouts/thirds';
 import {getTermHelp} from 'app/views/performance/data';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 
 import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
@@ -135,7 +136,11 @@ const ReleaseHeader = ({
                   }
                   return (
                     <Count
-                      value={tableData.data[0][getAggregateAlias(`apdex(${organization.apdexThreshold})`)]}
+                      value={
+                        tableData.data[0][
+                          getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                        ]
+                      }
                     />
                   );
                 }}
