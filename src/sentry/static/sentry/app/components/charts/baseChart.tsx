@@ -439,8 +439,6 @@ class BaseChart extends React.Component<Props> {
 // Contains styling for chart elements as we can't easily style those
 // elements directly
 const ChartContainer = styled('div')`
-  background-color: ${p => p.theme.background};
-
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
@@ -481,7 +479,7 @@ const ChartContainer = styled('div')`
     width: 0;
     position: absolute;
     pointer-events: none;
-    border-top-color: ${p => p.theme.textColor};
+    border-top-color: ${p => p.theme.gray400};
     border-width: 8px;
     margin-left: -8px;
   }
