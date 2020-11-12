@@ -6,6 +6,7 @@ from django import forms
 
 from sentry.rules.actions.base import TicketEventAction
 from sentry.models import ExternalIssue
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.rules")
 
@@ -35,13 +36,18 @@ class JiraCreateTicketAction(TicketEventAction):
     def render_label(self):
         return self.label.format(name=self.get_integration_name())
 
+    def generate_footer(self, rule_url):
+        return u"This ticket was automatically created by Sentry via [{}|{}]".format(
+            self.rule.label, absolute_uri(rule_url),
+        )
+
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()
         installation = integration.get_installation(organization.id)
 
         self.data["title"] = event.title
-        self.data["description"] = self.build_description(event, installation, pipe=True)
+        self.data["description"] = self.build_description(event, installation)
 
         def create_issue(event, futures):
             """Create the Jira ticket for a given event"""

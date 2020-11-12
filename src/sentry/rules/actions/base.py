@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function
 from sentry.constants import ObjectStatus
 from sentry.models.integration import Integration
 from sentry.rules.base import RuleBase
-from sentry.utils.http import absolute_uri
 
 
 class EventAction(RuleBase):
@@ -80,22 +79,16 @@ class IntegrationEventAction(EventAction):
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
-    def build_description(self, event, installation, newline=False, pipe=False):
+    def generate_footer(self, rule_url):
+        raise NotImplementedError
+
+    def build_description(self, event, installation):
         """
         Format the description of the ticket/work item
-        pass newline=True for Azure DevOps
-        pass pipe=True for Jira
-
         """
         rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
             self.project.organization.slug, self.project.slug, self.rule.id
         )
-        footer = u"This ticket was automatically created by Sentry via "
-        if pipe:
-            footer += "[{}|{}]".format(self.rule.label, absolute_uri(rule_url),)
-        else:
-            footer += "[{}]({})".format(self.rule.label, absolute_uri(rule_url),)
-        if newline:
-            footer = "\n" + footer
-
-        return installation.get_group_description(event.group, event) + footer
+        return installation.get_group_description(event.group, event) + self.generate_footer(
+            rule_url
+        )
