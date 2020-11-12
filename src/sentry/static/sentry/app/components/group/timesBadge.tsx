@@ -37,7 +37,7 @@ const TimesBadge = ({lastSeen, firstSeen}: Props) => {
 };
 
 const Seperator = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export default TimesBadge;

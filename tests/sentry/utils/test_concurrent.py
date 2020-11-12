@@ -171,6 +171,17 @@ def test_synchronous_executor():
         assert False, "expected future to raise"
 
 
+def test_threaded_same_priority_Tasks():
+    executor = ThreadedExecutor(worker_count=1)
+
+    def callable():
+        pass
+
+    # Test that we can correctly submit multiple tasks
+    executor.submit(callable)
+    executor.submit(callable)
+
+
 def test_threaded_executor():
     executor = ThreadedExecutor(worker_count=1, maxsize=3)
 

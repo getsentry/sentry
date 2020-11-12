@@ -337,7 +337,7 @@ const LightGray = styled('span')`
 `;
 
 const DarkGray = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 /**

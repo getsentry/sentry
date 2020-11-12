@@ -30,8 +30,9 @@ function renderComponent(component: EventGroupComponent): string[] {
     return [];
   }
 
-  const {name, hint} = component;
-  const title = name && hint ? `${name} (${hint})` : name;
+  const {name, id, hint} = component;
+  const name_or_id = name || id;
+  const title = name_or_id && hint ? `${name_or_id} (${hint})` : name_or_id;
   const rv = title ? [title] : [];
 
   if (component.values) {

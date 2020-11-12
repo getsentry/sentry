@@ -113,7 +113,7 @@ const EventRow = styled('div')`
 `;
 
 const Baseline = styled('div')`
-  background-color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.textColor};
   height: 100%;
   width: 4px;
 

@@ -478,6 +478,7 @@ const darkAliases = {
   success: colors.green300,
   secondaryButton: colors.purple200,
   sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
+  formPlaceholder: colors.gray400,
   formText: colors.white,
   rowBackground: colors.gray500,
   chartLineColor: colors.gray400,

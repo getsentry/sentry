@@ -296,7 +296,7 @@ class SpanBar extends React.Component<Props, State> {
           return {
             background: {
               // baseline
-              color: theme.gray500,
+              color: theme.textColor,
               width: normalizePadding(generateCSSWidth(bounds.background)),
             },
             foreground: {
@@ -336,7 +336,7 @@ class SpanBar extends React.Component<Props, State> {
       case 'baseline': {
         return {
           background: {
-            color: theme.gray500,
+            color: theme.textColor,
             width: normalizePadding(generateCSSWidth(bounds.background)),
           },
           foreground: undefined,

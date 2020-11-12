@@ -158,11 +158,11 @@ class SocialAuthBackend(object):
 
     def get_user_details(self, response):
         """Must return user details in a know internal struct:
-            {'username': <username if any>,
-             'email': <user email if any>,
-             'fullname': <user full name if any>,
-             'first_name': <user first name if any>,
-             'last_name': <user last name if any>}
+        {'username': <username if any>,
+         'email': <user email if any>,
+         'fullname': <user full name if any>,
+         'first_name': <user first name if any>,
+         'last_name': <user last name if any>}
         """
         raise NotImplementedError("Implement in subclass")
 
@@ -620,7 +620,9 @@ class BaseOAuth2(OAuthAuth):
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
         request = Request(
-            self.ACCESS_TOKEN_URL, data=urlencode(params), headers=self.auth_headers()
+            self.ACCESS_TOKEN_URL,
+            data=urlencode(params).encode("utf-8"),
+            headers=self.auth_headers(),
         )
 
         try:
