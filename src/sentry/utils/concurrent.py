@@ -4,6 +4,8 @@ import logging
 import sys
 import threading
 import six
+import collections
+import functools
 
 from six.moves.queue import Full, PriorityQueue
 from concurrent.futures import Future
@@ -38,6 +40,15 @@ def execute(function, daemon=True):
     t.start()
 
     return future
+
+
+@functools.total_ordering
+class PriorityTask(collections.namedtuple("PriorityTask", "priority item")):
+    def __eq__(self, b):
+        return self.priority == b.priority
+
+    def __lt__(self, b):
+        return self.priority < b.priority
 
 
 class TimedFuture(Future):
@@ -234,7 +245,7 @@ class ThreadedExecutor(Executor):
             self.start()
 
         future = self.Future()
-        task = (priority, (callable, future))
+        task = PriorityTask(priority, (callable, future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:
