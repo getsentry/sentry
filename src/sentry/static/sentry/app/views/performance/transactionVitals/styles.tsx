@@ -29,7 +29,7 @@ export const CardSectionHeading = styled(SectionHeading)`
 
 export const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export const StatNumber = styled('div')`

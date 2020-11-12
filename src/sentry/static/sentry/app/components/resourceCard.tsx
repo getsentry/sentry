@@ -44,7 +44,7 @@ const StyledImg = styled('img')`
 `;
 
 const StyledTitle = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeLarge};
   text-align: center;
   font-weight: bold;

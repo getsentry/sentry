@@ -57,7 +57,7 @@ const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
   :first-child {

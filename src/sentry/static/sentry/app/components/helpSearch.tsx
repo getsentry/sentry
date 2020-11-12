@@ -81,7 +81,7 @@ const Empty = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;

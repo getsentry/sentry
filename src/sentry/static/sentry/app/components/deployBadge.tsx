@@ -50,8 +50,8 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
 };
 
 const Badge = styled(Tag)`
-  background-color: ${p => p.theme.gray500};
-  color: ${p => p.theme.white};
+  background-color: ${p => p.theme.textColor};
+  color: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeSmall};
   align-items: center;
   height: 20px;

@@ -170,7 +170,7 @@ const Description = styled('p')`
   padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.75rem;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
@@ -223,7 +223,7 @@ const SkipButton = styled(Button)`
 
 const ItemComplete = styled(Card)`
   cursor: pointer;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(1.5)};
   display: grid;
   grid-template-columns: max-content 1fr max-content 20px;

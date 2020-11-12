@@ -639,7 +639,7 @@ const responsiveFlex = css`
 
 const StyledSidebar = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
-  background: linear-gradient(294.17deg, #2f1937 35.57%, #452650 92.42%, #452650 92.42%);
+  background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */

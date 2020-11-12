@@ -55,7 +55,7 @@ class IntroBanner extends React.Component<{}, State> {
 }
 
 const StyledBanner = styled(Banner)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   min-height: 200px;
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

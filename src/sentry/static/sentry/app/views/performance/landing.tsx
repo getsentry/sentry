@@ -388,7 +388,7 @@ export const StyledPageHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   height: 40px;
   margin-bottom: ${space(1)};
 `;

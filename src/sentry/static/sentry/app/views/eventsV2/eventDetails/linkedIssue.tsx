@@ -121,7 +121,7 @@ const StyledSeenByList = styled(SeenByList)`
 
 const StyledShortId = styled(ShortId)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const IssueCardFooter = styled('div')`

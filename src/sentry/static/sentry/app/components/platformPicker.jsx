@@ -163,7 +163,7 @@ const NavContainer = styled('div')`
 const SearchBar = styled('div')`
   ${inputStyles};
   padding: 0 8px;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   display: flex;
   align-items: center;
   font-size: 15px;
@@ -213,8 +213,8 @@ const ClearButton = styled(p => (
   height: 22px;
   width: 22px;
   border-radius: 50%;
-  background: #fff;
-  color: ${p => p.theme.gray500};
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
 `;
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (

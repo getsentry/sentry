@@ -387,7 +387,7 @@ const StyledInput = styled(Input)`
 
 const InputLoadingWrapper = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   align-items: center;
   flex-shrink: 0;
   width: 30px;
@@ -426,7 +426,7 @@ const LabelWithPadding = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   &:first-child {
     border-top: none;

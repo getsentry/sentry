@@ -178,7 +178,7 @@ const StyledLink = styled(Link)`
   opacity: 0.33;
   transition: 0.5s opacity ease-out;
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;
 

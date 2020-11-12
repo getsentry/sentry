@@ -161,7 +161,7 @@ const TimeAndSizeWrapper = styled('div')`
   display: flex;
   font-size: ${p => p.theme.fontSizeSmall};
   margin-top: ${space(1)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   align-items: center;
 `;
 
@@ -186,7 +186,7 @@ const Name = styled('div')`
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     line-height: 1.7;
   }

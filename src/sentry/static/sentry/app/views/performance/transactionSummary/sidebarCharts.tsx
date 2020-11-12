@@ -225,7 +225,7 @@ const RelativeBox = styled('div')`
 `;
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   position: absolute;
   top: ${p => p.top};
   margin: 0;

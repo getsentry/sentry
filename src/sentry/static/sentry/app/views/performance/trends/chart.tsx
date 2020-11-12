@@ -110,13 +110,13 @@ function getIntervalLine(
 
   const periodLine = {
     data: [] as any[],
-    color: theme.gray500,
+    color: theme.textColor,
     markLine: {
       data: [] as any[],
       label: {} as any,
       lineStyle: {
         normal: {
-          color: theme.gray500,
+          color: theme.textColor,
           type: 'dashed',
           width: 1,
         },
@@ -175,7 +175,7 @@ function getIntervalLine(
     label: {show: false},
     lineStyle: {
       normal: {
-        color: theme.gray500,
+        color: theme.textColor,
         type: 'solid',
         width: 2,
       },

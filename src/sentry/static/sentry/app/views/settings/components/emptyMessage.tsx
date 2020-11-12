@@ -51,7 +51,7 @@ const EmptyMessage = styled(
           padding: ${space(4)} 15%;
         `};
   flex-direction: column;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   font-size: ${p =>
     p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
 `;

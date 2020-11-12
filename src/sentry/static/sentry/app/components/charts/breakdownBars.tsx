@@ -56,7 +56,7 @@ const BarContainer = styled('div')`
 
 const Label = styled('span')`
   position: relative;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   z-index: 2;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

@@ -38,7 +38,7 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.gray300};
   h4 {
     font-size: ${p => p.theme.headerFontSize};
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
     font-weight: normal;
     margin-bottom: 0;
   }

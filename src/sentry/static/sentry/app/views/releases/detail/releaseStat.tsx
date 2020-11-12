@@ -46,7 +46,7 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
 
 const Value = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 export default ReleaseStat;

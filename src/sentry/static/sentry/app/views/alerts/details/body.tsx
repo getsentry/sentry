@@ -295,7 +295,7 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const Main = styled('div')`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding-top: ${space(3)};
   flex-grow: 1;
 `;
@@ -356,7 +356,7 @@ const ChartActions = styled(PanelFooter)`
 `;
 
 const ChartParameters = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-auto-flow: column;
@@ -427,6 +427,6 @@ const RuleDetails = styled('div')`
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.rowBackground};
   }
 `;

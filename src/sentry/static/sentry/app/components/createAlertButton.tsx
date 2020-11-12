@@ -315,7 +315,7 @@ function CreateAlertButton({
 export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   margin-bottom: 0;
 `;
 

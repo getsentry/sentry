@@ -14,7 +14,7 @@ const SettingsHeader = styled('div')`
   z-index: ${p => p.theme.zIndex.header + HEADER_Z_INDEX_OFFSET};
   padding: ${space(3)} ${space(4)};
   border-bottom: 1px solid ${p => p.theme.border};
-  background: #fff;
+  background: ${p => p.theme.background};
   height: ${p => p.theme.settings.headerHeight};
 `;
 

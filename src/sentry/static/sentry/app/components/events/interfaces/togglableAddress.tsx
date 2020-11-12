@@ -123,7 +123,7 @@ const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
 const Wrapper = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   letter-spacing: -0.25px;
   width: 100%;
   flex-grow: 0;

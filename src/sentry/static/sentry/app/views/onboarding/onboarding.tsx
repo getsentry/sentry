@@ -234,7 +234,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
-  background: #fff;
+  background: ${p => p.theme.background};
   padding: ${space(4)} 0;
   position: sticky;
   top: 0;
@@ -251,7 +251,7 @@ const Header = styled('header')`
 const LogoSvg = styled(InlineSvg)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const ProgressBar = styled('div')`
@@ -279,11 +279,11 @@ const ProgressStep = styled('div')<{active: boolean}>`
   height: 16px;
   border-radius: 50%;
   border: 4px solid ${p => (p.active ? p.theme.active : p.theme.inactive)};
-  background: #fff;
+  background: ${p => p.theme.background};
 `;
 
 const ProgressStatus = styled(motion.div)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
   grid-column: 3;

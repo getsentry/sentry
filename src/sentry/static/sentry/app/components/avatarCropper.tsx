@@ -428,7 +428,7 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   margin-bottom: 20px;
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  background-color: #fff;
+  background-color: ${p => p.theme.background};
   background-image: linear-gradient(45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(-45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, #eee 75%),

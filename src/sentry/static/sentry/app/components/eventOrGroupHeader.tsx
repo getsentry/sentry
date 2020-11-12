@@ -148,7 +148,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -158,7 +158,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   span {
     direction: ltr;
   }

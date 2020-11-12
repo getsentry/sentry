@@ -387,6 +387,7 @@ const FooterMessage = styled('div')`
 `;
 
 const StyledProjectSelector = styled(ProjectSelector)`
+  background-color: ${p => p.theme.background};
   margin: 1px 0 0 -1px;
   border-radius: ${p => p.theme.borderRadiusBottom};
   width: 100%;

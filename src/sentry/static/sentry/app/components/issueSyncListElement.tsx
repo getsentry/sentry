@@ -142,8 +142,8 @@ export const IntegrationLink = styled('a')`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray500};
-  border-bottom: 1px solid ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
+  border-bottom: 1px solid ${p => p.theme.textColor};
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
@@ -157,7 +157,7 @@ export const IntegrationLink = styled('a')`
 `;
 
 const StyledIcon = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   cursor: pointer;
 `;
 

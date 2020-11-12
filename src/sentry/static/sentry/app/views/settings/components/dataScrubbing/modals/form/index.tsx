@@ -223,10 +223,10 @@ const ToggleWrapper = styled('div')`
 
 const Toggle = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
   > *:first-child {
     display: grid;

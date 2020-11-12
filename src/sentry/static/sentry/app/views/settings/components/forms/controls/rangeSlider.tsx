@@ -383,7 +383,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
 const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`

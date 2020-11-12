@@ -27,14 +27,14 @@ export const HeaderTitle = styled('h3')`
   grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   padding-left: ${space(1)};
   line-height: 1.1;
   margin-bottom: 0;
 `;
 
 export const HeaderTitleLegend = styled(HeaderTitle)`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   position: absolute;
   z-index: 1;
 `;

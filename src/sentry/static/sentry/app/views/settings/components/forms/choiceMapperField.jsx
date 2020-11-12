@@ -261,7 +261,7 @@ const LabelColumn = styled('div')`
 const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 const Actions = styled('div')`

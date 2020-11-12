@@ -144,7 +144,7 @@ BooleanFilter.propTypes = {
 
 const FilterContainer = styled('div')`
   border-radius: 4px;
-  background: #fff;
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLight};
   border: 1px solid ${p => p.theme.border};
 `;
@@ -154,7 +154,7 @@ const FilterHeader = styled('h2')`
   border-top-right-radius: 4px;
   border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(1)};

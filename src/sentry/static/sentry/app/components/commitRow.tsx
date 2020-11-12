@@ -156,7 +156,7 @@ const Meta = styled(TextOverflow)`
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export default styled(CommitRow)`

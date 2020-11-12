@@ -27,7 +27,7 @@ const hoverStyle = css`
 `;
 
 const Card = styled('div')<Props>`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;

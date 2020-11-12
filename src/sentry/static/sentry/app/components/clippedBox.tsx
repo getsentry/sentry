@@ -177,5 +177,5 @@ const ClipFade = styled('div')`
     rgba(255, 255, 255, 1)
   );
   text-align: center;
-  border-bottom: ${space(1.5)} solid ${p => p.theme.white};
+  border-bottom: ${space(1.5)} solid ${p => p.theme.background};
 `;

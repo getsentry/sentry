@@ -77,7 +77,7 @@ export const Sidebar = styled('div')`
   display: flex;
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.border};
-  background: #fff;
+  background: ${p => p.theme.background};
   min-width: 320px;
   position: relative;
   padding-top: ${HEADER_HEIGHT}px;
@@ -93,7 +93,7 @@ export const DocsSeparator = styled('div')`
 `;
 
 export const DocsLink = styled(ExternalLink)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   &:hover {
     color: ${p => p.theme.blue300};
   }
@@ -169,7 +169,7 @@ export const SelectListItem = styled('div')`
 export const SidebarLabel = styled('label')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export const QueryFieldsContainer = styled('div')`
@@ -235,7 +235,7 @@ export const ChartWrapper = styled(Panel)`
 export const ChartNote = styled('div')`
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(3)};
 `;
 
@@ -277,7 +277,7 @@ export const QueryPanelContainer = styled('div')`
   position: absolute;
   width: calc(100% + 1px); /* Add 1px for border */
   height: calc(100% - ${HEADER_HEIGHT}px);
-  background-color: white;
+  background-color: ${p => p.theme.background};
   top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.border};
   animation: ${slideInLeft} 0.2s ease-in;

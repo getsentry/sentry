@@ -82,7 +82,7 @@ const Wrapper = styled('div')`
   padding: ${space(0.25)} ${space(0.75)};
 
   background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-align: center;
   border-radius: 17px;

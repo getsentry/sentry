@@ -56,5 +56,5 @@ export default Time;
 
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;

@@ -349,7 +349,7 @@ const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
 
 const TableHeader = styled(Cell)`
   background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   border-top: none;
   border-bottom: 1px solid ${p => p.theme.border};
   &:first-of-type {

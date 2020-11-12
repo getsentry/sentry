@@ -200,7 +200,7 @@ class SentryAppExternalIssueActions extends React.Component<Props, State> {
 }
 
 const StyledSentryAppIcon = styled(SentryAppIcon)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   width: ${space(3)};
   height: ${space(3)};
   cursor: pointer;
@@ -222,7 +222,7 @@ const IssueLinkContainer = styled('div')`
 `;
 
 const StyledIcon = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   cursor: pointer;
 `;
 

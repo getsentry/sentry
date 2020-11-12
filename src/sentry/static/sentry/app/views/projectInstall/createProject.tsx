@@ -325,7 +325,7 @@ const CreateProjectForm = styled('form')`
   align-items: end;
   padding: ${space(3)} 0;
   box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
-  background: #fff;
+  background: ${p => p.theme.background};
 `;
 
 const FormLabel = styled('div')`
@@ -357,6 +357,6 @@ const TeamSelectInput = styled('div')`
 `;
 
 const HelpText = styled('p')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   max-width: 700px;
 `;

@@ -472,7 +472,7 @@ const ChartContainer = styled('div')`
     width: 0;
     position: absolute;
     pointer-events: none;
-    border-top-color: ${p => p.theme.gray500};
+    border-top-color: ${p => p.theme.textColor};
     border-width: 8px;
     margin-left: -8px;
   }

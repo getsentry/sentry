@@ -15,13 +15,13 @@ const IconWrapper = styled('div', {
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
   z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
   border: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   ${p =>
     p.color &&
     `

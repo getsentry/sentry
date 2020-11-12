@@ -408,7 +408,7 @@ const Menu = styled('div')`
   ${p => p.isAbsoluteSelected && 'right: -1px'};
 
   display: flex;
-  background: #fff;
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: 100%;

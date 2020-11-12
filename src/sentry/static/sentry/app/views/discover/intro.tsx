@@ -92,7 +92,7 @@ const IntroContainer = styled('div')`
   align-items: center;
   justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   width: 100%;
   height: 100%;
   min-height: 420px;

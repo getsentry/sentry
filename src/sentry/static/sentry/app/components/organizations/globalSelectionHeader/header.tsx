@@ -10,7 +10,7 @@ const Header = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
-  background: #fff;
+  background: ${p => p.theme.headerBackground};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   @media (min-width: ${props => props.theme.breakpoints[0]} and max-width: ${props =>
       props.theme.breakpoints[1]}) {

@@ -378,7 +378,7 @@ const RowContainer = styled('div')`
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: block;
   position: absolute;
   padding: ${space(0.5)};
