@@ -128,7 +128,7 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.gray500};
   font-size: 13px;
   max-width: 150px;
   overflow: hidden;
