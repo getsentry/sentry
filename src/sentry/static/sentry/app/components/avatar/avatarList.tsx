@@ -88,7 +88,7 @@ export const AvatarListWrapper = styled('div')`
 
 const Circle = css`
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid ${p => p.theme.background};
   margin-left: -8px;
   cursor: default;
 

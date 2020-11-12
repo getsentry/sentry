@@ -70,7 +70,7 @@ const defaultStyles = {
     ...(state.isDisabled && {
       borderColor: theme.border,
       background: theme.backgroundSecondary,
-      color: theme.gray300,
+      color: theme.disabled,
       cursor: 'not-allowed',
     }),
     ...(!state.isSearchable && {
@@ -96,7 +96,7 @@ const defaultStyles = {
     color: state.isFocused
       ? theme.textColor
       : state.isSelected
-      ? theme.white
+      ? theme.background
       : theme.textColor,
     backgroundColor: state.isFocused
       ? theme.backgroundSecondary
