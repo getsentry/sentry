@@ -100,8 +100,27 @@ def trim_function_name(function, platform, normalize_lambdas=True):
     a trimmed version that can be stored in `function_name`.  This is only used
     if the client did not supply a value itself already.
     """
-    if get_behavior_family_for_platform(platform) != "native":
-        return function
+    if platform == "csharp":
+        return trim_csharp_function_name(function)
+    if get_behavior_family_for_platform(platform) == "native":
+        return trim_native_function_name(function, normalize_lambdas=normalize_lambdas)
+    return function
+
+
+def trim_csharp_function_name(function):
+    """This trims off signatures from C# frames.  This takes advantage of the
+    Unity not emitting any return values and using a space before the argument
+    list.
+
+    Note that there is disagreement between Unity and the main .NET SDK about
+    the function names.  The Unity SDK emits the entire function with module
+    in the `function` name similar to native, the .NET SDK emits it in individual
+    parts of the frame.
+    """
+    return function.split(" (", 1)[0]
+
+
+def trim_native_function_name(function, normalize_lambdas=True):
     if function in ("<redacted>", "<unknown>"):
         return function
 

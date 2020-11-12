@@ -1,11 +1,13 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
+import {browserHistory, WithRouterProps} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
 import 'prismjs/themes/prism-tomorrow.css';
 
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {performance as performancePlatforms} from 'app/data/platformCategories';
+import {Client} from 'app/api';
+import {
+  performance as performancePlatforms,
+  PlatformKey,
+} from 'app/data/platformCategories';
 import {loadDocs} from 'app/actionCreators/projects';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
@@ -16,22 +18,31 @@ import {IconInfo} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
+import {PageHeader} from 'app/styles/organization';
 import Projects from 'app/utils/projects';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import {Organization, Project} from 'app/types';
 
-class ProjectInstallPlatform extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-  };
+type Props = {
+  api: Client;
+  organization: Organization;
+} & WithRouterProps<{orgId: string; projectId: string; platform: string}, {}>;
 
-  state = {
+type State = {
+  loading: boolean;
+  error: boolean;
+  html: string;
+};
+
+class ProjectInstallPlatform extends React.Component<Props, State> {
+  state: State = {
     loading: true,
     error: false,
-    html: null,
+    html: '',
   };
 
   componentDidMount() {
@@ -57,7 +68,7 @@ class ProjectInstallPlatform extends React.Component {
     this.setState({loading: true});
 
     try {
-      const {html} = await loadDocs(api, orgId, projectId, platform);
+      const {html} = await loadDocs(api, orgId, projectId, platform as PlatformKey);
       this.setState({html});
     } catch (error) {
       this.setState({error});
@@ -87,35 +98,36 @@ class ProjectInstallPlatform extends React.Component {
     const issueStreamLink = `/organizations/${orgId}/issues/`;
     const performanceOverviewLink = `/organizations/${orgId}/performance/`;
     const gettingStartedLink = `/organizations/${orgId}/projects/${projectId}/getting-started/`;
+    const platformLink = platform.link ?? undefined;
 
     return (
-      <Panel>
-        <PanelHeader hasButtons>
-          {t('Configure %(platform)s', {platform: platform.name})}
-          <Actions>
+      <React.Fragment>
+        <StyledPageHeader>
+          <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
+          <ButtonBar gap={1}>
             <Button size="small" to={gettingStartedLink}>
               {t('< Back')}
             </Button>
-            <Button size="small" href={platform.link} external>
+            <Button size="small" href={platformLink} external>
               {t('Full Documentation')}
             </Button>
-          </Actions>
-        </PanelHeader>
+          </ButtonBar>
+        </StyledPageHeader>
 
-        <PanelAlert type="info">
-          {tct(
-            `
+        <div>
+          <Alert type="info" icon={<IconInfo />}>
+            {tct(
+              `
              This is a quick getting started guide. For in-depth instructions
              on integrating Sentry with [platform], view
              [docLink:our complete documentation].`,
-            {
-              platform: platform.name,
-              docLink: <a href={platform.link} />,
-            }
-          )}
-        </PanelAlert>
+              {
+                platform: platform.name,
+                docLink: <a href={platformLink} />,
+              }
+            )}
+          </Alert>
 
-        <PanelBody withPadding>
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
@@ -142,10 +154,12 @@ class ProjectInstallPlatform extends React.Component {
                 const projectFilter =
                   !projectsLoading && !fetchError && projects.length
                     ? {
-                        project: projects[0].id,
+                        project: (projects[0] as Project).id,
                       }
                     : {};
-                const showPerformancePrompt = performancePlatforms.includes(platform.id);
+                const showPerformancePrompt = performancePlatforms.includes(
+                  platform.id as PlatformKey
+                );
 
                 return (
                   <React.Fragment>
@@ -196,8 +210,8 @@ class ProjectInstallPlatform extends React.Component {
               }}
             </Projects>
           )}
-        </PanelBody>
-      </Panel>
+        </div>
+      </React.Fragment>
     );
   }
 }
@@ -225,12 +239,6 @@ const DocumentationWrapper = styled('div')`
   }
 `;
 
-const Actions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
-`;
-
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
   width: max-content;
@@ -239,6 +247,23 @@ const StyledButtonBar = styled(ButtonBar)`
     width: auto;
     grid-row-gap: ${space(1)};
     grid-auto-flow: row;
+  }
+`;
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(3)};
+
+  h2 {
+    margin: 0;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+    align-items: flex-start;
+
+    h2 {
+      margin-bottom: ${space(2)};
+    }
   }
 `;
 

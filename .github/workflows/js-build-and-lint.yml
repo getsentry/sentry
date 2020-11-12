@@ -19,6 +19,8 @@ jobs:
           # because we want to lint + fix + commit, we need to checkout the HEAD sha (otherwise
           # it checks out the merge commit and we will not be able to commit to it)
           ref: ${{ github.event.pull_request.head.ref || 'master' }}
+          # We need the repo here so that this works for forks
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Check for frontend file changes
         uses: getsentry/paths-filter@v2
@@ -67,15 +69,20 @@ jobs:
           yarn lint -c .eslintrc.relax.js
           yarn lint:css
 
+      - name: eslint (forks)
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          yarn eslint ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+
       # Otherwise if it's not main branch, only lint modified files
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
       # Otherwise if it's not main branch, only lint modified files
       - name: Commit any eslint fixed files
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
@@ -85,8 +92,7 @@ jobs:
           git push origin
 
       - name: tsc
-        if: steps.changes.outputs.frontend == 'true'
-        continue-on-error: true
+        if: always() && steps.changes.outputs.frontend == 'true'
         run: |
           yarn tsc -p config/tsconfig.build.json
 

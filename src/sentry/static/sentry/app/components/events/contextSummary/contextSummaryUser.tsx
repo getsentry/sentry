@@ -8,7 +8,7 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import space from 'app/styles/space';
-import {ParagraphOverflow} from 'app/components/textOverflow';
+import TextOverflow from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
@@ -49,10 +49,10 @@ const ContextSummaryUser = ({data}: Props) => {
     }
 
     return (
-      <ParagraphOverflow>
+      <TextOverflow isParagraph>
         <Subject>{userDetails.subject}</Subject>
         <AnnotatedText value={userDetails.value} meta={userDetails.meta} />
-      </ParagraphOverflow>
+      </TextOverflow>
     );
   };
 

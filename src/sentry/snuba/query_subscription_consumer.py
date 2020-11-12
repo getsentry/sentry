@@ -6,6 +6,7 @@ import pytz
 import sentry_sdk
 import six
 from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
+from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
@@ -13,6 +14,7 @@ from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTIO
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import metrics, json, kafka_config
+from sentry.utils.batching_kafka_consumer import wait_for_topics
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,12 @@ class QuerySubscriptionConsumer(object):
                 "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
             },
         )
+        self.admin_cluster_options = kafka_config.get_kafka_admin_cluster_options(
+            cluster_name, 
+            {
+              "allow.auto.create.topics": "true",
+            }
+        )
 
     def run(self):
         logger.debug("Starting snuba query subscriber")
@@ -108,6 +116,12 @@ class QuerySubscriptionConsumer(object):
             )
 
         self.consumer = Consumer(self.cluster_options)
+        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
+            # This is required for confluent-kafka>=1.5.0, otherwise the topics will
+            # not be automatically created.
+            admin_client = AdminClient(self.admin_cluster_options)
+            wait_for_topics(admin_client, [self.topic])
+
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 
         try:
