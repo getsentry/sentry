@@ -48,6 +48,10 @@ class UnsafeReleaseDeletion(Exception):
     pass
 
 
+class ReleaseCommitError(Exception):
+    pass
+
+
 class ReleaseProject(Model):
     __core__ = False
 
@@ -460,6 +464,11 @@ class Release(Model):
         ]
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
+        if lock.locked():
+            # Signal failure to the consumer rapidly. This aims to prevent the number
+            # of timeouts and prevent web worker exhaustion when customers create
+            # the same release rapidly for different projects.
+            raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
             with transaction.atomic():

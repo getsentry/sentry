@@ -6,14 +6,14 @@ from django.db import IntegrityError
 from django.db.models import Q
 from django.db.models.functions import Coalesce
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError, APIException
+from rest_framework.exceptions import ParseError
 
 from sentry import analytics
 
 from sentry.api.bases import NoProjects
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import InvalidRepository
+from sentry.api.exceptions import InvalidRepository, ConflictError
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -22,7 +22,14 @@ from sentry.api.serializers.rest_framework import (
     ReleaseWithVersionSerializer,
     ListField,
 )
-from sentry.models import Activity, Release, ReleaseStatus, Project, ReleaseProject
+from sentry.models import (
+    Activity,
+    Release,
+    ReleaseCommitError,
+    ReleaseProject,
+    ReleaseStatus,
+    Project,
+)
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     get_changed_project_release_model_adoptions,
@@ -334,8 +341,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                         },
                     )
                 except IntegrityError:
-                    raise APIException(
-                        "Could not create the release it conflicts with existing data", 409
+                    raise ConflictError(
+                        "Could not create the release it conflicts with existing data",
                     )
                 if created:
                     release_created.send_robust(release=release, sender=self.__class__)
@@ -362,7 +369,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
                 commit_list = result.get("commits")
                 if commit_list:
-                    release.set_commits(commit_list)
+                    try:
+                        release.set_commits(commit_list)
+                    except ReleaseCommitError:
+                        raise ConflictError("Release commits are currently being processed")
 
                 refs = result.get("refs")
                 if not refs:
