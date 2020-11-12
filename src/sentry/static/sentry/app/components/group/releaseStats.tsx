@@ -1,7 +1,7 @@
 import React from 'react';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
+import Placeholder from 'app/components/placeholder';
 import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
 import {t} from 'app/locale';
@@ -44,7 +44,7 @@ const GroupReleaseStats = ({
   return (
     <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
       {!group || !allEnvironments ? (
-        <LoadingIndicator />
+        <Placeholder height="288px" />
       ) : (
         <React.Fragment>
           <GroupReleaseChart
