@@ -94,6 +94,20 @@ class ApiClientTest(TestCase):
         ApiClient().get_cached("http://example.com", params={"param": "different"})
         assert len(responses.calls) == 2
 
+    @responses.activate
+    def test_head_cached_query_param(self):
+        responses.add(responses.HEAD, "http://example.com?param=val", json={})
+        responses.add(responses.HEAD, "http://example.com?param=different", json={})
+
+        ApiClient().head_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().head_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().head_cached("http://example.com", params={"param": "different"})
+        assert len(responses.calls) == 2
+
 
 class OAuthProvider(OAuth2Provider):
     key = "oauth"

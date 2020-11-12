@@ -300,7 +300,10 @@ class BaseApiClient(object):
         return self.request("HEAD", *args, **kwargs)
 
     def head_cached(self, path, *args, **kwargs):
-        key = self.get_cache_prefix() + md5_text(self.build_url(path)).hexdigest()
+        query = ""
+        if kwargs.get("params", None):
+            query = json.dumps(kwargs.get("params"), sort_keys=True)
+        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
         result = cache.get(key)
         if result is None:
