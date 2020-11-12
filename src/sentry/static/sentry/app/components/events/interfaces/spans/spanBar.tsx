@@ -192,13 +192,13 @@ export const getBackgroundColor = ({
   theme: any;
 }) => {
   if (!theme) {
-    return theme.white;
+    return theme.background;
   }
 
   if (showDetail) {
-    return theme.gray500;
+    return theme.textColor;
   }
-  return showStriping ? theme.backgroundSecondary : theme.white;
+  return showStriping ? theme.backgroundSecondary : theme.background;
 };
 
 type SpanBarProps = {
@@ -921,7 +921,7 @@ export const SpanRowCell = styled('div')<SpanRowCellProps>`
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
+  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
 `;
 
 export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
@@ -933,7 +933,7 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
 
   &:hover > div[data-type='span-row-cell'] {
     background-color: ${p =>
-      p.showDetail ? p.theme.gray500 : p.theme.backgroundSecondary};
+      p.showDetail ? p.theme.textColor : p.theme.backgroundSecondary};
   }
 `;
 
@@ -966,7 +966,7 @@ export const DividerLine = styled('div')`
   }
 
   &.hovering {
-    background-color: ${p => p.theme.gray500};
+    background-color: ${p => p.theme.textColor};
     width: 3px;
     transform: translateX(-1px);
     margin-right: -2px;
@@ -1173,7 +1173,7 @@ const MeasurementMarker = styled('div')`
   background: repeating-linear-gradient(to bottom, transparent 0 4px, black 4px 8px) 80%/2px
     100% no-repeat;
   z-index: ${zIndex.dividerLine};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

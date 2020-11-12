@@ -374,7 +374,7 @@ class VitalCard extends React.Component<Props, State> {
         show: false,
       },
       lineStyle: {
-        color: theme.gray500,
+        color: theme.textColor,
         type: 'solid',
       },
     });

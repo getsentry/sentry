@@ -62,7 +62,7 @@ const MetaDataID = styled('div')`
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

@@ -92,7 +92,7 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   width: auto;
 
   &:last-child {
-    color: ${p.theme.gray500};
+    color: ${p.theme.textColor};
   }
 `;
 
@@ -109,7 +109,7 @@ const BreadcrumbLink = styled(({preserveGlobalSelection, ...props}) =>
 
   &:hover,
   &:active {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.subText};
   }
 `;
 

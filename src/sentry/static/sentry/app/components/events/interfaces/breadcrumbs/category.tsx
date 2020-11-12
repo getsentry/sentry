@@ -28,7 +28,7 @@ const Category = React.memo(({category, searchTerm}: Props) => {
 export default Category;
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 700;
 `;

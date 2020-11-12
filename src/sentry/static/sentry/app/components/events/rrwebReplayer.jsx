@@ -67,7 +67,7 @@ export default styled(RRWebReplayer)`
     width: 100%;
     display: block;
     padding: ${theme.space[2]}px 0;
-    background: #fff;
+    background: ${p => p.theme.background};
     border-radius: 0 0 5px 5px;
     box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
     position: relative;

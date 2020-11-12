@@ -127,7 +127,7 @@ const MonoButton = styled(Button)`
 `;
 
 const Path = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   text-transform: none;
   font-weight: normal;
 
@@ -151,7 +151,7 @@ const StyledIconOpen = styled(IconOpen)`
   top: 1px;
 
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.subText};
   }
 `;
 
