@@ -84,6 +84,7 @@ class UpdateGroupsTest(TestCase):
         resolved_group.refresh_from_db()
 
         assert resolved_group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(group=resolved_group).exists()
         assert not send_robust.called
         assert send_unresolved.called
 
