@@ -51,13 +51,13 @@ export default function XAxis({
     boundaryGap: false,
     axisLine: {
       lineStyle: {
-        color: theme.chartLineColor,
+        color: theme.chartLabel,
       },
       ...(axisLine || {}),
     },
     axisTick: {
       lineStyle: {
-        color: theme.chartLineColor,
+        color: theme.chartLabel,
       },
       ...(axisTick || {}),
     },
@@ -65,6 +65,7 @@ export default function XAxis({
       show: false,
     },
     axisLabel: {
+      color: theme.chartLabel,
       margin: 12,
 
       // This was default with ChartZoom, we are making it default for all charts now

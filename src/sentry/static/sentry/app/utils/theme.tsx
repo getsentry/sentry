@@ -148,13 +148,14 @@ const aliases = {
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
+   * (This should only be used for yAxis)
    */
   chartLineColor: colors.gray100,
 
   /**
    * Color for chart label text
    */
-  chartLabel: colors.gray300,
+  chartLabel: colors.gray200,
 } as const;
 
 const warning = {
@@ -481,7 +482,7 @@ const darkAliases = {
   formPlaceholder: colors.gray400,
   formText: colors.white,
   rowBackground: colors.gray500,
-  chartLineColor: colors.gray400,
+  chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
 } as const;
 
