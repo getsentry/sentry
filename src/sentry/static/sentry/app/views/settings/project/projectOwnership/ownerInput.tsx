@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import TextareaAutosize from 'react-autosize-textarea';
@@ -7,39 +6,45 @@ import {Client} from 'app/api';
 import memberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import Button from 'app/components/button';
-import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
-import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
+import {Project, Organization, Team} from 'app/types';
+import theme from 'app/utils/theme';
 
-class OwnerInput extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    initialText: PropTypes.string,
-    urls: PropTypes.arrayOf(PropTypes.string),
-    paths: PropTypes.arrayOf(PropTypes.string),
-    disabled: PropTypes.bool,
+import RuleBuilder from './ruleBuilder';
+
+const defaultProps = {
+  urls: [] as string[],
+  paths: [] as string[],
+  disabled: false,
+};
+
+type Props = {
+  organization: Organization;
+  project: Project;
+  initialText: string;
+} & typeof defaultProps;
+
+type State = {
+  hasChanges: boolean;
+  text: string;
+  error: null | {
+    raw: string[];
+  };
+};
+
+class OwnerInput extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
+
+  state: State = {
+    hasChanges: false,
+    text: '',
+    error: null,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      text: props.initialText,
-      initialText: props.initialText,
-      error: null,
-    };
-  }
-
-  UNSAFE_componentWillReceiveProps({initialText}) {
-    if (initialText !== this.state.initialText) {
-      this.setState({initialText});
-    }
-  }
-
-  parseError(error) {
-    const text = error && error.raw && error.raw[0];
+  parseError(error: State['error']) {
+    const text = error?.raw?.[0];
     if (!text) {
       return null;
     }
@@ -47,7 +52,9 @@ class OwnerInput extends React.Component {
     if (text.startsWith('Invalid rule owners:')) {
       return <InvalidOwners>{text}</InvalidOwners>;
     } else {
-      return <SyntaxOverlay line={text.match(/line (\d*),/)[1] - 1} />;
+      return (
+        <SyntaxOverlay line={parseInt(text.match(/line (\d*),/)?.[1] ?? '', 10) - 1} />
+      );
     }
   }
 
@@ -69,7 +76,8 @@ class OwnerInput extends React.Component {
       .then(() => {
         addSuccessMessage(t('Updated issue ownership rules'));
         this.setState({
-          initialText: text,
+          hasChanges: false,
+          text,
         });
       })
       .catch(error => {
@@ -106,22 +114,25 @@ class OwnerInput extends React.Component {
 
   mentionableTeams() {
     const {project} = this.props;
-    return (
-      ProjectsStore.getBySlug(project.slug) || {
-        teams: [],
-      }
-    ).teams.map(team => ({
+    const projectWithTeams = ProjectsStore.getBySlug(project.slug);
+    if (!projectWithTeams) {
+      return [];
+    }
+    return projectWithTeams.teams.map((team: Team) => ({
       id: team.id,
       display: `#${team.slug}`,
       email: team.id,
     }));
   }
 
-  handleChange = e => {
-    this.setState({text: e.target.value});
+  handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    this.setState({
+      hasChanges: true,
+      text: e.target.value,
+    });
   };
 
-  handleAddRule = rule => {
+  handleAddRule = (rule: string) => {
     this.setState(
       ({text}) => ({
         text: text + '\n' + rule,
@@ -131,8 +142,8 @@ class OwnerInput extends React.Component {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths} = this.props;
-    const {text, error, initialText} = this.state;
+    const {project, organization, disabled, urls, paths, initialText} = this.props;
+    const {hasChanges, text, error} = this.state;
 
     return (
       <React.Fragment>
@@ -161,11 +172,12 @@ class OwnerInput extends React.Component {
             }
             onChange={this.handleChange}
             disabled={disabled}
-            value={text}
+            value={text || initialText}
             spellCheck="false"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
+            theme={theme}
           />
           <ActionBar>
             <div>{this.parseError(error)}</div>
@@ -174,7 +186,7 @@ class OwnerInput extends React.Component {
                 size="small"
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
-                disabled={disabled || text === initialText}
+                disabled={disabled || !hasChanges}
               >
                 {t('Save Changes')}
               </Button>
@@ -195,7 +207,7 @@ const ActionBar = styled('div')`
   justify-content: space-between;
 `;
 
-const SyntaxOverlay = styled('div')`
+const SyntaxOverlay = styled('div')<{line: number}>`
   ${inputStyles};
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
