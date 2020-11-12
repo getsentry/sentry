@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
 import {TraceKnownData, TraceKnownDataType} from './types';
 
@@ -53,7 +54,9 @@ function getUserKnownDataDetails(
         fields: ['title', 'event.type', 'project', 'trace.span', 'timestamp'],
         orderby: '-timestamp',
         query: `trace:${traceId}`,
-        projects: orgFeatures.has('global-views') ? [] : [Number(event.projectID)],
+        projects: orgFeatures.has('global-views')
+          ? [ALL_ACCESS_PROJECTS]
+          : [Number(event.projectID)],
         version: 2,
         start,
         end,
