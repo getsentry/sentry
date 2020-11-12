@@ -86,9 +86,9 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
       frames = inAppFrames;
     }
 
-    const paths = uniq(
-      frames.map(frame => frame.filename || frame.absPath).filter(i => i)
-    ).slice(0, 30);
+    const paths = uniq(frames.map(frame => frame.filename || frame.absPath || ''))
+      .filter(i => i)
+      .slice(0, 30);
 
     return (
       <React.Fragment>
@@ -98,7 +98,6 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
           initialText={ownership.raw || ''}
           urls={urls}
           paths={paths}
-          onSave={this.props.onSave}
         />
       </React.Fragment>
     );

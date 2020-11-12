@@ -1,18 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import memberListStore from 'app/stores/memberListStore';
+import MemberListStore from 'app/stores/memberListStore';
 import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import {IconAdd, IconChevron} from 'app/icons';
 import Input from 'app/views/settings/components/forms/controls/input';
-import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
+import SelectOwners, {
+  Owner,
+} from 'app/views/settings/project/projectOwnership/selectOwners';
 import space from 'app/styles/space';
+import {Project, Organization} from 'app/types';
 
 const initialState = {
   text: '',
@@ -22,7 +23,7 @@ const initialState = {
   isValid: false,
 };
 
-function getMatchPlaceholder(type) {
+function getMatchPlaceholder(type: string): string {
   switch (type) {
     case 'path':
       return 'src/example/*';
@@ -35,20 +36,25 @@ function getMatchPlaceholder(type) {
   }
 }
 
-class RuleBuilder extends React.Component {
-  static propTypes = {
-    project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
-    onAddRule: PropTypes.func,
-    urls: PropTypes.arrayOf(PropTypes.string),
-    paths: PropTypes.arrayOf(PropTypes.string),
-    disabled: PropTypes.bool,
-  };
+type Props = {
+  organization: Organization;
+  project: Project;
+  onAddRule: (rule: string) => void;
+  urls: string[];
+  paths: string[];
+  disabled: boolean;
+};
 
-  constructor(props) {
-    super(props);
-    this.state = initialState;
-  }
+type State = {
+  text: string;
+  tagName: string;
+  type: string;
+  owners: Owner[];
+  isValid: boolean;
+};
+
+class RuleBuilder extends React.Component<Props, State> {
+  state: State = initialState;
 
   checkIsValid = () => {
     this.setState(state => ({
@@ -56,21 +62,21 @@ class RuleBuilder extends React.Component {
     }));
   };
 
-  handleTypeChange = val => {
+  handleTypeChange = (val: string) => {
     this.setState({type: val});
     this.checkIsValid();
   };
 
-  handleTagNameChangeValue = e => {
+  handleTagNameChangeValue = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({tagName: e.target.value}, this.checkIsValid);
   };
 
-  handleChangeValue = e => {
+  handleChangeValue = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({text: e.target.value});
     this.checkIsValid();
   };
 
-  handleChangeOwners = owners => {
+  handleChangeOwners = (owners: Owner[]) => {
     this.setState({owners});
     this.checkIsValid();
   };
@@ -87,7 +93,7 @@ class RuleBuilder extends React.Component {
       .map(owner =>
         owner.actor.type === 'team'
           ? `#${owner.actor.name}`
-          : memberListStore.getById(owner.actor.id).email
+          : MemberListStore.getById(owner.actor.id)?.email
       )
       .join(' ');
 
@@ -100,7 +106,7 @@ class RuleBuilder extends React.Component {
     this.setState(initialState);
   };
 
-  handleSelectCandidate = (text, type) => {
+  handleSelectCandidate = (text: string, type: string) => {
     this.setState({text, type});
     this.checkIsValid();
   };
@@ -142,7 +148,6 @@ class RuleBuilder extends React.Component {
             deprecatedSelectControl
             name="select-type"
             value={type}
-            showSearch={false}
             onChange={this.handleTypeChange}
             options={[
               {value: 'path', label: t('Path')},
@@ -155,7 +160,6 @@ class RuleBuilder extends React.Component {
           />
           {type === 'tag' && (
             <BuilderTagNameInput
-              controlled
               value={tagName}
               onChange={this.handleTagNameChangeValue}
               disabled={disabled}
@@ -163,7 +167,6 @@ class RuleBuilder extends React.Component {
             />
           )}
           <BuilderInput
-            controlled
             value={text}
             onChange={this.handleChangeValue}
             disabled={disabled}
