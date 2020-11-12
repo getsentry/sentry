@@ -131,7 +131,7 @@
         padding-right: 7px;
       }
 
-      &:before {
+      &:after {
         display: block;
         position: absolute;
         content: '';
@@ -179,7 +179,7 @@
       padding-right: 7px;
     }
 
-    &:before {
+    &:after {
       display: block;
       position: absolute;
       content: '';
@@ -188,32 +188,6 @@
       right: 0;
       top: 50%;
       z-index: -1;
-    }
-
-    &.first-seen,
-    &.last-seen {
-      &:before {
-        right: 16px;
-      }
-
-      &:after {
-        display: block;
-        position: absolute;
-        content: '';
-        border-radius: 8px;
-        height: 8px;
-        width: 8px;
-        right: 0;
-        top: 0;
-      }
-
-      &.first-seen:after {
-        background-color: @pink;
-      }
-
-      &.last-seen:after {
-        background-color: @green;
-      }
     }
   }
 

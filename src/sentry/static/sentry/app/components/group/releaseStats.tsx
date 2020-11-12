@@ -9,6 +9,8 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {Environment, Group, Organization, Project} from 'app/types';
 
+import SidebarHeader from './sidebarHeader';
+
 type Props = {
   organization: Organization;
   project: Project;
@@ -43,9 +45,9 @@ const GroupReleaseStats = ({
 
   return (
     <div className="env-stats">
-      <h6>
+      <SidebarHeader>
         <span data-test-id="env-label">{environmentLabel}</span>
-      </h6>
+      </SidebarHeader>
 
       <div className="env-content">
         {!group || !allEnvironments ? (
