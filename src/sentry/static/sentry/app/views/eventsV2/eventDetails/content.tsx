@@ -242,7 +242,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
-              <RealUserMonitoring organization={organization} event={event} />
+              <RealUserMonitoring event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
@@ -321,7 +321,7 @@ const StyledHeaderActions = styled(Layout.HeaderActions)`
 `;
 
 const EventSubheading = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-left: ${space(1)};
 `;
 

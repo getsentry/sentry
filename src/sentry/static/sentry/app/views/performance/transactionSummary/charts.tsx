@@ -13,13 +13,13 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import {decodeScalar} from 'app/utils/queryString';
-import Feature from 'app/components/acl/feature';
 import OptionSelector from 'app/components/charts/optionSelector';
 
 import {ChartContainer} from '../styles';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
+import VitalsChart from './vitalsChart';
 import DurationPercentileChart from './durationPercentileChart';
 import {TrendFunctionField} from '../trends/types';
 import {TRENDS_FUNCTIONS} from '../trends/utils';
@@ -28,19 +28,16 @@ export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
   DURATION = 'duration',
   LATENCY = 'latency',
-  APDEX_THROUGHPUT = 'apdexthroughput',
   TREND = 'trend',
+  VITALS = 'vitals',
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
   {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
-];
-
-const DISPLAY_OPTIONS_WITH_TRENDS: SelectValue<string>[] = [
-  ...DISPLAY_OPTIONS,
   {value: DisplayModes.TREND, label: t('Trends')},
+  {value: DisplayModes.VITALS, label: t('Web Vitals')},
 ];
 
 const TREND_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(({field, label}) => ({
@@ -134,6 +131,17 @@ class TransactionSummaryCharts extends React.Component<Props> {
               statsPeriod={eventView.statsPeriod}
             />
           )}
+          {display === DisplayModes.VITALS && (
+            <VitalsChart
+              organization={organization}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          )}
         </ChartContainer>
 
         <ChartControls>
@@ -150,16 +158,12 @@ class TransactionSummaryCharts extends React.Component<Props> {
                 onChange={this.handleTrendDisplayChange}
               />
             )}
-            <Feature features={['trends']}>
-              {({hasFeature}) => (
-                <OptionSelector
-                  title={t('Display')}
-                  selected={display}
-                  options={hasFeature ? DISPLAY_OPTIONS_WITH_TRENDS : DISPLAY_OPTIONS}
-                  onChange={this.handleDisplayChange}
-                />
-              )}
-            </Feature>
+            <OptionSelector
+              title={t('Display')}
+              selected={display}
+              options={DISPLAY_OPTIONS}
+              onChange={this.handleDisplayChange}
+            />
           </InlineContainer>
         </ChartControls>
       </Panel>

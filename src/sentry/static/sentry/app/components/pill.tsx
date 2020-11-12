@@ -63,7 +63,7 @@ const getPillStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       return `
         background: ${theme.red100};
         background: ${theme.red100};
-        border: 1px solid ${theme.red400};
+        border: 1px solid ${theme.red300};
       `;
     default:
       return `
@@ -84,22 +84,22 @@ const getPillValueStyle = ({type, theme}: {type?: PillType; theme: Theme}) => {
       `;
     case 'error':
       return `
-        border-left-color: ${theme.red400};
+        border-left-color: ${theme.red300};
         background: ${theme.red100};
-        border: 1px solid ${theme.red400};
+        border: 1px solid ${theme.red300};
         margin: -1px;
       `;
     case 'negative':
       return `
-        border-left-color: ${theme.red400};
+        border-left-color: ${theme.red300};
         background: ${theme.red100};
-        border: 1px solid ${theme.red400};
+        border: 1px solid ${theme.red300};
         font-family: ${theme.text.familyMono};
         margin: -1px;
       `;
     default:
       return `
-        background: ${theme.gray100};
+        background: ${theme.backgroundSecondary};
         font-family: ${theme.text.familyMono};
       `;
   }
@@ -134,9 +134,9 @@ const PillValue = styled(PillName)`
   .external-icon {
     display: inline;
     margin: 0 0 0 ${space(1)};
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     &:hover {
-      color: ${p => p.theme.gray700};
+      color: ${p => p.theme.textColor};
     }
   }
 `;

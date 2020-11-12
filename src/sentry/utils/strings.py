@@ -243,3 +243,7 @@ def oxfordize_list(strings):
         return "%s and %s" % (strings[0], strings[1])
     else:
         return "%s, and %s" % (", ".join(strings[:-1]), strings[-1])
+
+
+def to_single_line_str(original_str):
+    return u" ".join(original_str.strip().split())

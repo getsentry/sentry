@@ -460,7 +460,7 @@ const Heading = styled('h1')`
 `;
 
 const Subtext = styled('p')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(3)};
 `;
 
@@ -501,7 +501,7 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   grid-gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.red400 : p.theme.gray600)};
+  color: ${p => (p.status === 'error' ? p.theme.red300 : p.theme.gray400)};
 
   > :first-child {
     ${p => p.status === 'success' && `color: ${p.theme.green300}`};

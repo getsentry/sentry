@@ -834,6 +834,8 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
+    # Enable Performance in the Release View
+    "organizations:release-performance-views": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
@@ -880,8 +882,6 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable measurements-based product features.
-    "organizations:measurements": False,
     # Enable key transactions as a column in performance
     "organizations:key-transactions": False,
     # Enable org-wide saved searches and user pinned search
@@ -907,8 +907,6 @@ SENTRY_FEATURES = {
     "organizations:sso-migration": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
-    # Enable trends view for performance.
-    "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
@@ -1444,6 +1442,10 @@ SENTRY_WATCHERS = (
 SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
+# Controls whether we'll run the snuba subscription processor. If enabled, we'll run
+# it as a worker, and devservices will run Kafka.
+SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
+
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -1527,11 +1529,14 @@ SENTRY_DEVSERVICES = {
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (
-            "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY
+            "kafka" in settings.SENTRY_EVENTSTREAM
+            or settings.SENTRY_USE_RELAY
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
         ),
     },
     "clickhouse": {
         "image": "yandex/clickhouse-server:20.3.9.70",
+        "pull": True,
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {
@@ -1884,6 +1889,10 @@ KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
+    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+}
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"

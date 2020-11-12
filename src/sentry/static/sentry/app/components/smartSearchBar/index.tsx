@@ -61,7 +61,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blue300 : theme.gray500};
+  color: ${p.isActive ? theme.blue300 : theme.gray300};
   margin-left: ${space(0.5)};
   width: 18px;
 
@@ -72,7 +72,7 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray600};
+    color: ${theme.gray400};
   }
 
   ${
@@ -85,7 +85,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray700};
+  color: ${theme.textColor};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -100,7 +100,7 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   }
 
   &:hover {
-    color: ${theme.blue500};
+    color: ${theme.blue300};
   }
   & > svg {
     margin-right: ${space(1)};
@@ -1261,14 +1261,14 @@ const Container = styled('div')<{isOpen: boolean}>`
   /* match button height */
   height: 40px;
   box-shadow: inset ${p => p.theme.dropShadowLight};
-  background: #fff;
+  background: ${p => p.theme.background};
 
   position: relative;
 
   display: flex;
 
   .show-sidebar & {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
@@ -1281,7 +1281,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   background: transparent;
   border: 0;
   outline: none;
@@ -1293,7 +1293,7 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.formPlaceholder};
   }
   &:focus {
     border-color: ${p => p.theme.border};
@@ -1347,5 +1347,5 @@ const SearchLabel = styled('label')`
   align-items: center;
   margin: 0;
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;

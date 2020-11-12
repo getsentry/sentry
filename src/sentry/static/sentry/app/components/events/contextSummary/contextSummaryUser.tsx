@@ -8,9 +8,10 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import space from 'app/styles/space';
-import {ParagraphOverflow} from 'app/components/textOverflow';
+import TextOverflow from 'app/components/textOverflow';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
+import Item from './item';
 
 type Props = {
   data: EventUser;
@@ -48,10 +49,10 @@ const ContextSummaryUser = ({data}: Props) => {
     }
 
     return (
-      <ParagraphOverflow>
+      <TextOverflow isParagraph>
         <Subject>{userDetails.subject}</Subject>
         <AnnotatedText value={userDetails.value} meta={userDetails.meta} />
-      </ParagraphOverflow>
+      </TextOverflow>
     );
   };
 
@@ -93,29 +94,25 @@ const ContextSummaryUser = ({data}: Props) => {
     return <ContextSummaryNoSummary title={t('Unknown User')} />;
   }
 
+  const icon = userTitle ? (
+    <UserAvatar user={user} size={48} className="context-item-icon" gravatar={false} />
+  ) : (
+    <span className="context-item-icon" />
+  );
+
   return (
-    <div className="context-item user">
-      {userTitle ? (
-        <React.Fragment>
-          <UserAvatar
-            user={user}
-            size={48}
-            className="context-item-icon"
-            gravatar={false}
-          />
-          <h3 data-test-id="user-title">
-            <AnnotatedText value={userTitle.value} meta={userTitle.meta} />
-          </h3>
-        </React.Fragment>
-      ) : (
-        <span className="context-item-icon" />
+    <Item className="user" icon={icon}>
+      {userTitle && (
+        <h3 data-test-id="user-title">
+          <AnnotatedText value={userTitle.value} meta={userTitle.meta} />
+        </h3>
       )}
       {user.id && user.id !== userTitle?.value
         ? renderUserDetails('id')
         : user.username &&
           user.username !== userTitle?.value &&
           renderUserDetails('username')}
-    </div>
+    </Item>
   );
 };
 

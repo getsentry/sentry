@@ -2,7 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {DATA_SOURCE_LABELS} from 'app/views/alerts/utils';
+import {
+  convertDatasetEventTypesToSource,
+  DATA_SOURCE_LABELS,
+  DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
+} from 'app/views/alerts/utils';
 import {Environment, Organization} from 'app/types';
 import {Panel, PanelBody} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -16,12 +20,11 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import Tooltip from 'app/components/tooltip';
 import Feature from 'app/components/acl/feature';
 
-import {TimeWindow, IncidentRule, Dataset} from './types';
+import {TimeWindow, IncidentRule, Datasource} from './types';
 import MetricField from './metricField';
-import {DATASET_EVENT_TYPE_FILTERS, DEFAULT_AGGREGATE} from './constants';
+import {DEFAULT_AGGREGATE} from './constants';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),
@@ -105,7 +108,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     const selectLabel = (label: string) => ({
       ':before': {
         content: `"${label}"`,
-        color: theme.gray500,
+        color: theme.gray300,
         fontWeight: 600,
       },
     });
@@ -138,7 +141,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                     ...base,
                     '.all-environment-note': {
                       ...(!state.isSelected && !state.isFocused
-                        ? {color: theme.gray600}
+                        ? {color: theme.gray400}
                         : {}),
                       fontSize: theme.fontSizeSmall,
                     },
@@ -152,7 +155,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
               />
               <Feature requireAll features={['organizations:performance-view']}>
                 <FormField
-                  name="dataset"
+                  name="datasource"
                   inline={false}
                   style={{
                     ...formElemBaseStyle,
@@ -161,37 +164,74 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                   }}
                   flexibleControlStateSize
                 >
-                  {({onChange, onBlur, model, value}) => (
-                    <SelectControl
-                      value={value}
-                      // placeholder={t('Errors')}
-                      styles={{
-                        singleValue: (base: any) => ({
-                          ...base,
-                          ...selectLabel(t('Data Source: ')),
-                        }),
-                        placeholder: (base: any) => ({
-                          ...base,
-                          ...selectLabel(t('Data Source: ')),
-                        }),
-                      }}
-                      onChange={optionObj => {
-                        const optionValue = optionObj.value;
-                        onChange(optionValue, {});
-                        onBlur(optionValue, {});
-                        // Reset the aggregate to the default (which works across
-                        // datatypes), otherwise we may send snuba an invalid query
-                        // (transaction aggregate on events datasource = bad).
-                        model.setValue('aggregate', DEFAULT_AGGREGATE);
-                      }}
-                      choices={[
-                        [Dataset.ERRORS, DATA_SOURCE_LABELS[Dataset.ERRORS]],
-                        [Dataset.TRANSACTIONS, DATA_SOURCE_LABELS[Dataset.TRANSACTIONS]],
-                      ]}
-                      isDisabled={disabled}
-                      required
-                    />
-                  )}
+                  {({onChange, onBlur, model}) => {
+                    const formDataset = model.getValue('dataset');
+                    const formEventTypes = model.getValue('eventTypes');
+                    const mappedValue = convertDatasetEventTypesToSource(
+                      formDataset,
+                      formEventTypes
+                    );
+                    return (
+                      <SelectControl
+                        value={mappedValue}
+                        styles={{
+                          singleValue: (base: any) => ({
+                            ...base,
+                            ...selectLabel(t('Data Source: ')),
+                          }),
+                          placeholder: (base: any) => ({
+                            ...base,
+                            ...selectLabel(t('Data Source: ')),
+                          }),
+                        }}
+                        onChange={optionObj => {
+                          const optionValue = optionObj.value;
+                          onChange(optionValue, {});
+                          onBlur(optionValue, {});
+                          // Reset the aggregate to the default (which works across
+                          // datatypes), otherwise we may send snuba an invalid query
+                          // (transaction aggregate on events datasource = bad).
+                          model.setValue('aggregate', DEFAULT_AGGREGATE);
+
+                          // set the value of the dataset and event type from data source
+                          const {dataset, eventTypes} =
+                            DATA_SOURCE_TO_SET_AND_EVENT_TYPES[optionValue] ?? {};
+                          model.setValue('dataset', dataset);
+                          model.setValue('eventTypes', eventTypes);
+                        }}
+                        options={[
+                          {
+                            label: t('Errors'),
+                            options: [
+                              {
+                                value: Datasource.ERROR_DEFAULT,
+                                label: DATA_SOURCE_LABELS[Datasource.ERROR_DEFAULT],
+                              },
+                              {
+                                value: Datasource.DEFAULT,
+                                label: DATA_SOURCE_LABELS[Datasource.DEFAULT],
+                              },
+                              {
+                                value: Datasource.ERROR,
+                                label: DATA_SOURCE_LABELS[Datasource.ERROR],
+                              },
+                            ],
+                          },
+                          {
+                            label: t('Transactions'),
+                            options: [
+                              {
+                                value: Datasource.TRANSACTION,
+                                label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
+                              },
+                            ],
+                          },
+                        ]}
+                        isDisabled={disabled}
+                        required
+                      />
+                    );
+                  }}
                 </FormField>
               </Feature>
               <FormField
@@ -208,17 +248,6 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                   <SearchContainer>
                     <StyledSearchBar
                       defaultQuery={initialData?.query ?? ''}
-                      inlineLabel={
-                        <Tooltip
-                          title={t(
-                            'Metric alerts are automatically filtered to your data source'
-                          )}
-                        >
-                          <SearchEventTypeNote>
-                            {DATASET_EVENT_TYPE_FILTERS[model.getValue('dataset')]}
-                          </SearchEventTypeNote>
-                        </Tooltip>
-                      }
                       omitTags={['event.type']}
                       disabled={disabled}
                       useFormWrapper={false}
@@ -306,16 +335,6 @@ const SearchContainer = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const SearchEventTypeNote = styled('div')`
-  font: ${p => p.theme.fontSizeExtraSmall} ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.gray600};
-  background: ${p => p.theme.gray200};
-  border-radius: 2px;
-  padding: ${space(0.5)} ${space(0.75)};
-  margin: 0 ${space(0.5)} 0 ${space(1)};
-  user-select: none;
 `;
 
 const StyledListItem = styled(ListItem)`

@@ -27,7 +27,7 @@ type Props = Omit<FormField['props'], 'children'> & {
   organization: Organization;
 };
 
-const getFieldOptionConfig = (dataset: Dataset, organization: Organization) => {
+const getFieldOptionConfig = (dataset: Dataset) => {
   const config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
 
   const aggregations = Object.fromEntries(
@@ -46,9 +46,7 @@ const getFieldOptionConfig = (dataset: Dataset, organization: Organization) => {
     })
   );
 
-  const measurementKeys = organization.features.includes('measurements')
-    ? config.measurementKeys
-    : undefined;
+  const {measurementKeys} = config;
 
   return {aggregations, fields, measurementKeys};
 };
@@ -86,7 +84,7 @@ const MetricField = ({organization, ...props}: Props) => (
     {({onChange, value, model}) => {
       const dataset = model.getValue('dataset');
 
-      const fieldOptionsConfig = getFieldOptionConfig(dataset, organization);
+      const fieldOptionsConfig = getFieldOptionConfig(dataset);
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
 
@@ -126,7 +124,7 @@ const AggregateHeader = styled('div')`
   grid-gap: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
@@ -135,10 +133,10 @@ const PresetButton = styled(Button)<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray700};
+      color: ${p.theme.textColor};
       &:hover,
       &:focus {
-        color: ${p.theme.gray800};
+        color: ${p.theme.textColor};
       }
     `}
 `;

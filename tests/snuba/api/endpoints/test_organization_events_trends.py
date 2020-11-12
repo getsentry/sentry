@@ -58,7 +58,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         )
 
     def test_simple(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -88,7 +88,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         self.assert_event(events["data"][0])
 
     def test_p75(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -118,7 +118,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         self.assert_event(events["data"][0])
 
     def test_p95(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -148,7 +148,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         self.assert_event(events["data"][0])
 
     def test_p99(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -185,7 +185,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             ("trend_percentage():392%", "improved", 0),
         ]
         for query_data in queries:
-            with self.feature("organizations:trends"):
+            with self.feature("organizations:performance-view"):
                 response = self.client.get(
                     self.url,
                     format="json",
@@ -214,7 +214,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             ("trend_difference():7.84s", "improved", 0),
         ]
         for query_data in queries:
-            with self.feature("organizations:trends"):
+            with self.feature("organizations:performance-view"):
                 response = self.client.get(
                     self.url,
                     format="json",
@@ -236,7 +236,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             assert len(events["data"]) == query_data[2], query_data
 
     def test_avg_trend_function(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -266,7 +266,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
         self.assert_event(events["data"][0])
 
     def test_invalid_trend_function(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -282,7 +282,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
             assert response.status_code == 400
 
     def test_divide_by_zero(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -315,7 +315,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
     def test_auto_aggregation(self):
         # absolute_correlation is automatically added, and not a part of data otherwise
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -357,7 +357,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
 
     def test_simple(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -393,7 +393,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         ]
 
     def test_p75(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -430,7 +430,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         ]
 
     def test_p95(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -467,7 +467,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         ]
 
     def test_p99(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -504,7 +504,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         ]
 
     def test_avg_trend_function(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -541,7 +541,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         ]
 
     def test_invalid_trend_function(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -557,7 +557,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             assert response.status_code == 400
 
     def test_divide_by_zero(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -635,7 +635,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
         return links
 
     def test_pagination(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",
@@ -664,7 +664,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
             assert len(response.data["events"]["data"]) == 5
 
     def test_pagination_with_query(self):
-        with self.feature("organizations:trends"):
+        with self.feature("organizations:performance-view"):
             response = self.client.get(
                 self.url,
                 format="json",

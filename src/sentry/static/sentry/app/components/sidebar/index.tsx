@@ -639,7 +639,7 @@ const responsiveFlex = css`
 
 const StyledSidebar = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
-  background: linear-gradient(294.17deg, #2f1937 35.57%, #452650 92.42%, #452650 92.42%);
+  background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
   line-height: 1;
   padding: 12px 0 2px; /* Allows for 32px avatars  */
@@ -690,7 +690,7 @@ const PrimaryItems = styled('div')`
   flex-direction: column;
   -ms-overflow-style: -ms-autohiding-scrollbar;
   @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints[1]}) {
-    border-bottom: 1px solid ${p => p.theme.gray600};
+    border-bottom: 1px solid ${p => p.theme.gray400};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
     &::-webkit-scrollbar {
@@ -698,7 +698,7 @@ const PrimaryItems = styled('div')`
       width: 8px;
     }
     &::-webkit-scrollbar-thumb {
-      background: ${p => p.theme.gray600};
+      background: ${p => p.theme.gray400};
       border-radius: 8px;
     }
   }
@@ -707,7 +707,7 @@ const PrimaryItems = styled('div')`
     flex-direction: row;
     height: 100%;
     align-items: center;
-    border-right: 1px solid ${p => p.theme.gray600};
+    border-right: 1px solid ${p => p.theme.gray400};
     padding-right: ${space(1)};
     margin-right: ${space(0.5)};
     box-shadow: rgba(0, 0, 0, 0.15) -10px 0px 10px inset;

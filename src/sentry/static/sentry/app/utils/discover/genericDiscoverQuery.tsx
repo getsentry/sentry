@@ -76,10 +76,6 @@ type State<T> = {
  * Generic component for discover queries
  */
 class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
-  static defaultProps = {
-    keyTransactions: false,
-  };
-
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,

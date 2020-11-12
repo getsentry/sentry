@@ -8,7 +8,7 @@ import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercar
 import {Actor, Commit} from 'app/types';
 import space from 'app/styles/space';
 
-import {Wrapper, Header, Heading} from './styles';
+import SidebarSection from '../sidebarSection';
 
 type Owner = {
   actor: Actor;
@@ -22,11 +22,14 @@ type Props = {
 };
 
 const SuggestedAssignees = ({owners, onAssign}: Props) => (
-  <Wrapper>
-    <Header>
-      <Heading>{t('Suggested Assignees')}</Heading>
-      <StyledSmall>{t('Click to assign')}</StyledSmall>
-    </Header>
+  <SidebarSection
+    title={
+      <React.Fragment>
+        {t('Suggested Assignees')}
+        <Subheading>{t('Click to assign')}</Subheading>
+      </React.Fragment>
+    }
+  >
     <Content>
       {owners.map((owner, i) => (
         <SuggestedOwnerHovercard
@@ -44,15 +47,17 @@ const SuggestedAssignees = ({owners, onAssign}: Props) => (
         </SuggestedOwnerHovercard>
       ))}
     </Content>
-  </Wrapper>
+  </SidebarSection>
 );
 
 export {SuggestedAssignees};
 
-const StyledSmall = styled('small')`
+const Subheading = styled('small')`
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   line-height: 100%;
+  font-weight: 400;
+  margin-left: ${space(0.5)};
 `;
 
 const Content = styled('div')`

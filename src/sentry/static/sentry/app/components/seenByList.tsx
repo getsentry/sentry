@@ -4,7 +4,7 @@ import moment from 'moment';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {User} from 'app/types';
+import {AvatarUser, User} from 'app/types';
 import {IconShow} from 'app/icons';
 import {userDisplayName} from 'app/utils/formatters';
 import AvatarList from 'app/components/avatar/avatarList';
@@ -58,13 +58,13 @@ const SeenByList = ({
           <React.Fragment>
             {userDisplayName(user)}
             <br />
-            {moment(user.lastSeen).format('LL')}
+            {moment((user as AvatarUser).lastSeen).format('LL')}
           </React.Fragment>
         )}
       />
       <IconWrapper iconPosition={iconPosition}>
         <Tooltip title={iconTooltip}>
-          <IconShow size="sm" color="gray400" />
+          <IconShow size="sm" color="gray200" />
         </Tooltip>
       </IconWrapper>
     </SeenByWrapper>
@@ -80,7 +80,7 @@ const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
 
 const IconWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   background-color: transparent;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   height: 28px;
   width: 24px;
   line-height: 26px;

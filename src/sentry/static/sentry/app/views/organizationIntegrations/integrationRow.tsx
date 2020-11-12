@@ -141,7 +141,7 @@ const Container = styled('div')`
 
 const IntegrationName = styled(Link)`
   font-weight: bold;
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
 `;
 
 const IntegrationDetails = styled('div')`
@@ -152,17 +152,17 @@ const IntegrationDetails = styled('div')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   &:before {
     content: '|';
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
     margin-right: ${space(0.75)};
     font-weight: normal;
   }
 `;
 
 const LearnMore = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
@@ -171,13 +171,13 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{t(`${status}`)}</div>
 ))`
   color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.gray500};
+    props.status === 'published' ? props.theme.success : props.theme.gray300};
   font-weight: light;
   margin-right: ${space(0.75)};
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
     margin-right: ${space(0.75)};
     font-weight: normal;
   }
@@ -197,18 +197,17 @@ const CategoryTag = styled(
   display: flex;
   flex-direction: row;
   padding: 1px 10px;
-  background: ${p => (p.priority ? p.theme.purple300 : p.theme.gray300)};
+  background: ${p => (p.priority ? p.theme.purple200 : p.theme.gray100)};
   border-radius: 20px;
   font-size: ${space(1.5)};
   margin-right: ${space(1)};
   line-height: ${space(3)};
   text-align: center;
-  color: ${p => (p.priority ? p.theme.white : p.theme.gray700)};
+  color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};
 `;
 
 const ResolveNowButton = styled(Button)`
-  color: ${p => p.theme.gray500};
-  background: #ffffff;
+  color: ${p => p.theme.subText};
   float: right;
 `;
 

@@ -148,8 +148,14 @@ class JiraServer(object):
         """
         return "name"
 
-    def query_field(self):
+    def user_query_param(self):
         """
         Jira-Server doesn't require GDPR compliant API usage so we can use `username`
+        """
+        return "username"
+
+    def user_id_get_param(self):
+        """
+        Jira-Server doesn't require compliant API usage so we can use `username
         """
         return "username"

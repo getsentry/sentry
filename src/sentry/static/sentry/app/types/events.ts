@@ -1,7 +1,10 @@
+import {StacktraceType, RawStacktrace} from './stacktrace';
+
 export interface Thread {
-  id: string;
+  id: number;
+  crashed: boolean;
+  current: boolean;
+  rawStacktrace: RawStacktrace;
+  stacktrace: StacktraceType;
   name?: string;
-  crashed?: boolean;
-  stacktrace?: any;
-  rawStacktrace?: any;
 }

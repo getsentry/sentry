@@ -21,7 +21,7 @@ const defaultProps = {
   /**
    * Colors to use on the chart.
    */
-  colors: [theme.gray400, theme.purple400, theme.purple500] as string[],
+  colors: [theme.gray200, theme.purple300, theme.purple300] as string[],
   /**
    * Show max/min values on yAxis
    */
@@ -112,7 +112,7 @@ class MiniBarChart extends React.Component<Props> {
         show: true,
         trigger: 'item',
         formatter: ({data}) => {
-          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+          const time = getFormattedDate(data.coord[0], 'MMM D, YYYY LT', {
             local: !this.props.utc,
           });
           const name = truncationFormatter(data.name, props?.xAxis?.truncate);

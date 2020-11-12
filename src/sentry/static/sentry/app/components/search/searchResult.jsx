@@ -166,13 +166,13 @@ const SearchDetail = styled('div')`
 
 const ExtraDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-top: ${space(0.5)};
 `;
 
 const BadgeDetail = styled('div')`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.purple500 : null)};
+  color: ${p => (p.highlighted ? p.theme.purple300 : null)};
 `;
 
 const Wrapper = styled('div')`

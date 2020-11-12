@@ -12,7 +12,7 @@ from exam import fixture
 from sentry.utils.compat.mock import Mock
 
 from sentry.integrations.jira import JiraIntegrationProvider
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models import (
     ExternalIssue,
     Integration,
@@ -26,6 +26,7 @@ from sentry.utils.signing import sign
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
+from .testutils import EXAMPLE_JIRA_CLOUD_USER
 
 SAMPLE_CREATE_META_RESPONSE = """
 {
@@ -99,6 +100,20 @@ SAMPLE_CREATE_META_RESPONSE = """
                 {"value": "Feature 1", "id": "10105"},
                 {"value": "Feature 2", "id": "10106"}
               ]
+            },
+            "reporter": {
+              "operations": [
+                "set"
+              ],
+              "name": "Reporter",
+              "required": true,
+              "autoCompleteUrl": "https://saifelse.atlassian.net/rest/api/2/user/search?query=",
+              "hasDefaultValue": true,
+              "key": "reporter",
+              "schema": {
+                "type": "user",
+                "system": "reporter"
+              }
             }
           }
         }
@@ -433,6 +448,12 @@ class MockJiraApiClient(object):
     def user_id_field(self):
         return "accountId"
 
+    def get_user(self, user_id):
+        user = json.loads(EXAMPLE_JIRA_CLOUD_USER)
+        if user["accountId"] == user_id:
+            return user
+        raise ApiError("no user found")
+
 
 class JiraIntegrationTest(APITestCase):
     @fixture
@@ -542,6 +563,116 @@ class JiraIntegrationTest(APITestCase):
                     "default": "",
                     "choices": [("Feature 1", "Feature 1"), ("Feature 2", "Feature 2")],
                 },
+                {
+                    "choices": [],
+                    "label": "Reporter",
+                    "name": "reporter",
+                    "required": True,
+                    "url": reverse(
+                        "sentry-extensions-jira-search", args=[org.slug, self.integration.id]
+                    ),
+                    "type": "select",
+                },
+            ]
+
+    def test_get_create_issue_config_with_persisted_reporter(self):
+        org = self.organization
+        self.login_as(self.user)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation = self.integration.get_installation(org.id)
+
+        def get_client():
+            return MockJiraApiClient()
+
+        # When persisted reporter matches a user JIRA knows about, a default is picked.
+        installation.store_issue_last_defaults(
+            self.project, self.user, {"reporter": json.loads(EXAMPLE_JIRA_CLOUD_USER)["accountId"]}
+        )
+        with mock.patch.object(installation, "get_client", get_client):
+            create_issue_config = installation.get_create_issue_config(group, self.user)
+        reporter_field = [field for field in create_issue_config if field["name"] == "reporter"][0]
+        assert reporter_field == {
+            "name": "reporter",
+            "url": reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id]),
+            "required": True,
+            "choices": [("012345:00000000-1111-2222-3333-444444444444", "Saif Hakim")],
+            "default": "012345:00000000-1111-2222-3333-444444444444",
+            "label": "Reporter",
+            "type": "select",
+        }
+
+        # When persisted reporter does not match a user JIRA knows about, field is left blank.
+        installation.store_issue_last_defaults(
+            self.project, self.user, {"reporter": "invalid-reporter-id"}
+        )
+
+        with mock.patch.object(installation, "get_client", get_client):
+            create_issue_config = installation.get_create_issue_config(group, self.user)
+        reporter_field = [field for field in create_issue_config if field["name"] == "reporter"][0]
+        assert reporter_field == {
+            "name": "reporter",
+            "url": reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id]),
+            "required": True,
+            "choices": [],
+            "label": "Reporter",
+            "type": "select",
+        }
+
+    def test_get_create_issue_config_with_ignored_fields(self):
+        org = self.organization
+        self.login_as(self.user)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation = self.integration.get_installation(org.id)
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, "get_client", get_client):
+            # Initially all fields are present
+            fields = installation.get_create_issue_config(group, self.user)
+            field_names = [field["name"] for field in fields]
+            assert field_names == [
+                "project",
+                "title",
+                "description",
+                "issuetype",
+                "labels",
+                "customfield_10200",
+                "customfield_10300",
+                "reporter",
+            ]
+
+            installation.org_integration.config = {"issues_ignored_fields": ["customfield_10200"]}
+            # After ignoring "customfield_10200", it no longer shows up
+            installation.org_integration.save()
+            fields = installation.get_create_issue_config(group, self.user)
+            field_names = [field["name"] for field in fields]
+            assert field_names == [
+                "project",
+                "title",
+                "description",
+                "issuetype",
+                "labels",
+                "customfield_10300",
+                "reporter",
             ]
 
     def test_get_create_issue_config_with_default_and_param(self):
@@ -913,7 +1044,7 @@ class JiraIntegrationTest(APITestCase):
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
 
-    def test_update_organization_config(self):
+    def test_update_organization_config_sync_keys(self):
         org = self.organization
         self.login_as(self.user)
 
@@ -1028,6 +1159,43 @@ class JiraIntegrationTest(APITestCase):
             == 0
         )
 
+    def test_update_organization_config_issues_keys(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(org, self.user)
+
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert "issues_ignored_fields" not in org_integration.config
+
+        # Parses user-supplied CSV
+        installation.update_organization_config(
+            {"issues_ignored_fields": "\nhello world ,,\ngoodnight\nmoon , ,"}
+        )
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config.get("issues_ignored_fields") == [
+            "hello world",
+            "goodnight",
+            "moon",
+        ]
+
+        # No-ops if updated value is not specified
+        installation.update_organization_config({})
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config.get("issues_ignored_fields") == [
+            "hello world",
+            "goodnight",
+            "moon",
+        ]
+
     def test_get_config_data(self):
         org = self.organization
         self.login_as(self.user)
@@ -1063,7 +1231,33 @@ class JiraIntegrationTest(APITestCase):
             "sync_reverse_assignment": True,
             "sync_status_reverse": True,
             "sync_status_forward": {"12345": {"on_resolve": "done", "on_unresolve": "in_progress"}},
+            "issues_ignored_fields": "",
         }
+
+    def test_get_config_data_issues_keys(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration.add_organization(org, self.user)
+
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+
+        # If config has not be configured yet, uses empty string fallback
+        assert "issues_ignored_fields" not in org_integration.config
+        assert installation.get_config_data().get("issues_ignored_fields") == ""
+
+        # List is serialized as comma-separated list
+        org_integration.config["issues_ignored_fields"] = ["hello world", "goodnight", "moon"]
+        org_integration.save()
+        installation = integration.get_installation(org.id)
+        assert (
+            installation.get_config_data().get("issues_ignored_fields")
+            == "hello world, goodnight, moon"
+        )
 
     def test_create_comment(self):
         org = self.organization

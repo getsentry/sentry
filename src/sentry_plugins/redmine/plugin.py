@@ -113,7 +113,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         host = self.get_option("host", group.project)
-        return "{}/issues/{}".format(host.rstrip("/"), issue_id)
+        return u"{}/issues/{}".format(host.rstrip("/"), issue_id)
 
     def build_config(self):
         host = {
@@ -200,7 +200,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
                 choices_value = self.get_option("project_id", project)
                 project_choices = [("", "--")] if not choices_value else []
                 project_choices += [
-                    (p["id"], "%s (%s)" % (p["name"], p["identifier"]))
+                    (p["id"], u"%s (%s)" % (p["name"], p["identifier"]))
                     for p in projects["projects"]
                 ]
                 self.add_choices("project_id", project_choices, choices_value)
@@ -239,9 +239,9 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         for field in self.fields:
             if field["name"] in ["project_id", "tracker_id", "default_priority"]:
                 if not config[field["name"]]:
-                    self.logger.exception(six.text_type("{} required.".format(field["name"])))
+                    self.logger.exception(six.text_type(u"{} required.".format(field["name"])))
                     self.client_errors.append(field["name"])
 
         if self.client_errors:
-            raise PluginError(", ".join(self.client_errors) + " required.")
+            raise PluginError(u", ".join(self.client_errors) + " required.")
         return config

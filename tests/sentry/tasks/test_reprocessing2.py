@@ -17,6 +17,9 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
+pytestmark = pytest.mark.skip(reason="Deadlock on Travis")
+
+
 @pytest.fixture(autouse=True)
 def reprocessing_feature():
     with Feature({"projects:reprocessing-v2": True}):

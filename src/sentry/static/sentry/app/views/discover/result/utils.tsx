@@ -333,11 +333,11 @@ export function getDisplayText(val: any): string {
 }
 
 const LightGray = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 `;
 
 const DarkGray = styled('span')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
 `;
 
 /**

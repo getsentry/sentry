@@ -27,7 +27,6 @@ type Props = {
   organization: Organization;
   location: Location;
   router: ReactRouter.InjectedRouter;
-  keyTransactions: boolean;
 };
 
 class Container extends React.Component<Props> {
@@ -41,7 +40,7 @@ class Container extends React.Component<Props> {
   }
 
   render() {
-    const {api, organization, location, eventView, router, keyTransactions} = this.props;
+    const {api, organization, location, eventView, router} = this.props;
 
     // construct request parameters for fetching chart data
     const globalSelection = eventView.getGlobalSelection();
@@ -78,13 +77,12 @@ class Container extends React.Component<Props> {
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
           yAxis={axisOptions.map(opt => opt.value)}
-          keyTransactions={keyTransactions}
         >
           {({loading, reloading, errored, results}) => {
             if (errored) {
               return (
                 <ErrorPanel>
-                  <IconWarning color="gray500" size="lg" />
+                  <IconWarning color="gray300" size="lg" />
                 </ErrorPanel>
               );
             }
