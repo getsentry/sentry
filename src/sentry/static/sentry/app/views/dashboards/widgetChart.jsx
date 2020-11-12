@@ -1,3 +1,4 @@
+import {withTheme} from 'emotion-theming';
 import {ClassNames} from '@emotion/core';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
@@ -6,7 +7,6 @@ import React from 'react';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
-import theme from 'app/utils/theme';
 
 import {WIDGET_DISPLAY} from './constants';
 import {getChartComponent} from './utils/getChartComponent';
@@ -26,6 +26,7 @@ class WidgetChart extends React.Component {
     organization: SentryTypes.Organization,
     selection: SentryTypes.GlobalSelection,
     reloading: PropTypes.bool,
+    theme: PropTypes.object,
   };
 
   shouldComponentUpdate(nextProps) {
@@ -53,7 +54,7 @@ class WidgetChart extends React.Component {
   }
 
   renderZoomableChart(ChartComponent, props) {
-    const {router, selection} = this.props;
+    const {router, selection, theme} = this.props;
     return (
       <ChartZoom router={router} useShortDate {...selection.datetime}>
         {zoomRenderProps => (
@@ -74,7 +75,7 @@ class WidgetChart extends React.Component {
   }
 
   render() {
-    const {organization, results, releases, selection, widget} = this.props;
+    const {organization, results, releases, selection, theme, widget} = this.props;
     const isTable = widget.type === WIDGET_DISPLAY.TABLE;
 
     // get visualization based on widget data
@@ -137,4 +138,4 @@ class WidgetChart extends React.Component {
   }
 }
 
-export default WidgetChart;
+export default withTheme(WidgetChart);
