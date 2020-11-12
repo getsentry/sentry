@@ -109,7 +109,7 @@ const Title = styled('h3')`
   em {
     font-style: normal;
     font-weight: 400;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     font-size: 90%;
   }
 `;
@@ -128,7 +128,7 @@ const HovercardEventMessage = styled(EventMessage)`
 `;
 
 const GridHeader = styled('h5')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 11px;
   margin-bottom: ${space(0.5)};
   text-transform: uppercase;

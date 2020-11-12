@@ -332,7 +332,10 @@ describe('getExpandedResults()', function () {
   });
 
   it('applies provided additional conditions', () => {
-    const view = new EventView(state);
+    const view = new EventView({
+      ...state,
+      fields: [...state.fields, {field: 'measurements.lcp'}, {field: 'measurements.fcp'}],
+    });
     let result = getExpandedResults(view, {extra: 'condition'}, {});
     expect(result.query).toEqual('event.type:error extra:condition');
 
@@ -361,6 +364,14 @@ describe('getExpandedResults()', function () {
     // Includes null
     result = getExpandedResults(view, {}, {custom_tag: null});
     expect(result.query).toEqual('event.type:error custom_tag:""');
+
+    // Handles measurements while ignoring null values
+    result = getExpandedResults(
+      view,
+      {},
+      {'measurements.lcp': 2, 'measurements.fcp': null}
+    );
+    expect(result.query).toEqual('event.type:error measurements.lcp:2');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {

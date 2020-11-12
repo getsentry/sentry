@@ -5,18 +5,28 @@ import {Form, FormState} from 'app/components/forms';
 import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
 
-class Settings extends DefaultSettings {
-  constructor(props) {
-    super(props);
-    this.PAGE_FIELD_LIST = {
-      0: ['instance_url', 'username', 'password'],
-      1: ['default_project'],
-      2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
-    };
+type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
 
-    this.back = this.back.bind(this);
-    this.startEditing = this.startEditing.bind(this);
-    this.isLastPage = this.isLastPage.bind(this);
+type FieldWithValues = Field & {value?: any; defaultValue?: any};
+
+type ApiData = {default_project?: string; config: FieldWithValues[]};
+
+type Props = DefaultSettings['props'];
+
+type State = DefaultSettings['state'] & {
+  page: number;
+  editing?: boolean;
+};
+
+const PAGE_FIELD_LIST = {
+  0: ['instance_url', 'username', 'password'],
+  1: ['default_project'],
+  2: ['ignored_fields', 'default_priority', 'default_issue_type', 'auto_create'],
+};
+
+class Settings extends DefaultSettings<Props, State> {
+  constructor(props: Props, context: any) {
+    super(props, context);
 
     Object.assign(this.state, {
       page: 0,
@@ -27,16 +37,16 @@ class Settings extends DefaultSettings {
     return !!(this.state.formData && this.state.formData.default_project);
   }
 
-  isLastPage() {
+  isLastPage = () => {
     return this.state.page === 2;
-  }
+  };
 
   fetchData() {
     // This is mostly copy paste of parent class
     // except for setting edit state
     this.api.request(this.getPluginEndpoint(), {
-      success: data => {
-        const formData = {};
+      success: (data: ApiData) => {
+        const formData: Record<string, any> = {};
         const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
@@ -59,9 +69,9 @@ class Settings extends DefaultSettings {
     });
   }
 
-  startEditing() {
+  startEditing = () => {
     this.setState({editing: true});
-  }
+  };
 
   onSubmit() {
     if (isEqual(this.state.initialData, this.state.formData)) {
@@ -75,14 +85,14 @@ class Settings extends DefaultSettings {
     }
     const body = Object.assign({}, this.state.formData);
     // if the project has changed, it's likely these values aren't valid anymore
-    if (body.default_project !== this.state.initialData.default_project) {
+    if (body.default_project !== this.state.initialData?.default_project) {
       body.default_issue_type = null;
       body.default_priority = null;
     }
     this.api.request(this.getPluginEndpoint(), {
       data: body,
       method: 'PUT',
-      success: this.onSaveSuccess.bind(this, data => {
+      success: this.onSaveSuccess.bind(this, (data: ApiData) => {
         const formData = {};
         const initialData = {};
         data.config.forEach(field => {
@@ -94,6 +104,8 @@ class Settings extends DefaultSettings {
           initialData,
           errors: {},
           fieldList: data.config,
+          page: this.state.page,
+          editing: this.state.editing,
         };
         if (this.isLastPage()) {
           state.editing = false;
@@ -112,7 +124,7 @@ class Settings extends DefaultSettings {
     });
   }
 
-  back(ev) {
+  back = (ev: React.MouseEvent) => {
     ev.preventDefault();
     if (this.state.state === FormState.SAVING) {
       return;
@@ -120,7 +132,7 @@ class Settings extends DefaultSettings {
     this.setState({
       page: this.state.page - 1,
     });
-  }
+  };
 
   render() {
     if (this.state.state === FormState.LOADING) {
@@ -138,17 +150,17 @@ class Settings extends DefaultSettings {
 
     const isSaving = this.state.state === FormState.SAVING;
 
-    let fields;
-    let onSubmit;
-    let submitLabel;
+    let fields: Field[] | undefined;
+    let onSubmit: () => void;
+    let submitLabel: string;
     if (this.state.editing) {
-      fields = this.state.fieldList.filter(f =>
-        this.PAGE_FIELD_LIST[this.state.page].includes(f.name)
+      fields = this.state.fieldList?.filter(f =>
+        PAGE_FIELD_LIST[this.state.page].includes(f.name)
       );
       onSubmit = this.onSubmit;
       submitLabel = this.isLastPage() ? 'Finish' : 'Save and Continue';
     } else {
-      fields = this.state.fieldList.map(f => Object.assign({}, f, {readonly: true}));
+      fields = this.state.fieldList?.map(f => ({...f, readonly: true}));
       onSubmit = this.startEditing;
       submitLabel = 'Edit';
     }
@@ -176,7 +188,7 @@ class Settings extends DefaultSettings {
             </ul>
           </div>
         )}
-        {fields.map(f =>
+        {fields?.map(f =>
           this.renderField({
             config: f,
             formData: this.state.formData,

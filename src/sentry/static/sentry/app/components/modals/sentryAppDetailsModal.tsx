@@ -238,7 +238,7 @@ const Description = styled('div')`
 `;
 
 const Author = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (

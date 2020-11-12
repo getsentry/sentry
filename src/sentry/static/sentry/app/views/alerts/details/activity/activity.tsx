@@ -172,7 +172,7 @@ class Activity extends React.Component<Props> {
 export default Activity;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   margin-left: ${space(0.5)};
 `;

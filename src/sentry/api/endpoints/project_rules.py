@@ -71,7 +71,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 "action_match": data["actionMatch"],
                 "filter_match": data.get("filterMatch"),
                 "conditions": conditions,
-                "actions": data["actions"],
+                "actions": data.get("actions", []),
                 "frequency": data.get("frequency"),
             }
 
@@ -94,7 +94,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 data=rule.get_audit_log_data(),
             )
             alert_rule_created.send_robust(
-                user=request.user, project=project, rule=rule, rule_type="issue", sender=self
+                user=request.user,
+                project=project,
+                rule=rule,
+                rule_type="issue",
+                sender=self,
+                is_api_token=request.auth is not None,
             )
 
             return Response(serialize(rule, request.user))

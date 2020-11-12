@@ -157,7 +157,7 @@ export class RenderField extends React.Component<RenderProps, State> {
           <DeleteButtonWrapper>
             <Button
               onClick={() => handleDelete(index)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete color="gray300" />}
               size="small"
               type="button"
               aria-label={t('Delete')}
