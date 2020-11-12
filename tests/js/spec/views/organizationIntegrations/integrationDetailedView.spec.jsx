@@ -59,7 +59,7 @@ describe('IntegrationDetailedView', function () {
         },
       ],
       [
-        `/organizations/${org.slug}/integrations/?provider_key=bitbucket`,
+        `/organizations/${org.slug}/integrations/?provider_key=bitbucket&includeConfig=0`,
         [
           {
             accountType: null,
