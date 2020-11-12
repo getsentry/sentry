@@ -21,11 +21,22 @@ _DEFAULT_DAEMONS = {
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
+    "subscription-consumer": [
+        "sentry",
+        "run",
+        "query-subscription-consumer",
+        "--commit-batch-size",
+        "1",
+    ],
 }
 
 
-def _get_daemon(name):
-    return (name, _DEFAULT_DAEMONS[name])
+def _get_daemon(name, *args, **kwargs):
+    display_name = name
+    if "suffix" in kwargs:
+        display_name = u"{}-{}".format(name, kwargs["suffix"])
+
+    return (display_name, _DEFAULT_DAEMONS[name] + list(args))
 
 
 @click.command()
@@ -203,6 +214,15 @@ def devserver(
 
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
+
+        if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
+            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+                raise click.ClickException(
+                    "`SENTRY_DEV_PROCESS_SUBSCRIPTIONS` can only be used when "
+                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
+                )
+            for name, topic in settings.KAFKA_SUBSCRIPTION_RESULT_TOPICS.items():
+                daemons += [_get_daemon("subscription-consumer", "--topic", topic, suffix=name)]
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
