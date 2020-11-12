@@ -1146,7 +1146,9 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
-              import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
+              import(
+                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+              )
             }
             component={errorHandler(LazyLoad)}
           >
@@ -1801,6 +1803,24 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceCompareTransactions" */ 'app/views/performance/compare'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/dashboards/:dashboardId/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
                 )
               }
               component={errorHandler(LazyLoad)}

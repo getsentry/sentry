@@ -4,6 +4,9 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import {Release} from 'app/types';
+import SentryTypes from 'app/sentryTypes';
+import withOrganization from 'app/utils/withOrganization';
+import DashboardDetail from 'app/views/dashboardsV2/detail';
 
 import Dashboard from './dashboard';
 import overviewDashboard from './data/dashboards/overviewDashboard';
@@ -56,4 +59,20 @@ class OverviewDashboard extends AsyncView<Props, State> {
   }
 }
 
-export default OverviewDashboard;
+function DashboardLanding(props) {
+  const {organization, ...restProps} = props;
+
+  const showDashboardV2 = organization.features.includes('dashboards-v2');
+
+  if (showDashboardV2) {
+    return <DashboardDetail {...restProps} />;
+  }
+
+  return <OverviewDashboard {...restProps} />;
+}
+
+DashboardLanding.propTypes = {
+  organization: SentryTypes.Organization,
+};
+
+export default withOrganization(DashboardLanding);
