@@ -6,7 +6,7 @@ const colors = {
   white: '#FFFFFF',
   black: '#1D1127',
 
-  gray100: '#F2F0F5',
+  gray100: '#E7E1EC',
   gray200: '#C6BECF',
   gray300: '#9386A0',
   gray400: '#776589',
@@ -87,7 +87,7 @@ const aliases = {
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: '#e7e1ec',
+  innerBorder: colors.gray100,
 
   /**
    * A color that denotes a "success", or something good
