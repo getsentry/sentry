@@ -6,7 +6,7 @@ import {Location} from 'history';
 import {OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import AreaChart from 'app/components/charts/areaChart';
+import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -18,6 +18,7 @@ import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {getMeasurementSlug, getAggregateArg} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
@@ -44,13 +45,14 @@ type Props = ReactRouter.WithRouterProps &
     organization: OrganizationSummary;
   };
 
-const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
+const YAXIS_VALUES = [
+  'p75(measurements.fp)',
+  'p75(measurements.fcp)',
+  'p75(measurements.lcp)',
+  'p75(measurements.fid)',
+];
 
-/**
- * Fetch and render a stacked area chart that shows duration
- * percentiles over the past 7 days
- */
-class DurationChart extends React.Component<Props> {
+class VitalsChart extends React.Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
     const {selected} = legendChange;
@@ -99,6 +101,16 @@ class DurationChart extends React.Component<Props> {
         fontFamily: 'Rubik',
       },
       selected: getSeriesSelection(location),
+      formatter: seriesName => {
+        const arg = getAggregateArg(seriesName);
+        if (arg !== null) {
+          const slug = getMeasurementSlug(arg);
+          if (slug !== null) {
+            seriesName = slug.toUpperCase();
+          }
+        }
+        return seriesName;
+      },
     };
 
     const datetimeSelection = {
@@ -123,9 +135,10 @@ class DurationChart extends React.Component<Props> {
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray200,
-          // p50() coerces the axis to be time based
-          formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+          color: theme.gray400,
+          // p75(measurements.fcp) coerces the axis to be time based
+          formatter: (value: number) =>
+            axisLabelFormatter(value, 'p75(measurements.fcp)'),
         },
       },
     };
@@ -133,12 +146,12 @@ class DurationChart extends React.Component<Props> {
     return (
       <React.Fragment>
         <HeaderTitleLegend>
-          {t('Duration Breakdown')}
+          {t('Web Vitals Breakdown')}
           <QuestionTooltip
             size="sm"
             position="top"
             title={t(
-              `Duration Breakdown reflects transaction durations by percentile over time.`
+              `Web Vitals Breakdown reflects the 75th percentile of web vitals over time.`
             )}
           />
         </HeaderTitleLegend>
@@ -167,7 +180,7 @@ class DurationChart extends React.Component<Props> {
                 if (errored) {
                   return (
                     <ErrorPanel>
-                      <IconWarning color="gray300" size="lg" />
+                      <IconWarning color="gray500" size="lg" />
                     </ErrorPanel>
                   );
                 }
@@ -175,19 +188,11 @@ class DurationChart extends React.Component<Props> {
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
                 // Create a list of series based on the order of the fields,
-                // We need to flip it at the end to ensure the series stack right.
                 const series = results
-                  ? results
-                      .map((values, i: number) => {
-                        return {
-                          ...values,
-                          color: colors[i],
-                          lineStyle: {
-                            opacity: 0,
-                          },
-                        };
-                      })
-                      .reverse()
+                  ? results.map((values, i: number) => ({
+                      ...values,
+                      color: colors[i],
+                    }))
                   : [];
 
                 // Stack the toolbox under the legend.
@@ -208,7 +213,7 @@ class DurationChart extends React.Component<Props> {
                         <TransparentLoadingMask visible={reloading} />
                         {getDynamicText({
                           value: (
-                            <AreaChart
+                            <LineChart
                               {...zoomRenderProps}
                               {...chartOptions}
                               legend={legend}
@@ -216,7 +221,7 @@ class DurationChart extends React.Component<Props> {
                               series={[...series, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Duration Chart',
+                          fixed: 'Web Vitals Chart',
                         })}
                       </TransitionChart>
                     )}
@@ -231,4 +236,4 @@ class DurationChart extends React.Component<Props> {
   }
 }
 
-export default withApi(ReactRouter.withRouter(DurationChart));
+export default withApi(ReactRouter.withRouter(VitalsChart));
