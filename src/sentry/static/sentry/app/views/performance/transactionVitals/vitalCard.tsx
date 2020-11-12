@@ -235,7 +235,7 @@ class VitalCard extends React.Component<Props, State> {
       type: 'value' as const,
       max,
       axisLabel: {
-        color: theme.gray200,
+        color: theme.chartLabel,
         formatter: formatAbbreviatedNumber,
       },
     };

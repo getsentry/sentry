@@ -74,6 +74,7 @@ export default function XAxis({
       showMinLabel: false,
 
       formatter: axisLabelFormatter,
+      color: theme.chartLabel,
       ...(axisLabel || {}),
     },
     axisPointer: {

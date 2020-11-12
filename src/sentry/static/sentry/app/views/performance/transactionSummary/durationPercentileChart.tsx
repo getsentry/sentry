@@ -141,7 +141,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     const yAxis = {
       type: 'value' as const,
       axisLabel: {
-        color: theme.gray200,
+        color: theme.chartLabel,
         // Use p50() to force time formatting.
         formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },

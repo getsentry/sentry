@@ -135,7 +135,7 @@ class VitalsChart extends React.Component<Props> {
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray400,
+          color: theme.chartLabel,
           // p75(measurements.fcp) coerces the axis to be time based
           formatter: (value: number) =>
             axisLabelFormatter(value, 'p75(measurements.fcp)'),
