@@ -57,7 +57,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {ownership, urlTagData, eventData} = this.state;
-    if (!ownership || !urlTagData || !eventData) {
+    if (!ownership && !urlTagData && !eventData) {
       return null;
     }
     const urls = urlTagData
@@ -68,7 +68,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
       : [];
 
     // pull frame data out of exception or the stacktrace
-    const entry = (eventData.entries as Entry[]).find(({type}) =>
+    const entry = (eventData?.entries as Entry[]).find(({type}) =>
       ['exception', 'stacktrace'].includes(type)
     );
 
@@ -95,7 +95,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
         <p>{t('Match against Issue Data: (globbing syntax *, ? supported)')}</p>
         <OwnerInput
           {...this.props}
-          initialText={ownership.raw || ''}
+          initialText={ownership?.raw || ''}
           urls={urls}
           paths={paths}
         />
