@@ -63,7 +63,7 @@ class IssueDetailsPage(BasePage):
         assignee = self.browser.find_element_by_css_selector('[aria-label="Assign to"]')
 
         # Open the assignee picker
-        assignee.find_element_by_css_selector('[role="button"]').click()
+        assignee.click()
         assignee.find_element_by_tag_name("input").send_keys(user)
 
         # Click the member/team

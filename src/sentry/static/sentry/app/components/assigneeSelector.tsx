@@ -298,7 +298,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             emptyHidesInput
           >
             {({getActorProps}) => (
-              <DropdownButton {...getActorProps({['aria-label']: t('Assign to')})}>
+              <DropdownButton aria-label={t('Assign to')} {...getActorProps()}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                 ) : (
