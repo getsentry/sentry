@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
+import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
@@ -25,6 +26,8 @@ import {
   TagWithTopValues,
 } from 'app/types';
 
+import SidebarSection from './sidebarSection';
+
 type Props = {
   api: Client;
   organization: Organization;
@@ -32,6 +35,7 @@ type Props = {
   group: Group;
   event: Event | null;
   environments: Environment[];
+  className?: string;
 };
 
 type State = {
@@ -43,14 +47,10 @@ type State = {
 };
 
 class GroupSidebar extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      participants: [],
-      environments: props.environments,
-    };
-  }
+  state: State = {
+    participants: [],
+    environments: this.props.environments,
+  };
 
   componentDidMount() {
     const {group, api} = this.props;
@@ -172,14 +172,7 @@ class GroupSidebar extends React.Component<Props, State> {
       }
     });
     if (issues.length) {
-      return (
-        <div>
-          <h6>
-            <span>{t('External Issues')}</span>
-          </h6>
-          {issues}
-        </div>
-      );
+      return <SidebarSection title={t('External Issues')}>{issues}</SidebarSection>;
     }
     return null;
   }
@@ -199,13 +192,14 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {event, group, organization, project, environments} = this.props;
+    const {className, event, group, organization, project, environments} = this.props;
     const {allEnvironmentsGroupData, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
     return (
-      <div className="group-stats">
+      <div className={className}>
         {event && <SuggestedOwners project={project} group={group} event={event} />}
+
         <GroupReleaseStats
           organization={organization}
           project={project}
@@ -222,38 +216,41 @@ class GroupSidebar extends React.Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <h6>
-          <GuideAnchor target="tags" position="bottom">
-            <span>{t('Tags')}</span>
-          </GuideAnchor>
-        </h6>
-        {tagsWithTopValues &&
-          group.tags.map(tag => {
-            const tagWithTopValues = tagsWithTopValues[tag.key];
-            const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-            const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+        <SidebarSection
+          title={
+            <GuideAnchor target="tags" position="bottom">
+              {t('Tags')}
+            </GuideAnchor>
+          }
+        >
+          {tagsWithTopValues &&
+            group.tags.map(tag => {
+              const tagWithTopValues = tagsWithTopValues[tag.key];
+              const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+              const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
 
-            return (
-              <GroupTagDistributionMeter
-                key={tag.key}
-                tag={tag.key}
-                totalValues={topValuesTotal}
-                topValues={topValues}
-                name={tag.name}
-                data-test-id="group-tag"
-                organization={organization}
-                projectId={projectId}
-                group={group}
-              />
-            );
-          })}
-        {group.tags.length === 0 && (
-          <p data-test-id="no-tags">
-            {environments.length
-              ? t('No tags found in the selected environments')
-              : t('No tags found')}
-          </p>
-        )}
+              return (
+                <GroupTagDistributionMeter
+                  key={tag.key}
+                  tag={tag.key}
+                  totalValues={topValuesTotal}
+                  topValues={topValues}
+                  name={tag.name}
+                  data-test-id="group-tag"
+                  organization={organization}
+                  projectId={projectId}
+                  group={group}
+                />
+              );
+            })}
+          {group.tags.length === 0 && (
+            <p data-test-id="no-tags">
+              {environments.length
+                ? t('No tags found in the selected environments')
+                : t('No tags found')}
+            </p>
+          )}
+        </SidebarSection>
 
         {this.renderParticipantData()}
       </div>
@@ -261,4 +258,8 @@ class GroupSidebar extends React.Component<Props, State> {
   }
 }
 
-export default withApi(GroupSidebar);
+const StyledGroupSidebar = styled(GroupSidebar)`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+export default withApi(StyledGroupSidebar);

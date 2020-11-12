@@ -26,6 +26,8 @@ import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import SidebarSection from './sidebarSection';
+
 type Props = AsyncComponent['props'] & {
   group: Group;
   project: Project;
@@ -214,13 +216,12 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
     const pluginIssues = this.renderPluginIssues();
     const pluginActions = this.renderPluginActions();
+    const showSetup =
+      !sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions;
 
-    if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
-      return (
-        <React.Fragment>
-          <h6 data-test-id="linked-issues">
-            <span>Linked Issues</span>
-          </h6>
+    return (
+      <SidebarSection data-test-id="linked-issues" title={t('Linked Issues')}>
+        {showSetup && (
           <AlertLink
             icon={<IconGeneric />}
             priority="muted"
@@ -229,20 +230,12 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           >
             {t('Set up Issue Tracking')}
           </AlertLink>
-        </React.Fragment>
-      );
-    }
-
-    return (
-      <React.Fragment>
-        <h6 data-test-id="linked-issues">
-          <span>Linked Issues</span>
-        </h6>
+        )}
         {sentryAppIssues && <Wrapper>{sentryAppIssues}</Wrapper>}
         {integrationIssues && <Wrapper>{integrationIssues}</Wrapper>}
         {pluginIssues && <Wrapper>{pluginIssues}</Wrapper>}
         {pluginActions && <Wrapper>{pluginActions}</Wrapper>}
-      </React.Fragment>
+      </SidebarSection>
     );
   }
 }
