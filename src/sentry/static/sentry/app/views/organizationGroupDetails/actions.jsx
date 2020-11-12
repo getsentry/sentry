@@ -275,7 +275,7 @@ const GroupDetailsActions = createReactClass({
   },
 
   render() {
-    const {group, project, organization} = this.props;
+    const {className, group, project, organization} = this.props;
     const orgFeatures = new Set(organization.features);
     const projectFeatures = new Set(project.features);
 
@@ -288,7 +288,7 @@ const GroupDetailsActions = createReactClass({
     const isIgnored = group.status === 'ignored';
 
     return (
-      <div className="group-actions">
+      <div className={className}>
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             hasRelease={hasRelease}
@@ -378,6 +378,19 @@ const BookmarkButton = styled('div')`
   `}
 `;
 
-export {GroupDetailsActions};
+const StyledGroupDetailsActions = styled(GroupDetailsActions)`
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: flex-start;
+  gap: ${space(0.5)};
 
-export default withApi(withOrganization(GroupDetailsActions));
+  .group-remove:hover {
+    color: ${p => p.theme.white};
+    background: ${p => p.theme.red300};
+    border-color: ${p => p.theme.red300};
+  }
+`;
+
+export {StyledGroupDetailsActions as GroupDetailsActions};
+
+export default withApi(withOrganization(StyledGroupDetailsActions));

@@ -123,65 +123,61 @@ class GroupActivity extends React.Component {
     };
 
     return (
-      <div className="row">
-        <div className="col-md-9">
-          <div>
-            <ActivityItem author={{type: 'user', user: me}}>
-              {() => (
-                <NoteInputWithStorage
-                  key={this.state.inputId}
-                  storageKey="groupinput:latest"
-                  itemKey={group.id}
-                  onCreate={this.handleNoteCreate}
-                  busy={this.state.createBusy}
-                  error={this.state.error}
-                  errorJSON={this.state.errorJSON}
+      <div>
+        <ActivityItem author={{type: 'user', user: me}}>
+          {() => (
+            <NoteInputWithStorage
+              key={this.state.inputId}
+              storageKey="groupinput:latest"
+              itemKey={group.id}
+              onCreate={this.handleNoteCreate}
+              busy={this.state.createBusy}
+              error={this.state.error}
+              errorJSON={this.state.errorJSON}
+              {...noteProps}
+            />
+          )}
+        </ActivityItem>
+
+        {group.activity.map(item => {
+          const authorName = item.user ? item.user.name : 'Sentry';
+
+          if (item.type === 'note') {
+            return (
+              <ErrorBoundary mini key={`note-${item.id}`}>
+                <Note
+                  text={item.data.text}
+                  modelId={item.id}
+                  user={item.user}
+                  dateCreated={item.dateCreated}
+                  authorName={authorName}
+                  onDelete={this.handleNoteDelete}
+                  onUpdate={this.handleNoteUpdate}
+                  busy={this.state.updateBusy}
                   {...noteProps}
                 />
-              )}
-            </ActivityItem>
-
-            {group.activity.map(item => {
-              const authorName = item.user ? item.user.name : 'Sentry';
-
-              if (item.type === 'note') {
-                return (
-                  <ErrorBoundary mini key={`note-${item.id}`}>
-                    <Note
-                      text={item.data.text}
-                      modelId={item.id}
-                      user={item.user}
-                      dateCreated={item.dateCreated}
-                      authorName={authorName}
-                      onDelete={this.handleNoteDelete}
-                      onUpdate={this.handleNoteUpdate}
-                      busy={this.state.updateBusy}
-                      {...noteProps}
-                    />
-                  </ErrorBoundary>
-                );
-              } else {
-                return (
-                  <ErrorBoundary mini key={`item-${item.id}`}>
-                    <ActivityItem
+              </ErrorBoundary>
+            );
+          } else {
+            return (
+              <ErrorBoundary mini key={`item-${item.id}`}>
+                <ActivityItem
+                  item={item}
+                  author={{type: item.user ? 'user' : 'system', user: item.user}}
+                  date={item.dateCreated}
+                  header={
+                    <GroupActivityItem
+                      author={<ActivityAuthor>{authorName}</ActivityAuthor>}
                       item={item}
-                      author={{type: item.user ? 'user' : 'system', user: item.user}}
-                      date={item.dateCreated}
-                      header={
-                        <GroupActivityItem
-                          author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                          item={item}
-                          orgSlug={this.props.params.orgId}
-                          projectId={group.project.id}
-                        />
-                      }
+                      orgSlug={this.props.params.orgId}
+                      projectId={group.project.id}
                     />
-                  </ErrorBoundary>
-                );
-              }
-            })}
-          </div>
-        </div>
+                  }
+                />
+              </ErrorBoundary>
+            );
+          }
+        })}
       </div>
     );
   }

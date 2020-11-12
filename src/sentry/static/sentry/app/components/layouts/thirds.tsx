@@ -7,7 +7,7 @@ import NavTabs from 'app/components/navTabs';
 /**
  * Base container for 66/33 containers.
  */
-export const Body = styled('div')`
+export const Body = styled('div')<{fullWidth?: boolean}>`
   padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
@@ -17,12 +17,15 @@ export const Body = styled('div')`
     padding: ${space(2)} ${space(4)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  ${p =>
+    !p.fullWidth &&
+    `
+  @media (min-width: ${p.theme.breakpoints[1]}) {
     display: grid;
     grid-template-columns: 66% auto;
     align-content: start;
     grid-gap: ${space(3)};
-  }
+  }`}
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: minmax(100px, auto) 325px;

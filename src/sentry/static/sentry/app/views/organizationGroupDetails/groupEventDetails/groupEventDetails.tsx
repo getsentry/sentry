@@ -18,7 +18,9 @@ import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
+import space from 'app/styles/space';
 import {Group, Project, Organization, Environment, Event} from 'app/types';
+import * as Layout from 'app/components/layouts/thirds';
 
 import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 import GroupEventToolbar from '../eventToolbar';
@@ -193,64 +195,61 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, group, project, organization, environments, location} = this.props;
+    const {group, project, organization, environments, location} = this.props;
     const evt = withMeta(this.state.event);
 
     return (
-      <div className={className}>
-        <div className="event-details-container">
-          <div className="primary">
-            {evt && (
-              <GroupEventToolbar
-                organization={organization}
-                group={group}
-                event={evt}
-                orgId={organization.slug}
-                projectId={project.slug}
-                location={location}
-              />
-            )}
-            {group.status === 'ignored' && (
-              <MutedBox statusDetails={group.statusDetails} />
-            )}
-            {group.status === 'resolved' && (
-              <ResolutionBox statusDetails={group.statusDetails} projectId={project.id} />
-            )}
-            {this.state.loading ? (
-              <LoadingIndicator />
-            ) : this.state.error ? (
-              <GroupEventDetailsLoadingError
-                environments={environments}
-                onRetry={this.fetchData}
-              />
-            ) : (
-              <EventEntries
-                group={group}
-                event={evt}
-                organization={organization}
-                project={project}
-                location={location}
-                showExampleCommit={this.showExampleCommit}
-              />
-            )}
-          </div>
-          <div className="secondary">
-            <GroupSidebar
+      <React.Fragment>
+        <Layout.Main>
+          {evt && (
+            <GroupEventToolbar
               organization={organization}
-              project={project}
               group={group}
               event={evt}
-              environments={environments}
+              orgId={organization.slug}
+              projectId={project.slug}
+              location={location}
             />
-          </div>
-        </div>
-      </div>
+          )}
+          {group.status === 'ignored' && <MutedBox statusDetails={group.statusDetails} />}
+          {group.status === 'resolved' && (
+            <ResolutionBox statusDetails={group.statusDetails} projectId={project.id} />
+          )}
+          {this.state.loading ? (
+            <LoadingIndicator />
+          ) : this.state.error ? (
+            <GroupEventDetailsLoadingError
+              environments={environments}
+              onRetry={this.fetchData}
+            />
+          ) : (
+            <EventEntries
+              group={group}
+              event={evt}
+              organization={organization}
+              project={project}
+              location={location}
+              showExampleCommit={this.showExampleCommit}
+            />
+          )}
+        </Layout.Main>
+        <Side>
+          <GroupSidebar
+            organization={organization}
+            project={project}
+            group={group}
+            event={evt}
+            environments={environments}
+          />
+        </Side>
+      </React.Fragment>
     );
   }
 }
 
-export default styled(GroupEventDetails)`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
+const Side = styled(Layout.Side)`
+  border-left: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(4)};
 `;
+
+export default styled(GroupEventDetails)``;

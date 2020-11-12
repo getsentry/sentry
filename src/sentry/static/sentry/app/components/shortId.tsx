@@ -8,8 +8,7 @@ import AutoSelectText from 'app/components/autoSelectText';
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-};
+} & React.HTMLProps<HTMLDivElement>;
 
 export default class ShortId extends React.Component<Props> {
   static propTypes = {
@@ -18,14 +17,14 @@ export default class ShortId extends React.Component<Props> {
   };
 
   render() {
-    const {shortId, avatar} = this.props;
+    const {shortId, avatar, ...props} = this.props;
 
     if (!shortId) {
       return null;
     }
 
     return (
-      <StyledShortId {...this.props}>
+      <StyledShortId {...props}>
         {avatar}
         <StyledAutoSelectText avatar={!!avatar}>{shortId}</StyledAutoSelectText>
       </StyledShortId>

@@ -13,16 +13,18 @@ import EventMessage from 'app/components/events/eventMessage';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ListLink from 'app/components/links/listLink';
-import NavTabs from 'app/components/navTabs';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SeenByList from 'app/components/seenByList';
 import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
 import Badge from 'app/components/badge';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import {getMessage} from 'app/utils/events';
+import * as Layout from 'app/components/layouts/thirds';
 
 import GroupActions from './actions';
 import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
@@ -71,7 +73,7 @@ class GroupHeader extends React.Component {
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
-    let className = 'group-detail';
+    let className = '';
 
     if (group.isBookmarked) {
       className += ' isBookmarked';
@@ -97,12 +99,13 @@ class GroupHeader extends React.Component {
     };
 
     return (
-      <div className={className}>
-        <div className="row">
-          <div className="col-sm-7">
-            <h3>
+      <Wrapper className={className}>
+        <Header>
+          <HeaderContent>
+            <GroupTitleWrapper>
               <EventOrGroupTitle hasGuideAnchor data={group} />
-            </h3>
+            </GroupTitleWrapper>
+
             <StyledTagAndMessageWrapper>
               {group.isUnhandled && <UnhandledTag />}
               <EventMessage
@@ -132,13 +135,13 @@ class GroupHeader extends React.Component {
                 }
               />
             </StyledTagAndMessageWrapper>
-          </div>
+          </HeaderContent>
 
-          <div className="col-sm-5 stats">
-            <div className="flex flex-justify-right">
+          <HeaderActions>
+            <HeaderDetails>
               {group.shortId && (
                 <GuideAnchor target="issue_number" position="bottom">
-                  <div className="short-id-box count align-right">
+                  <ShortIdBox>
                     <h6 className="nav-header">
                       <Tooltip
                         title={t(
@@ -154,98 +157,151 @@ class GroupHeader extends React.Component {
                         </a>
                       </Tooltip>
                     </h6>
-                    <ShortId
+                    <StyledShortId
                       shortId={group.shortId}
                       avatar={
                         <StyledProjectBadge project={project} avatarSize={20} hideName />
                       }
                     />
-                  </div>
+                  </ShortIdBox>
                 </GuideAnchor>
               )}
-              <div className="count align-right m-l-1">
+              <div>
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={eventRouteToObject}>
-                  <Count className="count" value={group.count} />
+                  <HeaderDetailsCount value={group.count} />
                 </Link>
               </div>
-              <div className="count align-right m-l-1">
+              <div>
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
                   <Link to={`${baseUrl}tags/user/${location.search}`}>
-                    <Count className="count" value={userCount} />
+                    <HeaderDetailsCount value={userCount} />
                   </Link>
                 ) : (
                   <span>0</span>
                 )}
               </div>
-              <div className="assigned-to m-l-1">
+              <div>
                 <h6 className="nav-header">{t('Assignee')}</h6>
                 <AssigneeSelector id={group.id} memberList={memberList} />
               </div>
-            </div>
-          </div>
-        </div>
-        <SeenByList
-          seenBy={group.seenBy}
-          iconTooltip={t('People who have viewed this issue')}
-        />
-        <GroupActions group={group} project={project} />
-        <NavTabs>
-          <ListLink
-            to={`${baseUrl}${location.search}`}
-            isActive={() => currentTab === TAB.DETAILS}
-          >
-            {t('Details')}
-          </ListLink>
-          <ListLink
-            to={`${baseUrl}activity/${location.search}`}
-            isActive={() => currentTab === TAB.COMMENTS}
-          >
-            {t('Activity')} <Badge text={group.numComments} />
-          </ListLink>
-          <ListLink
-            to={`${baseUrl}feedback/${location.search}`}
-            isActive={() => currentTab === TAB.USER_FEEDBACK}
-          >
-            {t('User Feedback')} <Badge text={group.userReportCount} />
-          </ListLink>
-          {hasEventAttachments && (
+            </HeaderDetails>
+          </HeaderActions>
+        </Header>
+
+        <Header>
+          <SeenByList
+            seenBy={group.seenBy}
+            iconTooltip={t('People who have viewed this issue')}
+          />
+          <GroupActions group={group} project={project} />
+        </Header>
+
+        <TabLayoutHeader>
+          <Layout.HeaderNavTabs underlined>
             <ListLink
-              to={`${baseUrl}attachments/${location.search}`}
-              isActive={() => currentTab === TAB.ATTACHMENTS}
+              to={`${baseUrl}${location.search}`}
+              isActive={() => currentTab === TAB.DETAILS}
             >
-              {t('Attachments')}
+              {t('Details')}
             </ListLink>
-          )}
-          <ListLink
-            to={`${baseUrl}tags/${location.search}`}
-            isActive={() => currentTab === TAB.TAGS}
-          >
-            {t('Tags')}
-          </ListLink>
-          <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
-            {t('Events')}
-          </ListLink>
-          <ListLink
-            to={`${baseUrl}merged/${location.search}`}
-            isActive={() => currentTab === TAB.MERGED}
-          >
-            {t('Merged')}
-          </ListLink>
-          {hasSimilarView && (
             <ListLink
-              to={`${baseUrl}similar/${location.search}`}
-              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+              to={`${baseUrl}activity/${location.search}`}
+              isActive={() => currentTab === TAB.COMMENTS}
             >
-              {t('Similar Issues')}
+              {t('Activity')} <Badge text={group.numComments} />
             </ListLink>
-          )}
-        </NavTabs>
-      </div>
+            <ListLink
+              to={`${baseUrl}feedback/${location.search}`}
+              isActive={() => currentTab === TAB.USER_FEEDBACK}
+            >
+              {t('User Feedback')} <Badge text={group.userReportCount} />
+            </ListLink>
+            {hasEventAttachments && (
+              <ListLink
+                to={`${baseUrl}attachments/${location.search}`}
+                isActive={() => currentTab === TAB.ATTACHMENTS}
+              >
+                {t('Attachments')}
+              </ListLink>
+            )}
+            <ListLink
+              to={`${baseUrl}tags/${location.search}`}
+              isActive={() => currentTab === TAB.TAGS}
+            >
+              {t('Tags')}
+            </ListLink>
+            <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
+              {t('Events')}
+            </ListLink>
+            <ListLink
+              to={`${baseUrl}merged/${location.search}`}
+              isActive={() => currentTab === TAB.MERGED}
+            >
+              {t('Merged')}
+            </ListLink>
+            {hasSimilarView && (
+              <ListLink
+                to={`${baseUrl}similar/${location.search}`}
+                isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+              >
+                {t('Similar Issues')}
+              </ListLink>
+            )}
+          </Layout.HeaderNavTabs>
+        </TabLayoutHeader>
+      </Wrapper>
     );
   }
 }
+
+const GroupTitleWrapper = styled('h3')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.headerFontSize};
+  margin: 0 0 ${space(1)};
+  ${overflowEllipsis}
+`;
+
+const Wrapper = styled('div')`
+  background-color: ${p => p.theme.backgroundSecondary};
+`;
+
+const HeaderContent = styled(Layout.HeaderContent)`
+  margin-right: ${space(1)};
+  margin-bottom: 0;
+`;
+
+const Header = styled(Layout.Header)`
+  flex-wrap: nowrap;
+  border-bottom: 0;
+`;
+
+const HeaderActions = styled(Layout.HeaderActions)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+    width: auto;
+  }
+`;
+
+const HeaderDetails = styled('div')`
+  display: grid;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  gap: ${space(2)};
+  grid-auto-flow: column;
+  text-align: right;
+  max-width: 400px;
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    max-width: none;
+  }
+`;
+
+const HeaderDetailsCount = styled(Count)`
+  font-size: ${p => p.theme.headerFontSize};
+`;
+
+const TabLayoutHeader = styled(Layout.Header)``;
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -259,6 +315,16 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
+`;
+
+const ShortIdBox = styled('div')`
+  overflow: hidden; /* needed for ellipsis when ShortId is too long */
+`;
+
+const StyledShortId = styled(ShortId)`
+  .auto-select-text > span {
+    ${overflowEllipsisLeft};
+  }
 `;
 
 export {GroupHeader, TAB};

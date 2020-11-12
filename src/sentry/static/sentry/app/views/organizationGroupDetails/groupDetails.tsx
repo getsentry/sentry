@@ -1,6 +1,7 @@
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -18,6 +19,7 @@ import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 import {getMessage, getTitle} from 'app/utils/events';
+import * as Layout from 'app/components/layouts/thirds';
 
 import {ERROR_TYPES} from './constants';
 import {fetchGroupEventAndMarkSeen} from './utils';
@@ -279,6 +281,10 @@ class GroupDetails extends React.Component<Props, State> {
       childProps = {...childProps, event, baseUrl};
     }
 
+    const child = React.isValidElement(children)
+      ? React.cloneElement(children, childProps)
+      : children;
+
     return (
       <React.Fragment>
         <GroupHeader
@@ -287,9 +293,13 @@ class GroupDetails extends React.Component<Props, State> {
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
-        {React.isValidElement(children)
-          ? React.cloneElement(children, childProps)
-          : children}
+        {currentTab === TAB.DETAILS ? (
+          <Body>{child}</Body>
+        ) : (
+          <Layout.Body fullWidth>
+            <Layout.Main fullWidth>{child}</Layout.Main>
+          </Layout.Body>
+        )}
       </React.Fragment>
     );
   }
@@ -300,6 +310,7 @@ class GroupDetails extends React.Component<Props, State> {
 
     const isError = error;
     const isLoading = loading || (!group && !isError);
+    const isLoadingOrError = isError || isLoading;
 
     return (
       <DocumentTitle title={this.getTitle()}>
@@ -312,35 +323,44 @@ class GroupDetails extends React.Component<Props, State> {
           showIssueStreamLink
           showProjectSettingsLink
         >
-          <PageContent>
-            {isLoading ? (
-              <LoadingIndicator />
-            ) : isError ? (
-              this.renderError()
-            ) : (
-              <Projects
-                orgId={organization.slug}
-                slugs={[project!.slug]}
-                data-test-id="group-projects-container"
-              >
-                {({projects, initiallyLoaded, fetchError}) =>
-                  initiallyLoaded ? (
-                    fetchError ? (
-                      <LoadingError message={t('Error loading the specified project')} />
-                    ) : (
-                      this.renderContent(projects[0])
-                    )
+          {isLoadingOrError ? (
+            <PageContent>
+              {isLoading ? <LoadingIndicator /> : this.renderError()}
+            </PageContent>
+          ) : (
+            <Projects
+              orgId={organization.slug}
+              slugs={[project!.slug]}
+              data-test-id="group-projects-container"
+            >
+              {({projects, initiallyLoaded, fetchError}) =>
+                initiallyLoaded ? (
+                  fetchError ? (
+                    <LoadingError message={t('Error loading the specified project')} />
                   ) : (
-                    <LoadingIndicator />
+                    this.renderContent(projects[0])
                   )
-                }
-              </Projects>
-            )}
-          </PageContent>
+                ) : (
+                  <LoadingIndicator />
+                )
+              }
+            </Projects>
+          )}
         </GlobalSelectionHeader>
       </DocumentTitle>
     );
   }
 }
+
+const Body = styled(Layout.Body)`
+  margin-bottom: -20px;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    gap: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    padding: 0;
+  }
+`;
 
 export default withApi(Sentry.withProfiler(GroupDetails));

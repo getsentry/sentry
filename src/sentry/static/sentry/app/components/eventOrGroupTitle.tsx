@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Organization, Event, Group, GroupTombstone} from 'app/types';
 import {getTitle} from 'app/utils/events';
@@ -23,7 +24,7 @@ class EventOrGroupTitle extends React.Component<Props> {
           <span>{title}</span>
         </GuideAnchor>
         <Spacer />
-        <em title={subtitle}>{subtitle}</em>
+        <Subtitle title={subtitle}>{subtitle}</Subtitle>
         <br />
       </span>
     ) : (
@@ -35,6 +36,12 @@ class EventOrGroupTitle extends React.Component<Props> {
     );
   }
 }
+
+const Subtitle = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: 90%;
+  font-weight: 400;
+`;
 
 export default withOrganization(EventOrGroupTitle);
 
