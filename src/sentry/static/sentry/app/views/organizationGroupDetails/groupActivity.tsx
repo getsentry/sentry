@@ -150,7 +150,7 @@ class GroupActivity extends React.Component<Props, State> {
                 return (
                   <ErrorBoundary mini key={`note-${item.id}`}>
                     <Note
-                      showTime
+                      showTime={false}
                       text={item.data.text}
                       modelId={item.id}
                       user={item.user as User}
