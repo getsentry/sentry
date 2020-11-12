@@ -50,6 +50,8 @@ type Truncateable = {
 };
 
 type Props = {
+  theme: Theme;
+
   options?: EChartOption;
   /**
    * Chart Series
@@ -211,8 +213,6 @@ type Props = {
    * Inline styles
    */
   style?: React.CSSProperties;
-
-  theme: Theme;
 };
 
 class BaseChart extends React.Component<Props> {
@@ -493,9 +493,9 @@ const ChartContainer = styled('div')`
 
 const BaseChartWithTheme = withTheme(BaseChart);
 
-const BaseChartRef = React.forwardRef<ReactEchartsCore, Props>((props, ref) => (
-  <BaseChartWithTheme forwardedRef={ref} {...props} />
-));
+const BaseChartRef = React.forwardRef<ReactEchartsCore, Omit<Props, 'theme'>>(
+  (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
+);
 BaseChartRef.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChartRef;
