@@ -36,17 +36,13 @@ function Footer({className}: Props) {
       </div>
       <LogoLink />
       <Links>
-        <FooterLink className="hidden-xs" href="/api/">
-          {t('API')}
-        </FooterLink>
+        <FooterLink href="/api/">{t('API')}</FooterLink>
         <FooterLink href="/docs/">{t('Docs')}</FooterLink>
-        <FooterLink className="hidden-xs" href="https://github.com/getsentry/sentry">
+        <FooterLink href="https://github.com/getsentry/sentry">
           {t('Contribute')}
         </FooterLink>
         {config.isOnPremise && (
-          <FooterLink className="hidden-xs" href="/out/">
-            {t('Migrate to SaaS')}
-          </FooterLink>
+          <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </Links>
       <Hook name="footer" />
