@@ -154,7 +154,7 @@ const aliases = {
   /**
    * Color for chart label text
    */
-  chartLabel: colors.gray300,
+  chartLabel: colors.gray200,
 } as const;
 
 const warning = {

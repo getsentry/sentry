@@ -50,13 +50,13 @@ export default function XAxis({
     boundaryGap: false,
     axisLine: {
       lineStyle: {
-        color: theme.gray200,
+        color: theme.chartLabel,
       },
       ...(axisLine || {}),
     },
     axisTick: {
       lineStyle: {
-        color: theme.gray200,
+        color: theme.chartLabel,
       },
       ...(axisTick || {}),
     },
@@ -72,6 +72,7 @@ export default function XAxis({
       showMinLabel: false,
 
       formatter: axisLabelFormatter,
+      color: theme.chartLabel,
       ...(axisLabel || {}),
     },
     axisPointer: {

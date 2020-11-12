@@ -299,7 +299,7 @@ class Chart extends React.Component<Props> {
         min: Math.max(0, yMin - yMargin),
         max: yMax + yMargin,
         axisLabel: {
-          color: theme.gray200,
+          color: theme.chartLabel,
           // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
