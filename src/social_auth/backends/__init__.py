@@ -620,7 +620,7 @@ class BaseOAuth2(OAuthAuth):
         self.process_error(self.data)
         params = self.auth_complete_params(self.validate_state())
         request = Request(
-            self.ACCESS_TOKEN_URL, data=urlencode(params), headers=self.auth_headers()
+            self.ACCESS_TOKEN_URL, data=urlencode(params).encode("utf-8"), headers=self.auth_headers()
         )
 
         try:
