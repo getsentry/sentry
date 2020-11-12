@@ -6,13 +6,14 @@ import {tn} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import space from 'app/styles/space';
 
+import SidebarSection from './sidebarSection';
+
 type Props = {
   participants: Group['participants'];
 };
 
 const GroupParticipants = ({participants}: Props) => (
-  <div>
-    <h6>{tn('%s Participant', '%s Participants', participants.length)}</h6>
+  <SidebarSection title={tn('%s Participant', '%s Participants', participants.length)}>
     <Faces>
       {participants.map(user => (
         <Face key={user.username}>
@@ -20,7 +21,7 @@ const GroupParticipants = ({participants}: Props) => (
         </Face>
       ))}
     </Faces>
-  </div>
+  </SidebarSection>
 );
 
 export default GroupParticipants;
