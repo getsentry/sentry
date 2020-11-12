@@ -3,12 +3,16 @@ from __future__ import absolute_import
 from sentry.api.serializers import Serializer, register, serialize
 
 import six
+import functools
 
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.base import TagKeyStatus
 
 
+@functools.total_ordering
 class TagType(object):
+    _sort_key = None
+
     def __repr__(self):
         return "<%s: %s>" % (
             type(self).__name__,
@@ -23,6 +27,9 @@ class TagType(object):
             getattr(self, name) == getattr(other, name) for name in self.__slots__
         )
 
+    def __lt__(self, other):
+        return getattr(self, self._sort_key) < getattr(other, self._sort_key)
+
     def __getstate__(self):
         return {name: getattr(self, name) for name in self.__slots__}
 
@@ -33,6 +40,7 @@ class TagType(object):
 
 class TagKey(TagType):
     __slots__ = ["key", "values_seen", "status"]
+    _sort_key = "values_seen"
 
     def __init__(
         self, key, values_seen=None, status=TagKeyStatus.VISIBLE, count=None, top_values=None
@@ -49,6 +57,7 @@ class TagKey(TagType):
 
 class TagValue(TagType):
     __slots__ = ["key", "value", "times_seen", "first_seen", "last_seen"]
+    _sort_key = "value"
 
     def __init__(self, key, value, times_seen, first_seen, last_seen):
         self.key = key
@@ -60,6 +69,7 @@ class TagValue(TagType):
 
 class GroupTagKey(TagType):
     __slots__ = ["group_id", "key", "values_seen"]
+    _sort_key = "values_seen"
 
     def __init__(self, group_id, key, values_seen=None, count=None, top_values=None):
         self.group_id = group_id
@@ -71,6 +81,7 @@ class GroupTagKey(TagType):
 
 class GroupTagValue(TagType):
     __slots__ = ["group_id", "key", "value", "times_seen", "first_seen", "last_seen"]
+    _sort_key = "value"
 
     def __init__(self, group_id, key, value, times_seen, first_seen, last_seen):
         self.group_id = group_id
