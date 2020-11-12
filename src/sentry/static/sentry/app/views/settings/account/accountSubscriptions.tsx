@@ -1,9 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -14,8 +15,22 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-class AccountSubscriptions extends AsyncView {
-  getEndpoints() {
+type Subscription = {
+  email: string;
+  listDescription: string;
+  listId: number;
+  listName: string;
+  subscribed: boolean;
+  subscribedDate: string | null;
+  unsubscribedDate: string | null;
+};
+
+type State = AsyncView['state'] & {
+  subscriptions: Subscription[];
+};
+
+class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['subscriptions', ENDPOINT]];
   }
 
@@ -23,7 +38,7 @@ class AccountSubscriptions extends AsyncView {
     return 'Subscriptions';
   }
 
-  handleToggle = (subscription, index, _e) => {
+  handleToggle = (subscription: Subscription, index: number, _e: React.MouseEvent) => {
     const subscribed = !subscription.subscribed;
     const oldSubscriptions = this.state.subscriptions;
 
@@ -32,7 +47,7 @@ class AccountSubscriptions extends AsyncView {
       newSubscriptions[index] = {
         ...subscription,
         subscribed,
-        subscribedDate: new Date(),
+        subscribedDate: new Date().toString(),
       };
       return {
         ...state,
@@ -65,14 +80,16 @@ class AccountSubscriptions extends AsyncView {
       <div>
         <SettingsPageHeader title="Subscriptions" />
         <TextBlock>
-          Sentry is committed to respecting your inbox. Our goal is to provide useful
-          content and resources that make fixing errors less painful. Enjoyable even.
+          {t(`Sentry is committed to respecting your inbox. Our goal is to
+              provide useful content and resources that make fixing errors less
+              painful. Enjoyable even.`)}
         </TextBlock>
 
         <TextBlock>
-          As part of our compliance with the EU’s General Data Protection Regulation
-          (GDPR), starting on 25 May 2018, we’ll only email you according to the marketing
-          categories to which you’ve explicitly opted-in.
+          {t(`As part of our compliance with the EU’s General Data Protection
+              Regulation (GDPR), starting on 25 May 2018, we’ll only email you
+              according to the marketing categories to which you’ve explicitly
+              opted-in.`)}
         </TextBlock>
 
         <Panel>
@@ -90,8 +107,15 @@ class AccountSubscriptions extends AsyncView {
                       {subscription.subscribed ? (
                         <SubscribedDescription>
                           <div>
-                            {subscription.email} on{' '}
-                            <DateTime shortDate date={subscription.subscribedDate} />
+                            {tct('[email] on [date]', {
+                              email: subscription.email,
+                              date: (
+                                <DateTime
+                                  shortDate
+                                  date={moment(subscription.subscribedDate!)}
+                                />
+                              ),
+                            })}
                           </div>
                         </SubscribedDescription>
                       ) : (
@@ -108,7 +132,7 @@ class AccountSubscriptions extends AsyncView {
                       />
                     </div>
                   </PanelItem>
-                ))}{' '}
+                ))}
               </PanelBody>
             </div>
           ) : (
@@ -116,14 +140,17 @@ class AccountSubscriptions extends AsyncView {
           )}
         </Panel>
         <TextBlock>
-          We’re applying GDPR consent and privacy policies to all Sentry contacts,
-          regardless of location. You’ll be able to manage your subscriptions here and
-          from an Unsubscribe link in the footer of all marketing emails.
+          {t(`We’re applying GDPR consent and privacy policies to all Sentry
+              contacts, regardless of location. You’ll be able to manage your
+              subscriptions here and from an Unsubscribe link in the footer of
+              all marketing emails.`)}
         </TextBlock>
 
         <TextBlock>
-          Please contact <a href="mailto:learn@sentry.io">learn@sentry.io</a> with any
-          questions or suggestions.
+          {tct(
+            'Please contact [email:learn@sentry.io] with any questions or suggestions.',
+            {email: <a href="mailto:learn@sentry.io" />}
+          )}
         </TextBlock>
       </div>
     );
