@@ -9,9 +9,8 @@ const COLORS = {
     border: theme.border,
   },
   danger: {
-    background: theme.red100,
-    // TODO(theme) This pink is non-standard
-    border: '#e7c0bc',
+    background: theme.alert.error.backgroundLight,
+    border: theme.alert.error.border,
   },
 } as const;
 
