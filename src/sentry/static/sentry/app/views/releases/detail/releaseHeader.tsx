@@ -123,10 +123,7 @@ const ReleaseHeader = ({
             </ReleaseStat>
           )}
           <Feature features={['release-performance-views']}>
-            <ReleaseStat
-              label={t('Apdex Score')}
-              help={getTermHelp(organization, 'apdex')}
-            >
+            <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
               <DiscoverQuery
                 eventView={releaseEventView}
                 location={location}
