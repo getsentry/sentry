@@ -55,4 +55,5 @@ class OverviewDashboard extends AsyncView<Props, State> {
     );
   }
 }
+
 export default OverviewDashboard;
