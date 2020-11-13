@@ -20,3 +20,24 @@ def build_user_choice(user_response, user_id_field):
         "(%s)" % name if name else "",
     )
     return user_response[user_id_field], display.strip()
+
+
+def transform_jira_fields_to_form_fields(fields_list):
+    """
+    The fields array from Jira doesn't exactly match the Alert Rules front
+    end's expected format. Massage the field names and types and put them in a dict.
+
+    :param fields_list: Create ticket fields from Jira as an array.
+    :return: The "create ticket" fields from Jira as a dict.
+    """
+    return {
+        field["name"]: {
+            key: ({"select": "choice", "text": "string"}.get(value, value))
+            if key == "type"
+            else value
+            for key, value in field.items()
+            if key != "updatesForm"
+        }
+        for field in fields_list
+        if field["name"]
+    }

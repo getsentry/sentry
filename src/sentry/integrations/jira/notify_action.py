@@ -4,6 +4,7 @@ import logging
 
 from django import forms
 
+from sentry.integrations.jira.utils import transform_jira_fields_to_form_fields
 from sentry.models import ExternalIssue
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
@@ -50,22 +51,10 @@ class JiraCreateTicketAction(TicketEventAction):
             }
         }
 
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
-            return
         dynamic_fields = self.get_dynamic_form_fields()
+        if dynamic_fields:
+            self.form_fields.update(dynamic_fields)
 
-        installation = integration.get_installation(self.project.organization.id)
-        if installation:
-            try:
-                fields = installation.get_create_issue_config_no_params()
-            except IntegrationError as e:
-                # TODO log when the API call fails.
-                logger.info(e)
-                return
-
-            self.update_form_fields_from_jira_fields(fields)
         self.label = self.get_label_form(dynamic_fields)
 
     def get_label_form(self, data):
@@ -104,27 +93,27 @@ class JiraCreateTicketAction(TicketEventAction):
         # Only add values when they exist.
         return self.get_label_form(self.data).format(**self.data)
 
-    def update_form_fields_from_jira_fields(self, fields_list):
+    def get_dynamic_form_fields(self):
         """
-        The fields array from Jira doesn't exactly match the Alert Rules front
-        end's expected format. Massage the field names and types and put them in a dict.
+        Make an API call to Jira to get the dynamic fields for the selected integration.
 
-        :param fields_list: Create ticket fields from Jira as an array.
-        :return: The "create ticket" fields from Jira a dict.
+        :return: Django form fields dictionary
         """
-        self.form_fields.update(
-            {
-                field["name"]: {
-                    key: ({"select": "choice", "text": "string"}.get(value, value))
-                    if key == "type"
-                    else value
-                    for key, value in field.items()
-                    if key != "updatesForm"
-                }
-                for field in fields_list
-                if field["name"]
-            }
-        )
+        try:
+            integration = self.get_integration()
+        except Integration.DoesNotExist:
+            pass
+        else:
+            installation = integration.get_installation(self.project.organization.id)
+            if installation:
+                try:
+                    fields = installation.get_create_issue_config_no_params()
+                except IntegrationError as e:
+                    # TODO log when the API call fails.
+                    logger.info(e)
+                else:
+                    return transform_jira_fields_to_form_fields(fields)
+        return None
 
     def generate_footer(self, rule_url):
         return u"This ticket was automatically created by Sentry via [{}|{}]".format(
