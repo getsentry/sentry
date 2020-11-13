@@ -50,7 +50,7 @@ marked.setOptions({
   renderer: new SafeRenderer(),
   sanitize: true,
 
-  // Silence sanitize deprecation warning in test / travs (Travis sets NODE_NV
+  // Silence sanitize deprecation warning in test / ci (CI sets NODE_NV
   // to production, but specifies `CI`).
   //
   // [!!] This has the side effect of causing failed markdown content to render
