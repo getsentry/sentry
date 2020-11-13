@@ -773,7 +773,7 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
-  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  subscriptionDetails: SubscriptionDetails | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
@@ -1474,6 +1474,8 @@ export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
 };
+
+export type SubscriptionDetails = {disabled?: boolean; reason?: string};
 
 export type Broadcast = {
   id: string;

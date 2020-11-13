@@ -17,7 +17,7 @@ type Props = {
   firstSeen: string;
 };
 
-const TimesBadge = ({lastSeen, firstSeen}: Props) => {
+const Times = ({lastSeen, firstSeen}: Props) => {
   return (
     <Tag icon={lastSeen ? <IconClock /> : undefined}>
       {lastSeen && <TimeSince date={lastSeen} suffix={t('ago')} shorten />}
@@ -40,4 +40,4 @@ const Seperator = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-export default TimesBadge;
+export default Times;

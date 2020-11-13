@@ -11,7 +11,9 @@ import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag from 'app/views/organizationGroupDetails/unhandledTag';
+import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import InboxCommentsLink from 'app/components/group/inboxBadges/commentsLink';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
@@ -42,35 +44,54 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   return (
     <GroupExtra>
       {isUnhandled && hasInbox && (
-        <TagWrapper>
+        <BadgeWrapper>
           <UnhandledTag />
-        </TagWrapper>
+        </BadgeWrapper>
       )}
-      {shortId && (
-        <GroupShortId
-          shortId={shortId}
-          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
-          onClick={e => {
-            // prevent the clicks from propagating so that the short id can be selected
-            e.stopPropagation();
-          }}
-        />
-      )}
+      {shortId &&
+        (hasInbox ? (
+          <BadgeWrapper>
+            <InboxShortId
+              shortId={shortId}
+              avatar={
+                project && <ProjectBadge project={project} avatarSize={14} hideName />
+              }
+            />
+          </BadgeWrapper>
+        ) : (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && <ProjectBadge project={project} avatarSize={14} hideName />
+            }
+            onClick={e => {
+              // prevent the clicks from propagating so that the short id can be selected
+              e.stopPropagation();
+            }}
+          />
+        ))}
       {!hasInbox && (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
-      {numComments > 0 && (
-        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-          <IconChat
-            size="xs"
-            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+      {numComments > 0 &&
+        (hasInbox ? (
+          <InboxCommentsLink
+            to={`${issuesPath}${id}/activity/`}
+            subscriptionDetails={subscriptionDetails}
+            numComments={numComments}
           />
-          <span>{numComments}</span>
-        </CommentsLink>
-      )}
+        ) : (
+          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+            <IconChat
+              size="xs"
+              color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+            />
+            <span>{numComments}</span>
+          </CommentsLink>
+        ))}
       {logger && (
         <LoggerAnnotation>
           <Link
@@ -119,12 +140,6 @@ const GroupExtra = styled('div')`
   }
 `;
 
-const TagWrapper = styled('div')`
-  & > div {
-    margin-right: 0;
-  }
-`;
-
 const StyledTimes = styled(Times)`
   margin-right: 0;
 `;
@@ -150,6 +165,15 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+`;
+
+const BadgeWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+
+  & > div {
+    margin-right: 0;
+  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));
