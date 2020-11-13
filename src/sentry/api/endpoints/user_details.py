@@ -234,7 +234,6 @@ class UserDetailsEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        hard_delete = True
         is_current_user = request.user.id == user.id
 
         if hard_delete:
