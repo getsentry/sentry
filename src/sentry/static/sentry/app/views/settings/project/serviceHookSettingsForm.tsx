@@ -15,7 +15,7 @@ const EVENT_CHOICES = ['event.alert', 'event.created'].map(e => [e, e]);
 type Props = {
   orgId: string;
   projectId: string;
-  hookId: string;
+  hookId?: string;
   initialData: Partial<ServiceHook> & {isActive: boolean};
 };
 
