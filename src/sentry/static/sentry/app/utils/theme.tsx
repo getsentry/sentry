@@ -6,7 +6,7 @@ const colors = {
   white: '#FFFFFF',
   black: '#1D1127',
 
-  gray100: '#F2F0F5',
+  gray100: '#E7E1EC',
   gray200: '#C6BECF',
   gray300: '#9386A0',
   gray400: '#776589',
@@ -87,7 +87,7 @@ const aliases = {
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: '#e7e1ec',
+  innerBorder: colors.gray100,
 
   /**
    * A color that denotes a "success", or something good
@@ -159,7 +159,7 @@ const aliases = {
 } as const;
 
 const warning = {
-  background: colors.yellow100,
+  background: colors.yellow300,
   backgroundLight: color(colors.yellow100).alpha(0.3).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
@@ -197,7 +197,7 @@ const alert = {
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
+    background: colors.orange400,
     indicatorColor: colors.orange400,
   },
   beta: {
@@ -205,7 +205,7 @@ const badge = {
     indicatorColor: colors.purple300,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
+    background: colors.green300,
     indicatorColor: colors.green300,
   },
 };
