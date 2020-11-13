@@ -257,7 +257,7 @@ const Side = styled(Layout.Side)`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     border-left: none;
-    padding: 0;
+    padding: 0 ${space(4)};
   }
 `;
 
