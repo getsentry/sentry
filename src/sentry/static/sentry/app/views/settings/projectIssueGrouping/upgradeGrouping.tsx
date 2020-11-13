@@ -59,7 +59,7 @@ function UpgradeGrouping({
   }
 
   const handleUpgrade = () => {
-    addLoadingMessage(t('Changing grouping...'));
+    addLoadingMessage(t('Changing grouping\u2026'));
     api
       .requestPromise(`/projects/${organization.slug}/${projectId}/`, {
         method: 'PUT',

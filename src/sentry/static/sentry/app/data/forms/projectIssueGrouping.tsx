@@ -27,13 +27,13 @@ export const fields: Record<string, Field> = {
     maxRows: 20,
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing fingerprinting rules will apply to future events only.'),
+    saveMessage: t('Changing fingerprint rules will apply to future events only.'),
     formatMessageValue: false,
     help: () => (
       <React.Fragment>
         <RuleDescription>
           {tct(
-            `This can be used to modify the fingerprinting rules on the server with custom rules.
+            `This can be used to modify the fingerprint rules on the server with custom rules.
         Rules follow the pattern [pattern]. To learn more about fingerprint rules, [docs:read the docs].`,
             {
               pattern: <code>matcher:glob -&gt; fingerprint, values</code>,
@@ -68,7 +68,7 @@ stack.function:malloc -> memory-allocation-error`}
     maxRows: 20,
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing grouping enhancements will apply to future events only.'),
+    saveMessage: t('Changing stack trace rules will apply to future events only.'),
     formatMessageValue: false,
     help: () => (
       <React.Fragment>
@@ -134,7 +134,7 @@ stack.function:mylibrary_* +app`}
     label: t('Stack Trace Rules Base'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing rules will apply to future events only.'),
+    saveMessage: t('Changing base will apply to future events only.'),
     selectionInfoFunction: args => {
       const {groupingEnhancementBases, value} = args;
       const selection = groupingEnhancementBases.find(({id}) => id === value);

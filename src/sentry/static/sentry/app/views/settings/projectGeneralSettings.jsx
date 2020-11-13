@@ -51,11 +51,7 @@ class ProjectGeneralSettings extends AsyncView {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
 
-    return [
-      ['data', `/projects/${orgId}/${projectId}/`],
-      ['groupingConfigs', '/grouping-configs/'],
-      ['groupingEnhancementBases', '/grouping-enhancements/'],
-    ];
+    return [['data', `/projects/${orgId}/${projectId}/`]];
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -253,9 +249,6 @@ class ProjectGeneralSettings extends AsyncView {
           apiMethod="PUT"
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
-            // this is necessary for the grouping upgrade button to be
-            // updating based on the current selection of the grouping
-            // config.
             this.setState({data: resp});
             if (projectId !== resp.slug) {
               changeProjectSlug(projectId, resp.slug);
@@ -291,7 +284,6 @@ class ProjectGeneralSettings extends AsyncView {
             {tct(
               "psst. Looking for the Grouping Settings? You'll find that under [underline: Issue Grouping].",
               {
-                strong: <strong />,
                 underline: <u />,
               }
             )}
