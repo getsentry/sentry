@@ -27,6 +27,7 @@ import TextField from 'app/views/settings/components/forms/textField';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
+import AlertLink from 'app/components/alertLink';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -282,6 +283,19 @@ class ProjectGeneralSettings extends AsyncView {
             title={t('Event Settings')}
             fields={[fields.resolveAge]}
           />
+
+          <AlertLink
+            to={`/settings/${organization.slug}/projects/${project.slug}/issue-grouping/`}
+            priority="info"
+          >
+            {tct(
+              "psst. Looking for the Grouping Settings? You'll find that under [underline: Issue Grouping].",
+              {
+                strong: <strong />,
+                underline: <u />,
+              }
+            )}
+          </AlertLink>
 
           <JsonForm
             {...jsonFormProps}
