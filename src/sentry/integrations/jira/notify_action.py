@@ -6,7 +6,6 @@ import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-<<<<<<< HEAD
 from sentry.integrations.jira.utils import (
     transform_jira_fields_to_form_fields,
     transform_jira_choices_to_strings,
@@ -17,6 +16,7 @@ from sentry.rules.actions.base import TicketEventAction
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -151,6 +151,7 @@ class JiraCreateTicketAction(TicketEventAction):
             self.rule.label, absolute_uri(rule_url),
         )
 
+    @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()

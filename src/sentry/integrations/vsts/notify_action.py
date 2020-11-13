@@ -8,6 +8,7 @@ from sentry.rules.actions.base import TicketEventAction
 from sentry.models import GroupLink
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -41,6 +42,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
             self.rule.label, absolute_uri(rule_url),
         )
 
+    @transaction_start("AzureDevopsCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()
@@ -55,7 +57,6 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
                 group_id=event.group.id,
                 linked_type=GroupLink.LinkedType.issue,
             ).values_list("data", flat=True)
-
             if not linked or json.loads(linked[0])["provider"] != self.provider:
                 # if multiple tickets are being created via one rule or same criteria
                 resp = installation.create_issue(self.data)
