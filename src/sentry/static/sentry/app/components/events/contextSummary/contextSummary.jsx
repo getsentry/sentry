@@ -102,11 +102,11 @@ const StyledContextSummary = styled(ContextSummary)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column;
     margin-top: 0;
-    padding: 0;
+    padding: 0 ${space(4)};
 
     .context-item {
       .context-item-icon {
-        top: 9px;
+        top: 14px;
       }
     }
   }

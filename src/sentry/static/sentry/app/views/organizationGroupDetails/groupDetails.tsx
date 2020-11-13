@@ -354,11 +354,14 @@ class GroupDetails extends React.Component<Props, State> {
 
 const Body = styled(Layout.Body)`
   margin-bottom: -20px;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     gap: 0;
   }
-
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    gap: 0;
+    padding: 0;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     padding: 0;
   }
 `;

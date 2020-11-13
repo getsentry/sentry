@@ -18,7 +18,7 @@ export const DataSection = styled('div')`
   padding: ${space(2)} 0;
   border-top: 1px solid ${p => p.theme.innerBorder};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
   }
 `;
