@@ -29,16 +29,7 @@ class JiraNotifyServiceForm(forms.Form):
 
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"""Create a Jira ticket in the {jira_integration} account
-    and {project} project
-    of type {issuetype}
-    with components {components}
-    and due date {duedate}
-    with fixVersions {fixVersions}
-    assigned to {assignee}
-    reported by {reporter}
-    label {labels}
-    priority {priority}"""
+    label = u"""Create a Jira ticket in the {jira_integration} account"""
     prompt = "Create a Jira ticket"
     provider = "jira"
     integration_key = "jira_integration"
@@ -63,6 +54,7 @@ class JiraCreateTicketAction(TicketEventAction):
             integration = self.get_integration()
         except Integration.DoesNotExist:
             return
+        dynamic_fields = self.get_dynamic_form_fields()
 
         installation = integration.get_installation(self.project.organization.id)
         if installation:
@@ -74,8 +66,9 @@ class JiraCreateTicketAction(TicketEventAction):
                 return
 
             self.update_form_fields_from_jira_fields(fields)
+        self.label = self.get_label_form(dynamic_fields)
 
-    def render_label(self):
+    def get_label_form(self, data):
         """
         Get the rule as a string. Use human-readable values when available and
         construct the the label by parts because there are so many optional
@@ -83,28 +76,33 @@ class JiraCreateTicketAction(TicketEventAction):
 
         :return: String
         """
-        labels = ["Create a Jira ticket in the {} account".format(self.get_integration_name())]
 
-        if self.data.get("jira_project"):
+        labels = ["Create a Jira ticket in the {jira_integration} account"]
+
+        if data.get("jira_project"):
             labels.append("and {jira_project} project")
-        if self.data.get("issue_type"):
-            labels.append("of type {issue_type}")
-        if self.data.get("components"):
+        if data.get("issuetype"):
+            labels.append("of type {issuetype}")
+        if data.get("components"):
             labels.append("with components {components}")
-        if self.data.get("duedate"):
+        if data.get("duedate"):
             labels.append("and due date {duedate}")
-        if self.data.get("fixVersions"):
+        if data.get("fixVersions"):
             labels.append("with fixVersions {fixVersions}")
-        if self.data.get("assignee"):
+        if data.get("assignee"):
             labels.append("assigned to {assignee}")
-        if self.data.get("reporter"):
+        if data.get("reporter"):
             labels.append("reported by {reporter}")
-        if self.data.get("labels"):
+        if data.get("labels"):
             labels.append("with the labels {labels}")
-        if self.data.get("priority"):
+        if data.get("priority"):
             labels.append("priority {priority}")
 
-        return " ".join(labels).format(**self.data)
+        return " ".join(labels)
+
+    def render_label(self):
+        # Only add values when they exist.
+        return self.get_label_form(self.data).format(**self.data)
 
     def update_form_fields_from_jira_fields(self, fields_list):
         """
