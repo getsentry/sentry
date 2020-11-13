@@ -142,12 +142,10 @@ class IssueListOverview extends React.Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
+    this.fetchData();
+    this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
-
-    // Start by getting searches first so if the user is on a saved search
-    // or they have a pinned search we load the correct data the first time.
-    this.fetchSavedSearches();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -191,14 +189,6 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
-    }
-
-    // Wait for saved searches to load before we attempt to fetch stream data
-    if (this.props.savedSearchLoading) {
-      return;
-    } else if (prevProps.savedSearchLoading) {
-      this.fetchData();
-      return;
     }
 
     const prevQuery = prevProps.location.query;

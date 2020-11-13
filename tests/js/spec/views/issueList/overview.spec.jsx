@@ -1251,7 +1251,7 @@ describe('IssueList', function () {
         // Each property change after the first will actually cause two new
         // fetchData calls, one from the property change and another from a
         // change in this.state.issuesLoading going from false to true.
-        expect(fetchDataMock).toHaveBeenCalledTimes(2 * i + 1);
+        expect(fetchDataMock).toHaveBeenCalledTimes(2 * i + 3);
       }
     });
 
@@ -1336,11 +1336,6 @@ describe('IssueList', function () {
   describe('render states', function () {
     beforeEach(function () {
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
-    });
-
-    it('displays the loading icon', function () {
-      wrapper.setState({savedSearchLoading: true});
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
 
     it('displays an error', function () {

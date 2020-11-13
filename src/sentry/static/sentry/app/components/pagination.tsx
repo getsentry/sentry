@@ -51,8 +51,8 @@ class Pagination extends React.Component<Props> {
     }
 
     const location = this.context.location;
-    const path = this.props.to || location.pathname;
-    const query = location.query;
+    const path = this.props.to || location?.pathname;
+    const query = location?.query;
     const links = parseLinkHeader(pageLinks);
     const previousDisabled = links.previous.results === false;
     const nextDisabled = links.next.results === false;
