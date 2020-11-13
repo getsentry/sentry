@@ -73,7 +73,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
 
     // if the device is defined, it means that U2f is being removed
     const deviceId = device ? `${device.key_handle}/` : '';
-    const deviceName = device ? device.name : 'Authenticator';
+    const deviceName = device ? device.name : t('Authenticator');
 
     this.setState({loading: true});
 
