@@ -22,9 +22,10 @@ fromEntries.shim();
 Enzyme.configure({adapter: new Adapter()});
 
 /**
- * Mock (current) date to always be below
+ * Mock (current) date to always be National Pasta Day
+ * 2017-10-17T02:41:20.000Z
  */
-const constantDate = new Date(1508208080000); //National Pasta Day
+const constantDate = new Date(1508208080000);
 MockDate.set(constantDate);
 
 /**
@@ -117,6 +118,7 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    startTransaction: () => ({finish: jest.fn(), setTag: jest.fn()}),
   };
 });
 

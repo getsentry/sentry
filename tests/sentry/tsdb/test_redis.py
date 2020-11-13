@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
 import pytest
@@ -69,6 +70,9 @@ class RedisTSDBTest(TestCase):
 
         result = self.db.get_model_key("foo")
         assert result == "bf4e529197e56a48ae2737505b9736e4"
+
+        result = self.db.get_model_key(u"我爱啤酒")
+        assert result == "26f980fbe1e8a9d3a0123d2049f95f28"
 
     def test_simple(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
@@ -690,11 +694,11 @@ class RedisTSDBTest(TestCase):
         assert client.exists("1:e")
 
         assert CountMinScript(["1:i", "1:e"], ["RANKED"] + parameters, client=client) == [
-            ["iota", "9"],
-            ["theta", "8"],
-            ["eta", "7"],
-            ["zeta", "6"],
-            ["foxtrot", "6"],
+            [b"iota", b"9"],
+            [b"theta", b"8"],
+            [b"eta", b"7"],
+            [b"zeta", b"6"],
+            [b"foxtrot", b"6"],
         ]
 
     def test_frequency_table_import_export_source_estimators(self):
@@ -748,11 +752,11 @@ class RedisTSDBTest(TestCase):
         assert client.exists("1:e")
 
         assert CountMinScript(["1:i", "1:e"], ["RANKED"] + parameters, client=client) == [
-            ["iota", "9"],
-            ["baz", "9"],
-            ["theta", "8"],
-            ["eta", "7"],
-            ["bar", "7"],
+            [b"iota", b"9"],
+            [b"baz", b"9"],
+            [b"theta", b"8"],
+            [b"eta", b"7"],
+            [b"bar", b"7"],
         ]
 
     def test_frequency_table_import_export_destination_estimators(self):
@@ -806,9 +810,9 @@ class RedisTSDBTest(TestCase):
         assert client.exists("1:e")
 
         assert CountMinScript(["1:i", "1:e"], ["RANKED"] + parameters, client=client) == [
-            ["iota", "9"],
-            ["baz", "9"],
-            ["theta", "8"],
-            ["eta", "7"],
-            ["bar", "7"],
+            [b"iota", b"9"],
+            [b"baz", b"9"],
+            [b"theta", b"8"],
+            [b"eta", b"7"],
+            [b"bar", b"7"],
         ]

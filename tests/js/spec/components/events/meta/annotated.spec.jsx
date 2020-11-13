@@ -22,7 +22,7 @@ describe('Annotated', () => {
       },
     });
 
-  beforeEach(function() {
+  beforeEach(function () {
     mock.mockClear();
   });
 

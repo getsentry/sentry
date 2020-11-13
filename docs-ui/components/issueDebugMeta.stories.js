@@ -105,7 +105,7 @@ class OrganizationContext extends React.Component {
 }
 
 export default {
-  title: 'Issues/DebugMeta',
+  title: 'Features/Issues/DebugMeta',
 };
 
 export const Default = withInfo('Various debug image metadata states')(() => (

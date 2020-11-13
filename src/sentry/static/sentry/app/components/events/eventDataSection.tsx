@@ -49,7 +49,7 @@ class EventDataSection extends React.Component<Props> {
         if (anchorElement) {
           anchorElement.scrollIntoView();
         }
-      } catch (e) {
+      } catch {
         // Since we're blindly taking the hash from the url and shoving
         // it into a querySelector, it's possible that this may
         // raise an exception if the input is invalid. So let's just ignore
@@ -80,14 +80,16 @@ class EventDataSection extends React.Component<Props> {
       <DataSection className={className || ''}>
         {title && (
           <SectionHeader id={type} isCentered={isCentered}>
-            {showPermalink ? (
-              <Permalink href={'#' + type} className="permalink">
-                <StyledIconAnchor />
-                {titleNode}
-              </Permalink>
-            ) : (
-              <div>{titleNode}</div>
-            )}
+            <Title>
+              {showPermalink ? (
+                <Permalink href={'#' + type} className="permalink">
+                  <StyledIconAnchor />
+                  {titleNode}
+                </Permalink>
+              ) : (
+                <div>{titleNode}</div>
+              )}
+            </Title>
             {type === 'extra' && (
               <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
                 <Button
@@ -115,6 +117,10 @@ class EventDataSection extends React.Component<Props> {
   }
 }
 
+const Title = styled('div')`
+  display: flex;
+`;
+
 const StyledIconAnchor = styled(IconAnchor)`
   display: none;
   position: absolute;
@@ -125,21 +131,26 @@ const StyledIconAnchor = styled(IconAnchor)`
 const Permalink = styled('a')`
   :hover ${StyledIconAnchor} {
     display: block;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const SectionHeader = styled('div')<{isCentered?: boolean}>`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+
+  > * {
+    margin-bottom: ${space(0.5)};
+  }
 
   & h3,
   & h3 a {
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 
   & h3 {
@@ -152,7 +163,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 
   & small {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.textColor};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
@@ -160,8 +171,8 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     text-transform: none;
   }
   & small > span {
-    color: ${p => p.theme.gray700};
-    border-bottom: 1px dotted ${p => p.theme.borderDark};
+    color: ${p => p.theme.textColor};
+    border-bottom: 1px dotted ${p => p.theme.border};
     font-weight: normal;
   }
 
@@ -193,6 +204,7 @@ const SectionContents = styled('div')`
 
 const ActionContainer = styled('div')`
   flex-shrink: 0;
+  max-width: 100%;
 `;
 
 export default EventDataSection;

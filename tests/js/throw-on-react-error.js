@@ -15,6 +15,8 @@ const IGNORED_ERRORS = [
     message.includes(
       'The pseudo class ":first-child" is potentially unsafe when doing server-side rendering.'
     ),
+  message =>
+    typeof message === 'string' && message.includes('HTMLMediaElement.prototype.play'),
 ];
 
 // This is needed because when we throw the captured error message, it will

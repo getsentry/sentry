@@ -6,10 +6,10 @@ import DropdownMenu from 'app/components/dropdownMenu';
 
 jest.useFakeTimers();
 
-describe('DropdownMenu', function() {
+describe('DropdownMenu', function () {
   let wrapper;
 
-  beforeEach(function() {
+  beforeEach(function () {
     wrapper = mount(
       <DropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
@@ -26,11 +26,11 @@ describe('DropdownMenu', function() {
     );
   });
 
-  it('renders', function() {
+  it('renders', function () {
     expect(wrapper).toSnapshot();
   });
 
-  it('can toggle dropdown menu with actor', function() {
+  it('can toggle dropdown menu with actor', function () {
     wrapper.find('button').simulate('click');
     expect(wrapper.state('isOpen')).toBe(true);
     expect(wrapper.find('ul')).toHaveLength(1);
@@ -39,14 +39,14 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
-  it('closes dropdown when clicking on anything in menu', function() {
+  it('closes dropdown when clicking on anything in menu', function () {
     wrapper.find('button').simulate('click');
     wrapper.find('li').simulate('click');
     expect(wrapper.state('isOpen')).toBe(false);
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
-  it('closes dropdown when clicking outside of menu', async function() {
+  it('closes dropdown when clicking outside of menu', async function () {
     wrapper.find('button').simulate('click');
     // Simulate click on document
     const evt = document.createEvent('HTMLEvents');
@@ -59,7 +59,7 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
-  it('closes dropdown when pressing escape', function() {
+  it('closes dropdown when pressing escape', function () {
     wrapper.find('button').simulate('click');
     expect(wrapper.state('isOpen')).toBe(true);
     wrapper.simulate('keyDown', {key: 'Escape'});
@@ -68,7 +68,7 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
-  it('ignores "Escape" key if `closeOnEscape` is false', function() {
+  it('ignores "Escape" key if `closeOnEscape` is false', function () {
     wrapper = mount(
       <DropdownMenu closeOnEscape={false}>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
@@ -91,7 +91,7 @@ describe('DropdownMenu', function() {
     expect(wrapper.state('isOpen')).toBe(true);
   });
 
-  it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function() {
+  it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function () {
     wrapper = mount(
       <DropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
@@ -113,7 +113,7 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(1);
   });
 
-  it('render prop getters all extend props and call original onClick handlers', function() {
+  it('render prop getters all extend props and call original onClick handlers', function () {
     const rootClick = jest.fn();
     const actorClick = jest.fn();
     const menuClick = jest.fn();
@@ -173,7 +173,7 @@ describe('DropdownMenu', function() {
     removeSpy.mockRestore();
   });
 
-  it('always rendered menus should attach document event listeners only when opened', function() {
+  it('always rendered menus should attach document event listeners only when opened', function () {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
@@ -219,7 +219,7 @@ describe('DropdownMenu', function() {
     removeSpy.mockRestore();
   });
 
-  it('does not close nested dropdown on actor clicks', function() {
+  it('does not close nested dropdown on actor clicks', function () {
     wrapper = mount(
       <DropdownMenu isNestedDropdown>
         {({getRootProps, getActorProps, getMenuProps}) => (

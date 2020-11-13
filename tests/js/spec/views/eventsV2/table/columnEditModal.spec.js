@@ -24,7 +24,7 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
   );
 }
 
-describe('EventsV2 -> ColumnEditModal', function() {
+describe('EventsV2 -> ColumnEditModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view'],
@@ -63,7 +63,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     },
   ];
 
-  describe('basic rendering', function() {
+  describe('basic rendering', function () {
     const wrapper = mountModal(
       {
         columns,
@@ -73,7 +73,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       initialData
     );
 
-    it('renders fields and basic controls', function() {
+    it('renders fields and basic controls', function () {
       // Should have fields equal to the columns.
       expect(wrapper.find('QueryField')).toHaveLength(columns.length);
 
@@ -81,7 +81,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(wrapper.find('button[aria-label="Add a Column"]')).toHaveLength(1);
     });
 
-    it('renders delete and grab buttons', function() {
+    it('renders delete and grab buttons', function () {
       expect(
         wrapper.find('RowContainer button[aria-label="Remove column"]').length
       ).toEqual(columns.length);
@@ -91,7 +91,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('rendering unknown fields', function() {
+  describe('rendering unknown fields', function () {
     const wrapper = mountModal(
       {
         columns: [
@@ -104,7 +104,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       initialData
     );
 
-    it('renders unknown fields in field and field parameter controls', function() {
+    it('renders unknown fields in field and field parameter controls', function () {
       const funcRow = wrapper.find('QueryField').first();
       expect(
         funcRow.find('SelectControl[name="field"] [data-test-id="label"]').text()
@@ -122,7 +122,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('rendering tags that overlap fields & functions', function() {
+  describe('rendering tags that overlap fields & functions', function () {
     const wrapper = mountModal(
       {
         columns: [
@@ -135,7 +135,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       initialData
     );
 
-    it('selects tag expressions that overlap fields', function() {
+    it('selects tag expressions that overlap fields', function () {
       const funcRow = wrapper.find('QueryField').first();
       expect(
         funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
@@ -143,7 +143,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(funcRow.find('SelectControl[name="field"] Badge')).toHaveLength(1);
     });
 
-    it('selects tag expressions that overlap functions', function() {
+    it('selects tag expressions that overlap functions', function () {
       const funcRow = wrapper.find('QueryField').last();
       expect(
         funcRow.find('SelectControl[name="field"] span[data-test-id="label"]').text()
@@ -152,7 +152,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('rendering functions', function() {
+  describe('rendering functions', function () {
     const wrapper = mountModal(
       {
         columns: [
@@ -166,7 +166,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       initialData
     );
 
-    it('renders three columns when needed', function() {
+    it('renders three columns when needed', function () {
       const countRow = wrapper.find('QueryField').first();
       // Has a select and 2 disabled inputs
       expect(countRow.find('SelectControl')).toHaveLength(1);
@@ -180,9 +180,9 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('function & column selection', function() {
+  describe('function & column selection', function () {
     let onApply, wrapper;
-    beforeEach(function() {
+    beforeEach(function () {
       onApply = jest.fn();
       wrapper = mountModal(
         {
@@ -194,7 +194,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       );
     });
 
-    it('restricts column choices', function() {
+    it('restricts column choices', function () {
       selectByLabel(wrapper, 'avg(\u2026)', {name: 'field', at: 0, control: true});
 
       openMenu(wrapper, {name: 'parameter', at: 0, control: true});
@@ -206,13 +206,13 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(options).toContain('transaction.duration');
     });
 
-    it('shows no options for parameterless functions', function() {
-      selectByLabel(wrapper, 'p95()', {name: 'field', at: 0, control: true});
+    it('shows no options for parameterless functions', function () {
+      selectByLabel(wrapper, 'last_seen()', {name: 'field', at: 0, control: true});
 
       expect(wrapper.find('QueryField BlankSpace')).toHaveLength(1);
     });
 
-    it('shows additional inputs for multi-parameter functions', function() {
+    it('shows additional inputs for multi-parameter functions', function () {
       selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
 
       // Parameter select should display and use the default value.
@@ -224,7 +224,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       expect(refinement.props().value).toBe('0.5');
     });
 
-    it('handles scalar field parameters', function() {
+    it('handles scalar field parameters', function () {
       selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
 
       // Parameter select should display and use the default value.
@@ -241,7 +241,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       ]);
     });
 
-    it('clears unused parameters', function() {
+    it('clears unused parameters', function () {
       // Choose percentile, then apdex which has fewer parameters and different types.
       selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
       selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
@@ -253,7 +253,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       ]);
     });
 
-    it('clears all unused parameters', function() {
+    it('clears all unused parameters', function () {
       // Choose percentile, then failure_rate which has no parameters.
       selectByLabel(wrapper, 'percentile(\u2026)', {name: 'field', at: 0, control: true});
       selectByLabel(wrapper, 'failure_rate()', {name: 'field', at: 0, control: true});
@@ -266,7 +266,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('adding rows', function() {
+  describe('adding rows', function () {
     const wrapper = mountModal(
       {
         columns: [columns[0]],
@@ -275,7 +275,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       },
       initialData
     );
-    it('allows rows to be added, but only up to 20', function() {
+    it('allows rows to be added, but only up to 20', function () {
       for (let i = 2; i <= 20; i++) {
         wrapper.find('button[aria-label="Add a Column"]').simulate('click');
         expect(wrapper.find('QueryField')).toHaveLength(i);
@@ -286,7 +286,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('removing rows', function() {
+  describe('removing rows', function () {
     const wrapper = mountModal(
       {
         columns: [columns[0], columns[1]],
@@ -295,7 +295,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
       },
       initialData
     );
-    it('allows rows to be removed, but not the last one', function() {
+    it('allows rows to be removed, but not the last one', function () {
       expect(wrapper.find('QueryField')).toHaveLength(2);
       wrapper
         .find('RowContainer button[aria-label="Remove column"]')
@@ -314,7 +314,7 @@ describe('EventsV2 -> ColumnEditModal', function() {
     });
   });
 
-  describe('apply action', function() {
+  describe('apply action', function () {
     const onApply = jest.fn();
     const wrapper = mountModal(
       {
@@ -324,12 +324,9 @@ describe('EventsV2 -> ColumnEditModal', function() {
       },
       initialData
     );
-    it('reflects added and removed columns', function() {
+    it('reflects added and removed columns', function () {
       // Remove a column, then add a blank one an select a value in it.
-      wrapper
-        .find('button[aria-label="Remove column"]')
-        .first()
-        .simulate('click');
+      wrapper.find('button[aria-label="Remove column"]').first().simulate('click');
 
       wrapper.find('button[aria-label="Add a Column"]').simulate('click');
       wrapper.update();

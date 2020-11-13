@@ -4,8 +4,8 @@ import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
 import Tooltip from 'app/components/tooltip';
 
-describe('Tooltip', function() {
-  it('renders', function() {
+describe('Tooltip', function () {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <Tooltip title="test">
         <span>My Button</span>
@@ -14,7 +14,7 @@ describe('Tooltip', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('updates title', function() {
+  it('updates title', function () {
     const wrapper = mountWithTheme(
       <Tooltip title="test">
         <span>My Button</span>
@@ -34,7 +34,7 @@ describe('Tooltip', function() {
     trigger.simulate('mouseLeave');
   });
 
-  it('disables and does not render', function() {
+  it('disables and does not render', function () {
     const wrapper = mount(
       <Tooltip title="test" disabled>
         <span>My Button</span>
@@ -50,7 +50,7 @@ describe('Tooltip', function() {
     trigger.simulate('mouseLeave');
   });
 
-  it('does not render an empty tooltip', function() {
+  it('does not render an empty tooltip', function () {
     const wrapper = mountWithTheme(
       <Tooltip title="">
         <span>My Button</span>

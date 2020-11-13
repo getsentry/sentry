@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import IncidentsList from 'app/views/alerts/list';
 import ProjectsStore from 'app/stores/projectsStore';
 
-describe('IncidentsList', function() {
+describe('IncidentsList', function () {
   const {routerContext, organization} = initializeOrg({
     organization: {
       features: ['incidents'],
@@ -35,7 +35,7 @@ describe('IncidentsList', function() {
     return wrapper;
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     incidentsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
@@ -82,12 +82,12 @@ describe('IncidentsList', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
-  it('displays list', async function() {
+  it('displays list', async function () {
     ProjectsStore.loadInitialData(projects);
     wrapper = await createWrapper();
     await tick();
@@ -111,17 +111,12 @@ describe('IncidentsList', function() {
         query: {query: 'slug:a slug:b slug:c'},
       })
     );
-    expect(
-      items
-        .at(0)
-        .find('IdBadge')
-        .prop('project')
-    ).toMatchObject({
+    expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
       slug: 'a',
     });
   });
 
-  it('displays empty state (first time experience)', async function() {
+  it('displays empty state (first time experience)', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -152,7 +147,7 @@ describe('IncidentsList', function() {
     expect(wrapper.find('Onboarding').text()).toContain('More signal, less noise');
   });
 
-  it('displays empty state (rules not yet created)', async function() {
+  it('displays empty state (rules not yet created)', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -178,7 +173,7 @@ describe('IncidentsList', function() {
     expect(wrapper.text()).toContain('No metric alert rules exist for these projects');
   });
 
-  it('displays empty state (rules created)', async function() {
+  it('displays empty state (rules created)', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [],
@@ -201,36 +196,19 @@ describe('IncidentsList', function() {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'There are no unresolved metric alerts in these projects'
-    );
+    expect(wrapper.text()).toContain('No unresolved metric alerts in these projects');
   });
 
-  it('toggles open/closed', async function() {
+  it('toggles open/closed', async function () {
     wrapper = await createWrapper();
 
-    expect(
-      wrapper
-        .find('StyledButtonBar')
-        .find('Button')
-        .at(0)
-        .prop('priority')
-    ).toBe('primary');
+    expect(wrapper.find('StyledButtonBar').find('Button').at(0).prop('priority')).toBe(
+      'primary'
+    );
 
-    expect(
-      wrapper
-        .find('IncidentPanelItem')
-        .at(0)
-        .find('Duration')
-        .exists()
-    ).toBeFalsy();
+    expect(wrapper.find('IncidentPanelItem').at(0).find('Duration').exists()).toBeFalsy();
 
-    expect(
-      wrapper
-        .find('IncidentPanelItem')
-        .at(0)
-        .find('TimeSince')
-    ).toHaveLength(1);
+    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
 
     expect(incidentsMock).toHaveBeenCalledTimes(1);
 
@@ -241,28 +219,15 @@ describe('IncidentsList', function() {
 
     wrapper.setProps({location: {query: {status: 'closed'}, search: '?status=closed`'}});
 
-    expect(
-      wrapper
-        .find('StyledButtonBar')
-        .find('Button')
-        .at(1)
-        .prop('priority')
-    ).toBe('primary');
+    expect(wrapper.find('StyledButtonBar').find('Button').at(1).prop('priority')).toBe(
+      'primary'
+    );
 
-    expect(
-      wrapper
-        .find('IncidentPanelItem')
-        .at(0)
-        .find('Duration')
-        .text()
-    ).toBe('2 weeks');
+    expect(wrapper.find('IncidentPanelItem').at(0).find('Duration').text()).toBe(
+      '2 weeks'
+    );
 
-    expect(
-      wrapper
-        .find('IncidentPanelItem')
-        .at(0)
-        .find('TimeSince')
-    ).toHaveLength(2);
+    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(2);
 
     expect(incidentsMock).toHaveBeenCalledTimes(2);
     // Stats not called for closed incidents
@@ -274,7 +239,7 @@ describe('IncidentsList', function() {
     );
   });
 
-  it('disables the new alert button for members', async function() {
+  it('disables the new alert button for members', async function () {
     const noAccessOrg = {
       ...organization,
       access: [],

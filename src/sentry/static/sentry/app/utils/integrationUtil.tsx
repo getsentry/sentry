@@ -20,6 +20,14 @@ import {
 import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
+import {
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconVsts,
+} from 'app/icons';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 
@@ -252,6 +260,7 @@ export const getCategories = (features: IntegrationFeature[]): string[] => {
       case 'actionable notification':
         return 'notification action';
       case 'issue basic':
+      case 'issue link':
       case 'issue sync':
         return 'project management';
       case 'commits':
@@ -322,5 +331,33 @@ export const convertIntegrationTypeToSnakeCase = (
       return 'document';
     default:
       return type;
+  }
+};
+
+export const safeGetQsParam = (param: string) => {
+  try {
+    const query = qs.parse(window.location.search) || {};
+    return query[param];
+  } catch {
+    return undefined;
+  }
+};
+
+export const getIntegrationIcon = (integrationType?: string) => {
+  switch (integrationType) {
+    case 'bitbucket':
+      return <IconBitbucket size="md" />;
+    case 'gitlab':
+      return <IconGitlab size="md" />;
+    case 'github':
+    case 'github_enterprise':
+      return <IconGithub size="md" />;
+    case 'jira':
+    case 'jira_server':
+      return <IconJira size="md" />;
+    case 'vsts':
+      return <IconVsts size="md" />;
+    default:
+      return <IconGeneric size="md" />;
   }
 };

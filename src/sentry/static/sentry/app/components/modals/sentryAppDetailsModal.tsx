@@ -9,7 +9,7 @@ import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import {IconFlag} from 'app/icons';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import CircleIndicator from 'app/components/circleIndicator';
 import {IntegrationFeature, SentryApp, Organization} from 'app/types';
@@ -238,12 +238,12 @@ const Description = styled('div')`
 `;
 
 const Author = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   <div {...p}>
-    <IconFlag color="red400" size="1.5em" />
+    <IconFlag color="red300" size="1.5em" />
     {reason}
   </div>
 ))`
@@ -251,7 +251,7 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   align-items: center;
   flex: 1;
   grid-template-columns: max-content 1fr;
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
   font-size: 0.9em;
 `;
 

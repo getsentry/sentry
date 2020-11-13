@@ -1,9 +1,14 @@
 ---
-created: '2020-07-09T22:14:40.325084Z'
+created: '2020-10-13T11:56:18.160211Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_csp.py
 ---
 errors: null
+metadata:
+  directive: style-src
+  message: XXX CSP MESSAGE NOT THROUGH RELAY XXX
+  uri: example.com
+title: XXX CSP MESSAGE NOT THROUGH RELAY XXX
 to_json:
   blocked_uri: http://example.com/lol.css
   document_uri: http://example.com

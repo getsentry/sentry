@@ -210,7 +210,8 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        assert group.get_email_subject() == "%s - %s" % (group.qualified_short_id, group.title)
+        expect = u"{} - {}".format(group.qualified_short_id, group.title)
+        assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
         for (org_slug, group_id, params, expected) in [
@@ -233,3 +234,14 @@ class GroupTest(TestCase, SnubaTestCase):
             group = self.create_group(id=group_id, project=project)
             actual = group.get_absolute_url(params)
             assert actual == expected
+
+    def test_get_absolute_url_event(self):
+        project = self.create_project()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
+        )
+        group = event.group
+        url = u"http://testserver/organizations/{}/issues/{}/events/{}/".format(
+            project.organization.slug, group.id, event.event_id
+        )
+        assert url == group.get_absolute_url(event_id=event.event_id)

@@ -7,9 +7,9 @@ export const LEARN_MORE = 'Learn More' as const;
 
 export const COLORS = {
   [INSTALLED]: 'success',
-  [NOT_INSTALLED]: 'gray500',
+  [NOT_INSTALLED]: 'gray300',
   [PENDING]: 'orange300',
-  [LEARN_MORE]: 'gray500',
+  [LEARN_MORE]: 'gray300',
 } as const;
 
 /**
@@ -31,6 +31,7 @@ export const POPULARITY_WEIGHT: {
   bitbucket_server: 10,
   github_enterprise: 10,
   vercel: 10,
+  msteams: 10,
 
   // Sentry-apps
   clubhouse: 9,
@@ -61,7 +62,6 @@ export const POPULARITY_WEIGHT: {
   //doc integrations
   fullstory: 8,
   datadog: 8,
-  msteams: 8,
   netlify: 8,
   asayer: 8,
   rocketchat: 8,
@@ -117,33 +117,6 @@ export const documentIntegrationList: DocumentIntegration[] = [
     ],
     resourceLinks: [
       {title: 'Documentation', url: 'https://docs.datadoghq.com/integrations/sentry/'},
-    ],
-  },
-  {
-    slug: 'msteams',
-    name: 'Microsoft Teams',
-    author: 'Microsoft',
-    docUrl:
-      'https://appsource.microsoft.com/en-us/product/office/WA104381566?src=office&tab=Overview',
-    description:
-      "Microsoft Teams is a hub for teamwork in Office 365. Keep all your team's chats, meetings, files, and apps together in one place.",
-    features: [
-      {
-        featureGate: 'chat',
-        description: 'Get Sentry notifications in Microsoft Teams.',
-      },
-      {
-        featureGate: 'alert-rule',
-        description:
-          'Configure Sentry rules to trigger notifications based on conditions you set through the Sentry webhook integration.',
-      },
-    ],
-    resourceLinks: [
-      {
-        title: 'Documentation',
-        url:
-          'https://appsource.microsoft.com/en-us/product/office/WA104381566?src=office&tab=Overview',
-      },
     ],
   },
   {

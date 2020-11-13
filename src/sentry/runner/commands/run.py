@@ -133,6 +133,45 @@ def smtp(bind, upgrade, noinput):
         SentrySMTPServer(host=bind[0], port=bind[1]).run()
 
 
+def run_worker(**options):
+    """
+    This is the inner function to actually start worker.
+    """
+    from django.conf import settings
+
+    if settings.CELERY_ALWAYS_EAGER:
+        raise click.ClickException(
+            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+        )
+
+    # These options are no longer used, but keeping around
+    # for backwards compatibility
+    for o in "without_gossip", "without_mingle", "without_heartbeat":
+        options.pop(o, None)
+
+    from sentry.celery import app
+
+    with managed_bgtasks(role="worker"):
+        worker = app.Worker(
+            # NOTE: without_mingle breaks everything,
+            # we can't get rid of this. Intentionally kept
+            # here as a warning. Jobs will not process.
+            # without_mingle=True,
+            without_gossip=True,
+            without_heartbeat=True,
+            pool_cls="processes",
+            **options
+        )
+        worker.start()
+        try:
+            sys.exit(worker.exitcode)
+        except AttributeError:
+            # `worker.exitcode` was added in a newer version of Celery:
+            # https://github.com/celery/celery/commit/dc28e8a5
+            # so this is an attempt to be forward compatible
+            pass
+
+
 @run.command()
 @click.option(
     "--hostname",
@@ -172,43 +211,45 @@ def smtp(bind, upgrade, noinput):
 @click.option("--without-mingle", is_flag=True, default=False)
 @click.option("--without-heartbeat", is_flag=True, default=False)
 @click.option("--max-tasks-per-child", default=10000)
+@click.option("--ignore-unknown-queues", is_flag=True, default=False)
 @log_options()
 @configuration
-def worker(**options):
-    "Run background worker instance."
-    from django.conf import settings
-
-    if settings.CELERY_ALWAYS_EAGER:
-        raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
-        )
-
-    # These options are no longer used, but keeping around
-    # for backwards compatibility
-    for o in "without_gossip", "without_mingle", "without_heartbeat":
-        options.pop(o, None)
+def worker(ignore_unknown_queues, **options):
+    """Run background worker instance and autoreload if necessary."""
 
     from sentry.celery import app
 
-    with managed_bgtasks(role="worker"):
-        worker = app.Worker(
-            # NOTE: without_mingle breaks everything,
-            # we can't get rid of this. Intentionally kept
-            # here as a warning. Jobs will not process.
-            # without_mingle=True,
-            without_gossip=True,
-            without_heartbeat=True,
-            pool_cls="processes",
-            **options
-        )
-        worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forwards compatible
-            pass
+    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_QUEUES)
+
+    if options["queues"] is not None:
+        if not options["queues"].issubset(known_queues):
+            unknown_queues = options["queues"] - known_queues
+            message = "Following queues are not found: %s" % ",".join(sorted(unknown_queues))
+            if ignore_unknown_queues:
+                options["queues"] -= unknown_queues
+                click.echo(message)
+            else:
+                raise click.ClickException(message)
+
+    if options["exclude_queues"] is not None:
+        if not options["exclude_queues"].issubset(known_queues):
+            unknown_queues = options["exclude_queues"] - known_queues
+            message = "Following queues cannot be excluded as they don't exist: %s" % ",".join(
+                sorted(unknown_queues)
+            )
+            if ignore_unknown_queues:
+                options["exclude_queues"] -= unknown_queues
+                click.echo(message)
+            else:
+                raise click.ClickException(message)
+
+    if options["autoreload"]:
+        from django.utils import autoreload
+
+        # Note this becomes autoreload.run_with_reloader in django 2.2
+        autoreload.main(run_worker, kwargs=options)
+    else:
+        run_worker(**options)
 
 
 @run.command()

@@ -3,56 +3,44 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/clients/csharp/",
+          "link": "https://docs.getsentry.com/platforms/dotnet/",
           "type": "language",
-          "id": "csharp",
-          "name": "C#"
-        }
-      ],
-      "id": "csharp",
-      "name": "C#"
-    },
-    {
-      "integrations": [
-        {
-          "link": "https://docs.getsentry.com/clients/cocoa/",
-          "type": "language",
-          "id": "cocoa-swift",
-          "name": "Swift"
+          "id": "dotnet",
+          "name": ".NET"
         },
         {
-          "link": "https://docs.getsentry.com/clients/cocoa/",
+          "link": "https://docs.getsentry.com/platforms/dotnet/guides/aspnetcore/",
           "type": "language",
-          "id": "cocoa-objc",
-          "name": "Objective-C"
+          "id": "dotnet-aspnetcore",
+          "name": "ASP .NET Core"
         }
       ],
-      "id": "cocoa",
-      "name": "Objective-C"
+      "id": "dotnet",
+      "name": ".NET"
     },
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/clients/cordova/",
+          "link": "https://docs.getsentry.com/platforms/apple/",
           "type": "language",
-          "id": "cordova",
-          "name": "Cordova"
-        }
-      ],
-      "id": "cordova",
-      "name": "Cordova"
-    },
-    {
-      "integrations": [
+          "id": "apple",
+          "name": "Apple"
+        },
         {
-          "link": "https://docs.getsentry.com/clients/electron/",
+          "link": "https://docs.getsentry.com/platforms/apple/guides/ios/",
           "type": "language",
-          "id": "electron",
-          "name": "Electron"
+          "id": "apple-ios",
+          "name": "iOS"
+        },
+        {
+          "link": "https://docs.getsentry.com/platforms/apple/guides/macos/",
+          "type": "language",
+          "id": "apple-macos",
+          "name": "macOS"
         }
       ],
-      "id": "electron",
-      "name": "Electron"
+      "id": "apple",
+      "name": "Apple"
     },
     {
       "integrations": [
@@ -151,6 +139,18 @@
           "type": "framework",
           "id": "javascript-backbone",
           "name": "Backbone"
+        },
+        {
+          "link": "https://docs.getsentry.com/platforms/javascript/guides/cordova/",
+          "type": "language",
+          "id": "cordova",
+          "name": "Cordova"
+        },
+        {
+          "link": "https://docs.getsentry.com/platforms/javascript/guides/electron/",
+          "type": "language",
+          "id": "electron",
+          "name": "Electron"
         },
         {
           "link": "https://docs.getsentry.com/clients/javascript/integrations/ember/",

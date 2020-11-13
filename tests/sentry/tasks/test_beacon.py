@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import platform
 import responses
 import sentry
 
@@ -35,6 +36,7 @@ class SendBeaconTest(TestCase):
                 "install_id": install_id,
                 "version": sentry.get_version(),
                 "docker": sentry.is_docker(),
+                "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
                     "users": 0,
@@ -73,6 +75,7 @@ class SendBeaconTest(TestCase):
                 "install_id": install_id,
                 "version": sentry.get_version(),
                 "docker": sentry.is_docker(),
+                "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
                     "users": 0,

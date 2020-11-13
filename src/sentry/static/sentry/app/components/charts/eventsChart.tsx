@@ -172,12 +172,13 @@ class Chart extends React.Component<ChartProps, State> {
         showSymbol: false,
       },
       tooltip: {
+        trigger: 'axis',
         truncate: 80,
         valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray400,
+          color: theme.gray200,
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
@@ -237,7 +238,7 @@ type Props = {
   /**
    * Should datetimes be formatted in UTC?
    */
-  utc?: boolean;
+  utc?: boolean | null;
   /**
    * Don't show the previous period's data. Will automatically disable
    * when start/end are used.
@@ -353,7 +354,7 @@ class EventsChart extends React.Component<Props> {
       if (errored) {
         return (
           <ErrorPanel>
-            <IconWarning color="gray500" size="lg" />
+            <IconWarning color="gray300" size="lg" />
           </ErrorPanel>
         );
       }
@@ -390,6 +391,7 @@ class EventsChart extends React.Component<Props> {
           start={start}
           end={end}
           projects={projects}
+          environments={environments}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>

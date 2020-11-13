@@ -9,6 +9,7 @@ export enum BreadcrumbLevelType {
   WARNING = 'warning',
   INFO = 'info',
   DEBUG = 'debug',
+  UNDEFINED = 'undefined',
 }
 
 export enum BreadcrumbType {
@@ -24,21 +25,36 @@ export enum BreadcrumbType {
   DEFAULT = 'default',
   HTTP = 'http',
   NAVIGATION = 'navigation',
+  SYSTEM = 'system',
+  SESSION = 'session',
+  TRANSACTION = 'transaction',
 }
 
 type BreadcrumbTypeBase = {
+  level: BreadcrumbLevelType;
   timestamp?: string; //it's recommended
   category?: string | null;
   message?: string;
-  level?: BreadcrumbLevelType;
   event_id?: string;
 };
+
+export type BreadcrumbTypeSystem = {
+  type: BreadcrumbType.SYSTEM;
+  action: string;
+  extras: Record<string, any>;
+} & BreadcrumbTypeBase;
+
+export type BreadcrumbTypeSession = {
+  type: BreadcrumbType.SESSION;
+  action: string;
+  extras: Record<string, any>;
+} & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeNavigation = {
   type: BreadcrumbType.NAVIGATION;
   data?: {
-    to: string;
-    from: string;
+    to?: string;
+    from?: string;
   };
 } & BreadcrumbTypeBase;
 
@@ -65,14 +81,17 @@ export type BreadcrumbTypeDefault = {
   type:
     | BreadcrumbType.INFO
     | BreadcrumbType.DEBUG
-    | BreadcrumbType.MESSAGE
     | BreadcrumbType.QUERY
     | BreadcrumbType.UI
     | BreadcrumbType.USER
     | BreadcrumbType.EXCEPTION
     | BreadcrumbType.WARNING
     | BreadcrumbType.ERROR
-    | BreadcrumbType.DEFAULT;
+    | BreadcrumbType.DEFAULT
+    | BreadcrumbType.SESSION
+    | BreadcrumbType.SYSTEM
+    | BreadcrumbType.SESSION
+    | BreadcrumbType.TRANSACTION;
   data?: {[key: string]: any};
 } & BreadcrumbTypeBase;
 
@@ -81,9 +100,10 @@ export type Breadcrumb =
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-export type BreadcrumbDetails = {
-  color?: Color;
-  borderColor?: Color;
+type BreadcrumbDetails = {
+  color?: Color | React.CSSProperties['color'];
   icon?: React.ComponentType<IconProps>;
   description: string;
 };
+
+export type BreadcrumbsWithDetails = Array<Breadcrumb & BreadcrumbDetails & {id: number}>;

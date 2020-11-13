@@ -208,10 +208,10 @@ class ProjectUpdateTest(APITestCase):
         assert resp.status_code == 400, resp.content
 
     def test_platform(self):
-        resp = self.client.put(self.path, data={"platform": "cocoa"})
+        resp = self.client.put(self.path, data={"platform": "python"})
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=self.project.id)
-        assert project.platform == "cocoa"
+        assert project.platform == "python"
 
     def test_platform_invalid(self):
         resp = self.client.put(self.path, data={"platform": "lol"})

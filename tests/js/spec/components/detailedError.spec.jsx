@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import DetailedError from 'app/components/errors/detailedError';
 
-describe('DetailedError', function() {
-  it('renders', function() {
+describe('DetailedError', function () {
+  it('renders', function () {
     const wrapper = mountWithTheme(
       <DetailedError heading="Error heading" message={<div>Message</div>} />
     );
@@ -13,7 +13,7 @@ describe('DetailedError', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('renders with "Retry" button', function() {
+  it('renders with "Retry" button', function () {
     const wrapper = mountWithTheme(
       <DetailedError
         onRetry={() => {}}
@@ -25,7 +25,7 @@ describe('DetailedError', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('can hide support links', function() {
+  it('can hide support links', function () {
     const wrapper = mountWithTheme(
       <DetailedError
         hideSupportLinks
@@ -38,7 +38,7 @@ describe('DetailedError', function() {
     expect(wrapper).toSnapshot();
   });
 
-  it('hides footer when no "Retry" and no support links', function() {
+  it('hides footer when no "Retry" and no support links', function () {
     const wrapper = mountWithTheme(
       <DetailedError
         hideSupportLinks

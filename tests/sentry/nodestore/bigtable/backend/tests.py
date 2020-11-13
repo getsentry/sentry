@@ -10,7 +10,7 @@ from sentry.utils.compat import mock
 @pytest.mark.skip(reason="Bigtable is not available in CI")
 class BigtableNodeStorageTest(TestCase):
     def setUp(self):
-        self.ns = BigtableNodeStorage()
+        self.ns = BigtableNodeStorage(project="test")
         self.ns.bootstrap()
 
     def test_get(self):
@@ -52,6 +52,10 @@ class BigtableNodeStorageTest(TestCase):
         assert not self.ns.get(nodes[0][0])
         assert not self.ns.get(nodes[1][0])
 
+    def test_compression(self):
+        self.ns.compression = True
+        self.test_get()
+
     def test_cache(self):
         node_1 = ("a" * 32, {"foo": "a"})
         node_2 = ("b" * 32, {"foo": "b"})
@@ -76,7 +80,7 @@ class BigtableNodeStorageTest(TestCase):
             assert self.ns.get_multi([node_1[0], node_2[0], node_3[0]])
             assert mock_read_rows.call_count == 0
 
-        # Manually deleted item should still retreivable from cache
+        # Manually deleted item should still retrievable from cache
         row = self.ns.connection.row(node_1[0])
         row.delete()
         row.commit()
@@ -86,7 +90,7 @@ class BigtableNodeStorageTest(TestCase):
             node_2[0]: node_2[1],
         }
 
-        # Deletion clars cache
+        # Deletion clears cache
         self.ns.delete(node_1[0])
         assert self.ns.get_multi([node_1[0], node_2[0]]) == {node_1[0]: None, node_2[0]: node_2[1]}
         self.ns.delete_multi([node_1[0], node_2[0]])

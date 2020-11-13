@@ -103,7 +103,7 @@ class BaseEventFrequencyCondition(EventCondition):
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
-    label = "An issue is seen more than {value} times in {interval}"
+    label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(self, event, start, end, environment_id):
         return self.tsdb.get_sums(
@@ -116,7 +116,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
-    label = "An issue is seen by more than {value} users in {interval}"
+    label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(self, event, start, end, environment_id):
         return self.tsdb.get_distinct_counts_totals(

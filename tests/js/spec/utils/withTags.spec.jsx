@@ -5,12 +5,12 @@ import {mount} from 'sentry-test/enzyme';
 import TagStore from 'app/stores/tagStore';
 import withTags from 'app/utils/withTags';
 
-describe('withTags HoC', function() {
+describe('withTags HoC', function () {
   beforeEach(() => {
     TagStore.reset();
   });
 
-  it('works', async function() {
+  it('works', async function () {
     const MyComponent = () => null;
     const Container = withTags(MyComponent);
     const wrapper = mount(<Container other="value" />);

@@ -78,6 +78,7 @@ issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
 issue_resolved = BetterSignal(
     providing_args=["organization_id", "project", "group", "user", "resolution_type"]
 )
+issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 
 advanced_search = BetterSignal(providing_args=["project"])
 advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])
@@ -85,12 +86,15 @@ save_search_created = BetterSignal(providing_args=["project", "user"])
 inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
 data_scrubber_enabled = BetterSignal(providing_args=["organization"])
-alert_rule_created = BetterSignal(providing_args=["project", "rule", "user", "rule_type"])
+alert_rule_created = BetterSignal(
+    providing_args=["project", "rule", "user", "rule_type", "is_api_token"]
+)
 repo_linked = BetterSignal(providing_args=["repo", "user"])
 release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
+issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])

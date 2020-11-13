@@ -76,12 +76,12 @@ class MonitorStatus(ObjectStatus):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, "active"),
-            (cls.DISABLED, "disabled"),
-            (cls.PENDING_DELETION, "pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
-            (cls.OK, "ok"),
-            (cls.ERROR, "error"),
+            (cls.ACTIVE, u"active"),
+            (cls.DISABLED, u"disabled"),
+            (cls.PENDING_DELETION, u"pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
+            (cls.OK, u"ok"),
+            (cls.ERROR, u"error"),
         )
 
 
@@ -136,7 +136,8 @@ class Monitor(Model):
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
     )
     type = BoundedPositiveIntegerField(
-        default=MonitorType.UNKNOWN, choices=MonitorType.as_choices()
+        default=MonitorType.UNKNOWN,
+        choices=[(k, six.text_type(v)) for k, v in MonitorType.as_choices()],
     )
     config = EncryptedJsonField(default=dict)
     next_checkin = models.DateTimeField(null=True)

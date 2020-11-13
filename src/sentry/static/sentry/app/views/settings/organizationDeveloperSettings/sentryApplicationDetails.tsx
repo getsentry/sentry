@@ -197,10 +197,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
 
   get showAuthInfo() {
     const {app} = this.state;
-    if (app && app.clientSecret && app.clientSecret[0] === '*') {
-      return false;
-    }
-    return true;
+    return !(app && app.clientSecret && app.clientSecret[0] === '*');
   }
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {
@@ -414,7 +411,7 @@ const TokenItem = styled('div')`
 `;
 
 const CreatedTitle = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-bottom: 2px;
 `;
 

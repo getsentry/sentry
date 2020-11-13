@@ -125,7 +125,7 @@ const MatchedSpanDetailsContent = (props: {
       />
       <Row
         baselineTitle={t('Baseline Span ID')}
-        regressionTitle={t('Regressive Span ID')}
+        regressionTitle={t("This Event's Span ID")}
         renderBaselineContent={() => baselineSpan.span_id}
         renderRegressionContent={() => regressionSpan.span_id}
       />
@@ -261,16 +261,15 @@ const RowSplitter = styled('div')`
   flex-direction: row;
 
   > * + * {
-    border-left: 1px solid ${p => p.theme.borderDark};
+    border-left: 1px solid ${p => p.theme.border};
   }
 `;
 
 const SpanBarContainer = styled('div')`
   position: relative;
   height: 16px;
-
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${space(3)};
+  margin-bottom: ${space(2)};
 `;
 
 const SpanBars = (props: {
@@ -289,7 +288,7 @@ const SpanBars = (props: {
         <SpanBarContainer>
           <SpanBarRectangle
             style={{
-              backgroundColor: theme.gray700,
+              backgroundColor: theme.gray500,
               width: generateCSSWidth(bounds.baseline),
               position: 'absolute',
               height: '16px',
@@ -297,7 +296,7 @@ const SpanBars = (props: {
           >
             <DurationPill
               durationDisplay={baselineDurationDisplay}
-              fontColors={{right: theme.gray700, inset: theme.white}}
+              fontColors={{right: theme.gray500, inset: theme.white}}
             >
               {getHumanDuration(getSpanDuration(baselineSpan))}
             </DurationPill>
@@ -308,7 +307,7 @@ const SpanBars = (props: {
         <SpanBarContainer>
           <SpanBarRectangle
             style={{
-              backgroundColor: theme.purple300,
+              backgroundColor: theme.purple200,
               width: generateCSSWidth(bounds.regression),
               position: 'absolute',
               height: '16px',
@@ -316,7 +315,7 @@ const SpanBars = (props: {
           >
             <DurationPill
               durationDisplay={regressionDurationDisplay}
-              fontColors={{right: theme.gray700, inset: theme.gray700}}
+              fontColors={{right: theme.gray500, inset: theme.gray500}}
             >
               {getHumanDuration(getSpanDuration(regressionSpan))}
             </DurationPill>
@@ -363,7 +362,7 @@ const RowContainer = styled('div')`
 `;
 
 const RowTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: 13px;
   font-weight: 600;
 `;
 

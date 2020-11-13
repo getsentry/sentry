@@ -7,6 +7,10 @@ from sentry.utils import json
 
 
 class AppPlatformEvent(object):
+    """
+    This data structure encapsulates the payload sent to a SentryApp's webhook.
+    """
+
     def __init__(self, resource, action, install, data, actor=None):
         self.resource = resource
         self.action = action

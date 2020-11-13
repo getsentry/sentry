@@ -10,6 +10,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
+import SentryRRWeb from '@sentry/rrweb';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
@@ -19,14 +20,13 @@ import * as Sentry from '@sentry/react';
 
 import {NODE_ENV, DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
 import {metric} from 'app/utils/analytics';
+import {setupColorScheme} from 'app/utils/matchMedia';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import ConfigStore from 'app/stores/configStore';
 import Main from 'app/main';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
-
-import {setupFavicon} from './favicon';
 
 if (NODE_ENV === 'development') {
   import(
@@ -48,7 +48,7 @@ const config = ConfigStore.getConfig();
 
 const tracesSampleRate = config ? config.apmSampling : 0;
 
-async function getSentryIntegrations(hasReplays: boolean = false) {
+function getSentryIntegrations(hasReplays: boolean = false) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -60,15 +60,13 @@ async function getSentryIntegrations(hasReplays: boolean = false) {
         Router.createRoutes(routes()),
         Router.match as any
       ),
+      idleTimeout: 5000,
     }),
   ];
   if (hasReplays) {
     // eslint-disable-next-line no-console
     console.log('[sentry] Instrumenting session with rrweb');
 
-    const {default: SentryRRWeb} = await import(
-      /* webpackChunkName: "SentryRRWeb" */ '@sentry/rrweb'
-    );
     // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
     // incompatible. It's a newer plugin, so this can be expected, but we
     // should fix.
@@ -84,31 +82,28 @@ async function getSentryIntegrations(hasReplays: boolean = false) {
 const hasReplays =
   window.__SENTRY__USER && window.__SENTRY__USER.isStaff && !DISABLE_RR_WEB;
 
-async function initializeSentrySdk() {
-  Sentry.init({
-    ...window.__SENTRY__OPTIONS,
-    /**
-     * For SPA mode, we need a way to overwrite the default DSN from backend
-     * as well as `whitelistUrls`
-     */
-    dsn: SPA_DSN || window.__SENTRY__OPTIONS.dsn,
-    whitelistUrls: SPA_DSN
-      ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
-      : window.__SENTRY__OPTIONS.whitelistUrls,
-    integrations: await getSentryIntegrations(hasReplays),
-    tracesSampleRate,
-  });
+Sentry.init({
+  ...window.__SENTRY__OPTIONS,
+  /**
+   * For SPA mode, we need a way to overwrite the default DSN from backend
+   * as well as `whitelistUrls`
+   */
+  dsn: SPA_DSN || window.__SENTRY__OPTIONS.dsn,
+  whitelistUrls: SPA_DSN
+    ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
+    : window.__SENTRY__OPTIONS.whitelistUrls,
+  integrations: getSentryIntegrations(hasReplays),
+  tracesSampleRate,
+  autoSessionTracking: true,
+});
 
-  if (window.__SENTRY__USER) {
-    Sentry.setUser(window.__SENTRY__USER);
-  }
-  if (window.__SENTRY__VERSION) {
-    Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
-  }
-  Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
+if (window.__SENTRY__USER) {
+  Sentry.setUser(window.__SENTRY__USER);
 }
-
-initializeSentrySdk();
+if (window.__SENTRY__VERSION) {
+  Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+}
+Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -138,9 +133,8 @@ const render = (Component: React.ComponentType) => {
   }
 };
 
-if (NODE_ENV === 'production') {
-  setupFavicon();
-}
+// setup darkmode + favicon
+setupColorScheme();
 
 // The password strength component is very heavyweight as it includes the
 // zxcvbn, a relatively byte-heavy password strength estimation library. Load

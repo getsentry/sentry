@@ -10,10 +10,6 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import withOrganization from 'app/utils/withOrganization';
-import Link from 'app/components/links/link';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {t} from 'app/locale';
-import {Panel, PanelHeader} from 'app/components/panels';
 import {Organization, Scope} from 'app/types';
 
 type Props = {
@@ -64,19 +60,6 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
         <JsonForm {...jsonFormSettings} forms={organizationSettingsFields} />
-
-        <Panel>
-          <PanelHeader>{t('Security & Privacy')}</PanelHeader>
-          <EmptyMessage
-            title={t('Security & Privacy has moved')}
-            description={
-              <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
-                {t('Go to Security & Privacy')}
-              </Link>
-            }
-          />
-        </Panel>
-
         <AvatarChooser
           type="organization"
           allowGravatar={false}

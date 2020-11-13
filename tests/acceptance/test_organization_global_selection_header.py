@@ -4,6 +4,7 @@ from datetime import datetime
 import six
 
 import pytz
+import pytest
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
@@ -84,6 +85,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('[data-test-id="global-header-timerange-selector"]')
         self.browser.snapshot("globalSelectionHeader - timerange selector")
 
+    @pytest.mark.skip(reason="Has been flaky lately.")
     def test_global_selection_header_loads_with_correct_project(self):
         """
         Global Selection Header should:
@@ -206,7 +208,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
             """
-            navigate foward through history to the end
+            navigate forward through history to the end
             1) environment=All Environments -> environment=prod
             2) environment=prod -> environment=All Environments
             """

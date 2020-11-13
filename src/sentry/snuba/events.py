@@ -45,32 +45,19 @@ class Columns(Enum):
     USER_IP_ADDRESS = Column(
         "events.ip_address", "ip_address", "ip_address", "ip_address", "user.ip"
     )
+    USER_DISPLAY = Column(None, None, None, "user.display", "user.display")
     SDK_NAME = Column("events.sdk_name", "sdk_name", "sdk_name", "sdk_name", "sdk.name")
     SDK_VERSION = Column(
         "events.sdk_version", "sdk_version", "sdk_version", "sdk_version", "sdk.version"
     )
 
     HTTP_METHOD = Column(
-        "events.contexts[http.method]",
-        "contexts[http.method]",
-        "contexts[http.method]",
-        "contexts[http.method]",
-        "http.method",
+        "events.http_method", "http_method", "http_method", "http_method", "http.method",
     )
     HTTP_REFERER = Column(
-        "events.contexts[http.referer]",
-        "contexts[http.referer]",
-        "contexts[http.referer]",
-        "contexts[http.referer]",
-        "http.referer",
+        "events.http_referer", "http_referer", "http_referer", "http_referer", "http.referer",
     )
-    HTTP_URL = Column(
-        "events.contexts[http.url]",
-        "contexts[http.url]",
-        "contexts[http.url]",
-        "contexts[http.url]",
-        "http.url",
-    )
+    HTTP_URL = Column("events.tags[url]", "tags[url]", "tags[url]", "tags[url]", "http.url")
     OS_BUILD = Column(
         "events.contexts[os.build]",
         "contexts[os.build]",
@@ -275,6 +262,12 @@ class Columns(Enum):
     TRANSACTION_DURATION = Column(None, None, "duration", "duration", "transaction.duration")
     TRANSACTION_STATUS = Column(
         None, None, "transaction_status", "transaction_status", "transaction.status"
+    )
+    MEASUREMENTS_KEYS = Column(
+        None, None, "measurements.key", "measurements.key", "measurements_key",
+    )
+    MEASUREMENTS_VALUES = Column(
+        None, None, "measurements.value", "measurements.value", "measurements_value",
     )
     # Tracing context fields.
     TRACE_ID = Column(

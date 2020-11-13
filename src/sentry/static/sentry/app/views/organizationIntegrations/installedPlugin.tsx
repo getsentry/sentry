@@ -185,17 +185,17 @@ export default withApi(InstalledPlugin);
 
 const Container = styled('div')`
   padding: ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-bottom: none;
-  background-color: white;
+  background-color: ${p => p.theme.background};
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const IntegrationFlex = styled('div')`

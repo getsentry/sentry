@@ -1,4 +1,8 @@
 from __future__ import absolute_import, print_function
+from io import BytesIO
+
+from uuid import uuid4
+from sentry.models.eventattachment import EventAttachment
 
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -97,3 +101,19 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_security_report(event_data)
         assert event.message == "Expect-Staple failed for 'www.example.com'"
         assert event.group.title == "Expect-Staple failed for 'www.example.com'"
+
+    def test_standalone_attachment(self):
+        event_id = uuid4().hex
+
+        # First, ingest the attachment and ensure it is saved
+        files = {"some_file": ("hello.txt", BytesIO(b"Hello World!"))}
+        self.post_and_retrieve_attachment(event_id, files)
+
+        # Next, ingest an error event
+        event = self.post_and_retrieve_event({"event_id": event_id, "message": "my error"})
+        assert event.event_id == event_id
+        assert event.group_id
+
+        # Finally, fetch the updated attachment and compare the group id
+        attachment = EventAttachment.objects.get(project_id=self.project.id, event_id=event_id)
+        assert attachment.group_id == event.group_id

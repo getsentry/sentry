@@ -8,7 +8,7 @@ import localStorage from 'app/utils/localStorage';
 
 jest.mock('app/utils/localStorage');
 
-describe('NoteInputWithStorage', function() {
+describe('NoteInputWithStorage', function () {
   const defaultProps = {
     storageKey: 'storage',
     itemKey: 'item1',
@@ -21,7 +21,7 @@ describe('NoteInputWithStorage', function() {
   const createWrapper = props =>
     mountWithTheme(<NoteInputWithStorage {...defaultProps} {...props} />, routerContext);
 
-  it('loads draft item from local storage when mounting', function() {
+  it('loads draft item from local storage when mounting', function () {
     localStorage.getItem.mockImplementation(() => JSON.stringify({item1: 'saved item'}));
 
     const wrapper = createWrapper();
@@ -30,7 +30,7 @@ describe('NoteInputWithStorage', function() {
     expect(wrapper.find('textarea').prop('value')).toBe('saved item');
   });
 
-  it('saves draft when input changes', function() {
+  it('saves draft when input changes', function () {
     const wrapper = createWrapper();
 
     changeReactMentionsInput(wrapper, 'WIP COMMENT');
@@ -41,7 +41,7 @@ describe('NoteInputWithStorage', function() {
     );
   });
 
-  it('removes draft item after submitting', function() {
+  it('removes draft item after submitting', function () {
     localStorage.getItem.mockImplementation(() =>
       JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
     );

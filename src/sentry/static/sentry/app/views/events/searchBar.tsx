@@ -13,9 +13,16 @@ import {fetchTagValues} from 'app/actionCreators/tags';
 import SentryTypes from 'app/sentryTypes';
 import {SavedSearchType, Organization, TagCollection} from 'app/types';
 import SmartSearchBar from 'app/components/smartSearchBar';
-import {Field, FIELD_TAGS, TRACING_FIELDS} from 'app/utils/discover/fields';
+import {
+  Field,
+  FIELD_TAGS,
+  TRACING_FIELDS,
+  isAggregateField,
+  isMeasurement,
+} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
+import Measurements from 'app/utils/measurements/measurements';
 import {Client} from 'app/api';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
@@ -63,6 +70,12 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       const {api, organization, projectIds} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
+      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+
       return fetchTagValues(
         api,
         organization.slug,
@@ -89,7 +102,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
    */
   prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 
-  getTagList() {
+  getTagList(measurements) {
     const {fields, organization, tags, omitTags} = this.props;
     const functionTags = fields
       ? Object.fromEntries(
@@ -100,7 +113,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       : {};
 
     const fieldTags = organization.features.includes('performance-view')
-      ? Object.assign({}, FIELD_TAGS, functionTags)
+      ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
     const combined = assign({}, tags, fieldTags);
@@ -115,25 +128,31 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   }
 
   render() {
-    const tags = this.getTagList();
     return (
-      <ClassNames>
-        {({css}) => (
-          <SmartSearchBar
-            {...this.props}
-            hasRecentSearches
-            savedSearchType={SavedSearchType.EVENT}
-            onGetTagValues={this.getEventFieldValues}
-            supportedTags={tags}
-            prepareQuery={this.prepareQuery}
-            excludeEnvironment
-            dropdownClassName={css`
-              max-height: 300px;
-              overflow-y: auto;
-            `}
-          />
-        )}
-      </ClassNames>
+      <Measurements>
+        {({measurements}) => {
+          const tags = this.getTagList(measurements);
+          return (
+            <ClassNames>
+              {({css}) => (
+                <SmartSearchBar
+                  {...this.props}
+                  hasRecentSearches
+                  savedSearchType={SavedSearchType.EVENT}
+                  onGetTagValues={this.getEventFieldValues}
+                  supportedTags={tags}
+                  prepareQuery={this.prepareQuery}
+                  excludeEnvironment
+                  dropdownClassName={css`
+                    max-height: 300px;
+                    overflow-y: auto;
+                  `}
+                />
+              )}
+            </ClassNames>
+          );
+        }}
+      </Measurements>
     );
   }
 }

@@ -8,6 +8,8 @@ from sentry.utils import json
 from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.utils.compat import filter
 
 UNSET = object()
 
@@ -36,6 +38,10 @@ LINK_SHARED_EVENT = """{
         },
         {
             "domain": "example.com",
+            "url": "http://testserver/organizations/%(org1)s/issues/%(group3)s/events/%(event)s/"
+        },
+        {
+            "domain": "example.com",
             "url": "http://testserver/organizations/%(org1)s/incidents/%(incident)s/"
         },
         {
@@ -43,6 +49,23 @@ LINK_SHARED_EVENT = """{
             "url": "https://yet.another-example.com/v/abcde"
         }
     ]
+}"""
+
+MESSAGE_IM_EVENT = """{
+    "type": "message",
+    "channel": "DOxxxxxx",
+    "user": "Uxxxxxxx",
+    "text": "helloo",
+    "message_ts": "123456789.9875"
+}"""
+
+MESSAGE_IM_BOT_EVENT = """{
+    "type": "message",
+    "channel": "DOxxxxxx",
+    "user": "Uxxxxxxx",
+    "text": "helloo",
+    "bot_id": "bot_id",
+    "message_ts": "123456789.9875"
 }"""
 
 
@@ -109,8 +132,13 @@ class LinkSharedEventTest(BaseEventTest):
         org2 = self.create_organization(name="biz")
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=org2)
+        min_ago = iso_format(before_now(minutes=1))
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
+        event = self.store_event(
+            data={"fingerprint": ["group3"], "timestamp": min_ago}, project_id=project1.id
+        )
+        group3 = event.group
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
@@ -122,9 +150,11 @@ class LinkSharedEventTest(BaseEventTest):
                 % {
                     "group1": group1.id,
                     "group2": group2.id,
+                    "group3": group3.id,
                     "incident": incident.identifier,
                     "org1": self.org.slug,
                     "org2": org2.slug,
+                    "event": event.event_id,
                 }
             )
         )
@@ -136,9 +166,16 @@ class LinkSharedEventTest(BaseEventTest):
             self.org.slug,
             incident.identifier,
         )
+        event_url = "http://testserver/organizations/%s/issues/%s/events/%s/" % (
+            self.org.slug,
+            group3.id,
+            event.event_id,
+        )
+
         assert unfurls == {
             issue_url: build_group_attachment(group1),
             incident_url: build_incident_attachment(incident),
+            event_url: build_group_attachment(group3, event=event, link_to_event=True),
         }
         assert data["token"] == "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
@@ -157,8 +194,13 @@ class LinkSharedEventTest(BaseEventTest):
         org2 = self.create_organization(name="biz")
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=org2)
+        min_ago = iso_format(before_now(minutes=1))
         group1 = self.create_group(project=project1)
         group2 = self.create_group(project=project2)
+        event = self.store_event(
+            data={"fingerprint": ["group3"], "timestamp": min_ago}, project_id=project1.id
+        )
+        group3 = event.group
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
@@ -170,12 +212,42 @@ class LinkSharedEventTest(BaseEventTest):
                 % {
                     "group1": group1.id,
                     "group2": group2.id,
+                    "group3": group3.id,
                     "incident": incident.identifier,
                     "org1": self.org.slug,
                     "org2": org2.slug,
+                    "event": event.event_id,
                 }
             )
         )
         assert resp.status_code == 200, resp.content
         data = dict(parse_qsl(responses.calls[0].request.body))
         assert data["token"] == "xoxt-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+
+
+def get_block_type_text(block_type, data):
+    block = filter(lambda x: x["type"] == block_type, data["blocks"])[0]
+    if block_type == "section":
+        return block["text"]["text"]
+
+    return block["elements"][0]["text"]["text"]
+
+
+class MessageIMEventTest(BaseEventTest):
+    @responses.activate
+    def test_user_message_im(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert (
+            get_block_type_text("section", data)
+            == "Want to learn more about configuring alerts in Sentry? Check out our documentation."
+        )
+        assert get_block_type_text("actions", data) == "Sentry Docs"
+
+    def test_bot_message_im(self):
+        resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_BOT_EVENT))
+        assert resp.status_code == 200, resp.content

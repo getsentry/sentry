@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 
-import PlatformIcon from 'app/components/platformIcon';
 import {PlatformKey} from 'app/data/platformCategories';
 
 type Props = {
@@ -35,11 +35,7 @@ const PlatformList = ({
     <StyledPlatformIcon key={platform + index} platform={platform} size={size} />
   );
 
-  const getIcons = (items: PlatformKey[]) =>
-    items
-      .slice()
-      .reverse()
-      .map(getIcon);
+  const getIcons = (items: PlatformKey[]) => items.slice().reverse().map(getIcon);
 
   const platformsPreview = platforms.slice(0, max);
   return (
@@ -78,7 +74,7 @@ const StyledPlatformIcon = styled(({size, ...props}: IconProps) => (
   <PlatformIcon size={`${size}px`} {...props} />
 ))`
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: 0 0 0 1px ${p => p.theme.white};
+  box-shadow: 0 0 0 1px ${p => p.theme.background};
   &:not(:first-child) {
     margin-left: ${p => `${p.size * -1 + getOverlapWidth(p.size)}px;`};
   }

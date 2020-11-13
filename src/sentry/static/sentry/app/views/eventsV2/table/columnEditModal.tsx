@@ -20,6 +20,7 @@ type Props = {
   columns: Column[];
   organization: LightWeightOrganization;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
 } & ModalRenderProps;
@@ -53,7 +54,7 @@ class ColumnEditModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {Header, Body, Footer, tagKeys, organization} = this.props;
+    const {Header, Body, Footer, tagKeys, measurementKeys, organization} = this.props;
     return (
       <React.Fragment>
         <Header>
@@ -68,7 +69,7 @@ class ColumnEditModal extends React.Component<Props, State> {
                   <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
                 ),
                 tagFieldLink: (
-                  <ExternalLink href="https://docs.sentry.io/workflow/search/?platform=javascript#event-properties" />
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#event-properties" />
                 ),
               }
             )}
@@ -77,6 +78,7 @@ class ColumnEditModal extends React.Component<Props, State> {
             organization={organization}
             columns={this.state.columns}
             tagKeys={tagKeys}
+            measurementKeys={measurementKeys}
             onChange={this.handleChange}
           />
         </Body>

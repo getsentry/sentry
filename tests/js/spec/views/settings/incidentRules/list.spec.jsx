@@ -5,8 +5,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import IncidentRulesList from 'app/views/settings/incidentRules/list';
 
-describe('Incident Rules List', function() {
-  it('renders', function() {
+describe('Incident Rules List', function () {
+  it('renders', function () {
     const {organization, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({

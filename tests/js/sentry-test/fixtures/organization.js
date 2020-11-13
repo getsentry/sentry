@@ -10,6 +10,7 @@ export function Organization(params = {}) {
       'org:integrations',
       'project:read',
       'project:write',
+      'project:releases',
       'project:admin',
       'team:read',
       'team:write',

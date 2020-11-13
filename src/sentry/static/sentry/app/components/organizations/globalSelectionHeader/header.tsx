@@ -6,14 +6,14 @@ const Header = styled('div')`
   width: 100%;
   height: 60px;
 
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   box-shadow: ${p => p.theme.dropShadowLight};
   z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
-  background: #fff;
+  background: ${p => p.theme.headerBackground};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   @media (min-width: ${props => props.theme.breakpoints[0]} and max-width: ${props =>
-  props.theme.breakpoints[1]}) {
+      props.theme.breakpoints[1]}) {
     margin-top: 54px;
   }
   @media (max-width: calc(${props => props.theme.breakpoints[0]} - 1px)) {

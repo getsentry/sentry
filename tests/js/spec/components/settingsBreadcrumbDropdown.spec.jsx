@@ -8,7 +8,7 @@ jest.useFakeTimers();
 
 const CLOSE_DELAY = 0;
 
-describe('Settings Breadcrumb Dropdown', function() {
+describe('Settings Breadcrumb Dropdown', function () {
   let wrapper;
   const selectMock = jest.fn();
   const items = [
@@ -16,21 +16,21 @@ describe('Settings Breadcrumb Dropdown', function() {
     {value: '2', label: 'bar'},
   ];
 
-  beforeEach(function() {
+  beforeEach(function () {
     wrapper = mountWithTheme(
       <BreadcrumbDropdown items={items} name="Test" hasMenu onSelect={selectMock} />,
       TestStubs.routerContext()
     );
   });
 
-  it('opens when hovered over crumb', function() {
+  it('opens when hovered over crumb', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
     expect(wrapper.find('AutoCompleteItem')).toHaveLength(2);
   });
 
-  it('closes after 200ms when mouse leaves crumb', function() {
+  it('closes after 200ms when mouse leaves crumb', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
@@ -46,20 +46,17 @@ describe('Settings Breadcrumb Dropdown', function() {
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
   });
 
-  it('closes immediately after selecting an item', function() {
+  it('closes immediately after selecting an item', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
 
-    wrapper
-      .find('AutoCompleteItem')
-      .first()
-      .simulate('click');
+    wrapper.find('AutoCompleteItem').first().simulate('click');
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
   });
 
-  it('stays open when hovered over crumb and then into dropdown menu', function() {
+  it('stays open when hovered over crumb and then into dropdown menu', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();
@@ -72,7 +69,7 @@ describe('Settings Breadcrumb Dropdown', function() {
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
   });
 
-  it('closes after entering dropdown and then leaving dropdown', function() {
+  it('closes after entering dropdown and then leaving dropdown', function () {
     wrapper.find('Crumb').simulate('mouseEnter');
     jest.runAllTimers();
     wrapper.update();

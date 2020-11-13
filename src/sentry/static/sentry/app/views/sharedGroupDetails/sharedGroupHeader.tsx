@@ -6,6 +6,10 @@ import space from 'app/styles/space';
 import {Group} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
+import UnhandledTag, {
+  TagAndMessageWrapper,
+} from '../organizationGroupDetails/unhandledTag';
+
 type Props = {
   group: Group;
 };
@@ -14,7 +18,10 @@ const SharedGroupHeader = ({group}: Props) => (
   <Wrapper>
     <Details>
       <Title>{group.title}</Title>
-      <EventMessage message={group.culprit} />
+      <TagAndMessageWrapper>
+        {group.isUnhandled && <UnhandledTag />}
+        <EventMessage message={group.culprit} />
+      </TagAndMessageWrapper>
     </Details>
   </Wrapper>
 );
@@ -23,7 +30,7 @@ export default SharedGroupHeader;
 
 const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)} ${space(3)} ${space(4)};
-  border-bottom: ${p => `1px solid ${p.theme.borderLight}`};
+  border-bottom: ${p => `1px solid ${p.theme.border}`};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
   position: relative;
   margin: 0 0 ${space(3)};

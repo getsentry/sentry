@@ -18,3 +18,11 @@
 !config/tsconfig.build.json
 !webpack.config.js
 !yarn.lock
+!docs-ui
+!docs-ui/**
+!.storybook
+!.storybook/**
+!tests
+!tests/fixtures
+!tests/fixtures/integration-docs
+!tests/fixtures/integration-docs/**

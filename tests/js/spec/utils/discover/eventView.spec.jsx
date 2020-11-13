@@ -20,8 +20,8 @@ const generateSorts = sorts =>
     kind: 'desc',
   }));
 
-describe('EventView constructor', function() {
-  it('instantiates default values', function() {
+describe('EventView constructor', function () {
+  it('instantiates default values', function () {
     const eventView = new EventView({});
 
     expect(eventView).toMatchObject({
@@ -41,8 +41,8 @@ describe('EventView constructor', function() {
   });
 });
 
-describe('EventView.fromLocation()', function() {
-  it('maps query strings', function() {
+describe('EventView.fromLocation()', function () {
+  it('maps query strings', function () {
     const location = {
       query: {
         id: '42',
@@ -82,7 +82,7 @@ describe('EventView.fromLocation()', function() {
     });
   });
 
-  it('includes first valid statsPeriod', function() {
+  it('includes first valid statsPeriod', function () {
     const location = {
       query: {
         id: '42',
@@ -118,7 +118,7 @@ describe('EventView.fromLocation()', function() {
     });
   });
 
-  it('includes start and end', function() {
+  it('includes start and end', function () {
     const location = {
       query: {
         id: '42',
@@ -152,7 +152,7 @@ describe('EventView.fromLocation()', function() {
     });
   });
 
-  it('generates event view when there are no query strings', function() {
+  it('generates event view when there are no query strings', function () {
     const location = {
       query: {},
     };
@@ -175,8 +175,8 @@ describe('EventView.fromLocation()', function() {
   });
 });
 
-describe('EventView.fromSavedQuery()', function() {
-  it('maps basic properties of saved query', function() {
+describe('EventView.fromSavedQuery()', function () {
+  it('maps basic properties of saved query', function () {
     const saved = {
       id: '42',
       name: 'best query',
@@ -232,7 +232,7 @@ describe('EventView.fromSavedQuery()', function() {
     });
   });
 
-  it('maps saved query with no conditions', function() {
+  it('maps saved query with no conditions', function () {
     const saved = {
       orderby: '-count',
       name: 'foo bar',
@@ -267,7 +267,7 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView).toMatchObject(expected);
   });
 
-  it('maps properties from v2 saved query', function() {
+  it('maps properties from v2 saved query', function () {
     const saved = {
       name: 'best query',
       fields: ['count()', 'title'],
@@ -286,7 +286,7 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView.end).toEqual(undefined);
   });
 
-  it('saved queries are equal when start and end datetime differ in format', function() {
+  it('saved queries are equal when start and end datetime differ in format', function () {
     const saved = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
@@ -327,7 +327,7 @@ describe('EventView.fromSavedQuery()', function() {
     expect(eventView.isEqualTo(eventView4)).toBe(true);
   });
 
-  it('saved queries are not equal when datetime selection are invalid', function() {
+  it('saved queries are not equal when datetime selection are invalid', function () {
     const saved = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
@@ -364,7 +364,7 @@ describe('EventView.fromSavedQuery()', function() {
   });
 });
 
-describe('EventView.fromNewQueryWithLocation()', function() {
+describe('EventView.fromNewQueryWithLocation()', function () {
   const prebuiltQuery = {
     id: undefined,
     name: 'All Events',
@@ -375,7 +375,7 @@ describe('EventView.fromNewQueryWithLocation()', function() {
     version: 2,
   };
 
-  it('maps basic properties of a prebuilt query', function() {
+  it('maps basic properties of a prebuilt query', function () {
     const location = {
       query: {
         statsPeriod: '99d',
@@ -406,7 +406,7 @@ describe('EventView.fromNewQueryWithLocation()', function() {
     });
   });
 
-  it('merges global selection values', function() {
+  it('merges global selection values', function () {
     const location = {
       query: {
         statsPeriod: '99d',
@@ -438,7 +438,7 @@ describe('EventView.fromNewQueryWithLocation()', function() {
     });
   });
 
-  it('new query takes precedence over global selection values', function() {
+  it('new query takes precedence over global selection values', function () {
     const location = {
       query: {
         statsPeriod: '99d',
@@ -519,8 +519,8 @@ describe('EventView.fromNewQueryWithLocation()', function() {
   });
 });
 
-describe('EventView.generateQueryStringObject()', function() {
-  it('skips empty values', function() {
+describe('EventView.generateQueryStringObject()', function () {
+  it('skips empty values', function () {
     const eventView = new EventView({
       fields: generateFields(['id', 'title']),
       sorts: [],
@@ -548,7 +548,7 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(eventView.generateQueryStringObject()).toEqual(expected);
   });
 
-  it('generates query string object', function() {
+  it('generates query string object', function () {
     const state = {
       id: '1234',
       name: 'best query',
@@ -590,7 +590,7 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(eventView.generateQueryStringObject()).toEqual(expected);
   });
 
-  it('encodes fields', function() {
+  it('encodes fields', function () {
     const eventView = new EventView({
       fields: [{field: 'id'}, {field: 'title'}],
       sorts: [],
@@ -599,7 +599,7 @@ describe('EventView.generateQueryStringObject()', function() {
     expect(query.field).toEqual(['id', 'title']);
   });
 
-  it('returns a copy of data preventing mutation', function() {
+  it('returns a copy of data preventing mutation', function () {
     const eventView = new EventView({
       fields: [{field: 'id'}, {field: 'title'}],
       sorts: [],
@@ -615,8 +615,8 @@ describe('EventView.generateQueryStringObject()', function() {
   });
 });
 
-describe('EventView.getEventsAPIPayload()', function() {
-  it('generates the API payload', function() {
+describe('EventView.getEventsAPIPayload()', function () {
+  it('generates the API payload', function () {
     const eventView = new EventView({
       id: 34,
       name: 'amazing query',
@@ -640,7 +640,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
   });
 
-  it('does not append query conditions in location', function() {
+  it('does not append query conditions in location', function () {
     const eventView = new EventView({
       fields: generateFields(['id']),
       sorts: [],
@@ -655,7 +655,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
   });
 
-  it('only includes at most one sort key', function() {
+  it('only includes at most one sort key', function () {
     const eventView = new EventView({
       fields: generateFields(['count()', 'title']),
       sorts: generateSorts(['title', 'count']),
@@ -669,7 +669,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location).sort).toEqual('-title');
   });
 
-  it('only includes sort keys that are defined in fields', function() {
+  it('only includes sort keys that are defined in fields', function () {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
@@ -683,7 +683,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
   });
 
-  it('only includes relevant query strings', function() {
+  it('only includes relevant query strings', function () {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
@@ -720,7 +720,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
   });
 
-  it('includes default coerced statsPeriod when omitted or is invalid', function() {
+  it('includes default coerced statsPeriod when omitted or is invalid', function () {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
@@ -777,7 +777,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
   });
 
-  it('includes default coerced statsPeriod when either start or end is only provided', function() {
+  it('includes default coerced statsPeriod when either start or end is only provided', function () {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
@@ -831,7 +831,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
   });
 
-  it('includes start and end', function() {
+  it('includes start and end', function () {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['count']),
@@ -862,7 +862,7 @@ describe('EventView.getEventsAPIPayload()', function() {
     });
   });
 
-  it("an eventview's date selection has higher precedence than the date selection in the query string", function() {
+  it("an eventview's date selection has higher precedence than the date selection in the query string", function () {
     const initialState = {
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['count']),
@@ -974,8 +974,8 @@ describe('EventView.getEventsAPIPayload()', function() {
   });
 });
 
-describe('EventView.getFacetsAPIPayload()', function() {
-  it('only includes relevant query strings', function() {
+describe('EventView.getFacetsAPIPayload()', function () {
+  it('only includes relevant query strings', function () {
     const eventView = new EventView({
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
@@ -1010,7 +1010,7 @@ describe('EventView.getFacetsAPIPayload()', function() {
   });
 });
 
-describe('EventView.toNewQuery()', function() {
+describe('EventView.toNewQuery()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1028,7 +1028,7 @@ describe('EventView.toNewQuery()', function() {
     display: 'releases',
   };
 
-  it('outputs the right fields', function() {
+  it('outputs the right fields', function () {
     const eventView = new EventView(state);
 
     const output = eventView.toNewQuery();
@@ -1052,7 +1052,7 @@ describe('EventView.toNewQuery()', function() {
     expect(output).toEqual(expected);
   });
 
-  it('omits query when query is an empty string', function() {
+  it('omits query when query is an empty string', function () {
     const modifiedState = {
       ...state,
     };
@@ -1081,7 +1081,7 @@ describe('EventView.toNewQuery()', function() {
     expect(output).toEqual(expected);
   });
 
-  it('omits query when query is not defined', function() {
+  it('omits query when query is not defined', function () {
     const modifiedState = {
       ...state,
     };
@@ -1111,8 +1111,8 @@ describe('EventView.toNewQuery()', function() {
   });
 });
 
-describe('EventView.isValid()', function() {
-  it('event view is valid when there is at least one field', function() {
+describe('EventView.isValid()', function () {
+  it('event view is valid when there is at least one field', function () {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
@@ -1122,7 +1122,7 @@ describe('EventView.isValid()', function() {
     expect(eventView.isValid()).toBe(true);
   });
 
-  it('event view is not valid when there are no fields', function() {
+  it('event view is not valid when there are no fields', function () {
     const eventView = new EventView({
       fields: [],
       sorts: [],
@@ -1133,8 +1133,8 @@ describe('EventView.isValid()', function() {
   });
 });
 
-describe('EventView.getFields()', function() {
-  it('returns fields', function() {
+describe('EventView.getFields()', function () {
+  it('returns fields', function () {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
@@ -1145,8 +1145,8 @@ describe('EventView.getFields()', function() {
   });
 });
 
-describe('EventView.numOfColumns()', function() {
-  it('returns correct number of columns', function() {
+describe('EventView.numOfColumns()', function () {
+  it('returns correct number of columns', function () {
     // has columns
 
     const eventView = new EventView({
@@ -1169,8 +1169,8 @@ describe('EventView.numOfColumns()', function() {
   });
 });
 
-describe('EventView.getDays()', function() {
-  it('returns the right number of days for statsPeriod', function() {
+describe('EventView.getDays()', function () {
+  it('returns the right number of days for statsPeriod', function () {
     const eventView = new EventView({
       statsPeriod: '14d',
     });
@@ -1184,7 +1184,7 @@ describe('EventView.getDays()', function() {
     expect(eventView2.getDays()).toBe(0.5);
   });
 
-  it('returns the right number of days for start/end', function() {
+  it('returns the right number of days for start/end', function () {
     const eventView = new EventView({
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -1200,8 +1200,8 @@ describe('EventView.getDays()', function() {
   });
 });
 
-describe('EventView.clone()', function() {
-  it('returns a unique instance', function() {
+describe('EventView.clone()', function () {
+  it('returns a unique instance', function () {
     const state = {
       id: '1234',
       name: 'best query',
@@ -1229,7 +1229,7 @@ describe('EventView.clone()', function() {
   });
 });
 
-describe('EventView.withColumns()', function() {
+describe('EventView.withColumns()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1247,7 +1247,7 @@ describe('EventView.withColumns()', function() {
   };
   const eventView = new EventView(state);
 
-  it('adds new columns, and replaces existing ones', function() {
+  it('adds new columns, and replaces existing ones', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'title'},
       {kind: 'function', function: ['count', '']},
@@ -1264,7 +1264,7 @@ describe('EventView.withColumns()', function() {
     ]);
   });
 
-  it('drops empty columns', function() {
+  it('drops empty columns', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'issue'},
       {kind: 'function', function: ['count', '']},
@@ -1278,7 +1278,7 @@ describe('EventView.withColumns()', function() {
     ]);
   });
 
-  it('inherits widths from existing columns when names match', function() {
+  it('inherits widths from existing columns when names match', function () {
     const newView = eventView.withColumns([
       {kind: 'function', function: ['count', '']},
       {kind: 'field', field: 'project.id'},
@@ -1294,7 +1294,7 @@ describe('EventView.withColumns()', function() {
     ]);
   });
 
-  it('retains sorts when sorted field is included', function() {
+  it('retains sorts when sorted field is included', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'title'},
       {kind: 'function', function: ['count', '']},
@@ -1306,21 +1306,21 @@ describe('EventView.withColumns()', function() {
     expect(newView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
   });
 
-  it('updates sorts when sorted field is removed', function() {
+  it('updates sorts when sorted field is removed', function () {
     const newView = eventView.withColumns([{kind: 'field', field: 'title'}]);
     expect(newView.fields).toEqual([{field: 'title', width: COL_WIDTH_UNDEFINED}]);
     // Should pick a sortable field.
     expect(newView.sorts).toEqual([{field: 'title', kind: 'desc'}]);
   });
 
-  it('has no sort if no sortable fields remain', function() {
+  it('has no sort if no sortable fields remain', function () {
     const newView = eventView.withColumns([{kind: 'field', field: 'issue'}]);
     expect(newView.fields).toEqual([{field: 'issue', width: COL_WIDTH_UNDEFINED}]);
     expect(newView.sorts).toEqual([]);
   });
 });
 
-describe('EventView.withNewColumn()', function() {
+describe('EventView.withNewColumn()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1337,7 +1337,7 @@ describe('EventView.withNewColumn()', function() {
     environment: ['staging'],
   };
 
-  it('adds a field', function() {
+  it('adds a field', function () {
     const eventView = new EventView(state);
     const newColumn = {
       kind: 'field',
@@ -1354,7 +1354,7 @@ describe('EventView.withNewColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('adds an aggregate function with no arguments', function() {
+  it('adds an aggregate function with no arguments', function () {
     const eventView = new EventView(state);
     const newColumn = {
       kind: 'function',
@@ -1372,7 +1372,7 @@ describe('EventView.withNewColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('add an aggregate function with field', function() {
+  it('add an aggregate function with field', function () {
     const eventView = new EventView(state);
     const newColumn = {
       kind: 'function',
@@ -1389,7 +1389,7 @@ describe('EventView.withNewColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('add an aggregate function with field & refinement', function() {
+  it('add an aggregate function with field & refinement', function () {
     const eventView = new EventView(state);
     const newColumn = {
       kind: 'function',
@@ -1403,7 +1403,7 @@ describe('EventView.withNewColumn()', function() {
   });
 });
 
-describe('EventView.withResizedColumn()', function() {
+describe('EventView.withResizedColumn()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1418,19 +1418,19 @@ describe('EventView.withResizedColumn()', function() {
   };
   const view = new EventView(state);
 
-  it('updates a column that exists', function() {
+  it('updates a column that exists', function () {
     const newView = view.withResizedColumn(0, 99);
     expect(view.fields[0].width).toBeUndefined();
     expect(newView.fields[0].width).toEqual(99);
   });
 
-  it('ignores columns that do not exist', function() {
+  it('ignores columns that do not exist', function () {
     const newView = view.withResizedColumn(100, 99);
     expect(view.fields).toEqual(newView.fields);
   });
 });
 
-describe('EventView.withUpdatedColumn()', function() {
+describe('EventView.withUpdatedColumn()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1449,7 +1449,7 @@ describe('EventView.withUpdatedColumn()', function() {
     title: 'string',
   };
 
-  it('update a column with no changes', function() {
+  it('update a column with no changes', function () {
     const eventView = new EventView(state);
 
     const newColumn = {
@@ -1463,7 +1463,7 @@ describe('EventView.withUpdatedColumn()', function() {
     expect(eventView).toMatchObject(state);
   });
 
-  it('update a column to a field', function() {
+  it('update a column to a field', function () {
     const eventView = new EventView(state);
 
     const newColumn = {
@@ -1484,7 +1484,7 @@ describe('EventView.withUpdatedColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('update a column to an aggregate function with no arguments', function() {
+  it('update a column to an aggregate function with no arguments', function () {
     const eventView = new EventView(state);
 
     const newColumn = {
@@ -1504,7 +1504,7 @@ describe('EventView.withUpdatedColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('update a column to an aggregate function with field', function() {
+  it('update a column to an aggregate function with field', function () {
     const eventView = new EventView(state);
 
     const newColumn = {
@@ -1524,7 +1524,7 @@ describe('EventView.withUpdatedColumn()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('update a column to an aggregate function with field & refinement', function() {
+  it('update a column to an aggregate function with field & refinement', function () {
     const eventView = new EventView(state);
 
     const newColumn = {
@@ -1539,8 +1539,8 @@ describe('EventView.withUpdatedColumn()', function() {
     ]);
   });
 
-  describe('update a column that is sorted', function() {
-    it('the sorted column is the only sorted column', function() {
+  describe('update a column that is sorted', function () {
+    it('the sorted column is the only sorted column', function () {
       const eventView = new EventView(state);
 
       const newColumn = {
@@ -1561,7 +1561,7 @@ describe('EventView.withUpdatedColumn()', function() {
       expect(eventView2).toMatchObject(nextState);
     });
 
-    it('the sorted column occurs at least twice', function() {
+    it('the sorted column occurs at least twice', function () {
       const modifiedState = {
         ...state,
         fields: [...state.fields, {field: 'count()'}],
@@ -1586,7 +1586,7 @@ describe('EventView.withUpdatedColumn()', function() {
       expect(eventView2).toMatchObject(nextState);
     });
 
-    it('using no provided table meta', function() {
+    it('using no provided table meta', function () {
       // table meta may not be provided in the invalid query state;
       // we will still want to be able to update columns
 
@@ -1614,8 +1614,8 @@ describe('EventView.withUpdatedColumn()', function() {
     });
   });
 
-  describe('update a column to a non-sortable column', function() {
-    it('default to a sortable column', function() {
+  describe('update a column to a non-sortable column', function () {
+    it('default to a sortable column', function () {
       const modifiedState = {
         ...state,
         fields: [{field: 'count()'}, {field: 'title'}],
@@ -1644,7 +1644,7 @@ describe('EventView.withUpdatedColumn()', function() {
       expect(eventView2).toMatchObject(nextState);
     });
 
-    it('has no sort if there are no sortable columns', function() {
+    it('has no sort if there are no sortable columns', function () {
       const modifiedState = {
         ...state,
         fields: [{field: 'count()'}],
@@ -1675,7 +1675,7 @@ describe('EventView.withUpdatedColumn()', function() {
   });
 });
 
-describe('EventView.withDeletedColumn()', function() {
+describe('EventView.withDeletedColumn()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1694,7 +1694,7 @@ describe('EventView.withDeletedColumn()', function() {
     title: 'string',
   };
 
-  it('returns itself when attempting to delete the last remaining column', function() {
+  it('returns itself when attempting to delete the last remaining column', function () {
     const modifiedState = {
       ...state,
       fields: [{field: 'count()'}],
@@ -1708,8 +1708,8 @@ describe('EventView.withDeletedColumn()', function() {
     expect(eventView).toMatchObject(modifiedState);
   });
 
-  describe('deletes column, and use any remaining sortable column', function() {
-    it('using no provided table meta', function() {
+  describe('deletes column, and use any remaining sortable column', function () {
+    it('using no provided table meta', function () {
       // table meta may not be provided in the invalid query state;
       // we will still want to be able to delete columns
 
@@ -1737,7 +1737,7 @@ describe('EventView.withDeletedColumn()', function() {
       expect(eventView4).toMatchObject(expected);
     });
 
-    it('has no remaining sortable column', function() {
+    it('has no remaining sortable column', function () {
       const eventView = new EventView(state);
 
       const eventView2 = eventView.withDeletedColumn(0, meta);
@@ -1755,7 +1755,7 @@ describe('EventView.withDeletedColumn()', function() {
       expect(eventView2).toMatchObject(nextState);
     });
 
-    it('has a remaining sortable column', function() {
+    it('has a remaining sortable column', function () {
       const modifiedState = {
         ...state,
         fields: [{field: 'count()'}, {field: 'project.id'}, {field: 'title'}],
@@ -1777,7 +1777,7 @@ describe('EventView.withDeletedColumn()', function() {
       expect(eventView2).toMatchObject(nextState);
     });
 
-    it('sorted column occurs at least twice', function() {
+    it('sorted column occurs at least twice', function () {
       const modifiedState = {
         ...state,
         fields: [...state.fields, state.fields[0]],
@@ -1798,7 +1798,7 @@ describe('EventView.withDeletedColumn()', function() {
       expect(eventView2).toMatchObject(nextState);
     });
 
-    it('ensures there is at one auto-width column on deletion', function() {
+    it('ensures there is at one auto-width column on deletion', function () {
       const modifiedState = {
         ...state,
         fields: [
@@ -1828,8 +1828,8 @@ describe('EventView.withDeletedColumn()', function() {
   });
 });
 
-describe('EventView.getSorts()', function() {
-  it('returns fields', function() {
+describe('EventView.getSorts()', function () {
+  it('returns fields', function () {
     const eventView = new EventView({
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
@@ -1845,8 +1845,8 @@ describe('EventView.getSorts()', function() {
   });
 });
 
-describe('EventView.getQuery()', function() {
-  it('with query', function() {
+describe('EventView.getQuery()', function () {
+  it('with query', function () {
     const eventView = new EventView({
       fields: [],
       sorts: [],
@@ -1862,7 +1862,7 @@ describe('EventView.getQuery()', function() {
     );
   });
 
-  it('without query', function() {
+  it('without query', function () {
     const eventView = new EventView({
       fields: [],
       sorts: [],
@@ -1878,7 +1878,7 @@ describe('EventView.getQuery()', function() {
   });
 });
 
-describe('EventView.sortForField()', function() {
+describe('EventView.sortForField()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1894,7 +1894,7 @@ describe('EventView.sortForField()', function() {
   const eventView = new EventView(state);
   const meta = {count: 'integer'};
 
-  it('returns the sort when selected field is sorted', function() {
+  it('returns the sort when selected field is sorted', function () {
     const field = {
       field: 'count()',
     };
@@ -1907,7 +1907,7 @@ describe('EventView.sortForField()', function() {
     });
   });
 
-  it('returns undefined when selected field is not sorted', function() {
+  it('returns undefined when selected field is not sorted', function () {
     const field = {
       field: 'project.id',
     };
@@ -1915,7 +1915,7 @@ describe('EventView.sortForField()', function() {
     expect(eventView.sortForField(field, meta)).toBeUndefined();
   });
 
-  it('returns undefined when no meta is provided', function() {
+  it('returns undefined when no meta is provided', function () {
     const field = {
       field: 'project.id',
     };
@@ -1924,7 +1924,7 @@ describe('EventView.sortForField()', function() {
   });
 });
 
-describe('EventView.sortOnField()', function() {
+describe('EventView.sortOnField()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -1940,7 +1940,7 @@ describe('EventView.sortOnField()', function() {
 
   const meta = {count: 'integer', title: 'string'};
 
-  it('returns itself when attempting to sort on un-sortable field', function() {
+  it('returns itself when attempting to sort on un-sortable field', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
@@ -1950,7 +1950,7 @@ describe('EventView.sortOnField()', function() {
     expect(eventView2 === eventView).toBe(true);
   });
 
-  it('reverses the sorted field', function() {
+  it('reverses the sorted field', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
@@ -1968,7 +1968,7 @@ describe('EventView.sortOnField()', function() {
     expect(eventView2).toMatchObject(nextState);
   });
 
-  it('enforce sort order on sorted field', function() {
+  it('enforce sort order on sorted field', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
@@ -1987,7 +1987,7 @@ describe('EventView.sortOnField()', function() {
     });
   });
 
-  it('sort on new field', function() {
+  it('sort on new field', function () {
     const modifiedState = {
       ...state,
       fields: [...state.fields, {field: 'title'}],
@@ -2029,8 +2029,8 @@ describe('EventView.sortOnField()', function() {
   });
 });
 
-describe('EventView.withSorts()', function() {
-  it('returns a clone', function() {
+describe('EventView.withSorts()', function () {
+  it('returns a clone', function () {
     const eventView = new EventView({
       fields: [{field: 'event.type'}],
     });
@@ -2038,7 +2038,7 @@ describe('EventView.withSorts()', function() {
     expect(updated.sorts).not.toEqual(eventView.sorts);
   });
 
-  it('only accepts sorting on fields in the view', function() {
+  it('only accepts sorting on fields in the view', function () {
     const eventView = new EventView({
       fields: [{field: 'event.type'}],
     });
@@ -2049,7 +2049,7 @@ describe('EventView.withSorts()', function() {
     expect(updated.sorts).toEqual([{kind: 'desc', field: 'event.type'}]);
   });
 
-  it('accepts aggregate field sorts', function() {
+  it('accepts aggregate field sorts', function () {
     const eventView = new EventView({
       fields: [{field: 'p50()'}],
     });
@@ -2061,8 +2061,8 @@ describe('EventView.withSorts()', function() {
   });
 });
 
-describe('EventView.isEqualTo()', function() {
-  it('should be true when equal', function() {
+describe('EventView.isEqualTo()', function () {
+  it('should be true when equal', function () {
     const state = {
       id: '1234',
       name: 'best query',
@@ -2091,7 +2091,7 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView2.isEqualTo(eventView)).toBe(true);
   });
 
-  it('should be true when datetime are equal but differ in format', function() {
+  it('should be true when datetime are equal but differ in format', function () {
     const state = {
       id: '1234',
       name: 'best query',
@@ -2114,7 +2114,7 @@ describe('EventView.isEqualTo()', function() {
     expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
 
-  it('should be false when not equal', function() {
+  it('should be false when not equal', function () {
     const state = {
       id: '1234',
       name: 'best query',
@@ -2153,7 +2153,7 @@ describe('EventView.isEqualTo()', function() {
   });
 });
 
-describe('EventView.getResultsViewUrlTarget()', function() {
+describe('EventView.getResultsViewUrlTarget()', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -2169,7 +2169,7 @@ describe('EventView.getResultsViewUrlTarget()', function() {
   };
   const organization = TestStubs.Organization();
 
-  it('generates a URL', function() {
+  it('generates a URL', function () {
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -2179,8 +2179,8 @@ describe('EventView.getResultsViewUrlTarget()', function() {
   });
 });
 
-describe('EventView.getGlobalSelection()', function() {
-  it('return default global selection', function() {
+describe('EventView.getGlobalSelection()', function () {
+  it('return default global selection', function () {
     const eventView = new EventView({});
 
     expect(eventView.getGlobalSelection()).toMatchObject({
@@ -2198,7 +2198,7 @@ describe('EventView.getGlobalSelection()', function() {
     });
   });
 
-  it('returns global selection query', function() {
+  it('returns global selection query', function () {
     const state2 = {
       project: [42],
       start: 'start',
@@ -2225,8 +2225,8 @@ describe('EventView.getGlobalSelection()', function() {
   });
 });
 
-describe('EventView.getGlobalSelectionQuery()', function() {
-  it('return default global selection query', function() {
+describe('EventView.getGlobalSelectionQuery()', function () {
+  it('return default global selection query', function () {
     const eventView = new EventView({});
 
     expect(eventView.getGlobalSelectionQuery()).toMatchObject({
@@ -2242,7 +2242,7 @@ describe('EventView.getGlobalSelectionQuery()', function() {
     });
   });
 
-  it('returns global selection query', function() {
+  it('returns global selection query', function () {
     const state2 = {
       project: [42],
       start: 'start',
@@ -2266,8 +2266,8 @@ describe('EventView.getGlobalSelectionQuery()', function() {
   });
 });
 
-describe('EventView.generateBlankQueryStringObject()', function() {
-  it('should return blank values', function() {
+describe('EventView.generateBlankQueryStringObject()', function () {
+  it('should return blank values', function () {
     const eventView = new EventView({});
 
     expect(eventView.generateBlankQueryStringObject()).toEqual({
@@ -2287,7 +2287,7 @@ describe('EventView.generateBlankQueryStringObject()', function() {
   });
 });
 
-describe('EventView.getYAxisOptions()', function() {
+describe('EventView.getYAxisOptions()', function () {
   const state = {
     fields: [],
     sorts: [],
@@ -2304,13 +2304,13 @@ describe('EventView.getYAxisOptions()', function() {
     };
   }
 
-  it('should return default options', function() {
+  it('should return default options', function () {
     const thisEventView = new EventView(state);
 
     expect(thisEventView.getYAxisOptions()).toEqual(CHART_AXIS_OPTIONS);
   });
 
-  it('should add aggregate fields as options', function() {
+  it('should add aggregate fields as options', function () {
     let thisEventView = new EventView({
       ...state,
       fields: generateFields(['ignored-field', 'count_unique(issue)']),
@@ -2330,7 +2330,7 @@ describe('EventView.getYAxisOptions()', function() {
     expect(thisEventView.getYAxisOptions()).toEqual([...CHART_AXIS_OPTIONS]);
   });
 
-  it('should exclude yAxis options that are not useful', function() {
+  it('should exclude yAxis options that are not useful', function () {
     const thisEventView = new EventView({
       ...state,
       fields: generateFields([
@@ -2348,7 +2348,7 @@ describe('EventView.getYAxisOptions()', function() {
   });
 });
 
-describe('EventView.getYAxis()', function() {
+describe('EventView.getYAxis()', function () {
   const state = {
     fields: [],
     sorts: [],
@@ -2358,13 +2358,13 @@ describe('EventView.getYAxis()', function() {
     environment: [],
   };
 
-  it('should return first default yAxis', function() {
+  it('should return first default yAxis', function () {
     const thisEventView = new EventView(state);
 
     expect(thisEventView.getYAxis()).toEqual('count()');
   });
 
-  it('should return valid yAxis', function() {
+  it('should return valid yAxis', function () {
     const thisEventView = new EventView({
       ...state,
       fields: generateFields([
@@ -2379,7 +2379,7 @@ describe('EventView.getYAxis()', function() {
     expect(thisEventView.getYAxis()).toEqual('count_unique(user)');
   });
 
-  it('should ignore invalid yAxis', function() {
+  it('should ignore invalid yAxis', function () {
     const invalid = [
       'last_seen',
       'latest_event',
@@ -2399,7 +2399,7 @@ describe('EventView.getYAxis()', function() {
   });
 });
 
-describe('EventView.getDisplayOptions()', function() {
+describe('EventView.getDisplayOptions()', function () {
   const state = {
     fields: [],
     sorts: [],
@@ -2409,7 +2409,7 @@ describe('EventView.getDisplayOptions()', function() {
     environment: [],
   };
 
-  it('should return default options', function() {
+  it('should return default options', function () {
     const eventView = new EventView({
       ...state,
       // there needs to exist an aggregate or TOP 5 modes will be disabled
@@ -2419,7 +2419,7 @@ describe('EventView.getDisplayOptions()', function() {
     expect(eventView.getDisplayOptions()).toEqual(DISPLAY_MODE_OPTIONS);
   });
 
-  it('should disable previous when start/end are used.', function() {
+  it('should disable previous when start/end are used.', function () {
     const eventView = new EventView({
       ...state,
       end: '2020-04-13T12:13:14',
@@ -2431,7 +2431,7 @@ describe('EventView.getDisplayOptions()', function() {
     expect(options[1].disabled).toBeTruthy();
   });
 
-  it('should disable top 5 period/daily if no aggregates present', function() {
+  it('should disable top 5 period/daily if no aggregates present', function () {
     const eventView = new EventView({
       ...state,
     });
@@ -2444,7 +2444,7 @@ describe('EventView.getDisplayOptions()', function() {
   });
 });
 
-describe('EventView.getDisplayMode()', function() {
+describe('EventView.getDisplayMode()', function () {
   const state = {
     fields: [],
     sorts: [],
@@ -2454,7 +2454,7 @@ describe('EventView.getDisplayMode()', function() {
     environment: [],
   };
 
-  it('should have default', function() {
+  it('should have default', function () {
     const eventView = new EventView({
       ...state,
     });
@@ -2462,7 +2462,7 @@ describe('EventView.getDisplayMode()', function() {
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
 
-  it('should return current mode when not disabled', function() {
+  it('should return current mode when not disabled', function () {
     const eventView = new EventView({
       ...state,
       display: DisplayModes.DAILY,
@@ -2471,7 +2471,7 @@ describe('EventView.getDisplayMode()', function() {
     expect(displayMode).toEqual(DisplayModes.DAILY);
   });
 
-  it('should return default mode when disabled', function() {
+  it('should return default mode when disabled', function () {
     const eventView = new EventView({
       ...state,
       // the existence of start and end will disable the PREVIOUS mode
@@ -2483,7 +2483,7 @@ describe('EventView.getDisplayMode()', function() {
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
 
-  it('top 5 should fallback to default when disabled', function() {
+  it('top 5 should fallback to default when disabled', function () {
     const eventView = new EventView({
       ...state,
       // the lack of an aggregate will disable the TOP5 mode
@@ -2493,7 +2493,7 @@ describe('EventView.getDisplayMode()', function() {
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
 
-  it('top 5 daily should fallback to daily when disabled', function() {
+  it('top 5 daily should fallback to daily when disabled', function () {
     const eventView = new EventView({
       ...state,
       // the lack of an aggregate will disable the DAILYTOP5 mode
@@ -2503,7 +2503,7 @@ describe('EventView.getDisplayMode()', function() {
     expect(displayMode).toEqual(DisplayModes.DAILY);
   });
 
-  it('daily mode should fall back to default when disabled', function() {
+  it('daily mode should fall back to default when disabled', function () {
     const eventView = new EventView({
       ...state,
       // the period being less than 24h will disable the DAILY mode
@@ -2514,7 +2514,7 @@ describe('EventView.getDisplayMode()', function() {
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
 
-  it('top 5 daily mode should fall back to default when daily is disabled', function() {
+  it('top 5 daily mode should fall back to default when daily is disabled', function () {
     const eventView = new EventView({
       ...state,
       // the period being less than 24h will disable the DAILY mode
@@ -2527,7 +2527,7 @@ describe('EventView.getDisplayMode()', function() {
   });
 });
 
-describe('EventView.getAggregateFields()', function() {
+describe('EventView.getAggregateFields()', function () {
   const state = {
     fields: [
       {field: 'title'},
@@ -2543,7 +2543,7 @@ describe('EventView.getAggregateFields()', function() {
     environment: [],
   };
 
-  it('getAggregateFields() returns only aggregates', function() {
+  it('getAggregateFields() returns only aggregates', function () {
     const eventView = new EventView(state);
     const expected = [
       {field: 'count()'},
@@ -2555,8 +2555,8 @@ describe('EventView.getAggregateFields()', function() {
   });
 });
 
-describe('EventView.hasAggregateField', function() {
-  it('ensures an eventview has an aggregate field', function() {
+describe('EventView.hasAggregateField', function () {
+  it('ensures an eventview has an aggregate field', function () {
     let eventView = new EventView({
       fields: [{field: 'foobar'}],
       sorts: [],
@@ -2579,7 +2579,7 @@ describe('EventView.hasAggregateField', function() {
   });
 });
 
-describe('isAPIPayloadSimilar', function() {
+describe('isAPIPayloadSimilar', function () {
   const state = {
     id: '1234',
     name: 'best query',
@@ -2598,8 +2598,8 @@ describe('isAPIPayloadSimilar', function() {
     title: 'string',
   };
 
-  describe('getEventsAPIPayload', function() {
-    it('is not similar when relevant query string keys are present in the Location object', function() {
+  describe('getEventsAPIPayload', function () {
+    it('is not similar when relevant query string keys are present in the Location object', function () {
       const thisEventView = new EventView(state);
       const location = {
         query: {
@@ -2622,7 +2622,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(false);
     });
 
-    it('is similar when irrelevant query string keys are present in the Location object', function() {
+    it('is similar when irrelevant query string keys are present in the Location object', function () {
       const thisEventView = new EventView(state);
       const location = {
         query: {
@@ -2639,7 +2639,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(true);
     });
 
-    it('is not similar on sort key sorted in opposite directions', function() {
+    it('is not similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2653,7 +2653,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(false);
     });
 
-    it('is not similar when a new column is added', function() {
+    it('is not similar when a new column is added', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2668,7 +2668,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(false);
     });
 
-    it('is similar when a column is updated with no changes', function() {
+    it('is similar when a column is updated with no changes', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2687,7 +2687,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(true);
     });
 
-    it('is not similar when a column is updated with a replaced field', function() {
+    it('is not similar when a column is updated with a replaced field', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2706,7 +2706,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(false);
     });
 
-    it('is not similar when a column is updated with a replaced aggregation', function() {
+    it('is not similar when a column is updated with a replaced aggregation', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2725,7 +2725,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(false);
     });
 
-    it('is similar when a column is renamed', function() {
+    it('is similar when a column is renamed', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2744,7 +2744,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(true);
     });
 
-    it('is not similar when a column is deleted', function() {
+    it('is not similar when a column is deleted', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
@@ -2759,8 +2759,8 @@ describe('isAPIPayloadSimilar', function() {
     });
   });
 
-  describe('getFacetsAPIPayload', function() {
-    it('only includes relevant parameters', function() {
+  describe('getFacetsAPIPayload', function () {
+    it('only includes relevant parameters', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const results = thisEventView.getFacetsAPIPayload(location);
@@ -2774,7 +2774,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toEqual(expected);
     });
 
-    it('is similar on sort key sorted in opposite directions', function() {
+    it('is similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
@@ -2792,7 +2792,7 @@ describe('isAPIPayloadSimilar', function() {
       expect(results).toBe(true);
     });
 
-    it('is similar when a columns are different', function() {
+    it('is similar when a columns are different', function () {
       const thisEventView = new EventView(state);
       const location = {};
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
@@ -2808,8 +2808,8 @@ describe('isAPIPayloadSimilar', function() {
   });
 });
 
-describe('pickRelevantLocationQueryStrings', function() {
-  it('picks relevant query strings', function() {
+describe('pickRelevantLocationQueryStrings', function () {
+  it('picks relevant query strings', function () {
     const location = {
       query: {
         project: 'project',

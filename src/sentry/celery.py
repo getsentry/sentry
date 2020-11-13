@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.conf import settings
 
 from celery import Celery
+from celery.worker.request import Request
 from celery.app.task import Task
 
 from sentry.utils import metrics
@@ -53,9 +54,17 @@ patch_thread_ident()
 
 
 class SentryTask(Task):
+    Request = "sentry.celery:SentryRequest"
+
     def apply_async(self, *args, **kwargs):
         with metrics.timer("jobs.delay", instance=self.name):
             return Task.apply_async(self, *args, **kwargs)
+
+
+class SentryRequest(Request):
+    def __init__(self, message, **kwargs):
+        super(SentryRequest, self).__init__(message, **kwargs)
+        self._request_dict["headers"] = message.headers
 
 
 class SentryCelery(Celery):

@@ -4,12 +4,12 @@ import TeamActions from 'app/actions/teamActions';
 import ProjectActions from 'app/actions/projectActions';
 import {updateOrganization} from 'app/actionCreators/organizations';
 
-describe('OrganizationStore', function() {
-  beforeEach(function() {
+describe('OrganizationStore', function () {
+  beforeEach(function () {
     OrganizationStore.reset();
   });
 
-  it('starts with loading state', function() {
+  it('starts with loading state', function () {
     expect(OrganizationStore.get()).toMatchObject({
       loading: true,
       error: null,
@@ -19,7 +19,7 @@ describe('OrganizationStore', function() {
     });
   });
 
-  it('updates correctly', async function() {
+  it('updates correctly', async function () {
     const organization = TestStubs.Organization();
     OrganizationActions.update(organization);
     await tick();
@@ -44,7 +44,7 @@ describe('OrganizationStore', function() {
     });
   });
 
-  it('updates correctly from setting changes', async function() {
+  it('updates correctly from setting changes', async function () {
     const organization = TestStubs.Organization();
     updateOrganization(organization);
     await tick();
@@ -57,7 +57,7 @@ describe('OrganizationStore', function() {
     });
   });
 
-  it('errors correctly', async function() {
+  it('errors correctly', async function () {
     const error = new Error('uh-oh');
     error.status = 404;
     OrganizationActions.fetchOrgError(error);
@@ -71,7 +71,7 @@ describe('OrganizationStore', function() {
     });
   });
 
-  it('loads in sorted teams', async function() {
+  it('loads in sorted teams', async function () {
     const organization = TestStubs.Organization();
     OrganizationActions.update(organization);
     // wait for action to get dispatched to store
@@ -88,7 +88,7 @@ describe('OrganizationStore', function() {
     expect(OrganizationStore.get().organization.teams).toEqual([teamA, teamB]);
   });
 
-  it('loads in sorted projects', async function() {
+  it('loads in sorted projects', async function () {
     const organization = TestStubs.Organization();
     OrganizationActions.update(organization);
     // wait for action to get dispatched to store

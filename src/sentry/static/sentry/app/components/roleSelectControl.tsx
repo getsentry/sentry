@@ -49,7 +49,7 @@ const RoleSelectControl = styled(SelectControl)`
   }
 
   .Select-option:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 

@@ -53,3 +53,6 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
 
     def get_html_template(self):
         return "sentry/emails/activity/new_processing_issues.html"
+
+    def get_category(self):
+        return "new_processing_issues_activity_email"

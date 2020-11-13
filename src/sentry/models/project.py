@@ -104,11 +104,12 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     flags = BitField(
         flags=(
-            ("has_releases", "This Project has sent release data"),
-            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
-            ("has_transactions", "This Project has sent transactions"),
+            (u"has_releases", u"This Project has sent release data"),
+            (u"has_issue_alerts_targeting", u"This Project has issue alerts targeting"),
+            (u"has_transactions", u"This Project has sent transactions"),
+            (u"has_alert_filters", u"This Project has filters"),
         ),
-        default=2,
+        default=10,
         null=True,
     )
 
@@ -137,7 +138,11 @@ class Project(Model, PendingDeletionMixin):
             lock = locks.get("slug:project", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(
-                    self, self.name, organization=self.organization, reserved=RESERVED_PROJECT_SLUGS
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS,
+                    max_length=50,
                 )
             super(Project, self).save(*args, **kwargs)
         else:
@@ -343,7 +348,7 @@ class Project(Model, PendingDeletionMixin):
             with transaction.atomic():
                 self.update(organization=organization)
         except IntegrityError:
-            slugify_instance(self, self.name, organization=organization)
+            slugify_instance(self, self.name, organization=organization, max_length=50)
             self.update(slug=self.slug, organization=organization)
 
         # Both environments and releases are bound at an organization level.

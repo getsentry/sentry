@@ -6,13 +6,13 @@ export const ChartControls = styled('div')`
   display: flex;
   justify-content: space-between;
   padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 export const SubHeading = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -23,14 +23,15 @@ export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray600};
+  align-items: center;
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0;
   line-height: 1.3;
 `;
 
 export const SectionValue = styled('span')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
 `;

@@ -66,7 +66,7 @@ class EncryptedPickledObjectField(PickledObjectField):
                 value = dbsafe_decode(value, self.compress)
             except Exception:
                 # If the value is a definite pickle; and an error is raised in
-                # de-pickling it should be allowed to propogate.
+                # de-pickling it should be allowed to propagate.
                 if isinstance(value, PickledObject):
                     raise
             else:

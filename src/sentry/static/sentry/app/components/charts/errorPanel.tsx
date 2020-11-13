@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const ErrorPanel = styled('div')`
+const ErrorPanel = styled('div')<{height?: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -8,7 +8,7 @@ const ErrorPanel = styled('div')`
   flex: 1;
   flex-shrink: 0;
   overflow: hidden;
-  height: 200px;
+  height: ${p => p.height || '200px'};
   position: relative;
   border-color: transparent;
   margin-bottom: 0;

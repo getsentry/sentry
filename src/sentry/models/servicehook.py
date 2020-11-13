@@ -51,7 +51,7 @@ class ServiceHook(Model):
     # hooks may be bound to an api application, or simply registered by a user
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     actor_id = BoundedPositiveIntegerField(db_index=True)
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
     organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
     secret = EncryptedTextField(default=generate_secret)
@@ -59,7 +59,7 @@ class ServiceHook(Model):
     status = BoundedPositiveIntegerField(
         default=0, choices=ObjectStatus.as_choices(), db_index=True
     )
-    version = BoundedPositiveIntegerField(default=0, choices=((0, "0"),))
+    version = BoundedPositiveIntegerField(default=0, choices=((0, u"0"),))
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=("guid",))

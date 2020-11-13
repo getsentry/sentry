@@ -28,6 +28,7 @@ class CreateAttachmentMixin(object):
             event_id=self.event.event_id,
             project_id=self.event.project_id,
             file=self.file,
+            type=self.file.type,
             name="hello.png",
         )
 
@@ -64,7 +65,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == six.text_type(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert "File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
 
     def test_delete(self):
         self.login_as(user=self.user)

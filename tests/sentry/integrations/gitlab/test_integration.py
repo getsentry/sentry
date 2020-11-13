@@ -13,6 +13,7 @@ from sentry.models import (
     IdentityStatus,
     Integration,
     OrganizationIntegration,
+    Repository,
 )
 from sentry.testutils import IntegrationTestCase
 
@@ -194,3 +195,103 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         installation = integration.get_installation(self.organization.id)
         assert self.default_group_id == installation.get_group_id()
+
+    @responses.activate
+    def test_get_stacktrace_link(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Get Sentry / Example Repo",
+            external_id=u"{}:{}".format(instance, external_id),
+            url="https://gitlab.example.com/getsentry/projects/example-repo",
+            config={"project_id": external_id, "path": "getsentry/example-repo"},
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+        )
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "README.md"
+        ref = "master"
+        version = "12345678"
+        responses.add(
+            responses.HEAD,
+            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                external_id, filepath, version
+            ),
+        )
+        source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
+        assert (
+            source_url
+            == "https://gitlab.example.com/getsentry/example-repo/blob/12345678/README.md"
+        )
+
+    @responses.activate
+    def test_get_stacktrace_link_file_doesnt_exist(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Get Sentry / Example Repo",
+            external_id=u"{}:{}".format(instance, external_id),
+            url="https://gitlab.example.com/getsentry/projects/example-repo",
+            config={"project_id": external_id, "path": "getsentry/example-repo"},
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+        )
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "README.md"
+        ref = "master"
+        version = None
+        responses.add(
+            responses.HEAD,
+            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                external_id, filepath, ref
+            ),
+            status=404,
+        )
+        source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
+        assert not source_url
+
+    @responses.activate
+    def test_get_stacktrace_link_use_default_if_version_404(self):
+        self.assert_setup_flow()
+        external_id = 4
+        integration = Integration.objects.get(provider=self.provider.key)
+        instance = integration.metadata["instance"]
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="Get Sentry / Example Repo",
+            external_id=u"{}:{}".format(instance, external_id),
+            url="https://gitlab.example.com/getsentry/projects/example-repo",
+            config={"project_id": external_id, "path": "getsentry/example-repo"},
+            provider="integrations:gitlab",
+            integration_id=integration.id,
+        )
+        installation = integration.get_installation(self.organization.id)
+
+        filepath = "README.md"
+        ref = "master"
+        version = "12345678"
+        responses.add(
+            responses.HEAD,
+            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                external_id, filepath, version
+            ),
+            status=404,
+        )
+        responses.add(
+            responses.HEAD,
+            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+                external_id, filepath, ref
+            ),
+        )
+        source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
+        assert (
+            source_url == "https://gitlab.example.com/getsentry/example-repo/blob/master/README.md"
+        )

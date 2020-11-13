@@ -1,15 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PlatformIcon from 'platformicons';
 import {withInfo} from '@storybook/addon-info';
-
-import PlatformIcon from 'app/components/platformIcon';
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: 0 15px 15px 0;
 `;
 
 export default {
-  title: 'Style/Icons',
+  title: 'Core/Style/Icons',
 };
 
 export const _PlatformIcon = withInfo('Scalable platform and framework icons')(() => (

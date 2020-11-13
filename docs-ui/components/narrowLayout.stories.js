@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import NarrowLayout from 'app/components/narrowLayout';
 
 export default {
-  title: 'UI/NarrowLayout',
+  title: 'Layouts/NarrowLayout',
 };
 
 export const _NarrowLayout = withInfo('A narrow layout')(() => (

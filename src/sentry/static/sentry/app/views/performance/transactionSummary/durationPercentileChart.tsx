@@ -12,6 +12,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import AsyncComponent from 'app/components/asyncComponent';
 import {OrganizationSummary} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {axisLabelFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 import {getDuration} from 'app/utils/formatters';
 
@@ -115,7 +116,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     // Don't call super as we don't really need issues for this.
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
       </ErrorPanel>
     );
   }
@@ -126,7 +127,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       return null;
     }
     const xAxis = {
-      type: 'category',
+      type: 'category' as const,
       truncate: true,
       axisLabel: {
         showMinLabel: true,
@@ -135,6 +136,14 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       axisTick: {
         interval: 0,
         alignWithLabel: true,
+      },
+    };
+    const yAxis = {
+      type: 'value' as const,
+      axisLabel: {
+        color: theme.chartLabel,
+        // Use p50() to force time formatting.
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
       },
     };
     const tooltip = {
@@ -148,10 +157,10 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
       <AreaChart
         grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
         xAxis={xAxis}
-        yAxis={{type: 'value'}}
+        yAxis={yAxis}
         series={transformData(chartData.data)}
         tooltip={tooltip}
-        colors={colors}
+        colors={[...colors]}
       />
     );
   }

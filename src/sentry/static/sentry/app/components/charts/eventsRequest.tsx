@@ -104,10 +104,6 @@ type EventsRequestPartialProps = {
    */
   field?: string[];
   /**
-   * Reference event to use when generating additional conditions.
-   */
-  referenceEvent?: string;
-  /**
    * Initial loading state
    */
   loading?: boolean;
@@ -126,10 +122,6 @@ type EventsRequestPartialProps = {
   currentSeriesName?: string;
   previousSeriesName?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
-  /**
-   * Determines if the "key transactions" version of the event-stats endpoint should be used
-   */
-  keyTransactions?: boolean;
   /**
    * The number of top results to get. When set a multi-series result will be returned
    * in the `results` child render function.
@@ -200,8 +192,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
 
     field: PropTypes.arrayOf(PropTypes.string),
-    referenceEvent: PropTypes.string,
-    keyTransactions: PropTypes.bool,
     topEvents: PropTypes.number,
     orderby: PropTypes.string,
 

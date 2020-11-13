@@ -47,18 +47,6 @@ class BasicPreprocessorPlugin(Plugin2):
 
 
 @pytest.fixture
-def register_plugin(request, monkeypatch):
-    def inner(cls):
-        from sentry.plugins.base import plugins
-
-        monkeypatch.setitem(globals(), cls.__name__, cls)
-        plugins.register(cls)
-        request.addfinalizer(lambda: plugins.unregister(cls))
-
-    return inner
-
-
-@pytest.fixture
 def mock_save_event():
     with mock.patch("sentry.tasks.store.save_event") as m:
         yield m
@@ -104,7 +92,7 @@ def mock_metrics_timing():
 def test_move_to_process_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "mattlang",
@@ -124,7 +112,7 @@ def test_move_to_process_event(
 def test_move_to_symbolicate_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "native",
@@ -149,7 +137,7 @@ def test_symbolicate_event_call_process_inline(
     mock_get_symbolication_function,
     register_plugin,
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "native",
@@ -188,7 +176,7 @@ def test_symbolicate_event_call_process_inline(
 def test_move_to_save_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
     data = {
         "project": default_project.id,
         "platform": "NOTMATTLANG",
@@ -208,7 +196,7 @@ def test_move_to_save_event(
 def test_process_event_mutate_and_save(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -237,7 +225,7 @@ def test_process_event_mutate_and_save(
 def test_process_event_no_mutate_and_save(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -263,7 +251,7 @@ def test_process_event_no_mutate_and_save(
 def test_process_event_unprocessed(
     default_project, mock_event_processing_store, mock_save_event, register_plugin
 ):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -288,7 +276,7 @@ def test_process_event_unprocessed(
 
 @pytest.mark.django_db
 def test_hash_discarded_raised(default_project, mock_refund, register_plugin):
-    register_plugin(BasicPreprocessorPlugin)
+    register_plugin(globals(), BasicPreprocessorPlugin)
 
     data = {
         "project": default_project.id,
@@ -327,7 +315,6 @@ def test_scrubbing_after_processing(
     setting_method,
     options_model,
 ):
-    @register_plugin
     class TestPlugin(Plugin2):
         def get_event_preprocessors(self, data):
             # Right now we do not scrub data from event preprocessors
@@ -339,6 +326,8 @@ def test_scrubbing_after_processing(
 
         def is_enabled(self, project=None):
             return True
+
+    register_plugin(globals(), TestPlugin)
 
     if setting_method == "datascrubbers":
         options_model.update_option("sentry:sensitive_fields", ["a"])

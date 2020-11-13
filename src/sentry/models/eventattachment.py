@@ -27,6 +27,7 @@ class EventAttachment(Model):
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
     file = FlexibleForeignKey("sentry.File")
+    type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 

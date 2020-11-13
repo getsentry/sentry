@@ -6,11 +6,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventsChart from 'app/components/charts/eventsChart';
 
-describe('EventsChart with legend', function() {
+describe('EventsChart with legend', function () {
   const {router, routerContext, org} = initializeOrg();
   let wrapper;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockZoomRange(1543449600000, 1543708800000);
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/releases/`,
@@ -45,7 +45,7 @@ describe('EventsChart with legend', function() {
     );
   });
 
-  it('renders a legend if enabled', function() {
+  it('renders a legend if enabled', function () {
     wrapper.update();
 
     const areaChart = wrapper.find('AreaChart');

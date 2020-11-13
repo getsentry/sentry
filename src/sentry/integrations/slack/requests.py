@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import hmac
-import six
 from hashlib import sha256
 
 from sentry import options
@@ -119,9 +118,9 @@ class SlackRequest(object):
         signature = self.request.META["HTTP_X_SLACK_SIGNATURE"]
         timestamp = self.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"]
 
-        req = six.binary_type("v0:%s:%s" % (timestamp, self.request.body))
-        request_hash = "v0=" + hmac.new(six.binary_type(signing_secret), req, sha256).hexdigest()
-        return hmac.compare_digest(six.binary_type(request_hash), six.binary_type(signature))
+        req = b"v0:%s:%s" % (timestamp.encode("utf-8"), self.request.body)
+        request_hash = "v0=" + hmac.new(signing_secret.encode("utf-8"), req, sha256).hexdigest()
+        return hmac.compare_digest(request_hash.encode("utf-8"), signature.encode("utf-8"))
 
     def _check_verification_token(self, verification_token):
         return self.data.get("token") == verification_token

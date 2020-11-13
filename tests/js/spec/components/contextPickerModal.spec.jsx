@@ -10,11 +10,11 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('jquery');
 
-describe('ContextPickerModal', function() {
+describe('ContextPickerModal', function () {
   let project, project2, org, org2;
   const onFinish = jest.fn();
 
-  beforeEach(function() {
+  beforeEach(function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     onFinish.mockReset();
@@ -28,7 +28,7 @@ describe('ContextPickerModal', function() {
     });
   });
 
-  afterEach(async function() {
+  afterEach(async function () {
     OrganizationsStore.load([]);
     OrganizationStore.reset();
     await tick();
@@ -46,7 +46,7 @@ describe('ContextPickerModal', function() {
     />
   );
 
-  it('renders with only org selector when no org is selected', async function() {
+  it('renders with only org selector when no org is selected', async function () {
     const wrapper = mountWithTheme(getComponent());
 
     expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
@@ -56,7 +56,7 @@ describe('ContextPickerModal', function() {
     wrapper.unmount();
   });
 
-  it('calls onFinish, if project id is not needed, and only 1 org', async function() {
+  it('calls onFinish, if project id is not needed, and only 1 org', async function () {
     OrganizationsStore.load([org2]);
     OrganizationStore.onUpdate(org2);
     MockApiClient.addMockResponse({
@@ -70,7 +70,7 @@ describe('ContextPickerModal', function() {
     wrapper.unmount();
   });
 
-  it('calls onFinish if there is only 1 org and 1 project', async function() {
+  it('calls onFinish if there is only 1 org and 1 project', async function () {
     expect(onFinish).not.toHaveBeenCalled();
     OrganizationsStore.load([org2]);
     OrganizationStore.onUpdate(org2);
@@ -101,7 +101,7 @@ describe('ContextPickerModal', function() {
     wrapper.unmount();
   });
 
-  it('selects an org and calls `onFinish` with URL with organization slug', async function() {
+  it('selects an org and calls `onFinish` with URL with organization slug', async function () {
     OrganizationsStore.load([org]);
     const wrapper = mountWithTheme(getComponent({}), TestStubs.routerContext());
     MockApiClient.addMockResponse({
@@ -119,7 +119,7 @@ describe('ContextPickerModal', function() {
     wrapper.unmount();
   });
 
-  it('renders with project selector and org selector selected when org is already selected', async function() {
+  it('renders with project selector and org selector selected when org is already selected', async function () {
     OrganizationStore.onUpdate(org);
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
@@ -152,7 +152,7 @@ describe('ContextPickerModal', function() {
     wrapper.unmount();
   });
 
-  it('can select org and project', async function() {
+  it('can select org and project', async function () {
     const organizations = [
       {
         ...org,
@@ -184,9 +184,9 @@ describe('ContextPickerModal', function() {
     wrapper.update();
 
     // Should not have anything selected
-    expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
-      null
-    );
+    expect(
+      wrapper.find('StyledSelectControl[name="organization"]').prop('value')
+    ).toBeUndefined();
 
     // Select org2
     selectByValue(wrapper, org2.slug, {control: true});

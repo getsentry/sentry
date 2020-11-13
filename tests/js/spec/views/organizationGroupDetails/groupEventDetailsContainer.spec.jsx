@@ -17,7 +17,7 @@ describe('groupEventDetailsContainer', () => {
     OrganizationEnvironmentsStore.init();
   });
 
-  it('fetches environments', async function() {
+  it('fetches environments', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: TestStubs.Environments(),
@@ -39,7 +39,7 @@ describe('groupEventDetailsContainer', () => {
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('displays an error on error', async function() {
+  it('displays an error on error', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       statusCode: 400,
@@ -54,7 +54,7 @@ describe('groupEventDetailsContainer', () => {
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('displays an error on falsey environment', async function() {
+  it('displays an error on falsey environment', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/environments/`,
       body: null,
@@ -69,7 +69,7 @@ describe('groupEventDetailsContainer', () => {
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('unsubscribes on unmount', async function() {
+  it('unsubscribes on unmount', async function () {
     const unsubscribeMock = jest.fn();
     jest
       .spyOn(OrganizationEnvironmentsStore, 'listen')

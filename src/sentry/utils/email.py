@@ -301,7 +301,7 @@ class MessageBuilder(object):
         return self._txt_body
 
     def add_users(self, user_ids, project=None):
-        self._send_to.update(get_email_addresses(user_ids, project).values())
+        self._send_to.update(list(get_email_addresses(user_ids, project).values()))
 
     def build(self, to, reply_to=None, cc=None, bcc=None):
         if self.headers is None:
@@ -323,7 +323,7 @@ class MessageBuilder(object):
         message_id = make_msgid(get_from_email_domain())
         headers.setdefault("Message-Id", message_id)
 
-        subject = self.subject
+        subject = force_text(self.subject)
 
         if self.reply_reference is not None:
             reference = self.reply_reference

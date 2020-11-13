@@ -321,11 +321,11 @@ class Factories(object):
         condition_data = condition_data or [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "name": "An issue is first seen",
+                "name": "A new issue is created",
             },
             {
                 "id": "sentry.rules.conditions.every_event.EveryEventCondition",
-                "name": "An event is seen",
+                "name": "The event occurs",
             },
         ]
         return Rule.objects.create(
@@ -571,7 +571,11 @@ class Factories(object):
             )
 
         return EventAttachment.objects.create(
-            project_id=event.project_id, event_id=event.event_id, file=file, **kwargs
+            project_id=event.project_id,
+            event_id=event.event_id,
+            file=file,
+            type=file.type,
+            **kwargs
         )
 
     @staticmethod
@@ -612,6 +616,7 @@ class Factories(object):
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,
+            checksum=file.checksum,
             data=data,
             **kwargs
         )
@@ -790,7 +795,11 @@ class Factories(object):
         group=None, service_type=None, display_name=None, web_url=None
     ):
         return PlatformExternalIssue.objects.create(
-            group_id=group.id, service_type=service_type, display_name=display_name, web_url=web_url
+            group_id=group.id,
+            project_id=group.project_id,
+            service_type=service_type,
+            display_name=display_name,
+            web_url=web_url,
         )
 
     @staticmethod
@@ -871,6 +880,7 @@ class Factories(object):
         threshold_type=AlertRuleThresholdType.ABOVE,
         resolve_threshold=None,
         user=None,
+        event_types=None,
     ):
         if not name:
             name = petname.Generate(2, " ", letters=10).title()
@@ -890,6 +900,7 @@ class Factories(object):
             include_all_projects=include_all_projects,
             excluded_projects=excluded_projects,
             user=user,
+            event_types=event_types,
         )
 
         if date_added is not None:
@@ -920,7 +931,8 @@ class Factories(object):
         target_type=AlertRuleTriggerAction.TargetType.USER,
         target_identifier=None,
         integration=None,
+        sentry_app=None,
     ):
         return create_alert_rule_trigger_action(
-            trigger, type, target_type, target_identifier, integration
+            trigger, type, target_type, target_identifier, integration, sentry_app
         )

@@ -11,7 +11,6 @@ from django.conf import settings
 from django.utils.http import urlquote
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from enum import Enum
 from pytz import utc
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
@@ -34,7 +33,7 @@ from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
 
-__all__ = ["DocSection", "Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -91,15 +90,6 @@ def allow_cors_options(func):
         return response
 
     return allow_cors_options_wrapper
-
-
-class DocSection(Enum):
-    ACCOUNTS = "Accounts"
-    EVENTS = "Events"
-    ORGANIZATIONS = "Organizations"
-    PROJECTS = "Projects"
-    RELEASES = "Releases"
-    TEAMS = "Teams"
 
 
 class Endpoint(APIView):

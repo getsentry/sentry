@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 export default {
-  title: 'Forms/Controls',
+  title: 'Core/Forms/Controls',
 };
 
 export const _RangeSlider = withInfo('Range Slider')(() => (

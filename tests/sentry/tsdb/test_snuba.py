@@ -73,7 +73,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             )
 
             # Assert that the response has values set for the times we expect, and nothing more
-            assert self.organization.id in response.keys()
+            assert self.organization.id in response
             response_dict = {k: v for (k, v) in response[self.organization.id]}
 
             assert response_dict[floor_func(self.start_time)] == start_time_count
@@ -120,7 +120,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             )
 
             # Assert that the response has values set for the times we expect, and nothing more
-            assert self.project.id in response.keys()
+            assert self.project.id in response
             response_dict = {k: v for (k, v) in response[self.project.id]}
 
             assert response_dict[floor_func(self.start_time)] == start_time_count
@@ -191,7 +191,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             )
 
             # Assert that the response has values set for the times we expect, and nothing more
-            assert project_key.id in response.keys()
+            assert project_key.id in response
             response_dict = {k: v for (k, v) in response[project_key.id]}
 
             assert response_dict[floor_func(self.start_time)] == start_time_count

@@ -79,7 +79,7 @@ class LinkedIssue extends AsyncComponent<
             <StyledSeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
           </IssueCardHeader>
           <IssueCardBody>
-            <GroupChart id={group.id} statsPeriod="30d" data={group} height={56} />
+            <GroupChart statsPeriod="30d" data={group} height={56} />
           </IssueCardBody>
           <IssueCardFooter>
             <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />
@@ -95,7 +95,7 @@ const Section = styled('div')`
 `;
 
 const StyledIssueCard = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -111,7 +111,7 @@ const StyledLink = styled(Link)`
 `;
 
 const IssueCardBody = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   padding-top: ${space(1)};
 `;
 
@@ -121,11 +121,11 @@ const StyledSeenByList = styled(SeenByList)`
 
 const StyledShortId = styled(ShortId)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const IssueCardFooter = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   padding: ${space(0.5)} ${space(1)};
 `;

@@ -301,7 +301,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         assert _send_mail.call_count == 1
         args, kwargs = _send_mail.call_args
-        assert kwargs.get("subject") == u"BAR-1 - hello world"
+        assert kwargs.get("subject") == "BAR-1 - hello world"
 
     def test_notify_users_with_utf8_subject(self):
         event = self.store_event(
@@ -560,13 +560,20 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterShouldNotifyTest(BaseMailAdapterTest, TestCase):
     def test_should_notify(self):
-        assert self.adapter.should_notify(self.group)
+        assert self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
+        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
 
     def test_should_not_notify_no_users(self):
         UserOption.objects.set_value(
             user=self.user, key="mail:alert", value=0, project=self.project
         )
-        assert not self.adapter.should_notify(self.group)
+        assert not self.adapter.should_notify(ActionTargetType.ISSUE_OWNERS, self.group)
+
+    def test_should_always_notify_target_member(self):
+        UserOption.objects.set_value(
+            user=self.user, key="mail:alert", value=0, project=self.project
+        )
+        assert self.adapter.should_notify(ActionTargetType.MEMBER, self.group)
 
 
 class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
@@ -728,10 +735,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[0]
 
-        assert (
-            msg.subject
-            == "Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
-        )
+        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
     def test_assignment_team(self):
@@ -754,10 +758,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[0]
 
-        assert (
-            msg.subject
-            == "Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
-        )
+        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -783,10 +784,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[-1]
 
-        assert (
-            msg.subject
-            == "Re: [Sentry] BAR-1 - \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf"
-        )
+        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
 

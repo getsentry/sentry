@@ -10,8 +10,8 @@ jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
   jest.fn(() => null)
 );
 
-describe('NoUnresolvedIssues', function() {
-  it('renders', async function() {
+describe('NoUnresolvedIssues', function () {
+  it('renders', async function () {
     const wrapper = mountWithTheme(<NoUnresolvedIssues />);
 
     // Need this because of suspense

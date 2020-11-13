@@ -235,7 +235,7 @@ class QueryList extends React.Component<Props> {
           onCursor={(cursor: string, path: string, query: Query, direction: number) => {
             const offset = Number(cursor.split(':')[1]);
 
-            const newQuery = {...query, cursor};
+            const newQuery: Query & {cursor?: string} = {...query, cursor};
             const isPrevious = direction === -1;
 
             if (offset <= 0 && isPrevious) {
@@ -308,7 +308,7 @@ const ContextMenu = ({children}) => (
 
 const MoreOptions = styled('span')`
   display: flex;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const DropdownTarget = styled('div')`

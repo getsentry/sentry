@@ -130,13 +130,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       case 'found':
         return (
           <IconWrapper>
-            <IconCheckmark isCircled color="green500" />
+            <IconCheckmark isCircled color="green300" />
           </IconWrapper>
         );
       default:
         return (
           <IconWrapper>
-            <IconFlag color="red400" />
+            <IconFlag color="red300" />
           </IconWrapper>
         );
     }
@@ -305,11 +305,11 @@ const CodeFile = styled('span')`
 `;
 
 const DebugFile = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const ImageSubtext = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const ImageProp = styled('span')`

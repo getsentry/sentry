@@ -5,8 +5,8 @@ const params = {
   projectId: 'project-slug',
 };
 
-describe('replaceRouterParams', function() {
-  it('replaces `:orgId` in a path', function() {
+describe('replaceRouterParams', function () {
+  it('replaces `:orgId` in a path', function () {
     expect(replaceRouterParams('/path/to/:orgId/test', params)).toBe(
       '/path/to/org-slug/test'
     );
@@ -15,13 +15,13 @@ describe('replaceRouterParams', function() {
     );
   });
 
-  it('does not replace a path param if it doesnt exist in params object', function() {
+  it('does not replace a path param if it doesnt exist in params object', function () {
     expect(replaceRouterParams('/path/to/:invalidId/test/', params)).toBe(
       '/path/to/:invalidId/test/'
     );
   });
 
-  it('requires `:` prefix in route path', function() {
+  it('requires `:` prefix in route path', function () {
     expect(replaceRouterParams('/path/to/orgId/test/', params)).toBe(
       '/path/to/orgId/test/'
     );

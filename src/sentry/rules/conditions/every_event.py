@@ -4,7 +4,10 @@ from sentry.rules.conditions.base import EventCondition
 
 
 class EveryEventCondition(EventCondition):
-    label = "An event is seen"
+    label = "The event occurs"
 
     def passes(self, event, state):
         return True
+
+    def is_enabled(self):
+        return False

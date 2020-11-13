@@ -183,6 +183,25 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             [six.text_type(event_1.event_id), six.text_type(event_2.event_id)]
         )
 
+    def test_search_by_release(self):
+        self.login_as(user=self.user)
+        self.create_release(self.project, version="first-release")
+        event_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.min_ago),
+                "release": "first-release",
+            },
+            project_id=self.project.id,
+        )
+        url = u"/api/0/issues/{}/events/?query=release:latest".format(event_1.group.id)
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["eventID"] == event_1.event_id
+
     def test_environment(self):
         self.login_as(user=self.user)
         events = {}

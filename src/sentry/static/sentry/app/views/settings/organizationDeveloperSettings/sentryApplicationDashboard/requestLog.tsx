@@ -9,7 +9,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Checkbox from 'app/components/checkbox';
@@ -348,5 +348,5 @@ const StyledErrorsOnlyButton = styled(Button)`
 
 const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;

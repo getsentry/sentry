@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.testutils import APITestCase, SnubaTestCase
 from django.core.urlresolvers import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
@@ -248,7 +248,10 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert "cannot use the environment, yAxis attribute(s)" in response.content
+        assert (
+            "You cannot use the environment, yAxis attribute(s) with the selected version"
+            == response.data["non_field_errors"][0]
+        )
 
 
 class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
@@ -272,7 +275,10 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert "cannot use the conditions attribute(s)" in response.content
+        assert (
+            "You cannot use the conditions attribute(s) with the selected version"
+            == response.data["non_field_errors"][0]
+        )
 
     def test_post_require_selected_fields(self):
         with self.feature(self.feature_name):
@@ -287,7 +293,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert "include at least one field" in response.content
+        assert "You must include at least one field." == response.data["non_field_errors"][0]
 
     def test_post_success(self):
         with self.feature(self.feature_name):

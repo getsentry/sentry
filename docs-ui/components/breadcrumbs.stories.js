@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import Breadcrumbs from 'app/components/breadcrumbs';
 
 export default {
-  title: 'UI/Breadcrumbs',
+  title: 'Core/Breadcrumbs',
 };
 
 export const Default = withInfo('Page breadcrumbs used for navigation')(() => {

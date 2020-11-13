@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BarChart from 'app/components/barChart';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
@@ -63,23 +63,29 @@ class InternalStatChart extends React.Component {
     });
   }
 
-  getChartPoints() {
-    return this.state.data.map(([x, y]) => ({x, y}));
-  }
-
   render() {
-    if (this.state.loading) {
+    const {loading, error, data} = this.state;
+    const {label, height} = this.props;
+    if (loading) {
       return <LoadingIndicator />;
-    } else if (this.state.error) {
+    } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
+    const series = {
+      seriesName: label,
+      data: data.map(([timestamp, value]) => ({
+        name: timestamp * 1000,
+        value,
+      })),
+    };
     return (
-      <BarChart
-        points={this.getChartPoints()}
-        className="standard-barchart"
-        label={this.props.label}
-        height={this.props.height}
+      <MiniBarChart
+        height={height}
+        series={[series]}
+        isGroupedByDate
+        showTimeInTooltip
+        labelYAxisExtents
       />
     );
   }

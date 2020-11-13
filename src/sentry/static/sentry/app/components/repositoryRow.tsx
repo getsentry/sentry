@@ -167,7 +167,7 @@ const RepositoryTitleAndUrl = styled('div')`
 
 const RepositoryTitle = styled('div')`
   margin-bottom: ${space(1)};
-  /* accomodate cancel button height */
+  /* accommodate cancel button height */
   line-height: 26px;
 `;
 

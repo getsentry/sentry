@@ -1,5 +1,8 @@
 import {Query} from 'history';
 
+import {TrendFunctionField} from '../trends/types';
+import {DisplayModes} from './charts';
+
 export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
 }
@@ -9,11 +12,17 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
+  unselectedSeries = 'p100()',
+  display,
+  trendDisplay,
 }: {
   orgSlug: string;
   transaction: string;
-  projectID?: string | string[];
   query: Query;
+  display?: DisplayModes;
+  trendDisplay?: TrendFunctionField;
+  unselectedSeries?: string | string[];
+  projectID?: string | string[];
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
@@ -29,6 +38,9 @@ export function transactionSummaryRouteWithQuery({
       start: query.start,
       end: query.end,
       query: query.query,
+      unselectedSeries,
+      display,
+      trendDisplay,
     },
   };
 }

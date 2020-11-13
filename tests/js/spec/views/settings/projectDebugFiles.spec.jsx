@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectDebugFiles from 'app/views/settings/projectDebugFiles';
 
-describe('ProjectDebugFiles', function() {
+describe('ProjectDebugFiles', function () {
   const {organization, project, routerContext} = initializeOrg({});
 
   const props = {
@@ -20,7 +20,7 @@ describe('ProjectDebugFiles', function() {
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
 
-  it('renders', function() {
+  it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [TestStubs.DebugFile()],
@@ -31,15 +31,10 @@ describe('ProjectDebugFiles', function() {
     const items = wrapper.find('DebugFileRow');
 
     expect(items).toHaveLength(1);
-    expect(
-      items
-        .at(0)
-        .find('Name')
-        .text()
-    ).toBe('libS.so');
+    expect(items.at(0).find('Name').text()).toBe('libS.so');
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -52,7 +47,7 @@ describe('ProjectDebugFiles', function() {
     );
   });
 
-  it('deletes the file', function() {
+  it('deletes the file', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [TestStubs.DebugFile()],

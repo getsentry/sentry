@@ -80,24 +80,17 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details cocoa")
 
-    def test_cocoa_event_breadcrumb_v2(self):
-        with self.feature("organizations:breadcrumbs-v2"):
-            event = self.create_sample_event(platform="cocoa")
-            self.page.visit_issue(self.org.slug, event.group.id)
-            self.browser.wait_until_test_id("last-crumb")
-            self.browser.snapshot("issue details cocoa - breadcrumbs-v2")
+    def test_cocoa_event_frame_line_hover(self):
+        event = self.create_sample_event(platform="cocoa")
+        self.page.visit_issue(self.org.slug, event.group.id)
+        self.browser.wait_until_not(".loading")
+        self.browser.move_to(".traceback li:nth-child(2)")
+        self.browser.snapshot("issue details cocoa frame line hover")
 
     def test_unity_event(self):
         event = self.create_sample_event(default="unity", platform="csharp")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details unity")
-
-    def test_unity_event_breadcrumb_v2(self):
-        with self.feature("organizations:breadcrumbs-v2"):
-            event = self.create_sample_event(default="unity", platform="csharp")
-            self.page.visit_issue(self.org.slug, event.group.id)
-            self.browser.wait_until_test_id("last-crumb")
-            self.browser.snapshot("issue details unity - breadcrumbs v2")
 
     def test_android_event(self):
         event = self.create_sample_event(platform="android")
@@ -119,7 +112,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details javascript - event details")
 
-        self.browser.find_element_by_xpath("//button//span[contains(text(), 'curl')]").click()
+        self.browser.click('[aria-label="curl"]')
         self.browser.snapshot("issue details javascript - event details - curl command")
 
     def test_rust_event(self):
@@ -128,13 +121,6 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.page.visit_issue(self.org.slug, event.group.id)
 
         self.browser.snapshot("issue details rust")
-
-    def test_rust_event_breadcrumb_v2(self):
-        with self.feature("organizations:breadcrumbs-v2"):
-            # TODO: This should become its own "rust" platform type
-            event = self.create_sample_event(platform="native", sample_name="Rust")
-            self.page.visit_issue(self.org.slug, event.group.id)
-            self.browser.snapshot("issue details rust - breadcrumbs v2")
 
     def test_cordova_event(self):
         event = self.create_sample_event(platform="cordova")

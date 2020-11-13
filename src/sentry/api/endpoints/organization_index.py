@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options, roles
 from sentry.app import ratelimiter
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
@@ -26,12 +26,6 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.signals import terms_accepted
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("ListYourOrganizations")
-def list_your_organizations_scenario(runner):
-    runner.request(method="GET", path="/organizations/")
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -52,10 +46,8 @@ class OrganizationSerializer(serializers.Serializer):
 
 
 class OrganizationIndexEndpoint(Endpoint):
-    doc_section = DocSection.ORGANIZATIONS
     permission_classes = (OrganizationPermission,)
 
-    @attach_scenarios([list_your_organizations_scenario])
     def get(self, request):
         """
         List your Organizations

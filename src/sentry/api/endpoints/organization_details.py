@@ -10,7 +10,6 @@ from rest_framework import serializers, status
 from uuid import uuid4
 
 from sentry import roles
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -35,7 +34,6 @@ from sentry.models import (
     OrganizationStatus,
 )
 from sentry.tasks.deletion import delete_organization
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = u"You cannot remove the default organization."
@@ -85,6 +83,12 @@ ORG_OPTIONS = (
         org_serializers.ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
+        "debugFilesRole",
+        "sentry:debug_files_role",
+        six.text_type,
+        org_serializers.DEBUG_FILES_ROLE_DEFAULT,
+    ),
+    (
         "eventsMemberAdmin",
         "sentry:events_member_admin",
         bool,
@@ -106,21 +110,6 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
-
-
-@scenario("RetrieveOrganization")
-def retrieve_organization_scenario(runner):
-    runner.request(method="GET", path="/organizations/%s/" % runner.org.slug)
-
-
-@scenario("UpdateOrganization")
-def update_organization_scenario(runner):
-    with runner.isolated_org("Badly Misnamed") as org:
-        runner.request(
-            method="PUT",
-            path="/organizations/%s/" % org.slug,
-            data={"name": "Impeccably Designated", "slug": "impeccably-designated"},
-        )
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -148,6 +137,7 @@ class OrganizationSerializer(serializers.Serializer):
     safeFields = ListField(child=serializers.CharField(), required=False)
     storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
     attachmentsRole = serializers.CharField(required=True)
+    debugFilesRole = serializers.CharField(required=True)
     eventsMemberAdmin = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
@@ -202,6 +192,13 @@ class OrganizationSerializer(serializers.Serializer):
         return value
 
     def validate_attachmentsRole(self, value):
+        try:
+            roles.get(value)
+        except KeyError:
+            raise serializers.ValidationError("Invalid role")
+        return value
+
+    def validate_debugFilesRole(self, value):
         try:
             roles.get(value)
         except KeyError:
@@ -416,9 +413,6 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
 
 
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([retrieve_organization_scenario])
     def get(self, request, organization):
         """
         Retrieve an Organization
@@ -442,7 +436,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         return self.respond(context)
 
-    @attach_scenarios([update_organization_scenario])
     def put(self, request, organization):
         """
         Update an Organization

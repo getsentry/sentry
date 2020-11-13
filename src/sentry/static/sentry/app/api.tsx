@@ -32,25 +32,25 @@ export class Request {
 }
 
 type ParamsType = {
-  itemIds?: Array<number>;
+  itemIds?: Array<number> | Array<string>;
   query?: string;
-  environment?: string | null;
+  environment?: string | Array<string> | null;
   project?: Array<number> | null;
 };
 
 type QueryArgs =
   | {
       query: string;
-      environment?: string;
+      environment?: string | Array<string>;
       project?: Array<number>;
     }
   | {
-      id: Array<number>;
-      environment?: string;
+      id: Array<number> | Array<string>;
+      environment?: string | Array<string>;
       project?: Array<number>;
     }
   | {
-      environment?: string;
+      environment?: string | Array<string>;
       project?: Array<number>;
     };
 
@@ -151,7 +151,7 @@ export class Client {
       if (req && req.alive) {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
-        // @ts-ignore
+        // @ts-expect-error
         if (this.hasProjectBeenRenamed(...args)) {
           return;
         }

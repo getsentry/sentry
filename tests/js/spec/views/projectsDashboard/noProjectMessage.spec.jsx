@@ -4,9 +4,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import NoProjectMessage from 'app/components/noProjectMessage';
 
-describe('NoProjectMessage', function() {
+describe('NoProjectMessage', function () {
   const org = TestStubs.Organization();
-  it('shows "Create Project" button when there are no projects', function() {
+  it('shows "Create Project" button when there are no projects', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
@@ -16,7 +16,7 @@ describe('NoProjectMessage', function() {
     ).toHaveLength(1);
   });
 
-  it('"Create Project" is disabled when no access to `project:write`', function() {
+  it('"Create Project" is disabled when no access to `project:write`', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={TestStubs.Organization({access: []})} />,
       TestStubs.routerContext()
@@ -26,7 +26,7 @@ describe('NoProjectMessage', function() {
     ).toBe(true);
   });
 
-  it('has no "Join a Team" button when projects are missing', function() {
+  it('has no "Join a Team" button when projects are missing', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage organization={org} />,
       TestStubs.routerContext()
@@ -34,7 +34,7 @@ describe('NoProjectMessage', function() {
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(0);
   });
 
-  it('has a "Join a Team" button when no projects but org has projects', function() {
+  it('has a "Join a Team" button when no projects but org has projects', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage
         organization={{...org, projects: [TestStubs.Project({hasAccess: false})]}}
@@ -44,7 +44,7 @@ describe('NoProjectMessage', function() {
     expect(wrapper.find('Button[to="/settings/org-slug/teams/"]')).toHaveLength(1);
   });
 
-  it('has a disabled "Join a Team" button if no access to `team:read`', function() {
+  it('has a disabled "Join a Team" button if no access to `team:read`', function () {
     const wrapper = mountWithTheme(
       <NoProjectMessage
         organization={{
@@ -60,7 +60,7 @@ describe('NoProjectMessage', function() {
     );
   });
 
-  it('handles projects from props', function() {
+  it('handles projects from props', function () {
     const lightWeightOrg = TestStubs.Organization();
     delete lightWeightOrg.projects;
 
@@ -73,7 +73,7 @@ describe('NoProjectMessage', function() {
     ).toHaveLength(1);
   });
 
-  it('handles loading projects from props', function() {
+  it('handles loading projects from props', function () {
     const lightWeightOrg = TestStubs.Organization();
     delete lightWeightOrg.projects;
 

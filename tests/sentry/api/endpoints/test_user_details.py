@@ -157,6 +157,12 @@ class UserUpdateTest(APITestCase):
         assert user.email == "new@example.com"
         assert user.username == "new@example.com"
 
+
+class UserDeleteTest(APITestCase):
+    def setUp(self):
+        super(UserDeleteTest, self).setUp()
+        self.path = "/api/0/users/{}/".format(self.user.id)
+
     def test_close_account(self):
         self.login_as(user=self.user)
         org_single_owner = self.create_organization(name="A", owner=self.user)
@@ -169,17 +175,15 @@ class UserUpdateTest(APITestCase):
 
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": self.user.id})
-
         # test validations
-        response = self.client.delete(url, data={})
+        response = self.client.delete(self.path)
         assert response.status_code == 400
-        response = self.client.delete(url, data={"organizations": None})
+        response = self.client.delete(self.path, data={"organizations": None})
         assert response.status_code == 400
 
         # test actual delete
         response = self.client.delete(
-            url,
+            self.path,
             data={
                 "organizations": [
                     org_with_other_owner.slug,
@@ -188,6 +192,8 @@ class UserUpdateTest(APITestCase):
                 ]
             },
         )
+
+        assert response.status_code == 204
 
         # deletes org_single_owner even though it wasn't specified in array
         # because it has a single owner
@@ -207,7 +213,8 @@ class UserUpdateTest(APITestCase):
         # should NOT delete `not_owned_org`
         assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
 
-        assert response.status_code == 204
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
 
     def test_close_account_no_orgs(self):
         self.login_as(user=self.user)
@@ -221,9 +228,7 @@ class UserUpdateTest(APITestCase):
 
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": self.user.id})
-
-        response = self.client.delete(url, data={"organizations": []})
+        response = self.client.delete(self.path, data={"organizations": []})
         assert response.status_code == 204
 
         # deletes org_single_owner even though it wasn't specified in array
@@ -235,29 +240,32 @@ class UserUpdateTest(APITestCase):
         # should NOT delete `not_owned_org`
         assert Organization.objects.get(id=not_owned_org.id).status == OrganizationStatus.ACTIVE
 
-    def test_cannot_hard_delete_account(self):
+        user = User.objects.get(id=self.user.id)
+        assert not user.is_active
+
+    def test_cannot_hard_delete_self(self):
         self.login_as(user=self.user)
 
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": self.user.id})
-
         # Cannot hard delete your own account
-        response = self.client.delete(url, data={"hardDelete": True, "organizations": []})
+        response = self.client.delete(self.path, data={"hardDelete": True, "organizations": []})
         assert response.status_code == 403
 
     def test_hard_delete_account(self):
         self.login_as(user=self.user)
         user2 = self.create_user(email="user2@example.com")
 
-        url = reverse("sentry-api-0-user-details", kwargs={"user_id": user2.id})
+        path = reverse("sentry-api-0-user-details", kwargs={"user_id": user2.id})
 
         # failed authorization, user does not have permissions to delete another
         # user
-        response = self.client.delete(url, data={"hardDelete": True, "organizations": []})
+        response = self.client.delete(path, data={"hardDelete": True, "organizations": []})
         assert response.status_code == 403
 
         # Reauthenticate as super user to hard delete an account
         self.user.update(is_superuser=True)
         self.login_as(user=self.user, superuser=True)
 
-        response = self.client.delete(url, data={"hardDelete": True, "organizations": []})
+        response = self.client.delete(path, data={"hardDelete": True, "organizations": []})
         assert response.status_code == 204
+
+        assert not User.objects.filter(id=user2.id).exists()

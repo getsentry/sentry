@@ -1,0 +1,157 @@
+{
+  "put": {
+    "tags": ["Projects"],
+    "description": "Update a client key.  This can be used to rename a key.",
+    "operationId": "Update a Client Key",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "key_id",
+        "in": "path",
+        "description": "The ID of the key to update.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The new name for the client key."
+              }
+            }
+          },
+          "example": {
+            "name": "Fluffy Key"
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../../components/schemas/key.json#/Key"
+            },
+            "example": {
+              "browserSdk": {
+                "choices": [
+                  ["latest", "latest"],
+                  ["4.x", "4.x"]
+                ]
+              },
+              "browserSdkVersion": "4.x",
+              "dateCreated": "2018-11-06T21:20:07.941Z",
+              "dsn": {
+                "cdn": "https://sentry.io/js-sdk-loader/cec9dfceb0b74c1c9a5e3c135585f364.min.js",
+                "csp": "https://sentry.io/api/2/csp-report/?sentry_key=cec9dfceb0b74c1c9a5e3c135585f364",
+                "minidump": "https://sentry.io/api/2/minidump/?sentry_key=cec9dfceb0b74c1c9a5e3c135585f364",
+                "public": "https://cec9dfceb0b74c1c9a5e3c135585f364@sentry.io/2",
+                "secret": "https://cec9dfceb0b74c1c9a5e3c135585f364:4f6a592349e249c5906918393766718d@sentry.io/2",
+                "security": "https://sentry.io/api/2/security/?sentry_key=cec9dfceb0b74c1c9a5e3c135585f364"
+              },
+              "id": "cec9dfceb0b74c1c9a5e3c135585f364",
+              "isActive": true,
+              "label": "Fluffy Key",
+              "name": "Fluffy Key",
+              "projectId": 2,
+              "public": "cec9dfceb0b74c1c9a5e3c135585f364",
+              "rateLimit": null,
+              "secret": "4f6a592349e249c5906918393766718d"
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Bad Input"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Project not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:write"]
+      }
+    ]
+  },
+  "delete": {
+    "tags": ["Projects"],
+    "description": "Delete a client key.",
+    "operationId": "Delete a Client Key",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "project_slug",
+        "in": "path",
+        "description": "The slug of the project the client keys belong to.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "key_id",
+        "in": "path",
+        "description": "The ID of the key to delete.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Success"
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "404": {
+        "description": "Project not found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["project:admin"]
+      }
+    ]
+  }
+}

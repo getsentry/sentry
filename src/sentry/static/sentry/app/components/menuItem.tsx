@@ -193,13 +193,14 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return `
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.purple400};
+      background: ${props.theme.purple300};
     `;
   }
 
   return `
     ${common}
-    color: ${props.theme.gray700};
+    color: ${props.theme.gray500};
+    background-color: ${props.theme.white};
 
     &:hover {
       background: ${props.theme.gray100};
@@ -234,7 +235,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 height: 1px;
 margin: ${space(0.5)} 0;
 overflow: hidden;
-background-color: ${p.theme.gray300};
+background-color: ${p.theme.gray200};
     `}
   ${p =>
     p.header &&
@@ -242,7 +243,7 @@ background-color: ${p.theme.gray300};
     padding: ${space(0.25)} ${space(1)};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
-    color: ${p.theme.gray500};
+    color: ${p.theme.gray300};
   `}
 
   ${getChildStyles}

@@ -16,10 +16,14 @@ from sentry.utils.snuba import (
     SnubaError,
     RateLimitExceeded,
     QueryMemoryLimitExceeded,
+    QueryExecutionTimeMaximum,
     QueryTooManySimultaneous,
-    UnqualifiedQueryError,
+    DatasetSelectionError,
+    QueryConnectionFailed,
+    QuerySizeExceeded,
     QueryExecutionError,
     SchemaValidationError,
+    UnqualifiedQueryError,
 )
 
 
@@ -28,12 +32,13 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         super(AssembleDownloadTest, self).setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
-        self.project = self.create_project()
+        self.project = self.create_project(organization=self.org)
         self.event = self.store_event(
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
                 "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "dev",
             },
             project_id=self.project.id,
         )
@@ -42,6 +47,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
                 "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "prod",
             },
             project_id=self.project.id,
         )
@@ -50,6 +56,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
                 "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "prod",
             },
             project_id=self.project.id,
         )
@@ -76,12 +83,43 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.size is not None
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "value,times_seen,last_seen,first_seen"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"value,times_seen,last_seen,first_seen"
 
         raw1, raw2 = sorted([raw1, raw2])
-        assert raw1.startswith("bar,1,")
-        assert raw2.startswith("bar2,2,")
+        assert raw1.startswith(b"bar,1,")
+        assert raw2.startswith(b"bar2,2,")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_no_error_on_retry(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.ISSUES_BY_TAG,
+            query_info={"project": [self.project.id], "group": self.event.group_id, "key": "foo"},
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+            # rerunning the export should not be problematic and produce the same results
+            # this can happen when a batch is interrupted and has to be retried
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"value,times_seen,last_seen,first_seen"
+
+        raw1, raw2 = sorted([raw1, raw2])
+        assert raw1.startswith(b"bar,1,")
+        assert raw2.startswith(b"bar2,2,")
 
         assert emailer.called
 
@@ -152,7 +190,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         header = de.file.getfile().read().strip()
-        assert header == "value,times_seen,last_seen,first_seen"
+        assert header == b"value,times_seen,last_seen,first_seen"
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_discover_batched(self, emailer):
@@ -173,14 +211,97 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.size is not None
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
-        assert raw3.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
+        assert raw3.startswith(b"<unlabeled event>")
 
         assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_respects_selected_environment(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "environment": "prod",
+                "field": ["title"],
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
+
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_discover_respects_selected_environment_multiple(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "environment": ["prod", "dev"],
+                "field": ["title"],
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        # Convert raw csv to list of line-strings
+        header, raw1, raw2, raw3 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
+
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
+        assert raw3.startswith(b"<unlabeled event>")
+
+        assert emailer.called
+
+    @patch("sentry.data_export.models.ExportedData.email_failure")
+    def test_discover_missing_enviroment(self, emailer):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={
+                "project": [self.project.id],
+                "environment": "fake",
+                "field": ["title"],
+                "query": "",
+            },
+        )
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+        error = emailer.call_args[1]["message"]
+        assert error == "Requested environment does not exist"
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_missing_project(self, emailer):
@@ -217,11 +338,11 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
@@ -245,11 +366,11 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
-        header, raw1, raw2 = de.file.getfile().read().strip().split("\r\n")
-        assert header == "title"
+        header, raw1, raw2 = de.file.getfile().read().strip().split(b"\r\n")
+        assert header == b"title"
 
-        assert raw1.startswith("<unlabeled event>")
-        assert raw2.startswith("<unlabeled event>")
+        assert raw1.startswith(b"<unlabeled event>")
+        assert raw2.startswith(b"<unlabeled event>")
 
         assert emailer.called
 
@@ -357,6 +478,15 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
         )
 
+        mock_query.side_effect = QueryExecutionTimeMaximum("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert (
+            error
+            == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+        )
+
         mock_query.side_effect = QueryTooManySimultaneous("test")
         with self.tasks():
             assemble_download(de.id)
@@ -366,7 +496,19 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             == "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
         )
 
-        mock_query.side_effect = UnqualifiedQueryError("test")
+        mock_query.side_effect = DatasetSelectionError("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Your query failed to run."
+
+        mock_query.side_effect = QueryConnectionFailed("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Your query failed to run."
+
+        mock_query.side_effect = QuerySizeExceeded("test")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]
@@ -379,6 +521,12 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = SchemaValidationError("test")
+        with self.tasks():
+            assemble_download(de.id)
+        error = emailer.call_args[1]["message"]
+        assert error == "Internal error. Your query failed to run."
+
+        mock_query.side_effect = UnqualifiedQueryError("test")
         with self.tasks():
             assemble_download(de.id)
         error = emailer.call_args[1]["message"]

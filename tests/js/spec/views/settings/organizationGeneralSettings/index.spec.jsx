@@ -8,12 +8,12 @@ import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralS
 
 jest.mock('jquery');
 
-describe('OrganizationGeneralSettings', function() {
+describe('OrganizationGeneralSettings', function () {
   let organization;
   let routerContext;
   const ENDPOINT = '/organizations/org-slug/';
 
-  beforeEach(function() {
+  beforeEach(function () {
     ({organization, routerContext} = initializeOrg());
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -21,7 +21,7 @@ describe('OrganizationGeneralSettings', function() {
     });
   });
 
-  it('can enable "early adopter"', async function() {
+  it('can enable "early adopter"', async function () {
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
@@ -45,7 +45,7 @@ describe('OrganizationGeneralSettings', function() {
     );
   });
 
-  it('changes org slug and redirects to new slug', async function() {
+  it('changes org slug and redirects to new slug', async function () {
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
@@ -79,7 +79,7 @@ describe('OrganizationGeneralSettings', function() {
     expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
   });
 
-  it('disables the entire form if user does not have write access', async function() {
+  it('disables the entire form if user does not have write access', async function () {
     ({organization, routerContext} = initializeOrg({
       organization: TestStubs.Organization({access: ['org:read']}),
     }));
@@ -96,17 +96,12 @@ describe('OrganizationGeneralSettings', function() {
     wrapper.update();
 
     expect(wrapper.find('Form FormField[disabled=false]')).toHaveLength(0);
-    expect(
-      wrapper
-        .find('PermissionAlert')
-        .first()
-        .text()
-    ).toEqual(
+    expect(wrapper.find('PermissionAlert').first().text()).toEqual(
       'These settings can only be edited by users with the organization owner or manager role.'
     );
   });
 
-  it('does not have remove organization button', async function() {
+  it('does not have remove organization button', async function () {
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
@@ -123,7 +118,7 @@ describe('OrganizationGeneralSettings', function() {
     expect(wrapper.find('Confirm[priority="danger"]')).toHaveLength(0);
   });
 
-  it('can remove organization when org admin', async function() {
+  it('can remove organization when org admin', async function () {
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
@@ -157,7 +152,7 @@ describe('OrganizationGeneralSettings', function() {
     );
   });
 
-  it('does not render join request switch with SSO enabled', async function() {
+  it('does not render join request switch with SSO enabled', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',

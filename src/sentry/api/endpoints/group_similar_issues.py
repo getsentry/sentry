@@ -5,6 +5,7 @@ import logging
 from rest_framework.response import Response
 
 from sentry import features as feature_flags
+from sentry.utils.compat import zip
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group
@@ -43,10 +44,11 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
             if group_id != group.id
         }
 
-        results = list(
-            (serialize(group), raw_results.pop(group.id))
-            for group in Group.objects.get_many_from_cache(list(raw_results))
-        )
+        fetched_groups = Group.objects.get_many_from_cache(list(raw_results))
+        serialized_groups = serialize(fetched_groups, user=request.user)
+        group_scores = list(raw_results.pop(group.id) for group in fetched_groups)
+
+        results = list(zip(serialized_groups, group_scores))
 
         if raw_results:
             # Similarity has returned non-existent group IDs. This can indicate

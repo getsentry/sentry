@@ -4,52 +4,53 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 
-describe('ExternalIssueActions', function() {
+describe('ExternalIssueActions', function () {
   const group = TestStubs.Group();
 
-  describe('with no external issues linked', function() {
+  describe('with no external issues linked', function () {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
+    const configurations = [integration];
     const wrapper = mountWithTheme(
-      <ExternalIssueActions group={group} integration={integration} />,
+      <ExternalIssueActions
+        key="github"
+        group={group}
+        configurations={configurations}
+        onChange={() => {}}
+      />,
+
       TestStubs.routerContext()
     );
-    it('renders', function() {
+
+    // console.log(configurations);
+    it('renders', function () {
       expect(wrapper).toSnapshot();
     });
 
-    it('renders Link GitHub Issue when no issues currently linked', function() {
+    it('renders Link GitHub Issue when no issues currently linked', function () {
       expect(wrapper.find('IntegrationLink a').text()).toEqual('Link GitHub Issue');
     });
 
-    describe('opens modal', function() {
+    it('should not have `+` icon', function () {
+      const container = wrapper.find('IssueSyncListElementContainer').first();
+      expect(container.contains('StyledIcon')).toBe(false);
+    });
+
+    describe('opens modal', function () {
       MockApiClient.addMockResponse({
         url: '/groups/1/integrations/1/?action=create',
         body: {createIssueConfig: []},
       });
 
-      it('opens when clicking text', function() {
+      it('opens when clicking text', function () {
         wrapper.find('IntegrationLink a').simulate('click');
-        expect(
-          wrapper
-            .find('Modal')
-            .first()
-            .prop('show')
-        ).toBe(true);
-      });
-
-      it('opens when clicking +', function() {
-        wrapper.find('StyledIcon').simulate('click');
-        expect(
-          wrapper
-            .find('Modal')
-            .first()
-            .prop('show')
-        ).toBe(true);
+        expect(wrapper.find('Hovercard').first().prop('header')).toEqual(
+          'Linked GitHub Integration'
+        );
       });
     });
   });
 
-  describe('with an external issue linked', function() {
+  describe('with an external issue linked', function () {
     const externalIssues = [
       {
         id: 100,
@@ -58,27 +59,33 @@ describe('ExternalIssueActions', function() {
       },
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
+    const configurations = [integration];
     const wrapper = mountWithTheme(
-      <ExternalIssueActions group={group} integration={integration} />,
+      <ExternalIssueActions
+        key="github"
+        group={group}
+        configurations={configurations}
+        onChange={() => {}}
+      />,
       TestStubs.routerContext()
     );
-    it('renders', function() {
+    it('renders', function () {
       expect(wrapper.find('IssueSyncElement')).toHaveLength(0);
     });
 
-    it('renders Link GitHub Issue when no issues currently linked', function() {
+    it('renders Link GitHub Issue when no issues currently linked', function () {
       expect(wrapper.find('IntegrationLink a').text()).toEqual('getsentry/sentry#2');
     });
 
-    describe('deletes linked issue', function() {
-      MockApiClient.addMockResponse({
+    describe('deletes linked issue', function () {
+      const mockDelete = MockApiClient.addMockResponse({
         url: '/groups/1/integrations/1/?externalIssue=100',
         method: 'DELETE',
       });
 
-      it('deletes when clicking x', function() {
+      it('deletes when clicking x', function () {
         wrapper.find('StyledIcon').simulate('click');
-        expect(wrapper.find('IntegrationLink a').text()).toEqual('Link GitHub Issue');
+        expect(mockDelete).toHaveBeenCalled();
       });
     });
   });

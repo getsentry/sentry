@@ -36,14 +36,16 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
   const search = tokenizeSearch(query);
 
   const filters = {
-    roles: search.getTags('role') || [],
-    isInvited: getBoolean(search.getTags('isInvited')),
-    ssoLinked: getBoolean(search.getTags('ssoLinked')),
-    has2fa: getBoolean(search.getTags('has2fa')),
+    roles: search.getTagValues('role') || [],
+    isInvited: getBoolean(search.getTagValues('isInvited')),
+    ssoLinked: getBoolean(search.getTagValues('ssoLinked')),
+    has2fa: getBoolean(search.getTagValues('has2fa')),
   };
 
   const handleRoleFilter = (id: string) => () => {
-    const roleList = new Set(search.getTags('role') ? [...search.getTags('role')] : []);
+    const roleList = new Set(
+      search.getTagValues('role') ? [...search.getTagValues('role')] : []
+    );
 
     if (roleList.has(id)) {
       roleList.delete(id);
@@ -52,7 +54,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
     }
 
     const newSearch = search.copy();
-    newSearch.setTag('role', [...roleList]);
+    newSearch.setTagValues('role', [...roleList]);
     onChange(stringifyQueryObject(newSearch));
   };
 
@@ -60,7 +62,7 @@ const MembersFilter = ({className, roles, query, onChange}: Props) => {
     const newQueryObject = search.copy();
     newQueryObject.removeTag(key);
     if (value !== null) {
-      newQueryObject.setTag(key, [Boolean(value).toString()]);
+      newQueryObject.setTagValues(key, [Boolean(value).toString()]);
     }
 
     onChange(stringifyQueryObject(newQueryObject));
@@ -142,17 +144,17 @@ BooleanFilter.propTypes = {
 
 const FilterContainer = styled('div')`
   border-radius: 4px;
-  background: #fff;
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const FilterHeader = styled('h2')`
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(1)};

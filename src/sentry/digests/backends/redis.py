@@ -145,7 +145,7 @@ class RedisBackend(Backend):
         for host in self.cluster.hosts:
             try:
                 for key, timestamp in self.__schedule_partition(host, deadline, timestamp):
-                    yield ScheduleEntry(key, float(timestamp))
+                    yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
                 logger.error(
                     "Failed to perform scheduling for partition %r due to error: %r",
@@ -207,7 +207,7 @@ class RedisBackend(Backend):
 
             records = map(
                 lambda key__value__timestamp: Record(
-                    key__value__timestamp[0],
+                    key__value__timestamp[0].decode("utf-8"),
                     self.codec.decode(key__value__timestamp[1])
                     if key__value__timestamp[1] is not None
                     else None,

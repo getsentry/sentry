@@ -1,0 +1,719 @@
+{
+  "Event": {
+    "type": "object",
+    "required": [
+      "eventID",
+      "tags",
+      "dateCreated",
+      "user",
+      "message",
+      "id",
+      "platform",
+      "event.type",
+      "groupID",
+      "title"
+    ],
+    "properties": {
+      "eventID": {
+        "type": "string"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "dateCreated": {
+        "type": "string"
+      },
+      "user": {
+        "$ref": "users.json#/EventUser"
+      },
+      "message": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string"
+      },
+      "event.type": {
+        "type": "string"
+      },
+      "groupID": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      }
+    }
+  },
+  "EventDetailed": {
+    "type": "object",
+    "required": [
+      "eventID",
+      "dist",
+      "userReport",
+      "previousEventID",
+      "message",
+      "id",
+      "size",
+      "errors",
+      "platform",
+      "nextEventID",
+      "type",
+      "metadata",
+      "tags",
+      "dateCreated",
+      "dateReceived",
+      "user",
+      "entries",
+      "packages",
+      "sdk",
+      "_meta",
+      "contexts",
+      "fingerprints",
+      "context",
+      "release",
+      "groupID",
+      "title"
+    ],
+    "properties": {
+      "eventID": {
+        "type": "string"
+      },
+      "dist": {
+        "type": "string",
+        "nullable": true
+      },
+      "userReport": {
+        "type": "object",
+        "nullable": true
+      },
+      "previousEventID": {
+        "type": "string",
+        "nullable": true
+      },
+      "message": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "size": {
+        "type": "integer"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "platform": {
+        "type": "string"
+      },
+      "nextEventID": {
+        "type": "string",
+        "nullable": true
+      },
+      "type": {
+        "type": "string"
+      },
+      "metadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "value"],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["title"],
+            "properties": {
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "_meta": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      },
+      "dateCreated": {
+        "type": "string"
+      },
+      "dateReceived": {
+        "type": "string"
+      },
+      "user": {
+        "$ref": "users.json#/EventUser"
+      },
+      "entries": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "$ref": "entries.json#/Breadcrumbs"
+            },
+            {
+              "$ref": "entries.json#/Request"
+            },
+            {
+              "$ref": "entries.json#/Message"
+            },
+            {
+              "$ref": "entries.json#/Exception"
+            }
+          ]
+        }
+      },
+      "packages": {
+        "type": "object"
+      },
+      "sdk": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "_meta": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "nullable": true
+          },
+          "context": {
+            "type": "string",
+            "nullable": true
+          },
+          "entries": {
+            "type": "object"
+          },
+          "contexts": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "packages": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "object"
+          },
+          "sdk": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "contexts": {
+        "type": "object"
+      },
+      "fingerprints": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "context": {
+        "type": "object"
+      },
+      "release": {
+        "type": "object",
+        "nullable": true,
+        "oneOf": [
+          {
+            "$ref": "releases/organization-release.json#/OrganizationRelease"
+          },
+          {
+            "$ref": "null.json#/NullValue"
+          }
+        ]
+      },
+      "groupID": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      }
+    }
+  },
+  "Hash": {
+    "type": "object",
+    "required": [
+      "eventID",
+      "dist",
+      "message",
+      "id",
+      "size",
+      "errors",
+      "platform",
+      "type",
+      "metadata",
+      "tags",
+      "dateCreated",
+      "dateReceived",
+      "user",
+      "entries",
+      "packages",
+      "sdk",
+      "_meta",
+      "contexts",
+      "fingerprints",
+      "context",
+      "groupID",
+      "title"
+    ],
+    "properties": {
+      "eventID": {
+        "type": "string"
+      },
+      "dist": {
+        "type": "string",
+        "nullable": true
+      },
+      "message": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "size": {
+        "type": "integer"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "platform": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "metadata": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "value"],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["title"],
+            "properties": {
+              "title": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "_meta": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      },
+      "dateCreated": {
+        "type": "string"
+      },
+      "dateReceived": {
+        "type": "string"
+      },
+      "user": {
+        "$ref": "users.json#/EventUser"
+      },
+      "entries": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "$ref": "entries.json#/Breadcrumbs"
+            },
+            {
+              "$ref": "entries.json#/Request"
+            },
+            {
+              "$ref": "entries.json#/Message"
+            },
+            {
+              "$ref": "entries.json#/Exception"
+            }
+          ]
+        }
+      },
+      "packages": {
+        "type": "object"
+      },
+      "sdk": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "_meta": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "nullable": true
+          },
+          "context": {
+            "type": "string",
+            "nullable": true
+          },
+          "entries": {
+            "type": "object"
+          },
+          "contexts": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "packages": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "object"
+          },
+          "sdk": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "contexts": {
+        "type": "object"
+      },
+      "fingerprints": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "context": {
+        "type": "object"
+      },
+      "groupID": {
+        "type": "string"
+      },
+      "title": {
+        "type": "string"
+      }
+    }
+  },
+  "OrganizationEvent": {
+    "type": "object",
+    "required": [
+      "_meta",
+      "context",
+      "contexts",
+      "dateCreated",
+      "dateReceived",
+      "dist",
+      "entries",
+      "errors",
+      "eventID",
+      "fingerprints",
+      "groupID",
+      "id",
+      "message",
+      "metadata",
+      "packages",
+      "platform",
+      "sdk",
+      "size",
+      "tags",
+      "type",
+      "user",
+      "title"
+    ],
+    "properties": {
+      "_meta": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "string",
+            "nullable": true
+          },
+          "contexts": {
+            "type": "object",
+            "nullable": true
+          },
+          "entries": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "packages": {
+            "type": "string",
+            "nullable": true
+          },
+          "sdk": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "object"
+          },
+          "user": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "context": {
+        "type": "object",
+        "properties": {
+          "emptyList": {
+            "type": "array",
+            "items": {}
+          },
+          "emptyMap": {
+            "type": "object"
+          },
+          "length": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "session": {
+            "type": "object",
+            "properties": {
+              "foo": {
+                "type": "string"
+              }
+            }
+          },
+          "unauthorized": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "contexts": {
+        "type": "object"
+      },
+      "dateCreated": {
+        "type": "string"
+      },
+      "dateReceived": {
+        "type": "string"
+      },
+      "dist": {
+        "type": "string",
+        "nullable": true
+      },
+      "entries": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "$ref": "entries.json#/Breadcrumbs"
+            },
+            {
+              "$ref": "entries.json#/Request"
+            },
+            {
+              "$ref": "entries.json#/Message"
+            },
+            {
+              "$ref": "entries.json#/Exception"
+            }
+          ]
+        }
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string"
+            },
+            "data": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "eventID": {
+        "type": "string"
+      },
+      "fingerprints": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "groupID": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "packages": {
+        "type": "object",
+        "properties": {
+          "my.package": {
+            "type": "string"
+          }
+        }
+      },
+      "platform": {
+        "type": "string"
+      },
+      "sdk": {
+        "type": "object",
+        "nullable": true
+      },
+      "size": {
+        "type": "integer"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "_meta": {
+              "type": "string",
+              "nullable": true
+            },
+            "key": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "type": {
+        "type": "string"
+      },
+      "user": {
+        "$ref": "users.json#/EventUser"
+      },
+      "title": {
+        "type": "string"
+      }
+    }
+  }
+}

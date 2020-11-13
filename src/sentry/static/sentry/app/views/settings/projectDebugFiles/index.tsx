@@ -116,7 +116,8 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
 
   renderDebugFiles() {
     const {debugFiles, showDetails} = this.state;
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
+    const {orgId, projectId} = params;
 
     if (!debugFiles?.length) {
       return null;
@@ -130,6 +131,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
           debugFile={debugFile}
           showDetails={showDetails}
           downloadUrl={downloadUrl}
+          downloadRole={organization.debugFilesRole}
           onDelete={this.handleDelete}
           key={debugFile.id}
         />

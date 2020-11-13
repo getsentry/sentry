@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 import logging
 
 from django.conf import settings
@@ -22,6 +23,7 @@ from sentry.utils import redis
 from sentry.utils.compat import map
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
+from sentry import features as feature_flags
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +62,9 @@ def get_frame_attributes(frame):
     return attributes
 
 
-def _make_index_backend(cluster=None, namespace="sim:1"):
-    if not cluster:
-        cluster_id = getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", "similarity")
+def _make_index_backend(cluster, namespace="sim:1"):
+    if isinstance(cluster, six.string_types):
+        cluster_id = cluster
 
         try:
             cluster = redis.redis_clusters.get(cluster_id)
@@ -80,7 +82,10 @@ def _make_index_backend(cluster=None, namespace="sim:1"):
 
 
 features = FeatureSet(
-    _make_index_backend(namespace="sim:1"),
+    _make_index_backend(
+        getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None) or "similarity",
+        namespace="sim:1",
+    ),
     Encoder({Frame: get_frame_attributes}),
     BidirectionalMapping(
         {
@@ -108,4 +113,33 @@ features = FeatureSet(
     expected_encoding_errors=(FrameEncodingError,),
 )
 
-features2 = GroupingBasedFeatureSet(_make_index_backend(namespace="sim:2"))
+features2 = GroupingBasedFeatureSet(
+    _make_index_backend(
+        getattr(settings, "SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER", None)
+        or getattr(settings, "SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER", None)
+        or "similarity",
+        namespace="sim:2",
+    )
+)
+
+
+def _build_dispatcher(methodname):
+    # TODO: Delete when features2 supersedes features.
+    v1_method = getattr(features, methodname)
+    v2_method = getattr(features2, methodname)
+
+    def inner(project, *args, **kwargs):
+        if project is None or feature_flags.has("projects:similarity-indexing", project):
+            v1_method(*args, **kwargs)
+
+        if project is None or feature_flags.has("projects:similarity-indexing-v2", project):
+            v2_method(*args, **kwargs)
+
+    inner.__name__ = methodname
+
+    return inner
+
+
+merge = _build_dispatcher("merge")
+record = _build_dispatcher("record")
+delete = _build_dispatcher("delete")

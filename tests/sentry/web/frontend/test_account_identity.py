@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.utils.encoding import force_bytes
 from exam import before
 
 from sentry import identity
@@ -34,7 +35,7 @@ class AccountIdentityTest(TestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 200
-        assert resp.content == DummyProvider.TEMPLATE
+        assert resp.content == force_bytes(DummyProvider.TEMPLATE)
 
         resp = self.client.post(path, data={"email": "rick@example.com"})
         ident = Identity.objects.get(user=user)

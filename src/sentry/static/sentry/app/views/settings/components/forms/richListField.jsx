@@ -168,7 +168,6 @@ class RichList extends React.PureComponent {
       <DropdownAutoComplete
         {...this.props.addDropdown}
         disabled={disabled}
-        alignMenu="left"
         onSelect={this.onSelectDropdownItem}
       >
         {({isOpen}) => (
@@ -250,8 +249,8 @@ const Item = styled('li')`
 
 const ItemButton = styled(Button)`
   margin-left: 10px;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   &:hover {
-    color: ${p => (p.disabled ? p.theme.gray500 : p.theme.button.default.color)};
+    color: ${p => (p.disabled ? p.theme.gray300 : p.theme.button.default.color)};
   }
 `;

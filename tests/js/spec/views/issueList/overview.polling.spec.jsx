@@ -24,7 +24,7 @@ const DEFAULT_LINKS_HEADER =
 
 jest.useFakeTimers();
 
-describe('IssueList -> Polling', function() {
+describe('IssueList -> Polling', function () {
   let wrapper;
 
   let issuesRequest;
@@ -76,7 +76,7 @@ describe('IssueList -> Polling', function() {
     return wrapper;
   };
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -138,7 +138,7 @@ describe('IssueList -> Polling', function() {
     TagStore.init();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
     if (wrapper) {
       wrapper.unmount();
@@ -146,7 +146,7 @@ describe('IssueList -> Polling', function() {
     wrapper = null;
   });
 
-  it('toggles polling for new issues', async function() {
+  it('toggles polling for new issues', async function () {
     await createWrapper();
 
     expect(issuesRequest).toHaveBeenCalledWith(
@@ -177,7 +177,7 @@ describe('IssueList -> Polling', function() {
     expect(pollRequest).toHaveBeenCalledTimes(2);
   });
 
-  it('stops polling for new issues when endpoint returns a 401', async function() {
+  it('stops polling for new issues when endpoint returns a 401', async function () {
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -197,7 +197,7 @@ describe('IssueList -> Polling', function() {
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('stops polling for new issues when endpoint returns a 403', async function() {
+  it('stops polling for new issues when endpoint returns a 403', async function () {
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
@@ -218,7 +218,7 @@ describe('IssueList -> Polling', function() {
     expect(pollRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('stops polling for new issues when endpoint returns a 404', async function() {
+  it('stops polling for new issues when endpoint returns a 404', async function () {
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],

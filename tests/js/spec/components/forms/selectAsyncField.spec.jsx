@@ -4,10 +4,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Form, SelectAsyncField} from 'app/components/forms';
 
-describe('SelectAsyncField', function() {
+describe('SelectAsyncField', function () {
   let api;
 
-  beforeEach(function() {
+  beforeEach(function () {
     api = MockApiClient.addMockResponse({
       url: '/foo/bar/',
       query: {
@@ -20,8 +20,8 @@ describe('SelectAsyncField', function() {
     });
   });
 
-  describe('deprecatedSelectControl', function() {
-    it('supports autocomplete arguments from an integration', async function() {
+  describe('deprecatedSelectControl', function () {
+    it('supports autocomplete arguments from an integration', async function () {
       const wrapper = mountWithTheme(
         <SelectAsyncField deprecatedSelectControl url="/foo/bar/" name="fieldName" />
       );
@@ -44,7 +44,7 @@ describe('SelectAsyncField', function() {
       ]);
     });
 
-    it('with Form context', async function() {
+    it('with Form context', async function () {
       const submitMock = jest.fn();
       const wrapper = mountWithTheme(
         <Form onSubmit={submitMock}>

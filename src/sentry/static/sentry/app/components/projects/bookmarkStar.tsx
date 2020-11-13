@@ -14,11 +14,11 @@ import {Client} from 'app/api';
 
 type Props = {
   api: Client;
+  organization: Organization;
+  project: Project;
   /* used to override when under local state */
   isBookmarked?: boolean;
   className?: string;
-  organization: Organization;
-  project: Project;
   onToggle?: (isBookmarked: boolean) => void;
 };
 
@@ -77,10 +77,10 @@ BookmarkStar.propTypes = {
 const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{
   isBookmarked: boolean;
 }>`
-  color: ${p => (p.isBookmarked ? p.theme.orange300 : p.theme.gray400)};
+  color: ${p => (p.isBookmarked ? p.theme.yellow300 : p.theme.gray200)};
 
   &:hover {
-    color: ${p => (p.isBookmarked ? p.theme.orange200 : p.theme.gray500)};
+    color: ${p => (p.isBookmarked ? p.theme.yellow200 : p.theme.gray300)};
   }
 `;
 

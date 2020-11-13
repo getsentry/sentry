@@ -13,6 +13,7 @@ import {
   errorFieldConfig,
   transactionFieldConfig,
 } from 'app/views/settings/incidentRules/constants';
+import Link from 'app/components/links/link';
 
 /**
  * Discover query supports more features than alert rules
@@ -37,6 +38,7 @@ type IncompatibleQueryProperties = {
 type AlertProps = {
   incompatibleQuery: IncompatibleQueryProperties;
   eventView: EventView;
+  orgId: string;
   /**
    * Dismiss alert
    */
@@ -46,7 +48,12 @@ type AlertProps = {
 /**
  * Displays messages to the user on what needs to change in their query
  */
-function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertProps) {
+function IncompatibleQueryAlert({
+  incompatibleQuery,
+  eventView,
+  orgId,
+  onClose,
+}: AlertProps) {
   const {
     hasProjectError,
     hasEnvironmentError,
@@ -56,8 +63,14 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
 
   const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
 
+  const eventTypeError = eventView.clone();
+  eventTypeError.query += ' event.type:error';
+  const eventTypeTransaction = eventView.clone();
+  eventTypeTransaction.query += ' event.type:transaction';
+  const pathname = `/organizations/${orgId}/discover/results/`;
+
   return (
-    <StyledAlert type="warning" icon={<IconInfo color="yellow400" size="sm" />}>
+    <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
       {totalErrors === 1 && (
         <React.Fragment>
           {hasProjectError &&
@@ -70,8 +83,22 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
             tct(
               'An alert needs a filter of [error:event.type:error] or [transaction:event.type:transaction]. Use one of these and try again.',
               {
-                error: <StyledCode />,
-                transaction: <StyledCode />,
+                error: (
+                  <Link
+                    to={{
+                      pathname,
+                      query: eventTypeError.generateQueryStringObject(),
+                    }}
+                  />
+                ),
+                transaction: (
+                  <Link
+                    to={{
+                      pathname,
+                      query: eventTypeTransaction.generateQueryStringObject(),
+                    }}
+                  />
+                ),
               }
             )}
           {hasYAxisError &&
@@ -96,8 +123,22 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
                 {tct(
                   'Use the filter [error:event.type:error] or [transaction:event.type:transaction].',
                   {
-                    error: <StyledCode />,
-                    transaction: <StyledCode />,
+                    error: (
+                      <Link
+                        to={{
+                          pathname,
+                          query: eventTypeError.generateQueryStringObject(),
+                        }}
+                      />
+                    ),
+                    transaction: (
+                      <Link
+                        to={{
+                          pathname,
+                          query: eventTypeTransaction.generateQueryStringObject(),
+                        }}
+                      />
+                    ),
                   }
                 )}
               </li>
@@ -116,7 +157,7 @@ function IncompatibleQueryAlert({incompatibleQuery, eventView, onClose}: AlertPr
         </React.Fragment>
       )}
       <StyledCloseButton
-        icon={<IconClose color="yellow400" size="sm" isCircled />}
+        icon={<IconClose color="yellow300" size="sm" isCircled />}
         aria-label={t('Close')}
         size="zero"
         onClick={onClose}
@@ -173,8 +214,15 @@ function incompatibleYAxis(eventView: EventView): boolean {
   const isNumericParameter = aggregation.parameters.some(
     param => param.kind === 'value' && param.dataType === 'number'
   );
+  // There are other measurements possible, but for the time being, only allow alerting
+  // on the predefined set of measurements for alerts.
+  const allowedParameters = [
+    '',
+    ...yAxisConfig.fields,
+    ...(yAxisConfig.measurementKeys ?? []),
+  ];
   const invalidParameter =
-    !isNumericParameter && !['', ...yAxisConfig.fields].includes(column.function[1]);
+    !isNumericParameter && !allowedParameters.includes(column.function[1]);
 
   return invalidFunction || invalidParameter;
 }
@@ -229,6 +277,7 @@ function CreateAlertButton({
           <IncompatibleQueryAlert
             incompatibleQuery={errors}
             eventView={eventView}
+            orgId={organization.slug}
             onClose={onAlertClose}
           />
         ),
@@ -266,7 +315,7 @@ function CreateAlertButton({
 export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   margin-bottom: 0;
 `;
 

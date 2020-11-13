@@ -11,6 +11,7 @@ import Duration from 'app/components/duration';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
+import Placeholder from 'app/components/placeholder';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
@@ -59,7 +60,7 @@ export default class DetailsHeader extends React.Component<Props> {
           {incident && <Status disableIconColor incident={incident} />}
         </StatusMenuItem>
         <StatusMenuItem onSelect={onStatusChange}>
-          <IconCheckmark color="green400" />
+          <IconCheckmark color="green300" />
           {t('Resolved')}
         </StatusMenuItem>
       </DropdownControl>
@@ -126,12 +127,12 @@ export default class DetailsHeader extends React.Component<Props> {
             <GroupedHeaderItems columns={isErrorDataset ? 5 : 3}>
               <ItemTitle>{t('Environment')}</ItemTitle>
               <ItemTitle>{t('Project')}</ItemTitle>
-              {isErrorDataset && stats && <ItemTitle>{t('Users affected')}</ItemTitle>}
-              {isErrorDataset && stats && <ItemTitle>{t('Total events')}</ItemTitle>}
+              {isErrorDataset && <ItemTitle>{t('Users affected')}</ItemTitle>}
+              {isErrorDataset && <ItemTitle>{t('Total events')}</ItemTitle>}
               <ItemTitle>{t('Active For')}</ItemTitle>
               <ItemValue>{environmentLabel}</ItemValue>
               <ItemValue>
-                {project && (
+                {project ? (
                   <Projects slugs={[project]} orgId={params.orgId}>
                     {({projects}) =>
                       projects?.length && (
@@ -139,25 +140,37 @@ export default class DetailsHeader extends React.Component<Props> {
                       )
                     }
                   </Projects>
+                ) : (
+                  <Placeholder height="25px" />
                 )}
               </ItemValue>
-              {isErrorDataset && stats && (
+              {isErrorDataset && (
                 <ItemValue>
-                  <Count value={stats.uniqueUsers} />
+                  {stats ? (
+                    <Count value={stats.uniqueUsers} />
+                  ) : (
+                    <Placeholder height="25px" />
+                  )}
                 </ItemValue>
               )}
-              {isErrorDataset && stats && (
+              {isErrorDataset && (
                 <ItemValue>
-                  <Count value={stats.totalEvents} />
+                  {stats ? (
+                    <Count value={stats.totalEvents} />
+                  ) : (
+                    <Placeholder height="25px" />
+                  )}
                 </ItemValue>
               )}
-              {incident && (
-                <ItemValue>
+              <ItemValue>
+                {incident ? (
                   <Duration
                     seconds={getDynamicText({value: duration || 0, fixed: 1200})}
                   />
-                </ItemValue>
-              )}
+                ) : (
+                  <Placeholder height="25px" />
+                )}
+              </ItemValue>
             </GroupedHeaderItems>
           )}
         </Details>
@@ -167,8 +180,8 @@ export default class DetailsHeader extends React.Component<Props> {
 }
 
 const Header = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const BreadCrumbBar = styled('div')`
@@ -232,7 +245,7 @@ const ItemTitle = styled('h6')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   letter-spacing: 0.1px;
 `;
 
@@ -255,7 +268,7 @@ const IncidentSubTitle = styled('div', {
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledStatus = styled(Status)`

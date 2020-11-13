@@ -8,7 +8,7 @@ import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSe
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionsObserver from 'app/views/settings/organizationDeveloperSettings/permissionsObserver';
 
-describe('Sentry Application Details', function() {
+describe('Sentry Application Details', function () {
   let org;
   let orgId;
   let sentryApp;
@@ -47,7 +47,7 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
-    it('it shows empty scopes and no credentials', function() {
+    it('it shows empty scopes and no credentials', function () {
       // new app starts off with no scopes selected
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([]);
       expect(
@@ -55,7 +55,7 @@ describe('Sentry Application Details', function() {
       ).toBeDefined();
     });
 
-    it('saves', function() {
+    it('saves', function () {
       wrapper
         .find('Input[name="name"]')
         .simulate('change', {target: {value: 'Test App'}});
@@ -129,7 +129,7 @@ describe('Sentry Application Details', function() {
     });
   });
 
-  describe('Renders public app', function() {
+  describe('Renders public app', function () {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
@@ -155,14 +155,14 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeTruthy();
     });
 
-    it('it shows application data', function() {
+    it('it shows application data', function () {
       // data should be filled out
       expect(wrapper.find('PermissionsObserver').prop('scopes')).toEqual([
         'project:read',
       ]);
     });
 
-    it('renders clientId and clientSecret for public apps', function() {
+    it('renders clientId and clientSecret for public apps', function () {
       expect(wrapper.find('#clientId').exists()).toBe(true);
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
     });
@@ -197,17 +197,12 @@ describe('Sentry Application Details', function() {
       expect(wrapper.exists(redirectUrlInput)).toBeFalsy();
     });
 
-    it('shows tokens', function() {
-      expect(
-        wrapper
-          .find('PanelHeader')
-          .at(3)
-          .text()
-      ).toContain('Tokens');
+    it('shows tokens', function () {
+      expect(wrapper.find('PanelHeader').at(3).text()).toContain('Tokens');
       expect(wrapper.find('TokenItem').exists()).toBe(true);
     });
 
-    it('shows just clientSecret', function() {
+    it('shows just clientSecret', function () {
       expect(wrapper.find('#clientSecret').exists()).toBe(true);
       expect(wrapper.find('#clientId').exists()).toBe(false);
     });
@@ -238,16 +233,11 @@ describe('Sentry Application Details', function() {
       );
     });
 
-    it('shows masked tokens', function() {
-      expect(
-        wrapper
-          .find('TextCopyInput input')
-          .first()
-          .prop('value')
-      ).toBe(maskedValue);
+    it('shows masked tokens', function () {
+      expect(wrapper.find('TextCopyInput input').first().prop('value')).toBe(maskedValue);
     });
 
-    it('shows masked clientSecret', function() {
+    it('shows masked clientSecret', function () {
       expect(wrapper.find('#clientSecret input').prop('value')).toBe(maskedValue);
     });
   });
@@ -276,7 +266,7 @@ describe('Sentry Application Details', function() {
         TestStubs.routerContext()
       );
     });
-    it('adding token to list', async function() {
+    it('adding token to list', async function () {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
@@ -295,7 +285,7 @@ describe('Sentry Application Details', function() {
       expect(tokenItems).toHaveLength(2);
     });
 
-    it('removing token from list', async function() {
+    it('removing token from list', async function () {
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.token}/`,
         method: 'DELETE',
@@ -347,7 +337,7 @@ describe('Sentry Application Details', function() {
       );
     });
 
-    it('it updates app with correct data', function() {
+    it('it updates app with correct data', function () {
       wrapper
         .find(redirectUrlInput)
         .simulate('change', {target: {value: 'https://hello.com/'}});

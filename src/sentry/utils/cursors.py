@@ -32,7 +32,7 @@ class Cursor(object):
     def __bool__(self):
         return bool(self.has_results)
 
-    # python2 compatability
+    # python2 compatibility
     __nonzero__ = __bool__
 
     @classmethod

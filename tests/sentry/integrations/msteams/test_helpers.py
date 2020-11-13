@@ -6,7 +6,7 @@ GENERIC_EVENT = {
     "type": "conversationUpdate",
 }
 
-EXAMPLE_MEMBER_ADDED = {
+EXAMPLE_TEAM_MEMBER_ADDED = {
     "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
     "from": {
         "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
@@ -35,7 +35,7 @@ EXAMPLE_MEMBER_ADDED = {
     "id": "f:8e005ef8-f848-156f-55b1-0a5bb3207225",
 }
 
-EXAMPLE_MEMBER_REMOVED = {
+EXAMPLE_TEAM_MEMBER_REMOVED = {
     "membersRemoved": [{"id": "28:5710acff-f313-453f-8b75-44fff54bab14"}],
     "type": "conversationUpdate",
     "timestamp": "2020-07-16T23:47:29.7965243Z",
@@ -63,6 +63,80 @@ EXAMPLE_MEMBER_REMOVED = {
         "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
     },
 }
+
+EXAMPLE_PERSONAL_MEMBER_ADDED = {
+    "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
+    "from": {
+        "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
+        "id": "29:1Q2o9Y0pyxOhK7QU6o7DatYWMy4MFapyiHoA1r_xB2s5XsGTSxIrKOH_JGmxDXpex30trbSo3Oyh3pkXF8RnlVQ",
+    },
+    "conversation": {
+        "id": "a:1rLdrbRhx8Pc7Y6HNUmkI6QHZ4vUe1dECseFMsjCLUs61NUCtDKvf_iXhzX96AJlIFs7WgQUzTrjV3iMjbON0UfMV_gNh2tUNgHj_iY5hQoYdFu_t-hTt-uDl7m6_X4-Z",
+        "conversationType": "personal",
+        "tenantId": "f5ffd8cf-a1aa-4242-adad-86509faa3be5",
+    },
+    "timestamp": "2020-07-13T19:54:30.8044041Z",
+    "channelId": "msteams",
+    "membersAdded": [{"id": "28:5710acff-f313-453f-8b75-44fff54bab14"}],
+    "serviceUrl": "https://smba.trafficmanager.net/amer/",
+    "channelData": {"tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"}},
+    "type": "conversationUpdate",
+    "id": "f:d4414f98-25be-6cc7-b8c7-f01d51e3afd0",
+}
+
+EXAMPLE_UNLINK_COMMAND = {
+    "text": "unlink ",
+    "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
+    "from": {
+        "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
+        "id": "29:1Q2o9Y0pyxOhK7QU6o7DatYWMy4MFapyiHoA1r_xB2s5XsGTSxIrKOH_JGmxDXpex30trbSo3Oyh3pkXF8RnlVQ",
+    },
+    "conversation": {
+        "id": "a:1rLdrbRhx8Pc7Y6HNUmkI6QHZ4vUe1dECseFMsjCLUs61NUCtDKvf_iXhzX96AJlIFs7WgQUzTrjV3iMjbON0UfMV_gNh2tUNgHj_iY5hQoYdFu_t-hTt-uDl7m6_X4-Z",
+        "conversationType": "personal",
+        "tenantId": "f5ffd8cf-a1aa-4242-adad-86509faa3be5",
+    },
+    "timestamp": "2020-07-13T19:54:30.8044041Z",
+    "channelId": "msteams",
+    "serviceUrl": "https://smba.trafficmanager.net/amer/",
+    "channelData": {"tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"}},
+    "type": "message",
+    "id": "f:d4414f98-25be-6cc7-b8c7-f01d51e3afd0",
+}
+
+
+EXAMPLE_MENTIONED = {
+    "text": "<at>SentryTest</at> help\n",
+    "recipient": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
+    "from": {
+        "aadObjectId": "a6de2a64-9501-4e16-9e50-74df223570a3",
+        "id": "29:1Q2o9Y0pyxOhK7QU6o7DatYWMy4MFapyiHoA1r_xB2s5XsGTSxIrKOH_JGmxDXpex30trbSo3Oyh3pkXF8RnlVQ",
+    },
+    "conversation": {
+        "id": "a:1rLdrbRhx8Pc7Y6HNUmkI6QHZ4vUe1dECseFMsjCLUs61NUCtDKvf_iXhzX96AJlIFs7WgQUzTrjV3iMjbON0UfMV_gNh2tUNgHj_iY5hQoYdFu_t-hTt-uDl7m6_X4-Z",
+        "conversationType": "channel",
+        "isGroup": True,
+        "tenantId": "f5ffd8cf-a1aa-4242-adad-86509faa3be5",
+    },
+    "timestamp": "2020-07-13T19:54:30.8044041Z",
+    "channelId": "msteams",
+    "serviceUrl": "https://smba.trafficmanager.net/amer/",
+    "channelData": {
+        "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
+        "team": {"id": "19:8d46058cda57449380517cc374727f2a@thread.tacv2"},
+    },
+    "entities": [
+        {
+            "mentioned": {"id": "28:5710acff-f313-453f-8b75-44fff54bab14", "name": "Steve-Bot-5"},
+            "text": "<at>Steve-Bot-5</at>",
+            "type": "mention",
+        },
+        {"locale": "en-US", "country": "US", "platform": "Web", "type": "clientInfo"},
+    ],
+    "type": "message",
+    "id": "1598889368164",
+}
+
 
 DECODED_TOKEN = {
     "iss": "https://api.botframework.com",

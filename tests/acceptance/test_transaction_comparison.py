@@ -31,13 +31,13 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_comparison(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        baseline_event_data = generate_transaction()
+        baseline_event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         baseline_event = self.store_event(
             data=baseline_event_data, project_id=self.project.id, assert_no_errors=True
         )
         baseline_event_slug = u"{}:{}".format(self.project.slug, baseline_event.event_id)
 
-        regression_event_data = generate_transaction()
+        regression_event_data = generate_transaction(trace="b" * 32, span="bc" * 8)
         regression_event_data.update({"event_id": "b" * 32})
 
         regression_event_data["spans"] = regress_spans(regression_event_data["spans"])

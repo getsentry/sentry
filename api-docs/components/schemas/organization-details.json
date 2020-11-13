@@ -1,0 +1,175 @@
+{
+  "OrganizationDetails": {
+    "type": "object",
+    "required": [
+      "access",
+      "allowSharedIssues",
+      "availableRoles",
+      "avatar",
+      "dataScrubber",
+      "dataScrubberDefaults",
+      "dateCreated",
+      "defaultRole",
+      "enhancedPrivacy",
+      "experiments",
+      "features",
+      "id",
+      "isDefault",
+      "isEarlyAdopter",
+      "name",
+      "onboardingTasks",
+      "openMembership",
+      "pendingAccessRequests",
+      "projects",
+      "quota",
+      "require2FA",
+      "safeFields",
+      "scrapeJavaScript",
+      "scrubIPAddresses",
+      "sensitiveFields",
+      "slug",
+      "status",
+      "storeCrashReports",
+      "teams",
+      "trustedRelays"
+    ],
+    "properties": {
+      "access": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "allowSharedIssues": {
+        "type": "boolean"
+      },
+      "availableRoles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "avatar": {
+        "$ref": "avatar.json#/Avatar"
+      },
+      "dataScrubber": {
+        "type": "boolean"
+      },
+      "dataScrubberDefaults": {
+        "type": "boolean"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "defaultRole": {
+        "type": "string"
+      },
+      "enhancedPrivacy": {
+        "type": "boolean"
+      },
+      "experiments": {
+        "type": "object"
+      },
+      "features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "id": {
+        "type": "string"
+      },
+      "isDefault": {
+        "type": "boolean"
+      },
+      "isEarlyAdopter": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "string"
+      },
+      "onboardingTasks": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "openMembership": {
+        "type": "boolean"
+      },
+      "pendingAccessRequests": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "projects": {
+        "type": "array",
+        "items": {
+          "$ref": "project.json#/OrganizationProjects"
+        }
+      },
+      "quota": {
+        "type": "object"
+      },
+      "require2FA": {
+        "type": "boolean"
+      },
+      "safeFields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "scrapeJavaScript": {
+        "type": "boolean"
+      },
+      "scrubIPAddresses": {
+        "type": "boolean"
+      },
+      "sensitiveFields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "slug": {
+        "type": "string"
+      },
+      "status": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "storeCrashReports": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "teams": {
+        "type": "array",
+        "items": {
+          "$ref": "team.json#/Team"
+        }
+      },
+      "trustedRelays": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

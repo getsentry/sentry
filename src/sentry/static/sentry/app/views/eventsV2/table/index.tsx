@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, Tag} from 'app/types';
+import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
+import Measurements from 'app/utils/measurements/measurements';
 import Pagination from 'app/components/pagination';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 import {TableData} from 'app/utils/discover/discoverQuery';
@@ -20,7 +21,7 @@ type TableProps = {
   eventView: EventView;
   organization: Organization;
   showTags: boolean;
-  tags: {[key: string]: Tag};
+  tags: TagCollection;
   setError: (msg: string, code: number) => void;
   title: string;
   onChangeShowTags: () => void;
@@ -151,14 +152,22 @@ class Table extends React.PureComponent<TableProps, TableState> {
 
     return (
       <Container>
-        <TableView
-          {...this.props}
-          isLoading={isLoading}
-          error={error}
-          eventView={eventView}
-          tableData={tableData}
-          tagKeys={tagKeys}
-        />
+        <Measurements>
+          {({measurements}) => {
+            const measurementKeys = Object.values(measurements).map(({key}) => key);
+            return (
+              <TableView
+                {...this.props}
+                isLoading={isLoading}
+                error={error}
+                eventView={eventView}
+                tableData={tableData}
+                tagKeys={tagKeys}
+                measurementKeys={measurementKeys}
+              />
+            );
+          }}
+        </Measurements>
         <Pagination pageLinks={pageLinks} />
       </Container>
     );

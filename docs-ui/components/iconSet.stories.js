@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import * as newIconset from 'app/icons';
 
 export default {
-  title: 'Style/Icons',
+  title: 'Core/Style/Icons',
 };
 
 export const IconSet = withInfo('Replace `InlineSvg` with icon components')(() => {
@@ -34,7 +34,7 @@ const LabelWrapper = styled('div')`
 `;
 
 const SwatchWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   padding: 24px;
 `;
 

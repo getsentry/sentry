@@ -16,10 +16,16 @@ from sentry.app import tsdb
 from sentry.attachments import attachment_cache, CachedAttachment
 from sentry.constants import DataCategory, MAX_VERSION_LENGTH
 from sentry.eventstore.models import Event
-from sentry.event_manager import HashDiscarded, EventManager, EventUser
+from sentry.event_manager import (
+    HashDiscarded,
+    EventManager,
+    EventUser,
+    has_pending_commit_resolution,
+)
 from sentry.grouping.utils import hash_from_values
 from sentry.models import (
     Activity,
+    Commit,
     Environment,
     ExternalIssue,
     Group,
@@ -32,6 +38,7 @@ from sentry.models import (
     GroupTombstone,
     Integration,
     Release,
+    ReleaseCommit,
     ReleaseProjectEnvironment,
     OrganizationIntegration,
     UserReport,
@@ -165,7 +172,8 @@ class EventManagerTest(TestCase):
 
         assert event.group_id != event2.group_id
 
-    def test_unresolves_group(self):
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    def test_unresolves_group(self, send_robust):
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -185,6 +193,7 @@ class EventManagerTest(TestCase):
 
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
+        assert send_robust.called
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression):
@@ -284,6 +293,74 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
+
+    def test_has_pending_commit_resolution(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+
+        group = event.group
+        assert group.first_release.version == "1.0"
+        pending = has_pending_commit_resolution(group)
+        assert pending is False
+
+        # Add a commit with no associated release
+        repo = self.create_repo(project=group.project)
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 40
+        )
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending
+
+    def test_multiple_pending_commit_resolution(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+
+        # Add a few commits with no associated release
+        repo = self.create_repo(project=group.project)
+        for key in ["a", "b", "c"]:
+            commit = Commit.objects.create(
+                organization_id=group.project.organization_id, repository_id=repo.id, key=key * 40,
+            )
+            GroupLink.objects.create(
+                group_id=group.id,
+                project_id=group.project_id,
+                linked_type=GroupLink.LinkedType.commit,
+                linked_id=commit.id,
+                relationship=GroupLink.Relationship.resolves,
+            )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending
+
+        # Most recent commit has been associated with a release
+        latest_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="d" * 40
+        )
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=latest_commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=group.project.organization_id,
+            release=group.first_release,
+            commit=latest_commit,
+            order=0,
+        )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending is False
 
     @mock.patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
@@ -870,7 +947,9 @@ class EventManagerTest(TestCase):
                     "csp": {
                         "effective_directive": "script-src",
                         "blocked_uri": "http://example.com",
-                    }
+                    },
+                    # this normally is noramlized in relay as part of ingest
+                    "logentry": {"message": "Blocked 'script' from 'example.com'"},
                 }
             )
         )
@@ -883,9 +962,9 @@ class EventManagerTest(TestCase):
         assert group.data.get("metadata") == {
             "directive": "script-src",
             "uri": "example.com",
-            # Relay will add a logentry that fixes this title, just not as part of StoreNormalizer
-            "title": "<unlabeled event>",
+            "message": "Blocked 'script' from 'example.com'",
         }
+        assert group.title == "Blocked 'script' from 'example.com'"
 
     def test_transaction_event_type(self):
         manager = EventManager(
@@ -1091,7 +1170,9 @@ class EventManagerTest(TestCase):
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    manager.save(self.project.id, cache_key=cache_key)
+                    event = manager.save(self.project.id, cache_key=cache_key)
+
+        assert event.data["metadata"]["stripped_crash"] is True
 
         assert mock_track_outcome.call_count == 3
         o = mock_track_outcome.mock_calls[0]

@@ -28,7 +28,7 @@ import {
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 
 import IntegrationStatus from './integrationStatus';
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
@@ -413,7 +413,7 @@ const Name = styled('div')`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
   margin-right: ${space(1)};
 `;
 
@@ -485,7 +485,7 @@ const DisableWrapper = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: 600;
   font-size: 12px;
 `;

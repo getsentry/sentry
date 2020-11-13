@@ -6,8 +6,8 @@ import EventWaiter from 'app/utils/eventWaiter';
 
 jest.useFakeTimers();
 
-describe('EventWaiter', function() {
-  it('waits for the first projet event', async function() {
+describe('EventWaiter', function () {
+  it('waits for the first projet event', async function () {
     const org = TestStubs.Organization();
     const project = TestStubs.ProjectDetails({
       firstEvent: null,
@@ -62,7 +62,7 @@ describe('EventWaiter', function() {
     // Advanced time for the first setInterval tick to occur
     jest.advanceTimersByTime(1);
 
-    // We have to await *two* API calls. We could norally do this using tick(),
+    // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
     await Promise.resolve();
     await Promise.resolve();
@@ -76,7 +76,7 @@ describe('EventWaiter', function() {
     expect(projectApiMock).not.toHaveBeenCalled();
   });
 
-  it('receives a first event of `true` when first even has expired', async function() {
+  it('receives a first event of `true` when first even has expired', async function () {
     const org = TestStubs.Organization();
     const project = TestStubs.ProjectDetails({
       firstEvent: '2019-05-01T00:00:00.000Z',
@@ -110,7 +110,7 @@ describe('EventWaiter', function() {
       TestStubs.routerContext()
     );
 
-    // We have to await *two* API calls. We could norally do this using tick(),
+    // We have to await *two* API calls. We could normally do this using tick(),
     // however since we have enabled fake timers, we cannot tick.
     await Promise.resolve();
     await Promise.resolve();
@@ -118,7 +118,7 @@ describe('EventWaiter', function() {
     expect(child).toHaveBeenCalledWith({firstIssue: true});
   });
 
-  it('does not poll when disabled', function() {
+  it('does not poll when disabled', function () {
     const org = TestStubs.Organization();
     const project = TestStubs.ProjectDetails();
 

@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
 
-describe('SentryAppDetailsModal', function() {
+describe('SentryAppDetailsModal', function () {
   let wrapper;
   let org;
   let sentryApp;
@@ -71,10 +71,7 @@ describe('SentryAppDetailsModal', function() {
   });
 
   it('closes when Cancel is clicked', () => {
-    wrapper
-      .find({onClick: closeModal})
-      .first()
-      .simulate('click');
+    wrapper.find({onClick: closeModal}).first().simulate('click');
     expect(closeModal).toHaveBeenCalled();
   });
 

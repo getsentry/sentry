@@ -5,8 +5,8 @@ import {
   getDuration,
 } from 'app/utils/formatters';
 
-describe('getDuration()', function() {
-  it('should format durations', function() {
+describe('getDuration()', function () {
+  it('should format durations', function () {
     expect(getDuration(0, 2)).toBe('0.00ms');
     expect(getDuration(0.1)).toBe('100ms');
     expect(getDuration(0.1, 2)).toBe('100.00ms');
@@ -21,7 +21,7 @@ describe('getDuration()', function() {
     expect(getDuration(604800)).toBe('1 week');
   });
 
-  it('should format numbers and abbreviate units', function() {
+  it('should format numbers and abbreviate units', function () {
     expect(getDuration(0, 2, true)).toBe('0.00ms');
     expect(getDuration(0, 0, true)).toBe('0ms');
     expect(getDuration(0.1, 0, true)).toBe('100ms');
@@ -35,8 +35,8 @@ describe('getDuration()', function() {
   });
 });
 
-describe('formatAbbreviatedNumber()', function() {
-  it('should abbreviate numbers', function() {
+describe('formatAbbreviatedNumber()', function () {
+  it('should abbreviate numbers', function () {
     expect(formatAbbreviatedNumber(0)).toBe('0');
     expect(formatAbbreviatedNumber(100)).toBe('100');
     expect(formatAbbreviatedNumber(1000)).toBe('1k');
@@ -45,7 +45,7 @@ describe('formatAbbreviatedNumber()', function() {
     expect(formatAbbreviatedNumber(1000000000000)).toBe('1000b');
   });
 
-  it('should abbreviate numbers that are strings', function() {
+  it('should abbreviate numbers that are strings', function () {
     expect(formatAbbreviatedNumber('00')).toBe('0');
     expect(formatAbbreviatedNumber('100')).toBe('100');
     expect(formatAbbreviatedNumber('1000')).toBe('1k');
@@ -55,19 +55,19 @@ describe('formatAbbreviatedNumber()', function() {
   });
 });
 
-describe('formatFloat()', function() {
-  it('should format decimals', function() {
+describe('formatFloat()', function () {
+  it('should format decimals', function () {
     expect(formatFloat(0, 0)).toBe(0);
     expect(formatFloat(10.513434, 1)).toBe(10.5);
     expect(formatFloat(10.513494, 3)).toBe(10.513);
   });
-  it('should not round', function() {
+  it('should not round', function () {
     expect(formatFloat(10.513494, 4)).toBe(10.5134);
   });
 });
 
-describe('formatPercentage()', function() {
-  it('should format decimals', function() {
+describe('formatPercentage()', function () {
+  it('should format decimals', function () {
     expect(formatPercentage(0.0, 0)).toBe('0%');
     expect(formatPercentage(0.0, 2)).toBe('0%');
     expect(formatPercentage(0.10513434, 1)).toBe('10.5%');

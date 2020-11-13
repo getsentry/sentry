@@ -32,23 +32,23 @@ const aggregationList = [
   },
 ];
 
-describe('Aggregations', function() {
-  describe('converts between internal and external format', function() {
-    it('getExternal()', function() {
+describe('Aggregations', function () {
+  describe('converts between internal and external format', function () {
+    it('getExternal()', function () {
       aggregationList.forEach(({internal, external}) => {
         expect(getExternal(internal)).toEqual(external);
       });
     });
 
-    it('getInternal()', function() {
+    it('getInternal()', function () {
       aggregationList.forEach(({internal, external}) => {
         expect(getInternal(external)).toEqual(internal);
       });
     });
   });
 
-  describe('isValidAggregation()', function() {
-    it('validates count', function() {
+  describe('isValidAggregation()', function () {
+    it('validates count', function () {
       expect(isValidAggregation(['count()', null, 'count'], COLUMNS)).toEqual(true);
       expect(isValidAggregation(['count', null, 'count'], COLUMNS)).toEqual(false);
       expect(isValidAggregation(['count()', 'user.email', 'count'], COLUMNS)).toEqual(
@@ -56,7 +56,7 @@ describe('Aggregations', function() {
       );
     });
 
-    it('validates uniq', function() {
+    it('validates uniq', function () {
       expect(
         isValidAggregation(['uniq', 'user.email', 'uniq_user_email'], COLUMNS)
       ).toEqual(true);
@@ -64,7 +64,7 @@ describe('Aggregations', function() {
       expect(isValidAggregation(['uniq', 'mail', 'uniq_mail'], COLUMNS)).toEqual(false);
     });
 
-    it('validates avg', function() {
+    it('validates avg', function () {
       expect(
         isValidAggregation(
           ['avg', 'device.battery_level', 'avg_device_battery_level'],
@@ -77,7 +77,7 @@ describe('Aggregations', function() {
       ).toEqual(false);
     });
 
-    it('validates sum', function() {
+    it('validates sum', function () {
       expect(
         isValidAggregation(
           ['sum', 'device.battery_level', 'sum_device_battery_level'],

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.plugins import providers
@@ -8,6 +9,7 @@ from sentry.models import Integration
 
 class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = "Gitlab"
+    logger = logging.getLogger("sentry.integrations.gitlab")
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:

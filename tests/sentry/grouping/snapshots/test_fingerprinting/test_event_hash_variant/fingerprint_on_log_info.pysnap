@@ -1,0 +1,39 @@
+---
+created: '2020-10-13T10:09:31.824415Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - log-
+    - '{{ logger }}'
+    - '-'
+    - '{{ level }}'
+    matchers:
+    - - logger
+      - sentry.*
+    - - level
+      - ERROR
+  version: 1
+fingerprint:
+- log-
+- '{{ logger }}'
+- '-'
+- '{{ level }}'
+title: Love not found.
+variants:
+  custom-fingerprint:
+    type: custom-fingerprint
+    values:
+    - log-
+    - sentry.example.love
+    - '-'
+    - error
+  default:
+    component:
+      contributes: false
+      contributes_to_similarity: true
+      hint: custom fingerprint takes precedence
+    type: component

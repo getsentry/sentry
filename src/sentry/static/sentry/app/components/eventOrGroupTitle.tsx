@@ -1,41 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import {Event, Group} from 'app/types';
-import {Metadata} from 'app/sentryTypes';
+import {Organization, Event, Group, GroupTombstone} from 'app/types';
 import {getTitle} from 'app/utils/events';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import withOrganization from 'app/utils/withOrganization';
 
 import StacktracePreview from './stacktracePreview';
 
 type Props = {
-  data: Event | Group;
+  data: Event | Group | GroupTombstone;
+  organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
-  static propTypes = {
-    data: PropTypes.shape({
-      type: PropTypes.oneOf([
-        'error',
-        'csp',
-        'hpkp',
-        'expectct',
-        'expectstaple',
-        'default',
-        'transaction',
-      ]).isRequired,
-      title: PropTypes.string,
-      metadata: Metadata.isRequired,
-      culprit: PropTypes.string,
-    }),
-    style: PropTypes.object,
-  };
-
   render() {
-    const {hasGuideAnchor, data} = this.props;
-    const {title, subtitle} = getTitle(data as Event);
+    const {hasGuideAnchor, data, organization} = this.props;
+    const {title, subtitle} = getTitle(data as Event, organization);
 
     const titleWithHoverStacktrace = (
       <StacktracePreview issueId={data.id}>{title}</StacktracePreview>
@@ -60,7 +42,7 @@ class EventOrGroupTitle extends React.Component<Props> {
   }
 }
 
-export default EventOrGroupTitle;
+export default withOrganization(EventOrGroupTitle);
 
 /**
  * &nbsp; is used instead of margin/padding to split title and subtitle

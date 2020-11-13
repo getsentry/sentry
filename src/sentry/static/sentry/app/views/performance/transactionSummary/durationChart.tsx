@@ -14,7 +14,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -78,15 +78,6 @@ class DurationChart extends React.Component<Props> {
       router,
     } = this.props;
 
-    const unselectedSeries = location.query.unselectedSeries ?? [];
-    const unselectedMetrics = Array.isArray(unselectedSeries)
-      ? unselectedSeries
-      : [unselectedSeries];
-    const seriesSelection = unselectedMetrics.reduce((selection, metric) => {
-      selection[metric] = false;
-      return selection;
-    }, {});
-
     const start = this.props.start
       ? getUtcToLocalDateObject(this.props.start)
       : undefined;
@@ -107,7 +98,7 @@ class DurationChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      selected: seriesSelection,
+      selected: getSeriesSelection(location),
     };
 
     const datetimeSelection = {
@@ -127,12 +118,13 @@ class DurationChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
+        trigger: 'axis',
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray400,
-          // p50 coerces the axis to be time based
+          color: theme.chartLabel,
+          // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
       },
@@ -175,7 +167,7 @@ class DurationChart extends React.Component<Props> {
                 if (errored) {
                   return (
                     <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
+                      <IconWarning color="gray300" size="lg" />
                     </ErrorPanel>
                   );
                 }
@@ -209,6 +201,7 @@ class DurationChart extends React.Component<Props> {
                     period={statsPeriod}
                     utc={utc}
                     projects={project}
+                    environments={environment}
                   >
                     {({releaseSeries}) => (
                       <TransitionChart loading={loading} reloading={reloading}>

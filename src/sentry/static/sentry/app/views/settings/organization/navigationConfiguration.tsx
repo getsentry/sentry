@@ -77,11 +77,11 @@ const organizationNavigation: NavigationSection[] = [
         id: 'rate-limits',
       },
       {
-        path: `${pathPrefix}/relays/`,
-        title: t('Relays'),
+        path: `${pathPrefix}/relay/`,
+        title: t('Relay'),
         show: ({access, features}) => features!.has('relay') && access!.has('org:write'),
         description: t('Manage relays connected to the organization'),
-        id: 'relays',
+        id: 'relay',
         badge: () => 'new',
       },
       {

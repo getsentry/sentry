@@ -1,0 +1,559 @@
+{
+  "Project": {
+    "type": "object",
+    "required": [
+      "avatar",
+      "color",
+      "dateCreated",
+      "features",
+      "firstEvent",
+      "hasAccess",
+      "id",
+      "isBookmarked",
+      "isInternal",
+      "isMember",
+      "isPublic",
+      "name",
+      "platform",
+      "slug",
+      "status"
+    ],
+    "properties": {
+      "avatar": {
+        "$ref": "avatar.json#/Avatar"
+      },
+      "color": {
+        "type": "string"
+      },
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "firstEvent": {
+        "type": "string",
+        "nullable": true
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isInternal": {
+        "type": "boolean"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string",
+        "nullable": true
+      },
+      "slug": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "active",
+          "disabled",
+          "pending_deletion",
+          "deletion_in_progress"
+        ]
+      }
+    }
+  },
+  "TeamProjects": {
+    "type": "object",
+    "required": [
+      "dateCreated",
+      "features",
+      "firstEvent",
+      "hasAccess",
+      "id",
+      "isBookmarked",
+      "isMember",
+      "name",
+      "platform",
+      "slug",
+      "team",
+      "teams",
+      "latestDeploys"
+    ],
+    "properties": {
+      "dateCreated": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "firstEvent": {
+        "type": "string",
+        "nullable": true
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "name": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string",
+        "nullable": true
+      },
+      "slug": {
+        "type": "string"
+      },
+      "team": {
+        "$ref": "team.json#/TeamMinimal"
+      },
+      "teams": {
+        "type": "array",
+        "items": {
+          "$ref": "team.json#/TeamMinimal"
+        }
+      },
+      "latestDeploys": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  },
+  "OrganizationProjects": {
+    "type": "object",
+    "required": [
+      "dateCreated",
+      "firstEvent",
+      "hasAccess",
+      "id",
+      "isBookmarked",
+      "isMember",
+      "latestDeploys",
+      "name",
+      "platform",
+      "platforms",
+      "slug",
+      "team",
+      "teams"
+    ],
+    "properties": {
+      "dateCreated": {
+        "type": "string"
+      },
+      "firstEvent": {
+        "type": "string",
+        "nullable": true
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "latestDeploys": {
+        "type": "string",
+        "nullable": true
+      },
+      "name": {
+        "type": "string"
+      },
+      "platform": {
+        "type": "string",
+        "nullable": true
+      },
+      "platforms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "slug": {
+        "type": "string"
+      },
+      "team": {
+          "type": "object",
+          "nullable": true,
+          "oneOf": [
+            {
+              "$ref": "team.json#/TeamMinimal"
+            },
+            {
+              "$ref": "null.json#/NullValue"
+            }
+          ]
+      },
+      "teams": {
+        "type": "array",
+        "items": {
+          "$ref": "team.json#/TeamMinimal"
+        }
+      }
+    }
+  },
+  "DetailedProject": {
+    "type": "object",
+    "required": [
+      "allowedDomains",
+      "avatar",
+      "color",
+      "dataScrubber",
+      "dataScrubberDefaults",
+      "dateCreated",
+      "defaultEnvironment",
+      "digestsMaxDelay",
+      "digestsMinDelay",
+      "features",
+      "firstEvent",
+      "hasAccess",
+      "id",
+      "isBookmarked",
+      "isInternal",
+      "isMember",
+      "isPublic",
+      "latestRelease",
+      "name",
+      "options",
+      "organization",
+      "platform",
+      "platforms",
+      "processingIssues",
+      "relayPiiConfig",
+      "resolveAge",
+      "safeFields",
+      "scrapeJavaScript",
+      "scrubIPAddresses",
+      "securityToken",
+      "securityTokenHeader",
+      "sensitiveFields",
+      "slug",
+      "status",
+      "storeCrashReports",
+      "subjectPrefix",
+      "subjectTemplate",
+      "team",
+      "teams",
+      "verifySSL"
+    ],
+    "properties": {
+      "allowedDomains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "avatar": {
+        "type": "object",
+        "properties": {
+          "avatarType": {
+            "type": "string"
+          },
+          "avatarUuid": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "color": {
+        "type": "string"
+      },
+      "dataScrubber": {
+        "type": "boolean"
+      },
+      "dataScrubberDefaults": {
+        "type": "boolean"
+      },
+      "dateCreated": {
+        "type": "string"
+      },
+      "defaultEnvironment": {
+        "type": "string",
+        "nullable": true
+      },
+      "digestsMaxDelay": {
+        "type": "integer"
+      },
+      "digestsMinDelay": {
+        "type": "integer"
+      },
+      "features": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "firstEvent": {
+        "type": "string",
+        "nullable": true
+      },
+      "hasAccess": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "string"
+      },
+      "isBookmarked": {
+        "type": "boolean"
+      },
+      "isInternal": {
+        "type": "boolean"
+      },
+      "isMember": {
+        "type": "boolean"
+      },
+      "isPublic": {
+        "type": "boolean"
+      },
+      "latestRelease": {
+        "type": "object",
+        "nullable": true,
+        "required": [
+          "authors",
+          "commitCount",
+          "data",
+          "dateCreated",
+          "dateReleased",
+          "deployCount",
+          "firstEvent",
+          "lastCommit",
+          "lastDeploy",
+          "lastEvent",
+          "newGroups",
+          "owner",
+          "projects",
+          "ref",
+          "shortVersion",
+          "url",
+          "version"
+        ],
+        "properties": {
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "commitCount": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "object"
+          },
+          "dateCreated": {
+            "type": "string"
+          },
+          "dateReleased": {
+            "type": "string",
+            "nullable": true
+          },
+          "deployCount": {
+            "type": "integer"
+          },
+          "firstEvent": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastCommit": {
+            "type": "object",
+            "nullable": true
+          },
+          "lastDeploy": {
+            "type": "object",
+            "nullable": true
+          },
+          "lastEvent": {
+            "type": "string",
+            "nullable": true
+          },
+          "newGroups": {
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string",
+            "nullable": true
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "shortVersion": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "name": {
+        "type": "string"
+      },
+      "options": {
+        "type": "object",
+        "properties": {
+          "feedback:branding": {
+            "type": "boolean"
+          },
+          "filters:blacklisted_ips": {
+            "type": "string"
+          },
+          "filters:error_messages": {
+            "type": "string"
+          },
+          "filters:releases": {
+            "type": "string"
+          },
+          "sentry:csp_ignored_sources": {
+            "type": "string"
+          },
+          "sentry:csp_ignored_sources_defaults": {
+            "type": "boolean"
+          },
+          "sentry:reprocessing_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "organization": {
+        "$ref": "organization.json#/Organization"
+      },
+      "platform": {
+        "type": "string",
+        "nullable": true
+      },
+      "platforms": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "plugins": {
+        "type": "array",
+        "items": {
+          "$ref": "plugin.json#/Plugin"
+        }
+      },
+      "processingIssues": {
+        "type": "integer"
+      },
+      "relayPiiConfig": {
+        "type": "string",
+        "nullable": true
+      },
+      "resolveAge": {
+        "type": "integer"
+      },
+      "safeFields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "scrapeJavaScript": {
+        "type": "boolean"
+      },
+      "scrubIPAddresses": {
+        "type": "boolean"
+      },
+      "securityToken": {
+        "type": "string"
+      },
+      "securityTokenHeader": {
+        "type": "string",
+        "nullable": true
+      },
+      "sensitiveFields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "slug": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      },
+      "storeCrashReports": {
+        "type": "boolean",
+        "nullable": true
+      },
+      "subjectPrefix": {
+        "type": "string"
+      },
+      "subjectTemplate": {
+        "type": "string"
+      },
+      "team": {
+        "$ref": "team.json#/TeamMinimal"
+      },
+      "teams": {
+        "type": "array",
+        "items": {
+          "$ref": "team.json#/TeamMinimal"
+        }
+      },
+      "verifySSL": {
+        "type": "boolean"
+      }
+    }
+  }
+}

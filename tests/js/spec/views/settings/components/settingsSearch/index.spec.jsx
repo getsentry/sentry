@@ -11,7 +11,7 @@ jest.mock('app/actionCreators/formSearch');
 jest.mock('app/actionCreators/navigation');
 
 const SETTINGS_SEARCH_PLACEHOLDER = 'Search';
-describe('SettingsSearch', function() {
+describe('SettingsSearch', function () {
   let orgsMock;
   const routerContext = TestStubs.routerContext([
     {
@@ -21,7 +21,7 @@ describe('SettingsSearch', function() {
     },
   ]);
 
-  beforeEach(function() {
+  beforeEach(function () {
     FormSearchStore.onLoadSearchMap([]);
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
@@ -63,7 +63,7 @@ describe('SettingsSearch', function() {
     });
   });
 
-  it('renders', async function() {
+  it('renders', async function () {
     const wrapper = mountWithTheme(
       <SettingsSearch params={{orgId: 'org-slug'}} />,
       routerContext
@@ -74,7 +74,7 @@ describe('SettingsSearch', function() {
     expect(wrapper.find('input').prop('placeholder')).toBe(SETTINGS_SEARCH_PLACEHOLDER);
   });
 
-  it('can focus when `handleFocusSearch` is called and target is not search input', function() {
+  it('can focus when `handleFocusSearch` is called and target is not search input', function () {
     const wrapper = mountWithTheme(
       <SettingsSearch params={{orgId: 'org-slug'}} />,
       routerContext
@@ -90,7 +90,7 @@ describe('SettingsSearch', function() {
     expect(focusSpy).toHaveBeenCalled();
   });
 
-  it('does not focus search input if it is current target and `handleFocusSearch` is called', function() {
+  it('does not focus search input if it is current target and `handleFocusSearch` is called', function () {
     const wrapper = mountWithTheme(
       <SettingsSearch params={{orgId: 'org-slug'}} />,
       routerContext
@@ -106,7 +106,7 @@ describe('SettingsSearch', function() {
     expect(focusSpy).not.toHaveBeenCalled();
   });
 
-  it('can search', async function() {
+  it('can search', async function () {
     const wrapper = mountWithTheme(
       <SettingsSearch params={{orgId: 'org-slug'}} />,
       routerContext
@@ -126,25 +126,12 @@ describe('SettingsSearch', function() {
     );
 
     expect(
-      wrapper
-        .find('SearchResult [data-test-id="badge-display-name"]')
-        .first()
-        .text()
+      wrapper.find('SearchResult [data-test-id="badge-display-name"]').first().text()
     ).toBe('billy-org Dashboard');
 
-    expect(
-      wrapper
-        .find('SearchResultWrapper')
-        .first()
-        .prop('highlighted')
-    ).toBe(true);
+    expect(wrapper.find('SearchResultWrapper').first().prop('highlighted')).toBe(true);
 
-    expect(
-      wrapper
-        .find('SearchResultWrapper')
-        .at(1)
-        .prop('highlighted')
-    ).toBe(false);
+    expect(wrapper.find('SearchResultWrapper').at(1).prop('highlighted')).toBe(false);
 
     wrapper
       .find('SearchResult [data-test-id="badge-display-name"]')

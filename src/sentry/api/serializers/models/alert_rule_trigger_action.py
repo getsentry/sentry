@@ -22,15 +22,19 @@ class AlertRuleTriggerActionSerializer(Serializer):
             return "Send a Slack notification to " + action.target_display
         elif action.type == action.Type.MSTEAMS.value:
             return "Send a Microsoft Teams notification to " + action.target_display
+        elif action.type == action.Type.SENTRY_APP.value:
+            return "Send a notification via " + action.target_display
 
     def get_identifier_from_action(self, action):
-        target_identifier = (
+        if action.type in [
+            AlertRuleTriggerAction.Type.PAGERDUTY.value,
+            AlertRuleTriggerAction.Type.SENTRY_APP.value,
+        ]:
+            return int(action.target_identifier)
+
+        return (
             action.target_display if action.target_display is not None else action.target_identifier
         )
-        if action.type == action.Type.PAGERDUTY.value:
-            target_identifier = int(action.target_identifier)
-
-        return target_identifier
 
     def serialize(self, obj, attrs, user):
         from sentry.incidents.endpoints.serializers import action_target_type_to_string
@@ -46,6 +50,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
             ],
             "targetIdentifier": self.get_identifier_from_action(obj),
             "integrationId": obj.integration_id,
+            "sentryAppId": obj.sentry_app_id,
             "dateCreated": obj.date_added,
             "desc": self.human_desc(obj),
         }

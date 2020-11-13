@@ -28,6 +28,7 @@ class EventAttributeConditionTest(RuleTestCase):
                                     "filename": "example.php",
                                     "module": "example",
                                     "context_line": 'echo "hello";',
+                                    "abs_path": "path/to/example.php",
                                 }
                             ]
                         },
@@ -46,7 +47,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": u"\xc3", "value": u"\xc4"}
         )
-        assert rule.render_label() == u"An event's \xc3 value equals \xc4"
+        assert rule.render_label() == u"The event's \xc3 value equals \xc4"
 
     def test_equals(self):
         event = self.get_event()
@@ -411,4 +412,98 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
         rule = self.get_rule(data={"match": MatchType.EQUAL, "attribute": "type", "value": "csp"})
+        self.assertDoesNotPass(rule, event)
+
+    def test_stacktrace_abs_path(self):
+        """Stacktrace.abs_path should match frames anywhere in the stack."""
+
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "filename": "example.php",
+                                    "module": "example",
+                                    "abs_path": "path/to/example.php",
+                                },
+                                {
+                                    "filename": "somecode.php",
+                                    "module": "somecode",
+                                    "abs_path": "path/to/somecode.php",
+                                },
+                                {
+                                    "filename": "othercode.php",
+                                    "module": "othercode",
+                                    "abs_path": "path/to/othercode.php",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
+        # correctly matching filenames, at various locations in the stacktrace
+        for value in ["path/to/example.php", "path/to/somecode.php", "path/to/othercode.php"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.abs_path", "value": value}
+            )
+            self.assertPasses(rule, event)
+
+        # non-matching filename
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "stacktrace.abs_path",
+                "value": "path/to/foo.php",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_stacktrace_package(self):
+        """Stacktrace.package should match frames anywhere in the stack."""
+
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "value": "hello world",
+                        "stacktrace": {
+                            "frames": [
+                                {"filename": "example.php", "package": "package/example.lib"},
+                                {
+                                    "filename": "somecode.php",
+                                    "package": "package/otherpackage.lib",
+                                },
+                                {
+                                    "filename": "othercode.php",
+                                    "package": "package/somepackage.lib",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
+
+        # correctly matching filenames, at various locations in the stacktrace
+        for value in ["package/example.lib", "package/otherpackage.lib", "package/somepackage.lib"]:
+            rule = self.get_rule(
+                data={"match": MatchType.EQUAL, "attribute": "stacktrace.package", "value": value}
+            )
+            self.assertPasses(rule, event)
+
+        # non-matching filename
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "stacktrace.package",
+                "value": "package/otherotherpackage.lib",
+            }
+        )
         self.assertDoesNotPass(rule, event)

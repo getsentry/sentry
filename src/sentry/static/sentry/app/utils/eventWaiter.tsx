@@ -108,6 +108,7 @@ class EventWaiter extends React.Component<Props, State> {
       // The event may have expired, default to true
       firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
 
+      // noinspection SpellCheckingInspection
       recordAnalyticsFirstEvent({
         key: 'first_event_recieved',
         organization,
@@ -115,6 +116,7 @@ class EventWaiter extends React.Component<Props, State> {
       });
     } else {
       firstIssue = firstEvent;
+      // noinspection SpellCheckingInspection
       recordAnalyticsFirstEvent({
         key: 'first_transaction_recieved',
         organization,

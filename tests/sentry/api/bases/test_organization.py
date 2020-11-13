@@ -13,7 +13,8 @@ from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, Orga
 from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import from_request, NoAccess
-from sentry.models import ApiKey, Organization, TotpInterface
+from sentry.auth.authenticators import TotpInterface
+from sentry.models import ApiKey, Organization
 from sentry.testutils import TestCase
 
 

@@ -4,15 +4,12 @@ from rest_framework.response import Response
 
 from sentry.models import Team, TeamStatus
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.base import DocSection
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 
 
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.TEAMS
-
     def get(self, request, organization):
         """
         List your Teams In the Current Organization

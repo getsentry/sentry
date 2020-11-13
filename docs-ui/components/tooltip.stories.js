@@ -12,7 +12,7 @@ class CustomThing extends React.Component {
 }
 
 export default {
-  title: 'UI/Tooltip',
+  title: 'Core/Tooltips/Tooltip',
 };
 
 export const _Tooltip = withInfo({

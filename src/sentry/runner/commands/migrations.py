@@ -29,7 +29,7 @@ def run(ctx, app_name, migration_name):
     for op in migration.operations:
         if not isinstance(op, RunPython):
             raise click.ClickException(
-                "Migration must contain only RunPython ops, found: %s", type(op).__name__
+                "Migration must contain only RunPython ops, found: %s" % type(op).__name__
             )
 
     for op in migration.operations:

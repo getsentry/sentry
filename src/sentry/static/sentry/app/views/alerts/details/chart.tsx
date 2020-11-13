@@ -134,7 +134,7 @@ const Chart = (props: Props) => {
                     },
                   ]
                 : []),
-            ],
+            ] as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
           }),
         },
         warningTrigger &&
@@ -143,20 +143,20 @@ const Chart = (props: Props) => {
             type: 'line',
             markLine: MarkLine({
               silent: true,
-              lineStyle: {color: theme.yellow400},
+              lineStyle: {color: theme.yellow300},
               data: [
                 {
                   yAxis: warningTriggerAlertThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndTop',
                 formatter: 'WARNING',
-                color: theme.yellow400,
+                color: theme.yellow300,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an exposed option for label,
             }),
             data: [],
           },
@@ -166,20 +166,20 @@ const Chart = (props: Props) => {
             type: 'line',
             markLine: MarkLine({
               silent: true,
-              lineStyle: {color: theme.red300},
+              lineStyle: {color: theme.red200},
               data: [
                 {
                   yAxis: criticalTriggerAlertThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndTop',
                 formatter: 'CRITICAL',
-                color: theme.red400,
+                color: theme.red300,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an exposed option for label,
             }),
             data: [],
           },
@@ -189,20 +189,20 @@ const Chart = (props: Props) => {
             type: 'line',
             markLine: MarkLine({
               silent: true,
-              lineStyle: {color: theme.gray400},
+              lineStyle: {color: theme.gray200},
               data: [
                 {
                   yAxis: alertResolveThreshold,
-                },
+                } as any, // TODO(ts): data on this type is likely incomplete (needs @types/echarts@4.6.2)
               ],
               precision: marklinePrecision,
               label: {
                 show: true,
                 position: 'insideEndBottom',
                 formatter: 'CRITICAL RESOLUTION',
-                color: theme.gray400,
+                color: theme.gray200,
                 fontSize: 10,
-              },
+              } as any, // TODO(ts): Color is not an option for label,
             }),
             data: [],
           },

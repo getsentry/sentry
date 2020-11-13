@@ -6,7 +6,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 
 export default {
-  title: 'UI/Dropdowns/DropdownControl',
+  title: 'Core/Dropdowns/DropdownControl',
 };
 
 export const BasicLabelKnobs = withInfo('Using a string value for the button label')(

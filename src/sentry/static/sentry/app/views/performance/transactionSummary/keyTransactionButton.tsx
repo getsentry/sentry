@@ -7,7 +7,8 @@ import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import EventView from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
-import {saveKeyTransaction, deleteKeyTransaction} from 'app/actionCreators/performance';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {toggleKeyTransaction} from 'app/actionCreators/performance';
 
 type Props = {
   api: Client;
@@ -95,33 +96,27 @@ class KeyTransactionButton extends React.Component<Props, State> {
       });
   };
 
-  toggleKeyTransaction = () => {
+  toggleKeyTransactionHandler = () => {
     const {eventView, api, organization, transactionName} = this.props;
+    const {isKeyTransaction} = this.state;
     const projects = eventView.project as number[];
 
-    if (!this.state.isKeyTransaction) {
-      this.setState({
-        isKeyTransaction: true,
-      });
+    trackAnalyticsEvent({
+      eventName: 'Performance Views: Key Transaction toggle',
+      eventKey: 'performance_views.key_transaction.toggle',
+      orgId: parseInt(organization.id, 10),
+      action: isKeyTransaction ? 'remove' : 'add',
+    });
 
-      saveKeyTransaction(api, organization.slug, projects, transactionName).catch(() => {
-        this.setState({
-          isKeyTransaction: false,
-        });
-      });
-    } else {
-      this.setState({
-        isKeyTransaction: false,
-      });
-
-      deleteKeyTransaction(api, organization.slug, projects, transactionName).catch(
-        () => {
-          this.setState({
-            isKeyTransaction: true,
-          });
-        }
-      );
-    }
+    toggleKeyTransaction(
+      api,
+      isKeyTransaction,
+      organization.slug,
+      projects,
+      transactionName
+    ).then(() => {
+      this.setState({isKeyTransaction: !isKeyTransaction});
+    });
   };
 
   render() {
@@ -136,11 +131,11 @@ class KeyTransactionButton extends React.Component<Props, State> {
         icon={
           <IconStar
             size="xs"
-            color={isKeyTransaction ? 'yellow500' : 'gray500'}
+            color={isKeyTransaction ? 'yellow300' : 'gray200'}
             isSolid={!!isKeyTransaction}
           />
         }
-        onClick={this.toggleKeyTransaction}
+        onClick={this.toggleKeyTransactionHandler}
       >
         {t('Key Transaction')}
       </Button>

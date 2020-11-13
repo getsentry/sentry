@@ -128,7 +128,7 @@ class App extends React.Component<Props, State> {
       displayExperimentalSpaAlert();
     }
 
-    $(document).ajaxError(function(_evt, jqXHR) {
+    $(document).ajaxError(function (_evt, jqXHR) {
       const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
         regex.test(window.location.pathname)
       );
@@ -189,9 +189,11 @@ class App extends React.Component<Props, State> {
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
     }
+
     if (config.user !== undefined) {
       newState.user = config.user;
     }
+
     if (Object.keys(newState).length > 0) {
       this.setState(newState);
     }
@@ -223,8 +225,9 @@ class App extends React.Component<Props, State> {
     const {needsUpgrade, newsletterConsentPrompt} = this.state;
 
     if (needsUpgrade) {
-      const InstallWizard = React.lazy(() =>
-        import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
+      const InstallWizard = React.lazy(
+        () =>
+          import(/* webpackChunkName: "InstallWizard" */ 'app/views/admin/installWizard')
       );
 
       return (

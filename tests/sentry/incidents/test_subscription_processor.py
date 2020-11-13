@@ -40,6 +40,9 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.compat import map
 
 
+EMPTY = object()
+
+
 @freeze_time()
 class ProcessUpdateTest(TestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
@@ -102,7 +105,7 @@ class ProcessUpdateTest(TestCase):
     def action(self):
         return self.trigger.alertruletriggeraction_set.get()
 
-    def build_subscription_update(self, subscription, time_delta=None, value=None):
+    def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
         else:
@@ -112,7 +115,7 @@ class ProcessUpdateTest(TestCase):
         data = {}
 
         if subscription:
-            data = {"some_col_name": randint(0, 100) if value is None else value}
+            data = {"some_col_name": randint(0, 100) if value is EMPTY else value}
         values = {"data": [data]}
         return {
             "subscription_id": subscription.subscription_id if subscription else uuid4().hex,
@@ -131,7 +134,9 @@ class ProcessUpdateTest(TestCase):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
             processor.process_update(message)
         return processor
 
@@ -218,6 +223,13 @@ class ProcessUpdateTest(TestCase):
         )
         # TODO: Check subscription is deleted once we start doing that
 
+    def test_removed_project(self):
+        message = self.build_subscription_update(self.sub)
+        self.project.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
+
     def test_no_feature(self):
         message = self.build_subscription_update(self.sub)
         SubscriptionProcessor(self.sub).process_update(message)
@@ -272,6 +284,44 @@ class ProcessUpdateTest(TestCase):
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(incident, [self.action])
+
+    def test_alert_dedupe(self):
+        # Verify that an alert rule that only expects a single update to be over the
+        # alert threshold triggers correctly
+        rule = self.rule
+        c_trigger = self.trigger
+        c_action = self.action
+        create_alert_rule_trigger_action(
+            self.trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
+        )
+        w_trigger = create_alert_rule_trigger(self.rule, "hello", c_trigger.alert_threshold - 10)
+        create_alert_rule_trigger_action(
+            w_trigger,
+            AlertRuleTriggerAction.Type.EMAIL,
+            AlertRuleTriggerAction.TargetType.USER,
+            six.text_type(self.user.id),
+        )
+
+        processor = self.send_update(rule, c_trigger.alert_threshold + 1)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        assert incident.date_started == (
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        )
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [c_action])
+
+    def test_alert_nullable(self):
+        # Verify that an alert rule that only expects a single update to be over the
+        # alert threshold triggers correctly
+        rule = self.rule
+        self.trigger
+        processor = self.send_update(rule, None)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
 
     def test_alert_multiple_threshold_periods(self):
         # Verify that a rule that expects two consecutive updates to be over the
@@ -417,6 +467,43 @@ class ProcessUpdateTest(TestCase):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         self.assert_no_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_percent_boundary(self):
+        # Verify that we resolve an alert rule automatically even if no resolve
+        # threshold is set
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        trigger.update(alert_threshold=0.5)
+        processor = self.send_update(rule, trigger.alert_threshold + 0.1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(incident, [self.action])
+
+    def test_auto_resolve_boundary(self):
+        # Verify that we resolve an alert rule automatically if the value hits the
+        # original alert trigger value
+        rule = self.rule
+        rule.update(resolve_threshold=None)
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(incident, [self.action])
+
+        processor = self.send_update(rule, trigger.alert_threshold, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
         self.assert_actions_resolved_for_incident(incident, [self.action])
 
     def test_auto_resolve_reversed(self):

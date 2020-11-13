@@ -5,7 +5,7 @@ import {number, boolean} from '@storybook/addon-knobs';
 import CircleIndicator from 'app/components/circleIndicator';
 
 export default {
-  title: 'UI/CircleIndicator',
+  title: 'DataVisualization/CircleIndicator',
 };
 
 export const Default = withInfo('Description')(() => {
@@ -24,7 +24,7 @@ export const Default = withInfo('Description')(() => {
         enabled={!enabled}
       />
 
-      <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple400" />
+      <CircleIndicator size={number('Size', 14)} enabled={enabled} color="purple300" />
     </React.Fragment>
   );
 });

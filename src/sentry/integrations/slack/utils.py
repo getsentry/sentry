@@ -179,16 +179,19 @@ def build_upgrade_notice_attachment(group):
     )
 
     return {
-        "title": "Reminder",
+        "title": "Deprecation Notice",
         "text": (
-            u"It looks like you are still using the Legacy Sentry-Slack integration. "
-            u"You will need to upgrade by October 1st to continue receiving alerts. "
-            u"Click <{}|here> to upgrade.".format(url)
+            u"This alert is coming from a deprecated version of the Sentry-Slack integration. "
+            u"Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
+            u"if you do not transition to the new supported Slack integration. "
+            u"Click <{}|here> to complete the process.".format(url)
         ),
     }
 
 
-def build_group_attachment(group, event=None, tags=None, identity=None, actions=None, rules=None):
+def build_group_attachment(
+    group, event=None, tags=None, identity=None, actions=None, rules=None, link_to_event=False
+):
     # XXX(dcramer): options are limited to 100 choices, even when nested
     status = group.get_status()
 
@@ -196,10 +199,6 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-    color = (
-        LEVEL_TO_COLOR.get(event.get_tag("level"), "error") if event else LEVEL_TO_COLOR["error"]
-    )
-
     text = build_attachment_text(group, event) or ""
 
     if actions is None:
@@ -256,11 +255,19 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
         },
     ]
 
+    # If an event is unspecified, use the tags of the latest event (if one exists).
+    event_for_tags = event if event else group.get_latest_event()
+
+    fallback_color = LEVEL_TO_COLOR["error"]
+    color = (
+        LEVEL_TO_COLOR.get(event_for_tags.get_tag("level"), fallback_color)
+        if event_for_tags
+        else fallback_color
+    )
+
     fields = []
-
     if tags:
-        event_tags = event.tags if event else group.get_latest_event().tags
-
+        event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
             std_key = tagstore.get_standardized_key(key)
             if std_key not in tags:
@@ -298,10 +305,15 @@ def build_group_attachment(group, event=None, tags=None, identity=None, actions=
             footer += u" (+{} other)".format(len(rules) - 1)
 
     obj = event if event is not None else group
+    if event and link_to_event:
+        title_link = group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
+    else:
+        title_link = group.get_absolute_url(params={"referrer": "slack"})
+
     return {
         "fallback": u"[{}] {}".format(project.slug, obj.title),
         "title": build_attachment_title(obj),
-        "title_link": group.get_absolute_url(params={"referrer": "slack"}),
+        "title_link": title_link,
         "text": text,
         "fields": fields,
         "mrkdwn_in": ["text"],
@@ -360,11 +372,11 @@ def strip_channel_name(name):
     return name.lstrip(strip_channel_chars)
 
 
-def get_channel_id(organization, integration_id, name):
+def get_channel_id(organization, integration, name, use_async_lookup=False):
     """
    Fetches the internal slack id of a channel.
    :param organization: The organization that is using this integration
-   :param integration_id: The integration id of this slack integration
+   :param integration: The slack integration
    :param name: The name of the channel
    :return: a tuple of three values
        1. prefix: string (`"#"` or `"@"`)
@@ -373,19 +385,19 @@ def get_channel_id(organization, integration_id, name):
    """
 
     name = strip_channel_name(name)
-    try:
-        integration = Integration.objects.get(
-            provider="slack", organizations=organization, id=integration_id
-        )
-    except Integration.DoesNotExist:
-        return None, None, False
+
+    # longer lookup for the async job
+    if use_async_lookup:
+        timeout = 3 * 60
+    else:
+        timeout = SLACK_DEFAULT_TIMEOUT
 
     # XXX(meredith): For large accounts that have many, many channels it's
     # possible for us to timeout while attempting to paginate through to find the channel id
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
-    return get_channel_id_with_timeout(integration, name, SLACK_DEFAULT_TIMEOUT)
+    return get_channel_id_with_timeout(integration, name, timeout)
 
 
 def get_channel_id_with_timeout(integration, name, timeout):
@@ -434,7 +446,8 @@ def get_channel_id_with_timeout(integration, name, timeout):
             for c in items[result_name]:
                 # The "name" field is unique (this is the username for users)
                 # so we return immediately if we find a match.
-                if c["name"] == name:
+                # convert to lower case since all names in Slack are lowercase
+                if c["name"].lower() == name.lower():
                     return (prefix, c["id"], False)
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.

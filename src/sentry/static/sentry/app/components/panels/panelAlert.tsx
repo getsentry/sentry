@@ -23,6 +23,12 @@ const PanelAlert = styled(({icon, ...props}: Props) => (
   padding: ${space(2)};
   border-radius: 0;
   box-shadow: none;
+
+  &:last-child {
+    border-bottom: none;
+    margin: 0;
+    border-radius: 0 0 4px 4px;
+  }
 `;
 
 PanelAlert.propTypes = {

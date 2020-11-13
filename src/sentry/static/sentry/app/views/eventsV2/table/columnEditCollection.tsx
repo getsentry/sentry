@@ -24,6 +24,7 @@ type Props = {
   columns: Column[];
   organization: LightWeightOrganization;
   tagKeys: null | string[];
+  measurementKeys: null | string[];
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -73,7 +74,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.tagKeys !== prevProps.tagKeys) {
+    if (
+      this.props.tagKeys !== prevProps.tagKeys ||
+      this.props.measurementKeys !== prevProps.measurementKeys
+    ) {
       this.syncFields();
     }
   }
@@ -93,6 +97,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     return generateFieldOptions({
       organization: this.props.organization,
       tagKeys: this.props.tagKeys,
+      measurementKeys: this.props.measurementKeys,
     });
   }
 
@@ -287,7 +292,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color="gray700" />}
+              icon={<IconGrabbable size="xs" color="gray500" />}
               size="zero"
               borderless
             />
@@ -305,7 +310,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete color="gray300" />}
               borderless
             />
           ) : (
@@ -373,12 +378,12 @@ const RowContainer = styled('div')`
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: block;
   position: absolute;
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   width: 600px;
   opacity: 0.8;
   cursor: grabbing;
@@ -394,7 +399,7 @@ const Ghost = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(4)} ${space(1)} ${space(4)};
-  border: 2px dashed ${p => p.theme.borderLight};
+  border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   height: 40px;
 `;

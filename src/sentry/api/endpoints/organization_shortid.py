@@ -4,27 +4,13 @@ import six
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Group
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("ResolveShortId")
-def resolve_short_id_scenario(runner):
-    group = Group.objects.filter(project=runner.default_project).first()
-    runner.request(
-        method="GET",
-        path="/organizations/%s/shortids/%s/" % (runner.org.slug, group.qualified_short_id),
-    )
 
 
 class ShortIdLookupEndpoint(OrganizationEndpoint):
-    doc_section = DocSection.ORGANIZATIONS
-
-    @attach_scenarios([resolve_short_id_scenario])
     def get(self, request, organization, short_id):
         """
         Resolve a Short ID

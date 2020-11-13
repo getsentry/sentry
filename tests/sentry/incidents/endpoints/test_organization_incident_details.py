@@ -5,7 +5,6 @@ from datetime import datetime
 from sentry.utils.compat import mock
 import pytz
 import six
-from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
@@ -57,7 +56,6 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
         expected = serialize(incident)
 
         user_data = serialize(self.user)
-        user_data["lastSeen"] = timezone.now()
         seen_by = [user_data]
 
         assert resp.data["id"] == expected["id"]

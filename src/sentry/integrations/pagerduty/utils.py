@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import six
 
+from django.http import Http404
+
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import PagerDutyService
@@ -33,7 +35,7 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
         "payload": {
             "summary": incident.alert_rule.name,
             "severity": severity,
-            "source": six.binary_type(incident.identifier),
+            "source": six.text_type(incident.identifier),
             "custom_details": {"details": data["text"]},
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
@@ -42,7 +44,19 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
 
 def send_incident_alert_notification(action, incident, metric_value):
     integration = action.integration
-    service = PagerDutyService.objects.get(id=action.target_identifier)
+    try:
+        service = PagerDutyService.objects.get(id=action.target_identifier)
+    except PagerDutyService.DoesNotExist:
+        # service has been removed after rule creation
+        logger.info(
+            "fetch.fail.pagerduty_metric_alert",
+            extra={
+                "integration_id": integration.id,
+                "organization_id": incident.organization_id,
+                "target_identifier": action.target_identifier,
+            },
+        )
+        raise Http404
     integration_key = service.integration_key
     client = PagerDutyClient(integration_key=integration_key)
     attachment = build_incident_attachment(incident, integration_key, metric_value)

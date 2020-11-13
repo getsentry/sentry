@@ -42,7 +42,7 @@ class EventTest(TestCase):
             "data": {"id": 1, "map": {"key": "value"}, "optional": False},
             "type": "example",
             "timestamp": 987552000,
-            "uuid": "AAEC",
+            "uuid": b"AAEC",
         }
 
     def test_optional_is_optional(self):

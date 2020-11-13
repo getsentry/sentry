@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
@@ -20,8 +19,6 @@ from sentry.api.serializers.models.release import expose_version_info
 
 
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release's Associated Meta Data

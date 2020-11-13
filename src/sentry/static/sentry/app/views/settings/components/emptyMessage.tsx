@@ -51,7 +51,7 @@ const EmptyMessage = styled(
           padding: ${space(4)} 15%;
         `};
   flex-direction: column;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   font-size: ${p =>
     p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
 `;
@@ -66,11 +66,11 @@ EmptyMessage.propTypes = {
 };
 
 const IconWrapper = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('h1')`
+const Title = styled('strong')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
 `;

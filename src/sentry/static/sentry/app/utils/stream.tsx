@@ -13,11 +13,9 @@
  *    }
  */
 
-type QueryObj = {
-  [key: string]: string;
-};
+export type QueryObj = Record<string, string>;
 
-export function queryToObj(queryStr: string): QueryObj {
+export function queryToObj(queryStr = ''): QueryObj {
   const text: string[] = [];
 
   const queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);

@@ -17,7 +17,7 @@ const mockResponse = mocks => {
   );
 };
 
-describe('SentryAppDetailedView', function() {
+describe('SentryAppDetailedView', function () {
   const org = TestStubs.Organization();
   const routerContext = TestStubs.routerContext();
   let wrapper;
@@ -37,7 +37,7 @@ describe('SentryAppDetailedView', function() {
     },
   });
 
-  describe('Published Sentry App', function() {
+  describe('Published Sentry App', function () {
     let createRequest;
     let deleteRequest;
     let sentryAppInteractionRequest;
@@ -127,19 +127,19 @@ describe('SentryAppDetailedView', function() {
       );
     });
 
-    it('shows the Integration name and install status', async function() {
+    it('shows the Integration name and install status', async function () {
       expect(wrapper.find('Name').props().children).toEqual('ClickUp');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function() {
+    it('shows the Accept & Install button', async function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    describe('onClick: ', function() {
+    describe('onClick: ', function () {
       let wrapperState;
 
-      it('installs app', async function() {
+      it('installs app', async function () {
         wrapper.find('InstallButton').simulate('click');
         await tick();
         await tick();
@@ -150,22 +150,19 @@ describe('SentryAppDetailedView', function() {
         expect(wrapper.find('StyledUninstallButton').exists()).toEqual(true);
       });
 
-      it('uninstalls app', async function() {
+      it('uninstalls app', async function () {
         expect(wrapperState.find('StyledUninstallButton')).toHaveLength(1);
         wrapperState.find('StyledUninstallButton').simulate('click');
 
         await tick();
-        wrapperState
-          .find('Confirm')
-          .props()
-          .onConfirm();
+        wrapperState.find('Confirm').props().onConfirm();
         await tick();
         expect(deleteRequest).toHaveBeenCalled();
       });
     });
   });
 
-  describe('Internal Sentry App', function() {
+  describe('Internal Sentry App', function () {
     beforeEach(() => {
       Client.clearMockResponses();
 
@@ -240,7 +237,7 @@ describe('SentryAppDetailedView', function() {
     });
   });
 
-  describe('Unpublished Sentry App without Redirect Url', function() {
+  describe('Unpublished Sentry App without Redirect Url', function () {
     let createRequest;
 
     beforeEach(() => {
@@ -317,16 +314,16 @@ describe('SentryAppDetailedView', function() {
         routerContext
       );
     });
-    it('shows the Integration name and install status', async function() {
+    it('shows the Integration name and install status', async function () {
       expect(wrapper.find('Name').props().children).toEqual('La Croix Monitor');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function() {
+    it('shows the Accept & Install button', async function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    it('onClick: installs app', async function() {
+    it('onClick: installs app', async function () {
       wrapper.find('InstallButton').simulate('click');
       await tick();
       expect(createRequest).toHaveBeenCalled();
@@ -336,7 +333,7 @@ describe('SentryAppDetailedView', function() {
     });
   });
 
-  describe('Unpublished Sentry App with Redirect Url', function() {
+  describe('Unpublished Sentry App with Redirect Url', function () {
     let createRequest;
     beforeEach(() => {
       Client.clearMockResponses();
@@ -407,16 +404,16 @@ describe('SentryAppDetailedView', function() {
       );
       mockRouterPush(wrapper, router);
     });
-    it('shows the Integration name and install status', async function() {
+    it('shows the Integration name and install status', async function () {
       expect(wrapper.find('Name').props().children).toEqual('Go to Google');
       expect(wrapper.find('IntegrationStatus').props().status).toEqual('Not Installed');
     });
-    it('shows the Accept & Install button', async function() {
+    it('shows the Accept & Install button', async function () {
       expect(wrapper.find('InstallButton').props().disabled).toEqual(false);
       expect(wrapper.find('InstallButton').props().children).toEqual('Accept & Install');
     });
 
-    it('onClick: redirects url', async function() {
+    it('onClick: redirects url', async function () {
       window.location.assign = jest.fn();
 
       wrapper.find('InstallButton').simulate('click');

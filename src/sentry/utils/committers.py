@@ -17,11 +17,11 @@ from collections import defaultdict
 from functools import reduce
 from sentry.utils.compat import zip
 
-PATH_SEPERATORS = frozenset(["/", "\\"])
+PATH_SEPARATORS = frozenset(["/", "\\"])
 
 
 def tokenize_path(path):
-    for sep in PATH_SEPERATORS:
+    for sep in PATH_SEPARATORS:
         if sep in path:
             # Exclude empty path segments as some repository integrations
             # start their paths with `/` which we want to ignore.

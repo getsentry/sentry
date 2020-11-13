@@ -4,14 +4,12 @@ import {withInfo} from '@storybook/addon-info';
 import BarChart from 'app/components/charts/barChart';
 
 export default {
-  title: 'Charts/BarChart',
+  title: 'DataVisualization/Charts/BarChart',
 };
 
 export const _BarChart = withInfo('Stacked & Unstacked Bar Charts')(() => {
   return (
     <div>
-      <h2 style={{paddingLeft: '60px'}}>Stacked Bar Charts:</h2>
-
       <BarChart
         style={{height: 250}}
         stacked

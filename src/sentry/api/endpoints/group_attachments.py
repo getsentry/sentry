@@ -42,7 +42,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         types = request.GET.getlist("types") or ()
         if types:
-            attachments = attachments.filter(file__type__in=types)
+            attachments = attachments.filter(type__in=types)
 
         return self.paginate(
             default_per_page=20,

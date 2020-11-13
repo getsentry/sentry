@@ -14,19 +14,19 @@ const UNIQUE_USER_FREQUENCY_CONDITION =
 export const MOCK_RESP_VERBOSE = [
   {
     id: 'sentry.rules.conditions.every_event.EveryEventCondition',
-    label: 'An event is seen',
+    label: 'An event occurs',
   },
   {
     id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-    label: 'An issue is first seen',
+    label: 'A new issue is created',
   },
   {
     id: 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-    label: 'An issue changes state from resolved to unresolved',
+    label: 'The issue changes state from resolved to unresolved',
   },
   {
     id: 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
-    label: 'An issue changes state from ignored to unresolved',
+    label: 'The issue changes state from ignored to unresolved',
   },
   {
     formFields: {
@@ -67,7 +67,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: EVENT_FREQUENCY_CONDITION,
-    label: 'An issue is seen more than {value} times in {interval}',
+    label: 'The issue is seen more than {value} times in {interval}',
   },
   {
     formFields: {
@@ -81,7 +81,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: UNIQUE_USER_FREQUENCY_CONDITION,
-    label: 'An issue is seen by more than {value} users in {interval}',
+    label: 'The issue is seen by more than {value} users in {interval}',
   },
   {
     formFields: {
@@ -167,7 +167,7 @@ export const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID = [
       },
     },
     id: 'cinnamon.rules.conditions.infinite_eclair.A19SeanBanIsabelle',
-    label: 'An issue is seen more than {value} times in {interval}',
+    label: 'The issue is seen more than {value} times in {interval}',
   },
   {
     formFields: {
@@ -185,7 +185,7 @@ export const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID = [
       },
     },
     id: UNIQUE_USER_FREQUENCY_CONDITION,
-    label: 'An issue is seen by more than {value} users in {interval}',
+    label: 'The issue is seen by more than {value} users in {interval}',
   },
 ];
 
@@ -202,7 +202,7 @@ export const MOCK_RESP_INCONSISTENT_PLACEHOLDERS = [
       },
     },
     id: EVENT_FREQUENCY_CONDITION,
-    label: 'An issue is seen more than {value} times in {interval}',
+    label: 'The issue is seen more than {value} times in {interval}',
   },
   {
     formFields: {
@@ -216,7 +216,7 @@ export const MOCK_RESP_INCONSISTENT_PLACEHOLDERS = [
       },
     },
     id: UNIQUE_USER_FREQUENCY_CONDITION,
-    label: 'An issue is seen by more than {value} users in {interval}',
+    label: 'The issue is seen by more than {value} users in {interval}',
   },
 ];
 
@@ -240,7 +240,7 @@ export const MOCK_RESP_INCONSISTENT_INTERVALS = [
       },
     },
     id: EVENT_FREQUENCY_CONDITION,
-    label: 'An issue is seen more than {value} times in {interval}',
+    label: 'The issue is seen more than {value} times in {interval}',
   },
   {
     formFields: {
@@ -254,6 +254,6 @@ export const MOCK_RESP_INCONSISTENT_INTERVALS = [
       },
     },
     id: UNIQUE_USER_FREQUENCY_CONDITION,
-    label: 'An issue is seen by more than {value} users in {interval}',
+    label: 'The issue is seen by more than {value} users in {interval}',
   },
 ];

@@ -61,7 +61,7 @@ const getInputButtonStyles = (p: {
   isActive?: boolean;
   collapseIntoEllipsisMenu?: number;
 }) => `
-  color: ${p.isActive ? theme.blue300 : theme.gray500};
+  color: ${p.isActive ? theme.blue300 : theme.gray300};
   margin-left: ${space(0.5)};
   width: 18px;
 
@@ -72,18 +72,20 @@ const getInputButtonStyles = (p: {
   }
 
   &:hover {
-    color: ${theme.gray600};
+    color: ${theme.gray400};
   }
 
-  ${p.collapseIntoEllipsisMenu &&
-    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')};
+  ${
+    p.collapseIntoEllipsisMenu &&
+    getMediaQuery(theme.breakpoints[p.collapseIntoEllipsisMenu], 'none')
+  };
 `;
 
 const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolean}) => `
   padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
   margin-bottom: ${p.last ? null : space(0.5)};
   display: none;
-  color: ${theme.gray700};
+  color: ${theme.textColor};
   align-items: center;
   min-width: 190px;
   height: 38px;
@@ -93,19 +95,21 @@ const getDropdownElementStyles = (p: {showBelowMediaQuery: number; last?: boolea
   &,
   &:hover,
   &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${theme.borderDark}`};
+    border-bottom: ${p.last ? null : `1px solid ${theme.border}`};
     border-radius: 0;
   }
 
   &:hover {
-    color: ${theme.blue500};
+    color: ${theme.blue300};
   }
   & > svg {
     margin-right: ${space(1)};
   }
 
-  ${p.showBelowMediaQuery &&
-    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')}
+  ${
+    p.showBelowMediaQuery &&
+    getMediaQuery(theme.breakpoints[p.showBelowMediaQuery], 'flex')
+  }
 `;
 
 type Props = {
@@ -274,7 +278,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   static defaultProps = {
     defaultQuery: '',
     query: null,
-    onSearch: function() {},
+    onSearch: function () {},
     excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
@@ -629,6 +633,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       .map(value => ({
         value,
         desc: value,
+        type: 'tag-value',
       }));
 
   /**
@@ -1029,6 +1034,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       // then update the autocomplete box with new contextTypes
       this.updateAutoCompleteItems();
+      this.props.onChange?.(newQuery, new MouseEvent('click') as any);
     });
   };
 
@@ -1139,7 +1145,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                 <CreateSavedSearchButton
                   query={this.state.query}
                   organization={organization}
-                  disabled={!hasQuery}
                   withTooltip
                   iconOnly
                   buttonClassName={css`
@@ -1199,7 +1204,6 @@ class SmartSearchBar extends React.Component<Props, State> {
                     <CreateSavedSearchButton
                       query={this.state.query}
                       organization={organization}
-                      disabled={!hasQuery}
                       buttonClassName={css`
                         ${getDropdownElementStyles({
                           showBelowMediaQuery: 2,
@@ -1249,7 +1253,7 @@ export default withApi(withOrganization(SmartSearchBarContainer));
 export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
-  border: 1px solid ${p => (p.isOpen ? p.theme.borderDark : p.theme.borderLight)};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
@@ -1257,14 +1261,14 @@ const Container = styled('div')<{isOpen: boolean}>`
   /* match button height */
   height: 40px;
   box-shadow: inset ${p => p.theme.dropShadowLight};
-  background: #fff;
+  background: ${p => p.theme.background};
 
   position: relative;
 
   display: flex;
 
   .show-sidebar & {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
@@ -1277,7 +1281,7 @@ const StyledForm = styled('form')`
 `;
 
 const StyledInput = styled('input')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   background: transparent;
   border: 0;
   outline: none;
@@ -1289,10 +1293,10 @@ const StyledInput = styled('input')`
   padding: 0 0 0 ${space(1)};
 
   &::placeholder {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.formPlaceholder};
   }
   &:focus {
-    border-color: ${p => p.theme.borderDark};
+    border-color: ${p => p.theme.border};
     border-bottom-right-radius: 0;
   }
 
@@ -1343,5 +1347,5 @@ const SearchLabel = styled('label')`
   align-items: center;
   margin: 0;
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;

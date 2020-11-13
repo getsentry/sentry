@@ -50,6 +50,7 @@ def handle_snuba_errors(logger):
                     (
                         snuba.RateLimitExceeded,
                         snuba.QueryMemoryLimitExceeded,
+                        snuba.QueryExecutionTimeMaximum,
                         snuba.QueryTooManySimultaneous,
                     ),
                 ):
@@ -57,9 +58,12 @@ def handle_snuba_errors(logger):
                 elif isinstance(
                     error,
                     (
-                        snuba.UnqualifiedQueryError,
+                        snuba.DatasetSelectionError,
+                        snuba.QueryConnectionFailed,
+                        snuba.QuerySizeExceeded,
                         snuba.QueryExecutionError,
                         snuba.SchemaValidationError,
+                        snuba.UnqualifiedQueryError,
                     ),
                 ):
                     message = "Internal error. Your query failed to run."

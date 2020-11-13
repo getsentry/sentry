@@ -6,7 +6,6 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -29,8 +28,6 @@ class DeploySerializer(serializers.Serializer):
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
-    doc_section = DocSection.RELEASES
-
     def get(self, request, organization, version):
         """
         List a Release's Deploys

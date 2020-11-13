@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import ProjectSourceMaps from 'app/views/settings/projectSourceMaps/list';
 import ProjectSourceMapsDetail from 'app/views/settings/projectSourceMaps/detail';
 
-describe('ProjectSourceMaps', function() {
+describe('ProjectSourceMaps', function () {
   const {organization, project, routerContext, router} = initializeOrg({});
   const endpoint = `/projects/${organization.slug}/${project.slug}/files/source-maps/`;
   const props = {
@@ -17,7 +17,7 @@ describe('ProjectSourceMaps', function() {
     router,
   };
 
-  it('renders', function() {
+  it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [
@@ -31,15 +31,10 @@ describe('ProjectSourceMaps', function() {
     const items = wrapper.find('SourceMapsArchiveRow');
 
     expect(items).toHaveLength(2);
-    expect(
-      items
-        .at(0)
-        .find('VersionText')
-        .text()
-    ).toBe('1234');
+    expect(items.at(0).find('VersionText').text()).toBe('1234');
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -52,7 +47,7 @@ describe('ProjectSourceMaps', function() {
     );
   });
 
-  it('deletes the archive', function() {
+  it('deletes the archive', function () {
     const archive = TestStubs.SourceMapArchive();
 
     MockApiClient.addMockResponse({
@@ -78,7 +73,7 @@ describe('ProjectSourceMaps', function() {
     );
   });
 
-  it('filters archives', function() {
+  it('filters archives', function () {
     const mockRouter = {push: jest.fn()};
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -111,7 +106,7 @@ describe('ProjectSourceMaps', function() {
   });
 });
 
-describe('ProjectSourceMapsDetail', function() {
+describe('ProjectSourceMapsDetail', function () {
   const {organization, project, routerContext, router} = initializeOrg({});
   const archiveName = '1234';
   const endpoint = `/projects/${organization.slug}/${project.slug}/releases/${archiveName}/files/`;
@@ -123,7 +118,7 @@ describe('ProjectSourceMapsDetail', function() {
     router,
   };
 
-  it('renders', function() {
+  it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [
@@ -137,15 +132,10 @@ describe('ProjectSourceMapsDetail', function() {
     const items = wrapper.find('SourceMapsArtifactRow');
 
     expect(items).toHaveLength(2);
-    expect(
-      items
-        .at(1)
-        .find('Name')
-        .text()
-    ).toBe('abc');
+    expect(items.at(1).find('Name').text()).toBe('abc');
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -158,7 +148,7 @@ describe('ProjectSourceMapsDetail', function() {
     );
   });
 
-  it('links to release', function() {
+  it('links to release', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -171,7 +161,7 @@ describe('ProjectSourceMapsDetail', function() {
     );
   });
 
-  it('deletes all artifacts', function() {
+  it('deletes all artifacts', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -197,7 +187,7 @@ describe('ProjectSourceMapsDetail', function() {
     );
   });
 
-  it('filters artifacts', function() {
+  it('filters artifacts', function () {
     const mockRouter = {push: jest.fn()};
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -229,7 +219,7 @@ describe('ProjectSourceMapsDetail', function() {
     });
   });
 
-  it('deletes single artifact', function() {
+  it('deletes single artifact', function () {
     const artifact = TestStubs.SourceMapArtifact();
 
     MockApiClient.addMockResponse({

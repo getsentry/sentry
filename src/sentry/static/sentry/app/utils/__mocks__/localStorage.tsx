@@ -1,4 +1,4 @@
-const localStorageMock = function() {
+const localStorageMock = function () {
   let store = {};
   return {
     getItem: jest.fn(key => store[key]),

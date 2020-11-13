@@ -3,9 +3,12 @@ import {
   UnsavedIncidentRule,
   Trigger,
   Dataset,
+  Datasource,
+  EventTypes,
 } from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 export const DEFAULT_AGGREGATE = 'count()';
 
@@ -14,9 +17,17 @@ export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
 } as const;
 
+export const DATASOURCE_EVENT_TYPE_FILTERS = {
+  [Datasource.ERROR_DEFAULT]: '(event.type:error OR event.type:default)',
+  [Datasource.ERROR]: 'event.type:error',
+  [Datasource.DEFAULT]: 'event.type:default',
+  [Datasource.TRANSACTION]: 'event.type:transaction',
+} as const;
+
 type OptionConfig = {
   aggregations: AggregationKey[];
   fields: LooseFieldKey[];
+  measurementKeys?: string[];
 };
 
 /**
@@ -44,6 +55,7 @@ export const transactionFieldConfig: OptionConfig = {
     'p100',
   ],
   fields: ['transaction.duration'],
+  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
 export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
@@ -57,6 +69,7 @@ export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
 export function createDefaultRule(): UnsavedIncidentRule {
   return {
     dataset: Dataset.ERRORS,
+    eventTypes: [EventTypes.ERROR],
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,

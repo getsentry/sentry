@@ -261,7 +261,6 @@ class ContextPickerModal extends React.Component<Props> {
         }}
         placeholder={t('Select a Project')}
         name="project"
-        openMenuOnFocus
         options={projects.map(({slug}) => ({label: slug, value: slug}))}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
@@ -310,7 +309,6 @@ class ContextPickerModal extends React.Component<Props> {
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              openMenuOnFocus
               value={organization}
               onChange={this.handleSelectOrganization}
             />
@@ -334,17 +332,17 @@ type ContainerProps = Omit<
 };
 
 type ContainerState = {
-  organizations?: Organization[];
   selectedOrganization?: string;
+  organizations?: Organization[];
 };
 
 const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerState>({
   displayName: 'ContextPickerModalContainer',
   mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
   getInitialState() {
+    const storeState = OrganizationStore.get();
     return {
-      selectedOrganization:
-        OrganizationStore.organization && OrganizationStore.organization.slug,
+      selectedOrganization: storeState.organization?.slug,
     };
   },
 

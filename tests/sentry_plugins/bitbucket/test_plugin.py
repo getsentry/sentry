@@ -84,7 +84,7 @@ class BitbucketPluginTest(PluginTestCase):
         assert self.plugin.create_issue(request, group, form_data) == 1
 
         request = responses.calls[-1].request
-        assert request.headers.get("Authorization", "").startswith("OAuth ")
+        assert request.headers.get("Authorization", b"").startswith(b"OAuth ")
 
     @responses.activate
     def test_link_issue(self):

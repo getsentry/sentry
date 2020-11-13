@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 
-describe('BadgeBadge', function() {
-  it('has a display name', function() {
+describe('BadgeBadge', function () {
+  it('has a display name', function () {
     const wrapper = mountWithTheme(
       <BaseBadge
         organization={TestStubs.Organization()}
@@ -17,7 +17,7 @@ describe('BadgeBadge', function() {
     expect(wrapper.find('#test').text()).toBe('display name');
   });
 
-  it('can hide avatar', function() {
+  it('can hide avatar', function () {
     const wrapper = mountWithTheme(
       <BaseBadge organization={TestStubs.Organization()} hideAvatar />,
       TestStubs.routerContext()
@@ -25,7 +25,7 @@ describe('BadgeBadge', function() {
     expect(wrapper.find('StyledAvatar')).toHaveLength(0);
   });
 
-  it('can hide name', function() {
+  it('can hide name', function () {
     const wrapper = mountWithTheme(
       <BaseBadge
         organization={TestStubs.Organization()}

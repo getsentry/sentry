@@ -10,7 +10,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 export default {
-  title: 'Forms/Form',
+  title: 'Core/Forms/Form',
 };
 
 export const Default = withInfo(

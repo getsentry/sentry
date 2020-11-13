@@ -111,6 +111,7 @@ class TeamSelect extends React.Component {
         emptyMessage={t('No teams')}
         menuHeader={menuHeader}
         disabled={isDisabled}
+        alignMenu="right"
       >
         {({isOpen}) => (
           <DropdownButton
@@ -200,7 +201,7 @@ TeamRow.propTypes = {
 };
 
 const TeamDropdownElement = styled('div')`
-  padding: ${space(0.5)} ${space(0.25)};
+  padding: ${space(0.5)} 0px;
   text-transform: none;
 `;
 

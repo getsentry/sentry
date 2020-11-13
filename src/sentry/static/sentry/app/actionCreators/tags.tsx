@@ -10,7 +10,9 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 
 const MAX_TAGS = 1000;
 
-function tagFetchSuccess(tags: Tag[]) {
+function tagFetchSuccess(tags: Tag[] | undefined) {
+  // We occasionally get undefined passed in when APIs are having a bad time.
+  tags = tags || [];
   const trimmedTags = tags.slice(0, MAX_TAGS);
 
   if (tags.length > MAX_TAGS) {

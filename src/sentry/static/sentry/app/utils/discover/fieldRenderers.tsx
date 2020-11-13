@@ -16,11 +16,13 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {formatFloat, formatPercentage} from 'app/utils/formatters';
 import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
 import Projects from 'app/utils/projects';
+import {getShortEventId} from 'app/utils/events';
 
+import KeyTransactionField from './keyTransactionField';
+import ArrayValue from './arrayValue';
 import {
   BarContainer,
   Container,
-  EventId,
   NumberContainer,
   OverflowLink,
   StyledDateTime,
@@ -61,12 +63,13 @@ type FieldFormatters = {
   number: FieldFormatter;
   percentage: FieldFormatter;
   string: FieldFormatter;
+  array: FieldFormatter;
 };
 
 export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 
@@ -81,7 +84,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
     renderFunc: (field, data) => {
-      const value = data[field] ? t('yes') : t('no');
+      const value = data[field] ? t('true') : t('false');
       return <Container>{value}</Container>;
     },
   },
@@ -146,6 +149,13 @@ const FIELD_FORMATTERS: FieldFormatters = {
       return <Container>{value}</Container>;
     },
   },
+  array: {
+    isSortable: true,
+    renderFunc: (field, data) => {
+      const value = Array.isArray(data[field]) ? data[field] : [data[field]];
+      return <ArrayValue value={value} />;
+    },
+  },
 };
 
 type SpecialFieldRenderFunc = (
@@ -164,8 +174,10 @@ type SpecialFields = {
   user: SpecialField;
   'user.display': SpecialField;
   'issue.id': SpecialField;
+  'error.handled': SpecialField;
   issue: SpecialField;
   release: SpecialField;
+  key_transaction: SpecialField;
 };
 
 /**
@@ -180,17 +192,17 @@ const SPECIAL_FIELDS: SpecialFields = {
       if (typeof id !== 'string') {
         return null;
       }
-      return (
-        <Container>
-          <EventId value={id} />
-        </Container>
-      );
+
+      return <Container>{getShortEventId(id)}</Container>;
     },
   },
   'issue.id': {
     sortField: 'issue.id',
     renderFunc: (data, {organization}) => {
-      const target = `/organizations/${organization.slug}/issues/${data['issue.id']}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${data['issue.id']}/`,
+      };
+
       return (
         <Container>
           <OverflowLink to={target} aria-label={data['issue.id']}>
@@ -213,7 +225,10 @@ const SPECIAL_FIELDS: SpecialFields = {
         );
       }
 
-      const target = `/organizations/${organization.slug}/issues/${issueID}/`;
+      const target = {
+        pathname: `/organizations/${organization.slug}/issues/${issueID}/`,
+      };
+
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
@@ -293,6 +308,31 @@ const SPECIAL_FIELDS: SpecialFields = {
       ) : (
         <Container>{emptyValue}</Container>
       ),
+  },
+  'error.handled': {
+    sortField: 'error.handled',
+    renderFunc: data => {
+      const values = data['error.handled'];
+      // Transactions will have null, and default events have no handled attributes.
+      if (values === null || values?.length === 0) {
+        return <Container>{emptyValue}</Container>;
+      }
+      const value = Array.isArray(values) ? values.slice(-1)[0] : values;
+      return <Container>{[1, null].includes(value) ? 'true' : 'false'}</Container>;
+    },
+  },
+  key_transaction: {
+    sortField: 'key_transaction',
+    renderFunc: (data, {organization}) => (
+      <Container>
+        <KeyTransactionField
+          isKeyTransaction={(data.key_transaction ?? 0) !== 0}
+          organization={organization}
+          projectSlug={data.project}
+          transactionName={data.transaction}
+        />
+      </Container>
+    ),
   },
 };
 

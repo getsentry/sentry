@@ -120,6 +120,20 @@ describe('CreateAlertButton', () => {
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
   });
 
+  it('should allow yAxis with a measurement as the parameter', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:transaction',
+      yAxis: 'p75(measurements.fcp)',
+      fields: [...DEFAULT_EVENT_VIEW.fields, 'p75(measurements.fcp)'],
+      projects: [2],
+    });
+    expect(eventView.getYAxis()).toBe('p75(measurements.fcp)');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
+    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
+  });
+
   it('should warn with multiple errors, missing event.type and project', () => {
     const eventView = EventView.fromSavedQuery({
       ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
@@ -158,10 +172,7 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    errorsAlert
-      .find('[aria-label="Close"]')
-      .at(0)
-      .simulate('click');
+    errorsAlert.find('[aria-label="Close"]').at(0).simulate('click');
     expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
 

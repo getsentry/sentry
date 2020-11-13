@@ -101,7 +101,7 @@ class SentryAppInstallation(ParanoidModel):
         related_name="sentry_app_installation",
     )
 
-    # Only use this token for public integrtions since each install has only token at a time
+    # Only use this token for public integrations since each install has only token at a time
     # An installation gets an access token once the Grant has been exchanged,
     # and is updated when the token gets refreshed.
     #

@@ -1,11 +1,13 @@
 import React from 'react';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GroupReleaseChart from 'app/components/group/releaseChart';
+import Placeholder from 'app/components/placeholder';
 import SeenInfo from 'app/components/group/seenInfo';
 import getDynamicText from 'app/utils/getDynamicText';
 import {t} from 'app/locale';
 import {Environment, Group, Organization, Project} from 'app/types';
+
+import SidebarSection from './sidebarSection';
 
 type Props = {
   organization: Organization;
@@ -32,7 +34,7 @@ const GroupReleaseStats = ({
       ? t('selected environments')
       : environments.length === 1
       ? environments[0].displayName
-      : null;
+      : undefined;
 
   const projectId = project.id;
   const projectSlug = project.slug;
@@ -40,63 +42,44 @@ const GroupReleaseStats = ({
   const hasRelease = new Set(project.features).has('releases');
 
   return (
-    <div className="env-stats">
-      <h6>
-        <span data-test-id="env-label">{environmentLabel}</span>
-      </h6>
+    <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
+      {!group || !allEnvironments ? (
+        <Placeholder height="288px" />
+      ) : (
+        <React.Fragment>
+          <GroupReleaseChart
+            group={allEnvironments}
+            environment={environmentLabel}
+            environmentStats={group.stats}
+            release={group.currentRelease ? group.currentRelease.release : null}
+            releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+            statsPeriod="24h"
+            title={t('Last 24 Hours')}
+            firstSeen={group.firstSeen}
+            lastSeen={group.lastSeen}
+          />
+          <GroupReleaseChart
+            group={allEnvironments}
+            environment={environmentLabel}
+            environmentStats={group.stats}
+            release={group.currentRelease ? group.currentRelease.release : null}
+            releaseStats={group.currentRelease ? group.currentRelease.stats : null}
+            statsPeriod="30d"
+            title={t('Last 30 Days')}
+            className="bar-chart-small"
+            firstSeen={group.firstSeen}
+            lastSeen={group.lastSeen}
+          />
 
-      <div className="env-content">
-        {!group || !allEnvironments ? (
-          <LoadingIndicator />
-        ) : (
-          <React.Fragment>
-            <GroupReleaseChart
-              group={allEnvironments}
-              environment={environmentLabel}
-              environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
-              statsPeriod="24h"
-              title={t('Last 24 Hours')}
-              firstSeen={group.firstSeen}
-              lastSeen={group.lastSeen}
-            />
-            <GroupReleaseChart
-              group={allEnvironments}
-              environment={environmentLabel}
-              environmentStats={group.stats}
-              release={group.currentRelease ? group.currentRelease.release : null}
-              releaseStats={group.currentRelease ? group.currentRelease.stats : null}
-              statsPeriod="30d"
-              title={t('Last 30 Days')}
-              className="bar-chart-small"
-              firstSeen={group.firstSeen}
-              lastSeen={group.lastSeen}
-            />
-            <h6>
-              <span>{t('First seen')}</span>
-              {environments.length && <small>({environmentLabel})</small>}
-            </h6>
-
-            <SeenInfo
-              orgSlug={orgSlug}
-              projectId={projectId}
-              projectSlug={projectSlug}
-              date={getDynamicText({
-                value: group.firstSeen,
-                fixed: '2015-08-13T03:08:25Z',
-              })}
-              dateGlobal={allEnvironments.firstSeen}
-              hasRelease={hasRelease}
-              environment={shortEnvironmentLabel}
-              release={group.firstRelease || null}
-              title={t('First seen')}
-            />
-
-            <h6>
-              <span>{t('Last seen')}</span>
-              {environments.length && <small>({environmentLabel})</small>}
-            </h6>
+          <SidebarSection
+            secondary
+            title={
+              <React.Fragment>
+                <span>{t('Last seen')}</span>
+                {environments.length > 0 && <small>({environmentLabel})</small>}
+              </React.Fragment>
+            }
+          >
             <SeenInfo
               orgSlug={orgSlug}
               projectId={projectId}
@@ -111,10 +94,35 @@ const GroupReleaseStats = ({
               release={group.lastRelease || null}
               title={t('Last seen')}
             />
-          </React.Fragment>
-        )}
-      </div>
-    </div>
+          </SidebarSection>
+
+          <SidebarSection
+            secondary
+            title={
+              <React.Fragment>
+                <span>{t('First seen')}</span>
+                {environments.length > 0 && <small>({environmentLabel})</small>}
+              </React.Fragment>
+            }
+          >
+            <SeenInfo
+              orgSlug={orgSlug}
+              projectId={projectId}
+              projectSlug={projectSlug}
+              date={getDynamicText({
+                value: group.firstSeen,
+                fixed: '2015-08-13T03:08:25Z',
+              })}
+              dateGlobal={allEnvironments.firstSeen}
+              hasRelease={hasRelease}
+              environment={shortEnvironmentLabel}
+              release={group.firstRelease || null}
+              title={t('First seen')}
+            />
+          </SidebarSection>
+        </React.Fragment>
+      )}
+    </SidebarSection>
   );
 };
 

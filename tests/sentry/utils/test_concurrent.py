@@ -160,15 +160,26 @@ def test_synchronous_executor():
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
     def callable():
-        raise Exception(mock.sentinel.MESSAGE)
+        raise Exception(mock.sentinel.EXCEPTION)
 
     future = executor.submit(callable)
     try:
         future.result()
     except Exception as e:
-        assert e.message is mock.sentinel.MESSAGE
+        assert e.args[0] == mock.sentinel.EXCEPTION
     else:
         assert False, "expected future to raise"
+
+
+def test_threaded_same_priority_Tasks():
+    executor = ThreadedExecutor(worker_count=1)
+
+    def callable():
+        pass
+
+    # Test that we can correctly submit multiple tasks
+    executor.submit(callable)
+    executor.submit(callable)
 
 
 def test_threaded_executor():

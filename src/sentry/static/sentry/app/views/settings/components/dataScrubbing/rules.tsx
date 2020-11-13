@@ -85,8 +85,8 @@ const List = styled('ul')<{
   ${p =>
     p.isDisabled &&
     `
-      color: ${p.theme.gray400};
-      background: ${p.theme.gray100};
+      color: ${p.theme.gray200};
+      background: ${p.theme.backgroundSecondary};
   `}
 `;
 
@@ -96,9 +96,9 @@ const ListItem = styled('li')`
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   &:hover {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
   &:last-child {
     border-bottom: 0;

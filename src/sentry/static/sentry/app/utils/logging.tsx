@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-export function logException(ex: Error, context: any): void {
+export function logException(ex: Error, context?: any): void {
   Sentry.withScope(scope => {
     if (context) {
       scope.setExtra('context', context);

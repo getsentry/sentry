@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import HookStore from 'app/stores/hookStore';
 import {Hooks} from 'app/types/hooks';
 
@@ -112,6 +114,28 @@ type RecordMetric = Hooks['metrics:event'] & {
      */
     noCleanup?: boolean;
   }) => void;
+
+  startTransaction: (opts: {
+    /**
+     * Name of transaction
+     */
+    name: string;
+    /**
+     * Optional trace id, defaults to current tx trace
+     */
+    traceId?: string;
+    /**
+     * Optional op code
+     */
+    op?: string;
+  }) => void;
+
+  endTransaction: (opts: {
+    /**
+     * Name of the transaction to end
+     */
+    name: string;
+  }) => void;
 };
 
 /**
@@ -194,5 +218,29 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
     performance.clearMarks(start);
     performance.clearMarks(endMarkName);
     metricDataStore.delete(start);
+  }
+};
+
+/**
+ * Used to pass data between startTransaction and endTransaction
+ */
+const transactionDataStore = new Map<string, object>();
+
+const getCurrentTransaction = () => {
+  return Sentry.getCurrentHub().getScope()?.getTransaction();
+};
+
+metric.startTransaction = ({name, traceId, op}) => {
+  if (!traceId) {
+    traceId = getCurrentTransaction()?.traceId;
+  }
+  const transaction = Sentry.startTransaction({name, op, traceId});
+  transactionDataStore[name] = transaction;
+};
+
+metric.endTransaction = ({name}) => {
+  const transaction = transactionDataStore[name];
+  if (transaction) {
+    transaction.finish();
   }
 };

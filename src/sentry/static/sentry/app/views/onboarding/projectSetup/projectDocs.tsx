@@ -3,6 +3,7 @@ import {css} from '@emotion/core';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
+import PlatformIcon from 'platformicons';
 
 import {analytics} from 'app/utils/analytics';
 import {loadDocs} from 'app/actionCreators/projects';
@@ -15,7 +16,6 @@ import {IconInfo} from 'app/icons';
 import LoadingError from 'app/components/loadingError';
 import Panel from 'app/components/panels/panel';
 import PanelBody from 'app/components/panels/panelBody';
-import PlatformIcon from 'app/components/platformIcon';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
@@ -269,17 +269,11 @@ const Header = styled('div')`
   font-weight: bold;
 `;
 
-const StyledPlatformIcon = styled(PlatformIcon)`
-  height: 24px;
-  width: 24px;
-  border-radius: 3px;
-`;
-
 const PlatformHeading = ({platform}) => (
   <HeadingContainer>
     <AnimatePresence initial={false}>
       <Heading key={platform}>
-        <StyledPlatformIcon platform={platform} />
+        <PlatformIcon platform={platform} size={24} />
         <Header>
           {t(
             '%s SDK Installation Guide',

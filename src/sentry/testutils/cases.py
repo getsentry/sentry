@@ -26,6 +26,7 @@ import os.path
 import pytest
 import requests
 import six
+import time
 import inspect
 from uuid import uuid4
 from contextlib import contextmanager
@@ -47,13 +48,14 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from exam import before, fixture, Exam
-from concurrent.futures import ThreadPoolExecutor
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
 
 from sentry import auth
+from sentry import eventstore
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
     Superuser,
@@ -72,7 +74,6 @@ from sentry.models import (
     Repository,
     DeletedOrganization,
     Organization,
-    TotpInterface,
     Dashboard,
     ObjectStatus,
     WidgetDataSource,
@@ -84,6 +85,7 @@ from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.utils.retries import TimedRetryPolicy
 
 from .fixtures import Fixtures
 from .factories import Factories
@@ -177,6 +179,7 @@ class BaseTestCase(Fixtures, Exam):
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
+    @TimedRetryPolicy.wrap(timeout=5)
     def login_as(
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
@@ -643,6 +646,7 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
+        self.configure_path = u"/extensions/{}/configure/".format(self.provider.key)
 
         self.pipeline.initialize()
         self.save_session()
@@ -660,27 +664,17 @@ class SnubaTestCase(BaseTestCase):
     tests that require snuba.
     """
 
-    init_endpoints = (
-        "/tests/events/drop",
-        "/tests/groupedmessage/drop",
-        "/tests/transactions/drop",
-        "/tests/sessions/drop",
-    )
-
     def setUp(self):
         super(SnubaTestCase, self).setUp()
         self.init_snuba()
 
-    def call_snuba(self, endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint)
+    @pytest.fixture(autouse=True)
+    def initialize(self, reset_snuba, call_snuba):
+        self.call_snuba = call_snuba
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
-        assert all(
-            response.status_code == 200
-            for response in ThreadPoolExecutor(4).map(self.call_snuba, self.init_endpoints)
-        )
 
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
@@ -689,6 +683,28 @@ class SnubaTestCase(BaseTestCase):
             if stored_group is not None:
                 self.store_group(stored_group)
             return stored_event
+
+    def wait_for_event_count(self, project_id, total, attempts=2):
+        """
+        Wait until the event count reaches the provided value or until attempts is reached.
+
+        Useful when you're storing several events and need to ensure that snuba/clickhouse
+        state has settled.
+        """
+        # Verify that events have settled in snuba's storage.
+        # While snuba is synchronous, clickhouse isn't entirely synchronous.
+        attempt = 0
+        snuba_filter = eventstore.Filter(project_ids=[project_id])
+        while attempt < attempts:
+            events = eventstore.get_events(snuba_filter)
+            if len(events) >= total:
+                break
+            attempt += 1
+            time.sleep(0.05)
+        if attempt == attempts:
+            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
+                attempt
+            )
 
     def store_session(self, session):
         assert (
@@ -961,7 +977,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "groupby": ["time"],
             "rollup": 86400,
         }
-        self.geo_erorrs_query = {
+        self.geo_errors_query = {
             "name": "errorsByGeo",
             "fields": ["geo.country_code"],
             "conditions": [["geo.country_code", "IS NOT NULL", None]],

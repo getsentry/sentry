@@ -9,13 +9,12 @@ from django.db.models import F
 from django.conf import settings
 from django.utils import timezone
 
-from sentry.models import (
-    Authenticator,
+from sentry.auth.authenticators import (
     TotpInterface,
     RecoveryCodeInterface,
     SmsInterface,
-    Organization,
 )
+from sentry.models import Authenticator, Organization
 from sentry.testutils import APITestCase
 
 

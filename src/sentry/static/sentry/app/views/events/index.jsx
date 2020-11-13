@@ -35,6 +35,7 @@ class EventsContainer extends React.Component {
 
   componentDidUpdate(prevProps) {
     const {api, organization, selection} = this.props;
+
     if (
       !isEqual(prevProps.selection.projects, selection.projects) ||
       !isEqual(prevProps.selection.datetime, selection.datetime)
@@ -96,7 +97,7 @@ export default withApi(withOrganization(withGlobalSelection(EventsContainer)));
 export {EventsContainer};
 
 const Body = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   flex-direction: column;
   flex: 1;
 `;

@@ -11,7 +11,7 @@ from django.conf import settings
 import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import reprocessing, options
+from sentry import reprocessing, options, reprocessing2
 from sentry.datascrubbing import scrub_data
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.attachments import attachment_cache
@@ -67,7 +67,7 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data, data_has_changed=None,
+    project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=None,
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -87,9 +87,11 @@ def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_ti
     task.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
 
 
-def submit_save_event(project, cache_key, event_id, start_time, data):
+def submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data):
     if cache_key:
         data = None
+
+    # XXX: honor from_reprocessing
 
     save_event.delay(
         cache_key=cache_key,
@@ -128,24 +130,20 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     from_reprocessing = process_task is process_event_from_reprocessing
 
     if should_process_with_symbolicator(data):
+        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_symbolicate(
             project, from_reprocessing, cache_key, event_id, start_time, original_data
         )
         return
 
     if should_process(data):
+        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
-            project,
-            from_reprocessing,
-            cache_key,
-            event_id,
-            start_time,
-            original_data,
-            data_has_changed=False,
+            project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=False,
         )
         return
 
-    submit_save_event(project, cache_key, event_id, start_time, original_data)
+    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, original_data)
 
 
 @instrumented_task(
@@ -216,13 +214,23 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
             span.set_data("symbolicaton_function", symbolication_function.__name__)
 
-            with metrics.timer("tasks.store.symbolicate_event.symbolication"):
+            with metrics.timer(
+                "tasks.store.symbolicate_event.symbolication",
+                tags={"symbolication_function": symbolication_function.__name__},
+            ):
                 symbolicated_data = symbolication_function(data)
 
             span.set_data("symbolicated_data", bool(symbolicated_data))
             if symbolicated_data:
                 data = symbolicated_data
                 has_changed = True
+
+            if start_time:
+                metrics.timing(
+                    "tasks.store.symbolicate_event.symbolication.full_duration",
+                    time() - start_time,
+                    tags={"symbolication_function": symbolication_function.__name__},
+                )
 
     except RetrySymbolication as e:
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
@@ -233,6 +241,13 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
         if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             # Do not drop event but actually continue with rest of pipeline
             # (persisting unsymbolicated event)
+            metrics.incr(
+                "tasks.store.symbolicate_event.fatal",
+                tags={
+                    "reason": "timeout",
+                    "symbolication_function": symbolication_function.__name__,
+                },
+            )
             error_logger.exception(
                 "symbolicate.failed.infinite_retry",
                 extra={"project_id": project_id, "event_id": event_id},
@@ -242,6 +257,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             has_changed = True
         else:
             # Requeue the task in the "sleep" queue
+            metrics.incr(
+                "tasks.store.symbolicate_event.retry",
+                tags={"symbolication_function": symbolication_function.__name__},
+            )
             retry_symbolicate_event.apply_async(
                 args=(),
                 kwargs={
@@ -256,6 +275,10 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
             )
             return
     except Exception:
+        metrics.incr(
+            "tasks.store.symbolicate_event.fatal",
+            tags={"reason": "error", "symbolication_function": symbolication_function.__name__},
+        )
         error_logger.exception("tasks.store.symbolicate_event.symbolication")
         data.setdefault("_metrics", {})["flag.processing.error"] = True
         data.setdefault("_metrics", {})["flag.processing.fatal"] = True
@@ -526,7 +549,8 @@ def _do_process_event(
 
         cache_key = event_processing_store.store(data)
 
-    submit_save_event(project, cache_key, event_id, start_time, data)
+    from_reprocessing = process_task is process_event_from_reprocessing
+    submit_save_event(project, from_reprocessing, cache_key, event_id, start_time, data)
 
 
 @instrumented_task(
@@ -621,6 +645,13 @@ def create_failed_event(
     if not reprocessing.event_supports_reprocessing(data):
         return False
 
+    # If this event has just been reprocessed with reprocessing-v2, we don't
+    # put it through reprocessing-v1 again. The value of reprocessing-v2 is
+    # partially that one sees the entire event even in its failed state, all
+    # the time.
+    if reprocessing2.is_reprocessed_event(data):
+        return False
+
     reprocessing_active = ProjectOption.objects.get_value(
         project_id, "sentry:reprocessing_active", REPROCESSING_DEFAULT
     )
@@ -661,6 +692,7 @@ def create_failed_event(
     # modifications to take place.
     delete_raw_event(project_id, event_id)
     data = event_processing_store.get(cache_key)
+
     if data is None:
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "raw"}, skip_internal=False)
         error_logger.error("process.failed_raw.empty", extra={"cache_key": cache_key})
@@ -684,7 +716,6 @@ def create_failed_event(
             type=issue["type"],
             data=issue["data"],
         )
-
     event_processing_store.delete_by_key(cache_key)
 
     return True
@@ -752,15 +783,22 @@ def _do_save_event(
                 manager.save(
                     project_id, assume_normalized=True, start_time=start_time, cache_key=cache_key
                 )
-
+                # Put the updated event back into the cache so that post_process
+                # has the most recent data.
+                data = manager.get_data()
+                if isinstance(data, CANONICAL_TYPES):
+                    data = dict(data.items())
+                with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
+                    event_processing_store.store(data)
         except HashDiscarded:
-            pass
-
-        finally:
+            # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     event_processing_store.delete_by_key(cache_key)
 
+        finally:
+            reprocessing2.mark_event_reprocessed(data)
+            if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_attachment_cache"):
                     attachment_cache.delete(cache_key)
 

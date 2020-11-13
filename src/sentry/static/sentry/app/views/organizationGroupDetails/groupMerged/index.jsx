@@ -118,7 +118,7 @@ const GroupMergedView = createReactClass({
         {isLoadedSuccessfully && (
           <MergedList
             orgId={this.props.params.orgId}
-            projectId={this.props.project.slug}
+            project={this.props.project}
             items={this.state.mergedItems}
             pageLinks={this.state.mergedLinks}
             onUnmerge={this.handleUnmerge}

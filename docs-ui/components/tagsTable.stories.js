@@ -27,7 +27,7 @@ const event = {
 };
 
 export default {
-  title: 'UI/TagsTable',
+  title: 'Core/Tables/TagsTable',
 };
 
 export const Default = withInfo(

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
-import Tag from 'app/views/settings/components/tag';
+import Tag from 'app/components/tagDeprecated';
 import Link from 'app/components/links/link';
 import {IconOpen} from 'app/icons';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
@@ -50,8 +50,8 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
 };
 
 const Badge = styled(Tag)`
-  background-color: ${p => p.theme.gray700};
-  color: ${p => p.theme.white};
+  background-color: ${p => p.theme.textColor};
+  color: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeSmall};
   align-items: center;
   height: 20px;

@@ -1,9 +1,9 @@
 import {getDiscoverUrlPathFromDiscoverQuery} from 'app/views/dashboards/utils/getDiscoverUrlPathFromDiscoverQuery';
 
-describe('getDiscoverUrlPathFromDiscoverQuery', function() {
+describe('getDiscoverUrlPathFromDiscoverQuery', function () {
   const organization = TestStubs.Organization();
 
-  it('gets url when grouped by time', function() {
+  it('gets url when grouped by time', function () {
     const query = {
       name: 'Known Users',
       fields: [],
@@ -32,7 +32,7 @@ describe('getDiscoverUrlPathFromDiscoverQuery', function() {
     );
   });
 
-  it('gets url when not grouped by time', function() {
+  it('gets url when not grouped by time', function () {
     const query = {
       name: 'Known Users',
       fields: [],

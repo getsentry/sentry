@@ -18,14 +18,16 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import Placeholder from 'app/components/placeholder';
 import PluginActions from 'app/components/group/pluginActions';
 import {IconGeneric} from 'app/icons';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+
+import SidebarSection from './sidebarSection';
 
 type Props = AsyncComponent['props'] & {
   group: Group;
@@ -43,13 +45,6 @@ type State = AsyncComponent['state'] & {
 
 class ExternalIssueList extends AsyncComponent<Props, State> {
   unsubscribables: any[] = [];
-
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    event: SentryTypes.Event,
-  };
 
   getEndpoints(): [string, string][] {
     const {group} = this.props;
@@ -116,6 +111,18 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }
   }
 
+  async updateIntegrations(onSuccess = () => {}, onError = () => {}) {
+    try {
+      const {group} = this.props;
+      const integrations = await this.api.requestPromise(
+        `/groups/${group.id}/integrations/`
+      );
+      this.setState({integrations}, () => onSuccess());
+    } catch (error) {
+      onError();
+    }
+  }
+
   renderIntegrationIssues(integrations: GroupIntegration[] = []) {
     const {group} = this.props;
 
@@ -123,12 +130,27 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       integration => integration.status === 'active'
     );
 
+    const activeIntegrationsByProvider: Map<
+      string,
+      GroupIntegration[]
+    > = activeIntegrations.reduce((acc, curr) => {
+      const items = acc.get(curr.provider.key);
+
+      if (!!items) {
+        acc.set(curr.provider.key, [...items, curr]);
+      } else {
+        acc.set(curr.provider.key, [curr]);
+      }
+      return acc;
+    }, new Map());
+
     return activeIntegrations.length
-      ? activeIntegrations.map(integration => (
+      ? [...activeIntegrationsByProvider.entries()].map(([provider, configurations]) => (
           <ExternalIssueActions
-            key={integration.id}
-            integration={integration}
+            key={provider}
+            configurations={configurations}
             group={group}
+            onChange={this.updateIntegrations.bind(this)}
           />
         ))
       : null;
@@ -190,18 +212,25 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       : null;
   }
 
+  renderLoading() {
+    return (
+      <SidebarSection data-test-id="linked-issues" title={t('Linked Issues')}>
+        <Placeholder height="120px" />
+      </SidebarSection>
+    );
+  }
+
   renderBody() {
     const sentryAppIssues = this.renderSentryAppIssues();
     const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
     const pluginIssues = this.renderPluginIssues();
     const pluginActions = this.renderPluginActions();
+    const showSetup =
+      !sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions;
 
-    if (!sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions) {
-      return (
-        <React.Fragment>
-          <h6 data-test-id="linked-issues">
-            <span>Linked Issues</span>
-          </h6>
+    return (
+      <SidebarSection data-test-id="linked-issues" title={t('Linked Issues')}>
+        {showSetup && (
           <AlertLink
             icon={<IconGeneric />}
             priority="muted"
@@ -210,20 +239,12 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           >
             {t('Set up Issue Tracking')}
           </AlertLink>
-        </React.Fragment>
-      );
-    }
-
-    return (
-      <React.Fragment>
-        <h6 data-test-id="linked-issues">
-          <span>Linked Issues</span>
-        </h6>
+        )}
         {sentryAppIssues && <Wrapper>{sentryAppIssues}</Wrapper>}
         {integrationIssues && <Wrapper>{integrationIssues}</Wrapper>}
         {pluginIssues && <Wrapper>{pluginIssues}</Wrapper>}
         {pluginActions && <Wrapper>{pluginActions}</Wrapper>}
-      </React.Fragment>
+      </SidebarSection>
     );
   }
 }

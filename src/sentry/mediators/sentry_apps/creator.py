@@ -90,6 +90,9 @@ class Creator(Mediator):
             "is_alertable": self.is_alertable,
             "verify_install": self.verify_install,
             "overview": self.overview,
+            "creator_user": self.user,
+            "creator_label": self.user.email
+            or self.user.username,  # email is not required for some users (sentry apps)
         }
 
         if self.is_internal:

@@ -1,6 +1,6 @@
+import {EChartOption} from 'echarts';
 import 'echarts/lib/component/legend';
 import 'echarts/lib/component/legendScroll';
-import {EChartOption} from 'echarts';
 
 import BaseChart from 'app/components/charts/baseChart';
 

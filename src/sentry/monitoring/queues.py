@@ -32,9 +32,11 @@ class RedisBackend(object):
 class AmqpBackend(object):
     def __init__(self, broker_url):
         dsn = urlparse(broker_url)
+        host, port = dsn.hostname, dsn.port
+        if port is None:
+            port = 5672
         self.conn_info = dict(
-            host=dsn.hostname,
-            port=dsn.port,
+            host="%s:%d" % (host, port),
             userid=dsn.username,
             password=dsn.password,
             virtual_host=dsn.path[1:],

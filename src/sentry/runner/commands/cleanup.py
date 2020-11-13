@@ -71,7 +71,7 @@ def multiprocess_worker(task_queue):
                 models.GroupEmailThread,
                 models.GroupRuleStatus,
                 # Handled by TTL
-                similarity.features,
+                similarity,
             ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
 
             configured = True

@@ -1,18 +1,19 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {Organization} from 'app/types';
+
 type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+  children: React.ReactNode;
+};
 
-class ReleasesContainer extends React.Component<Props> {
-  render() {
-    const {children} = this.props;
-
-    return children;
-  }
+function ReleasesContainer(props: Props) {
+  return props.children;
 }
 
 export default ReleasesContainer;

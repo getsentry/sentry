@@ -4,7 +4,7 @@ import logging
 
 from sentry.api.event_search import get_function_alias
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Group, Project
+from sentry.models import Environment, Group, Project
 from sentry.snuba import discover
 from sentry.utils.compat import map
 
@@ -20,6 +20,7 @@ class DiscoverProcessor(object):
 
     def __init__(self, organization_id, discover_query):
         self.projects = self.get_projects(organization_id, discover_query)
+        self.environments = self.get_environments(organization_id, discover_query)
         self.start, self.end = get_date_range_from_params(discover_query)
         self.params = {
             "organization_id": organization_id,
@@ -27,6 +28,10 @@ class DiscoverProcessor(object):
             "start": self.start,
             "end": self.end,
         }
+        # make sure to only include environment if any are given
+        # an empty list DOES NOT work
+        if self.environments:
+            self.params["environment"] = self.environments
         self.header_fields = map(lambda x: get_function_alias(x), discover_query["field"])
         self.data_fn = self.get_data_fn(
             fields=discover_query["field"], query=discover_query["query"], params=self.params
@@ -40,6 +45,27 @@ class DiscoverProcessor(object):
         return projects
 
     @staticmethod
+    def get_environments(organization_id, query):
+        requested_environments = query.get("environment", [])
+        if not isinstance(requested_environments, list):
+            requested_environments = [requested_environments]
+
+        if not requested_environments:
+            return []
+
+        environments = list(
+            Environment.objects.filter(
+                organization_id=organization_id, name__in=requested_environments
+            )
+        )
+        environment_names = [e.name for e in environments]
+
+        if set(requested_environments) != set(environment_names):
+            raise ExportError("Requested environment does not exist")
+
+        return environment_names
+
+    @staticmethod
     def get_data_fn(fields, query, params):
         def data_fn(offset, limit):
             return discover.query(
@@ -50,6 +76,7 @@ class DiscoverProcessor(object):
                 limit=limit,
                 referrer="data_export.tasks.discover",
                 auto_fields=True,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
             )
 

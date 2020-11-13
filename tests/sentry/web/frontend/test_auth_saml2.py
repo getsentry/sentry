@@ -11,13 +11,13 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes, HAS_SAML2
 from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     AuthProvider,
     Organization,
-    TotpInterface,
 )
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
@@ -105,7 +105,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
     def accept_auth(self, **kargs):
         saml_response = self.load_fixture("saml2_auth_response.xml")
-        saml_response = base64.b64encode(saml_response)
+        saml_response = base64.b64encode(saml_response).decode("utf-8")
 
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"

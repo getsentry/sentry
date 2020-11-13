@@ -26,27 +26,42 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
-    dependencies = [
-        ('sentry', '0026_delete_event'),
-    ]
+    dependencies = [("sentry", "0026_delete_event")]
 
     operations = [
         migrations.CreateModel(
-            name='ExportedData',
+            name="ExportedData",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('date_finished', models.DateTimeField(null=True)),
-                ('date_expired', models.DateTimeField(null=True)),
-                ('storage_url', models.URLField(null=True)),
-                ('query_type', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, b'DISCOVER_V1'), (1, b'BILLING_REPORT'), (2, b'ISSUE_BY_TAG')])),
-                ('query_info', sentry.db.models.fields.jsonfield.JSONField(default=dict)),
-                ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization')),
-                ('user', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                ("date_finished", models.DateTimeField(null=True)),
+                ("date_expired", models.DateTimeField(null=True)),
+                ("storage_url", models.URLField(null=True)),
+                (
+                    "query_type",
+                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        choices=[(0, "DISCOVER_V1"), (1, "BILLING_REPORT"), (2, "ISSUE_BY_TAG")]
+                    ),
+                ),
+                ("query_info", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    ),
+                ),
+                (
+                    "user",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    ),
+                ),
             ],
-            options={
-                'db_table': 'sentry_exporteddata',
-            },
-        ),
+            options={"db_table": "sentry_exporteddata"},
+        )
     ]

@@ -5,9 +5,9 @@ import {selectByValue} from 'sentry-test/select';
 
 import {Form, SelectField} from 'app/components/forms';
 
-describe('SelectField', function() {
-  describe('deprecatedSelectControl', function() {
-    it('renders without form context', function() {
+describe('SelectField', function () {
+  describe('deprecatedSelectControl', function () {
+    it('renders without form context', function () {
       const wrapper = mountWithTheme(
         <SelectField
           deprecatedSelectControl
@@ -22,7 +22,7 @@ describe('SelectField', function() {
       expect(wrapper).toSnapshot();
     });
 
-    it('renders with flat choices', function() {
+    it('renders with flat choices', function () {
       const wrapper = mountWithTheme(
         <SelectField
           deprecatedSelectControl
@@ -43,7 +43,7 @@ describe('SelectField', function() {
       expect(wrapper).toSnapshot();
     });
 
-    it('renders with paired choices', function() {
+    it('renders with paired choices', function () {
       const wrapper = mountWithTheme(
         <SelectField
           deprecatedSelectControl
@@ -68,7 +68,7 @@ describe('SelectField', function() {
       expect(wrapper).toSnapshot();
     });
 
-    it('can change value and submit', function() {
+    it('can change value and submit', function () {
       const mock = jest.fn();
       const wrapper = mountWithTheme(
         <Form onSubmit={mock}>
@@ -91,7 +91,7 @@ describe('SelectField', function() {
       );
     });
 
-    it('can set the value to empty string via props with no options', function() {
+    it('can set the value to empty string via props with no options', function () {
       const mock = jest.fn();
       const wrapper = mountWithTheme(
         <SelectField
@@ -119,8 +119,8 @@ describe('SelectField', function() {
       expect(mock).toHaveBeenLastCalledWith('');
     });
 
-    describe('Multiple', function() {
-      it('selects multiple values and submits', function() {
+    describe('Multiple', function () {
+      it('selects multiple values and submits', function () {
         const mock = jest.fn();
         const wrapper = mountWithTheme(
           <Form onSubmit={mock}>

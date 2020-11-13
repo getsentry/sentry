@@ -360,7 +360,7 @@ export default styled(ActivityItem)`
   position: relative;
   margin: 0;
   padding: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   line-height: 1.4;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -370,7 +370,7 @@ const ActivityAuthor = styled('span')`
 `;
 
 const Meta = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 const Project = styled('span')`
@@ -378,10 +378,10 @@ const Project = styled('span')`
 `;
 
 const Bubble = styled('div')<{clipped: boolean}>`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   margin: ${space(0.5)} 0;
   padding: ${space(1)} ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 3px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   position: relative;
@@ -421,6 +421,6 @@ const Bubble = styled('div')<{clipped: boolean}>`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-left: ${space(1)};
 `;

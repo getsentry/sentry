@@ -7,17 +7,17 @@ import {Client} from 'app/api';
 import OrganizationStore from 'app/stores/organizationStore';
 import OrganizationPerformance from 'app/views/settings/organizationPerformance';
 
-describe('Settings > OrganizationPerformance', function() {
+describe('Settings > OrganizationPerformance', function () {
   const organization = TestStubs.Organization({
     features: ['performance-view'],
     apdexThreshold: 450,
   });
 
-  beforeEach(function() {
+  beforeEach(function () {
     Client.clearMockResponses();
   });
 
-  it('renders with initialData', function() {
+  it('renders with initialData', function () {
     const initialData = initializeOrg({organization});
     const wrapper = mountWithTheme(
       <OrganizationPerformance
@@ -40,7 +40,7 @@ describe('Settings > OrganizationPerformance', function() {
     expect(input.props().disabled).toBeFalsy();
   });
 
-  it('can update', async function() {
+  it('can update', async function () {
     const updateMock = Client.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'PUT',
@@ -78,7 +78,7 @@ describe('Settings > OrganizationPerformance', function() {
     expect(updated.apdexThreshold).toEqual(500);
   });
 
-  it('renders disabled based on access', function() {
+  it('renders disabled based on access', function () {
     const noAccess = {...organization, access: []};
     const initialData = initializeOrg({organization: noAccess});
     const wrapper = mountWithTheme(

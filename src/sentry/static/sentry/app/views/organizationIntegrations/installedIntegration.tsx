@@ -17,8 +17,6 @@ import theme from 'app/utils/theme';
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
-const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
-
 export type Props = {
   organization: Organization;
   provider: IntegrationProvider;
@@ -34,22 +32,6 @@ export type Props = {
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
-  /**
-   * Integrations have additional configuration when any of the conditions are
-   * met:
-   *
-   * - The Integration has organization-specific configuration options.
-   * - The Integration has configurable features
-   */
-  hasConfiguration() {
-    const {integration, provider} = this.props;
-
-    return (
-      integration.configOrganization.length > 0 ||
-      provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
-    );
-  }
-
   handleReAuthIntegration = (integration: Integration) => {
     this.props.onReAuthIntegration(integration);
   };
@@ -166,24 +148,16 @@ export default class InstalledIntegration extends React.Component<Props> {
                 </Tooltip>
               )}
               <Tooltip
-                disabled={this.hasConfiguration() && hasAccess}
+                disabled={hasAccess}
                 position="left"
-                title={
-                  !this.hasConfiguration()
-                    ? t('Integration not configurable')
-                    : t(
-                        'You must be an organization owner, manager or admin to configure'
-                      )
-                }
+                title={t(
+                  'You must be an organization owner, manager or admin to configure'
+                )}
               >
                 <StyledButton
                   borderless
                   icon={<IconSettings />}
-                  disabled={
-                    !this.hasConfiguration() ||
-                    !hasAccess ||
-                    integration.status !== 'active'
-                  }
+                  disabled={!hasAccess || integration.status !== 'active'}
                   to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                   data-test-id="integration-configure-button"
                 >
@@ -225,7 +199,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const IntegrationFlex = styled('div')`
@@ -240,7 +214,7 @@ const IntegrationItemBox = styled('div')`
 const IntegrationStatus = styled(
   (props: React.HTMLAttributes<HTMLElement> & {status: ObjectStatus}) => {
     const {status, ...p} = props;
-    const color = status === 'active' ? theme.success : theme.gray500;
+    const color = status === 'active' ? theme.success : theme.gray300;
     const titleText =
       status === 'active'
         ? t('This Integration can be disabled by clicking the Uninstall button')
@@ -259,12 +233,12 @@ const IntegrationStatus = styled(
 )`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: light;
   text-transform: capitalize;
   &:before {
     content: '|';
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
     font-weight: normal;
   }

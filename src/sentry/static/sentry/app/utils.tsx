@@ -4,7 +4,7 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {Project} from 'app/types';
+import {Project, EventTag} from 'app/types';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {
@@ -91,7 +91,7 @@ export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Arr
   return arr;
 }
 
-export function objectIsEmpty(obj: object): boolean {
+export function objectIsEmpty(obj = {}): boolean {
   for (const prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       return false;
@@ -133,10 +133,7 @@ export function isUrl(str: any): boolean {
 }
 
 export function escape(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function percent(value: number, totalValue: number): number {
@@ -276,10 +273,7 @@ export type OmitHtmlDivProps<P extends object> = Omit<
 > &
   P;
 
-export function generateQueryWithTag(
-  prevQuery: Query,
-  tag: {key: string; value: string}
-): Query {
+export function generateQueryWithTag(prevQuery: Query, tag: EventTag): Query {
   const query = {...prevQuery};
 
   // some tags are dedicated query strings since other parts of the app consumes this,

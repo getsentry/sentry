@@ -29,10 +29,10 @@ const OrganizationTeamsContainer = createReactClass({
 
   getInitialState() {
     return {
-      teamList: sortArray(TeamStore.getAll(), function(o) {
+      teamList: sortArray(TeamStore.getAll(), function (o) {
         return o && o.name;
       }),
-      projectList: sortArray(ProjectsStore.getAll(), function(o) {
+      projectList: sortArray(ProjectsStore.getAll(), function (o) {
         return o && o.name;
       }),
       projectStats: {},
@@ -58,7 +58,7 @@ const OrganizationTeamsContainer = createReactClass({
     const newTeamList = TeamStore.getAll();
 
     this.setState({
-      teamList: sortArray(newTeamList, function(o) {
+      teamList: sortArray(newTeamList, function (o) {
         return o.name;
       }),
     });
@@ -68,7 +68,7 @@ const OrganizationTeamsContainer = createReactClass({
     const newProjectList = ProjectsStore.getAll();
 
     this.setState({
-      projectList: sortArray(newProjectList, function(o) {
+      projectList: sortArray(newProjectList, function (o) {
         return o.name;
       }),
     });

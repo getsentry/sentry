@@ -7,6 +7,7 @@ import DropdownMenu from 'app/components/dropdownMenu';
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
 import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownBubble from 'app/components/dropdownBubble';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -48,7 +49,9 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
                     isActive={selected === opt.value}
                     data-test-id={`option-${opt.value}`}
                   >
-                    {opt.label}
+                    <Tooltip title={opt.tooltip} containerDisplayMode="inline">
+                      {opt.label}
+                    </Tooltip>
                   </DropdownItem>
                 ))}
               </StyledDropdownBubble>
@@ -68,13 +71,13 @@ const MenuContainer = styled('div')`
 const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.gray400};
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
 
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.gray500};
   }
 `;
 

@@ -1,0 +1,8 @@
+Action Required
+---------------
+
+An identity with a third party service provider (dummy) failed to authenticate and has been removed.
+
+You will need to associate your account with dummy to continue using the integration.
+
+http://testserver/account/settings/social/associate/dummy/

@@ -11,12 +11,12 @@ import * as globalSelection from 'app/actionCreators/globalSelection';
 jest.mock('app/components/charts/eventsRequest', () => jest.fn(() => null));
 jest.spyOn(globalSelection, 'updateDateTime');
 
-describe('EventsChart', function() {
+describe('EventsChart', function () {
   const {router, routerContext, org} = initializeOrg();
   let render;
   let wrapper;
 
-  beforeEach(function() {
+  beforeEach(function () {
     globalSelection.updateDateTime.mockClear();
     mockZoomRange(1543449600000, 1543708800000);
     wrapper = mountWithTheme(
@@ -39,29 +39,29 @@ describe('EventsChart', function() {
     render = jest.spyOn(wrapper.find('ChartZoom').instance(), 'render');
   });
 
-  it('renders', function() {
+  it('renders', function () {
     expect(render).toHaveBeenCalledTimes(0);
   });
 
-  it('re-renders if period from props changes', function() {
+  it('re-renders if period from props changes', function () {
     wrapper.setProps({period: '7d'});
     wrapper.update();
     expect(render).toHaveBeenCalledTimes(1);
   });
 
-  it('re-renders if query from props changes', function() {
+  it('re-renders if query from props changes', function () {
     wrapper.setProps({query: 'newQuery'});
     wrapper.update();
     expect(render).toHaveBeenCalledTimes(1);
   });
 
-  it('re-renders if project from props changes', function() {
+  it('re-renders if project from props changes', function () {
     wrapper.setProps({project: [2]});
     wrapper.update();
     expect(render).toHaveBeenCalledTimes(1);
   });
 
-  it('has correct history entries when zooming', function() {
+  it('has correct history entries when zooming', function () {
     const chartZoomInstance = wrapper.find('ChartZoom').instance();
 
     doZoom(wrapper, chart);
@@ -111,7 +111,7 @@ describe('EventsChart', function() {
     wrapper.update();
   });
 
-  it('updates url params when restoring zoom level on chart', function() {
+  it('updates url params when restoring zoom level on chart', function () {
     doZoom(wrapper, chart);
     // Zoom again
     mockZoomRange(1543536000000, 1543708800000);

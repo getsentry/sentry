@@ -4,7 +4,7 @@ import six
 
 from django.db.models import Q
 
-from sentry.api.base import DocSection, Endpoint
+from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize, ProjectWithOrganizationSerializer
@@ -12,19 +12,11 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import Project, ProjectPlatform, ProjectStatus, SentryAppInstallationToken
 from sentry.search.utils import tokenize_query
-from sentry.utils.apidocs import scenario, attach_scenarios
-
-
-@scenario("ListYourProjects")
-def list_your_projects_scenario(runner):
-    runner.request(method="GET", path="/projects/")
 
 
 class ProjectIndexEndpoint(Endpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = (ProjectPermission,)
 
-    @attach_scenarios([list_your_projects_scenario])
     def get(self, request):
         """
         List your Projects

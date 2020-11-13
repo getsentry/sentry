@@ -5,7 +5,7 @@ import AlertLink from 'app/components/alertLink';
 import {IconDocs, IconGeneric, IconMail, IconStack, IconStar} from 'app/icons';
 
 export default {
-  title: 'UI/Alerts/AlertLink',
+  title: 'Core/Alerts/AlertLink',
 };
 
 export const Default = withInfo(

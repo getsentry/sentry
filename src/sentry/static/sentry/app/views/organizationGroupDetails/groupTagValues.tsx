@@ -97,19 +97,23 @@ class GroupTagValues extends AsyncComponent<
                 }}
               >
                 {tag.key === 'user' ? (
-                  <UserBadge user={tagValue} avatarSize={20} hideEmail />
+                  <UserBadge
+                    user={{...tagValue, id: tagValue.identifier ?? ''}}
+                    avatarSize={20}
+                    hideEmail
+                  />
                 ) : (
                   <DeviceName value={tagValue.name} />
                 )}
               </GlobalSelectionLink>
               {tagValue.email && (
                 <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color="gray500" />
+                  <IconMail size="xs" color="gray300" />
                 </StyledExternalLink>
               )}
               {isUrl(tagValue.value) && (
                 <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color="gray500" />
+                  <IconOpen size="xs" color="gray300" />
                 </StyledExternalLink>
               )}
             </ValueWrapper>

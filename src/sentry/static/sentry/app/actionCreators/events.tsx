@@ -12,14 +12,6 @@ import {
   MultiSeriesEventsStats,
 } from 'app/types';
 
-function getBaseUrl(org: OrganizationSummary, keyTransactions: boolean | undefined) {
-  if (keyTransactions) {
-    return `/organizations/${org.slug}/key-transactions-stats/`;
-  }
-
-  return `/organizations/${org.slug}/events-stats/`;
-}
-
 type Options = {
   organization: OrganizationSummary;
   project?: number[];
@@ -33,8 +25,6 @@ type Options = {
   query?: string;
   yAxis?: string | string[];
   field?: string[];
-  referenceEvent?: string;
-  keyTransactions?: boolean;
   topEvents?: number;
   orderby?: string;
 };
@@ -67,8 +57,6 @@ export const doEventsRequest = (
     query,
     yAxis,
     field,
-    referenceEvent,
-    keyTransactions,
     topEvents,
     orderby,
   }: Options
@@ -82,7 +70,6 @@ export const doEventsRequest = (
       query,
       yAxis,
       field,
-      referenceEvent,
       topEvents,
       orderby,
     }).filter(([, value]) => typeof value !== 'undefined')
@@ -93,7 +80,7 @@ export const doEventsRequest = (
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
-  return api.requestPromise(`${getBaseUrl(organization, keyTransactions)}`, {
+  return api.requestPromise(`/organizations/${organization.slug}/events-stats/`, {
     query: {
       ...urlQuery,
       ...periodObj,

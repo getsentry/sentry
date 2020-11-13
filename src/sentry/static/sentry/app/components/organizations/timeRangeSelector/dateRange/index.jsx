@@ -24,10 +24,7 @@ import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 class DateRange extends React.Component {
-  static getTimeStringFromDate = date =>
-    moment(date)
-      .local()
-      .format('HH:mm');
+  static getTimeStringFromDate = date => moment(date).local().format('HH:mm');
 
   static propTypes = {
     /**
@@ -190,7 +187,7 @@ class DateRange extends React.Component {
     return (
       <div className={className} data-test-id="date-range">
         <StyledDateRangePicker
-          rangeColors={[theme.purple400]}
+          rangeColors={[theme.purple300]}
           ranges={[
             {
               startDate: moment(start).local(),
@@ -230,7 +227,7 @@ class DateRange extends React.Component {
 const StyledDateRange = styled(DateRange)`
   display: flex;
   flex-direction: column;
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.border};
 `;
 
 const StyledDateRangePicker = styled(DateRangePicker)`
@@ -312,15 +309,15 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrNextPrevButton {
-    background-color: ${p => p.theme.gray300};
+    background-color: ${p => p.theme.gray200};
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.gray700};
+    border-right-color: ${p => p.theme.textColor};
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.gray700};
+    border-left-color: ${p => p.theme.textColor};
   }
 `;
 
@@ -328,11 +325,11 @@ const TimeAndUtcPicker = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
   justify-content: flex-end;

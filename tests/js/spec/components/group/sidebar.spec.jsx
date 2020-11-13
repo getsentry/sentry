@@ -5,14 +5,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GroupSidebar from 'app/components/group/sidebar';
 
-describe('GroupSidebar', function() {
+describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
   const {organization, project, routerContext} = initializeOrg();
   const environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
   let tagsMock;
 
-  beforeEach(function() {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/committers/',
       body: {committers: []},
@@ -63,29 +63,29 @@ describe('GroupSidebar', function() {
     );
   });
 
-  afterEach(function() {
+  afterEach(function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('sidebar', function() {
-    it('should make a request to the /tags/ endpoint to get top values', function() {
+  describe('sidebar', function () {
+    it('should make a request to the /tags/ endpoint to get top values', function () {
       expect(tagsMock).toHaveBeenCalled();
     });
   });
 
-  describe('renders with tags', function() {
-    it('renders', function() {
+  describe('renders with tags', function () {
+    it('renders', async function () {
       expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
       expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
       expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
-      expect(
-        wrapper.find('GroupTagDistributionMeter[data-test-id="group-tag"]')
-      ).toHaveLength(5);
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(5);
     });
   });
 
-  describe('renders without tags', function() {
-    beforeEach(function() {
+  describe('renders without tags', function () {
+    beforeEach(async function () {
       group = TestStubs.Group();
 
       MockApiClient.addMockResponse({
@@ -108,21 +108,23 @@ describe('GroupSidebar', function() {
         />,
         routerContext
       );
+      await tick();
+      wrapper.update();
     });
 
-    it('renders no tags', function() {
-      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(0);
+    it('renders no tags', function () {
+      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(0);
     });
 
-    it('renders empty text', function() {
+    it('renders empty text', function () {
       expect(wrapper.find('[data-test-id="no-tags"]').text()).toBe(
         'No tags found in the selected environments'
       );
     });
   });
 
-  describe('environment toggle', function() {
-    it('re-requests tags with correct environment', function() {
+  describe('environment toggle', function () {
+    it('re-requests tags with correct environment', function () {
       const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
       expect(tagsMock).toHaveBeenCalledTimes(1);
       wrapper.setProps({environments: [stagingEnv]});

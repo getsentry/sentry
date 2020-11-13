@@ -26,7 +26,11 @@ from sentry.models.authenticator import available_authenticators
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
 from .organization_member_details import get_allowed_roles
+from sentry.utils import metrics, ratelimits
 from sentry.utils.retries import TimedRetryPolicy
+
+
+ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
 
 @transaction.atomic
@@ -199,6 +203,17 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
+
+        if ratelimits.for_organization_member_invite(
+            organization=organization, email=result["email"], user=request.user, auth=request.auth,
+        ):
+            metrics.incr(
+                "member-invite.attempt",
+                instance="rate_limited",
+                skip_internal=True,
+                sample_rate=1.0,
+            )
+            return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
         with transaction.atomic():
             # remove any invitation requests for this email before inviting

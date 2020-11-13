@@ -28,10 +28,6 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    # XXX: it's not quite clear if this should be documented or not at
-    # this time.
-    # doc_section = DocSection.ACCOUNTS
-
     def get(self, request):
         if not request.user.is_authenticated():
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -106,7 +102,7 @@ class AuthIndexEndpoint(Endpoint):
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
                 interface = Authenticator.objects.get_interface(request.user, "u2f")
-                if not interface.is_enrolled:
+                if not interface.is_enrolled():
                     raise LookupError()
 
                 challenge = json.loads(validator.validated_data["challenge"])

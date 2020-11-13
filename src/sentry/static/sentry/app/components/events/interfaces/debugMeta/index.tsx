@@ -78,7 +78,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
-    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange);
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
     cache.clearAll();
     this.filterImages();
   }
@@ -443,6 +443,7 @@ const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
   ${p => p.overflowHidden && 'overflow: hidden !important;'}
   height: auto !important;
   max-height: ${p => p.height}px;
+  outline: none;
 `;
 
 const Label = styled('label')`

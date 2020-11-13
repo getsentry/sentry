@@ -21,6 +21,7 @@ export default class SelectCreatableField extends SelectField {
     choices: SelectControl.propTypes.choices,
     onChange: PropTypes.func,
     creatable: PropTypes.bool,
+    deprecatedSelectControl: PropTypes.bool,
   };
 
   constructor(props) {

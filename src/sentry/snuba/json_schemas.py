@@ -48,7 +48,7 @@ SUBSCRIPTION_PAYLOAD_VERSIONS = {
                         "items": {
                             "type": "object",
                             "minProperties": 1,
-                            "additionalProperties": {"type": "number"},
+                            "additionalProperties": {"type": ["number", "null"]},
                         },
                     }
                 },

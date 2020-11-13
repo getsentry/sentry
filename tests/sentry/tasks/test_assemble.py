@@ -72,9 +72,7 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
-        dif = ProjectDebugFile.objects.filter(
-            project=self.project, file__checksum=total_checksum
-        ).get()
+        dif = ProjectDebugFile.objects.filter(project=self.project, checksum=total_checksum).get()
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
 
@@ -176,9 +174,7 @@ class AssembleDifTest(BaseAssembleTest):
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status == ChunkFileState.OK
 
-        dif = ProjectDebugFile.objects.filter(
-            project=self.project, file__checksum=total_checksum
-        ).get()
+        dif = ProjectDebugFile.objects.filter(project=self.project, checksum=total_checksum).get()
 
         assert dif.file.headers == {"Content-Type": "text/x-breakpad"}
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"

@@ -8,6 +8,7 @@ import styled from '@emotion/styled';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {IconOpen, IconAdd, IconSubtract} from 'app/icons';
 import {isUrl} from 'app/utils';
+import ExternalLink from 'app/components/links/externalLink';
 
 function looksLikeObjectRepr(value) {
   const a = value[0];
@@ -29,7 +30,7 @@ function looksLikeMultiLineString(value) {
 }
 
 function padNumbersInString(string) {
-  return string.replace(/(\d+)/g, function(num) {
+  return string.replace(/(\d+)/g, function (num) {
     let isNegative = false;
     num = parseInt(num, 10);
     if (num < 0) {
@@ -166,9 +167,9 @@ class ContextData extends React.Component {
 
         if (valueInfo.isString && isUrl(value)) {
           out.push(
-            <a key="external" href={value} className="external-icon">
+            <ExternalLink key="external" href={value} className="external-icon">
               <StyledIconOpen size="xs" />
-            </a>
+            </ExternalLink>
           );
         }
 
@@ -270,9 +271,9 @@ const ToggleIcon = styled('a')`
   margin-left: 1px;
   border-radius: 2px;
 
-  background: ${p => (p.isOpen ? p.theme.gray500 : p.theme.blue400)};
+  background: ${p => (p.isOpen ? p.theme.gray300 : p.theme.blue300)};
   &:hover {
-    background: ${p => (p.isOpen ? p.theme.gray600 : p.theme.blue500)};
+    background: ${p => (p.isOpen ? p.theme.gray400 : p.theme.blue200)};
   }
 `;
 

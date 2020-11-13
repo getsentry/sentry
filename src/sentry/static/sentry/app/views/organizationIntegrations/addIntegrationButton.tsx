@@ -3,13 +3,13 @@ import React from 'react';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {Integration, IntegrationProvider, Organization} from 'app/types';
+import {IntegrationWithConfig, IntegrationProvider, Organization} from 'app/types';
 
 import AddIntegration from './addIntegration';
 
 type Props = {
   provider: IntegrationProvider;
-  onAddIntegration: (data: Integration) => void;
+  onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   reinstall?: boolean;
   integrationId?: string;

@@ -141,7 +141,7 @@ export default class TableField extends React.Component<Props> {
               <Row key={fieldKey}>
                 <RowInput>
                   <Input
-                    onChange={v => setValue(rowIndex, fieldKey, v ? v : null)}
+                    onChange={v => setValue(rowIndex, fieldKey, v)}
                     value={!defined(row[fieldKey]) ? '' : row[fieldKey]}
                   />
                 </RowInput>
@@ -189,7 +189,7 @@ export default class TableField extends React.Component<Props> {
 const HeaderLabel = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 const HeaderContainer = styled('div')`

@@ -25,7 +25,11 @@ const {env} = process;
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || env.TEST_SUITE;
 const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
+// This is used to stop rendering dynamic content for tests/snapshots
+// We want it in the case where we are running tests and it is in CI,
+// this should not happen in local
 const IS_CI = !!env.CI || !!env.TRAVIS;
+const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
@@ -103,7 +107,7 @@ if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
  *
  * A plugin is used to remove the locale chunks from the app entry's chunk
  * dependency list, so that our compiled bundle does not expect that *all*
- * locale chunks must be loadd
+ * locale chunks must be loaded
  */
 const localeCatalogPath = path.join(
   __dirname,
@@ -307,7 +311,7 @@ let appConfig = {
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_CI: JSON.stringify(IS_CI),
+        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
         SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
@@ -379,7 +383,7 @@ let appConfig = {
   devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-eval-source-map',
 };
 
-if (IS_TEST || IS_CI || IS_STORYBOOK) {
+if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve.alias['integration-docs-platforms'] = path.join(
     __dirname,
     'tests/fixtures/integration-docs/_platforms.json'
@@ -430,7 +434,7 @@ if (
   if (!IS_UI_DEV_ONLY) {
     // This proxies to local backend server
     const backendAddress = `http://localhost:${SENTRY_BACKEND_PORT}/`;
-    const relayAddress = 'http://127.0.0.1:3000';
+    const relayAddress = 'http://127.0.0.1:7899';
 
     appConfig.devServer = {
       ...appConfig.devServer,
@@ -457,12 +461,10 @@ if (
 // to a development index.html -- thus, completely separating the frontend
 // from serving any pages through the backend.
 //
-// THIS IS EXPERIMENTAL and has limitations (e.g. CSRF issues will stop you
-// from writing to the API).
+// THIS IS EXPERIMENTAL and has limitations (e.g. you can't use SSO)
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
-  appConfig.output.publicPath = '/_assets/';
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
@@ -474,6 +476,9 @@ if (IS_UI_DEV_ONLY) {
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+        },
       },
     ],
     historyApiFallback: {
@@ -483,6 +488,8 @@ if (IS_UI_DEV_ONLY) {
 }
 
 if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
+  appConfig.output.publicPath = '/_assets/';
+
   /**
    * Generate a index.html file used for running the app in pure client mode.
    * This is currently used for PR deploy previews, where only the frontend
@@ -491,8 +498,11 @@ if (IS_UI_DEV_ONLY || IS_DEPLOY_PREVIEW) {
   const HtmlWebpackPlugin = require('html-webpack-plugin');
   appConfig.plugins.push(
     new HtmlWebpackPlugin({
-      devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`,
-      // inject: false,
+      // Local dev vs vercel slightly differs...
+      ...(IS_UI_DEV_ONLY
+        ? {devServer: `https://localhost:${SENTRY_WEBPACK_PROXY_PORT}`}
+        : {}),
+      favicon: path.resolve(staticPrefix, 'images', 'favicon_dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
       title: 'Sentry',
@@ -516,7 +526,7 @@ const minificationPlugins = [
 
 if (IS_PRODUCTION) {
   // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
-  minificationPlugins.forEach(function(plugin) {
+  minificationPlugins.forEach(function (plugin) {
     appConfig.plugins.push(plugin);
   });
 }

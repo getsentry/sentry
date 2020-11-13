@@ -24,6 +24,10 @@ from sentry.utils.strings import truncatechars
 from sentry.utils.compat import zip
 
 
+# Keys in the event payload we do not want to send to the event stream / snuba.
+EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
+
+
 def ref_func(x):
     return x.project_id or x.project.id
 
@@ -393,9 +397,15 @@ class Event(object):
     def version(self):
         return self.data.get("version", "5")
 
-    def get_raw_data(self):
+    def get_raw_data(self, for_stream=False):
         """Returns the internal raw event data dict."""
-        return dict(self.data.items())
+        rv = dict(self.data.items())
+        # If we get raw data for snuba we remove some large keys that blow
+        # up the payload for no reason.
+        if for_stream:
+            for key in EVENTSTREAM_PRUNED_KEYS:
+                rv.pop(key, None)
+        return rv
 
     @property
     def size(self):
@@ -407,9 +417,7 @@ class Event(object):
             template = EventSubjectTemplate(template)
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128).encode(
-            "utf-8"
-        )
+        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
 
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""

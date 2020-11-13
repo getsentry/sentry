@@ -29,7 +29,7 @@ class RedisLockBackendTestCase(TestCase):
         assert duration - 2 < float(client.ttl(full_key)) <= duration
 
         self.backend.release(key)
-        assert client.exists(full_key) is False
+        assert not client.exists(full_key)
 
     def test_acquire_fail_on_conflict(self):
         key = "lock"
@@ -51,3 +51,12 @@ class RedisLockBackendTestCase(TestCase):
 
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)
+
+    def test_locked(self):
+        key = "lock:testkey"
+        duration = 60
+        assert self.backend.locked(key) is False
+
+        self.backend.acquire(key, duration)
+        assert self.backend.locked(key)
+        self.backend.release(key)

@@ -1,0 +1,193 @@
+{
+  "get": {
+    "tags": ["Organizations"],
+    "description": "This resolves an event ID to the project slug and internal issue ID and internal event ID.",
+    "operationId": "Resolve an Event ID",
+    "parameters": [
+      {
+        "name": "organization_slug",
+        "in": "path",
+        "description": "The slug of the organization the event ID should be looked up in.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "event_id",
+        "in": "path",
+        "description": "The event ID to look up.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "event",
+                "eventId",
+                "groupId",
+                "organizationSlug",
+                "projectSlug"
+              ],
+              "properties": {
+                "event": {
+                  "$ref": "../../components/schemas/event.json#/OrganizationEvent"
+                },
+                "eventId": {
+                  "type": "string"
+                },
+                "groupId": {
+                  "type": "string"
+                },
+                "organizationSlug": {
+                  "type": "string"
+                },
+                "projectSlug": {
+                  "type": "string"
+                }
+              }
+            },
+            "example": {
+              "event": {
+                "_meta": {
+                  "context": null,
+                  "contexts": null,
+                  "entries": {},
+                  "message": null,
+                  "packages": null,
+                  "sdk": null,
+                  "tags": {},
+                  "user": null
+                },
+                "context": {
+                  "emptyList": [],
+                  "emptyMap": {},
+                  "length": 10837790,
+                  "results": [1, 2, 3, 4, 5],
+                  "session": {
+                    "foo": "bar"
+                  },
+                  "unauthorized": false,
+                  "url": "http://example.org/foo/bar/"
+                },
+                "contexts": {},
+                "dateCreated": "2018-11-06T21:19:55Z",
+                "dateReceived": "2018-11-06T21:19:55Z",
+                "dist": null,
+                "entries": [
+                  {
+                    "type": "request",
+                    "data": {
+                      "fragment": null,
+                      "cookies": [],
+                      "inferredContentType": null,
+                      "env": null,
+                      "headers": [
+                        [
+                          "User-Agent",
+                          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+                        ]
+                      ],
+                      "url": "http://example.com/foo",
+                      "query": [],
+                      "data": null,
+                      "method": null
+                    }
+                  }
+                ],
+                "errors": [],
+                "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
+                "fingerprints": ["c4a4d06bc314205bb3b6bdb612dde7f1"],
+                "groupID": "1",
+                "id": "1",
+                "message": "",
+                "title": "This is an example Python exception",
+                "metadata": {
+                  "title": "This is an example Python exception"
+                },
+                "packages": {
+                  "my.package": "1.0.0"
+                },
+                "platform": "python",
+                "sdk": null,
+                "size": 7055,
+                "tags": [
+                  {
+                    "_meta": null,
+                    "key": "browser",
+                    "value": "Chrome 28.0"
+                  },
+                  {
+                    "_meta": null,
+                    "key": "device",
+                    "value": "Other"
+                  },
+                  {
+                    "_meta": null,
+                    "key": "level",
+                    "value": "error"
+                  },
+                  {
+                    "_meta": null,
+                    "key": "os",
+                    "value": "Windows 8"
+                  },
+                  {
+                    "_meta": null,
+                    "key": "release",
+                    "value": "17642328ead24b51867165985996d04b29310337"
+                  },
+                  {
+                    "_meta": null,
+                    "key": "url",
+                    "value": "http://example.com/foo"
+                  },
+                  {
+                    "_meta": null,
+                    "key": "user",
+                    "value": "id:1"
+                  }
+                ],
+                "type": "default",
+                "user": {
+                  "data": {},
+                  "email": "sentry@example.com",
+                  "id": "1",
+                  "ip_address": "127.0.0.1",
+                  "name": "Sentry",
+                  "username": "sentry"
+                }
+              },
+              "eventId": "1",
+              "groupId": "1",
+              "organizationSlug": "the-interstellar-jurisdiction",
+              "projectSlug": "pump-station"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden"
+      },
+      "401": {
+        "description": "Unauthorized"
+      },
+      "404": {
+        "description": "Not Found"
+      }
+    },
+    "security": [
+      {
+        "auth_token": ["org: read"]
+      }
+    ]
+  }
+}

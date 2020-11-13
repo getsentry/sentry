@@ -93,6 +93,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
@@ -112,6 +113,7 @@ export type InterfaceChromeHooks = {
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:item-label': SidebarItemLabelHook;
+  'help-modal:footer': HelpModalFooterHook;
 };
 
 /**
@@ -301,6 +303,14 @@ type SidebarProps = Pick<
 type SidebarBottomItemsHook = (
   opts: SidebarProps & {organization: Organization}
 ) => React.ReactNode;
+
+/**
+ * Provides augmentation of the help modal footer
+ */
+type HelpModalFooterHook = (opts: {
+  closeModal: () => void;
+  organization: Organization;
+}) => React.ReactNode;
 
 /**
  * Wrapper component to allow for customization of the onboarding member

@@ -11,7 +11,7 @@ import pytest
 from sentry import eventstore
 from sentry.utils import json
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, materialize_metadata
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.fingerprinting import FingerprintingRules
@@ -91,6 +91,7 @@ class FingerprintInput(object):
 
         data.setdefault("fingerprint", ["{{ default }}"])
         apply_server_fingerprinting(data, config)
+        data.update(materialize_metadata(data))
 
         evt = eventstore.create_event(data=data)
         return config, evt

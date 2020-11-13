@@ -4,17 +4,16 @@ import {shallow} from 'sentry-test/enzyme';
 
 import {RangeField} from 'app/components/forms';
 
-describe('RangeField', function() {
-  describe('render()', function() {
-    it('renders', function() {
-      const wrapper = shallow(<RangeField name="fieldName" />, {
+describe('RangeField', function () {
+  describe('render()', function () {
+    it('renders', function () {
+      shallow(<RangeField name="fieldName" />, {
         disableLifecycleMethods: true,
       });
-      expect(wrapper).toMatchSnapshot();
     });
 
-    it('renders with optional attributes', function() {
-      const wrapper = shallow(
+    it('renders with optional attributes', function () {
+      shallow(
         <RangeField
           name="fieldName"
           min={0}
@@ -25,18 +24,16 @@ describe('RangeField', function() {
         />,
         {disableLifecycleMethods: true}
       );
-      expect(wrapper).toMatchSnapshot();
     });
 
-    it('renders with value', function() {
-      const wrapper = shallow(<RangeField name="fieldName" value={2} />, {
+    it('renders with value', function () {
+      shallow(<RangeField name="fieldName" value={2} />, {
         disableLifecycleMethods: true,
       });
-      expect(wrapper).toMatchSnapshot();
     });
 
-    it('renders with form context', function() {
-      const wrapper = shallow(<RangeField name="fieldName" />, {
+    it('renders with form context', function () {
+      shallow(<RangeField name="fieldName" />, {
         disableLifecycleMethods: true,
         context: {
           form: {
@@ -47,10 +44,9 @@ describe('RangeField', function() {
           },
         },
       });
-      expect(wrapper).toMatchSnapshot();
     });
 
-    it('renders with value=0 in form context', function() {
+    it('renders with value=0 in form context', function () {
       const wrapper = shallow(<RangeField name="fieldName" />, {
         disableLifecycleMethods: true,
         context: {

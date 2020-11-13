@@ -5,12 +5,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectKeys from 'app/views/settings/project/projectKeys/list';
 
-describe('ProjectKeys', function() {
+describe('ProjectKeys', function () {
   let org, project, wrapper;
   let deleteMock;
   let projectKeys;
 
-  beforeEach(function() {
+  beforeEach(function () {
     org = TestStubs.Organization();
     project = TestStubs.Project();
     projectKeys = TestStubs.ProjectKeys();
@@ -43,7 +43,7 @@ describe('ProjectKeys', function() {
     );
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
@@ -59,7 +59,7 @@ describe('ProjectKeys', function() {
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 
-  it('has clippable box', function() {
+  it('has clippable box', function () {
     const clipFade = wrapper.find('ClipFade');
     expect(clipFade).toHaveLength(1);
     const clipFadeButton = clipFade.find('button');
@@ -68,11 +68,8 @@ describe('ProjectKeys', function() {
     expect(wrapper.find('ClipFade button')).toHaveLength(0);
   });
 
-  it('deletes key', function() {
-    wrapper
-      .find('PanelHeader Button')
-      .last()
-      .simulate('click');
+  it('deletes key', function () {
+    wrapper.find('PanelHeader Button').last().simulate('click');
 
     wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
 
@@ -81,16 +78,13 @@ describe('ProjectKeys', function() {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('disable and enables key', function() {
+  it('disable and enables key', function () {
     const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'PUT',
     });
 
-    wrapper
-      .find('PanelHeader Button')
-      .at(1)
-      .simulate('click');
+    wrapper.find('PanelHeader Button').at(1).simulate('click');
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -99,10 +93,7 @@ describe('ProjectKeys', function() {
       })
     );
 
-    wrapper
-      .find('PanelHeader Button')
-      .at(1)
-      .simulate('click');
+    wrapper.find('PanelHeader Button').at(1).simulate('click');
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),

@@ -77,17 +77,19 @@ def __apply_mask(address_packed, mask_packed, nr_bytes):
     :return: Anonymized IP address
     :rtype: str
     """
+    address_ints = [b for b in six.iterbytes(address_packed)]
+    mask_ints = [b for b in six.iterbytes(mask_packed)]
 
     anon_packed = bytearray()
     for i in range(0, nr_bytes):
-        anon_packed.append(ord(mask_packed[i]) & ord(address_packed[i]))
+        anon_packed.append(mask_ints[i] & address_ints[i])
     return six.text_type(ip_address(six.binary_type(anon_packed)))
 
 
 def __validate_ipv4_mask(mask_packed):
     # Test that mask only contains valid numbers
-    for byte in mask_packed:
-        if byte != b"\x00" and byte != b"\xff":
+    for byte in six.iterbytes(mask_packed):
+        if byte != 0 and byte != 255:
             raise ValueError("ipv4_mask must only contain numbers 0 or 255")
 
     # Test that IP address does not get anonymized completely
@@ -105,8 +107,8 @@ def __validate_ipv4_mask(mask_packed):
 
 def __validate_ipv6_mask(mask_packed):
     # Test that mask only contains valid numbers
-    for byte in mask_packed:
-        if byte != b"\x00" and byte != b"\xff":
+    for byte in six.iterbytes(mask_packed):
+        if byte != 0 and byte != 255:
             raise ValueError("ipv6_mask must only contain numbers 0 or ffff")
 
     # Test that IP address does not get anonymized completely

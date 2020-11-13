@@ -1,17 +1,4 @@
-html {
-  height: 100%;
-}
-
 body {
-  margin: 0;
-  font-size: 16px;
-  line-height: 24px;
-  color: @gray-darker;
-  background: @white-dark;
-  -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  min-height: 100vh;
-
   &.body-sidebar {
     @media (min-width: 993px) {
       padding-left: @sidebar-expanded-width;
@@ -55,7 +42,6 @@ body {
 
 body.narrow {
   padding: 0;
-
   background: #fff;
 
   &.body-sidebar {
@@ -127,10 +113,6 @@ body.narrow {
         }
       }
     }
-  }
-
-  footer {
-    display: none;
   }
 }
 
@@ -316,48 +298,6 @@ body.auth {
 }
 
 /**
-* Footer
-* ============================================================================
-*/
-
-footer {
-  line-height: 30px;
-  text-align: center;
-  color: @gray;
-  border-top: 1px solid @trim;
-  padding: 28px 0;
-  margin-top: 20px;
-
-  .container {
-    // Ensure dropdowns inside application views
-    // don't stack under footer content.
-    position: static;
-  }
-
-  .pull-right {
-    a {
-      margin-left: 20px;
-    }
-  }
-
-  a {
-    color: @gray;
-
-    &:hover {
-      color: @gray-dark;
-    }
-  }
-
-  .icon-sentry-logo {
-    color: @gray;
-    font-size: 28px;
-    width: 32px;
-    margin: 0 auto;
-    display: block;
-  }
-}
-
-/**
 * Windowed
 * ============================================================================
 */
@@ -418,7 +358,6 @@ footer {
     padding: 0 !important;
   }
 
-  #CModal,
   footer {
     display: none;
   }
@@ -582,9 +521,5 @@ footer {
         padding: 20px;
       }
     }
-  }
-
-  .app > footer {
-    display: none;
   }
 }

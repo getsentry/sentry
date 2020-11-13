@@ -39,8 +39,8 @@ describe('Source', () => {
       .hostNodes()
       .children();
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
-    expect(suggestions).toHaveLength(12);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
+    expect(suggestions).toHaveLength(18);
   });
 
   it('display defaultSuggestions if input is empty, focused and has length 3', () => {
@@ -51,8 +51,8 @@ describe('Source', () => {
       .hostNodes()
       .children();
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
-    expect(suggestions).toHaveLength(12);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
+    expect(suggestions).toHaveLength(18);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type string', () => {
@@ -79,10 +79,10 @@ describe('Source', () => {
       .hostNodes()
       .children();
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 12
-    expect(suggestions).toHaveLength(12);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
+    expect(suggestions).toHaveLength(18);
     // !
-    expect(suggestions.at(11).text()).toEqual(unarySuggestions[0].value);
+    expect(suggestions.at(17).text()).toEqual(unarySuggestions[0].value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type value', () => {
@@ -125,8 +125,8 @@ describe('Source', () => {
       .hostNodes()
       .children();
 
-    // defaultSuggestions.length === 11
-    expect(suggestions).toHaveLength(11);
+    // defaultSuggestions.length === 17
+    expect(suggestions).toHaveLength(17);
 
     // everywhere
     expect(suggestions.at(0).text()).toEqual(

@@ -1,5 +1,3 @@
-import {Query} from 'history';
-
 import {Client} from 'app/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -14,13 +12,10 @@ export function resetSavedSearches() {
 
 export function fetchSavedSearches(api: Client, orgSlug: string): Promise<SavedSearch[]> {
   const url = `/organizations/${orgSlug}/searches/`;
-  const data: Query = {use_org_level: '1'};
-
   SavedSearchesActions.startFetchSavedSearches();
 
   const promise = api.requestPromise(url, {
     method: 'GET',
-    data,
   });
 
   promise
@@ -123,7 +118,7 @@ export function fetchRecentSearches(
   api: Client,
   orgSlug: string,
   type: SavedSearchType,
-  query: string
+  query?: string
 ): Promise<RecentSearch[]> {
   const url = getRecentSearchUrl(orgSlug);
   const promise = api.requestPromise(url, {

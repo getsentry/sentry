@@ -15,7 +15,7 @@ export function hasNonContributingComponent(component: EventGroupComponent | und
 }
 
 export function shouldInlineComponentValue(component: EventGroupComponent) {
-  return component.values.every(value => !isObject(value));
+  return (component.values as EventGroupComponent[]).every(value => !isObject(value));
 }
 
 export function groupingComponentFilter(

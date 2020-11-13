@@ -7,7 +7,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import EventView from 'app/utils/discover/eventView';
 import TableView from 'app/views/eventsV2/table/tableView';
 
-describe('TableView > CellActions', function() {
+describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
 
   const location = {
@@ -46,23 +46,17 @@ describe('TableView > CellActions', function() {
   function openContextMenu(wrapper, cellIndex) {
     const menu = wrapper.find('CellAction').at(cellIndex);
     // Hover over the menu
-    menu
-      .find('Container > div')
-      .at(0)
-      .simulate('mouseEnter');
+    menu.find('Container > div').at(0).simulate('mouseEnter');
     wrapper.update();
 
     // Open the menu
     wrapper.find('MenuButton').simulate('click');
 
     // Return the menu wrapper so we can interact with it.
-    return wrapper
-      .find('CellAction')
-      .at(cellIndex)
-      .find('Menu');
+    return wrapper.find('CellAction').at(cellIndex).find('Menu');
   }
 
-  beforeEach(function() {
+  beforeEach(function () {
     browserHistory.push.mockReset();
 
     const organization = TestStubs.Organization({
@@ -97,7 +91,7 @@ describe('TableView > CellActions', function() {
     };
   });
 
-  it('handles add cell action on null value', function() {
+  it('handles add cell action on null value', function () {
     rows.data[0].title = null;
 
     const wrapper = makeWrapper(initialData, rows, eventView);
@@ -112,7 +106,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles add cell action on null value replace has condition', function() {
+  it('handles add cell action on null value replace has condition', function () {
     rows.data[0].title = null;
     const view = eventView.clone();
     view.query = 'tag:value has:title';
@@ -129,7 +123,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles add cell action on string value replace negation', function() {
+  it('handles add cell action on string value replace negation', function () {
     const view = eventView.clone();
     view.query = 'tag:value !title:nope';
 
@@ -145,7 +139,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles exclude cell action on string value', function() {
+  it('handles exclude cell action on string value', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 0);
     menu.find('button[data-test-id="exclude-from-filter"]').simulate('click');
@@ -158,7 +152,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles exclude cell action on string value replace inclusion', function() {
+  it('handles exclude cell action on string value replace inclusion', function () {
     const view = eventView.clone();
     view.query = 'tag:value title:nope';
 
@@ -174,7 +168,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles exclude cell action on null value', function() {
+  it('handles exclude cell action on null value', function () {
     rows.data[0].title = null;
 
     const wrapper = makeWrapper(initialData, rows, eventView);
@@ -189,7 +183,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles exclude cell action on null value replace condition', function() {
+  it('handles exclude cell action on null value replace condition', function () {
     const view = eventView.clone();
     view.query = 'tag:value !has:title';
     rows.data[0].title = null;
@@ -206,7 +200,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles greater than cell action on number value', function() {
+  it('handles greater than cell action on number value', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 2);
     menu.find('button[data-test-id="show-values-greater-than"]').simulate('click');
@@ -219,7 +213,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles less than cell action on number value', function() {
+  it('handles less than cell action on number value', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 2);
     menu.find('button[data-test-id="show-values-less-than"]').simulate('click');
@@ -232,7 +226,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles go to transaction', function() {
+  it('handles go to transaction', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 1);
     menu.find('button[data-test-id="transaction-summary"]').simulate('click');
@@ -245,7 +239,7 @@ describe('TableView > CellActions', function() {
     });
   });
 
-  it('handles go to release', function() {
+  it('handles go to release', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     const menu = openContextMenu(wrapper, 4);
     menu.find('button[data-test-id="release"]').simulate('click');

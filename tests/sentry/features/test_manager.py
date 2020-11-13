@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+
 from sentry import features
+from sentry.utils.compat import mock
 from sentry.testutils import TestCase
 
 
@@ -63,6 +66,40 @@ class FeatureManagerTest(TestCase):
         assert manager.has_for_batch(
             project_flag, organization, [p1, p2, p3, p4], actor=test_user
         ) == {p1: True, p2: False, p3: True, p4: False}
+
+    def test_entity_handler(self):
+        test_org = self.create_organization()
+        # Add a registered handler
+        registered_handler = mock.Mock()
+        registered_handler.features = ["organizations:feature1"]
+        manager = features.FeatureManager()
+        manager.add("organizations:feature1", features.OrganizationFeature)
+
+        # Add the entity handler
+        entity_handler = mock.Mock()
+        manager.add("organizations:unregistered-feature", features.OrganizationFeature)
+
+        # Non entity feature
+        manager.add("organizations:settings-feature", features.OrganizationFeature)
+
+        manager.add_handler(registered_handler)
+        manager.add_entity_handler(entity_handler)
+
+        # A feature with a registered handler shouldn't use the entity handler
+        assert manager.has("organizations:feature1", test_org)
+        assert len(entity_handler.has.mock_calls) == 0
+        assert len(registered_handler.mock_calls) == 1
+
+        # The feature isn't registered, so it should try checking the entity_handler
+        assert manager.has("organizations:unregistered-feature", test_org)
+        assert len(entity_handler.has.mock_calls) == 1
+        assert len(registered_handler.mock_calls) == 1
+
+        # The entity_handler doesn't have a response for this feature either, so settings should be checked instead
+        entity_handler.has.return_value = None
+        settings.SENTRY_FEATURES["organizations:settings-feature"] = "test"
+        assert manager.has("organizations:settings-feature", test_org) == "test"
+        assert len(entity_handler.mock_calls) == 2
 
     def test_has_for_batch(self):
         test_user = self.create_user()

@@ -181,6 +181,11 @@ class GroupActivityItem extends React.Component {
           data.issues.length,
           author
         );
+      case 'reprocess':
+        return t(
+          '%(author)s reprocessed this issue, some events may have moved into new issues',
+          {author}
+        );
       default:
         return ''; // should never hit (?)
     }

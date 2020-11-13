@@ -30,8 +30,6 @@ import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import marked from 'app/utils/marked';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
-import Link from 'app/components/links/link';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -452,20 +450,6 @@ class ProjectGeneralSettings extends AsyncView {
               <React.Fragment>{this.renderUpgradeGrouping()}</React.Fragment>
             )}
           />
-
-          <Panel>
-            <PanelHeader>{t('Data Privacy')}</PanelHeader>
-            <EmptyMessage
-              title={t('Data Privacy has moved')}
-              description={
-                <Link
-                  to={`/settings/${orgId}/projects/${projectId}/security-and-privacy/`}
-                >
-                  {t('Go to Security & Privacy')}
-                </Link>
-              }
-            />
-          </Panel>
 
           <JsonForm
             {...jsonFormProps}

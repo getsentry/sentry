@@ -54,10 +54,7 @@ export function getUserTimezone(): string {
  * Given a UTC date, return a Date object in local time
  */
 export function getUtcToLocalDateObject(date: moment.MomentInput): Date {
-  return moment
-    .utc(date)
-    .local()
-    .toDate();
+  return moment.utc(date).local().toDate();
 }
 
 /**
@@ -144,9 +141,7 @@ export function getPeriodAgo(
   period: moment.unitOfTime.DurationConstructor,
   unit: string
 ): object {
-  return moment()
-    .local()
-    .subtract(period, unit);
+  return moment().local().subtract(period, unit);
 }
 
 // Get the start of the day (midnight) for a period ago

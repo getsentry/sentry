@@ -13,7 +13,6 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -40,39 +39,10 @@ from sentry.models import (
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.tasks.deletion import delete_project
-from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils import json
 from sentry.utils.compat import filter
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-@scenario("GetProject")
-def get_project_scenario(runner):
-    runner.request(
-        method="GET", path="/projects/%s/%s/" % (runner.org.slug, runner.default_project.slug)
-    )
-
-
-@scenario("DeleteProject")
-def delete_project_scenario(runner):
-    with runner.isolated_project("Plain Proxy") as project:
-        runner.request(method="DELETE", path="/projects/%s/%s/" % (runner.org.slug, project.slug))
-
-
-@scenario("UpdateProject")
-def update_project_scenario(runner):
-    with runner.isolated_project("Plain Proxy") as project:
-        runner.request(
-            method="PUT",
-            path="/projects/%s/%s/" % (runner.org.slug, project.slug),
-            data={
-                "name": "Plane Proxy",
-                "slug": "plane-proxy",
-                "platform": "javascript",
-                "options": {"sentry:origins": "http://example.com\nhttp://example.invalid"},
-            },
-        )
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -112,7 +82,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
-    storeCrashReports = serializers.IntegerField(min_value=-1, max_value=20, required=False)
+    storeCrashReports = serializers.IntegerField(
+        min_value=-1, max_value=20, required=False, allow_null=True
+    )
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     builtinSymbolSources = ListField(child=serializers.CharField(), required=False)
     symbolSources = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -278,7 +250,6 @@ class RelaxedProjectPermission(ProjectPermission):
 
 
 class ProjectDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.PROJECTS
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -292,7 +263,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    @attach_scenarios([get_project_scenario])
     def get(self, request, project):
         """
         Retrieve a Project
@@ -313,7 +283,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    @attach_scenarios([update_project_scenario])
     def put(self, request, project):
         """
         Update a Project
@@ -462,9 +431,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if result.get("storeCrashReports") is not None:
-            if project.update_option("sentry:store_crash_reports", result["storeCrashReports"]):
+        if "storeCrashReports" in result is not None:
+            if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
+                if result["storeCrashReports"] is None:
+                    project.delete_option("sentry:store_crash_reports")
+                else:
+                    project.update_option("sentry:store_crash_reports", result["storeCrashReports"])
         if result.get("relayPiiConfig") is not None:
             if project.update_option("sentry:relay_pii_config", result["relayPiiConfig"]):
                 changed_proj_settings["sentry:relay_pii_config"] = (
@@ -530,7 +503,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:store_crash_reports" in options:
                 project.update_option(
                     "sentry:store_crash_reports",
-                    convert_crashreport_count(options["sentry:store_crash_reports"]),
+                    convert_crashreport_count(
+                        options["sentry:store_crash_reports"], allow_none=True
+                    ),
                 )
             if "sentry:relay_pii_config" in options:
                 project.update_option(
@@ -623,7 +598,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         data = serialize(project, request.user, DetailedProjectSerializer())
         return Response(data)
 
-    @attach_scenarios([delete_project_scenario])
     @sudo_required
     def delete(self, request, project):
         """

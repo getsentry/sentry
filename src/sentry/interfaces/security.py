@@ -18,6 +18,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "chrome-extension://*",
     "chromeinvokeimmediate://*",
     "chromenull://*",
+    "data:text/html,chromewebdata",
     "safari-extension://*",
     "mxaddon-pkg://*",
     "jar://*",

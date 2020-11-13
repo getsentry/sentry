@@ -3,8 +3,9 @@
 from __future__ import absolute_import, print_function
 
 import six
+import pytest
 
-from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 
 
 def dump_obj(obj):
@@ -44,6 +45,11 @@ family:native                                   max-frames=3
     assert Enhancements.loads(dumped).dumps() == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, six.string_types)
+
+
+def test_parsing_errors():
+    with pytest.raises(InvalidEnhancerConfig):
+        Enhancements.from_config_string("invalid.message:foo -> bar")
 
 
 def test_basic_path_matching():

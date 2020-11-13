@@ -13,13 +13,14 @@ import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SpreadLayout from 'app/components/spreadLayout';
 import Toolbar from 'app/components/toolbar';
 import space from 'app/styles/space';
+import SentryTypes from 'app/sentryTypes';
 
 const MergedToolbar = createReactClass({
   displayName: 'MergedToolbar',
 
   propTypes: {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    project: SentryTypes.Project.isRequired,
     groupId: PropTypes.string,
     onUnmerge: PropTypes.func,
     onToggleCollapse: PropTypes.func,
@@ -55,7 +56,7 @@ const MergedToolbar = createReactClass({
   },
 
   handleShowDiff(e) {
-    const {groupId, projectId, orgId} = this.props;
+    const {groupId, project, orgId} = this.props;
     const entries = this.state.unmergeList.entries();
 
     // `unmergeList` should only have 2 items in map
@@ -74,7 +75,7 @@ const MergedToolbar = createReactClass({
       baseEventId,
       targetEventId,
       orgId,
-      projectId,
+      project,
     });
 
     e.stopPropagation();

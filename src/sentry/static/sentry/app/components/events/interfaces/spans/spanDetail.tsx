@@ -108,10 +108,6 @@ class SpanDetail extends React.Component<Props, State> {
       end,
     };
 
-    if (query.project.length === 0) {
-      delete query.project;
-    }
-
     return api.requestPromise(url, {
       method: 'GET',
       query,
@@ -482,7 +478,7 @@ const StyledDiscoverButton = styled(DiscoverButton)`
 `;
 
 export const SpanDetailContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   cursor: auto;
 `;
 

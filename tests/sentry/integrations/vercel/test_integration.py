@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import responses
-import six
 
 from rest_framework.serializers import ValidationError
 
@@ -78,6 +77,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             "next": "https://example.com",
         }
         self.pipeline.bind_state("user_id", self.user.id)
+        # TODO: Should use the setup path since we /configure instead
         resp = self.client.get(self.setup_path, params)
 
         mock_request = responses.calls[0].request
@@ -247,43 +247,43 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = json.loads(responses.calls[7].request.body)
         assert req_params["name"] == "SENTRY_ORG_%s" % uuid
         assert req_params["value"] == org.slug
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["name"] == "SENTRY_PROJECT_%s" % uuid
         assert req_params["value"] == self.project.slug
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[9].request.body)
         assert req_params["name"] == "NEXT_PUBLIC_SENTRY_DSN_%s" % uuid
         assert req_params["value"] == enabled_dsn
 
-        req_params = json.loads(responses.calls[9].request.body)
+        req_params = json.loads(responses.calls[10].request.body)
         assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
         assert req_params["value"] == sentry_auth_token
 
-        req_params = json.loads(responses.calls[11].request.body)
+        req_params = json.loads(responses.calls[12].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == "sec_0"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[13].request.body)
+        req_params = json.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == "sec_1"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[15].request.body)
+        req_params = json.loads(responses.calls[16].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == "sec_2"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[17].request.body)
+        req_params = json.loads(responses.calls[18].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_3"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[19].request.body)
+        req_params = json.loads(responses.calls[20].request.body)
         assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
         assert req_params["value"] == ""
         assert req_params["target"] == "production"
@@ -373,27 +373,27 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[12].request.body)
+        req_params = json.loads(responses.calls[13].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == "sec_0"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[15].request.body)
+        req_params = json.loads(responses.calls[16].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == "sec_1"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[18].request.body)
+        req_params = json.loads(responses.calls[19].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == "sec_2"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[21].request.body)
+        req_params = json.loads(responses.calls[22].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_3"
         assert req_params["target"] == "production"
 
-        req_params = json.loads(responses.calls[23].request.body)
+        req_params = json.loads(responses.calls[24].request.body)
         assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
         assert req_params["value"] == ""
         assert req_params["target"] == "production"
@@ -467,16 +467,29 @@ class VercelIntegrationTest(IntegrationTestCase):
             },
         )
 
-        data = b"""{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}"""
+        data = b'{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}'
 
         resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
         assert resp.status_code == 200
         assert (
-            six.binary_type(
-                absolute_uri(
-                    "/settings/%s/integrations/vercel/%s/"
-                    % (self.organization.slug, integration.id)
-                )
-            )
+            absolute_uri(
+                "/settings/%s/integrations/vercel/%s/" % (self.organization.slug, integration.id)
+            ).encode("utf-8")
             in resp.content
+        )
+
+    @responses.activate
+    def test_get_dynamic_display_information(self):
+        with self.tasks():
+            self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization.id)
+        dynamic_display_info = installation.get_dynamic_display_information()
+        instructions = dynamic_display_info["configure_integration"]["instructions"]
+        assert len(instructions) == 2
+        assert "Don't have a project yet?" in instructions[0]
+        assert "configure your repositories." in instructions[1]
+        assert (
+            dynamic_display_info["integration_detail"]["uninstallationUrl"]
+            == "https://vercel.com/dashboard/integrations/my_config_id"
         )

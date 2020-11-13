@@ -2,6 +2,9 @@
 
 from __future__ import absolute_import
 
+import six
+from django.utils.encoding import force_text
+
 from sentry.utils.compat import mock, pickle
 
 from datetime import datetime
@@ -16,18 +19,17 @@ class RedisBufferTest(TestCase):
         self.buf = RedisBuffer()
 
     def test_coerce_val_handles_foreignkeys(self):
-        assert self.buf._coerce_val(Project(id=1)) == "1"
+        assert self.buf._coerce_val(Project(id=1)) == b"1"
 
     def test_coerce_val_handles_unicode(self):
-        assert self.buf._coerce_val(u"\u201d") == "”"
+        assert self.buf._coerce_val(u"\u201d") == u"”".encode("utf-8")
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
     def test_process_pending_one_batch(self, process_incr):
         self.buf.incr_batch_size = 5
         with self.buf.cluster.map() as client:
-            client.zadd("b:p", 1, "foo")
-            client.zadd("b:p", 2, "bar")
+            client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
@@ -39,9 +41,7 @@ class RedisBufferTest(TestCase):
     def test_process_pending_multiple_batches(self, process_incr):
         self.buf.incr_batch_size = 2
         with self.buf.cluster.map() as client:
-            client.zadd("b:p", 1, "foo")
-            client.zadd("b:p", 2, "bar")
-            client.zadd("b:p", 3, "baz")
+            client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["foo", "bar"]})
@@ -101,24 +101,29 @@ class RedisBufferTest(TestCase):
         filters = {"pk": 1, "datetime": now}
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = client.hgetall("foo")
+        # Force keys to strings
+        result = {force_text(k): v for k, v in six.iteritems(result)}
+
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "bar"
-        assert result == {"i+times_seen": "1", "m": "mock.mock.Mock"}
+        assert result == {"i+times_seen": b"1", "m": b"mock.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == ["foo"]
+        assert pending == [b"foo"]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall("foo")
+        # Force keys to strings
+        result = {force_text(k): v for k, v in six.iteritems(result)}
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "baz"
-        assert result == {"i+times_seen": "2", "m": "mock.mock.Mock"}
+        assert result == {"i+times_seen": b"2", "m": b"mock.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
-        assert pending == ["foo"]
+        assert pending == [b"foo"]
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
@@ -126,9 +131,9 @@ class RedisBufferTest(TestCase):
     def test_process_pending_partitions_none(self, process_pending, process_incr):
         self.buf.pending_partitions = 2
         with self.buf.cluster.map() as client:
-            client.zadd("b:p:0", 1, "foo")
-            client.zadd("b:p:1", 1, "bar")
-            client.zadd("b:p", 1, "baz")
+            client.zadd("b:p:0", {"foo": 1})
+            client.zadd("b:p:1", {"bar": 1})
+            client.zadd("b:p", {"baz": 1})
 
         # On first pass, we are expecting to do:
         # * process the buffer that doesn't have a partition (b:p)

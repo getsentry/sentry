@@ -3,7 +3,8 @@ import identity from 'lodash/identity';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
-import {DATE_TIME, DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {GlobalSelection} from 'app/types';
+import {DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 
@@ -53,7 +54,6 @@ export function getStateFromQuery(
     period: period || null,
     start: start || null,
     end: end || null,
-
     // params from URL will be a string
     utc: typeof utc !== 'undefined' ? utc === 'true' : null,
   };
@@ -74,15 +74,16 @@ export function extractSelectionParameters(query) {
 export function extractDatetimeSelectionParameters(query) {
   return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
 }
-export function getDefaultSelection() {
+export function getDefaultSelection(): GlobalSelection {
+  const utc = DEFAULT_PARAMS.utc;
   return {
     projects: [],
     environments: [],
     datetime: {
-      [DATE_TIME.START]: DEFAULT_PARAMS.start || null,
-      [DATE_TIME.END]: DEFAULT_PARAMS.end || null,
-      [DATE_TIME.PERIOD]: DEFAULT_PARAMS.statsPeriod || null,
-      [DATE_TIME.UTC]: DEFAULT_PARAMS.utc || null,
+      start: DEFAULT_PARAMS.start || null,
+      end: DEFAULT_PARAMS.end || null,
+      period: DEFAULT_PARAMS.statsPeriod || '',
+      utc: typeof utc !== 'undefined' ? utc === 'true' : null,
     },
   };
 }

@@ -1,20 +1,28 @@
+import {EChartOption} from 'echarts';
+import {Location} from 'history';
 import moment from 'moment';
 
 import {GlobalSelection} from 'app/types';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {parsePeriodToHours} from 'app/utils/dates';
+import {decodeList} from 'app/utils/queryString';
 import {escape} from 'app/utils';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
-const THIRTY_DAYS = 43200;
-const TWENTY_FOUR_HOURS = 1440;
-const ONE_HOUR = 60;
+export const THIRTY_DAYS = 43200;
+export const TWO_WEEKS = 20160;
+export const ONE_WEEK = 10080;
+export const TWENTY_FOUR_HOURS = 1440;
+export const ONE_HOUR = 60;
 
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
-export function truncationFormatter(value: string, truncate: number | undefined): string {
+export function truncationFormatter(
+  value: string,
+  truncate: number | boolean | undefined
+): string {
   if (!truncate) {
     return escape(value);
   }
@@ -101,4 +109,18 @@ export function canIncludePreviousPeriod(
 
   // otherwise true
   return !!includePrevious;
+}
+
+/**
+ * Generates a series selection based on the query parameters defined by the location.
+ */
+export function getSeriesSelection(
+  location: Location,
+  parameter = 'unselectedSeries'
+): EChartOption.Legend['selected'] {
+  const unselectedSeries = decodeList(location.query[parameter]) ?? [];
+  return unselectedSeries.reduce((selection, series) => {
+    selection[series] = false;
+    return selection;
+  }, {});
 }

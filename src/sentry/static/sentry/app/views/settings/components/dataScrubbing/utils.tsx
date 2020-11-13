@@ -134,6 +134,36 @@ const valueSuggestions: Array<SourceSuggestion> = [
     value: 'tags.server_name',
     description: t('the tag "server_name"'),
   },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '$attachments',
+    description: t('all attachments'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '$minidump',
+    description: t('the entire minidump of a native crash report'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '$heap_memory',
+    description: t('the heap memory region in a native crash report'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '$stack_memory',
+    description: t('the stack memory region in a native crash report'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: 'code_module',
+    description: t('the pathname of a code module in a native crash report'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: 'debug_module',
+    description: t('the pathname of a debug module in a native crash report'),
+  },
 ];
 
 export {

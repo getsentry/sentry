@@ -6,7 +6,7 @@ import ConfirmDelete from 'app/components/confirmDelete';
 import Button from 'app/components/button';
 
 export default {
-  title: 'UI/Confirm',
+  title: 'Core/Buttons/Confirm',
 };
 
 export const _ConfirmDelete = withInfo({

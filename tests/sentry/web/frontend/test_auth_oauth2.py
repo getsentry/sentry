@@ -72,12 +72,12 @@ class AuthOAuth2Test(AuthProviderTestCase):
         return query["state"][0]
 
     @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
-    def initiate_callback(self, state, auth_data, urlopen, expect_success=True, **kargs):
+    def initiate_callback(self, state, auth_data, urlopen, expect_success=True, **kwargs):
         headers = {"Content-Type": "application/json"}
         urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
 
         query = urlencode({"code": "1234", "state": state})
-        resp = self.client.get(u"{}?{}".format(self.sso_path, query), **kargs)
+        resp = self.client.get(u"{}?{}".format(self.sso_path, query), **kwargs)
 
         if expect_success:
             assert resp.status_code == 200

@@ -74,10 +74,11 @@ class ReleaseFile(Model):
         # Always ignore the fragment
         scheme, netloc, path, query, _ = urlsplit(url)
 
-        uri_without_fragment = (scheme, netloc, path, query, None)
-        uri_relative = (None, None, path, query, None)
-        uri_without_query = (scheme, netloc, path, None, None)
-        uri_relative_without_query = (None, None, path, None, None)
+        uri_without_fragment = (scheme, netloc, path, query, "")
+        uri_relative = ("", "", path, query, "")
+        uri_without_query = (scheme, netloc, path, "", "")
+        uri_relative_without_query = ("", "", path, "", "")
+
         urls = [urlunsplit(uri_without_fragment)]
         if query:
             urls.append(urlunsplit(uri_without_query))

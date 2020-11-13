@@ -10,7 +10,7 @@ import Count from 'app/components/count';
 import Version from 'app/components/version';
 
 export default {
-  title: 'Utility/Formatters',
+  title: 'Utilities/Formatters',
 };
 
 export const _DateTime = withInfo(

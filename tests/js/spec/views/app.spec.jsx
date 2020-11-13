@@ -7,8 +7,8 @@ import ConfigStore from 'app/stores/configStore';
 
 jest.mock('jquery');
 
-describe('App', function() {
-  beforeEach(function() {
+describe('App', function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
@@ -27,7 +27,7 @@ describe('App', function() {
     });
   });
 
-  it('renders newsletter consent with flag', async function() {
+  it('renders newsletter consent with flag', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = true;
     // XXX(dcramer): shouldnt need to re-set
@@ -40,7 +40,7 @@ describe('App', function() {
     expect(wrapper.find('NewsletterConsent')).toHaveLength(1);
   });
 
-  it('does not render newsletter consent without flag', async function() {
+  it('does not render newsletter consent without flag', async function () {
     const user = ConfigStore.get('user');
     user.flags.newsletter_consent_prompt = false;
     // XXX(dcramer): shouldnt need to re-set

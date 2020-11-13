@@ -7,7 +7,7 @@ import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-import {IconCheckmark, IconWarning, IconAdd, IconMail} from 'app/icons';
+import {IconCheckmark, IconWarning, IconAdd} from 'app/icons';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -315,7 +315,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <React.Fragment>
         <Heading>
-          <IconMail size="lg" />
           {t('Invite New Members')}
           {!this.willInvite && (
             <QuestionTooltip
@@ -461,7 +460,7 @@ const Heading = styled('h1')`
 `;
 
 const Subtext = styled('p')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(3)};
 `;
 
@@ -502,10 +501,10 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   grid-gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.red400 : p.theme.gray600)};
+  color: ${p => (p.status === 'error' ? p.theme.red300 : p.theme.gray400)};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.green400}`};
+    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
   }
 `;
 

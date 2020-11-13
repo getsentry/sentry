@@ -10,8 +10,8 @@ const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
 const AUTH_ENDPOINT = '/auth/';
 
-describe('AccountSecurity', function() {
-  beforeEach(function() {
+describe('AccountSecurity', function () {
+  beforeEach(function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     Client.clearMockResponses();
@@ -21,11 +21,11 @@ describe('AccountSecurity', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     window.location.assign.mockRestore();
   });
 
-  it('renders empty', function() {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [],
@@ -42,7 +42,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
-  it('renders a primary interface that is enrolled', function() {
+  it('renders a primary interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
@@ -59,10 +59,7 @@ describe('AccountSecurity', function() {
 
     // There should be an "Info" button
     expect(
-      wrapper
-        .find('Button[className="details-button"]')
-        .first()
-        .prop('children')
+      wrapper.find('Button[className="details-button"]').first().prop('children')
     ).toBe('Info');
 
     // Remove button
@@ -72,7 +69,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
   });
 
-  it('can delete enrolled authenticator', async function() {
+  it('can delete enrolled authenticator', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -114,10 +111,7 @@ describe('AccountSecurity', function() {
     wrapper.find('button[aria-label="delete"]').simulate('click');
 
     // Confirm
-    wrapper
-      .find('Modal Button')
-      .last()
-      .simulate('click');
+    wrapper.find('Modal Button').last().simulate('click');
 
     await tick();
     wrapper.update();
@@ -133,7 +127,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('can remove one of multiple 2fa methods when org requires 2fa', function() {
+  it('can remove one of multiple 2fa methods when org requires 2fa', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -162,41 +156,20 @@ describe('AccountSecurity', function() {
       TestStubs.routerContext()
     );
 
-    expect(
-      wrapper
-        .find('AuthenticatorStatus')
-        .first()
-        .prop('enabled')
-    ).toBe(true);
+    expect(wrapper.find('AuthenticatorStatus').first().prop('enabled')).toBe(true);
 
-    expect(
-      wrapper
-        .find('RemoveConfirm')
-        .first()
-        .prop('disabled')
-    ).toBe(false);
-    expect(
-      wrapper
-        .find('Tooltip')
-        .first()
-        .prop('disabled')
-    ).toBe(true);
+    expect(wrapper.find('RemoveConfirm').first().prop('disabled')).toBe(false);
+    expect(wrapper.find('Tooltip').first().prop('disabled')).toBe(true);
 
     // This will open confirm modal
-    wrapper
-      .find('button[aria-label="delete"]')
-      .first()
-      .simulate('click');
+    wrapper.find('button[aria-label="delete"]').first().simulate('click');
 
     // Confirm
-    wrapper
-      .find('Modal Button')
-      .last()
-      .simulate('click');
+    wrapper.find('Modal Button').last().simulate('click');
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('can not remove last 2fa method when org requires 2fa', function() {
+  it('can not remove last 2fa method when org requires 2fa', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -236,7 +209,7 @@ describe('AccountSecurity', function() {
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
-  it('renders a primary interface that is not enrolled', function() {
+  it('renders a primary interface that is not enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
@@ -252,17 +225,14 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
     // There should be an "Add" button
     expect(
-      wrapper
-        .find('Button[className="enroll-button"]')
-        .first()
-        .prop('children')
+      wrapper.find('Button[className="enroll-button"]').first().prop('children')
     ).toBe('Add');
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
     // user is not 2fa enrolled
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('renders a backup interface that is not enrolled', function() {
+  it('renders a backup interface that is not enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -284,7 +254,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('renders a backup interface that is enrolled', function() {
+  it('renders a backup interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
@@ -300,15 +270,12 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Recovery Codes');
     // There should be an View Codes button
     expect(
-      wrapper
-        .find('Button[className="details-button"]')
-        .first()
-        .prop('children')
+      wrapper.find('Button[className="details-button"]').first().prop('children')
     ).toBe('View Codes');
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
   });
 
-  it('can change password', function() {
+  it('can change password', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -353,7 +320,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('requires current password to be entered', function() {
+  it('requires current password to be entered', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -384,7 +351,7 @@ describe('AccountSecurity', function() {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('can expire all sessions', async function() {
+  it('can expire all sessions', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],

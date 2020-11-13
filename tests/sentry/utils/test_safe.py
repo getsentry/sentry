@@ -133,6 +133,7 @@ class GetPathTest(unittest.TestCase):
         assert get_path(arr, 2) is None
         assert get_path(arr, "1") is None
         assert get_path([], 1) is None
+        assert get_path({"items": [2]}, "items", 0) == 2
 
     def test_filter_list(self):
         data = {"a": [False, 1, None]}

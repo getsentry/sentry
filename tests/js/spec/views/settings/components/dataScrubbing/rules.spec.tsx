@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import Rules from 'app/views/settings/components/dataScrubbing/rules';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
-// @ts-ignore
+// @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
 const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);
@@ -53,19 +53,11 @@ describe('Rules', () => {
       />
     );
     expect(
-      wrapper
-        .find('[aria-label="Edit Rule"]')
-        .hostNodes()
-        .at(0)
-        .prop('aria-disabled')
+      wrapper.find('[aria-label="Edit Rule"]').hostNodes().at(0).prop('aria-disabled')
     ).toEqual(true);
 
     expect(
-      wrapper
-        .find('[aria-label="Delete Rule"]')
-        .hostNodes()
-        .at(0)
-        .prop('aria-disabled')
+      wrapper.find('[aria-label="Delete Rule"]').hostNodes().at(0).prop('aria-disabled')
     ).toEqual(true);
   });
 

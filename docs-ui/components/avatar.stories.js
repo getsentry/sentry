@@ -11,7 +11,7 @@ const USER = {
 };
 
 export default {
-  title: 'UI/Avatar',
+  title: 'Core/Avatar',
 };
 
 export const Letters = withInfo('This is the default avatar')(() => {

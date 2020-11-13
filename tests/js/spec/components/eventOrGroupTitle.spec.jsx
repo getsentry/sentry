@@ -4,10 +4,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 
-describe('EventOrGroupTitle', function() {
+describe('EventOrGroupTitle', function () {
   const data = {
     metadata: {
-      title: 'metadata title',
       type: 'metadata type',
       directive: 'metadata directive',
       uri: 'metadata uri',
@@ -15,7 +14,7 @@ describe('EventOrGroupTitle', function() {
     culprit: 'culprit',
   };
 
-  it('renders with subtitle when `type = error`', function() {
+  it('renders with subtitle when `type = error`', function () {
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
@@ -30,7 +29,7 @@ describe('EventOrGroupTitle', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders with subtitle when `type = csp`', function() {
+  it('renders with subtitle when `type = csp`', function () {
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
@@ -45,18 +44,42 @@ describe('EventOrGroupTitle', function() {
     expect(component).toSnapshot();
   });
 
-  it('renders with no subtitle when `type = default`', function() {
+  it('renders with no subtitle when `type = default`', function () {
     const component = mountWithTheme(
       <EventOrGroupTitle
         data={{
           ...data,
-          ...{
-            type: 'default',
+          type: 'default',
+          metadata: {
+            ...data.metadata,
+            title: 'metadata title',
           },
         }}
       />
     );
 
     expect(component).toSnapshot();
+  });
+
+  it('renders with title override', function () {
+    const routerContext = TestStubs.routerContext([
+      {organization: TestStubs.Organization({features: ['custom-event-title']})},
+    ]);
+
+    const component = mountWithTheme(
+      <EventOrGroupTitle
+        data={{
+          ...data,
+          type: 'error',
+          metadata: {
+            ...data.metadata,
+            title: 'metadata title',
+          },
+        }}
+      />,
+      routerContext
+    );
+
+    expect(component.text()).toContain('metadata title');
   });
 });

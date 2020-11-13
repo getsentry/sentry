@@ -5,19 +5,18 @@ import theme from 'app/utils/theme';
 
 const COLORS = {
   default: {
-    background: theme.gray100,
-    border: theme.borderLight,
+    background: theme.backgroundSecondary,
+    border: theme.border,
   },
   danger: {
-    background: theme.red100,
-    // TODO(theme) This pink is non-standard
-    border: '#e7c0bc',
+    background: theme.alert.error.backgroundLight,
+    border: theme.alert.error.border,
   },
 } as const;
 
 export const DataSection = styled('div')`
   padding: ${space(2)} 0;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(3)} ${space(4)} 0 40px;
@@ -57,7 +56,7 @@ export const BannerSummary = styled('p')`
     flex-shrink: 0;
     flex-grow: 0;
     margin-right: ${space(1)};
-    margin-top: ${space(0.5)};
+    margin-top: 2px;
   }
 
   & > span {
@@ -77,7 +76,7 @@ export const CauseHeader = styled('div')`
 
   & button,
   & h3 {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;

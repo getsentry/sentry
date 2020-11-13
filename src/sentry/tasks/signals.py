@@ -21,5 +21,5 @@ def signal(name, payload, project_id=None, **kwargs):
     for plugin in plugins.for_project(project, version=2):
         safe_execute(plugin.handle_signal, name=name, payload=payload, project=project)
 
-    if project and project.flags.has_issue_alerts_targeting:
+    if project:
         safe_execute(mail_adapter.handle_signal, name=name, payload=payload, project=project)

@@ -1,0 +1,22 @@
+---
+created: '2020-09-01T22:31:58.123867Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:fingerprint:ident-shingle: "amazing"
+similarity:2020-07-23:fingerprint:ident-shingle: "foobar-matched-stuff-"
+similarity:2020-07-23:message:character-5-shingle: " Love"
+similarity:2020-07-23:message:character-5-shingle: " my s"
+similarity:2020-07-23:message:character-5-shingle: " swee"
+similarity:2020-07-23:message:character-5-shingle: "Hello"
+similarity:2020-07-23:message:character-5-shingle: "eet L"
+similarity:2020-07-23:message:character-5-shingle: "ello "
+similarity:2020-07-23:message:character-5-shingle: "et Lo"
+similarity:2020-07-23:message:character-5-shingle: "llo m"
+similarity:2020-07-23:message:character-5-shingle: "lo my"
+similarity:2020-07-23:message:character-5-shingle: "my sw"
+similarity:2020-07-23:message:character-5-shingle: "o my "
+similarity:2020-07-23:message:character-5-shingle: "sweet"
+similarity:2020-07-23:message:character-5-shingle: "t Lov"
+similarity:2020-07-23:message:character-5-shingle: "weet "
+similarity:2020-07-23:message:character-5-shingle: "y swe"

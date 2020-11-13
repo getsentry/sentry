@@ -52,3 +52,6 @@ class AssignedActivityEmail(ActivityEmail):
                 )
 
         raise NotImplementedError("Unknown Assignee Type ")
+
+    def get_category(self):
+        return "assigned_activity_email"

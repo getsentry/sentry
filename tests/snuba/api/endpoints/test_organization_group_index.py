@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 from datetime import timedelta
+from dateutil.parser import parse as parse_datetime
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
@@ -9,6 +10,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models import (
+    add_group_to_inbox,
     Activity,
     ApiToken,
     ExternalIssue,
@@ -16,6 +18,8 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupHash,
+    GroupInbox,
+    GroupInboxReason,
     GroupLink,
     GroupSeen,
     GroupShare,
@@ -28,6 +32,7 @@ from sentry.models import (
     OrganizationIntegration,
     UserOption,
     Release,
+    remove_group_from_inbox,
 )
 from sentry.utils import json
 from sentry.utils.compat.mock import patch, Mock
@@ -143,7 +148,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 400
-        assert "Invalid format for numeric search" in response.data["detail"]
+        assert "Invalid format for numeric field" in response.data["detail"]
+
+    def test_invalid_sort_key(self):
+        now = timezone.now()
+        self.create_group(checksum="a" * 32, last_seen=now - timedelta(seconds=1))
+        self.login_as(user=self.user)
+
+        response = self.get_response(sort="meow", query="is:unresolved")
+        assert response.status_code == 400
 
     def test_simple_pagination(self):
         event1 = self.store_event(
@@ -492,12 +505,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
-        days = range(4)
-        days.reverse()
+        days = reversed(range(4))
 
         self.login_as(user=self.user)
         groups = []
+
         for day in days:
+            patched_params_update.side_effect = [
+                (self.organization.id, {"project": [self.project.id]})
+            ]
             group = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(days=day)),
@@ -537,6 +553,357 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == six.text_type(assigned_groups[0].id)
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
+
+    def test_seen_stats(self):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        before_now_300_seconds = iso_format(before_now(seconds=300))
+        before_now_350_seconds = iso_format(before_now(seconds=350))
+        event2 = self.store_event(
+            data={"timestamp": before_now_300_seconds, "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        )
+        group2 = event2.group
+        group2.first_seen = before_now_350_seconds
+        group2.times_seen = 55
+        group2.save()
+        before_now_250_seconds = iso_format(before_now(seconds=250))
+        self.store_event(
+            data={
+                "timestamp": before_now_250_seconds,
+                "fingerprint": ["group-2"],
+                "tags": {"server": "example.com", "trace": "meow", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-1"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        before_now_150_seconds = iso_format(before_now(seconds=150))
+        self.store_event(
+            data={
+                "timestamp": before_now_150_seconds,
+                "fingerprint": ["group-2"],
+                "tags": {"trace": "ribbit", "server": "example.com"},
+            },
+            project_id=self.project.id,
+        )
+        before_now_100_seconds = iso_format(before_now(seconds=100))
+        self.store_event(
+            data={
+                "timestamp": before_now_100_seconds,
+                "fingerprint": ["group-2"],
+                "tags": {"message": "foo", "trace": "meow"},
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query="server:example.com")
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == group2.id
+        assert response.data[0]["lifetime"] is not None
+        assert response.data[0]["filtered"] is not None
+        assert response.data[0]["filtered"]["stats"] is not None
+        assert response.data[0]["lifetime"]["stats"] is None
+        assert response.data[0]["filtered"]["stats"] != response.data[0]["stats"]
+
+        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+            before_now_350_seconds  # Should match overridden value, not event value
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+            before_now_100_seconds
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["count"] == "55"
+
+        assert response.data[0]["filtered"]["count"] == "2"
+        assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
+            before_now_250_seconds
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
+            before_now_150_seconds
+        ).replace(tzinfo=timezone.utc)
+
+        # Empty filter test:
+        response = self.get_response(sort_by="date", limit=10, query="")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == group2.id
+        assert response.data[0]["lifetime"] is not None
+        assert response.data[0]["filtered"] is None
+        assert response.data[0]["lifetime"]["stats"] is None
+
+        assert response.data[0]["lifetime"]["count"] == "55"
+        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+            before_now_350_seconds  # Should match overridden value, not event value
+        ).replace(tzinfo=timezone.utc)
+        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+            before_now_100_seconds
+        ).replace(tzinfo=timezone.utc)
+
+    def test_inbox_search(self):
+        with self.feature("organizations:inbox"):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            event = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-2"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-3"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+            self.login_as(user=self.user)
+            response = self.get_response(
+                sort_by="date", limit=10, query="is:inbox is:unresolved", expand=["inbox"]
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+
+    def test_aggregate_stats_regression_test(self):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="times_seen:>0 last_seen:-1h date:-1h"
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_skipped_fields(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=200)),
+                "fingerprint": ["group-1"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+
+        query = u"server:example.com"
+        query += u" status:unresolved"
+        query += u" active_at:" + iso_format(before_now(seconds=350))
+        query += u" first_seen:" + iso_format(before_now(seconds=500))
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=query)
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["lifetime"] is not None
+        assert response.data[0]["filtered"] is not None
+
+    def test_inbox_fields(self):
+        with self.feature("organizations:inbox"):
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+            query = u"server:example.com"
+            query += u" status:unresolved"
+            query += u" active_at:" + iso_format(before_now(seconds=350))
+            query += u" first_seen:" + iso_format(before_now(seconds=500))
+
+            self.login_as(user=self.user)
+            response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+            assert response.data[0]["inbox"]["reason_details"] is None
+            remove_group_from_inbox(event.group)
+            snooze_details = {
+                "until": None,
+                "count": 3,
+                "window": None,
+                "user_count": None,
+                "user_window": 5,
+            }
+            add_group_to_inbox(event.group, GroupInboxReason.UNIGNORED, snooze_details)
+            response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
+            assert response.data[0]["inbox"]["reason_details"] == snooze_details
+
+    def test_expand_string(self):
+        with self.feature("organizations:inbox"):
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            add_group_to_inbox(event.group, GroupInboxReason.NEW)
+
+            query = u"server:example.com"
+            query += u" status:unresolved"
+            query += u" active_at:" + iso_format(before_now(seconds=350))
+            query += u" first_seen:" + iso_format(before_now(seconds=500))
+
+            self.login_as(user=self.user)
+            response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
+
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["inbox"] is not None
+            assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
+            assert response.data[0]["inbox"]["reason_details"] is None
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
+    def test_collapse_stats(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse="stats"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" not in response.data[0]
+        assert "firstSeen" not in response.data[0]
+        assert "lastSeen" not in response.data[0]
+        assert "count" not in response.data[0]
+        assert "lifetime" not in response.data[0]
+        assert "filtered" not in response.data[0]
+
+    def test_collapse_lifetime(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" not in response.data[0]
+        assert "filtered" in response.data[0]
+
+    def test_collapse_filtered(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" in response.data[0]
+        assert "filtered" not in response.data[0]
+
+    def test_collapse_lifetime_and_filtered(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" not in response.data[0]
+        assert "filtered" not in response.data[0]
+
+    def test_has_unhandled_flag_bug(self):
+        # There was a bug where we tried to access attributes on seen_stats if this feature is active
+        # but seen_stats could be null when we collapse stats.
+        with self.feature("organizations:unhandled-issue-flag"):
+            self.test_collapse_stats()
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -1154,7 +1521,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i).encode("utf-8")},
+                    "user": {"id": six.text_type(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1431,6 +1798,28 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert tombstone.project == group1.project
         assert tombstone.data == group1.data
 
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)
+
+    def test_set_inbox(self):
+        group1 = self.create_group(checksum="a" * 32)
+        group2 = self.create_group(checksum="b" * 32)
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
+        assert response.data == {"inbox": True}
+        assert GroupInbox.objects.filter(group=group1).exists()
+        assert GroupInbox.objects.filter(group=group2).exists()
+
+        response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
+        assert response.data == {"inbox": False}
+        assert GroupInbox.objects.filter(group=group1).exists()
+        assert not GroupInbox.objects.filter(group=group2).exists()
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -1446,7 +1835,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")
     def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
-        eventstream_state = object()
+        eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1551,3 +1940,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    @patch(
+        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
+    )
+    def test_ratelimit(self, is_limited):
+        self.login_as(user=self.user)
+        self.get_valid_response(sort_by="date", limit=1, status_code=429)

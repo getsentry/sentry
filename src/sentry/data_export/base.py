@@ -28,7 +28,10 @@ class ExportQueryType(object):
 
     @classmethod
     def as_choices(cls):
-        return ((cls.ISSUES_BY_TAG, cls.ISSUES_BY_TAG_STR), (cls.DISCOVER, cls.DISCOVER_STR))
+        return (
+            (cls.ISSUES_BY_TAG, six.text_type(cls.ISSUES_BY_TAG_STR)),
+            (cls.DISCOVER, six.text_type(cls.DISCOVER_STR)),
+        )
 
     @classmethod
     def as_str_choices(cls):

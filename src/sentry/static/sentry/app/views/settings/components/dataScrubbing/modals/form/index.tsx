@@ -170,25 +170,14 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
           {displayEventId && (
             <EventIdField onUpdateEventId={onUpdateEventId} eventId={eventId} />
           )}
-          <Field
-            data-test-id="source-field"
-            label={t('Source')}
-            help={t('Where to look. In the simplest case this can be an attribute name.')}
-            inline={false}
+          <SourceField
+            onChange={value => onChange('source', value)}
+            value={source}
             error={errors?.source}
-            flexibleControlStateSize
-            stacked
-            required
-            showHelpInTooltip
-          >
-            <SourceField
-              onChange={value => onChange('source', value)}
-              value={source}
-              onBlur={onValidate('source')}
-              isRegExMatchesSelected={type === RuleType.PATTERN}
-              suggestions={sourceSuggestions}
-            />
-          </Field>
+            onBlur={onValidate('source')}
+            isRegExMatchesSelected={type === RuleType.PATTERN}
+            suggestions={sourceSuggestions}
+          />
         </SourceGroup>
       </React.Fragment>
     );
@@ -215,7 +204,7 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
     p.isExpanded &&
     `
     border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.borderDark};
+    border: 1px solid ${p.theme.border};
     box-shadow: ${p.theme.dropShadowLight};
     margin: ${space(2)} 0 ${space(3)} 0;
     padding: ${space(2)};
@@ -234,10 +223,10 @@ const ToggleWrapper = styled('div')`
 
 const Toggle = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.textColor};
   }
   > *:first-child {
     display: grid;

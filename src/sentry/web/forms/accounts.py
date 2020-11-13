@@ -169,8 +169,8 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         coerce=lambda x: six.text_type(x) == u"1",
         label=_("Email updates"),
         choices=(
-            (1, "Yes, I would like to receive updates via email"),
-            (0, "No, I'd prefer not to receive these updates"),
+            (1, u"Yes, I would like to receive updates via email"),
+            (0, u"No, I'd prefer not to receive these updates"),
         ),
         widget=forms.RadioSelect,
         required=True,

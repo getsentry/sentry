@@ -47,7 +47,7 @@ class User(BaseModel, AbstractBaseUser):
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
-    name = models.CharField(_("name"), max_length=200, blank=True, db_column="first_name")
+    name = models.CharField(_("name"), max_length=200, blank=True, db_column=u"first_name")
     email = models.EmailField(_("email address"), blank=True, max_length=75)
     is_staff = models.BooleanField(
         _("staff status"),
@@ -103,7 +103,7 @@ class User(BaseModel, AbstractBaseUser):
 
     flags = BitField(
         flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
+            (u"newsletter_consent_prompt", u"Do we need to ask this user for newsletter consent?"),
         ),
         default=0,
         null=True,
@@ -114,7 +114,7 @@ class User(BaseModel, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
-    objects = UserManager(cache_fields=["pk"])
+    objects = UserManager(cache_fields=[u"pk"])
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["email"]
@@ -239,10 +239,13 @@ class User(BaseModel, AbstractBaseUser):
             try:
                 with transaction.atomic():
                     obj.update(user=to_user)
+            # this will error if both users are members of obj.org
             except IntegrityError:
                 pass
 
             # identify the highest priority membership
+            # only applies if both users are members of obj.org
+            # if roles are different, grants combined user the higher of the two
             to_member = OrganizationMember.objects.get(
                 organization=obj.organization_id, user=to_user
             )
@@ -255,6 +258,8 @@ class User(BaseModel, AbstractBaseUser):
                         OrganizationMemberTeam.objects.create(
                             organizationmember=to_member, team=team
                         )
+                # this will error if both users are on the same team in obj.org,
+                # in which case, no need to update anything
                 except IntegrityError:
                     pass
 
@@ -280,11 +285,13 @@ class User(BaseModel, AbstractBaseUser):
                     pass
 
         Activity.objects.filter(user=from_user).update(user=to_user)
+        # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)
 
-        # remove any duplicate identities that exist on the current user that
-        # might conflict w/ the new users existing SSO
+        # remove any SSO identities that exist on from_user that might conflict
+        # with to_user's existing identities (only applies if both users have
+        # SSO identities in the same org), then pass the rest on to to_user
         AuthIdentity.objects.filter(
             user=from_user,
             auth_provider__organization__in=AuthIdentity.objects.filter(user=to_user).values(
@@ -336,4 +343,4 @@ def refresh_user_nonce(sender, request, user, **kwargs):
     if user is None:
         return
     user.refresh_session_nonce()
-    user.save()
+    user.save(update_fields=["session_nonce"])

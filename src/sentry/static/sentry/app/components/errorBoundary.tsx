@@ -8,6 +8,7 @@ import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
 import {IconFlag} from 'app/icons';
+import getDynamicText from 'app/utils/getDynamicText';
 
 type DefaultProps = {
   mini: boolean;
@@ -109,7 +110,10 @@ class ErrorBoundary extends React.Component<Props, State> {
     return (
       <Wrapper>
         <DetailedError
-          heading={getExclamation()}
+          heading={getDynamicText({
+            value: getExclamation(),
+            fixed: exclamation[0],
+          })}
           message={t(
             `Something went horribly wrong rendering this page.
 We use a decent error reporting service so this will probably be fixed soon. Unless our error reporting service is also broken. That would be awkward.
@@ -123,7 +127,7 @@ Anyway, we apologize for the inconvenience.`
 }
 
 const Wrapper = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   padding: ${p => p.theme.grid * 3}px;
   max-width: 1000px;
   margin: auto;

@@ -9,6 +9,7 @@ import pytz
 from django.core.urlresolvers import reverse
 from exam import fixture
 
+from sentry.app import locks
 from sentry.api.endpoints.organization_releases import (
     ReleaseHeadCommitSerializer,
     ReleaseSerializerWithProjects,
@@ -244,6 +245,93 @@ class OrganizationReleaseListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_archive_release(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+
+        # test legacy status value of None (=open)
+        self.release.status = None
+        self.release.save()
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        (release_data,) = response.data
+
+        response = self.client.post(
+            url,
+            format="json",
+            data={
+                "version": release_data["version"],
+                "projects": [x["slug"] for x in release_data["projects"]],
+                "status": "archived",
+            },
+        )
+        assert response.status_code == 208, response.content
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        response = self.client.get(url + "?status=archived", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        response = self.client.get(url + "?status=", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+
+class OrganizationReleaseStatsTest(APITestCase):
+    def setUp(self):
+        self.project1 = self.create_project(teams=[self.team], organization=self.organization)
+        self.project2 = self.create_project(teams=[self.team], organization=self.organization)
+        self.project3 = self.create_project(teams=[self.team], organization=self.organization)
+
+        self.login_as(user=self.user)
+
+    def test_simple(self):
+        release1 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+        )
+        release1.add_project(self.project1)
+
+        release2 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="2",
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+        )
+        release2.add_project(self.project2)
+
+        release3 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="3",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=pytz.UTC),
+        )
+        release3.add_project(self.project3)
+
+        url = reverse(
+            "sentry-api-0-organization-releases-stats",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        # When available we use the released date
+        assert response.data[0]["version"] == release2.version
+        assert response.data[0]["date"] == release2.date_released
+        assert response.data[1]["version"] == release3.version
+        assert response.data[1]["date"] == release3.date_added
+        assert response.data[2]["version"] == release1.version
+        assert response.data[2]["date"] == release1.date_added
 
 
 class OrganizationReleaseCreateTest(APITestCase):
@@ -646,6 +734,36 @@ class OrganizationReleaseCreateTest(APITestCase):
             }
         )
         assert response.status_code == 201
+
+    def test_commits_lock_conflict(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        # Simulate a concurrent request by using an existing release
+        # that has its commit lock taken out.
+        release = self.create_release(project, self.user, version="1.2.1")
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock.acquire()
+
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.post(
+            url,
+            data={
+                "version": release.version,
+                "commits": [{"id": "a" * 40}, {"id": "b" * 40}],
+                "projects": [project.slug],
+            },
+        )
+        assert response.status_code == 409, (response.status_code, response.content)
+        assert "Release commits" in response.data["detail"]
 
     def test_bad_project_slug(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1243,6 +1361,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
                 "headCommits",
                 "refs",
                 "projects",
+                "status",
             ]
         )
         result = serializer.validated_data

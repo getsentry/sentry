@@ -226,7 +226,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         payload = {
             "attachments": [
                 {
-                    "fallback": "[%s] %s" % (project_name, title),
+                    "fallback": b"[%s] %s" % (project_name, title),
                     "title": title,
                     "title_link": group.get_absolute_url(params={"referrer": "slack"}),
                     "color": self.color_for_event(event),

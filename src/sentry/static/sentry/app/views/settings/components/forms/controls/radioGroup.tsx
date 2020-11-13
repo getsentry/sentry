@@ -77,7 +77,7 @@ RadioGroup.propTypes = {
 
 const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-const RadioLineItem = styled('label', {shouldForwardProp})<{
+export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
   index: number;
 }>`
@@ -104,7 +104,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4em;
 `;

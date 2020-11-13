@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
 from sentry.plugins import providers
@@ -11,6 +12,7 @@ MAX_COMMIT_DATA_REQUESTS = 90
 
 class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
     name = "Azure DevOps"
+    logger = logging.getLogger("sentry.integrations.vsts")
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:

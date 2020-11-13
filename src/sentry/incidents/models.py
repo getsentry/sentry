@@ -539,6 +539,7 @@ class AlertRuleTriggerAction(Model):
         PAGERDUTY = 1
         SLACK = 2
         MSTEAMS = 3
+        SENTRY_APP = 4
 
     INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
 
@@ -550,6 +551,8 @@ class AlertRuleTriggerAction(Model):
         # A specific team. This could be used to send an email to everyone associated
         # with a team.
         TEAM = 2
+        # A Sentry App instead of any of the above.
+        SENTRY_APP = 3
 
     TypeRegistration = namedtuple(
         "TypeRegistration",
@@ -653,7 +656,7 @@ class AlertRuleActivity(Model):
     previous_alert_rule = FlexibleForeignKey(
         "sentry.AlertRule", null=True, related_name="previous_alert_rule"
     )
-    user = FlexibleForeignKey("sentry.User", null=True)
+    user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

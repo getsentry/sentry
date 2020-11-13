@@ -24,11 +24,7 @@ class InstallationNotifier(Mediator):
             raise APIUnauthorized(u"Invalid action '{}'".format(self.action))
 
     def _send_webhook(self):
-        safe_urlread(
-            send_and_save_webhook_request(
-                self.sentry_app.webhook_url, self.sentry_app, self.request
-            )
-        )
+        safe_urlread(send_and_save_webhook_request(self.sentry_app, self.request))
 
     @property
     def request(self):

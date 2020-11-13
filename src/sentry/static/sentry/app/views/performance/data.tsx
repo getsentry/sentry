@@ -33,7 +33,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
     },
     {
       tooltip: getTermHelp(organization, 'tpm'),
-      value: 'epm()',
+      value: 'tpm()',
       label: t('Transactions Per Minute'),
     },
     {
@@ -79,6 +79,10 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
       "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
       organization.apdexThreshold
     ),
+  statusBreakdown: () =>
+    t(
+      'The breakdown of transaction statuses. This may indicate what type of failure it is.'
+    ),
 };
 
 export function getTermHelp(
@@ -104,9 +108,10 @@ export function generatePerformanceEventView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
+      'key_transaction',
       'transaction',
       'project',
-      'epm()',
+      'tpm()',
       'p50()',
       'p95()',
       'failure_rate()',
@@ -120,16 +125,16 @@ export function generatePerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-epm';
+  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTag('event.type', ['transaction']);
+  conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTag('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
   savedQuery.query = stringifyQueryObject(conditions);

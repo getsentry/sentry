@@ -26,11 +26,11 @@ function doLogin(wrapper, apiRequest) {
   );
 }
 
-describe('Register', function() {
+describe('Register', function () {
   const routerContext = TestStubs.routerContext();
   const api = new MockApiClient();
 
-  it('handles errors', async function() {
+  it('handles errors', async function () {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/register/',
       method: 'POST',
@@ -54,7 +54,7 @@ describe('Register', function() {
     expect(wrapper.find('.alert').exists()).toBe(true);
   });
 
-  it('handles success', async function() {
+  it('handles success', async function () {
     const userObject = {
       id: 1,
       name: 'Joe',

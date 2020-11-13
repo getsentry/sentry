@@ -5,19 +5,28 @@ from __future__ import absolute_import
 import pytest
 
 from sentry import eventstore
-from sentry.event_manager import EventManager
+from sentry.event_manager import EventManager, materialize_metadata
 
 
 @pytest.fixture
 def make_csp_snapshot(insta_snapshot):
     def inner(data):
-        mgr = EventManager(data={"csp": data})
+        mgr = EventManager(
+            data={"csp": data, "logentry": {"message": "XXX CSP MESSAGE NOT THROUGH RELAY XXX"}}
+        )
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        data = mgr.get_data()
+        data.update(materialize_metadata(data))
+        evt = eventstore.create_event(data=data)
         interface = evt.interfaces.get("csp")
 
         insta_snapshot(
-            {"errors": evt.data.get("errors"), "to_json": interface and interface.to_json()}
+            {
+                "errors": evt.data.get("errors"),
+                "to_json": interface and interface.to_json(),
+                "metadata": evt.get_event_metadata(),
+                "title": evt.title,
+            }
         )
 
     return inner

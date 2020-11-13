@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {Thread} from 'app/types/events';
-import {Event, EntryTypeData} from 'app/types';
+import {Event, EntryData} from 'app/types';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import theme from 'app/utils/theme';
@@ -29,7 +29,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     const threadInfo = filterThreadInfo(thread, event);
 
     const dropDownValue = `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`;
-    let crashedInfo: undefined | EntryTypeData;
+    let crashedInfo: undefined | EntryData;
 
     if (thread.crashed) {
       crashedInfo = getThreadException(thread, event);
@@ -56,7 +56,7 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
     return [...crashed, ...notCrashed].map(getDropDownItem);
   };
 
-  const handleOnChange = ({thread}: {thread: Thread}) => {
+  const handleChange = (thread: Thread) => {
     if (onChange) {
       onChange(thread);
     }
@@ -65,14 +65,13 @@ const ThreadSelector = ({threads, event, activeThread, onChange}: Props) => {
   return (
     <StyledDropdownAutoComplete
       items={getItems()}
-      onSelect={handleOnChange}
-      align="left"
-      alignMenu="left"
+      onSelect={item => {
+        handleChange(item.thread);
+      }}
       maxHeight={DROPDOWN_MAX_HEIGHT}
-      placeholder={t('Filter Threads')}
+      searchPlaceholder={t('Filter Threads')}
       emptyMessage={t('You have no threads')}
       noResultsMessage={t('No threads found')}
-      zIndex={theme.zIndex.dropdown}
       menuHeader={<Header />}
       closeOnSelect
       emptyHidesInput

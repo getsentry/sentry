@@ -1,0 +1,9 @@
+Version 6c998f755f304593a4713abd123eaf8833a2de5e was deployed to production on Oct. 12, 2016, 3:39 p.m.
+
+
+    http://testserver/organizations/organization/releases/6c998f755f304593a4713abd123eaf8833a2de5e/?project=1
+
+    http://testserver/organizations/organization/releases/6c998f755f304593a4713abd123eaf8833a2de5e/?project=2
+
+    http://testserver/organizations/organization/releases/6c998f755f304593a4713abd123eaf8833a2de5e/?project=3
+

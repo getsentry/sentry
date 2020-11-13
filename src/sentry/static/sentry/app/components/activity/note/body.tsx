@@ -5,7 +5,7 @@ import marked from 'app/utils/marked';
 
 type Props = {
   text: string;
-  className: string;
+  className?: string;
 };
 
 const NoteBody = ({className, text}: Props) => (

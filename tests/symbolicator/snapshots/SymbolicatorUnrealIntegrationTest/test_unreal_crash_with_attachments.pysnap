@@ -1,5 +1,5 @@
 ---
-created: '2020-07-06T21:32:31.094138Z'
+created: '2020-10-31T11:13:16.442847Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -21,8 +21,28 @@ contexts:
     build_configuration: Development
     build_version: ++UE4+Release-4.20-CL-4369336
     crash_guid: UE4CC-Windows-63456D684167A2659DE73EA3517BEDC4_0000
-    crash_reporter_client_version: '1.0'
     crash_type: Crash
+    custom:
+      CommandLine: ''
+      CrashDumpMode: '0'
+      CrashVersion: '3'
+      DeploymentName: ''
+      EngineModeEx: Unset
+      GameSessionID: ''
+      IsPerforceBuild: 'false'
+      MemoryStats.AvailablePhysical: '0'
+      MemoryStats.AvailableVirtual: '0'
+      MemoryStats.OOMAllocationAlignment: '0'
+      MemoryStats.OOMAllocationSize: '0'
+      MemoryStats.PeakUsedPhysical: '0'
+      MemoryStats.PeakUsedVirtual: '0'
+      MemoryStats.UsedPhysical: '0'
+      MemoryStats.UsedVirtual: '0'
+      MemoryStats.bIsOOM: '0'
+      PlatformFullName: Win64 [Windows 10  64b]
+      PlatformNameIni: Windows
+      SourceContext: ''
+      UserActivityHint: ''
     engine_mode: Game
     engine_version: 4.20.3-4369336+++UE4+Release-4.20
     executable_name: YetAnother
@@ -138,6 +158,9 @@ exception:
     type: EXCEPTION_ACCESS_VIOLATION_READ
     value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ'
 extra: null
+sdk:
+  name: unreal.crashreporter
+  version: '1.0'
 stacktrace: null
 threads:
   values:

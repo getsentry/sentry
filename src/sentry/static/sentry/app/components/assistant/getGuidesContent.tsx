@@ -90,12 +90,26 @@ export default function getGuidesContent(): GuidesContent {
           target: 'issue_stream',
           description: tct(
             `Sentry automatically groups similar events together into an issue. Similarity is
-            determined by stacktrace and other factors. [link:Learn more].`,
+            determined by stack trace and other factors. [link:Learn more].`,
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/data-management/rollups/" />
               ),
             }
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'dynamic_counts',
+      requiredTargets: ['dynamic_counts'],
+      steps: [
+        {
+          title: t('These counts have changed'),
+          target: 'dynamic_counts',
+          description: t(
+            `These numbers and the bar chart now respect the time selected and any search
+            filters you've applied. You can hover to see the totals.`
           ),
         },
       ],

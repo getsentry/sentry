@@ -6,7 +6,7 @@ import ActorAvatar from 'app/components/avatar/actorAvatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 
-describe('ActorAvatar', function() {
+describe('ActorAvatar', function () {
   const USER = {
     id: '1',
     name: 'JanActore Bloggs',
@@ -22,15 +22,15 @@ describe('ActorAvatar', function() {
       },
     ],
   };
-  beforeEach(function() {
+  beforeEach(function () {
     MemberListStore.loadInitialData([USER]);
     TeamStore.loadInitialData([TEAM_1]);
   });
 
-  afterEach(function() {});
+  afterEach(function () {});
 
-  describe('render()', function() {
-    it('should show a gravatar when actor type is a user', function() {
+  describe('render()', function () {
+    it('should show a gravatar when actor type is a user', function () {
       const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
@@ -43,7 +43,7 @@ describe('ActorAvatar', function() {
       expect(avatar).toSnapshot();
     });
 
-    it('should show a gravatar when actor type is a team', function() {
+    it('should show a gravatar when actor type is a team', function () {
       const avatar = mountWithTheme(
         <ActorAvatar
           actor={{
@@ -56,7 +56,7 @@ describe('ActorAvatar', function() {
       expect(avatar).toSnapshot();
     });
 
-    it('should return null when actor type is a unknown', function() {
+    it('should return null when actor type is a unknown', function () {
       window.console.error = jest.fn();
 
       const avatar = mount(
