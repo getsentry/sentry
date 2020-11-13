@@ -11,7 +11,7 @@ from sentry.api.serializers.rest_framework import (
     ListField,
     ValidationError,
 )
-from sentry.models import ObjectStatus, Widget
+from sentry.models import ObjectStatus, DashboardWidget
 
 
 def remove_widgets(dashboard_widgets, widget_data):
@@ -31,7 +31,7 @@ def reorder_widgets(dashboard_id, widget_data):
     i.e if order of widgets is 1, 2, 3
         the reordered widgets will have order 4, 5, 6
     """
-    dashboard_widgets = Widget.objects.filter(dashboard_id=dashboard_id)
+    dashboard_widgets = DashboardWidget.objects.filter(dashboard_id=dashboard_id)
     dashboard_widgets = list(remove_widgets(dashboard_widgets, widget_data))
 
     # dashboard_widgets and widget_data should now have the same widgets
@@ -46,23 +46,21 @@ def reorder_widgets(dashboard_id, widget_data):
                 break
 
 
-class WidgetSerializer(serializers.Serializer):
+class DashboardWidgetSerializer(serializers.Serializer):
     order = serializers.IntegerField(min_value=0, required=True)
     id = serializers.IntegerField(min_value=0, required=True)
 
 
 class DashboardWithWidgetsSerializer(serializers.Serializer):
     title = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    widgets = ListField(child=WidgetSerializer(), required=False, allow_null=True)
+    widgets = ListField(child=DashboardWidgetSerializer(), required=False, allow_null=True)
 
     def validate_widgets(self, widgets):
         if len(widgets) != len(set([w["order"] for w in widgets])):
             raise ValidationError("Widgets must not have duplicate order values.")
 
-        widgets_count = Widget.objects.filter(
-            id__in=[w["id"] for w in widgets],
-            dashboard_id=self.context["dashboard_id"],
-            status=ObjectStatus.VISIBLE,
+        widgets_count = DashboardWidget.objects.filter(
+            id__in=[w["id"] for w in widgets], dashboard_id=self.context["dashboard_id"],
         ).count()
 
         if len(widgets) != widgets_count:
