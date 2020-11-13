@@ -1,5 +1,5 @@
 import React from 'react';
-import {Params, RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {
   addErrorMessage,
@@ -28,8 +28,7 @@ type Props = {
   api: Client;
   organization: Organization;
   group: Group;
-  params: Params;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps<{orgId: string}, {}>;
 
 type State = {
   createBusy: boolean;
