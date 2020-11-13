@@ -10,8 +10,7 @@ import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationWithConfig, IntegrationProvider} from 'app/types';
-import {ProjectMapperType} from 'app/views/settings/components/forms/type';
+import {Integration, IntegrationProvider} from 'app/types';
 import {sortArray} from 'app/utils';
 import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
@@ -21,7 +20,7 @@ import AddIntegrationButton from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 type State = {
-  configurations: IntegrationWithConfig[];
+  configurations: Integration[];
   information: {providers: IntegrationProvider[]};
 };
 
@@ -38,7 +37,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       ],
       [
         'configurations',
-        `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}`,
+        `/organizations/${orgId}/integrations/?provider_key=${integrationSlug}&includeConfig=0`,
       ],
     ];
 
@@ -115,7 +114,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return this.metadata.features;
   }
 
-  onInstall = (integration: IntegrationWithConfig) => {
+  onInstall = (integration: Integration) => {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.configurations, i => i.id);
@@ -127,7 +126,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.setState({configurations});
   };
 
-  onRemove = (integration: IntegrationWithConfig) => {
+  onRemove = (integration: Integration) => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.configurations];
@@ -146,30 +145,21 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  onDisable = (integration: IntegrationWithConfig) => {
+  onDisable = (integration: Integration) => {
     let url: string;
 
-    if (integration.provider.key === 'vercel') {
-      // kind of a hack since this isn't what the url was stored for
-      // but it's exactly what we need and contains the configuration id
-      // e.g. https://vercel.com/dashboard/<team>/integrations/icfg_ySlF4UDnHcIPrAAXjGEiwtxo
-      const field = integration.configOrganization.find(
-        config => config.type === 'project_mapper'
-      );
-
-      if (field) {
-        const mappingField = field as ProjectMapperType;
-        url = mappingField.nextButton.url || '';
-        window.open(url, '_blank');
-      }
-      return;
-    }
-
-    const [domainName, orgName] = integration.domainName.split('/');
-    if (integration.accountType === 'User') {
-      url = `https://${domainName}/settings/installations/`;
+    // some integrations have a custom uninstalltion URL we show
+    const uninstallationUrl =
+      integration.dynamicDisplayInformation?.integration_detail?.uninstallationUrl;
+    if (uninstallationUrl) {
+      url = uninstallationUrl;
     } else {
-      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
+      const [domainName, orgName] = integration.domainName.split('/');
+      if (integration.accountType === 'User') {
+        url = `https://${domainName}/settings/installations/`;
+      } else {
+        url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
+      }
     }
 
     window.open(url, '_blank');
@@ -277,12 +267,12 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
 
 const InstallWrapper = styled('div')`
   padding: ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-bottom: none;
-  background-color: white;
+  background-color: ${p => p.theme.background};
 
   &:last-child {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 

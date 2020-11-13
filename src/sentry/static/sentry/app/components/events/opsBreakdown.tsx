@@ -258,7 +258,7 @@ class OpsBreakdown extends React.Component<Props> {
 }
 
 const StyledBreakdown = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
 `;
@@ -299,7 +299,7 @@ const OpsName = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const Pct = styled('div')`

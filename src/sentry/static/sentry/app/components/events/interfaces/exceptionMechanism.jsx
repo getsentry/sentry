@@ -117,9 +117,9 @@ const Wrapper = styled('div')`
 
 const iconStyle = p => css`
   transition: 0.1s linear color;
-  color: ${p.theme.gray500};
+  color: ${p.theme.gray300};
   :hover {
-    color: ${p.theme.gray700};
+    color: ${p.theme.gray500};
   }
 `;
 

@@ -18,20 +18,32 @@ import OptionSelector from 'app/components/charts/optionSelector';
 import {ChartContainer} from '../styles';
 import DurationChart from './durationChart';
 import LatencyChart from './latencyChart';
+import TrendChart from './trendChart';
+import VitalsChart from './vitalsChart';
 import DurationPercentileChart from './durationPercentileChart';
+import {TrendFunctionField} from '../trends/types';
+import {TRENDS_FUNCTIONS} from '../trends/utils';
 
-enum DisplayModes {
+export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
   DURATION = 'duration',
   LATENCY = 'latency',
-  APDEX_THROUGHPUT = 'apdexthroughput',
+  TREND = 'trend',
+  VITALS = 'vitals',
 }
 
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
   {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
+  {value: DisplayModes.TREND, label: t('Trends')},
+  {value: DisplayModes.VITALS, label: t('Web Vitals')},
 ];
+
+const TREND_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(({field, label}) => ({
+  value: field,
+  label,
+}));
 
 type Props = {
   organization: OrganizationSummary;
@@ -49,11 +61,24 @@ class TransactionSummaryCharts extends React.Component<Props> {
     });
   };
 
+  handleTrendDisplayChange = (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {...location.query, trendDisplay: value},
+    });
+  };
+
   render() {
     const {totalValues, eventView, organization, location} = this.props;
     let display = decodeScalar(location.query.display) || DisplayModes.DURATION;
+    let trendDisplay =
+      decodeScalar(location.query.trendDisplay) || TrendFunctionField.P50;
     if (!Object.values(DisplayModes).includes(display as DisplayModes)) {
       display = DisplayModes.DURATION;
+    }
+    if (!Object.values(TrendFunctionField).includes(trendDisplay as TrendFunctionField)) {
+      trendDisplay = TrendFunctionField.P50;
     }
 
     return (
@@ -94,6 +119,29 @@ class TransactionSummaryCharts extends React.Component<Props> {
               statsPeriod={eventView.statsPeriod}
             />
           )}
+          {display === DisplayModes.TREND && (
+            <TrendChart
+              trendDisplay={trendDisplay}
+              organization={organization}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          )}
+          {display === DisplayModes.VITALS && (
+            <VitalsChart
+              organization={organization}
+              query={eventView.query}
+              project={eventView.project}
+              environment={eventView.environment}
+              start={eventView.start}
+              end={eventView.end}
+              statsPeriod={eventView.statsPeriod}
+            />
+          )}
         </ChartContainer>
 
         <ChartControls>
@@ -102,6 +150,14 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <SectionValue key="total-value">{calculateTotal(totalValues)}</SectionValue>
           </InlineContainer>
           <InlineContainer>
+            {display === DisplayModes.TREND && (
+              <OptionSelector
+                title={t('Trend')}
+                selected={trendDisplay}
+                options={TREND_OPTIONS}
+                onChange={this.handleTrendDisplayChange}
+              />
+            )}
             <OptionSelector
               title={t('Display')}
               selected={display}

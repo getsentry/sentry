@@ -29,6 +29,8 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
+    GroupInbox,
+    GroupInboxReason,
     GroupLink,
     GroupStatus,
     GroupTombstone,
@@ -40,12 +42,14 @@ from sentry.models import (
     GroupSubscription,
     GroupSubscriptionReason,
     Release,
+    remove_group_from_inbox,
     Repository,
     TOMBSTONE_FIELDS_FROM_GROUP,
     Team,
     User,
     UserOption,
 )
+from sentry.models.groupinbox import add_group_to_inbox
 from sentry.models.group import looks_like_short_id
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -239,7 +243,14 @@ class StatusDetailsValidator(serializers.Serializer):
         return value
 
 
+class InboxDetailsValidator(serializers.Serializer):
+    # Support undo / snooze reasons
+    pass
+
+
 class GroupValidator(serializers.Serializer):
+    inbox = serializers.BooleanField()
+    inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(choices=zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys()))
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
@@ -677,6 +688,7 @@ def update_groups(request, projects, organization_id, search_fn):
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
+                remove_group_from_inbox(group)
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
@@ -718,9 +730,14 @@ def update_groups(request, projects, organization_id, search_fn):
             happened = queryset.exclude(status=new_status).update(status=new_status)
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
-
-            if new_status == GroupStatus.IGNORED:
+            if new_status == GroupStatus.UNRESOLVED:
+                for group in group_list:
+                    add_group_to_inbox(group, GroupInboxReason.MANUAL)
+                result["statusDetails"] = {}
+            elif new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
+                for group in group_ids:
+                    remove_group_from_inbox(group)
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)
@@ -975,5 +992,15 @@ def update_groups(request, projects, organization_id, search_fn):
             "parent": six.text_type(primary_group.id),
             "children": [six.text_type(g.id) for g in groups_to_merge],
         }
+
+    # Support moving groups in or out of the inbox
+    inbox = result.get("inbox", None)
+    if inbox is not None:
+        if inbox:
+            for group in group_list:
+                add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        elif not inbox:
+            GroupInbox.objects.filter(group__in=group_ids).delete()
+        result["inbox"] = inbox
 
     return Response(result)

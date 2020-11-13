@@ -2,10 +2,22 @@
   "_fingerprinting_rules": [
     {
       "matchers": [
-        ["type", "DatabaseUnavailable"],
-        ["module", "io.sentry.example.*"]
+        [
+          "type",
+          "DatabaseUnavailable"
+        ],
+        [
+          "module",
+          "io.sentry.example.*"
+        ]
       ],
-      "fingerprint": ["database-unavailable",  "{{ transaction }}"]
+      "fingerprint": [
+        "database-unavailable",
+        "{{ transaction }}"
+      ],
+      "attributes": {
+        "title": "DatabaseUnavailable ({{ transaction }})"
+      }
     }
   ],
   "transaction": "my-transaction",

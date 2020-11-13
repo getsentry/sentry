@@ -28,7 +28,7 @@ import {IconAdd, IconClose, IconChevron, IconUser} from 'app/icons';
 
 type Props = {
   id: string | null;
-  size: number;
+  size?: number;
   memberList?: User[];
 };
 
@@ -302,7 +302,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
                 ) : (
-                  <StyledIconUser size="20px" color="gray600" />
+                  <StyledIconUser size="20px" color="gray400" />
                 )}
                 <StyledChevron direction="down" size="xs" />
               </DropdownButton>

@@ -21,6 +21,8 @@ const defaultProps = {
   targetEventId: 'latest',
 };
 
+type DefaultProps = typeof defaultProps;
+
 type Props = {
   api: Client;
   baseIssueId: string;
@@ -30,7 +32,7 @@ type Props = {
   baseEventId?: string;
   targetEventId?: string;
   className?: string;
-} & typeof defaultProps;
+};
 
 type State = {
   loading: boolean;
@@ -41,7 +43,7 @@ type State = {
 };
 
 class IssueDiff extends React.Component<Props, State> {
-  static defaultProps = defaultProps;
+  static defaultProps: DefaultProps = defaultProps;
 
   state: State = {
     loading: true,

@@ -92,6 +92,14 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         resp = self.get_client().search_group_projects(group, query)
         return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
 
+    def format_source_url(self, repo, filepath, branch):
+        base_url = self.model.metadata["base_url"]
+        repo_name = repo.config["path"]
+
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
+        return u"{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
+
     def search_projects(self, query):
         client = self.get_client()
         group_id = self.get_group_id()

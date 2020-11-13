@@ -836,16 +836,22 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
+    # Enable Performance in the Release View
+    "organizations:release-performance-views": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Lets organizations set a custom title through fingerprinting
+    "organizations:custom-event-title": False,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
+    # Enable new GUI filters in the metric alert rule builder
+    "organizations:metric-alert-gui-filters": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -861,8 +867,12 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Allow orgs to automatically create Tickets in Issue Alerts
+    "organizations:integrations-ticket-rules": False,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
+    # Allow orgs to use the stacktrace linking feature
+    "organizations:integrations-stacktrace-link": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable experimental performance improvements.
@@ -874,8 +884,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable measurements-based product features.
-    "organizations:measurements": False,
+    # Enable key transactions as a column in performance
+    "organizations:key-transactions": False,
     # Enable org-wide saved searches and user pinned search
     "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -899,13 +909,11 @@ SENTRY_FEATURES = {
     "organizations:sso-migration": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
-    # Enable trends view for performance.
-    "organizations:trends": False,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
-    # Enable dynamic issue counts and user counts in the issue stream
-    "organizations:dynamic-issue-counts": False,
+    # Enable inbox support in the issue stream
+    "organizations:inbox": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
@@ -1135,6 +1143,7 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 
 # Snuba configuration
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
+SENTRY_SNUBA_TIMEOUT = 30
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
@@ -1435,6 +1444,10 @@ SENTRY_WATCHERS = (
 SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
+# Controls whether we'll run the snuba subscription processor. If enabled, we'll run
+# it as a worker, and devservices will run Kafka.
+SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
+
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -1481,9 +1494,16 @@ SENTRY_DEVSERVICES = {
     },
     "postgres": {
         "image": "postgres:9.6-alpine",
+        "pull": True,
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
         "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "healthcheck": {
+            "test": ["CMD", "pg_isready"],
+            "interval": 1000000000,  # Test every 1 second (in ns).
+            "timeout": 1000000000,  # Time we should expect the test to take.
+            "retries": 5,
+        },
     },
     "zookeeper": {
         "image": "confluentinc/cp-zookeeper:5.1.2",
@@ -1511,11 +1531,14 @@ SENTRY_DEVSERVICES = {
         },
         "volumes": {"kafka": {"bind": "/var/lib/kafka"}},
         "only_if": lambda settings, options: (
-            "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY
+            "kafka" in settings.SENTRY_EVENTSTREAM
+            or settings.SENTRY_USE_RELAY
+            or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS
         ),
     },
     "clickhouse": {
         "image": "yandex/clickhouse-server:20.3.9.70",
+        "pull": True,
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
         "volumes": {
@@ -1868,6 +1891,10 @@ KAFKA_EVENTS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
+    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+}
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"

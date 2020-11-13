@@ -1,6 +1,7 @@
 import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 
 describe('getFieldRenderer', function () {
@@ -11,6 +12,7 @@ describe('getFieldRenderer', function () {
     });
     organization = context.organization;
     project = context.project;
+    ProjectsStore.loadInitialData([project]);
     user = 'email:text@example.com';
 
     location = {
@@ -18,6 +20,7 @@ describe('getFieldRenderer', function () {
       query: {},
     };
     data = {
+      key_transaction: 1,
       title: 'ValueError: something bad',
       transaction: 'api.do_things',
       boolValue: 1,
@@ -33,6 +36,16 @@ describe('getFieldRenderer', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/${project.slug}/`,
       body: project,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/key-transactions/`,
+      method: 'POST',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/key-transactions/`,
+      method: 'DELETE',
     });
   });
 
@@ -75,6 +88,29 @@ describe('getFieldRenderer', function () {
 
     const value = wrapper.find('StyledDateTime');
     expect(value).toHaveLength(0);
+    expect(wrapper.text()).toEqual('n/a');
+  });
+
+  it('can render error.handled values', function () {
+    const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
+
+    // Should render the last value.
+    let wrapper = mount(renderer({'error.handled': [0, 1]}, {location, organization}));
+    expect(wrapper.text()).toEqual('true');
+
+    wrapper = mount(renderer({'error.handled': [0, 0]}, {location, organization}));
+    expect(wrapper.text()).toEqual('false');
+
+    // null = true for error.handled data.
+    wrapper = mount(renderer({'error.handled': [null]}, {location, organization}));
+    expect(wrapper.text()).toEqual('true');
+
+    // Default events won't have error.handled and will return an empty list.
+    wrapper = mount(renderer({'error.handled': []}, {location, organization}));
+    expect(wrapper.text()).toEqual('n/a');
+
+    // Transactions will have null for error.handled as the 'tag' won't be set.
+    wrapper = mount(renderer({'error.handled': null}, {location, organization}));
     expect(wrapper.text()).toEqual('n/a');
   });
 
@@ -127,5 +163,55 @@ describe('getFieldRenderer', function () {
     const value = wrapper.find('ProjectBadge');
     expect(value).toHaveLength(1);
     expect(value.text()).toEqual(project.slug);
+  });
+
+  it('can render key transaction as a star', async function () {
+    const renderer = getFieldRenderer('key_transaction', {key_transaction: 'boolean'});
+    delete data.project;
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+
+    const value = wrapper.find('StyledKey');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
+
+    // Since there is not project column, it's not clickable
+    expect(wrapper.find('KeyColumn')).toHaveLength(0);
+  });
+
+  it('can render key transaction as a clickable star', async function () {
+    const renderer = getFieldRenderer('key_transaction', {key_transaction: 'boolean'});
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    let value;
+
+    value = wrapper.find('StyledKey');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
+
+    wrapper.find('KeyColumn').simulate('click');
+    await tick();
+    wrapper.update();
+
+    value = wrapper.find('StyledKey');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeFalsy();
+
+    wrapper.find('KeyColumn').simulate('click');
+    await tick();
+    wrapper.update();
+
+    value = wrapper.find('StyledKey');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
   });
 });

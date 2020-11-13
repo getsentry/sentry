@@ -74,7 +74,7 @@ type ObserverOrValue<T> = T | ObserverReducerFn<T>;
 
 type Props = {
   name: string;
-  style?: Object;
+  style?: React.CSSProperties;
   saveOnBlur?: boolean;
   saveMessage?: React.ReactNode | Function;
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
@@ -90,7 +90,14 @@ type Props = {
   formatMessageValue?: boolean | Function; //used in prettyFormString
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
+  /**
+   * Tranform input when a value is set to the model.
+   */
   transformInput?: (value: any) => any;
+  /**
+   * Transform data when saving on blur.
+   */
+  getData?: (value: any) => any;
 } & Omit<FieldControl['props'], typeof propsToObserver[number]> &
   Omit<Field['props'], 'inline'>;
 

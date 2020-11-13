@@ -7,7 +7,7 @@ import {PageContent} from 'app/styles/organization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 const Body = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   flex-direction: column;
   flex: 1;
 `;

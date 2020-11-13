@@ -2,6 +2,7 @@ import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import memoize from 'lodash/memoize';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
@@ -11,12 +12,13 @@ import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import {escape} from 'app/utils';
 import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-function getOrganizationReleases(api, organization, conditions = null) {
+async function getOrganizationReleases(api, organization, conditions = null) {
   const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -28,7 +30,8 @@ function getOrganizationReleases(api, organization, conditions = null) {
     }
   });
   api.clear();
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {
+  return api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
+    includeAllArgs: true,
     method: 'GET',
     query,
   });
@@ -49,6 +52,8 @@ class ReleaseSeries extends React.Component {
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
     tooltip: SentryTypes.EChartsTooltip,
+
+    memoized: PropTypes.bool,
   };
 
   state = {
@@ -86,8 +91,23 @@ class ReleaseSeries extends React.Component {
     this.props.api.clear();
   }
 
-  fetchData() {
-    const {api, organization, projects, environments, period, start, end} = this.props;
+  getOrganizationReleasesMemoized = memoize(
+    async (api, conditions, organization) =>
+      await getOrganizationReleases(api, conditions, organization),
+    (_, __, conditions) => `${Object.values(conditions).map(JSON.stringify).join('-')}`
+  );
+
+  async fetchData() {
+    const {
+      api,
+      organization,
+      projects,
+      environments,
+      period,
+      start,
+      end,
+      memoized,
+    } = this.props;
     const conditions = {
       start,
       end,
@@ -95,15 +115,32 @@ class ReleaseSeries extends React.Component {
       environment: environments,
       statsPeriod: period,
     };
-    getOrganizationReleases(api, organization, conditions)
-      .then(releases => {
+    let hasMore = true;
+    const releases = [];
+    while (hasMore) {
+      try {
+        const getReleases = memoized
+          ? this.getOrganizationReleasesMemoized
+          : getOrganizationReleases;
+        const [newReleases, , xhr] = await getReleases(api, organization, conditions);
+        releases.push(...newReleases);
         if (this._isMounted) {
           this.setReleasesWithSeries(releases);
         }
-      })
-      .catch(() => {
+
+        const pageLinks = xhr && xhr.getResponseHeader('Link');
+        if (pageLinks) {
+          const paginationObject = parseLinkHeader(pageLinks);
+          hasMore = paginationObject && paginationObject.next.results;
+          conditions.cursor = paginationObject.next.cursor;
+        } else {
+          hasMore = false;
+        }
+      } catch {
         addErrorMessage(t('Error fetching releases'));
-      });
+        hasMore = false;
+      }
+    }
   }
 
   setReleasesWithSeries(releases) {
@@ -120,9 +157,10 @@ class ReleaseSeries extends React.Component {
       seriesName: 'Releases',
       data: [],
       markLine: MarkLine({
+        animation: false,
         lineStyle: {
           normal: {
-            color: theme.purple400,
+            color: theme.purple300,
             opacity: 0.3,
             type: 'solid',
           },
@@ -155,7 +193,7 @@ class ReleaseSeries extends React.Component {
           show: false,
         },
         data: releases.map(release => ({
-          xAxis: +new Date(release.dateCreated),
+          xAxis: +new Date(release.date),
           name: formatVersion(release.version, true),
           value: formatVersion(release.version, true),
           onClick: () => {

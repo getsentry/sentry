@@ -3,7 +3,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
 import {Client} from 'app/api';
-import {Organization, Project, Event, Group, Committer} from 'app/types';
+import {Organization, Project, Event, Group, Committer, AvatarProject} from 'app/types';
 import {getCommitters} from 'app/actionCreators/committers';
 import CommitterStore from 'app/stores/committerStore';
 import getDisplayName from 'app/utils/getDisplayName';
@@ -12,7 +12,7 @@ type DependentProps = {
   api: Client;
 
   organization: Organization;
-  project: Project;
+  project: Project | AvatarProject;
   event: Event;
   group?: Group;
 };

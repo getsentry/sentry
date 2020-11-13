@@ -155,7 +155,7 @@ const Layout = styled('div')`
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-areas: 'version created new-issues';
-    grid-template-columns: 2fr 1.5fr 1fr;
+    grid-template-columns: 2fr 1.6fr 1fr;
   }
 `;
 
@@ -197,11 +197,12 @@ const NewIssuesColumn = styled(RightAlignedColumn)`
 
 const ColumnTitle = styled('div')`
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   margin-bottom: ${space(0.75)};
   line-height: 1.2;
+  ${overflowEllipsis};
 `;
 
 const VersionWrapper = styled('div')`

@@ -21,6 +21,9 @@ class LockTestCase(unittest.TestCase):
         lock.acquire()
         backend.acquire.assert_called_once_with(key, duration, routing_key)
 
+        lock.locked()
+        backend.locked.assert_called_once_with(key, routing_key)
+
         lock.release()
         backend.release.assert_called_once_with(key, routing_key)
 

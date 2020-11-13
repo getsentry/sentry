@@ -143,7 +143,11 @@ class TransactionList extends React.Component<WrapperProps> {
                 isLoading={isLoading}
                 baselineTransaction={null}
               />
-              <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursor} />
+              <StyledPagination
+                pageLinks={pageLinks}
+                onCursor={this.handleCursor}
+                size="small"
+              />
             </React.Fragment>
           )}
         </DiscoverQuery>
@@ -172,7 +176,11 @@ class TransactionList extends React.Component<WrapperProps> {
                     isLoading={isLoading || baselineQueryProps.isLoading}
                     baselineTransaction={baselineQueryProps.results}
                   />
-                  <StyledPagination pageLinks={pageLinks} onCursor={this.handleCursor} />
+                  <StyledPagination
+                    pageLinks={pageLinks}
+                    onCursor={this.handleCursor}
+                    size="small"
+                  />
                 </React.Fragment>
               );
             }}
@@ -457,7 +465,7 @@ class TransactionTable extends React.PureComponent<Props> {
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
     return (
-      <PanelTable
+      <StyledPanelTable
         isEmpty={!hasResults}
         emptyMessage={t('No transactions found')}
         headers={this.renderHeader()}
@@ -466,10 +474,14 @@ class TransactionTable extends React.PureComponent<Props> {
         loader={loader}
       >
         {this.renderResults()}
-      </PanelTable>
+      </StyledPanelTable>
     );
   }
 }
+
+const StyledPanelTable = styled(PanelTable)`
+  margin-bottom: ${space(1)};
+`;
 
 const Header = styled('div')`
   display: flex;
@@ -493,7 +505,7 @@ const BodyCellContainer = styled('div')`
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: ${space(3)} 0 ${space(4)} 0;
+  margin: 0 0 ${space(3)} 0;
 `;
 
 export default TransactionList;

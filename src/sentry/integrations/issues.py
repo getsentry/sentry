@@ -5,6 +5,7 @@ import six
 from collections import defaultdict
 
 from sentry import features
+from sentry.models.useroption import UserOption
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
@@ -49,7 +50,7 @@ class IssueBasicMixin(object):
             output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
-    def get_create_issue_config(self, group, **kwargs):
+    def get_create_issue_config(self, group, user, **kwargs):
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -94,14 +95,21 @@ class IssueBasicMixin(object):
         """
         return []
 
-    def store_issue_last_defaults(self, project_id, data):
+    def get_persisted_user_default_config_fields(self):
+        """
+        Returns a list of field names that should have their last used values
+        persisted on a per-project, per-user basis.
+        """
+        return []
+
+    def store_issue_last_defaults(self, project, user, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
         ``get_persisted_default_config_fields`` which will automatically be
         merged into the associated field config object as the default.
 
-        >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
+        >>> integ.store_issue_last_defaults(project, user, {'externalProject': 2})
 
         When the integration is serialized these values will automatically be
         merged into the field configuration objects.
@@ -110,14 +118,38 @@ class IssueBasicMixin(object):
               differentiation is made between the two field configs.
         """
         persisted_fields = self.get_persisted_default_config_fields()
-        if not persisted_fields:
-            return
+        if persisted_fields:
+            project_defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+            self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
+                six.text_type(project.id), {}
+            ).update(project_defaults)
+            self.org_integration.save()
 
-        defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+        user_persisted_fields = self.get_persisted_user_default_config_fields()
+        if user_persisted_fields:
+            user_defaults = {k: v for k, v in six.iteritems(data) if k in user_persisted_fields}
+            user_option_key = dict(user=user, key="issue:defaults", project=project)
+            new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
+            new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(
+                user_defaults
+            )
+            UserOption.objects.set_value(value=new_user_defaults, **user_option_key)
 
-        self.org_integration.config.update({"project_issue_defaults": {project_id: defaults}})
-        self.org_integration.save()
+    def get_defaults(self, project, user):
+        project_defaults = self.get_project_defaults(project.id)
 
+        user_option_key = dict(user=user, key="issue:defaults", project=project)
+        user_defaults = UserOption.objects.get_value(default={}, **user_option_key).get(
+            self.org_integration.integration.provider, {}
+        )
+
+        defaults = {}
+        defaults.update(project_defaults)
+        defaults.update(user_defaults)
+
+        return defaults
+
+    # TODO(saif): Make private and move all usages over to `get_defaults`
     def get_project_defaults(self, project_id):
         return self.org_integration.config.get("project_issue_defaults", {}).get(
             six.text_type(project_id), {}

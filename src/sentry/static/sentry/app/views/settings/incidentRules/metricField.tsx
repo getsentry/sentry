@@ -23,7 +23,7 @@ import {errorFieldConfig, transactionFieldConfig} from './constants';
 import {Dataset} from './types';
 import {PRESET_AGGREGATES} from './presets';
 
-type Props = Omit<FormField['props'], 'children' | 'help'> & {
+type Props = Omit<FormField['props'], 'children'> & {
   organization: Organization;
 };
 
@@ -33,6 +33,7 @@ const getFieldOptionConfig = (dataset: Dataset) => {
   const aggregations = Object.fromEntries(
     config.aggregations.map(key => [key, AGGREGATIONS[key]])
   );
+
   const fields = Object.fromEntries(
     config.fields.map(key => {
       // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
@@ -45,7 +46,9 @@ const getFieldOptionConfig = (dataset: Dataset) => {
     })
   );
 
-  return {aggregations, fields};
+  const {measurementKeys} = config;
+
+  return {aggregations, fields, measurementKeys};
 };
 
 const help = ({name, model}: {name: string; model: FormModel}) => {
@@ -91,10 +94,10 @@ const MetricField = ({organization, ...props}: Props) => (
           : '';
 
       const selectedField = fieldOptions[fieldKey]?.value;
-      const numParameters =
-        selectedField &&
-        selectedField.kind === FieldValueKind.FUNCTION &&
-        selectedField.meta.parameters.length;
+      const numParameters: number =
+        selectedField?.kind === FieldValueKind.FUNCTION
+          ? selectedField.meta.parameters.length
+          : 0;
 
       return (
         <React.Fragment>
@@ -121,7 +124,7 @@ const AggregateHeader = styled('div')`
   grid-gap: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: bold;
   margin-bottom: ${space(1)};
 `;
@@ -130,10 +133,10 @@ const PresetButton = styled(Button)<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray700};
+      color: ${p.theme.textColor};
       &:hover,
       &:focus {
-        color: ${p.theme.gray800};
+        color: ${p.theme.textColor};
       }
     `}
 `;

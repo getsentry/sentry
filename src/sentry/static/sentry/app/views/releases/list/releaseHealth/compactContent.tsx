@@ -51,13 +51,13 @@ export default CompactContent;
 
 const StyledItem = styled(Item)`
   align-items: center;
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.border};
   display: grid;
   grid-template-columns: minmax(100px, max-content) auto;
   grid-column-gap: ${space(2)};
   justify-content: space-between;
   :last-child {
-    border-right: 1px solid ${p => p.theme.borderLight};
+    border-right: 1px solid ${p => p.theme.border};
   }
 `;
 

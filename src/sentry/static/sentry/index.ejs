@@ -3,18 +3,6 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="robots" content="NONE,NOARCHIVE" />
-    <% if (htmlWebpackPlugin.options.mobile) { %>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <% } %>
-
-    <% if (htmlWebpackPlugin.files.favicon) { %>
-    <link rel="shortcut icon" href="<%= htmlWebpackPlugin.files.favicon%>">
-    <% } %>
-
-    <% for (var css in htmlWebpackPlugin.files.css) { %>
-    <link href="<%= htmlWebpackPlugin.files.css[css] %>" rel="stylesheet">
-    <% } %>
-
     <title><%= htmlWebpackPlugin.options.title || 'Sentry Dev'%></title>
   </head>
 

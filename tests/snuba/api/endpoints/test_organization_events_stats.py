@@ -1031,6 +1031,36 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                 attrs for time, attrs in results["data"]
             ]
 
+    def test_top_events_with_error_unhandled(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        prototype = load_data("android-ndk")
+        prototype["event_id"] = "f" * 32
+        prototype["message"] = "not handled"
+        prototype["exception"]["values"][0]["value"] = "not handled"
+        prototype["exception"]["values"][0]["mechanism"]["handled"] = False
+        prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        self.store_event(data=prototype, project_id=project.id)
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "error.unhandled"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 2
+
     def test_top_events_with_timestamp(self):
         with self.feature(self.enabled_features):
             response = self.client.get(

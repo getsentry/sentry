@@ -8,23 +8,25 @@ import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
-import Feature from 'app/components/acl/feature';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SearchBar from 'app/views/events/searchBar';
 import space from 'app/styles/space';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {decodeScalar} from 'app/utils/queryString';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import Alert from 'app/components/alert';
-import {IconInfo} from 'app/icons';
-import ExternalLink from 'app/components/links/externalLink';
 
 import {getTransactionSearchQuery} from '../utils';
 import {TrendChangeType, TrendView, TrendFunctionField} from './types';
-import {TRENDS_FUNCTIONS, getCurrentTrendFunction, getSelectedQueryKey} from './utils';
+import {
+  DEFAULT_MAX_DURATION,
+  TRENDS_FUNCTIONS,
+  CONFIDENCE_LEVELS,
+  resetCursors,
+  getCurrentTrendFunction,
+  getCurrentConfidenceLevel,
+  getSelectedQueryKey,
+} from './utils';
 import ChangedTransactions from './changedTransactions';
-import ChangedProjects from './changedProjects';
 import {FilterViews} from '../landing';
 
 type Props = {
@@ -32,17 +34,12 @@ type Props = {
   location: Location;
   eventView: EventView;
   selection: GlobalSelection;
+  setError: (msg: string | undefined) => void;
 };
 
 type State = {
   previousTrendFunction?: TrendFunctionField;
 };
-
-function hasMultipleProjects(selection: GlobalSelection) {
-  const myProjectsSelected = selection.projects.length === 0;
-  const allProjectsSelected = selection.projects[0] === ALL_ACCESS_PROJECTS;
-  return myProjectsSelected || allProjectsSelected || selection.projects.length > 1;
-}
 
 class TrendsContent extends React.Component<Props, State> {
   state: State = {};
@@ -50,11 +47,13 @@ class TrendsContent extends React.Component<Props, State> {
   handleSearch = (searchQuery: string) => {
     const {location} = this.props;
 
+    const cursors = resetCursors();
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
-        cursor: undefined,
+        ...cursors,
         query: String(searchQuery).trim() || undefined,
       },
     });
@@ -81,100 +80,138 @@ class TrendsContent extends React.Component<Props, State> {
       previousTrendFunction: getCurrentTrendFunction(location).field,
     });
 
+    const cursors = resetCursors();
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         ...offsets,
+        ...cursors,
         trendFunction: field,
       },
     });
   };
 
+  handleConfidenceChange = (label: string) => {
+    const {organization, location} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.trends.change_confidence',
+      eventName: 'Performance Views: Change confidence',
+      organization_id: parseInt(organization.id, 10),
+      confidence_level: label,
+    });
+
+    const cursors = resetCursors();
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        ...cursors,
+        confidenceLevel: label,
+      },
+    });
+  };
+
   render() {
-    const {organization, eventView, selection, location} = this.props;
+    const {organization, eventView, location, setError} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
-    const fields = generateAggregateFields(organization, [
-      {
-        field: 'absolute_correlation()',
-      },
-    ]);
+    const fields = generateAggregateFields(
+      organization,
+      [
+        {
+          field: 'absolute_correlation()',
+        },
+        {
+          field: 'trend_percentage()',
+        },
+        {
+          field: 'trend_difference()',
+        },
+        {
+          field: 'count_percentage()',
+        },
+        {
+          field: 'tpm()',
+        },
+        {
+          field: 'tps()',
+        },
+      ],
+      ['epm()', 'eps()']
+    );
     const currentTrendFunction = getCurrentTrendFunction(location);
+    const currentConfidenceLevel = getCurrentConfidenceLevel(location);
     const query = getTransactionSearchQuery(location);
-    const showChangedProjects = hasMultipleProjects(selection);
 
     return (
-      <Feature features={['trends']}>
-        <DefaultTrends location={location} eventView={eventView}>
-          <Alert type="info" icon={<IconInfo size="md" />}>
-            {t(
-              "Performance Trends is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
-            )}{' '}
-            <ExternalLink href="mailto:performance-feedback@sentry.io">
-              performance-feedback@sentry.io
-            </ExternalLink>
-          </Alert>
-          <StyledSearchContainer>
-            <StyledSearchBar
-              organization={organization}
-              projectIds={trendView.project}
-              query={query}
-              fields={fields}
-              onSearch={this.handleSearch}
-            />
-            <TrendsDropdown>
-              <DropdownControl
-                buttonProps={{prefix: t('Display')}}
-                label={currentTrendFunction.label}
-              >
-                {TRENDS_FUNCTIONS.map(({label, field}) => (
-                  <DropdownItem
-                    key={field}
-                    onSelect={this.handleTrendFunctionChange}
-                    eventKey={field}
-                    data-test-id={field}
-                    isActive={field === currentTrendFunction.field}
-                  >
-                    {label}
-                  </DropdownItem>
-                ))}
-              </DropdownControl>
-            </TrendsDropdown>
-          </StyledSearchContainer>
-          <TrendsLayoutContainer>
-            {showChangedProjects && (
-              <ChangedProjects
-                trendChangeType={TrendChangeType.IMPROVED}
-                previousTrendFunction={previousTrendFunction}
-                trendView={trendView}
-                location={location}
-              />
-            )}
-            {showChangedProjects && (
-              <ChangedProjects
-                trendChangeType={TrendChangeType.REGRESSION}
-                previousTrendFunction={previousTrendFunction}
-                trendView={trendView}
-                location={location}
-              />
-            )}
-            <ChangedTransactions
-              trendChangeType={TrendChangeType.IMPROVED}
-              previousTrendFunction={previousTrendFunction}
-              trendView={trendView}
-              location={location}
-            />
-            <ChangedTransactions
-              trendChangeType={TrendChangeType.REGRESSION}
-              previousTrendFunction={previousTrendFunction}
-              trendView={trendView}
-              location={location}
-            />
-          </TrendsLayoutContainer>
-        </DefaultTrends>
-      </Feature>
+      <DefaultTrends location={location} eventView={eventView}>
+        <StyledSearchContainer>
+          <StyledSearchBar
+            organization={organization}
+            projectIds={trendView.project}
+            query={query}
+            fields={fields}
+            onSearch={this.handleSearch}
+          />
+          <TrendsDropdown>
+            <DropdownControl
+              buttonProps={{prefix: t('Confidence')}}
+              label={currentConfidenceLevel.label}
+            >
+              {CONFIDENCE_LEVELS.map(({label}) => (
+                <DropdownItem
+                  key={label}
+                  onSelect={this.handleConfidenceChange}
+                  eventKey={label}
+                  data-test-id={label}
+                  isActive={label === currentConfidenceLevel.label}
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </DropdownControl>
+          </TrendsDropdown>
+          <TrendsDropdown>
+            <DropdownControl
+              buttonProps={{prefix: t('Display')}}
+              label={currentTrendFunction.label}
+            >
+              {TRENDS_FUNCTIONS.map(({label, field}) => (
+                <DropdownItem
+                  key={field}
+                  onSelect={this.handleTrendFunctionChange}
+                  eventKey={field}
+                  data-test-id={field}
+                  isActive={field === currentTrendFunction.field}
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </DropdownControl>
+          </TrendsDropdown>
+        </StyledSearchContainer>
+        <TrendsLayoutContainer>
+          <ChangedTransactions
+            trendChangeType={TrendChangeType.IMPROVED}
+            previousTrendFunction={previousTrendFunction}
+            trendView={trendView}
+            location={location}
+            setError={setError}
+          />
+          <ChangedTransactions
+            trendChangeType={TrendChangeType.REGRESSION}
+            previousTrendFunction={previousTrendFunction}
+            trendView={trendView}
+            location={location}
+            setError={setError}
+          />
+        </TrendsLayoutContainer>
+      </DefaultTrends>
     );
   }
 }
@@ -197,8 +234,8 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     if (queryString || this.hasPushedDefaults) {
       return <React.Fragment>{children}</React.Fragment>;
     } else {
-      conditions.setTagValues('epm()', ['>0.01']);
-      conditions.setTagValues('transaction.duration', ['>0', '<60min']);
+      conditions.setTagValues('tpm()', ['>0.01']);
+      conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
 
     const query = stringifyQueryObject(conditions);
@@ -221,10 +258,10 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-bottom: ${space(2)};
-  margin-right: ${space(1)};
 `;
 
 const TrendsDropdown = styled('div')`
+  margin-left: ${space(1)};
   flex-grow: 0;
 `;
 

@@ -49,6 +49,7 @@ ATTR_CHOICES = [
     "stacktrace.module",
     "stacktrace.filename",
     "stacktrace.abs_path",
+    "stacktrace.package",
 ]
 
 
@@ -69,7 +70,7 @@ class EventAttributeCondition(EventCondition):
     - exception.{type,value}
     - user.{id,ip_address,email,FIELD}
     - http.{method,url}
-    - stacktrace.{code,module,filename,abs_path}
+    - stacktrace.{code,module,filename,abs_path,package}
     - extra.{FIELD}
     """
 
@@ -154,7 +155,7 @@ class EventAttributeCondition(EventCondition):
             result = []
             for st in stacks:
                 for frame in st.frames:
-                    if path[1] in ("filename", "module", "abs_path"):
+                    if path[1] in ("filename", "module", "abs_path", "package"):
                         result.append(getattr(frame, path[1]))
                     elif path[1] == "code":
                         if frame.pre_context:

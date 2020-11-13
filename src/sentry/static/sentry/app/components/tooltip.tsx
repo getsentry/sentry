@@ -3,7 +3,7 @@ import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import styled from '@emotion/styled';
+import styled, {SerializedStyles} from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
 import {domId} from 'app/utils/domId';
@@ -42,7 +42,7 @@ type Props = DefaultProps & {
   /**
    * Additional style rules for the tooltip content.
    */
-  popperStyle?: React.CSSProperties;
+  popperStyle?: React.CSSProperties | SerializedStyles;
 
   /**
    * Time to wait (in milliseconds) before showing the tooltip
@@ -262,7 +262,7 @@ class Tooltip extends React.Component<Props, State> {
                 ref={arrowProps.ref}
                 data-placement={placement}
                 style={arrowProps.style}
-                background={popperStyle?.background || '#000'}
+                background={(popperStyle as React.CSSProperties)?.background || '#000'}
               />
             </TooltipContent>
           )}

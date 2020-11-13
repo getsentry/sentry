@@ -2,7 +2,10 @@
   "version": 2,
 
   "rewrites": [
-    {"source": "/api/(.*)", "destination": "https://sentry.io/api/$1"},
+    {
+      "source": "/(api|organization-avatar|avatar)/(.*)",
+      "destination": "https://sentry.io/$1/$2"
+    },
     {"source": "/_assets/(.*)", "destination": "/$1"},
     {"source": "/(.*)", "destination": "/index.html"}
   ],

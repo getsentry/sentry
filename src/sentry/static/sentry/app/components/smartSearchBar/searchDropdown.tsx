@@ -109,14 +109,14 @@ export default SearchDropdown;
 
 const StyledSearchDropdown = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusBottom};
   position: absolute;
   top: 38px;
   /* Container has a border that we need to account for */
   right: -1px;
   left: -1px;
-  background: #fff;
+  background: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.dropdown};
   overflow: hidden;
 `;
@@ -131,16 +131,16 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
 const ListItem = styled('li')`
   &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
@@ -150,8 +150,8 @@ const SearchDropdownGroupTitle = styled('header')`
   display: flex;
   align-items: center;
 
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.gray300};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -177,7 +177,7 @@ const SearchListItem = styled(ListItem)`
 
   &:hover,
   &.active {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 

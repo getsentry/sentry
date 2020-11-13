@@ -131,7 +131,7 @@ const StyledIconAnchor = styled(IconAnchor)`
 const Permalink = styled('a')`
   :hover ${StyledIconAnchor} {
     display: block;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
@@ -150,7 +150,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 
   & h3 {
@@ -163,7 +163,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 
   & small {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.textColor};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
@@ -171,8 +171,8 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     text-transform: none;
   }
   & small > span {
-    color: ${p => p.theme.gray700};
-    border-bottom: 1px dotted ${p => p.theme.borderDark};
+    color: ${p => p.theme.textColor};
+    border-bottom: 1px dotted ${p => p.theme.border};
     font-weight: normal;
   }
 

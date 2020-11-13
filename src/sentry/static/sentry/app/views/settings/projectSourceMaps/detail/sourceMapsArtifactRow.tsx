@@ -11,17 +11,24 @@ import FileSize from 'app/components/fileSize';
 import {Artifact} from 'app/types';
 import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
+import Role from 'app/components/acl/role';
 import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 
 type Props = {
   artifact: Artifact;
   onDelete: (id: string) => void;
   downloadUrl: string;
+  downloadRole: string;
 };
 
-const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
-  const {name, size, dateCreated, dist, id} = artifact;
+const SourceMapsArtifactRow = ({
+  artifact,
+  onDelete,
+  downloadUrl,
+  downloadRole,
+}: Props) => {
+  const {name, size, dateCreated, id, dist} = artifact;
 
   const handleDeleteClick = () => {
     onDelete(id);
@@ -33,10 +40,15 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
           <TimeWrapper>
-            <IconClock size="xs" />
+            <IconClock size="sm" />
             <TimeSince date={dateCreated} />
           </TimeWrapper>
-          {dist && <Tag inline>{dist}</Tag>}
+          <StyledTag
+            type={dist ? 'info' : undefined}
+            tooltipText={dist ? undefined : t('No distribution set')}
+          >
+            {dist ?? t('none')}
+          </StyledTag>
         </TimeAndDistWrapper>
       </NameColumn>
       <SizeColumn>
@@ -44,22 +56,22 @@ const SourceMapsArtifactRow = ({artifact, onDelete, downloadUrl}: Props) => {
       </SizeColumn>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Access access={['project:write']}>
-            {({hasAccess}) => (
+          <Role role={downloadRole}>
+            {({hasRole}) => (
               <Tooltip
                 title={t('You do not have permission to download artifacts.')}
-                disabled={hasAccess}
+                disabled={hasRole}
               >
                 <Button
                   size="small"
                   icon={<IconDownload size="sm" />}
-                  disabled={!hasAccess}
+                  disabled={!hasRole}
                   href={downloadUrl}
                   title={t('Download Artifact')}
                 />
               </Tooltip>
             )}
-          </Access>
+          </Role>
 
           <Access access={['project:releases']}>
             {({hasAccess}) => (
@@ -122,8 +134,13 @@ const TimeWrapper = styled('div')`
   display: grid;
   grid-gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray600};
+  font-size: ${p => p.theme.fontSizeMedium};
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const StyledTag = styled(Tag)`
+  margin-left: ${space(1)};
 `;
 
 export default SourceMapsArtifactRow;

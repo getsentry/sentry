@@ -1,13 +1,19 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {getSeriesSelection} from 'app/components/charts/utils';
+import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
 import {getExactDuration} from 'app/utils/formatters';
+import {axisDuration} from 'app/utils/discover/charts';
+import {decodeList} from 'app/utils/queryString';
 
 import {YAxis} from './releaseChartControls';
 
@@ -17,12 +23,29 @@ type Props = {
   timeseriesData: Series[];
   zoomRenderProps: any;
   yAxis: YAxis;
+  location: Location;
+  shouldRecalculateVisibleSeries: boolean;
+  onVisibleSeriesRecalculated: () => void;
 };
 
 class HealthChart extends React.Component<Props> {
+  componentDidMount() {
+    if (this.shouldUnselectHealthySeries()) {
+      this.props.onVisibleSeriesRecalculated();
+      this.handleLegendSelectChanged({selected: {Healthy: false}});
+    }
+  }
+
   shouldComponentUpdate(nextProps: Props) {
     if (nextProps.reloading || !nextProps.timeseriesData) {
       return false;
+    }
+
+    if (
+      this.props.location.query.unselectedSeries !==
+      nextProps.location.query.unselectedSeries
+    ) {
+      return true;
     }
 
     if (isEqual(this.props.timeseriesData, nextProps.timeseriesData)) {
@@ -31,6 +54,36 @@ class HealthChart extends React.Component<Props> {
 
     return true;
   }
+
+  shouldUnselectHealthySeries(): boolean {
+    const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
+
+    const otherAreasThanHealthyArePositive = timeseriesData
+      .filter(s => s.seriesName !== 'Healthy')
+      .some(s => s.data.some(d => d.value > 0));
+    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
+
+    return (
+      shouldRecalculateVisibleSeries &&
+      otherAreasThanHealthyArePositive &&
+      !alreadySomethingUnselected
+    );
+  }
+
+  handleLegendSelectChanged = legendChange => {
+    const {location} = this.props;
+    const {selected} = legendChange;
+
+    const to = {
+      ...location,
+      query: {
+        ...location.query,
+        unselectedSeries: Object.keys(selected).filter(key => !selected[key]),
+      },
+    };
+
+    browserHistory.replace(to);
+  };
 
   formatTooltipValue = (value: string | number | null) => {
     const {yAxis} = this.props;
@@ -46,7 +99,7 @@ class HealthChart extends React.Component<Props> {
     }
   };
 
-  configureYAxis = () => {
+  configureYAxis() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.CRASH_FREE:
@@ -55,21 +108,44 @@ class HealthChart extends React.Component<Props> {
           scale: true,
           axisLabel: {
             formatter: '{value}%',
-            color: theme.gray400,
+            color: theme.chartLabel,
           },
         };
       case YAxis.SESSION_DURATION:
         return {
           scale: true,
+          axisLabel: {
+            formatter: value => axisDuration(value * 1000),
+            color: theme.chartLabel,
+          },
         };
       case YAxis.SESSIONS:
       case YAxis.USERS:
       default:
         return undefined;
     }
-  };
+  }
 
-  getChart = () => {
+  configureXAxis() {
+    const {timeseriesData, zoomRenderProps} = this.props;
+
+    if (timeseriesData.every(s => s.data.length === 1)) {
+      if (zoomRenderProps.period) {
+        const {start, end} = parseStatsPeriod(zoomRenderProps.period, null);
+
+        return {min: start, max: end};
+      }
+
+      return {
+        min: zoomRenderProps.start,
+        max: zoomRenderProps.end,
+      };
+    }
+
+    return undefined;
+  }
+
+  getChart() {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.SESSION_DURATION:
@@ -81,16 +157,16 @@ class HealthChart extends React.Component<Props> {
       default:
         return LineChart;
     }
-  };
+  }
 
   render() {
-    const {utc, timeseriesData, zoomRenderProps} = this.props;
+    const {utc, timeseriesData, zoomRenderProps, location} = this.props;
+
     const Chart = this.getChart();
 
     const legend = {
-      right: 16,
-      top: 12,
-      selectedMode: false,
+      right: 22,
+      top: 10,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -101,7 +177,8 @@ class HealthChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      data: timeseriesData.map(d => d.seriesName),
+      data: timeseriesData.map(d => d.seriesName).reverse(),
+      selected: getSeriesSelection(location),
     };
 
     return (
@@ -121,7 +198,10 @@ class HealthChart extends React.Component<Props> {
           bottom: '12px',
         }}
         yAxis={this.configureYAxis()}
+        xAxis={this.configureXAxis()}
         tooltip={{valueFormatter: this.formatTooltipValue}}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
+        transformSinglePointToBar
       />
     );
   }

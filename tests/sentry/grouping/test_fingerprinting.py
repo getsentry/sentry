@@ -21,21 +21,42 @@ app:true                                        -> {{ default }}
 !"path":**/foo/**                               -> everything
 logger:sentry.*                                 -> logger-, {{ logger }}
 message:"\\x\\xff"                              -> stuff
+logger:sentry.*                                 -> logger-{{ logger }}, title="Message from {{ logger }}"
+logger:sentry.*                                 -> logger-{{ logger }} title="Message from {{ logger }}"
 """
     )
     assert rules._to_config_structure() == {
         "rules": [
-            {"matchers": [["type", "DatabaseUnavailable"]], "fingerprint": ["DatabaseUnavailable"]},
+            {
+                "matchers": [["type", "DatabaseUnavailable"]],
+                "fingerprint": ["DatabaseUnavailable"],
+                "attributes": {},
+            },
             {
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
+                "attributes": {},
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"]},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
-            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
-            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"]},
-            {"matchers": [["logger", "sentry.*"]], "fingerprint": ["logger-", "{{ logger }}"]},
-            {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"]},
+            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
+            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
+            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"], "attributes": {}},
+            {"matchers": [["!path", "**/foo/**"]], "fingerprint": ["everything"], "attributes": {}},
+            {
+                "matchers": [["logger", "sentry.*"]],
+                "fingerprint": ["logger-", "{{ logger }}"],
+                "attributes": {},
+            },
+            {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
+            {
+                "matchers": [["logger", "sentry.*"]],
+                "fingerprint": ["logger-", "{{ logger }}"],
+                "attributes": {"title": "Message from {{ logger }}"},
+            },
+            {
+                "matchers": [["logger", "sentry.*"]],
+                "fingerprint": ["logger-", "{{ logger }}"],
+                "attributes": {"title": "Message from {{ logger }}"},
+            },
         ],
         "version": 1,
     }
@@ -64,15 +85,25 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     )
     assert rules._to_config_structure() == {
         "rules": [
-            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
-            {"matchers": [["logger", "test"]], "fingerprint": ["logger-", "{{ logger }}"]},
             {
-                "matchers": [["logger", "test2"]],
-                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+                "matchers": [["logger", "test"]],
+                "fingerprint": ["logger-", "{{ logger }}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["logger", "test"]],
+                "fingerprint": ["logger-", "{{ logger }}"],
+                "attributes": {},
             },
             {
                 "matchers": [["logger", "test2"]],
                 "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+                "attributes": {},
+            },
+            {
+                "matchers": [["logger", "test2"]],
+                "fingerprint": ["logger-", "{{ logger }}", "-", "{{ level }}"],
+                "attributes": {},
             },
         ],
         "version": 1,
@@ -91,13 +122,18 @@ app:true                                        -> {{ default }}
     )
     assert rules._to_config_structure() == {
         "rules": [
-            {"matchers": [["type", "DatabaseUnavailable"]], "fingerprint": ["DatabaseUnavailable"]},
+            {
+                "matchers": [["type", "DatabaseUnavailable"]],
+                "fingerprint": ["DatabaseUnavailable"],
+                "attributes": {},
+            },
             {
                 "matchers": [["function", "assertion_failed"], ["module", "foo"]],
                 "fingerprint": ["AssertionFailed", "foo"],
+                "attributes": {},
             },
-            {"matchers": [["app", "true"]], "fingerprint": ["aha"]},
-            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"]},
+            {"matchers": [["app", "true"]], "fingerprint": ["aha"], "attributes": {}},
+            {"matchers": [["app", "true"]], "fingerprint": ["{{ default }}"], "attributes": {}},
         ],
         "version": 1,
     }
@@ -130,6 +166,7 @@ def test_event_hash_variant(insta_snapshot, input):
         {
             "config": config.to_json(),
             "fingerprint": evt.data["fingerprint"],
+            "title": evt.data["title"],
             "variants": {k: dump_variant(v) for (k, v) in evt.get_grouping_variants().items()},
         }
     )

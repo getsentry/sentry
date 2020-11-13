@@ -101,6 +101,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
+        TODO(Chris F.): Add details on expand/collapse.
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
@@ -108,14 +109,14 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         except InvalidParams as e:
             raise ParseError(detail=six.text_type(e))
 
-        has_dynamic_issue_counts = features.has(
-            "organizations:dynamic-issue-counts", organization, actor=request.user
-        )
+        expand = request.GET.getlist("expand", [])
+        collapse = request.GET.getlist("collapse", [])
+        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         elif stats_period is None:
-            # default if no dynamic-issue-counts
+            # default
             stats_period = "24h"
         elif stats_period == "":
             # disable stats
@@ -136,6 +137,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period=stats_period,
             stats_period_start=stats_period_start,
             stats_period_end=stats_period_end,
+            expand=expand,
+            collapse=collapse,
+            has_inbox=has_inbox,
         )
 
         projects = self.get_projects(request, organization)
@@ -209,21 +213,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         results = list(cursor_result)
 
-        if has_dynamic_issue_counts:
-            context = serialize(
-                results,
-                request.user,
-                serializer(
-                    start=start,
-                    end=end,
-                    search_filters=query_kwargs["search_filters"]
-                    if "search_filters" in query_kwargs
-                    else None,
-                    has_dynamic_issue_counts=True,
-                ),
-            )
-        else:
-            context = serialize(results, request.user, serializer())
+        context = serialize(
+            results,
+            request.user,
+            serializer(
+                start=start,
+                end=end,
+                search_filters=query_kwargs["search_filters"]
+                if "search_filters" in query_kwargs
+                else None,
+            ),
+        )
 
         # HACK: remove auto resolved entries
         # TODO: We should try to integrate this into the search backend, since

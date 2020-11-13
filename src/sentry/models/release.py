@@ -3,12 +3,14 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import six
+import sentry_sdk
 import itertools
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 from time import time
 
 from sentry.app import locks
@@ -23,7 +25,7 @@ from sentry.db.models import (
 
 from sentry_relay import parse_release, RelayError
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
-from sentry.models import CommitFileChange
+from sentry.models import CommitFileChange, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -46,6 +48,10 @@ class UnsafeReleaseDeletion(Exception):
     pass
 
 
+class ReleaseCommitError(Exception):
+    pass
+
+
 class ReleaseProject(Model):
     __core__ = False
 
@@ -59,10 +65,44 @@ class ReleaseProject(Model):
         unique_together = (("project", "release"),)
 
 
+class ReleaseStatus(object):
+    OPEN = 0
+    ARCHIVED = 1
+
+    @classmethod
+    def from_string(cls, value):
+        if value == "open":
+            return cls.OPEN
+        elif value == "archived":
+            return cls.ARCHIVED
+        else:
+            raise ValueError(repr(value))
+
+    @classmethod
+    def to_string(cls, value):
+        # XXX(markus): Since the column is nullable we need to handle `null` here.
+        # However `null | undefined` in request payloads means "don't change
+        # status of release". This is why `from_string` does not consider
+        # `null` valid.
+        #
+        # We could remove `0` as valid state and only have `null` but I think
+        # that would make things worse.
+        #
+        # Eventually we should backfill releasestatus to 0
+        if value is None or value == ReleaseStatus.OPEN:
+            return "open"
+        elif value == ReleaseStatus.ARCHIVED:
+            return "archived"
+        else:
+            raise ValueError(repr(value))
+
+
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
     production state.
+
+    A commit is generally a git commit. See also releasecommit.py
     """
 
     __core__ = False
@@ -71,6 +111,12 @@ class Release(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
     )
+    status = BoundedPositiveIntegerField(
+        default=ReleaseStatus.OPEN,
+        null=True,
+        choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
+    )
+
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
@@ -83,6 +129,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
+    # new issues (groups) that arise as a consequence of this release
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
@@ -330,54 +377,57 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user, fetch=False):
-        from sentry.api.exceptions import InvalidRepository
-        from sentry.models import Commit, ReleaseHeadCommit, Repository
-        from sentry.tasks.commits import fetch_commits
+        with sentry_sdk.start_span(op="set_refs"):
+            from sentry.api.exceptions import InvalidRepository
+            from sentry.models import Commit, ReleaseHeadCommit, Repository
+            from sentry.tasks.commits import fetch_commits
 
-        # TODO: this does the wrong thing unless you are on the most
-        # recent release.  Add a timestamp compare?
-        prev_release = (
-            type(self)
-            .objects.filter(organization_id=self.organization_id, projects__in=self.projects.all())
-            .extra(select={"sort": "COALESCE(date_released, date_added)"})
-            .exclude(version=self.version)
-            .order_by("-sort")
-            .first()
-        )
-
-        names = {r["repository"] for r in refs}
-        repos = list(
-            Repository.objects.filter(organization_id=self.organization_id, name__in=names)
-        )
-        repos_by_name = {r.name: r for r in repos}
-        invalid_repos = names - set(repos_by_name.keys())
-        if invalid_repos:
-            raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
-
-        self.handle_commit_ranges(refs)
-
-        for ref in refs:
-            repo = repos_by_name[ref["repository"]]
-
-            commit = Commit.objects.get_or_create(
-                organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
-            )[0]
-            # update head commit for repo/release if exists
-            ReleaseHeadCommit.objects.create_or_update(
-                organization_id=self.organization_id,
-                repository_id=repo.id,
-                release=self,
-                values={"commit": commit},
+            # TODO: this does the wrong thing unless you are on the most
+            # recent release.  Add a timestamp compare?
+            prev_release = (
+                type(self)
+                .objects.filter(
+                    organization_id=self.organization_id, projects__in=self.projects.all()
+                )
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .exclude(version=self.version)
+                .order_by("-sort")
+                .first()
             )
-        if fetch:
-            fetch_commits.apply_async(
-                kwargs={
-                    "release_id": self.id,
-                    "user_id": user.id,
-                    "refs": refs,
-                    "prev_release_id": prev_release and prev_release.id,
-                }
+
+            names = {r["repository"] for r in refs}
+            repos = list(
+                Repository.objects.filter(organization_id=self.organization_id, name__in=names)
             )
+            repos_by_name = {r.name: r for r in repos}
+            invalid_repos = names - set(repos_by_name.keys())
+            if invalid_repos:
+                raise InvalidRepository("Invalid repository names: %s" % ",".join(invalid_repos))
+
+            self.handle_commit_ranges(refs)
+
+            for ref in refs:
+                repo = repos_by_name[ref["repository"]]
+
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id, repository_id=repo.id, key=ref["commit"]
+                )[0]
+                # update head commit for repo/release if exists
+                ReleaseHeadCommit.objects.create_or_update(
+                    organization_id=self.organization_id,
+                    repository_id=repo.id,
+                    release=self,
+                    values={"commit": commit},
+                )
+            if fetch:
+                fetch_commits.apply_async(
+                    kwargs={
+                        "release_id": self.id,
+                        "user_id": user.id,
+                        "refs": refs,
+                        "prev_release_id": prev_release and prev_release.id,
+                    }
+                )
 
     def set_commits(self, commit_list):
         """
@@ -414,6 +464,11 @@ class Release(Model):
         ]
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
+        if lock.locked():
+            # Signal failure to the consumer rapidly. This aims to prevent the number
+            # of timeouts and prevent web worker exhaustion when customers create
+            # the same release rapidly for different projects.
+            raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
             with transaction.atomic():
@@ -622,6 +677,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
+                remove_group_from_inbox(group)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(

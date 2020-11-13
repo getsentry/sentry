@@ -179,15 +179,15 @@ const ProviderWrapper = styled('div')`
     top: 0;
     bottom: 0;
     left: -30px;
-    border-left: 1px solid ${p => p.theme.borderLight};
+    border-left: 1px solid ${p => p.theme.border};
   }
 `;
 
 const LostPasswordLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.textColor};
   }
 `;
 

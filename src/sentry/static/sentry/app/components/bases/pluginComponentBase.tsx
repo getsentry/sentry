@@ -136,7 +136,7 @@ class PluginComponentBase<
     callback && callback();
   }
 
-  renderField(props: Omit<GenericFieldProps, 'formState'>) {
+  renderField(props: Omit<GenericFieldProps, 'formState'>): React.ReactNode {
     props = {...props};
     const newProps = {
       ...props,

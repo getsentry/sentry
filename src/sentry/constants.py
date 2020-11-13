@@ -153,6 +153,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sentry-apps",
         "resources",
         "integration-platform",
+        "trust",
+        "legal",
+        "community",
     )
 )
 
@@ -245,6 +248,13 @@ MIGRATED_CONDITIONS = frozenset(
         "sentry.rules.conditions.tagged_event.TaggedEventCondition",
         "sentry.rules.conditions.event_attribute.EventAttributeCondition",
         "sentry.rules.conditions.level.LevelCondition",
+    ]
+)
+
+TICKET_ACTIONS = frozenset(
+    [
+        "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+        "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
     ]
 )
 
@@ -528,6 +538,7 @@ REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
 SENSITIVE_FIELDS_DEFAULT = None
 SAFE_FIELDS_DEFAULT = None
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
+DEBUG_FILES_ROLE_DEFAULT = "admin"
 EVENTS_ADMIN_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True

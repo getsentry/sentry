@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red400" />
+      <IconLock size="xs" color="red300" />
     </Tooltip>
   );
 
@@ -170,13 +170,13 @@ const Description = styled('p')`
   padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.75rem;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const ActionBar = styled('div')`
   height: 40px;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   margin: ${space(3)} -${space(3)} -${space(3)};
   display: flex;
   justify-content: space-between;
@@ -212,18 +212,18 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 `;
 
 const CTA = styled('div')`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
 `;
 
 const SkipButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const ItemComplete = styled(Card)`
   cursor: pointer;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(1.5)};
   display: grid;
   grid-template-columns: max-content 1fr max-content 20px;
@@ -247,7 +247,7 @@ StatusIndicator.defaultProps = {
 const CompleteIndicator = styled(IconCheckmark)``;
 CompleteIndicator.defaultProps = {
   isCircled: true,
-  color: 'green400',
+  color: 'green300',
 };
 
 const SkippedIndicator = styled(IconClose)``;
@@ -262,7 +262,7 @@ const completedItemAnimation = {
 };
 
 const CompletedDate = styled(motion.div)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 CompletedDate.defaultProps = {

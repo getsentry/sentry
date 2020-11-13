@@ -51,7 +51,7 @@ describe('EventsErrors', function () {
 
   beforeAll(function () {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
     MockApiClient.addMockResponse({

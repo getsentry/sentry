@@ -11,9 +11,14 @@ import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
 import Badge from 'app/components/badge';
 import space from 'app/styles/space';
-import {ColumnType, AggregateParameter, QueryFieldValue} from 'app/utils/discover/fields';
+import {
+  ColumnType,
+  AggregateParameter,
+  QueryFieldValue,
+  ValidateColumnTypes,
+} from 'app/utils/discover/fields';
 
-import {FieldValueKind, FieldValue} from './types';
+import {FieldValueKind, FieldValue, FieldValueColumns} from './types';
 
 type FieldOptions = Record<string, SelectValue<FieldValue>>;
 
@@ -96,7 +101,7 @@ class QueryField extends React.Component<Props> {
             fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
             (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
-            param.columnTypes.includes(field.meta.dataType)
+            validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
             // New function accepts current field.
             fieldValue.function[i + 1] = field.meta.name;
@@ -233,7 +238,7 @@ class QueryField extends React.Component<Props> {
                   (value.kind === FieldValueKind.FIELD ||
                     value.kind === FieldValueKind.TAG ||
                     value.kind === FieldValueKind.MEASUREMENT) &&
-                  param.columnTypes.includes(value.meta.dataType)
+                  validateColumnTypes(param.columnTypes as ValidateColumnTypes, value)
               ),
             };
           }
@@ -412,6 +417,17 @@ class QueryField extends React.Component<Props> {
   }
 }
 
+function validateColumnTypes(
+  columnTypes: ValidateColumnTypes,
+  input: FieldValueColumns
+): boolean {
+  if (typeof columnTypes === 'function') {
+    return columnTypes({name: input.meta.name, dataType: input.meta.dataType});
+  }
+
+  return columnTypes.includes(input.meta.dataType);
+}
+
 const Container = styled('div')<{gridColumns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
@@ -494,7 +510,7 @@ const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
   height: 37px;
   min-width: 50px;
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
@@ -502,7 +518,7 @@ const BlankSpace = styled('div')`
 
   &:after {
     content: '${t('No parameter')}';
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 

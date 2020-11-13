@@ -50,7 +50,7 @@ from sentry.snuba.subscriptions import (
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils.compat import zip
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import bulk_raw_query, SnubaQueryParams, SnubaTSResult
+from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -58,6 +58,9 @@ from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 # after the incident started to display the correct start date.
 WINDOWED_STATS_DATA_POINTS = 200
 NOT_SET = object()
+
+CRITICAL_TRIGGER_LABEL = "critical"
+WARNING_TRIGGER_LABEL = "warning"
 
 
 class AlreadyDeletedError(Exception):
@@ -1043,24 +1046,60 @@ def trigger_incident_triggers(incident):
     triggers = IncidentTrigger.objects.filter(incident=incident).select_related(
         "alert_rule_trigger"
     )
-    for trigger in triggers:
-        if trigger.status == TriggerStatus.ACTIVE.value:
-            with transaction.atomic():
-                method = "resolve"
-                for action in AlertRuleTriggerAction.objects.filter(
-                    alert_rule_trigger=trigger.alert_rule_trigger
-                ):
-                    for project in incident.projects.all():
-                        transaction.on_commit(
-                            handle_trigger_action.s(
-                                action_id=action.id,
-                                incident_id=incident.id,
-                                project_id=project.id,
-                                method=method,
-                            ).delay
-                        )
-                trigger.status = TriggerStatus.RESOLVED.value
-                trigger.save()
+    actions = list(
+        AlertRuleTriggerAction.objects.filter(
+            alert_rule_trigger__in=[t.alert_rule_trigger for t in triggers]
+        ).select_related("alert_rule_trigger")
+    )
+    actions = deduplicate_trigger_actions(actions)
+    with transaction.atomic():
+        for trigger in triggers:
+            trigger.status = TriggerStatus.RESOLVED.value
+            trigger.save()
+
+        for action in actions:
+            for project in incident.projects.all():
+                transaction.on_commit(
+                    handle_trigger_action.s(
+                        action_id=action.id,
+                        incident_id=incident.id,
+                        project_id=project.id,
+                        method="resolve",
+                    ).delay
+                )
+
+
+def deduplicate_trigger_actions(actions):
+    """
+    Given a list of trigger actions, this returns a list of actions that is unique on
+    (type, target_type, target_identifier, integration_id, sentry_app_id). If there are
+    duplicate actions, we'll prefer the action from a critical trigger over a warning
+    trigger. If there are duplicate actions on a critical trigger, we'll just choose
+    one arbitrarily.
+    :param actions: A list of `AlertRuleTriggerAction` instances from the same
+    `AlertRule`.
+    :return: A list of deduplicated `AlertRuleTriggerAction` instances.
+    """
+    # Make sure we process actions from the critical trigger first
+    actions.sort(
+        key=lambda action: (
+            0 if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL else 1,
+            action.id,
+        )
+    )
+    deduped = {}
+    for action in actions:
+        deduped.setdefault(
+            (
+                action.type,
+                action.target_type,
+                action.target_identifier,
+                action.integration_id,
+                action.sentry_app_id,
+            ),
+            action,
+        )
+    return list(deduped.values())
 
 
 def get_subscriptions_from_alert_rule(alert_rule, projects):
@@ -1350,7 +1389,12 @@ def get_column_from_aggregate(aggregate):
 
 def check_aggregate_column_support(aggregate):
     column = get_column_from_aggregate(aggregate)
-    return column is None or column in SUPPORTED_COLUMNS or column in TRANSLATABLE_COLUMNS
+    return (
+        column is None
+        or is_measurement(column)
+        or column in SUPPORTED_COLUMNS
+        or column in TRANSLATABLE_COLUMNS
+    )
 
 
 def translate_aggregate_field(aggregate, reverse=False):

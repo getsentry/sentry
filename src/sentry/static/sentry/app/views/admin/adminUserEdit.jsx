@@ -196,7 +196,7 @@ const ModalFooter = styled('div')`
   justify-content: end;
   padding: 20px 30px;
   margin: 20px -30px -30px;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 export default AdminUserEdit;

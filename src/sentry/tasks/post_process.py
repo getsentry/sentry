@@ -1,10 +1,8 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
 import sentry_sdk
 
-from django.conf import settings
 
 from sentry import features
 from sentry.utils.cache import cache
@@ -12,7 +10,6 @@ from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.redis import redis_clusters
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -81,22 +78,6 @@ def _capture_stats(event, is_new):
             metrics.incr("events.platform_mismatch", tags=tags)
 
 
-def check_event_already_post_processed(event):
-    cluster_key = getattr(settings, "SENTRY_POST_PROCESSING_LOCK_REDIS_CLUSTER", None)
-    if cluster_key is None:
-        return
-
-    client = redis_clusters.get(cluster_key)
-    result = client.set(
-        u"pp:{}/{}".format(event.project_id, event.event_id),
-        u"{:.0f}".format(time.time()),
-        ex=60 * 60,
-        nx=True,
-    )
-
-    return not result
-
-
 def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
@@ -129,7 +110,7 @@ def update_existing_attachments(event):
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
 def post_process_group(
-    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, event=None, **kwargs
+    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
 ):
     """
     Fires post processing hooks for a group.
@@ -143,32 +124,15 @@ def post_process_group(
         # We use the data being present/missing in the processing store
         # to ensure that we don't duplicate work should the forwarding consumers
         # need to rewind history.
-        #
-        # While we always send the cache_key and never send the event parameter now,
-        # the code to handle `event` has to stick around for a self-hosted release cycle.
-        if cache_key and event is None:
-            data = event_processing_store.get(cache_key)
-            if not data:
-                logger.info(
-                    "post_process.skipped",
-                    extra={"cache_key": cache_key, "reason": "missing_cache"},
-                )
-                return
-            event = Event(
-                project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
-            )
-        elif event and check_event_already_post_processed(event):
-            if cache_key:
-                event_processing_store.delete_by_key(cache_key)
+        data = event_processing_store.get(cache_key)
+        if not data:
             logger.info(
-                "post_process.skipped",
-                extra={
-                    "reason": "duplicate",
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                },
+                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
+        event = Event(
+            project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+        )
 
         if is_reprocessed_event(event.data):
             logger.info(
@@ -186,7 +150,13 @@ def post_process_group(
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
-        from sentry.models import Project, Organization, EventDict
+        from sentry.models import (
+            Project,
+            Organization,
+            EventDict,
+            GroupInboxReason,
+        )
+        from sentry.models.groupinbox import add_group_to_inbox
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
@@ -215,6 +185,11 @@ def post_process_group(
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
             has_reappeared = False if is_new else process_snoozes(event.group)
+            if not has_reappeared:  # If true, we added the .UNIGNORED reason already
+                if is_new:
+                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                elif is_regression:
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
             handle_owner_assignment(event.project, event.group, event)
 
@@ -279,7 +254,12 @@ def process_snoozes(group):
     Return True if the group is transitioning from "resolved" to "unresolved",
     otherwise return False.
     """
-    from sentry.models import GroupSnooze, GroupStatus
+    from sentry.models import (
+        GroupSnooze,
+        GroupStatus,
+        GroupInboxReason,
+        add_group_to_inbox,
+    )
 
     key = GroupSnooze.get_cache_key(group.id)
     snooze = cache.get(key)
@@ -294,6 +274,14 @@ def process_snoozes(group):
         return False
 
     if not snooze.is_valid(group, test_rates=True):
+        snooze_details = {
+            "until": snooze.until,
+            "count": snooze.count,
+            "window": snooze.window,
+            "user_count": snooze.user_count,
+            "user_window": snooze.user_window,
+        }
+        add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
         snooze.delete()
         group.update(status=GroupStatus.UNRESOLVED)
         issue_unignored.send_robust(

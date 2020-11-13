@@ -45,9 +45,9 @@ class ProjectDebugFileManager(BaseManager):
         checksums = [x.lower() for x in checksums]
         missing = set(checksums)
 
-        found = ProjectDebugFile.objects.filter(
-            file__checksum__in=checksums, project=project
-        ).values("file__checksum")
+        found = ProjectDebugFile.objects.filter(checksum__in=checksums, project=project).values(
+            "checksum"
+        )
 
         for values in found:
             missing.discard(list(values.values())[0])
@@ -58,7 +58,7 @@ class ProjectDebugFileManager(BaseManager):
         if not checksums:
             return []
         checksums = [x.lower() for x in checksums]
-        return ProjectDebugFile.objects.filter(file__checksum__in=checksums, project=project)
+        return ProjectDebugFile.objects.filter(checksum__in=checksums, project=project)
 
     def find_by_debug_ids(self, project, debug_ids, features=None):
         """Finds debug information files matching the given debug identifiers.
@@ -107,6 +107,7 @@ class ProjectDebugFile(Model):
     __core__ = False
 
     file = FlexibleForeignKey("sentry.File")
+    checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
     project = FlexibleForeignKey("sentry.Project", null=True)
@@ -212,9 +213,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = (
         ProjectDebugFile.objects.select_related("file")
-        .filter(
-            project=project, debug_id=meta.debug_id, file__checksum=checksum, data__isnull=False
-        )
+        .filter(project=project, debug_id=meta.debug_id, checksum=checksum, data__isnull=False)
         .order_by("-id")
         .first()
     )
@@ -236,6 +235,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
 
     dif = ProjectDebugFile.objects.create(
         file=file,
+        checksum=file.checksum,
         debug_id=meta.debug_id,
         code_id=meta.code_id,
         cpu_name=meta.arch,

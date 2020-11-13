@@ -150,7 +150,7 @@ const getActiveStyle = ({active, theme}: {active?: string; theme?: Theme}) => {
     }
 
     &:before {
-      background-color: ${theme?.purple400};
+      background-color: ${theme?.purple300};
     }
   `;
 };
@@ -196,7 +196,7 @@ const StyledSidebarItem = styled(Link)`
 
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
   }
 
   &.focus-visible {
@@ -253,7 +253,7 @@ const getCollapsedBadgeStyle = ({collapsed, theme}) => {
     position: absolute;
     right: 0;
     top: 1px;
-    background: ${theme.red400};
+    background: ${theme.red300};
     width: ${theme.sidebar.smallBadgeSize};
     height: ${theme.sidebar.smallBadgeSize};
     border-radius: ${theme.sidebar.smallBadgeSize};
@@ -267,7 +267,7 @@ const SidebarItemBadge = styled(({collapsed: _, ...props}) => <span {...props} /
   text-align: center;
   color: ${p => p.theme.white};
   font-size: 12px;
-  background: ${p => p.theme.red400};
+  background: ${p => p.theme.red300};
   width: ${p => p.theme.sidebar.badgeSize};
   height: ${p => p.theme.sidebar.badgeSize};
   border-radius: ${p => p.theme.sidebar.badgeSize};

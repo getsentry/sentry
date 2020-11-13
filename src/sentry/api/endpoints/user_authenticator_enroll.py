@@ -111,7 +111,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         interface = Authenticator.objects.get_interface(user, interface_id)
 
         # Not all interfaces allow multi enrollment
-        if interface.is_enrolled and not interface.allow_multi_enrollment:
+        if interface.is_enrolled() and not interface.allow_multi_enrollment:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         # User is not enrolled in auth interface:
@@ -170,7 +170,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         #
         # This is probably un-needed because we catch
         # `Authenticator.AlreadyEnrolled` when attempting to enroll
-        if interface.is_enrolled and not interface.allow_multi_enrollment:
+        if interface.is_enrolled() and not interface.allow_multi_enrollment:
             return Response(ALREADY_ENROLLED_ERR, status=status.HTTP_400_BAD_REQUEST)
 
         try:

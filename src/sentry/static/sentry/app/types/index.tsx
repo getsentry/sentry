@@ -82,8 +82,11 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = User & {
+export type Actor = {
   type: 'user' | 'team';
+  id: string;
+  name: string;
+  email?: string;
 };
 
 /**
@@ -140,6 +143,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   relayPiiConfig: string;
   scrubIPAddresses: boolean;
   attachmentsRole: string;
+  debugFilesRole: string;
   eventsMemberAdmin: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
@@ -183,12 +187,18 @@ export type AvatarProject = {
   platform?: PlatformKey;
 };
 
+/**
+ * Simple timeseries data used in groups, projects and release health.
+ */
+export type TimeseriesValue = [timestamp: number, value: number];
+
 export type Project = {
   id: string;
   dateCreated: string;
   isMember: boolean;
   teams: Team[];
   features: string[];
+  organization: Organization;
 
   isBookmarked: boolean;
   hasUserReports?: boolean;
@@ -198,6 +208,7 @@ export type Project = {
   subjectTemplate: string;
   digestsMaxDelay: number;
   digestsMinDelay: number;
+  environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
   plugins: Plugin[];
@@ -205,7 +216,8 @@ export type Project = {
   relayPiiConfig: string;
   latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
-  stats?: Array<[number, number]>;
+  stats?: TimeseriesValue[];
+  transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
 } & AvatarProject;
 
@@ -227,7 +239,7 @@ export type Health = {
   durationP90: number | null;
 };
 
-export type HealthGraphData = Record<string, [number, number][]>;
+export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
@@ -266,10 +278,10 @@ export type EventAttachment = {
   event_id: string;
 };
 
-export type EntryTypeData = Record<string, any | Array<any>>;
+export type EntryData = Record<string, any | Array<any>>;
 
-type EntryType = {
-  data: EntryTypeData;
+export type Entry = {
+  data: EntryData;
   type: string;
 };
 
@@ -341,7 +353,7 @@ type SentryEventBase = {
   platform?: PlatformKey;
   dateReceived?: string;
   endTimestamp?: number;
-  entries: EntryType[];
+  entries: Entry[];
   errors: any[];
 
   previousEventID?: string;
@@ -375,21 +387,41 @@ type SentryEventBase = {
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
 
   measurements?: Record<string, Measurement>;
+
+  release?: ReleaseData;
 };
 
-export type SentryTransactionEvent = {
-  type: 'transaction';
-  title?: string;
+export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
   entries: SpanEntry[];
   startTimestamp: number;
   endTimestamp: number;
+  type: 'transaction';
+  title?: string;
   contexts?: {
     trace?: TraceContextType;
   };
-} & SentryEventBase;
+};
+
+export type ExceptionEntry = {
+  type: 'exception';
+  data: ExceptionType;
+};
+
+export type StacktraceEntry = {
+  type: 'stacktrace';
+  data: StacktraceType;
+};
+
+export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
+  entries: ExceptionEntry[] | StacktraceEntry[];
+  type: 'error';
+};
 
 // This type is incomplete
-export type Event = ({type: string} & SentryEventBase) | SentryTransactionEvent;
+export type Event =
+  | SentryErrorEvent
+  | SentryTransactionEvent
+  | ({type: string} & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -515,7 +547,7 @@ export type PluginNoProject = {
   metadata: any; // TODO(ts)
   contexts: any[]; // TODO(ts)
   status: string;
-  assets: any[]; // TODO(ts)
+  assets: Array<{url: string}>;
   doc: string;
   features: string[];
   featureDescriptions: IntegrationFeature[];
@@ -632,6 +664,7 @@ export type EnrolledAuthenticator = {
 };
 
 export interface Config {
+  theme: 'light' | 'dark';
   languageCode: string;
   csrfCookieName: string;
   features: Set<string>;
@@ -684,11 +717,22 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-export type GroupStats = [number, number];
+type InboxDetails = {
+  date_added?: string;
+  reason?: number;
+  reason_details?: {
+    until?: string;
+    count?: number;
+    window?: number;
+    user_count?: number;
+    user_window?: number;
+  };
+};
 
 // TODO(ts): incomplete
 export type Group = {
   id: string;
+  latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
@@ -718,9 +762,7 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, GroupStats[]>;
-  filtered?: any; // TODO(ts)
-  lifetime?: any; // TODO(ts)
+  stats: Record<string, TimeseriesValue[]>;
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
@@ -729,6 +771,34 @@ export type Group = {
   userCount: number;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  filtered?: any; // TODO(ts)
+  lifetime?: any; // TODO(ts)
+  inbox?: InboxDetails;
+};
+
+export type GroupTombstone = {
+  id: string;
+  title: string;
+  culprit: string;
+  level: Level;
+  actor: AvatarUser;
+  metadata: EventMetadata;
+};
+
+export type ProcessingIssueItem = {
+  id: string;
+  type: string;
+  checksum: string;
+  numEvents: number;
+  data: {
+    // TODO(ts) This type is likely incomplete, but this is what
+    // project processing issues settings uses.
+    _scope: string;
+    image_arch: string;
+    image_uuid: string;
+    image_path: string;
+  };
+  lastSeen: string;
 };
 
 export type ProcessingIssue = {
@@ -736,10 +806,11 @@ export type ProcessingIssue = {
   numIssues: number;
   signedLink: string;
   lastSeen: string;
-  hasMoreResolvableIssues: boolean;
+  hasMoreResolveableIssues: boolean;
   hasIssues: boolean;
   issuesProcessing: number;
   resolveableIssues: number;
+  issues?: ProcessingIssueItem[];
 };
 
 /**
@@ -793,6 +864,19 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
+export type RepositoryProjectPathConfig = {
+  id: string;
+  projectId: string;
+  projectSlug: string;
+  repoId: string;
+  repoName: string;
+  integrationId: string;
+  provider: BaseIntegrationProvider;
+  stackRoot: string;
+  sourceRoot: string;
+  defaultBranch?: string;
+};
+
 export type PullRequest = {
   id: string;
   title: string;
@@ -839,6 +923,7 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
     aspects: IntegrationAspects;
   };
+  hasStacktraceLinking?: boolean; // TODO: Remove when we GA the feature
 };
 
 export type IntegrationFeature = {
@@ -925,6 +1010,9 @@ export type Integration = {
     configure_integration?: {
       instructions: string[];
     };
+    integration_detail?: {
+      uninstallationUrl?: string;
+    };
   };
 };
 
@@ -978,6 +1066,15 @@ export type SentryAppWebhookRequest = {
   };
   responseCode: number;
   errorUrl?: string;
+};
+
+export type ServiceHook = {
+  id: string;
+  events: string[];
+  dateCreated: string;
+  secret: string;
+  status: string;
+  url: string;
 };
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -1063,7 +1160,13 @@ type BaseRelease = {
   version: string;
   shortVersion: string;
   ref: string;
+  status: ReleaseStatus;
 };
+
+export enum ReleaseStatus {
+  Active = 'open',
+  Archived = 'archived',
+}
 
 export type ReleaseProject = {
   slug: string;
@@ -1323,7 +1426,7 @@ export type TagWithTopValues = {
   name: string;
   totalValues: number;
   uniqueValues: number;
-  canDelete: boolean;
+  canDelete?: boolean;
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
@@ -1348,6 +1451,7 @@ export type ChunkType = {
 export enum ResolutionStatus {
   RESOLVED = 'resolved',
   UNRESOLVED = 'unresolved',
+  IGNORED = 'ignored',
 }
 export type ResolutionStatusDetails = {
   actor?: AvatarUser;
@@ -1544,12 +1648,31 @@ export type FilesByRepository = {
   };
 };
 
-export type ExceptionType = {
+export type ExceptionValue = {
   type: string;
   value: string;
+  threadId: number | null;
   stacktrace: StacktraceType;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  threadId: number | null;
+  frames: Frame[];
 };
+
+export type ExceptionType = {
+  excOmitted: any | null;
+  hasSystemFrames: boolean;
+  values?: Array<ExceptionValue>;
+};
+
+/**
+ * Identity is used in Account Identities for SocialAuths
+ */
+export type Identity = {
+  id: string;
+  provider: IntegrationProvider;
+  providerLabel: string;
+};
+
+//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
+export type Writable<T> = {-readonly [K in keyof T]: T[K]};

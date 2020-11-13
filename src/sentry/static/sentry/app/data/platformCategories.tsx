@@ -9,11 +9,10 @@ const popular = [
   'ruby-rails',
   'node-express',
   'php-laravel',
-  'php-symfony2',
   'java',
   'dotnet',
   'csharp',
-  'elixir',
+  'go',
   'php',
   'ruby',
   'node',
@@ -120,6 +119,29 @@ export const sourceMaps: PlatformKey[] = [
 ];
 
 export const tracing = ['python-tracing', 'node-tracing'] as const;
+
+export const performance: PlatformKey[] = [
+  'javascript',
+  'javascript-ember',
+  'javascript-react',
+  'javascript-vue',
+  'php',
+  'php-laravel',
+  'python',
+  'python-django',
+  'python-flask',
+  'python-sanic',
+  'python-celery',
+  'python-bottle',
+  'python-pylons',
+  'python-pyramid',
+  'python-tornado',
+  'python-rq',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+];
 
 export type PlatformKey =
   | typeof popular[number]

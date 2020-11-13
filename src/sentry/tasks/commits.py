@@ -11,6 +11,7 @@ from sentry.models import (
     Deploy,
     LatestRepoReleaseEnvironment,
     Release,
+    ReleaseCommitError,
     ReleaseHeadCommit,
     Repository,
     User,
@@ -173,7 +174,21 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             commit_list.extend(repo_commits)
 
     if commit_list:
-        release.set_commits(commit_list)
+        try:
+            release.set_commits(commit_list)
+        except ReleaseCommitError:
+            # Another task or webworker is currently setting commits on this
+            # release. Return early as that task will do the remaining work.
+            logger.info(
+                "fetch_commits.duplicate",
+                extra={
+                    "release_id": release.id,
+                    "organization_id": release.organization_id,
+                    "user_id": user_id,
+                },
+            )
+            return
+
         deploys = Deploy.objects.filter(
             organization_id=release.organization_id, release=release, notified=False
         ).values_list("id", "environment_id", "date_finished")

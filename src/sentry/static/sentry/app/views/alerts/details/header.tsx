@@ -60,7 +60,7 @@ export default class DetailsHeader extends React.Component<Props> {
           {incident && <Status disableIconColor incident={incident} />}
         </StatusMenuItem>
         <StatusMenuItem onSelect={onStatusChange}>
-          <IconCheckmark color="green400" />
+          <IconCheckmark color="green300" />
           {t('Resolved')}
         </StatusMenuItem>
       </DropdownControl>
@@ -180,8 +180,8 @@ export default class DetailsHeader extends React.Component<Props> {
 }
 
 const Header = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const BreadCrumbBar = styled('div')`
@@ -245,7 +245,7 @@ const ItemTitle = styled('h6')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   letter-spacing: 0.1px;
 `;
 
@@ -268,7 +268,7 @@ const IncidentSubTitle = styled('div', {
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledStatus = styled(Status)`

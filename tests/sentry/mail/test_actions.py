@@ -129,11 +129,11 @@ class NotifyEmailTest(RuleTestCase):
 
         with self.tasks():
             post_process_group(
-                event=event,
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
             )
 
         assert len(mail.outbox) == 1

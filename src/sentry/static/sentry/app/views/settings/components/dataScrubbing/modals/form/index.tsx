@@ -204,7 +204,7 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
     p.isExpanded &&
     `
     border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.borderDark};
+    border: 1px solid ${p.theme.border};
     box-shadow: ${p.theme.dropShadowLight};
     margin: ${space(2)} 0 ${space(3)} 0;
     padding: ${space(2)};
@@ -223,10 +223,10 @@ const ToggleWrapper = styled('div')`
 
 const Toggle = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.textColor};
   }
   > *:first-child {
     display: grid;

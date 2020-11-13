@@ -4,8 +4,22 @@ from collections import defaultdict
 
 import six
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
+
+
+# converts the provider to JSON
+def serialize_provider(provider):
+    return {
+        "key": provider.key,
+        "slug": provider.key,
+        "name": provider.name,
+        "canAdd": provider.can_add,
+        "canDisable": provider.can_disable,
+        "features": sorted([f.value for f in provider.features]),
+        "aspects": provider.metadata.aspects,
+    }
 
 
 @register(Integration)
@@ -19,15 +33,7 @@ class IntegrationSerializer(Serializer):
             "domainName": obj.metadata.get("domain_name"),
             "accountType": obj.metadata.get("account_type"),
             "status": obj.get_status_display(),
-            "provider": {
-                "key": provider.key,
-                "slug": provider.key,
-                "name": provider.name,
-                "canAdd": provider.can_add,
-                "canDisable": provider.can_disable,
-                "features": [f.value for f in provider.features],
-                "aspects": provider.metadata.aspects,
-            },
+            "provider": serialize_provider(provider),
         }
 
 
@@ -96,7 +102,7 @@ class IntegrationProviderSerializer(Serializer):
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
-        return {
+        output = {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
@@ -109,6 +115,17 @@ class IntegrationProviderSerializer(Serializer):
                 **obj.setup_dialog_config
             ),
         }
+
+        # until we GA the stack trace linking feature to everyone it's easier to
+        # control whether we show the feature this way
+        if obj.has_stacktrace_linking:
+            feature_flag_name = "organizations:integrations-stacktrace-link"
+            has_stacktrace_linking = features.has(feature_flag_name, organization, actor=user)
+            if has_stacktrace_linking:
+                # only putting the field in if it's true to minimize test changes
+                output["hasStacktraceLinking"] = True
+
+        return output
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
@@ -126,7 +143,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
             data["linkIssueConfig"] = config
 
         if self.action == "create":
-            config = installation.get_create_issue_config(self.group, params=self.params)
+            config = installation.get_create_issue_config(self.group, user, params=self.params)
             data["createIssueConfig"] = config
 
         return data

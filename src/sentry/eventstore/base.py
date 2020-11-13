@@ -29,6 +29,7 @@ class Filter(object):
     groupby (Sequence[str]): List of columns to group results by
 
     condition_aggregates (Sequence[str]): List of aggregates used in the condition
+    aliases (Dict[str, Alias]): Endpoint specific aliases
     """
 
     def __init__(
@@ -37,6 +38,8 @@ class Filter(object):
         end=None,
         conditions=None,
         having=None,
+        user_id=None,
+        organization_id=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -46,11 +49,14 @@ class Filter(object):
         groupby=None,
         orderby=None,
         condition_aggregates=None,
+        aliases=None,
     ):
         self.start = start
         self.end = end
         self.conditions = conditions
         self.having = having
+        self.user_id = user_id
+        self.organization_id = organization_id
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
@@ -61,6 +67,7 @@ class Filter(object):
         self.groupby = groupby
         self.orderby = orderby
         self.condition_aggregates = condition_aggregates
+        self.aliases = aliases
 
     @property
     def filter_keys(self):
@@ -81,11 +88,18 @@ class Filter(object):
         return filter_keys
 
     @property
-    def date_params(self):
+    def params(self):
         """
         Get the datetime parameters as a dictionary
         """
-        return {"start": self.start, "end": self.end}
+        return {
+            "start": self.start,
+            "end": self.end,
+            # needed for the key transaction column
+            "user_id": self.user_id,
+            "organization_id": self.organization_id,
+            "project_id": self.project_ids,
+        }
 
     def update_with(self, updates):
         keys = ("selected_columns", "aggregations", "conditions", "orderby", "groupby")

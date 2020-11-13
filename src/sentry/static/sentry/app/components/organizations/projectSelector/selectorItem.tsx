@@ -36,7 +36,7 @@ type State = {
 class ProjectSelectorItem extends React.PureComponent<Props, State> {
   static defaultProps = defaultProps;
   state: State = {
-    bookmarkHasChanged: true,
+    bookmarkHasChanged: false,
   };
 
   componentDidUpdate(nextProps: Props) {
@@ -170,7 +170,7 @@ const BadgeWrapper = styled('div')<{isMulti: boolean}>`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -178,7 +178,7 @@ const StyledLink = styled(Link)`
   opacity: 0.33;
   transition: 0.5s opacity ease-out;
   :hover {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.textColor};
   }
 `;
 

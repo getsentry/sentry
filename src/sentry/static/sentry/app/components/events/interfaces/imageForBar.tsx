@@ -40,16 +40,16 @@ const Wrapper = styled('div')`
   align-items: baseline;
   justify-content: space-between;
   padding: ${space(0.5)} ${space(2)};
-  background: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
   font-weight: 700;
   code {
-    color: ${p => p.theme.blue500};
+    color: ${p => p.theme.blue300};
     font-size: ${p => p.theme.fontSizeSmall};
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
   a {
-    color: ${p => p.theme.blue500};
+    color: ${p => p.theme.blue300};
     &:hover {
       text-decoration: underline;
     }
@@ -64,7 +64,7 @@ const MatchedFunctionWrapper = styled('div')`
 const MatchedFunctionCaption = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   flex-shrink: 0;
 `;
 
@@ -74,9 +74,9 @@ const ResetAddressFilterCaption = styled('a')`
   padding-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
-  color: ${p => p.theme.gray500} !important;
+  color: ${p => p.theme.gray300} !important;
   &:hover {
-    color: ${p => p.theme.gray500} !important;
+    color: ${p => p.theme.gray300} !important;
   }
 `;
 

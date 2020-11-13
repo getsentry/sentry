@@ -125,7 +125,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             with self.assertChanges(
                 lambda: active_incident().exists(), before=False, after=True
-            ), self.tasks():
+            ), self.tasks(), self.capture_on_commit_callbacks(execute=True):
                 consumer.run()
 
         assert len(mail.outbox) == 1

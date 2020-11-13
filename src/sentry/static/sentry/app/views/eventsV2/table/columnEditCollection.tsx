@@ -94,13 +94,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
   dragGhostRef = React.createRef<HTMLDivElement>();
 
   get fieldOptions() {
-    const {organization, measurementKeys} = this.props;
     return generateFieldOptions({
       organization: this.props.organization,
       tagKeys: this.props.tagKeys,
-      measurementKeys: organization.features.includes('measurements')
-        ? measurementKeys
-        : undefined,
+      measurementKeys: this.props.measurementKeys,
     });
   }
 
@@ -295,7 +292,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color="gray700" />}
+              icon={<IconGrabbable size="xs" color="gray500" />}
               size="zero"
               borderless
             />
@@ -313,7 +310,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete color="gray300" />}
               borderless
             />
           ) : (
@@ -381,12 +378,12 @@ const RowContainer = styled('div')`
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: block;
   position: absolute;
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   width: 600px;
   opacity: 0.8;
   cursor: grabbing;
@@ -402,7 +399,7 @@ const Ghost = styled('div')`
 
 const DragPlaceholder = styled('div')`
   margin: 0 ${space(4)} ${space(1)} ${space(4)};
-  border: 2px dashed ${p => p.theme.borderLight};
+  border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   height: 40px;
 `;

@@ -5,12 +5,12 @@ import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 
+from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     Authenticator,
     Organization,
     OrganizationMember,
     OrganizationStatus,
-    TotpInterface,
 )
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 

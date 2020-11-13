@@ -1,3 +1,32 @@
-backend:
+# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/getsentry/paths-filter)
+
+# TODO: There are some meta files that we potentially could ignore for both front/backend,
+# as well as some configuration files that should trigger both
+frontend_lintable: &frontend_lintable
+  - '**/*.[tj]{s,sx}'
+  - '**/tsconfig*.json'
+  - '{package,now,vercel}.json'
+  - '.github/workflows/js-*.yml'
+
+frontend: &frontend
+  - *frontend_lintable
+  - '**/*.less'
+  - 'yarn.lock'
+  - '.eslint*'
+  - 'docs-ui/**'
+  - 'src/sentry/static/sentry/**'
+  - 'tests/js/**'
+
+frontend_modified_lintable:
+  - added|modified: *frontend_lintable
+
+backend_lintable: &backend_lintable
   - '**/*.py'
-  - 'requirements*.txt'
+
+backend: &backend
+  - *backend_lintable
+  - 'src/sentry/!(static)/**'
+  - 'requirements-*.txt'
+  - 'migrations_lockfile.txt'
+  - '.python-version'
+  - '.github/workflows/!(js-*)'

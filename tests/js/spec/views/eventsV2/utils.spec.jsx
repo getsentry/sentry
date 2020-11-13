@@ -293,7 +293,8 @@ describe('getExpandedResults()', function () {
         {field: 'p9001()'}, // it's over 9000
         {field: 'foobar()'}, // unknown function with no parameter
         {field: 'custom_tag'},
-        {field: 'title'}, // not expected to be dropped
+        {field: 'transaction.duration'}, // should be dropped
+        {field: 'title'}, // should be dropped
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
@@ -306,12 +307,35 @@ describe('getExpandedResults()', function () {
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
-      {field: 'title'},
+    ]);
+
+    // transforms pXX functions with optional arguments properly
+    view = new EventView({
+      ...state,
+      fields: [
+        {field: 'p50(transaction.duration)'},
+        {field: 'p75(measurements.foo)'},
+        {field: 'p95(measurements.bar)'},
+        {field: 'p99(measurements.fcp)'},
+        {field: 'p100(measurements.lcp)'},
+      ],
+    });
+
+    result = getExpandedResults(view, {}, {});
+    expect(result.fields).toEqual([
+      {field: 'transaction.duration', width: -1},
+      {field: 'measurements.foo', width: -1},
+      {field: 'measurements.bar', width: -1},
+      {field: 'measurements.fcp', width: -1},
+      {field: 'measurements.lcp', width: -1},
     ]);
   });
 
   it('applies provided additional conditions', () => {
-    const view = new EventView(state);
+    const view = new EventView({
+      ...state,
+      fields: [...state.fields, {field: 'measurements.lcp'}, {field: 'measurements.fcp'}],
+    });
     let result = getExpandedResults(view, {extra: 'condition'}, {});
     expect(result.query).toEqual('event.type:error extra:condition');
 
@@ -340,6 +364,14 @@ describe('getExpandedResults()', function () {
     // Includes null
     result = getExpandedResults(view, {}, {custom_tag: null});
     expect(result.query).toEqual('event.type:error custom_tag:""');
+
+    // Handles measurements while ignoring null values
+    result = getExpandedResults(
+      view,
+      {},
+      {'measurements.lcp': 2, 'measurements.fcp': null}
+    );
+    expect(result.query).toEqual('event.type:error measurements.lcp:2');
   });
 
   it('removes any aggregates in either search conditions or extra conditions', () => {

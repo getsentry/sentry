@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import sentry_sdk
 import six
 from django.utils.http import urlquote
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import APIException, ParseError
 
 
 from sentry import features
@@ -51,6 +51,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
+            params["user_id"] = request.user.id
 
             if check_global_views:
                 has_global_views = features.has(
@@ -123,7 +124,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
-                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                raise ParseError(
+                    detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                )
+            elif isinstance(error, (snuba.UnqualifiedQueryError)):
+                raise ParseError(detail=error.message)
             elif isinstance(
                 error,
                 (
@@ -132,13 +137,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryExecutionError,
                     snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
-                    snuba.UnqualifiedQueryError,
+                    snuba.QueryMissingColumn,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
                 message = "Internal error. Your query failed to run."
-
-            raise ParseError(detail=message)
+            raise APIException(detail=message)
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
@@ -213,13 +217,15 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         top_events=False,
         query_column="count()",
         params=None,
+        query=None,
     ):
         with self.handle_query_errors():
             with sentry_sdk.start_span(
                 op="discover.endpoint", description="base.stats_query_creation"
             ):
                 columns = request.GET.getlist("yAxis", [query_column])
-                query = request.GET.get("query")
+                if query is None:
+                    query = request.GET.get("query")
                 if params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views

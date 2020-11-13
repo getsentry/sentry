@@ -72,7 +72,7 @@ function ResolutionBox({statusDetails, projectId}: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
-        <StyledIconCheckmark color="green400" />
+        <StyledIconCheckmark color="green300" />
         <span>{renderReason(statusDetails, projectId)}</span>
       </BannerSummary>
     </BannerContainer>
@@ -85,7 +85,7 @@ ResolutionBox.propTypes = {
 };
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-left: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

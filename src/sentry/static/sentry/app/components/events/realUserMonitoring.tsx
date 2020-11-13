@@ -1,28 +1,24 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization, Event} from 'app/types';
+import {Event} from 'app/types';
 import {IconSize} from 'app/utils/theme';
 import {t} from 'app/locale';
 import {SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
-import {IconFire} from 'app/icons';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {IconFire, IconWarning} from 'app/icons';
+import {
+  WEB_VITAL_DETAILS,
+  LONG_WEB_VITAL_NAMES,
+} from 'app/views/performance/transactionVitals/constants';
 import {formattedValue} from 'app/utils/measurements/index';
 
-// translate known short form names into their long forms
-const LONG_MEASUREMENT_NAMES = Object.fromEntries(
-  Object.values(WEB_VITAL_DETAILS).map(value => {
-    return [value.slug, value.name];
-  })
-);
-
 type Props = {
-  organization: Organization;
   event: Event;
 };
+
 class RealUserMonitoring extends React.Component<Props> {
   hasMeasurements() {
     const {event} = this.props;
@@ -58,13 +54,17 @@ class RealUserMonitoring extends React.Component<Props> {
       const currentValue = formattedValue(record, value);
       const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
 
+      if (!LONG_WEB_VITAL_NAMES.hasOwnProperty(name)) {
+        return null;
+      }
+
       return (
         <div key={name}>
           <StyledPanel failedThreshold={failedThreshold}>
-            <Name>{LONG_MEASUREMENT_NAMES[name] ?? name}</Name>
+            <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
             <ValueRow>
               {failedThreshold ? (
-                <WarningIconContainer size="sm">
+                <FireIconContainer size="sm">
                   <Tooltip
                     title={t('Fails threshold at %s.', thresholdValue)}
                     position="top"
@@ -72,7 +72,7 @@ class RealUserMonitoring extends React.Component<Props> {
                   >
                     <IconFire size="sm" />
                   </Tooltip>
-                </WarningIconContainer>
+                </FireIconContainer>
               ) : null}
               <Value failedThreshold={failedThreshold}>{currentValue}</Value>
             </ValueRow>
@@ -82,16 +82,45 @@ class RealUserMonitoring extends React.Component<Props> {
     });
   }
 
-  render() {
-    const {organization} = this.props;
+  isOutdatedSdk() {
+    const {event} = this.props;
 
-    if (!organization.features.includes('measurements') || !this.hasMeasurements()) {
+    if (!event.sdk?.version) {
+      return false;
+    }
+
+    const sdkVersion = event.sdk.version;
+    return (
+      sdkVersion.startsWith('5.26.') ||
+      sdkVersion.startsWith('5.27.0') ||
+      sdkVersion.startsWith('5.27.1') ||
+      sdkVersion.startsWith('5.27.2')
+    );
+  }
+
+  render() {
+    if (!this.hasMeasurements()) {
       return null;
     }
 
     return (
       <Container>
-        <SectionHeading>{t('Web Vitals')}</SectionHeading>
+        <SectionHeading>
+          {t('Web Vitals')}
+          {this.isOutdatedSdk() && (
+            <WarningIconContainer size="sm">
+              <Tooltip
+                title={t(
+                  'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
+                )}
+                position="top"
+                containerDisplayMode="inline-block"
+              >
+                <IconWarning size="sm" />
+              </Tooltip>
+            </WarningIconContainer>
+          )}
+        </SectionHeading>
         <Measurements>{this.renderMeasurements()}</Measurements>
       </Container>
     );
@@ -104,24 +133,15 @@ const Measurements = styled('div')`
 `;
 
 const Container = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
 `;
 
 const StyledPanel = styled(Panel)<{failedThreshold: boolean}>`
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
   margin-bottom: ${space(1)};
-
-  ${p => {
-    if (!p.failedThreshold) {
-      return null;
-    }
-
-    return `
-      border: 1px solid ${p.theme.red400};
-    `;
-  }};
+  ${p => p.failedThreshold && `border: 1px solid ${p.theme.red300};`}
 `;
 
 const Name = styled('div')``;
@@ -135,21 +155,21 @@ const WarningIconContainer = styled('span')<{size: IconSize | string}>`
   display: inline-block;
   height: ${p => p.theme.iconSizes[p.size] ?? p.size};
   line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
-  margin-right: ${space(1)};
-  color: ${p => p.theme.red400};
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.red300};
+`;
+
+const FireIconContainer = styled('span')<{size: IconSize | string}>`
+  display: inline-block;
+  height: ${p => p.theme.iconSizes[p.size] ?? p.size};
+  line-height: ${p => p.theme.iconSizes[p.size] ?? p.size};
+  margin-right: ${space(0.5)};
+  color: ${p => p.theme.red300};
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  ${p => {
-    if (!p.failedThreshold) {
-      return null;
-    }
-
-    return `
-      color: ${p.theme.red400};
-    `;
-  }};
+  ${p => p.failedThreshold && `color: ${p.theme.red300};`}
 `;
 
 export default RealUserMonitoring;

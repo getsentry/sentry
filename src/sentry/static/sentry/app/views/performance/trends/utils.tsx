@@ -2,34 +2,33 @@ import React from 'react';
 import {Location} from 'history';
 import styled from '@emotion/styled';
 import moment from 'moment';
+import {ASAP} from 'downsample/methods/ASAP';
 
 import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
 import {decodeScalar} from 'app/utils/queryString';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import Duration from 'app/components/duration';
 import {Sort, Field} from 'app/utils/discover/fields';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Count from 'app/components/count';
-import {Organization, Project} from 'app/types';
+import {Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {Client} from 'app/api';
-import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {IconArrow} from 'app/icons';
+import {Series, SeriesDataUnit} from 'app/types/echarts';
 
 import {
   TrendFunction,
+  ConfidenceLevel,
   TrendChangeType,
   TrendView,
   TrendsTransaction,
   NormalizedTrendsTransaction,
   TrendFunctionField,
-  ProjectTrend,
-  NormalizedProjectTrend,
 } from './types';
-import {BaselineQueryResults} from '../transactionSummary/baselineQuery';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
+export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
@@ -69,9 +68,30 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
   },
 ];
 
+export const CONFIDENCE_LEVELS: ConfidenceLevel[] = [
+  {
+    label: 'High',
+    min: 6,
+  },
+  {
+    label: 'Low',
+    min: 0,
+    max: 6,
+  },
+  {
+    label: 'Any',
+  },
+];
+
 export const trendToColor = {
-  [TrendChangeType.IMPROVED]: theme.green400,
-  [TrendChangeType.REGRESSION]: theme.red400,
+  [TrendChangeType.IMPROVED]: {
+    lighter: theme.green200,
+    default: theme.green300,
+  },
+  [TrendChangeType.REGRESSION]: {
+    lighter: theme.red200,
+    default: theme.red300,
+  },
 };
 
 export const trendSelectedQueryKeys = {
@@ -79,10 +99,21 @@ export const trendSelectedQueryKeys = {
   [TrendChangeType.REGRESSION]: 'regressionSelected',
 };
 
+export const trendUnselectedSeries = {
+  [TrendChangeType.IMPROVED]: 'improvedUnselectedSeries',
+  [TrendChangeType.REGRESSION]: 'regressionUnselectedSeries',
+};
+
 export const trendCursorNames = {
   [TrendChangeType.IMPROVED]: 'improvedCursor',
   [TrendChangeType.REGRESSION]: 'regressionCursor',
 };
+
+export function resetCursors() {
+  const cursors = {};
+  Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
+  return cursors;
+}
 
 export function getCurrentTrendFunction(location: Location): TrendFunction {
   const trendFunctionField = decodeScalar(location?.query?.trendFunction);
@@ -90,42 +121,36 @@ export function getCurrentTrendFunction(location: Location): TrendFunction {
   return trendFunction || TRENDS_FUNCTIONS[0];
 }
 
+export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
+  const confidenceLevelLabel = decodeScalar(location?.query?.confidenceLevel);
+  const confidenceLevel = CONFIDENCE_LEVELS.find(
+    ({label}) => label === confidenceLevelLabel
+  );
+  return confidenceLevel || CONFIDENCE_LEVELS[0];
+}
+
 export function getIntervalRatio(location: Location): number {
   const intervalFromLocation = decodeScalar(location?.query?.intervalRatio);
   return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
 }
 
-export function transformDeltaSpread(
-  from: number,
-  to: number,
-  trendFunctionField: TrendFunctionField
-) {
+export function transformDeltaSpread(from: number, to: number) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;
-  const fromSubSecond = fromSeconds < 1;
-  const toSubSecond = toSeconds < 1;
 
-  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
-    return (
-      <span>
-        <Count value={from} />
-        <StyledIconArrow direction="right" size="xs" />
-        <Count value={to} /> {t('miserable users')}
-      </span>
-    );
-  }
+  const showDigits = from > 1000 || to > 1000 || from < 10 || to < 10; // Show digits consistently if either has them
 
   return (
     <span>
-      <Duration seconds={fromSeconds} fixedDigits={fromSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={fromSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
       <StyledIconArrow direction="right" size="xs" />
-      <Duration seconds={toSeconds} fixedDigits={toSubSecond ? 0 : 1} abbreviation />
+      <Duration seconds={toSeconds} fixedDigits={showDigits ? 1 : 0} abbreviation />
     </span>
   );
 }
 
 export function getTrendProjectId(
-  trend: NormalizedTrendsTransaction | NormalizedProjectTrend,
+  trend: NormalizedTrendsTransaction,
   projects?: Project[]
 ): string | undefined {
   if (!trend.project || !projects) {
@@ -142,6 +167,7 @@ export function modifyTrendView(
   isProjectOnly?: boolean
 ) {
   const trendFunction = getCurrentTrendFunction(location);
+  const confidenceLevel = getCurrentConfidenceLevel(location);
 
   const transactionField = isProjectOnly ? [] : ['transaction'];
   const fields = [...transactionField, 'project'].map(field => ({
@@ -149,14 +175,11 @@ export function modifyTrendView(
   })) as Field[];
 
   const trendSort = {
-    field: `percentage_${trendFunction.alias}_2_${trendFunction.alias}_1`,
+    field: 'trend_percentage()',
     kind: 'asc',
   } as Sort;
 
-  if (trendFunction && trendFunction.field === TrendFunctionField.USER_MISERY) {
-    trendSort.field = `minus_${trendFunction.alias}_2_${trendFunction.alias}_1`;
-  }
-
+  trendView.trendType = trendsType;
   if (trendsType === TrendChangeType.REGRESSION) {
     trendSort.kind = 'desc';
   }
@@ -164,8 +187,11 @@ export function modifyTrendView(
   if (trendFunction) {
     trendView.trendFunction = trendFunction.field;
   }
-  const limitTrendResult = getLimitTransactionItems(trendFunction, trendsType);
-  trendView.query += ' ' + limitTrendResult;
+  trendView.query = getLimitTransactionItems(
+    trendView.query,
+    trendsType,
+    confidenceLevel
+  );
 
   trendView.interval = getQueryInterval(location, trendView);
 
@@ -184,74 +210,6 @@ export function modifyTrendsViewDefaultPeriod(eventView: EventView, location: Lo
   return eventView;
 }
 
-export async function getTrendBaselinesForTransaction(
-  api: Client,
-  organization: Organization,
-  eventView: EventView,
-  intervalRatio: number,
-  transaction: NormalizedTrendsTransaction
-) {
-  const orgSlug = organization.slug;
-  const url = `/organizations/${orgSlug}/event-baseline/`;
-
-  const scopeQueryToTransaction = ` transaction:${transaction.transaction}`;
-
-  const globalSelectionQuery = eventView.getGlobalSelectionQuery();
-  const statsPeriod = eventView.statsPeriod;
-
-  delete globalSelectionQuery.statsPeriod;
-  const baseApiPayload = {
-    ...globalSelectionQuery,
-    query: eventView.query + scopeQueryToTransaction,
-  };
-
-  const hasStartEnd = eventView.start && eventView.end;
-
-  let seriesStart = moment(eventView.start);
-  let seriesEnd = moment(eventView.end);
-
-  if (!hasStartEnd) {
-    seriesEnd = transaction.received_at;
-    seriesStart = seriesEnd
-      .clone()
-      .subtract(parsePeriodToHours(statsPeriod || DEFAULT_TRENDS_STATS_PERIOD), 'hours');
-  }
-
-  const startTime = seriesStart.toDate().getTime();
-  const endTime = seriesEnd.toDate().getTime();
-
-  const seriesSplit = moment(startTime + (endTime - startTime) * intervalRatio);
-
-  const previousPeriodPayload = {
-    ...baseApiPayload,
-    start: getUtcDateString(seriesStart),
-    end: getUtcDateString(seriesSplit),
-    baselineValue: transaction.aggregate_range_1,
-  };
-  const currentPeriodPayload = {
-    ...baseApiPayload,
-    start: getUtcDateString(seriesSplit),
-    end: getUtcDateString(seriesEnd),
-    baselineValue: transaction.aggregate_range_2,
-  };
-
-  const dataPreviousPeriodPromise = api.requestPromise(url, {
-    method: 'GET',
-    query: previousPeriodPayload,
-  });
-  const dataCurrentPeriodPromise = api.requestPromise(url, {
-    method: 'GET',
-    query: currentPeriodPayload,
-  });
-
-  const previousPeriod = (await dataPreviousPeriodPromise) as BaselineQueryResults;
-  const currentPeriod = (await dataCurrentPeriodPromise) as BaselineQueryResults;
-  return {
-    currentPeriod,
-    previousPeriod,
-  };
-}
-
 function getQueryInterval(location: Location, eventView: TrendView) {
   const intervalFromQueryParam = decodeScalar(location?.query?.interval);
   const {start, end, statsPeriod} = eventView;
@@ -267,31 +225,18 @@ function getQueryInterval(location: Location, eventView: TrendView) {
   return intervalFromQueryParam || intervalFromSmoothing;
 }
 
-export function transformValueDelta(
-  value: number,
-  trendType: TrendChangeType,
-  trendFunctionField: TrendFunctionField
-) {
+export function transformValueDelta(value: number, trendType: TrendChangeType) {
   const absoluteValue = Math.abs(value);
 
-  if (trendFunctionField === TrendFunctionField.USER_MISERY) {
-    const changeLabel = trendType === TrendChangeType.REGRESSION ? t('more') : t('less');
-    return (
-      <span>
-        <Count value={absoluteValue} /> {changeLabel}
-      </span>
-    );
-  }
   const changeLabel =
     trendType === TrendChangeType.REGRESSION ? t('slower') : t('faster');
 
   const seconds = absoluteValue / 1000;
 
-  const isSubSecond = seconds < 1;
+  const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
   return (
     <span>
-      <Duration seconds={seconds} fixedDigits={isSubSecond ? 0 : 1} abbreviation />{' '}
-      {changeLabel}
+      <Duration seconds={seconds} fixedDigits={fixedDigits} abbreviation /> {changeLabel}
     </span>
   );
 }
@@ -302,71 +247,23 @@ export function transformValueDelta(
  */
 export function normalizeTrends(
   data: Array<TrendsTransaction>
-): Array<NormalizedTrendsTransaction>;
-
-export function normalizeTrends(data: Array<ProjectTrend>): Array<NormalizedProjectTrend>;
-
-export function normalizeTrends(
-  data: Array<TrendsTransaction | ProjectTrend>
-): Array<NormalizedTrendsTransaction | NormalizedProjectTrend> {
+): Array<NormalizedTrendsTransaction> {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
-    const {
-      project,
-      count_range_1,
-      count_range_2,
-      percentage_count_range_2_count_range_1,
-    } = row;
-
-    const aliasedFields = {} as NormalizedTrendsTransaction;
-    TRENDS_FUNCTIONS.forEach(({alias}) => {
-      if (typeof row[`${alias}_1`] !== 'undefined') {
-        aliasedFields.aggregate_range_1 = row[`${alias}_1`];
-        aliasedFields.aggregate_range_2 = row[`${alias}_2`];
-        aliasedFields.percentage_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedFieldPercentage(alias)];
-        aliasedFields.minus_aggregate_range_2_aggregate_range_1 =
-          row[getTrendAliasedMinus(alias)];
-      }
-    });
-
-    const normalized = {
-      ...aliasedFields,
-      project,
-
-      count_range_1,
-      count_range_2,
-      percentage_count_range_2_count_range_1,
+    return {
+      ...row,
       received_at,
-    };
-
-    if ('transaction' in row) {
-      return {
-        ...normalized,
-        transaction: row.transaction,
-      } as NormalizedTrendsTransaction;
-    } else {
-      return {
-        ...normalized,
-      } as NormalizedProjectTrend;
-    }
+      transaction: row.transaction,
+    } as NormalizedTrendsTransaction;
   });
-}
-
-export function getTrendAliasedFieldPercentage(alias: string) {
-  return `percentage_${alias}_2_${alias}_1`;
-}
-
-export function getTrendAliasedQueryPercentage(alias: string) {
-  return `percentage(${alias}_2,${alias}_1)`;
-}
-
-export function getTrendAliasedMinus(alias: string) {
-  return `minus_${alias}_2_${alias}_1`;
 }
 
 export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
   return trendSelectedQueryKeys[trendChangeType];
+}
+
+export function getUnselectedSeries(trendChangeType: TrendChangeType) {
+  return trendUnselectedSeries[trendChangeType];
 }
 
 export function movingAverage(data, index, size) {
@@ -379,20 +276,85 @@ export function movingAverage(data, index, size) {
 }
 
 /**
- * This function applies a query to limit the results based on the trend type to being greater or less than 100% (depending on the type)
+ * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
 function getLimitTransactionItems(
-  trendFunction: TrendFunction,
-  trendChangeType: TrendChangeType
+  query: string,
+  trendChangeType: TrendChangeType,
+  confidenceLevel: ConfidenceLevel
 ) {
-  const aliasedPercentage = getTrendAliasedQueryPercentage(trendFunction.alias);
-  let limitQuery = aliasedPercentage + ':<1';
-  if (trendChangeType === TrendChangeType.REGRESSION) {
-    limitQuery = aliasedPercentage + ':>1';
+  const limitQuery = tokenizeSearch(query);
+  if (!limitQuery.hasTag('count_percentage()')) {
+    limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
   }
-  limitQuery +=
-    ' percentage(count_range_2,count_range_1):>0.5 percentage(count_range_2,count_range_1):<2';
-  return limitQuery;
+  if (!limitQuery.hasTag('trend_percentage()')) {
+    limitQuery.addTagValues('trend_percentage()', ['>0%']);
+  }
+  if (!limitQuery.hasTag('t_test()')) {
+    const tagValues: string[] = [];
+    if (trendChangeType === TrendChangeType.REGRESSION) {
+      if (confidenceLevel.hasOwnProperty('min')) {
+        tagValues.push(`<-${confidenceLevel.min}`);
+      }
+      if (confidenceLevel.hasOwnProperty('max')) {
+        tagValues.push(`>=-${confidenceLevel.max}`);
+      }
+    } else {
+      if (confidenceLevel.hasOwnProperty('min')) {
+        tagValues.push(`>${confidenceLevel.min}`);
+      }
+      if (confidenceLevel.hasOwnProperty('max')) {
+        tagValues.push(`<=${confidenceLevel.max}`);
+      }
+    }
+    limitQuery.addTagValues('t_test()', tagValues);
+  }
+  return limitQuery.formatString();
+}
+
+export const smoothTrend = (data: [number, number][], resolution = 100) => {
+  return ASAP(data, resolution);
+};
+
+export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
+  let minValue = Number.MAX_SAFE_INTEGER;
+  let maxValue = 0;
+  if (!data) {
+    return {
+      maxValue,
+      minValue,
+      smoothedResults: undefined,
+    };
+  }
+  const currentData = data[0].data;
+  const resultData: SeriesDataUnit[] = [];
+
+  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+
+  for (let i = 0; i < smoothed.length; i++) {
+    const point = smoothed[i] as any;
+    const value = point.y;
+    resultData.push({
+      name: point.x,
+      value,
+    });
+    if (!isNaN(value)) {
+      const rounded = Math.round(value);
+      minValue = Math.min(rounded, minValue);
+      maxValue = Math.max(rounded, maxValue);
+    }
+  }
+
+  return {
+    minValue,
+    maxValue,
+    smoothedResults: [
+      {
+        seriesName: seriesName || 'Current',
+        data: resultData,
+      },
+    ],
+  };
 }
 
 export const StyledIconArrow = styled(IconArrow)`

@@ -9,17 +9,10 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 
 import List from './list';
-import {Item} from './types';
+import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
 
-type Items = Array<
-  Omit<Item, 'index'> & {
-    items?: Array<Omit<Item, 'index'>>;
-    hideGroupLabel?: boolean; // Should hide group label
-  }
->;
-
-type MenuFooterChildProps = {
+export type MenuFooterChildProps = {
   actions: Actions;
 };
 
@@ -60,7 +53,7 @@ type ChildrenArgs = {
 type ListProps = React.ComponentProps<typeof List>;
 
 type Props = {
-  items: Items;
+  items: ItemsBeforeFilter;
   children: (args: ChildrenArgs) => React.ReactNode;
 
   menuHeader?: React.ReactElement;
@@ -388,13 +381,13 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const InputLoadingWrapper = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   align-items: center;
   flex-shrink: 0;
   width: 30px;
@@ -405,7 +398,7 @@ const InputLoadingWrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;
@@ -424,16 +417,16 @@ const BubbleWithMinWidth = styled(DropdownBubble)`
 
 const InputWrapper = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   align-items: center;
 `;
 
 const LabelWithPadding = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   &:first-child {
     border-top: none;

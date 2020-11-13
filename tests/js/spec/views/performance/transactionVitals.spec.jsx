@@ -12,7 +12,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
-  features = features || ['measurements'];
+  features = features || ['performance-view'];
   project = project || TestStubs.Project();
   query = query || {};
   const data = initializeOrg({
@@ -63,6 +63,12 @@ const vitals = [
     state: 'fail',
     baseline: '987.00ms',
   },
+  {
+    slug: 'cls',
+    heading: 'Cumulative Layout Shift (CLS)',
+    state: 'pass',
+    baseline: '0.02',
+  },
 ];
 
 describe('Performance > Web Vitals', function () {
@@ -84,6 +90,7 @@ describe('Performance > Web Vitals', function () {
           percentile_measurements_fcp_0_75: 'duration',
           percentile_measurements_lcp_0_75: 'duration',
           percentile_measurements_fid_0_75: 'duration',
+          percentile_measurements_cls_0_75: 'number',
         },
         data: [
           {
@@ -91,6 +98,7 @@ describe('Performance > Web Vitals', function () {
             percentile_measurements_fcp_0_75: 1456,
             percentile_measurements_lcp_0_75: 1342,
             percentile_measurements_fid_0_75: 987,
+            percentile_measurements_cls_0_75: 0.02,
           },
         ],
       },
@@ -132,29 +140,6 @@ describe('Performance > Web Vitals', function () {
     wrapper.update();
 
     expect(wrapper.text()).toEqual("You don't have access to this feature");
-  });
-
-  it('redirects to transaction summary if possible', async function () {
-    const {organization, router} = initialize({
-      features: ['performance-view'],
-    });
-
-    const wrapper = mountWithTheme(
-      <TransactionVitals
-        organization={organization}
-        location={router.location}
-        router={router}
-      />
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/summary/',
-      })
-    );
   });
 
   it('renders the basic UI components', async function () {
@@ -213,7 +198,7 @@ describe('Performance > Web Vitals', function () {
     wrapper.update();
 
     const vitalCards = wrapper.find('VitalCard');
-    expect(vitalCards).toHaveLength(4);
+    expect(vitalCards).toHaveLength(5);
 
     vitalCards.forEach((vitalCard, i) => {
       expect(vitalCard.find('CardSectionHeading').text()).toEqual(
@@ -224,11 +209,11 @@ describe('Performance > Web Vitals', function () {
       );
       expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
     });
-    expect(vitalCards.find('BarChart')).toHaveLength(4);
+    expect(vitalCards.find('BarChart')).toHaveLength(5);
   });
 
   describe('Open in Discover button', function () {
-    it('renders open in discover buttons with required props', function () {
+    it('renders open in discover buttons with required props', async function () {
       const {project, organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
@@ -240,16 +225,21 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             pathname: '/organizations/org-slug/discover/results/',
             query: expect.objectContaining({
-              field: expect.arrayContaining([`measurements.${vitals[i].slug}`]),
-              sort: [`-measurements.${vitals[i].slug}`],
+              field: expect.arrayContaining([
+                `percentile(measurements.${vitals[i].slug},0.75)`,
+              ]),
+              sort: [`-percentile_measurements_${vitals[i].slug}_0_75`],
               query: expect.stringContaining('transaction:/'),
               project: [parseInt(project.id, 10)],
             }),
@@ -258,15 +248,15 @@ describe('Performance > Web Vitals', function () {
       });
     });
 
-    it('renders open in discover buttons with greater than condition', function () {
-      const {organization, router, routerContext} = initialize({
-        query: {
-          fpStart: '10',
-          fcpStart: '10',
-          lcpStart: '10',
-          fidStart: '10',
-        },
-      });
+    it('renders open in discover buttons with greater than condition', async function () {
+      const query = {
+        fpStart: '10',
+        fcpStart: '10',
+        lcpStart: '10',
+        fidStart: '10',
+        clsStart: '0.01',
+      };
+      const {organization, router, routerContext} = initialize({query});
 
       const wrapper = mountWithTheme(
         <TransactionVitals
@@ -277,29 +267,35 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
+        const slug = vitals[i].slug;
+        const key = `measurements.${slug}`;
+        const value = query[`${slug}Start`];
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:>=10`),
+              query: expect.stringContaining(`${key}:>=${value}`),
             }),
           })
         );
       });
     });
 
-    it('renders open in discover buttons with less than condition', function () {
-      const {organization, router, routerContext} = initialize({
-        query: {
-          fpEnd: '20',
-          fcpEnd: '20',
-          lcpEnd: '20',
-          fidEnd: '20',
-        },
-      });
+    it('renders open in discover buttons with less than condition', async function () {
+      const query = {
+        fpEnd: '20',
+        fcpEnd: '20',
+        lcpEnd: '20',
+        fidEnd: '20',
+        clsEnd: '0.03',
+      };
+      const {organization, router, routerContext} = initialize({query});
 
       const wrapper = mountWithTheme(
         <TransactionVitals
@@ -310,33 +306,40 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
+        const slug = vitals[i].slug;
+        const key = `measurements.${slug}`;
+        const value = query[`${slug}End`];
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
+              query: expect.stringContaining(`${key}:<=${value}`),
             }),
           })
         );
       });
     });
 
-    it('renders open in discover buttons with both condition', function () {
-      const {organization, router, routerContext} = initialize({
-        query: {
-          fpStart: '10',
-          fpEnd: '20',
-          fcpStart: '10',
-          fcpEnd: '20',
-          lcpStart: '10',
-          lcpEnd: '20',
-          fidStart: '10',
-          fidEnd: '20',
-        },
-      });
+    it('renders open in discover buttons with both condition', async function () {
+      const query = {
+        fpStart: '10',
+        fpEnd: '20',
+        fcpStart: '10',
+        fcpEnd: '20',
+        lcpStart: '10',
+        lcpEnd: '20',
+        fidStart: '10',
+        fidEnd: '20',
+        clsStart: '0.01',
+        clsEnd: '0.03',
+      };
+      const {organization, router, routerContext} = initialize({query});
 
       const wrapper = mountWithTheme(
         <TransactionVitals
@@ -347,21 +350,28 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       const buttons = wrapper.find('DiscoverButton');
-      expect(buttons).toHaveLength(4);
+      expect(buttons).toHaveLength(5);
 
       buttons.forEach((button, i) => {
+        const slug = vitals[i].slug;
+        const key = `measurements.${slug}`;
+        const start = query[`${slug}Start`];
+        const end = query[`${slug}End`];
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:>=10`),
+              query: expect.stringContaining(`${key}:>=${start}`),
             }),
           })
         );
         expect(button.prop('to')).toEqual(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: expect.stringContaining(`measurements.${vitals[i].slug}:<=20`),
+              query: expect.stringContaining(`${key}:<=${end}`),
             }),
           })
         );
@@ -370,7 +380,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   describe('reset view', function () {
-    it('disables button on default view', function () {
+    it('disables button on default view', async function () {
       const {organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
@@ -382,12 +392,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeTruthy();
     });
 
-    it('enables button on left zoom', function () {
+    it('enables button on left zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           lcpStart: '20',
@@ -403,12 +416,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeFalsy();
     });
 
-    it('enables button on right zoom', function () {
+    it('enables button on right zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fpEnd: '20',
@@ -424,12 +440,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeFalsy();
     });
 
-    it('enables button on left and right zoom', function () {
+    it('enables button on left and right zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fcpStart: '20',
@@ -446,12 +465,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeFalsy();
     });
 
-    it('resets view properly', function () {
+    it('resets view properly', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -467,6 +489,9 @@ describe('Performance > Web Vitals', function () {
         />,
         routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       wrapper.find('Button[data-test-id="reset-view"]').simulate('click');
       expect(browserHistory.push).toHaveBeenCalledWith({

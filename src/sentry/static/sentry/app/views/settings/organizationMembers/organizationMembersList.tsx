@@ -267,12 +267,12 @@ const StyledMembersFilter = styled(MembersFilter)`
     height: 16px;
     width: 16px;
     border: 8px solid transparent;
-    border-bottom-color: ${p => p.theme.gray100};
+    border-bottom-color: ${p => p.theme.backgroundSecondary};
   }
 
   &:before {
     margin-top: -1px;
-    border-bottom-color: ${p => p.theme.borderLight};
+    border-bottom-color: ${p => p.theme.border};
   }
 `;
 export default withOrganization(OrganizationMembersList);

@@ -2,7 +2,7 @@ beautifulsoup4>=4.7.1,<4.8
 boto3>=1.4.1,<1.4.6
 botocore<1.5.71
 celery==4.4.7
-click>=5.0,<7.0
+click>=7.0,<8.0
 confluent-kafka==1.5.0
 croniter>=0.3.34,<0.4.0
 datadog>=0.15.0,<0.31.0
@@ -105,7 +105,7 @@ cssselect==1.0.3
 setproctitle>=1.1.7,<1.2.0
 
 # sentry-plugins specific dependencies
-phabricator>=0.6.0,<1.0
+phabricator>=0.6.0,<0.8
 
 # test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
 mock==3.0.5 ; python_version < "3.3"

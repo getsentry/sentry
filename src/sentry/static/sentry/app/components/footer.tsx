@@ -9,27 +9,17 @@ import Hook from 'app/components/hook';
 import getDynamicText from 'app/utils/getDynamicText';
 import space from 'app/styles/space';
 
-function Footer() {
+type Props = {
+  className?: string;
+};
+
+function Footer({className}: Props) {
   const config = ConfigStore.getConfig();
   return (
-    <footer>
-      <div className="container">
-        <div className="pull-right">
-          <FooterLink className="hidden-xs" href="/api/">
-            {t('API')}
-          </FooterLink>
-          <FooterLink href="/docs/">{t('Docs')}</FooterLink>
-          <FooterLink className="hidden-xs" href="https://github.com/getsentry/sentry">
-            {t('Contribute')}
-          </FooterLink>
-          {config.isOnPremise && (
-            <FooterLink className="hidden-xs" href="/out/">
-              {t('Migrate to SaaS')}
-            </FooterLink>
-          )}
-        </div>
+    <footer className={className}>
+      <div>
         {config.isOnPremise && (
-          <div className="version pull-left">
+          <React.Fragment>
             {'Sentry '}
             {getDynamicText({
               fixed: 'Acceptance Test',
@@ -41,19 +31,39 @@ function Footer() {
                 value: config.version.build.substring(0, 7),
               })}
             </Build>
-          </div>
+          </React.Fragment>
         )}
-        <LogoLink />
-        <Hook name="footer" />
       </div>
+      <LogoLink />
+      <Links>
+        <FooterLink href="/api/">{t('API')}</FooterLink>
+        <FooterLink href="/docs/">{t('Docs')}</FooterLink>
+        <FooterLink href="https://github.com/getsentry/sentry">
+          {t('Contribute')}
+        </FooterLink>
+        {config.isOnPremise && (
+          <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
+        )}
+      </Links>
+      <Hook name="footer" />
     </footer>
   );
 }
 
+const Links = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  justify-self: flex-end;
+  gap: ${space(2)};
+`;
+
 const FooterLink = styled(ExternalLink)`
+  color: ${p => p.theme.subText};
   &.focus-visible {
     outline: none;
-    box-shadow: ${p => p.theme.blue400} 0 2px 0;
+    box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }
 `;
 
@@ -62,6 +72,7 @@ const LogoLink = styled(props => (
     <IconSentry size="xl" />
   </a>
 ))`
+  color: ${p => p.theme.subText};
   display: block;
   width: 32px;
   height: 32px;
@@ -70,9 +81,22 @@ const LogoLink = styled(props => (
 
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-weight: bold;
   margin-left: ${space(1)};
 `;
 
-export default Footer;
+const StyledFooter = styled(Footer)`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  color: ${p => p.theme.subText};
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${space(4)};
+  margin-top: 20px;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
+`;
+
+export default StyledFooter;

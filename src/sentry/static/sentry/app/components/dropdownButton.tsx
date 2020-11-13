@@ -64,19 +64,19 @@ const StyledButton = styled(Button)<
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
   border-bottom-color: ${p =>
-    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.borderDark};
+    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
 
   &:active,
   &:focus,
   &:hover {
     border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.borderDark};
+      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
   }
 `;
 
 const LabelText = styled('em')`
   font-style: normal;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-right: ${space(0.75)};
 `;
 

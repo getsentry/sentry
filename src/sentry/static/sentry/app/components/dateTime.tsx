@@ -15,6 +15,7 @@ type Props = DefaultProps & {
   shortDate?: boolean;
   timeAndDate?: boolean;
   utc?: boolean;
+  format?: string;
 };
 
 class DateTime extends React.Component<Props> {
@@ -26,6 +27,7 @@ class DateTime extends React.Component<Props> {
     seconds: PropTypes.bool,
     timeAndDate: PropTypes.bool,
     utc: PropTypes.bool,
+    format: PropTypes.string,
   };
 
   static defaultProps: DefaultProps = {
@@ -33,7 +35,11 @@ class DateTime extends React.Component<Props> {
   };
 
   getFormat = ({clock24Hours}: {clock24Hours: boolean}): string => {
-    const {dateOnly, timeOnly, seconds, shortDate, timeAndDate} = this.props;
+    const {dateOnly, timeOnly, seconds, shortDate, timeAndDate, format} = this.props;
+
+    if (format) {
+      return format;
+    }
 
     // October 26, 2017
     if (dateOnly) {
@@ -58,8 +64,9 @@ class DateTime extends React.Component<Props> {
       return 'MM/DD/YYYY';
     }
 
+    // Oct 26, 2017 11:30
     if (clock24Hours) {
-      return 'MMMM D YYYY HH:mm:ss z';
+      return 'MMM D, YYYY HH:mm';
     }
 
     // Oct 26, 2017 11:30:30 AM

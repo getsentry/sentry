@@ -1,4 +1,5 @@
 import {EChartOption} from 'echarts';
+import 'echarts/lib/chart/pie';
 
 export default function PieSeries(
   props: EChartOption.SeriesPie = {}

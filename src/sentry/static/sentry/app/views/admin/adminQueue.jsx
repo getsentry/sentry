@@ -1,6 +1,7 @@
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
+import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import InternalStatChart from 'app/components/internalStatChart';
 import {SelectField} from 'app/components/forms';
 
@@ -61,22 +62,22 @@ export default class AdminQueue extends AsyncView {
 
         <h3 className="no-border">Queue Overview</h3>
 
-        <div className="box">
-          <div className="box-header">
-            <h3>Global Throughput</h3>
-          </div>
-          <InternalStatChart
-            since={this.state.since}
-            resolution={this.state.resolution}
-            stat="jobs.all.started"
-            label="jobs started"
-          />
-        </div>
+        <Panel>
+          <PanelHeader>Global Throughput</PanelHeader>
+          <PanelBody withPadding>
+            <InternalStatChart
+              since={this.state.since}
+              resolution={this.state.resolution}
+              stat="jobs.all.started"
+              label="jobs started"
+            />
+          </PanelBody>
+        </Panel>
 
         <h3 className="no-border">Task Details</h3>
 
         <div>
-          <div>
+          <div className="m-b-1">
             <label>Show details for task:</label>
             <SelectField
               deprecatedSelectControl
@@ -89,30 +90,34 @@ export default class AdminQueue extends AsyncView {
           </div>
           {activeTask ? (
             <div>
-              <div className="box box-mini" key="jobs.started">
-                <div className="box-header">
+              <Panel key={`jobs.started.${activeTask}`}>
+                <PanelHeader>
                   Jobs Started <small>{activeTask}</small>
-                </div>
-                <InternalStatChart
-                  since={this.state.since}
-                  resolution={this.state.resolution}
-                  stat={`jobs.started.${this.state.activeTask}`}
-                  label="jobs"
-                  height={100}
-                />
-              </div>
-              <div className="box box-mini" key="jobs.finished">
-                <div className="box-header">
+                </PanelHeader>
+                <PanelBody withPadding>
+                  <InternalStatChart
+                    since={this.state.since}
+                    resolution={this.state.resolution}
+                    stat={`jobs.started.${activeTask}`}
+                    label="jobs"
+                    height={100}
+                  />
+                </PanelBody>
+              </Panel>
+              <Panel key={`jobs.finished.${activeTask}`}>
+                <PanelHeader>
                   Jobs Finished <small>{activeTask}</small>
-                </div>
-                <InternalStatChart
-                  since={this.state.since}
-                  resolution={this.state.resolution}
-                  stat={`jobs.finished.${this.state.activeTask}`}
-                  label="jobs"
-                  height={100}
-                />
-              </div>
+                </PanelHeader>
+                <PanelBody withPadding>
+                  <InternalStatChart
+                    since={this.state.since}
+                    resolution={this.state.resolution}
+                    stat={`jobs.finished.${activeTask}`}
+                    label="jobs"
+                    height={100}
+                  />
+                </PanelBody>
+              </Panel>
             </div>
           ) : null}
         </div>

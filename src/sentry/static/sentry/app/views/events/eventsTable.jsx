@@ -194,7 +194,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const TableRow = styled(TableLayout)`
   font-size: ${p => p.theme.fontSizeMedium};
-  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.borderLight)};
+  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.innerBorder)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
@@ -209,6 +209,6 @@ const EventTitle = styled(TableData)`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;

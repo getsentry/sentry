@@ -173,6 +173,12 @@ class QueryIllegalTypeOfArgument(QueryExecutionError):
     """
 
 
+class QueryMissingColumn(QueryExecutionError):
+    """
+    Exception raised when a column is missing.
+    """
+
+
 class QueryTooManySimultaneous(QueryExecutionError):
     """
     Exception raised when a query is rejected due to too many simultaneous
@@ -208,7 +214,9 @@ class QueryConnectionFailed(QueryExecutionError):
 
 
 clickhouse_error_codes_map = {
+    10: QueryMissingColumn,
     43: QueryIllegalTypeOfArgument,
+    47: QueryMissingColumn,
     62: QuerySizeExceeded,
     160: QueryExecutionTimeMaximum,
     202: QueryTooManySimultaneous,
@@ -306,7 +314,7 @@ _snuba_pool = connection_from_url(
         # mutations.
         method_whitelist={"GET", "POST", "DELETE"},
     ),
-    timeout=30,
+    timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
 )
 _query_thread_pool = ThreadPoolExecutor(max_workers=10)
@@ -804,7 +812,7 @@ def resolve_column(dataset):
     def _resolve_column(col):
         if col is None:
             return col
-        if isinstance(col, float):
+        if isinstance(col, six.integer_types) or isinstance(col, float):
             return col
         if isinstance(col, six.string_types) and (
             col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
@@ -862,7 +870,12 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    func_args[i] = u"'{}'".format(arg) if isinstance(arg, six.string_types) else arg
+                    if isinstance(arg, six.string_types):
+                        func_args[i] = u"'{}'".format(arg)
+                    elif isinstance(arg, datetime):
+                        func_args[i] = u"'{}'".format(arg.isoformat())
+                    else:
+                        func_args[i] = arg
 
             cond[index + 1] = func_args
             return cond

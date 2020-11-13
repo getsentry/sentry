@@ -38,7 +38,7 @@ import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
 import {DataSection} from 'app/components/events/styles';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import {Event, AvatarProject, Group} from 'app/types';
+import {Event, AvatarProject, Group, Entry, Organization} from 'app/types';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -148,7 +148,7 @@ class EventEntries extends React.Component<Props> {
       return null;
     }
 
-    return entries.map((entry, entryIdx) => {
+    return (entries as Array<Entry>).map((entry, entryIdx) => {
       try {
         const Component = INTERFACES[entry.type];
         if (!Component) {
@@ -220,7 +220,7 @@ class EventEntries extends React.Component<Props> {
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
             <EventCause
-              organization={organization}
+              organization={organization as Organization}
               project={project}
               event={event}
               group={group}
@@ -312,7 +312,7 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
+  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
 `;
 

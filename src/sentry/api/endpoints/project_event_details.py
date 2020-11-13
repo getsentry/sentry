@@ -21,8 +21,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                                           event belongs to.
         :pparam string project_slug: the slug of the project the event
                                      belongs to.
-        :pparam string event_id: the id of the event to retrieve (either the
-                                 numeric primary-key or the hexadecimal id as
+        :pparam string event_id: the id of the event to retrieve.
+                                 It is the hexadecimal id as
                                  reported by the raven client)
         :auth: required
         """

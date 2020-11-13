@@ -301,8 +301,12 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('missing projectId prop', function () {
+  describe('multiple groups from different project', function () {
     beforeEach(function () {
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set([1, 2, 3]));
+
       wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
@@ -324,15 +328,65 @@ describe('IssueListActions', function () {
       );
     });
 
-    it('should disable resolve picker', function () {
+    it('should disable resolve dropdown but not resolve action', function () {
       const resolve = wrapper.find('ResolveActions').first();
-      expect(resolve.props().disabled).toBe(true);
+      expect(resolve.props().disabled).toBe(false);
       expect(resolve.props().disableDropdown).toBe(true);
     });
 
     it('should disable merge button', function () {
       const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
       expect(merge.props().disabled).toBe(true);
+    });
+  });
+
+  describe('with inbox feature', function () {
+    beforeEach(() => {
+      const {organization} = TestStubs.routerContext().context;
+      organization.features = ['inbox'];
+      wrapper = mountWithTheme(
+        <IssueListActions
+          api={new MockApiClient()}
+          query=""
+          orgId="1337"
+          organization={organization}
+          groupIds={[1, 2, 3]}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
+          onRealtimeChange={function () {}}
+          onSelectStatsPeriod={function () {}}
+          realtimeActive={false}
+          statsPeriod="24h"
+        />,
+        TestStubs.routerContext()
+      );
+    });
+
+    it('renders backlog action', function () {
+      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBeTruthy();
+    });
+
+    it('moves group to backlog', async function () {
+      const apiMock = MockApiClient.addMockResponse({
+        url: '/organizations/1337/issues/',
+        method: 'PUT',
+      });
+      wrapper.find('[data-test-id="button-backlog"]').first().simulate('click');
+
+      expect(wrapper.find('ModalDialog')).toSnapshot();
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(apiMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {inbox: false},
+        })
+      );
+
+      await tick();
+      wrapper.update();
     });
   });
 });

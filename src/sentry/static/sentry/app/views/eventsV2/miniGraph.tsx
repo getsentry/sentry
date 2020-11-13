@@ -90,7 +90,7 @@ class MiniGraph extends React.Component<Props> {
           if (errored) {
             return (
               <StyledGraphContainer>
-                <IconWarning color="gray500" size="md" />
+                <IconWarning color="gray300" size="md" />
               </StyledGraphContainer>
             );
           }
@@ -130,7 +130,7 @@ class MiniGraph extends React.Component<Props> {
                   show: false,
                 },
                 axisLabel: {
-                  color: theme.gray400,
+                  color: theme.chartLabel,
                   fontFamily: theme.text.family,
                   fontSize: 12,
                   formatter: (value: number) => axisLabelFormatter(value, yAxis, true),
@@ -156,9 +156,6 @@ class MiniGraph extends React.Component<Props> {
                 right: 0,
                 bottom: 0,
                 containLabel: false,
-              }}
-              options={{
-                hoverAnimation: false,
               }}
             />
           );

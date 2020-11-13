@@ -1,11 +1,12 @@
 ---
-created: '2020-08-19T12:18:25.048512Z'
+created: '2020-10-13T10:09:30.408662Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
 config:
   rules:
-  - fingerprint:
+  - attributes: {}
+    fingerprint:
     - '{{ type }}'
     - '{{ module }}'
     - '{{ function }}'
@@ -17,6 +18,7 @@ fingerprint:
 - '{{ type }}'
 - '{{ module }}'
 - '{{ function }}'
+title: <unlabeled event>
 variants:
   app:
     component:

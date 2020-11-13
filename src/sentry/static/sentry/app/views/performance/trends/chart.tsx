@@ -1,5 +1,5 @@
 import React from 'react';
-import {withRouter} from 'react-router';
+import {withRouter, browserHistory} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
@@ -7,21 +7,22 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import getDynamicText from 'app/utils/getDynamicText';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {decodeScalar} from 'app/utils/queryString';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
-import {OrganizationSummary, EventsStatsData} from 'app/types';
+import {OrganizationSummary, EventsStatsData, Project} from 'app/types';
 import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 
 import {
   getCurrentTrendFunction,
   getIntervalRatio,
-  movingAverage,
+  transformEventStatsSmoothed,
+  getUnselectedSeries,
   trendToColor,
 } from './utils';
 import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
@@ -34,7 +35,6 @@ const QUERY_KEYS = [
   'end',
   'statsPeriod',
 ] as const;
-const AVERAGE_WINDOW = 10;
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
@@ -47,6 +47,7 @@ type Props = WithRouterProps &
     transaction?: NormalizedTrendsTransaction;
     isLoading: boolean;
     statsData: TrendsStats;
+    projects: Project[];
   };
 
 function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
@@ -61,34 +62,7 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
   ];
 }
 
-function transformEventStatsSmoothed(data: Series[], seriesName?: string): Series[] {
-  const currentData = data[0].data;
-  const resultData: SeriesDataUnit[] = [];
-  resultData.push(currentData[0]);
-
-  // Start at 1 so we don't get NaN from the movingAverage
-  for (let i = 1; i < currentData.length; i++) {
-    let value;
-    if (i < AVERAGE_WINDOW) {
-      // A rougher movingAverage for these points, but this way there isn't a gap
-      value = movingAverage(currentData, i, i);
-    } else {
-      value = movingAverage(currentData, i, AVERAGE_WINDOW);
-    }
-    resultData.push({
-      name: currentData[i].name,
-      value,
-    });
-  }
-  return [
-    {
-      seriesName: 'smoothed ' + seriesName || 'Current',
-      data: resultData,
-    },
-  ];
-}
-
-function getLegend() {
+function getLegend(trendFunction: string) {
   const legend = {
     right: 10,
     top: 0,
@@ -107,6 +81,10 @@ function getLegend() {
       },
       {
         name: 'Releases',
+        icon: 'line',
+      },
+      {
+        name: trendFunction,
         icon: 'line',
       },
     ],
@@ -132,13 +110,13 @@ function getIntervalLine(
 
   const periodLine = {
     data: [] as any[],
-    color: theme.gray700,
+    color: theme.textColor,
     markLine: {
       data: [] as any[],
       label: {} as any,
       lineStyle: {
         normal: {
-          color: theme.gray700,
+          color: theme.textColor,
           type: 'dashed',
           width: 1,
         },
@@ -197,7 +175,7 @@ function getIntervalLine(
     label: {show: false},
     lineStyle: {
       normal: {
-        color: theme.gray700,
+        color: theme.textColor,
         type: 'solid',
         width: 2,
       },
@@ -224,6 +202,25 @@ function getIntervalLine(
 }
 
 class Chart extends React.Component<Props> {
+  handleLegendSelectChanged = legendChange => {
+    const {location, trendChangeType} = this.props;
+    const {selected} = legendChange;
+    const unselected = Object.keys(selected).filter(key => !selected[key]);
+
+    const query = {
+      ...location.query,
+    };
+
+    const queryKey = getUnselectedSeries(trendChangeType);
+    query[queryKey] = unselected;
+
+    const to = {
+      ...location,
+      query,
+    };
+    browserHistory.push(to);
+  };
+
   render() {
     const props = this.props;
 
@@ -237,8 +234,9 @@ class Chart extends React.Component<Props> {
       statsData,
       isLoading,
       location,
+      projects,
     } = props;
-    const lineColor = trendToColor[trendChangeType];
+    const lineColor = trendToColor[trendChangeType || ''];
 
     const events =
       statsData && transaction?.project && transaction?.transaction
@@ -248,7 +246,7 @@ class Chart extends React.Component<Props> {
 
     const trendFunction = getCurrentTrendFunction(location);
     const results = transformEventStats(data, trendFunction.chartLabel);
-    const smoothedResults = transformEventStatsSmoothed(
+    const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
       results,
       trendFunction.chartLabel
     );
@@ -259,20 +257,49 @@ class Chart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const intervalRatio = getIntervalRatio(router.location);
-    const legend = getLegend();
+    const seriesSelection = (
+      decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
+    ).reduce((selection, metric) => {
+      selection[metric] = false;
+      return selection;
+    }, {});
+    const legend = {
+      ...getLegend(trendFunction.chartLabel),
+      selected: seriesSelection,
+    };
 
     const loading = isLoading;
     const reloading = isLoading;
 
+    const transactionProject = parseInt(
+      projects.find(({slug}) => transaction?.project === slug)?.id || '',
+      10
+    );
+
+    const yMax = Math.max(
+      maxValue,
+      transaction?.aggregate_range_2 || 0,
+      transaction?.aggregate_range_1 || 0
+    );
+    const yMin = Math.min(
+      minValue,
+      transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
+      transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
+    );
+    const yDiff = yMax - yMin;
+    const yMargin = yDiff * 0.1;
+
     const chartOptions = {
       tooltip: {
         valueFormatter: (value, seriesName) => {
-          return tooltipFormatter(value, seriesName.replace('smoothed ', ''));
+          return tooltipFormatter(value, seriesName);
         },
       },
       yAxis: {
+        min: Math.max(0, yMin - yMargin),
+        max: yMax + yMargin,
         axisLabel: {
-          color: theme.gray400,
+          color: theme.chartLabel,
           // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },
@@ -289,34 +316,22 @@ class Chart extends React.Component<Props> {
         >
           {zoomRenderProps => {
             const smoothedSeries = smoothedResults
-              ? smoothedResults
-                  .map(values => {
-                    return {
-                      ...values,
-                      color: lineColor,
-                      lineStyle: {
-                        opacity: 1,
-                      },
-                    };
-                  })
-                  .reverse()
+              ? smoothedResults.map(values => {
+                  return {
+                    ...values,
+                    color: lineColor.default,
+                    lineStyle: {
+                      opacity: 1,
+                    },
+                  };
+                })
               : [];
 
-            const series = results
-              ? results
-                  .map(values => {
-                    return {
-                      ...values,
-                      color: lineColor,
-                      lineStyle: {
-                        opacity: 0.25,
-                      },
-                    };
-                  })
-                  .reverse()
-              : [];
-
-            const intervalSeries = getIntervalLine(series, intervalRatio, transaction);
+            const intervalSeries = getIntervalLine(
+              smoothedResults || [],
+              intervalRatio,
+              transaction
+            );
 
             return (
               <ReleaseSeries
@@ -324,8 +339,9 @@ class Chart extends React.Component<Props> {
                 end={end}
                 period={statsPeriod}
                 utc={utc}
-                projects={project}
+                projects={isNaN(transactionProject) ? project : [transactionProject]}
                 environments={environment}
+                memoized
               >
                 {({releaseSeries}) => (
                   <TransitionChart loading={loading} reloading={reloading}>
@@ -335,9 +351,9 @@ class Chart extends React.Component<Props> {
                         <LineChart
                           {...zoomRenderProps}
                           {...chartOptions}
+                          onLegendSelectChanged={this.handleLegendSelectChanged}
                           series={[
                             ...smoothedSeries,
-                            ...series,
                             ...releaseSeries,
                             ...intervalSeries,
                           ]}

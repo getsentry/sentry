@@ -43,14 +43,14 @@ const EmailValue = styled('div')<{status: InviteStatus[string]}>`
       p.status &&
       p.status.error &&
       css`
-        color: ${p.theme.red400};
-        border-color: ${p.theme.red400};
+        color: ${p.theme.red300};
+        border-color: ${p.theme.red300};
         background-color: ${p.theme.red100};
       `};
   }
 
   .Select-value svg {
-    color: ${p => (p.status && p.status.sent ? p.theme.green400 : 'inherit')};
+    color: ${p => (p.status && p.status.sent ? p.theme.green300 : 'inherit')};
   }
 `;
 

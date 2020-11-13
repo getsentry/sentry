@@ -30,7 +30,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
 
   return (
     <OpenInContainer columnQuantity={components.length + 1}>
-      <div>{t('Open this line in:')}</div>
+      <div>{t('Open this line in')}</div>
       {components.map(component => {
         const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;
@@ -55,16 +55,16 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
 
 export {OpenInContextLine};
 
-const OpenInContainer = styled('div')<{columnQuantity: number}>`
+export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray600};
-  background-color: ${p => p.theme.white};
+  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.25)} ${space(3)};
   box-shadow: ${p => p.theme.dropShadowLightest};
   text-indent: initial;
@@ -72,15 +72,15 @@ const OpenInContainer = styled('div')<{columnQuantity: number}>`
   white-space: nowrap;
 `;
 
-const OpenInLink = styled(ExternalLink)`
+export const OpenInLink = styled(ExternalLink)`
   display: inline-grid;
   align-items: center;
   grid-template-columns: max-content auto;
   grid-gap: ${space(0.75)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
-const OpenInName = styled('strong')`
-  color: ${p => p.theme.gray600};
+export const OpenInName = styled('strong')`
+  color: ${p => p.theme.subText};
   font-weight: 700;
 `;

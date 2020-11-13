@@ -72,7 +72,7 @@ export default class ProviderItem extends React.PureComponent {
             <ProviderInfo>
               <ProviderLogo
                 className={`provider-logo ${provider.name
-                  .replace(/\s/g, '')
+                  .replace(/\s/g, '-')
                   .toLowerCase()}`}
               />
               <div>
@@ -130,7 +130,7 @@ const FeatureBadge = styled('div')`
 `;
 
 const ActiveIndicator = styled(p => <div className={p.className}>{t('Active')}</div>)`
-  background: ${p => p.theme.green400};
+  background: ${p => p.theme.green300};
   color: #fff;
   padding: 8px 12px;
   border-radius: 2px;

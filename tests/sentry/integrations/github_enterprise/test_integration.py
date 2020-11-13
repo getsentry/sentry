@@ -30,8 +30,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     }
     base_url = "https://github.example.org/api/v3"
 
-    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
-    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def assert_setup_flow(
         self, get_jwt, _, installation_id="install_id_1", app_id="app_1", user_id="user_id_1"
     ):
@@ -122,7 +122,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
 
         auth_header = responses.calls[2].request.headers["Authorization"]
-        assert auth_header == "Bearer jwt_token_1"
+        assert auth_header == b"Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
 
@@ -162,8 +162,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert identity.status == IdentityStatus.VALID
         assert identity.data == {"access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"}
 
-    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_get_repositories_search_param(self, mock_jwtm, _):
         with self.tasks():

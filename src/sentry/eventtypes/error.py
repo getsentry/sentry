@@ -23,7 +23,7 @@ def get_crash_location(data):
 class ErrorEvent(BaseEvent):
     key = "error"
 
-    def get_metadata(self, data):
+    def extract_metadata(self, data):
         exception = get_path(data, "exception", "values", -1)
         if not exception:
             return {}
@@ -46,7 +46,7 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def get_title(self, metadata):
+    def compute_title(self, metadata):
         ty = metadata.get("type")
         if ty is None:
             return metadata.get("function") or "<unknown>"

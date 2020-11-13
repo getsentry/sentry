@@ -7,7 +7,6 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 describe('EventOrGroupTitle', function () {
   const data = {
     metadata: {
-      title: 'metadata title',
       type: 'metadata type',
       directive: 'metadata directive',
       uri: 'metadata uri',
@@ -50,13 +49,37 @@ describe('EventOrGroupTitle', function () {
       <EventOrGroupTitle
         data={{
           ...data,
-          ...{
-            type: 'default',
+          type: 'default',
+          metadata: {
+            ...data.metadata,
+            title: 'metadata title',
           },
         }}
       />
     );
 
     expect(component).toSnapshot();
+  });
+
+  it('renders with title override', function () {
+    const routerContext = TestStubs.routerContext([
+      {organization: TestStubs.Organization({features: ['custom-event-title']})},
+    ]);
+
+    const component = mountWithTheme(
+      <EventOrGroupTitle
+        data={{
+          ...data,
+          type: 'error',
+          metadata: {
+            ...data.metadata,
+            title: 'metadata title',
+          },
+        }}
+      />,
+      routerContext
+    );
+
+    expect(component.text()).toContain('metadata title');
   });
 });

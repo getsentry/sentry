@@ -1,6 +1,7 @@
 import round from 'lodash/round';
 
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {Release, ReleaseStatus} from 'app/types';
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -24,12 +25,12 @@ export const displayCrashFreePercent = (
   }
 
   if (percent < 1 && percent > 0) {
-    return `<1%`;
+    return `<1\u0025`;
   }
 
   const rounded = getCrashFreePercent(percent, decimalThreshold, decimalPlaces);
 
-  return `${rounded}%`;
+  return `${rounded}\u0025`;
 };
 
 export const convertAdoptionToProgress = (
@@ -50,3 +51,6 @@ export const getReleaseNewIssuesUrl = (
     },
   };
 };
+
+export const isReleaseArchived = (release: Release) =>
+  release.status === ReleaseStatus.Archived;

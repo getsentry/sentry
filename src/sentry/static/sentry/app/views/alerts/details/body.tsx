@@ -295,7 +295,7 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const Main = styled('div')`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding-top: ${space(3)};
   flex-grow: 1;
 `;
@@ -325,7 +325,7 @@ const Sidebar = styled(PageContent)`
     width: 100%;
     padding-top: ${space(3)};
     margin-bottom: 0;
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.border};
   }
 `;
 
@@ -356,7 +356,7 @@ const ChartActions = styled(PanelFooter)`
 `;
 
 const ChartParameters = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-auto-flow: column;
@@ -374,7 +374,7 @@ const ChartParameters = styled('div')`
     display: block;
     height: 70%;
     width: 1px;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     position: absolute;
     right: -${space(2)};
     top: 15%;
@@ -427,6 +427,6 @@ const RuleDetails = styled('div')`
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.rowBackground};
   }
 `;

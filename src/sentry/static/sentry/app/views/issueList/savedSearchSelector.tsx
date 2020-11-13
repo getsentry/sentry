@@ -104,27 +104,20 @@ export default class SavedSearchSelector extends React.Component<Props> {
 
   render() {
     return (
-      <Container>
-        <DropdownControl
-          menuWidth="35vw"
-          blendWithActor
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
-              <ButtonTitle>{this.getTitle()}</ButtonTitle>
-            </StyledDropdownButton>
-          )}
-        >
-          {this.renderList()}
-        </DropdownControl>
-      </Container>
+      <DropdownControl
+        menuWidth="35vw"
+        blendWithActor
+        button={({isOpen, getActorProps}) => (
+          <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+            <ButtonTitle>{this.getTitle()}</ButtonTitle>
+          </StyledDropdownButton>
+        )}
+      >
+        {this.renderList()}
+      </DropdownControl>
     );
   }
 }
-
-const Container = styled('div')`
-  position: relative;
-  display: block;
-`;
 
 const StyledDropdownButton = styled(DropdownButton)`
   border-right: 0;
@@ -135,6 +128,7 @@ const StyledDropdownButton = styled(DropdownButton)`
       : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
   white-space: nowrap;
   max-width: 200px;
+  margin-right: 0;
 
   &:hover,
   &:active {
@@ -147,7 +141,7 @@ const ButtonTitle = styled('span')`
 `;
 
 const SearchTitle = styled('strong')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
 
@@ -157,19 +151,19 @@ const SearchTitle = styled('strong')`
 `;
 
 const SearchQuery = styled('code')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
 
 const DeleteButton = styled(Button)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   background: transparent;
   flex-shrink: 0;
   padding: ${space(1.5)} ${space(1.5)} ${space(1)} 0;
@@ -184,12 +178,12 @@ const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
 
   position: relative;
-  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.borderLight}` : null)};
+  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
