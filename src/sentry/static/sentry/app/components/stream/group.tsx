@@ -31,6 +31,8 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import TimesBadge from 'app/components/group/timesBadge';
+import InboxReason from 'app/components/group/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -226,8 +228,10 @@ class StreamGroup extends React.Component<Props, State> {
       withChart,
       statsPeriod,
       selection,
+      organization,
     } = this.props;
 
+    const queryObj = queryToObj(query);
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
@@ -242,6 +246,10 @@ class StreamGroup extends React.Component<Props, State> {
     const showSecondaryPoints = Boolean(
       withChart && data && data.filtered && statsPeriod
     );
+
+    const orgFeatures = new Set(organization.features);
+    const hasInbox = orgFeatures.has('inbox');
+    const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
 
     return (
       <Wrapper data-test-id="group" onClick={this.toggleSelect}>
@@ -292,7 +300,9 @@ class StreamGroup extends React.Component<Props, State> {
                         )}
                       </div>
                     </span>
-                    <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                    <StyledDropdownList
+                      {...getMenuProps({className: 'dropdown-menu inverted'})}
+                    >
                       {data.filtered && (
                         <React.Fragment>
                           <StyledMenuItem to={this.getDiscoverUrl(true)}>
@@ -317,7 +327,7 @@ class StreamGroup extends React.Component<Props, State> {
                           </StyledMenuItem>
                         </React.Fragment>
                       )}
-                    </ul>
+                    </StyledDropdownList>
                   </span>
                 </GuideAnchor>
               );
@@ -346,7 +356,9 @@ class StreamGroup extends React.Component<Props, State> {
                       )}
                     </div>
                   </span>
-                  <ul {...getMenuProps({className: 'dropdown-menu inverted'})}>
+                  <StyledDropdownList
+                    {...getMenuProps({className: 'dropdown-menu inverted'})}
+                  >
                     {data.filtered && (
                       <React.Fragment>
                         <StyledMenuItem to={this.getDiscoverUrl(true)}>
@@ -371,7 +383,7 @@ class StreamGroup extends React.Component<Props, State> {
                         </StyledMenuItem>
                       </React.Fragment>
                     )}
-                  </ul>
+                  </StyledDropdownList>
                 </span>
               );
             }}
@@ -380,6 +392,25 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
+        {hasInbox && (
+          <React.Fragment>
+            {inboxTabActive && (
+              <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
+                <BadgeWrapper>
+                  <InboxReason data={data} />
+                </BadgeWrapper>
+              </ReasonBox>
+            )}
+            <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
+              <BadgeWrapper>
+                <TimesBadge
+                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+                />
+              </BadgeWrapper>
+            </TimesBox>
+          </React.Fragment>
+        )}
       </Wrapper>
     );
   }
@@ -393,6 +424,14 @@ const Wrapper = styled(PanelItem)`
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
+`;
+
+const ReasonBox = styled(Box)`
+  margin: 0 ${space(0.25)} 0 ${space(1)};
+`;
+
+const TimesBox = styled(Box)`
+  margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 
 const GroupCheckbox = styled(Box)`
@@ -416,6 +455,10 @@ const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)
     padding-right: 2px;
     color: ${p => p.theme.gray300};
   }
+`;
+
+const StyledDropdownList = styled('ul')`
+  z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
 const StyledMenuItem = styled(({to, children, ...p}) => (
@@ -453,6 +496,11 @@ const MenuItemText = styled('div')`
   font-weight: normal;
   text-align: left;
   padding-right: ${space(1)};
+`;
+
+const BadgeWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

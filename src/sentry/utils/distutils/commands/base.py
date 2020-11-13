@@ -123,7 +123,7 @@ class BaseBuildCommand(Command):
     def _setup_js_deps(self):
         node_version = None
         try:
-            node_version = self._run_command(["node", "--version"]).rstrip()
+            node_version = self._run_command(["node", "--version"]).rstrip().decode("utf-8")
         except OSError:
             log.fatal(u"Cannot find node executable. Please install node" " and try again.")
             sys.exit(1)

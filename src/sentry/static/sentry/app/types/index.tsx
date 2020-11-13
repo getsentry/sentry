@@ -82,8 +82,11 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = User & {
+export type Actor = {
   type: 'user' | 'team';
+  id: string;
+  name: string;
+  email?: string;
 };
 
 /**
@@ -406,8 +409,13 @@ export type ExceptionEntry = {
   data: ExceptionType;
 };
 
+export type StacktraceEntry = {
+  type: 'stacktrace';
+  data: StacktraceType;
+};
+
 export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: ExceptionEntry[];
+  entries: ExceptionEntry[] | StacktraceEntry[];
   type: 'error';
 };
 
@@ -658,6 +666,7 @@ export type EnrolledAuthenticator = {
 };
 
 export interface Config {
+  theme: 'light' | 'dark';
   languageCode: string;
   csrfCookieName: string;
   features: Set<string>;
@@ -710,6 +719,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+type InboxDetails = {
+  date_added?: string;
+  reason?: number;
+  reason_details?: {
+    until?: string;
+    count?: number;
+    window?: number;
+    user_count?: number;
+    user_window?: number;
+  };
+};
+
 // TODO(ts): incomplete
 export type Group = {
   id: string;
@@ -754,6 +775,7 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
+  inbox?: InboxDetails;
 };
 
 export type GroupTombstone = {
@@ -990,6 +1012,9 @@ export type Integration = {
     configure_integration?: {
       instructions: string[];
     };
+    integration_detail?: {
+      uninstallationUrl?: string;
+    };
   };
 };
 
@@ -1137,7 +1162,13 @@ type BaseRelease = {
   version: string;
   shortVersion: string;
   ref: string;
+  status: ReleaseStatus;
 };
+
+export enum ReleaseStatus {
+  Active = 'open',
+  Archived = 'archived',
+}
 
 export type ReleaseProject = {
   slug: string;
@@ -1397,7 +1428,7 @@ export type TagWithTopValues = {
   name: string;
   totalValues: number;
   uniqueValues: number;
-  canDelete: boolean;
+  canDelete?: boolean;
 };
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
@@ -1634,6 +1665,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
+  frames: Frame[];
 };
 
 export type ExceptionType = {
@@ -1650,3 +1682,6 @@ export type Identity = {
   provider: IntegrationProvider;
   providerLabel: string;
 };
+
+//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
+export type Writable<T> = {-readonly [K in keyof T]: T[K]};

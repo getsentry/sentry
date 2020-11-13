@@ -111,6 +111,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   noOptionsMessage?: () => string;
+  deprecatedSelectControl?: boolean;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -154,7 +155,6 @@ export type ProjectMapperType = {
     allowedDomain: string;
   };
   iconType: string;
-  manageUrl?: string;
 };
 
 //selects a sentry project with avatars

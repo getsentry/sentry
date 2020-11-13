@@ -8,7 +8,7 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
 from sentry.models import ExternalIssue, Rule
 
-from test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
+from .test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
 
 
 class JiraCreateTicketActionTest(RuleTestCase):

@@ -249,7 +249,7 @@ const EventWaitingIndicator = styled(p => (
   </div>
 ))`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   display: grid;
   grid-template-columns: max-content max-content;
   grid-gap: ${space(1)};

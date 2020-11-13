@@ -5,11 +5,12 @@ import {css} from '@emotion/core';
 import capitalize from 'lodash/capitalize';
 
 import {tct} from 'app/locale';
-import {Event, Group, GroupTombstone, Level} from 'app/types';
+import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
 import {IconMute, IconStar} from 'app/icons';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import Tooltip from 'app/components/tooltip';
 import {getMessage, getLocation} from 'app/utils/events';
+import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UnhandledTag, {
   TagAndMessageWrapper,
@@ -21,6 +22,7 @@ type DefaultProps = {
 };
 
 type Props = WithRouterProps<{orgId: string}> & {
+  organization: Organization;
   data: Event | Group | GroupTombstone;
   hideIcons?: boolean;
   hideLevel?: boolean;
@@ -102,18 +104,20 @@ class EventOrGroupHeader extends React.Component<Props> {
   }
 
   render() {
-    const {className, size, data} = this.props;
+    const {className, size, data, organization} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
     const {isUnhandled} = data as Group;
+    const orgFeatures = new Set(organization.features);
+    const showUnhandled = isUnhandled && !orgFeatures.has('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {(message || isUnhandled) && (
+        {(message || showUnhandled) && (
           <StyledTagAndMessageWrapper size={size}>
-            {isUnhandled && <UnhandledTag />}
+            {showUnhandled && <UnhandledTag />}
             {message && <Message>{message}</Message>}
           </StyledTagAndMessageWrapper>
         )}
@@ -144,7 +148,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -154,7 +158,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   span {
     direction: ltr;
   }
@@ -218,4 +222,4 @@ const GroupLevel = styled('div')<{level: Level}>`
   }
 `;
 
-export default withRouter(EventOrGroupHeader);
+export default withRouter(withOrganization(EventOrGroupHeader));
