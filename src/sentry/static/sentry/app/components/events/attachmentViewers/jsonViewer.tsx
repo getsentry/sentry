@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {
   ViewerProps,
@@ -32,7 +33,7 @@ export default class JsonViewer extends AsyncComponent<Props, State> {
 
     return (
       <PreviewPanelItem>
-        <ContextData
+        <StyledContextData
           data={json}
           maxDefaultDepth={4}
           preserveQuotes
@@ -43,3 +44,7 @@ export default class JsonViewer extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const StyledContextData = styled(ContextData)`
+  margin-bottom: 0;
+`;

@@ -80,6 +80,7 @@ export default class LogFileViewer extends AsyncComponent<Props, State> {
 const CodeWrapper = styled('pre')`
   padding: ${space(1)} ${space(2)};
   width: 100%;
+  margin-bottom: 0;
   &:after {
     content: '';
   }

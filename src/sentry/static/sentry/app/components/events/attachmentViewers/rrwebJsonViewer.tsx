@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {ViewerProps} from 'app/components/events/attachmentViewers/utils';
 import PanelAlert from 'app/components/panels/panelAlert';
@@ -15,9 +16,11 @@ export default class RRWebJsonViewer extends React.Component<ViewerProps, State>
   };
 
   render() {
+    const {showRawJson} = this.state;
+
     return (
       <React.Fragment>
-        <PanelAlert type="info">
+        <StyledPanelAlert border={showRawJson} type="info">
           {tct(
             'This is an attachment containing a session replay. [replayLink:View the replay] or [jsonLink:view the raw JSON].',
             {
@@ -25,17 +28,22 @@ export default class RRWebJsonViewer extends React.Component<ViewerProps, State>
               jsonLink: (
                 <a
                   onClick={() =>
-                    this.setState(({showRawJson}) => ({
-                      showRawJson: !showRawJson,
+                    this.setState(state => ({
+                      showRawJson: !state.showRawJson,
                     }))
                   }
                 />
               ),
             }
           )}
-        </PanelAlert>
-        {this.state.showRawJson && <JsonViewer {...this.props} />}
+        </StyledPanelAlert>
+        {showRawJson && <JsonViewer {...this.props} />}
       </React.Fragment>
     );
   }
 }
+
+const StyledPanelAlert = styled(PanelAlert)<{border: boolean}>`
+  margin: 0;
+  border-bottom: ${p => (p.border ? `1px solid ${p.theme.border}` : null)};
+`;

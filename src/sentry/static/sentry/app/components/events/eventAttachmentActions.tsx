@@ -9,6 +9,7 @@ import {IconDelete, IconDownload, IconShow} from 'app/icons';
 import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import ButtonBar from 'app/components/buttonBar';
 
 type Props = {
   api: Client;
@@ -49,9 +50,34 @@ class EventAttachmentActions extends React.Component<Props> {
     const {url, withPreviewButton, hasPreview, previewIsOpen} = this.props;
 
     return (
-      <React.Fragment>
-        {withPreviewButton && (
-          <Feature features={['event-attachments-viewer']}>
+      <ButtonBar gap={1}>
+        <Confirm
+          confirmText={t('Delete')}
+          message={t('Are you sure you wish to delete this file?')}
+          priority="danger"
+          onConfirm={this.handleDelete}
+          disabled={!url}
+        >
+          <Button
+            size="xsmall"
+            icon={<IconDelete size="xs" />}
+            label={t('Delete')}
+            disabled={!url}
+            title={!url ? t('Insufficient permissions to delete attachments') : undefined}
+          />
+        </Confirm>
+
+        <DownloadButton
+          size="xsmall"
+          icon={<IconDownload size="xs" />}
+          href={url ? `${url}?download=1` : ''}
+          disabled={!url}
+          title={!url ? t('Insufficient permissions to download attachments') : undefined}
+          label={t('Download')}
+        />
+
+        <Feature features={['event-attachments-viewer']}>
+          {withPreviewButton && (
             <DownloadButton
               size="xsmall"
               disabled={!url || !hasPreview}
@@ -68,35 +94,9 @@ class EventAttachmentActions extends React.Component<Props> {
             >
               {t('Preview')}
             </DownloadButton>
-          </Feature>
-        )}
-
-        <DownloadButton
-          size="xsmall"
-          icon={<IconDownload size="xs" />}
-          href={url ? `${url}?download=1` : ''}
-          disabled={!url}
-          title={!url ? t('Insufficient permissions to download attachments') : undefined}
-        >
-          {t('Download')}
-        </DownloadButton>
-
-        <Confirm
-          confirmText={t('Delete')}
-          message={t('Are you sure you wish to delete this file?')}
-          priority="danger"
-          onConfirm={this.handleDelete}
-          disabled={!url}
-        >
-          <Button
-            size="xsmall"
-            icon={<IconDelete size="xs" />}
-            disabled={!url}
-            priority="danger"
-            title={!url ? t('Insufficient permissions to delete attachments') : undefined}
-          />
-        </Confirm>
-      </React.Fragment>
+          )}
+        </Feature>
+      </ButtonBar>
     );
   }
 }
