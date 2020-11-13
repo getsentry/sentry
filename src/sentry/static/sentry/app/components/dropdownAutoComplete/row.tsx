@@ -94,6 +94,7 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   font-size: 0.9em;
   background-color: ${p =>
     p.hasGrayBackground ? p.theme.backgroundSecondary : 'transparent'};
+  color: ${p => (p.hasGrayBackground ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -103,6 +104,7 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   }
 
   :hover {
+    color: ${p => p.theme.textColor};
     background-color: ${p => p.theme.backgroundSecondary};
   }
 `;

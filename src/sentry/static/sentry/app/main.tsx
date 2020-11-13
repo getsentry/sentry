@@ -42,7 +42,10 @@ class Main extends React.Component<Props, State> {
   render() {
     return (
       <ThemeProvider<Theme> theme={this.state.theme}>
-        <GlobalStyles theme={this.state.theme} />
+        <GlobalStyles
+          isDark={this.props.config.theme === 'dark'}
+          theme={this.state.theme}
+        />
         <CacheProvider value={cache}>
           <Router history={browserHistory}>{routes()}</Router>
         </CacheProvider>

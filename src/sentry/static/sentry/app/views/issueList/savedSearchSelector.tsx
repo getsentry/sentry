@@ -120,6 +120,8 @@ export default class SavedSearchSelector extends React.Component<Props> {
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.background};
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
@@ -176,6 +178,7 @@ const DeleteButton = styled(Button)`
 
 const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
+  background-color: ${p => p.theme.background};
 
   position: relative;
   border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
