@@ -590,11 +590,8 @@ def build_group_ignore_card(group, event, rules, integration):
 
 
 def build_group_assign_card(group, event, rules, integration):
-    teams = [
-        {"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)}
-        for u in group.project.teams.all()
-    ]
-    teams.sort()
+    teams_list = group.project.teams.all().order_by("slug")
+    teams = [{"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)} for u in teams_list]
     teams = [{"title": "Me", "value": ME}] + teams
     title_card = {
         "type": "TextBlock",
