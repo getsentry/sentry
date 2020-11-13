@@ -191,7 +191,11 @@ class ReleaseOverview extends AsyncView<Props> {
                         t('tpm()'),
                         t('p50()'),
                       ]}
-                      generateFirstLink={generateTransactionLinkFn(version, project.id)}
+                      generateFirstLink={generateTransactionLinkFn(
+                        version,
+                        project.id,
+                        location.query.showTransactions
+                      )}
                     />
                     <Issues
                       orgId={organization.slug}
@@ -246,7 +250,7 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 }
 
-function generateTransactionLinkFn(version: string, projectId: number) {
+function generateTransactionLinkFn(version: string, projectId: number, value: string) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -258,7 +262,9 @@ function generateTransactionLinkFn(version: string, projectId: number) {
       transaction: transaction! as string,
       query: {query: `release:${version}`},
       projectID: projectId.toString(),
-      display: DisplayModes.TREND,
+      display: ['regression', 'improved'].includes(value)
+        ? DisplayModes.TREND
+        : DisplayModes.DURATION,
     });
   };
 }
@@ -287,17 +293,17 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: 'trend_percentage():>0% t_test():<-6',
+      query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
       trendType: 'regression',
       value: 'regression',
       label: t('Trending Regressions'),
     },
     {
-      sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: 'trend_percentage():>0% t_test():>6',
-      trendType: 'improvement',
-      value: 'improvement',
-      label: t('Trending Improvement'),
+      sort: {kind: 'asc', field: 'trend_percentage()'},
+      query: 'tpm():>0.01 trend_percentage():>0% t_test():>6',
+      trendType: 'improved',
+      value: 'improved',
+      label: t('Trending Improvements'),
     },
   ];
 }
