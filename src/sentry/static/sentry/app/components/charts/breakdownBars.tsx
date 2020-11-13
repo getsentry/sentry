@@ -63,7 +63,7 @@ const Label = styled('span')`
 
 const Bar = styled('div')`
   border-radius: 2px;
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.gray100};
   position: absolute;
   top: 0;
   left: 0;
