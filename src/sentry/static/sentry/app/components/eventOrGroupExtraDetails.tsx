@@ -54,7 +54,9 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             <InboxShortId
               shortId={shortId}
               avatar={
-                project && <ProjectBadge project={project} avatarSize={14} hideName />
+                project && (
+                  <ShadowlessProjectBadge project={project} avatarSize={14} hideName />
+                )
               }
             />
           </BadgeWrapper>
@@ -165,6 +167,12 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
 `;
 
 const BadgeWrapper = styled('div')`

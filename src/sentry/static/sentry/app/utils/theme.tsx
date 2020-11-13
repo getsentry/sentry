@@ -232,7 +232,7 @@ const tag = {
     iconColor: colors.green300,
   },
   error: {
-    background: color(colors.red100).alpha(0.4).string(),
+    background: colors.red100,
     iconColor: colors.red300,
   },
   info: {
