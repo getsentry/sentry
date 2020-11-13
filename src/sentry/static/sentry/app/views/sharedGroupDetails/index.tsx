@@ -124,7 +124,7 @@ class SharedGroupDetails extends React.Component<Props, State> {
               </div>
               <div className="content">
                 <SharedGroupHeader group={group} />
-                <Container className="group-overview event-details-container">
+                <Container className="group-overview">
                   <BorderlessEventEntries
                     location={location}
                     organization={project.organization}

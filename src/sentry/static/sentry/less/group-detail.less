@@ -13,54 +13,6 @@
   }
 }
 
-/**
-* Event Details
-* ============================================================================
-*/
-
-.event-details-container {
-  display: flex;
-  margin: -20px -40px;
-  background: #fff;
-  flex-direction: column;
-  flex: 1;
-
-  @media (min-width: 1200px) {
-    flex-direction: row;
-  }
-
-  .primary {
-    flex: 1;
-
-    .user-report {
-      border-radius: 0;
-      box-shadow: none;
-      padding: 20px 30px 0 40px;
-      border: 0;
-      border-top: 1px solid lighten(@trim, 4);
-      margin: 0;
-
-      padding-bottom: 0;
-    }
-
-    @media (min-width: 1200px) {
-      // TODO(dcramer): whatever flex is doing here is causing this to extend to
-      // whatever it pleases (e.g. 4k pixels on my 1280 screen)
-      max-width: ~'calc(100% - 365px)';
-    }
-  }
-
-  .secondary {
-    width: 100%;
-    padding: 30px 40px 30px 30px;
-    border-left: 1px solid @trim;
-
-    @media (min-width: 1200px) {
-      width: 365px;
-    }
-  }
-}
-
 /*
 * Context callout
 * ============================================================================
@@ -1065,47 +1017,6 @@ span.val {
     padding-left: 0;
     padding-right: 0;
   }
-
-  .event-details-container {
-    display: block;
-    margin: 0;
-
-    .primary {
-      max-width: 100%;
-
-      .box {
-        padding: 0 30px;
-
-        &:first-child {
-          border-top: 0;
-        }
-      }
-
-      .box-header,
-      .box-content {
-        max-width: 960px;
-        margin: 0 auto;
-      }
-
-      .box-header {
-        margin-top: 15px;
-      }
-
-      .exception {
-        padding: 20px 0;
-        margin: 0;
-
-        &:first-child {
-          padding-top: 0;
-        }
-      }
-
-      .traceback.no-exception {
-        margin-bottom: 25px;
-        margin-top: -5px;
-      }
-    }
-  }
 }
 
 /**
@@ -1215,65 +1126,6 @@ ul.crumbs {
 */
 
 @media (max-width: 767px) {
-  // Event detail columns
-  .event-details-container {
-    flex-direction: column;
-    margin: 0;
-
-    .primary {
-      max-width: 100%;
-
-      .box {
-        padding: 15px 0;
-
-        .box-header {
-          h3 {
-            margin: 0 0 10px;
-
-            small {
-              margin-left: 0 !important;
-              display: block;
-            }
-          }
-
-          .permalink {
-            display: none;
-          }
-        }
-      }
-
-      .user-report {
-        padding: 15px 0;
-      }
-
-      .exception {
-        margin: 0;
-        padding: 15px 0;
-      }
-
-      .traceback {
-        &.no-exception {
-          margin: 0;
-        }
-
-        .btn-toggle {
-          width: 17px;
-        }
-      }
-    }
-
-    .secondary {
-      width: auto;
-      padding: 0;
-      border: 0;
-      margin-bottom: 20px;
-    }
-
-    .detailed-error {
-      border-top: 1px solid @trim;
-    }
-  }
-
   .context {
     overflow: auto;
 

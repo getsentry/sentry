@@ -56,7 +56,7 @@ describe('ContextSummary', function () {
       };
 
       const wrapper = mountWithTheme(<ContextSummary event={event} />);
-      expect(wrapper).toSnapshot();
+      expect(wrapper.find('ContextSummary').html()).toBe(null);
     });
 
     it('renders nothing with a single user context', () => {
@@ -67,7 +67,7 @@ describe('ContextSummary', function () {
       };
 
       const wrapper = mountWithTheme(<ContextSummary event={event} />);
-      expect(wrapper).toSnapshot();
+      expect(wrapper.find('ContextSummary').html()).toBe(null);
     });
 
     it('should bail out with empty contexts', () => {
@@ -81,7 +81,7 @@ describe('ContextSummary', function () {
       };
 
       const wrapper = mountWithTheme(<ContextSummary event={event} />);
-      expect(wrapper).toSnapshot();
+      expect(wrapper.find('ContextSummary').html()).toBe(null);
     });
 
     it('renders at least three contexts', () => {

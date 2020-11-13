@@ -15,12 +15,8 @@ const COLORS = {
 } as const;
 
 export const DataSection = styled('div')`
-  padding: ${space(2)} 0;
+  padding: ${space(2)} ${space(4)} 0 ${space(4)};
   border-top: 1px solid ${p => p.theme.innerBorder};
-
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    padding: ${space(2)} ${space(4)} 0 ${space(4)};
-  }
 `;
 
 type BannerProps = {
