@@ -159,7 +159,7 @@ const aliases = {
 } as const;
 
 const warning = {
-  background: colors.yellow100,
+  background: colors.yellow300,
   backgroundLight: color(colors.yellow100).alpha(0.3).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
@@ -197,7 +197,7 @@ const alert = {
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
+    background: colors.orange400,
     indicatorColor: colors.orange400,
   },
   beta: {
@@ -205,7 +205,7 @@ const badge = {
     indicatorColor: colors.purple300,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
+    background: colors.green300,
     indicatorColor: colors.green300,
   },
 };
