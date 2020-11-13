@@ -410,6 +410,10 @@ const StyledActions = styled('div')`
   grid-gap: ${space(2)};
   grid-template-columns: auto max-content min-content;
 
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto;
+  }
+
   align-items: center;
   margin-bottom: ${space(3)};
 `;

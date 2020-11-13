@@ -89,10 +89,8 @@ class QueryList extends React.Component<Props> {
 
     // If we're on the first page (no-previous page exists)
     // include the pre-built queries.
-    if (renderPrebuilt) {
-      if (!links.previous || links.previous.results === false) {
-        cards = cards.concat(this.renderPrebuiltQueries());
-      }
+    if (renderPrebuilt && (!links.previous || links.previous.results === false)) {
+      cards = cards.concat(this.renderPrebuiltQueries());
     }
     cards = cards.concat(this.renderSavedQueries());
 
