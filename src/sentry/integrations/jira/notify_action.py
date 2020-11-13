@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
@@ -46,7 +47,7 @@ class JiraCreateTicketAction(TicketEventAction):
         self.form_fields = {
             "jira_integration": {
                 "choices": integration_choices,
-                "default": self.get_integration_id(),
+                "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
                 "updatesForm": True,
             }
