@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from sentry.constants import ObjectStatus
 from sentry.models.integration import Integration
+from sentry.models import ExternalIssue, GroupLink
 from sentry.rules.base import RuleBase
 
 
@@ -81,6 +82,10 @@ class IntegrationEventAction(EventAction):
     def get_form_instance(self):
         return self.form_cls(self.data, integrations=self.get_integrations())
 
+    def get_linked_issue(self):
+        # check if the issue exists already or not
+        pass
+
 
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
@@ -97,4 +102,21 @@ class TicketEventAction(IntegrationEventAction):
         )
         return installation.get_group_description(event.group, event) + self.generate_footer(
             rule_url
+        )
+
+    def create_link(self, key, integration, installation, event):
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.project.organization.id,
+            integration_id=integration.id,
+            key=key,
+            title=event.title,
+            description=installation.get_group_description(event.group, event),
+        )
+        GroupLink.objects.create(
+            group_id=event.group.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+            data={"provider": self.provider},
         )
