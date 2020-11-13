@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from uuid import uuid4
 
 from django.apps import apps
@@ -10,6 +12,9 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+
+
+logger = logging.getLogger(__name__)
 
 
 MAX_RETRIES = 5
@@ -362,7 +367,7 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
 @retry(exclude=(DeleteAborted,))
 def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
-    from sentry.models import OrganizationIntegration, Repository
+    from sentry.models import OrganizationIntegration, Repository, Identity
 
     try:
         instance = OrganizationIntegration.objects.get(id=object_id)
@@ -376,6 +381,20 @@ def delete_organization_integration(object_id, transaction_id=None, actor_id=Non
     Repository.objects.filter(
         organization_id=instance.organization_id, integration_id=instance.integration_id
     ).update(integration_id=None)
+
+    # delete the identity attached through the default_auth_id
+    if instance.default_auth_id:
+        log_info = {
+            "integration_id": instance.integration_id,
+            "id": instance.default_auth_id,
+        }
+        try:
+            identity = Identity.objects.get(id=instance.default_auth_id)
+        except Identity.DoesNotExist:
+            logger.info("delete_organization_integration.identity_does_not_exist", extra=log_info)
+        else:
+            identity.delete()
+            logger.info("delete_organization_integration.identity_deleted", extra=log_info)
 
     task = deletions.get(
         model=OrganizationIntegration,
