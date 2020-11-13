@@ -14,6 +14,7 @@ import withOrganization from 'app/utils/withOrganization';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
 import InboxCommentsLink from 'app/components/group/inboxBadges/commentsLink';
+import InboxEventAnnotation from 'app/components/group/inboxBadges/eventAnnotation';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
@@ -94,29 +95,44 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             <span>{numComments}</span>
           </CommentsLink>
         ))}
-      {logger && (
-        <LoggerAnnotation>
-          <Link
+      {logger &&
+        (hasInbox ? (
+          <InboxEventAnnotation
             to={{
               pathname: issuesPath,
               query: {
                 query: `logger:${logger}`,
               },
             }}
-          >
-            {logger}
-          </Link>
-        </LoggerAnnotation>
-      )}
-      {annotations &&
-        annotations.map((annotation, key) => (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
-            }}
-            key={key}
+            annotation={logger}
           />
+        ) : (
+          <LoggerAnnotation>
+            <Link
+              to={{
+                pathname: issuesPath,
+                query: {
+                  query: `logger:${logger}`,
+                },
+              }}
+            >
+              {logger}
+            </Link>
+          </LoggerAnnotation>
         ))}
+      {annotations &&
+        annotations.map((annotation, key) =>
+          hasInbox ? (
+            <InboxEventAnnotation key={key} annotation={annotation} />
+          ) : (
+            <AnnotationNoMargin
+              dangerouslySetInnerHTML={{
+                __html: annotation,
+              }}
+              key={key}
+            />
+          )
+        )}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
