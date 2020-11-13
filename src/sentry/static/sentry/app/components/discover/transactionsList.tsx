@@ -14,7 +14,7 @@ import Pagination from 'app/components/pagination';
 import PanelTable from 'app/components/panels/panelTable';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {Sort, getAggregateAlias} from 'app/utils/discover/fields';
@@ -38,7 +38,6 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   dropdownTitle: string;
-  selection: GlobalSelection;
   selected: DropdownOption;
   options: DropdownOption[];
   handleDropdownChange: any;
@@ -87,6 +86,7 @@ class TransactionsList extends React.Component<Props> {
         >
           {options.map(({value, label}) => (
             <DropdownItem
+              data-test-id={`option-${value}`}
               key={value}
               onSelect={handleDropdownChange}
               eventKey={value}
@@ -213,7 +213,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
-  ) {
+  ): React.ReactNode[] {
     const {organization, location, dataTestId, generateFirstLink} = this.props;
 
     const resultsRow = columnOrder.map((column, index) => {

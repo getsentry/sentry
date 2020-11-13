@@ -180,7 +180,6 @@ class ReleaseOverview extends AsyncView<Props> {
                       organization={organization}
                       eventView={releaseEventView}
                       dropdownTitle={t('Show')}
-                      selection={selection}
                       selected={selectedSort}
                       options={sortOptions}
                       handleDropdownChange={this.handleTransactionsListSortChange}
