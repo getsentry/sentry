@@ -386,7 +386,7 @@ def delete_organization_integration(object_id, transaction_id=None, actor_id=Non
     if instance.default_auth_id:
         log_info = {
             "integration_id": instance.integration_id,
-            "id": instance.default_auth_id,
+            "identity_id": instance.default_auth_id,
         }
         try:
             identity = Identity.objects.get(id=instance.default_auth_id)
