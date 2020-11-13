@@ -84,10 +84,6 @@ uwsgi>2.0.0,<2.1.0
 msgpack>=0.6.1,<0.7.0; python_version < '3.0'
 msgpack>=1.0.0,<1.1.0; python_version >= '3.0'
 
-# celery
-# We specifically pin to 3.5.0.4 to avoid the issue in
-# https://github.com/celery/billiard/issues/260. Once we upgrade to Celery 4.3+ we can
-# use a newer version of billiard that has a proper fix.
 billiard==3.6.3
 kombu==4.6.11
 
