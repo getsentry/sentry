@@ -135,52 +135,46 @@ class GroupHeader extends React.Component {
           <HeaderActions>
             <HeaderDetails>
               {group.shortId && (
-                <GuideAnchor target="issue_number" position="bottom">
-                  <ShortIdBox>
-                    <h6 className="nav-header">
-                      <Tooltip
-                        title={t(
-                          'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-                        )}
-                        position="bottom"
+                <React.Fragment>
+                  <h6 className="nav-header">
+                    <Tooltip
+                      title={t(
+                        'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+                      )}
+                      position="bottom"
+                    >
+                      <a
+                        className="help-link"
+                        href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
                       >
-                        <a
-                          className="help-link"
-                          href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
-                        >
-                          {t('Issue #')}
-                        </a>
-                      </Tooltip>
-                    </h6>
+                        {t('Issue #')}
+                      </a>
+                    </Tooltip>
+                  </h6>
+                  <GuideAnchor target="issue_number" position="bottom">
                     <StyledShortId
                       shortId={group.shortId}
                       avatar={
                         <StyledProjectBadge project={project} avatarSize={20} hideName />
                       }
                     />
-                  </ShortIdBox>
-                </GuideAnchor>
+                  </GuideAnchor>
+                </React.Fragment>
               )}
-              <div>
-                <h6 className="nav-header">{t('Events')}</h6>
-                <Link to={eventRouteToObject}>
-                  <HeaderDetailsCount value={group.count} />
+              <h6 className="nav-header">{t('Events')}</h6>
+              <Link to={eventRouteToObject}>
+                <HeaderDetailsCount value={group.count} />
+              </Link>
+              <h6 className="nav-header">{t('Users')}</h6>
+              {userCount !== 0 ? (
+                <Link to={`${baseUrl}tags/user/${location.search}`}>
+                  <HeaderDetailsCount value={userCount} />
                 </Link>
-              </div>
-              <div>
-                <h6 className="nav-header">{t('Users')}</h6>
-                {userCount !== 0 ? (
-                  <Link to={`${baseUrl}tags/user/${location.search}`}>
-                    <HeaderDetailsCount value={userCount} />
-                  </Link>
-                ) : (
-                  <span>0</span>
-                )}
-              </div>
-              <div>
-                <h6 className="nav-header">{t('Assignee')}</h6>
-                <AssigneeSelector id={group.id} memberList={memberList} />
-              </div>
+              ) : (
+                <span>0</span>
+              )}
+              <h6 className="nav-header">{t('Assignee')}</h6>
+              <AssigneeSelector id={group.id} memberList={memberList} />
             </HeaderDetails>
           </HeaderActions>
         </Header>
@@ -280,15 +274,19 @@ const HeaderActions = styled(Layout.HeaderActions)`
 `;
 
 const HeaderDetails = styled('div')`
-  display: grid;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  gap: ${space(2)};
+  display: grid;
   grid-auto-flow: column;
-  text-align: right;
+  grid-template-rows: max-content max-content;
+  align-items: center;
+  column-gap: ${space(2)};
+  row-gap: 0;
+  justify-content: flex-end;
   max-width: 400px;
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     max-width: none;
+    justify-content: space-between;
   }
 `;
 
@@ -299,6 +297,7 @@ const StyledSeenByList = styled(SeenByList)`
 `;
 
 const HeaderDetailsCount = styled(Count)`
+  vertical-align: middle;
   font-size: ${p => p.theme.headerFontSize};
 `;
 
@@ -318,11 +317,8 @@ const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
 
-const ShortIdBox = styled('div')`
-  overflow: hidden; /* needed for ellipsis when ShortId is too long */
-`;
-
 const StyledShortId = styled(ShortId)`
+  overflow: hidden;
   .auto-select-text > span {
     ${overflowEllipsisLeft};
   }

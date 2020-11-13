@@ -379,10 +379,19 @@ const BookmarkButton = styled('div')`
 `;
 
 const StyledGroupDetailsActions = styled(GroupDetailsActions)`
-  display: grid;
-  grid-auto-flow: column;
+  display: flex;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  white-space: nowrap;
+
+  /**
+   * this will give double horizontal margins for browsers that support flex gap
+   * but this will also give us a nice vertical gap when the row wraps
+   */
   gap: ${space(0.5)};
+  & > div {
+    margin-right: ${space(0.5)};
+  }
 
   .group-remove:hover {
     color: ${p => p.theme.white};

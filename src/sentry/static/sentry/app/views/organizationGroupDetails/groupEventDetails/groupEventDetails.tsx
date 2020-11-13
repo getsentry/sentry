@@ -251,9 +251,13 @@ const Side = styled(Layout.Side)`
   border-left: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(4)};
 
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    border-left: none;
+  }
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     border-left: none;
-    padding: );
+    padding: 0;
   }
 `;
 
