@@ -187,7 +187,7 @@ class RuleBuilder extends React.Component<Props, State> {
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
-            icon={<IconAdd size="xs" isCircled />}
+            icon={<IconAdd isCircled />}
             size="small"
           />
         </BuilderBar>
