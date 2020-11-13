@@ -130,7 +130,7 @@ class MiniGraph extends React.Component<Props> {
                   show: false,
                 },
                 axisLabel: {
-                  color: theme.gray200,
+                  color: theme.chartLabel,
                   fontFamily: theme.text.family,
                   fontSize: 12,
                   formatter: (value: number) => axisLabelFormatter(value, yAxis, true),

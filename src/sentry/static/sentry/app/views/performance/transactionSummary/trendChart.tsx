@@ -130,7 +130,7 @@ class TrendChart extends React.Component<Props> {
       yAxis: {
         min: 0,
         axisLabel: {
-          color: theme.gray200,
+          color: theme.chartLabel,
           // p50() coerces the axis to be time based
           formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
         },

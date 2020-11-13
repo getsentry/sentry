@@ -46,7 +46,6 @@ const GridCell = styled('div')<{
   ${p =>
     p.hasError &&
     `
-      background: #fffcfb;
       border-bottom: 1px solid ${p.theme.red300};
       :after {
         content: '';
