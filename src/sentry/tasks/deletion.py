@@ -391,6 +391,8 @@ def delete_organization_integration(object_id, transaction_id=None, actor_id=Non
         try:
             identity = Identity.objects.get(id=instance.default_auth_id)
         except Identity.DoesNotExist:
+            # the identity may not exist for a variety of reasons but for debugging puproses
+            # we should keep track
             logger.info("delete_organization_integration.identity_does_not_exist", extra=log_info)
         else:
             identity.delete()
