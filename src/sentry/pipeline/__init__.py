@@ -265,7 +265,10 @@ class Pipeline(object):
         self.state.data = data
 
     def fetch_state(self, key=None):
-        return self.state.data if key is None else self.state.data.get(key)
+        data = self.state.data
+        if not data:
+            return None
+        return data if key is None else data.get(key)
 
     def get_logger(self):
         return logging.getLogger("sentry.integration.%s" % (self.provider.key,))
