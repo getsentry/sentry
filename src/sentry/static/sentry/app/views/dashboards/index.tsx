@@ -30,4 +30,5 @@ function Dashboards({organization, children}: Props) {
     </Feature>
   );
 }
+
 export default withOrganization(Dashboards);
