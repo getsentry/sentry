@@ -12,12 +12,13 @@ import TimeSince from 'app/components/timeSince';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 
-type SessionRowProps = {
+type InternetProtocol = {
+  id: string;
   ipAddress: string;
   lastSeen: string;
   firstSeen: string;
-  countryCode?: string;
-  regionCode?: string;
+  countryCode: string | null;
+  regionCode: string | null;
 };
 
 function SessionRow({
@@ -26,7 +27,7 @@ function SessionRow({
   firstSeen,
   countryCode,
   regionCode,
-}: SessionRowProps) {
+}: Omit<InternetProtocol, 'id'>) {
   return (
     <SessionPanelItem>
       <IpAndLocation>
@@ -46,7 +47,7 @@ function SessionRow({
 type Props = RouteComponentProps<{}, {}>;
 
 type State = {
-  ipList: Array<any> | null;
+  ipList: Array<InternetProtocol> | null;
 } & AsyncView['state'];
 
 class AccountSecuritySessionHistory extends AsyncView<Props, State> {
@@ -94,8 +95,8 @@ class AccountSecuritySessionHistory extends AsyncView<Props, State> {
             <div>{t('Last Seen')}</div>
           </SessionPanelHeader>
           <PanelBody>
-            {ipList.map(ipObj => (
-              <SessionRow key={ipObj.id} {...ipObj} />
+            {ipList.map(({id, ...ip}) => (
+              <SessionRow key={id} {...ip} />
             ))}
           </PanelBody>
         </Panel>
@@ -110,6 +111,7 @@ const IpAddress = styled('div')`
   margin-bottom: ${space(0.5)};
   font-weight: bold;
 `;
+
 const CountryCode = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
