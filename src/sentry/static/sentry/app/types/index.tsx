@@ -606,6 +606,11 @@ export type GlobalSelection = {
   };
 };
 
+type Device = {
+  key_handle: string;
+  authId: string;
+  name: string;
+};
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -653,6 +658,16 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  createdAt: string | null;
+
+  lastUsedAt: string | null;
+
+  codes: string[];
+
+  devices: Array<Device>;
+
+  phone?: string;
 
   challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;

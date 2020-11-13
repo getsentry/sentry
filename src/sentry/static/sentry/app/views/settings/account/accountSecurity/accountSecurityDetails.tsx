@@ -4,9 +4,9 @@
  *
  * Also displays 2fa method specific details.
  */
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -21,91 +21,86 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
 import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
 import space from 'app/styles/space';
+import {Authenticator} from 'app/types';
 
 const ENDPOINT = '/users/me/authenticators/';
 
-class AuthenticatorDate extends React.Component {
-  static propTypes = {
-    label: PropTypes.string,
-    /**
-     * Can be null or a Date object.
-     * Component will have value "never" if it is null
-     */
-    date: PropTypes.string,
-  };
+type AuthenticatorDateProps = {
+  label: string;
+  /**
+   * Can be null or a Date object.
+   * Component will have value "never" if it is null
+   */
+  date: string | null;
+};
 
-  render() {
-    const {label, date} = this.props;
-
-    return (
-      <React.Fragment>
-        <DateLabel>{label}</DateLabel>
-        <div>{date ? <DateTime date={date} /> : t('never')}</div>
-      </React.Fragment>
-    );
-  }
+function AuthenticatorDate({label, date}: AuthenticatorDateProps) {
+  return (
+    <React.Fragment>
+      <DateLabel>{label}</DateLabel>
+      <div>{date ? <DateTime date={date} /> : t('never')}</div>
+    </React.Fragment>
+  );
 }
 
-class AccountSecurityDetails extends AsyncView {
-  static PropTypes = {
-    deleteDisabled: PropTypes.bool.isRequired,
-    onRegenerateBackupCodes: PropTypes.func.isRequired,
-  };
+type Props = {
+  deleteDisabled: boolean;
+  onRegenerateBackupCodes: () => void;
+} & RouteComponentProps<{authId: string}, {}>;
 
-  _form = {};
+type State = {
+  authenticator: Authenticator | null;
+} & AsyncView['state'];
 
+class AccountSecurityDetails extends AsyncView<Props, State> {
   getTitle() {
     return t('Security');
   }
 
-  getEndpoints() {
-    return [['authenticator', `${ENDPOINT}${this.props.params.authId}/`]];
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {params} = this.props;
+    const {authId} = params;
+
+    return [['authenticator', `${ENDPOINT}${authId}/`]];
   }
 
-  addError(message) {
-    this.setState({loading: false});
-    addErrorMessage(message);
-  }
-
-  handleRemove = device => {
+  handleRemove = async (device: Authenticator['devices'][0]) => {
     const {authenticator} = this.state;
 
     if (!authenticator || !authenticator.authId) {
       return;
     }
+
     const isRemovingU2fDevice = !!device;
     const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
+    const deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
 
-    this.setState(
-      {
-        loading: true,
-      },
-      () =>
-        this.api
-          .requestPromise(`${ENDPOINT}${authenticator.authId}/${deviceId}`, {
-            method: 'DELETE',
-          })
-          .then(
-            () => {
-              this.props.router.push('/settings/account/security');
-              const deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
-              addSuccessMessage(t('%s has been removed', deviceName));
-            },
-            () => {
-              // Error deleting authenticator
-              const deviceName = isRemovingU2fDevice ? device.name : 'authenticator';
-              this.addError(t('Error removing %s', deviceName));
-            }
-          )
-    );
+    this.setState({loading: true});
+
+    try {
+      await this.api.requestPromise(`${ENDPOINT}${authenticator.authId}/${deviceId}`, {
+        method: 'DELETE',
+      });
+      this.props.router.push('/settings/account/security');
+      addSuccessMessage(t('%s has been removed', deviceName));
+    } catch {
+      // Error deleting authenticator
+      this.setState({loading: false});
+      addErrorMessage(t('Error removing %s', deviceName));
+    }
   };
 
   renderBody() {
     const {authenticator} = this.state;
+
+    if (!authenticator) {
+      return null;
+    }
+
     const {deleteDisabled, onRegenerateBackupCodes} = this.props;
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader
           title={
             <React.Fragment>
@@ -156,7 +151,7 @@ class AccountSecurityDetails extends AsyncView {
           isEnrolled={authenticator.isEnrolled}
           codes={authenticator.codes}
         />
-      </div>
+      </React.Fragment>
     );
   }
 }
