@@ -369,7 +369,3 @@ const PeriodSelectControl = styled(SelectControl)`
   text-transform: none;
   border: 0;
 `;
-
-// const ChartWrapper = styled('div')`
-//   padding: 0 ${space(1.5)};
-// `;
