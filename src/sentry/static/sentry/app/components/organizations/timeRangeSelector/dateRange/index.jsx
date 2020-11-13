@@ -313,11 +313,11 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.gray500};
+    border-right-color: ${p => p.theme.textColor};
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.gray500};
+    border-left-color: ${p => p.theme.textColor};
   }
 `;
 

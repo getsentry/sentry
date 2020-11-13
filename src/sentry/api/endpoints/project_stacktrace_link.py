@@ -5,16 +5,17 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
+from sentry.web.decorators import transaction_start
 
 
-def get_link(config, filepath, version):
+def get_link(config, filepath, default, version=None):
     oi = config.organization_integration
     integration = oi.integration
     install = integration.get_installation(oi.organization_id)
 
-    formatted_path = filepath.replace(config.stack_root, config.source_root)
+    formatted_path = filepath.replace(config.stack_root, config.source_root, 1)
 
-    return install.get_stacktrace_link(config.repository, formatted_path, version)
+    return install.get_stacktrace_link(config.repository, formatted_path, default, version)
 
 
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
@@ -29,6 +30,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
     """
 
+    @transaction_start("ProjectStacktraceLinkEndpoint")
     def get(self, request, project):
         # should probably feature gate
         filepath = request.GET.get("file")
@@ -47,9 +49,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             if not filepath.startswith(config.stack_root):
                 continue
 
-            version = commitId or config.default_branch
-
-            link = get_link(config, filepath, version)
+            link = get_link(config, filepath, config.default_branch, commitId)
 
             result["config"] = serialize(config, request.user)
             # it's possible for the link to be None, and in that

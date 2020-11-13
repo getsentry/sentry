@@ -209,7 +209,7 @@ const HeaderRow = styled('div')`
 `;
 
 const StyledProjectCard = styled('div')`
-  background-color: white;
+  background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
@@ -239,7 +239,7 @@ const SummaryLinks = styled('div')`
   a {
     color: ${p => p.theme.formText};
     :hover {
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.subText};
     }
   }
   em {

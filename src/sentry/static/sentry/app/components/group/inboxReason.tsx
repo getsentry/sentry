@@ -1,12 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {IconSound, IconSwitch, IconSync, IconWarning} from 'app/icons';
-import space from 'app/styles/space';
-import {Group} from 'app/types';
-import Tooltip from 'app/components/tooltip';
+import {InboxDetails} from 'app/types';
+import Tag from 'app/components/tag';
+import DateTime from 'app/components/dateTime';
 
 const GroupInboxReason = {
   NEW: 0,
@@ -16,88 +16,61 @@ const GroupInboxReason = {
 };
 
 type Props = {
-  data: Group;
+  inbox: InboxDetails;
 };
 
-const InboxReason = ({data}: Props) => {
-  const {reason, reason_details} = data.inbox || {};
+const InboxReason = ({inbox}: Props) => {
+  const {reason, reason_details, date_added: dateAdded} = inbox;
 
   let reasonIcon: React.ReactNode;
   let reasonBadgeText: string;
-  let tooltipText: string;
-
-  const tooltipWindowCount = t('%(count)s events within %(window)s occured', {
-    count: reason_details?.count || 0,
-    window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
-  });
+  let tooltipText: string | undefined;
 
   if (reason === GroupInboxReason.UNIGNORED) {
-    reasonIcon = <IconSound size="11px" color="purple300" />;
+    reasonIcon = <IconSound />;
     reasonBadgeText = t('Unignored');
-    tooltipText = 'This issue was unignored';
+    tooltipText = t('%(count)s events within %(window)s', {
+      count: reason_details?.count || 0,
+      window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
+    });
   } else if (reason === GroupInboxReason.REGRESSION) {
-    reasonIcon = <IconSync size="11px" color="purple300" />;
+    reasonIcon = <IconSync />;
     reasonBadgeText = t('Regression');
-    tooltipText = 'This issue was a regression';
+    tooltipText = t('Issue was previously resolved.');
   } else if (reason === GroupInboxReason.MANUAL) {
-    reasonIcon = <IconSwitch size="11px" color="purple300" />;
+    reasonIcon = <IconSwitch />;
     reasonBadgeText = t('Manual');
-    tooltipText = 'This issue was moved manually';
+    // TODO(scttcper): Add tooltip text for a manual move
+    // Moved to inbox by {full_name}.
   } else {
-    reasonIcon = <IconWarning size="11px" color="purple300" />;
+    reasonIcon = <IconWarning />;
     reasonBadgeText = t('New Issue');
-    tooltipText = 'This is a new issue';
   }
 
+  const tooltip = (
+    <TooltipWrapper>
+      {tooltipText && <div>{tooltipText}</div>}
+      {dateAdded && (
+        <DateWrapper>
+          <DateTime date={dateAdded} />
+        </DateWrapper>
+      )}
+    </TooltipWrapper>
+  );
+
   return (
-    <Container>
-      <Tooltip
-        title={
-          <TooltipTitle>
-            {tooltipText}
-            <br />
-            {tooltipWindowCount}
-          </TooltipTitle>
-        }
-      >
-        <Wrapper>
-          {reasonIcon}
-          <div>{reasonBadgeText}</div>
-        </Wrapper>
-      </Tooltip>
-    </Container>
+    <Tag icon={reasonIcon} tooltipText={tooltip}>
+      {reasonBadgeText}
+    </Tag>
   );
 };
 
-const Container = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(0.25)} ${space(0.75)};
-
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  text-align: center;
-  border-radius: 17px;
-
-  > * :not(:last-child) {
-    margin-right: ${space(0.5)};
-  }
-`;
-
-const TooltipTitle = styled('div')`
-  text-align: left;
-
-  > * :last-child {
-    font-weight: 400;
-  }
-`;
-
 export default InboxReason;
+
+const DateWrapper = styled('div')`
+  color: ${p => p.theme.gray200};
+`;
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
+`;

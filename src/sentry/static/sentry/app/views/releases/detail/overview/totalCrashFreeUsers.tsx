@@ -72,7 +72,7 @@ const TotalCrashFreeUsers = ({crashFreeTimeBreakdown}: Props) => {
 
 const Timeline = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   line-height: 1;
 `;
 

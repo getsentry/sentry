@@ -76,9 +76,12 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_default_config_fields(self):
         return ["project", "issueType"]
 
-    def get_create_issue_config(self, group, **kwargs):
+    def get_persisted_user_default_config_fields(self):
+        return ["assignedTo", "reportedBy"]
+
+    def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "example_integration"
-        fields = super(ExampleIntegration, self).get_create_issue_config(group, **kwargs)
+        fields = super(ExampleIntegration, self).get_create_issue_config(group, user, **kwargs)
         default = self.get_project_defaults(group.project_id)
         example_project_field = self.generate_example_project_field(default)
         return fields + [example_project_field]
@@ -140,7 +143,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_display_name(self, external_issue):
         return "display name: %s" % external_issue.key
 
-    def get_stacktrace_link(self, repo, path, version):
+    def get_stacktrace_link(self, repo, path, default, version):
         pass
 
 

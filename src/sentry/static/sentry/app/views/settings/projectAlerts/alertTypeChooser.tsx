@@ -165,7 +165,7 @@ const ExampleHeading = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(2)};
 `;
 
