@@ -231,7 +231,6 @@ function ChangedTransactions(props: Props) {
 
   return (
     <TrendsDiscoverQuery
-      route="events-trends-stats"
       eventView={trendView}
       orgSlug={organization.slug}
       location={location}

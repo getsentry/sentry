@@ -21,6 +21,7 @@ import {restoreRelease} from 'app/actionCreators/release';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
 import {decodeScalar} from 'app/utils/queryString';
 
 import ReleaseChart from './chart/';
@@ -176,7 +177,6 @@ class ReleaseOverview extends AsyncView<Props> {
                     )}
                     <TransactionsList
                       api={api}
-                      trends
                       location={location}
                       organization={organization}
                       eventView={releaseEventView}
@@ -258,6 +258,7 @@ function generateTransactionLinkFn(version: string, projectId: number) {
       transaction: transaction! as string,
       query: {query: `release:${version}`},
       projectID: projectId.toString(),
+      display: DisplayModes.TREND,
     });
   };
 }
@@ -283,6 +284,20 @@ function getDropdownOptions(): DropdownOption[] {
       sort: {kind: 'desc', field: 'p50'},
       value: 'p50',
       label: t('Slow Transactions'),
+    },
+    {
+      sort: {kind: 'desc', field: 'trend_percentage()'},
+      query: 'trend_percentage():>0% t_test():<-6',
+      trendType: 'regression',
+      value: 'regression',
+      label: t('Trending Regressions'),
+    },
+    {
+      sort: {kind: 'desc', field: 'trend_percentage()'},
+      query: 'trend_percentage():>0% t_test():>6',
+      trendType: 'improvement',
+      value: 'improvement',
+      label: t('Trending Improvement'),
     },
   ];
 }

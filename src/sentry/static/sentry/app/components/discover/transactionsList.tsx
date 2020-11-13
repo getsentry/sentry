@@ -16,12 +16,8 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import TrendsDiscoverQuery from 'app/views/performance/trends/trendsDiscoverQuery';
-import {
-  TrendChangeType,
-  TrendView,
-  TrendsDataEvents,
-} from 'app/views/performance/trends/types';
+import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
+import {TrendView, TrendsDataEvents} from 'app/views/performance/trends/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {Sort, getAggregateAlias} from 'app/utils/discover/fields';
@@ -35,6 +31,8 @@ const DEFAULT_TRANSACTION_LIMIT = 5;
 
 export type DropdownOption = {
   sort: Sort;
+  trendType?: string;
+  query?: string;
   value: string;
   label: string;
 };
@@ -51,7 +49,6 @@ type Props = {
   handleDropdownChange: any;
   cursorName: string;
   limit: number;
-  trends: boolean;
   titles?: string[];
   dataTestId?: string;
   generateFirstLink?: (
@@ -169,23 +166,24 @@ class TransactionsList extends React.Component<Props> {
     const {
       eventView,
       location,
+      selected,
       organization,
       cursorName,
       dataTestId,
       generateFirstLink,
     } = this.props;
     eventView.fields = [{field: 'transaction'}];
-    const trendView = eventView.withSorts(['trend_percentage']) as TrendView;
-    trendView.trendType = 'regression';
+    const trendView = eventView as TrendView;
+    trendView.sorts = [selected.sort];
+    trendView.trendType = selected.trendType;
+    trendView.query = selected.query || '';
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     return (
-      <TrendsDiscoverQuery
-        route="events-trends"
+      <TrendsEventsDiscoverQuery
         eventView={trendView}
         orgSlug={organization.slug}
         location={location}
-        trendChangeType={TrendChangeType.REGRESSION}
         cursor={cursor}
         limit={5}
       >
@@ -213,16 +211,16 @@ class TransactionsList extends React.Component<Props> {
             />
           </React.Fragment>
         )}
-      </TrendsDiscoverQuery>
+      </TrendsEventsDiscoverQuery>
     );
   }
 
   render() {
-    const {trends} = this.props;
+    const {selected} = this.props;
     return (
       <React.Fragment>
         {this.renderHeader()}
-        {trends ? this.renderTrendsTable() : this.renderTransactionTable()}
+        {selected.trendType ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
   }
