@@ -76,7 +76,35 @@ class JiraCreateTicketAction(TicketEventAction):
             self.update_form_fields_from_jira_fields(fields)
 
     def render_label(self):
-        return self.label.format(name=self.get_integration_name())
+        """
+        Get the rule as a string. Use human-readable values when available and
+        construct the the label by parts because there are so many optional
+        fields.
+
+        :return: String
+        """
+        labels = ["Create a Jira ticket in the {} account".format(self.get_integration_name())]
+
+        if self.data.get("jira_project"):
+            labels.append("and {jira_project} project")
+        if self.data.get("issue_type"):
+            labels.append("of type {issue_type}")
+        if self.data.get("components"):
+            labels.append("with components {components}")
+        if self.data.get("duedate"):
+            labels.append("and due date {duedate}")
+        if self.data.get("fixVersions"):
+            labels.append("with fixVersions {fixVersions}")
+        if self.data.get("assignee"):
+            labels.append("assigned to {assignee}")
+        if self.data.get("reporter"):
+            labels.append("reported by {reporter}")
+        if self.data.get("labels"):
+            labels.append("with the labels {labels}")
+        if self.data.get("priority"):
+            labels.append("priority {priority}")
+
+        return " ".join(labels).format(**self.data)
 
     def update_form_fields_from_jira_fields(self, fields_list):
         """
