@@ -82,10 +82,6 @@ class IntegrationEventAction(EventAction):
     def get_form_instance(self):
         return self.form_cls(self.data, integrations=self.get_integrations())
 
-    def get_linked_issue(self):
-        # check if the issue exists already or not
-        pass
-
 
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
