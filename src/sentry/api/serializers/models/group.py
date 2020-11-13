@@ -98,9 +98,10 @@ class GroupSerializerBase(Serializer):
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
-        for item in seen_stats.values():
-            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                last_seen = item["last_seen"]
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
 
         if last_seen is None:
             return datetime.now(pytz.utc) - timedelta(days=30)
