@@ -156,8 +156,8 @@ const Layout = styled('div')`
   width: 100%;
   align-items: center;
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'package-name version created commits a new-issues';
-    grid-template-columns: 2fr 2fr 1.5fr 2.5fr 0fr 1fr;
+    grid-template-areas: 'package-name version created a b new-issues';
+    grid-template-columns: 2fr 2fr 4fr 0fr 0fr 1fr;
   }
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-areas: 'package-name version created a new-issues';
@@ -199,7 +199,7 @@ const PackageNameColumn = styled(Column)`
 
 const CommitsColumn = styled(Column)`
   grid-area: commits;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
     display: none;
   }
 `;
@@ -235,7 +235,7 @@ const StyledDeployBadge = styled(DeployBadge)`
   margin-right: ${space(1)};
   vertical-align: initial;
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
 `;
