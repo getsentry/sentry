@@ -27,7 +27,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.common_timezones:
+    for tz in pytz.all_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, "(UTC%s) %s" % (offset, tz)))
