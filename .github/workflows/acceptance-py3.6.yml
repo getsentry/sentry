@@ -92,6 +92,9 @@ jobs:
 
       - name: webpack
         if: steps.changes.outputs.backend == 'true'
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn webpack --display errors-only
 

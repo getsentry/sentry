@@ -8,24 +8,24 @@ const {
   NODE_ENV,
   SENTRY_INSTRUMENTATION,
   SENTRY_WEBPACK_WEBHOOK_SECRET,
-  TRAVIS_COMMIT,
-  TRAVIS_BRANCH,
-  TRAVIS_PULL_REQUEST,
-  TRAVIS_PULL_REQUEST_BRANCH,
+  GITHUB_SHA,
+  GITHUB_REF,
+  CI,
 } = process.env;
-const IS_CI = !!TRAVIS_COMMIT;
+const IS_CI = !!CI;
 
 const PLUGIN_NAME = 'SentryInstrumentation';
 const GB_BYTE = 1073741824;
 
-const createSignature = function(secret, payload) {
+const createSignature = function (secret, payload) {
   const hmac = crypto.createHmac('sha1', secret);
   return `sha1=${hmac.update(payload).digest('hex')}`;
 };
 
 class SentryInstrumentation {
   constructor() {
-    // Only run if SENTRY_INSTRUMENTATION` is set or when in travis, only in the javascript suite that runs webpack
+    // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
+    // only in the javascript suite that runs webpack
     if (!SENTRY_INSTRUMENTATION) {
       return;
     }
@@ -41,8 +41,7 @@ class SentryInstrumentation {
     });
 
     if (IS_CI) {
-      this.Sentry.setTag('branch', TRAVIS_PULL_REQUEST_BRANCH || TRAVIS_BRANCH);
-      this.Sentry.setTag('pull_request', TRAVIS_PULL_REQUEST);
+      this.Sentry.setTag('branch', GITHUB_REF);
     }
 
     const cpus = os.cpus();
@@ -74,8 +73,7 @@ class SentryInstrumentation {
               file,
               entrypointName,
               size,
-              commit: TRAVIS_COMMIT,
-              pull_request_number: TRAVIS_PULL_REQUEST,
+              commit: GITHUB_SHA,
               environment: IS_CI ? 'ci' : '',
               node_env: NODE_ENV,
             });
@@ -118,9 +116,9 @@ class SentryInstrumentation {
       data: {
         os: `${os.platform()} ${os.arch()} v${os.release()}`,
         memory: os.freemem()
-          ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${(os.freemem() /
-              os.totalmem()) *
-              100}% free)`
+          ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${
+              (os.freemem() / os.totalmem()) * 100
+            }% free)`
           : 'N/A',
         loadavg: os.loadavg(),
       },
