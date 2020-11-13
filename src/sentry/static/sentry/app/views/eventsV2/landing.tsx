@@ -273,7 +273,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             isActive={renderPrebuilt}
             isDisabled={renderPrebuilt && savedQueries.length === 0}
             size="lg"
-            toggle={() => this.togglePrebuilt()}
+            toggle={this.togglePrebuilt}
           />
         </PrebuiltSwitch>
         <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
@@ -295,8 +295,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   togglePrebuilt = () => {
     const {renderPrebuilt} = this.state;
 
-    setRenderPrebuilt(!renderPrebuilt);
-    this.setState({renderPrebuilt: !renderPrebuilt});
+    this.setState({renderPrebuilt: !renderPrebuilt}, function () {
+      setRenderPrebuilt(!renderPrebuilt);
+    });
     this.fetchData();
   };
 
