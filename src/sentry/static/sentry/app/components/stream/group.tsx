@@ -63,6 +63,8 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  /** >=1 group is in the inbox and should display the reason or a placeholder */
+  hasInboxReason?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -82,6 +84,7 @@ class StreamGroup extends React.Component<Props, State> {
     selection: SentryTypes.GlobalSelection.isRequired,
     organization: SentryTypes.Organization.isRequired,
     useFilteredStats: PropTypes.bool,
+    hasInboxReason: PropTypes.bool,
   };
 
   static defaultProps = defaultProps;
@@ -229,9 +232,9 @@ class StreamGroup extends React.Component<Props, State> {
       statsPeriod,
       selection,
       organization,
+      hasInboxReason,
     } = this.props;
 
-    const queryObj = queryToObj(query);
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
@@ -247,9 +250,7 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod
     );
 
-    const orgFeatures = new Set(organization.features);
-    const hasInbox = orgFeatures.has('inbox');
-    const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
+    const hasInbox = organization.features.includes('inbox');
 
     return (
       <Wrapper data-test-id="group" onClick={this.toggleSelect}>
@@ -394,10 +395,10 @@ class StreamGroup extends React.Component<Props, State> {
         </Box>
         {hasInbox && (
           <React.Fragment>
-            {inboxTabActive && (
+            {hasInboxReason && (
               <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
                 <BadgeWrapper>
-                  <InboxReason data={data} />
+                  {data.inbox ? <InboxReason inbox={data.inbox} /> : <div />}
                 </BadgeWrapper>
               </ReasonBox>
             )}

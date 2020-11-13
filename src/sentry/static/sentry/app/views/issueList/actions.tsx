@@ -24,7 +24,6 @@ import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import Feature from 'app/components/acl/feature';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {queryToObj} from 'app/utils/stream';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -157,6 +156,7 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
+  issuesLoading: boolean;
 };
 
 type State = {
@@ -408,6 +408,8 @@ class IssueListActions extends React.Component<Props, State> {
       selection,
       statsPeriod,
       organization,
+      groupIds,
+      issuesLoading,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -420,12 +422,12 @@ class IssueListActions extends React.Component<Props, State> {
     } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
     const label = getLabel(numIssues, allInQuerySelected);
-    const queryObj = queryToObj(query);
 
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
-    const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
+    const hasInboxReason =
+      issuesLoading || groupIds.some(id => !!GroupStore.get(id)?.inbox);
 
     return (
       <Sticky>
@@ -643,10 +645,8 @@ class IssueListActions extends React.Component<Props, State> {
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
           <Feature organization={organization} features={['organizations:inbox']}>
-            {inboxTabActive && (
-              <ReasonSpacerLabel className="align-right hidden-xs hidden-sm" />
-            )}
-            <TimesSpacerLabel className="align-right hidden-xs hidden-sm" />
+            {hasInboxReason && <ReasonSpacerLabel className="hidden-xs hidden-sm" />}
+            <TimesSpacerLabel className="hidden-xs hidden-sm" />
           </Feature>
         </StyledFlex>
 
