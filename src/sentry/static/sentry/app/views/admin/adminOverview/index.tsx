@@ -13,21 +13,23 @@ const AdminOverview = () => {
 
   return (
     <DocumentTitle title="Admin Overview - Sentry">
-      <h3>{t('System Overview')}</h3>
+      <React.Fragment>
+        <h3>{t('System Overview')}</h3>
 
-      <Panel key="events">
-        <PanelHeader>{t('Event Throughput')}</PanelHeader>
-        <PanelBody withPadding>
-          <EventChart since={since} resolution={resolution} />
-        </PanelBody>
-      </Panel>
+        <Panel key="events">
+          <PanelHeader>{t('Event Throughput')}</PanelHeader>
+          <PanelBody withPadding>
+            <EventChart since={since} resolution={resolution} />
+          </PanelBody>
+        </Panel>
 
-      <Panel key="api">
-        <PanelHeader>{t('API Responses')}</PanelHeader>
-        <PanelBody withPadding>
-          <ApiChart since={since} resolution={resolution} />
-        </PanelBody>
-      </Panel>
+        <Panel key="api">
+          <PanelHeader>{t('API Responses')}</PanelHeader>
+          <PanelBody withPadding>
+            <ApiChart since={since} resolution={resolution} />
+          </PanelBody>
+        </Panel>
+      </React.Fragment>
     </DocumentTitle>
   );
 };
