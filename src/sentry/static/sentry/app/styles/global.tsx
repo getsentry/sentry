@@ -67,7 +67,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-tabs > li > a:hover,
         .nav-tabs > li > a:active,
         .nav-tabs > li > a:focus {
-          border-bottom-color: ${theme.active} !important;
+          border-bottom-color: ${theme.purple300} !important; /* TODO(dark): active */
           color: ${theme.textColor} !important;
         }
         ul.crumbs li .table.key-value pre {
