@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from django import forms
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.integrations.jira.utils import transform_jira_fields_to_form_fields
 from sentry.models import ExternalIssue
@@ -114,6 +115,17 @@ class JiraCreateTicketAction(TicketEventAction):
                 else:
                     return transform_jira_fields_to_form_fields(fields)
         return None
+
+    def clean(self):
+        cleaned_data = super(JiraCreateTicketAction, self).clean()
+
+        jira_integration = cleaned_data.get("jira_integration")
+        try:
+            Integration.objects.get(id=jira_integration)
+        except Integration.DoesNotExist:
+            raise forms.ValidationError(
+                _("Jira integration is a required field.",), code="invalid",
+            )
 
     def generate_footer(self, rule_url):
         return u"This ticket was automatically created by Sentry via [{}|{}]".format(
