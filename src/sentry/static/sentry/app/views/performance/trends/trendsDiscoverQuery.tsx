@@ -25,6 +25,7 @@ type ChildrenProps = Omit<GenericChildrenProps<TrendsData>, 'tableData'> & {
 };
 
 type Props = RequestProps & {
+  route: string;
   setError?: (msg: string | undefined) => void;
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -42,7 +43,6 @@ function getTrendsRequestPayload(props: RequestProps) {
 function TrendsDiscoverQuery(props: Props) {
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
-      route="events-trends-stats"
       getRequestPayload={getTrendsRequestPayload}
       {...props}
     >

@@ -16,6 +16,13 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import TrendsDiscoverQuery from 'app/views/performance/trends/trendsDiscoverQuery';
+import {
+  TrendChangeType,
+  TrendView,
+  TrendsDataEvents,
+} from 'app/views/performance/trends/types';
+import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {Sort, getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -44,6 +51,7 @@ type Props = {
   handleDropdownChange: any;
   cursorName: string;
   limit: number;
+  trends: boolean;
   titles?: string[];
   dataTestId?: string;
   generateFirstLink?: (
@@ -109,7 +117,7 @@ class TransactionsList extends React.Component<Props> {
     );
   }
 
-  renderTable(): React.ReactNode {
+  renderTransactionTable(): React.ReactNode {
     const {
       eventView,
       location,
@@ -122,6 +130,7 @@ class TransactionsList extends React.Component<Props> {
       generateFirstLink,
     } = this.props;
     const sortedEventView = eventView.withSorts([selected.sort]);
+    const columnOrder = sortedEventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     return (
@@ -140,6 +149,7 @@ class TransactionsList extends React.Component<Props> {
               location={location}
               isLoading={isLoading}
               tableData={tableData}
+              columnOrder={columnOrder}
               titles={titles}
               dataTestId={dataTestId}
               generateFirstLink={generateFirstLink}
@@ -155,11 +165,64 @@ class TransactionsList extends React.Component<Props> {
     );
   }
 
+  renderTrendsTable(): React.ReactNode {
+    const {
+      eventView,
+      location,
+      organization,
+      cursorName,
+      dataTestId,
+      generateFirstLink,
+    } = this.props;
+    eventView.fields = [{field: 'transaction'}];
+    const trendView = eventView.withSorts(['trend_percentage']) as TrendView;
+    trendView.trendType = 'regression';
+    const cursor = decodeScalar(location.query?.[cursorName]);
+
+    return (
+      <TrendsDiscoverQuery
+        route="events-trends"
+        eventView={trendView}
+        orgSlug={organization.slug}
+        location={location}
+        trendChangeType={TrendChangeType.REGRESSION}
+        cursor={cursor}
+        limit={5}
+      >
+        {({isLoading, trendsData, pageLinks}) => (
+          <React.Fragment>
+            <TransactionsTable
+              eventView={eventView}
+              organization={organization}
+              location={location}
+              isLoading={isLoading}
+              tableData={trendsData}
+              titles={['transaction', 'percentage', 'difference']}
+              columnOrder={decodeColumnOrder([
+                {field: 'transaction'},
+                {field: 'trend_percentage()'},
+                {field: 'trend_difference()'},
+              ])}
+              dataTestId={dataTestId}
+              generateFirstLink={generateFirstLink}
+            />
+            <StyledPagination
+              pageLinks={pageLinks}
+              onCursor={this.handleCursor}
+              size="small"
+            />
+          </React.Fragment>
+        )}
+      </TrendsDiscoverQuery>
+    );
+  }
+
   render() {
+    const {trends} = this.props;
     return (
       <React.Fragment>
         {this.renderHeader()}
-        {this.renderTable()}
+        {trends ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
   }
@@ -170,7 +233,8 @@ type TableProps = {
   organization: Organization;
   location: Location;
   isLoading: boolean;
-  tableData: TableData | null | undefined;
+  tableData: TableData | TrendsDataEvents | null | undefined;
+  columnOrder: TableColumn<React.ReactText>[];
   titles?: string[];
   dataTestId?: string;
   generateFirstLink?: (
@@ -182,10 +246,9 @@ type TableProps = {
 
 class TransactionsTable extends React.PureComponent<TableProps> {
   renderHeader() {
-    const {eventView, tableData, titles} = this.props;
+    const {eventView, tableData, titles, columnOrder} = this.props;
 
     const tableMeta = tableData?.meta;
-    const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
     const tableTitles = titles ?? eventView.getFields().map(field => t(field));
 
@@ -256,7 +319,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
   }
 
   renderResults() {
-    const {isLoading, tableData} = this.props;
+    const {isLoading, tableData, columnOrder} = this.props;
     let cells: React.ReactNode[] = [];
 
     if (isLoading) {
@@ -265,8 +328,6 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     if (!tableData || !tableData.meta || !tableData.data) {
       return cells;
     }
-
-    const columnOrder = this.props.eventView.getColumns();
 
     tableData.data.forEach((row, i: number) => {
       // Another check to appease tsc

@@ -176,6 +176,7 @@ class ReleaseOverview extends AsyncView<Props> {
                     )}
                     <TransactionsList
                       api={api}
+                      trends
                       location={location}
                       organization={organization}
                       eventView={releaseEventView}
