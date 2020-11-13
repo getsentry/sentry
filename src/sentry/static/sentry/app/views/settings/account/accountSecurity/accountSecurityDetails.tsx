@@ -64,16 +64,16 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
     return [['authenticator', `${ENDPOINT}${authId}/`]];
   }
 
-  handleRemove = async (device: Authenticator['devices'][0]) => {
+  handleRemove = async (device?: Authenticator['devices'][0]) => {
     const {authenticator} = this.state;
 
     if (!authenticator || !authenticator.authId) {
       return;
     }
 
-    const isRemovingU2fDevice = !!device;
-    const deviceId = isRemovingU2fDevice ? `${device.key_handle}/` : '';
-    const deviceName = isRemovingU2fDevice ? device.name : 'Authenticator';
+    // if the device is defined, it means that U2f is being removed
+    const deviceId = device ? `${device.key_handle}/` : '';
+    const deviceName = device ? device.name : 'Authenticator';
 
     this.setState({loading: true});
 

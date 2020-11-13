@@ -611,6 +611,7 @@ type Device = {
   authId: string;
   name: string;
 };
+
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -665,7 +666,7 @@ export type Authenticator = {
 
   codes: string[];
 
-  devices: Array<Device>;
+  devices: Device[];
 
   phone?: string;
 
