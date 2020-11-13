@@ -95,9 +95,6 @@ def js_lint(file_list=None, parseable=False, format=False):
     # We require eslint in path but we actually call an eslint wrapper
     eslint_path = get_node_modules_bin("eslint")
 
-    # Note, in CI, we run a relaxed version of our eslint rules (.eslint.relax.js)
-    eslint_wrapper_path = get_sentry_bin("eslint-travis-wrapper")
-
     if not os.path.exists(eslint_path):
         sys.stdout.write("!! Skipping JavaScript linting because eslint is not installed.\n")
         return False
@@ -106,10 +103,7 @@ def js_lint(file_list=None, parseable=False, format=False):
 
     has_errors = False
     if js_file_list:
-        if os.environ.get("CI"):
-            cmd = [eslint_wrapper_path, "--ext", ".js,.jsx,.ts,.tsx"]
-        else:
-            cmd = [eslint_path, "--ext", ".js,.jsx,.ts,.tsx"]
+        cmd = [eslint_path, "--ext", ".js,.jsx,.ts,.tsx"]
 
         if format:
             cmd.append("--fix")
