@@ -70,8 +70,8 @@ class JiraCreateTicketAction(TicketEventAction):
 
         labels = ["Create a Jira ticket in the {jira_integration} account"]
 
-        if data.get("jira_project"):
-            labels.append("and {jira_project} project")
+        if data.get("project"):
+            labels.append("and {project} project")
         if data.get("issuetype"):
             labels.append("of type {issuetype}")
         if data.get("components"):

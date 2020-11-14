@@ -85,10 +85,12 @@ class JiraCreateTicketActionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "jira_integration": self.integration.id,
-                "issuetype": "1",
-                "issue_type": "Bug",
-                "jira_project": "Example",
-                "project": "10000",
+                "issuetype": 1,
+                "project": 10000,
+                "dynamic_form_fields": {
+                    "issuetype": {"type": "choice", "choices": [(1, "Bug")]},
+                    "project": {"type": "choice", "choices": [(10000, "Example")]},
+                },
             }
         )
 

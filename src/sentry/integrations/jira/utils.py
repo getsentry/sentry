@@ -41,3 +41,12 @@ def transform_jira_fields_to_form_fields(fields_list):
         for field in fields_list
         if field["name"]
     }
+
+
+def transform_jira_choices_to_strings(fields, data):
+    return {
+        key: ({k: v for k, v in fields[key]["choices"]}.get(value, value))
+        if key in fields and fields[key]["type"] == "choice"
+        else value
+        for key, value in data.items()
+    }
