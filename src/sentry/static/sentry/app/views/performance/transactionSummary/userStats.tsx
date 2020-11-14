@@ -122,7 +122,7 @@ const UserMiseryContainer = styled('div')`
 
 const StatNumber = styled('div')`
   font-size: 32px;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 
   > div {
     text-align: left;

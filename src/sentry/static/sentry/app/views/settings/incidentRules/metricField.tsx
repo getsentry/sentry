@@ -133,10 +133,10 @@ const PresetButton = styled(Button)<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      color: ${p.theme.gray500};
+      color: ${p.theme.textColor};
       &:hover,
       &:focus {
-        color: ${p.theme.gray500};
+        color: ${p.theme.textColor};
       }
     `}
 `;

@@ -31,7 +31,7 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import Times from 'app/components/group/timesBadge';
+import TimesBadge from 'app/components/group/timesBadge';
 import InboxReason from 'app/components/group/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
@@ -63,6 +63,8 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  /** >=1 group is in the inbox and should display the reason or a placeholder */
+  hasInboxReason?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -82,6 +84,7 @@ class StreamGroup extends React.Component<Props, State> {
     selection: SentryTypes.GlobalSelection.isRequired,
     organization: SentryTypes.Organization.isRequired,
     useFilteredStats: PropTypes.bool,
+    hasInboxReason: PropTypes.bool,
   };
 
   static defaultProps = defaultProps;
@@ -229,9 +232,9 @@ class StreamGroup extends React.Component<Props, State> {
       statsPeriod,
       selection,
       organization,
+      hasInboxReason,
     } = this.props;
 
-    const queryObj = queryToObj(query);
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
@@ -247,9 +250,7 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod
     );
 
-    const orgFeatures = new Set(organization.features);
-    const hasInbox = orgFeatures.has('inbox');
-    const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
+    const hasInbox = organization.features.includes('inbox');
 
     return (
       <Wrapper data-test-id="group" onClick={this.toggleSelect}>
@@ -394,17 +395,21 @@ class StreamGroup extends React.Component<Props, State> {
         </Box>
         {hasInbox && (
           <React.Fragment>
-            {inboxTabActive && (
-              <Box width={80} mx={2} className="hidden-xs hidden-sm">
-                <InboxReason data={data} />
-              </Box>
+            {hasInboxReason && (
+              <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
+                <BadgeWrapper>
+                  {data.inbox ? <InboxReason inbox={data.inbox} /> : <div />}
+                </BadgeWrapper>
+              </ReasonBox>
             )}
-            <Box width={150} mx={2} className="hidden-xs hidden-sm">
-              <StyledTimes
-                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-              />
-            </Box>
+            <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
+              <BadgeWrapper>
+                <TimesBadge
+                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+                />
+              </BadgeWrapper>
+            </TimesBox>
           </React.Fragment>
         )}
       </Wrapper>
@@ -420,6 +425,14 @@ const Wrapper = styled(PanelItem)`
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
+`;
+
+const ReasonBox = styled(Box)`
+  margin: 0 ${space(0.25)} 0 ${space(1)};
+`;
+
+const TimesBox = styled(Box)`
+  margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 
 const GroupCheckbox = styled(Box)`
@@ -486,8 +499,9 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const StyledTimes = styled(Times)`
-  margin-right: 0;
+const BadgeWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

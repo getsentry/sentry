@@ -30,7 +30,7 @@ export const Header = styled('div')`
 export const HeaderTitle = styled('h4')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export const HeaderButtonContainer = styled('div')`
@@ -118,7 +118,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   border-right: 1px solid transparent;
   border-left: 1px solid transparent;
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -194,7 +194,7 @@ export const GridBodyCell = styled('td')`
   min-height: ${GRID_BODY_ROW_HEIGHT}px;
   padding: ${space(1)} ${space(2)};
 
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.innerBorder};
 
   font-size: ${p => p.theme.fontSizeMedium};
@@ -225,7 +225,7 @@ const GridStatusFloat = styled('div')`
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
 
   z-index: ${Z_INDEX_GRID_STATUS};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
 `;
 export const GridBodyCellStatus = props => (
   <GridStatusWrapper>

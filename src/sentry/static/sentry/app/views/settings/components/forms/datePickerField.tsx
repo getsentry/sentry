@@ -88,7 +88,7 @@ const StyledInput = styled('input')`
 
 const CalendarMenu = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   position: absolute;
   left: 0;
   border: 1px solid ${p => p.theme.border};

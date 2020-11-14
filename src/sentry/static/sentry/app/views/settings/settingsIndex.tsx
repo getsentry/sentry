@@ -268,7 +268,7 @@ export {SettingsIndex};
 export default withLatestContext(SettingsIndex);
 
 const HomePanelHeader = styled(PanelHeader)`
-  background: #fff;
+  background: ${p => p.theme.background};
   flex-direction: column;
   text-align: center;
   justify-content: center;

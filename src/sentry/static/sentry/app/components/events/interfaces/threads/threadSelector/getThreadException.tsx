@@ -1,5 +1,6 @@
 import {Thread} from 'app/types/events';
 import {Event, ExceptionType} from 'app/types';
+import {defined} from 'app/utils';
 
 function getThreadException(thread: Thread, event: Event): ExceptionType | undefined {
   const exceptionEntry = event.entries.find(entry => entry.type === 'exception');
@@ -15,7 +16,7 @@ function getThreadException(thread: Thread, event: Event): ExceptionType | undef
     return undefined;
   }
 
-  if (exceptionDataValues.length === 1 && !exceptionDataValues[0].threadId) {
+  if (exceptionDataValues.length === 1 && !defined(exceptionDataValues[0].threadId)) {
     return exceptionData;
   }
 

@@ -873,6 +873,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable custom dashboards (dashboards 2)
+    "organizations:dashboards-v2": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for

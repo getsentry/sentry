@@ -207,7 +207,7 @@ const CategoryTag = styled(
 `;
 
 const ResolveNowButton = styled(Button)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   float: right;
 `;
 

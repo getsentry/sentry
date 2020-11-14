@@ -255,7 +255,17 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const {query} = this.props.location.query;
-    return typeof query === 'undefined' ? DEFAULT_QUERY : (query as string);
+
+    if (query !== undefined) {
+      return query as string;
+    }
+
+    // TODO(workflow): set inbox as new default query
+    if (this.props.organization.features.includes('inbox')) {
+      return 'is:inbox';
+    }
+
+    return DEFAULT_QUERY;
   }
 
   getSort(): string {
@@ -580,6 +590,7 @@ class IssueListOverview extends React.Component<Props, State> {
   renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
     const topIssue = ids[0];
     const {memberList} = this.state;
+    const hasInboxReason = ids.some(id => !!GroupStore.get(id)?.inbox);
 
     const groupNodes = ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -597,6 +608,7 @@ class IssueListOverview extends React.Component<Props, State> {
           query={this.getQuery()}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
+          hasInboxReason={hasInboxReason}
           useFilteredStats
         />
       );
@@ -686,6 +698,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
+      issuesLoading,
     } = this.state;
     const {
       organization,
@@ -749,6 +762,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
+                    issuesLoading={issuesLoading}
                     allResultsVisible={this.allResultsVisible()}
                   />
                   <PanelBody>

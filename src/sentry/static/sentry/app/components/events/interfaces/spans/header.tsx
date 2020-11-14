@@ -487,7 +487,7 @@ const TimeAxis = styled('div')`
   bottom: 0;
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
@@ -555,7 +555,7 @@ const TickLabel = (props: {
 
 const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding: 4px;
   height: 100%;
   border-radius: 3px;
@@ -578,7 +578,7 @@ const HeaderContainer = styled('div')`
   left: 0;
   top: 0;
   z-index: ${zIndex.minimapContainer};
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
 `;
@@ -609,12 +609,12 @@ const ViewHandleContainer = styled('div')`
 const ViewHandleLine = styled('div')`
   height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
   width: 2px;
-  background-color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.textColor};
 `;
 
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.textColor};
   cursor: col-resize;
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;

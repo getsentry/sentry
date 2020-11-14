@@ -1,27 +1,23 @@
+import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
 import React from 'react';
 import echarts from 'echarts';
 
-import theme from 'app/utils/theme';
-
 import BaseChart from './baseChart';
 import MapSeries from './series/mapSeries';
 import VisualMap from './components/visualMap';
 
-export default class WorldMapChart extends React.Component {
+class WorldMapChart extends React.Component {
   static propTypes = {
     ...BaseChart.propTypes,
     seriesOptions: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      countryToCodeMap: null,
-      map: null,
-    };
-  }
+  state = {
+    countryToCodeMap: null,
+    map: null,
+  };
 
   async componentDidMount() {
     const [countryToCodeMap, worldMap] = await Promise.all([
@@ -46,7 +42,7 @@ export default class WorldMapChart extends React.Component {
       return null;
     }
 
-    const {series, seriesOptions, ...props} = this.props;
+    const {series, seriesOptions, theme, ...props} = this.props;
     const processedSeries = series.map(({seriesName, data, ...options}) =>
       MapSeries({
         ...seriesOptions,
@@ -126,3 +122,5 @@ export default class WorldMapChart extends React.Component {
     );
   }
 }
+
+export default withTheme(WorldMapChart);

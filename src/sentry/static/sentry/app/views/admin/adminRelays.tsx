@@ -1,59 +1,56 @@
-/* eslint-disable react/jsx-key */
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
-import createReactClass from 'create-react-class';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import ResultGrid from 'app/components/resultGrid';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import {Client} from 'app/api';
 
-const prettyDate = function (x) {
-  return moment(x).format('ll LTS');
+const prettyDate = (x: string) => moment(x).format('ll LTS');
+
+type Props = RouteComponentProps<{}, {}> & {api: Client};
+
+type State = {
+  loading: boolean;
 };
 
-const AdminRelays = createReactClass({
-  displayName: 'GroupEventDetails',
+type RelayRow = {
+  id: string;
+  relayId: string;
+  publicKey: string;
+  firstSeen: string;
+  lastSeen: string;
+};
 
-  propTypes: {
-    api: PropTypes.object,
-  },
+class AdminRelays extends React.Component<Props, State> {
+  state: State = {
+    loading: false,
+  };
 
-  getInitialState() {
-    return {
-      loading: false,
-    };
-  },
-
-  onDelete(key) {
-    this.setState({
-      loading: true,
-    });
+  onDelete(key: string) {
+    this.setState({loading: true});
     this.props.api.request(`/relays/${key}/`, {
       method: 'DELETE',
-      success: () => {
-        this.setState({
-          loading: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-        });
-      },
+      success: () => this.setState({loading: false}),
+      error: () => this.setState({loading: false}),
     });
-  },
+  }
 
-  getRow(row) {
+  getRow(row: RelayRow) {
     return [
-      <td>
+      <td key="id">
         <strong>{row.relayId}</strong>
       </td>,
-      <td>{row.publicKey}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.firstSeen)}</td>,
-      <td style={{textAlign: 'right'}}>{prettyDate(row.lastSeen)}</td>,
-      <td style={{textAlign: 'right'}}>
+      <td key="key">{row.publicKey}</td>,
+      <td key="firstSeen" style={{textAlign: 'right'}}>
+        {prettyDate(row.firstSeen)}
+      </td>,
+      <td key="lastSeen" style={{textAlign: 'right'}}>
+        {prettyDate(row.lastSeen)}
+      </td>,
+      <td key="tools" style={{textAlign: 'right'}}>
         <span className="editor-tools">
           <LinkWithConfirmation
             className="danger"
@@ -66,15 +63,21 @@ const AdminRelays = createReactClass({
         </span>
       </td>,
     ];
-  },
+  }
 
   render() {
     const columns = [
-      <th style={{width: 350, textAlign: 'left'}}>Relay</th>,
-      <th>Public Key</th>,
-      <th style={{width: 150, textAlign: 'right'}}>First seen</th>,
-      <th style={{width: 150, textAlign: 'right'}}>Last seen</th>,
-      <th />,
+      <th key="id" style={{width: 350, textAlign: 'left'}}>
+        Relay
+      </th>,
+      <th key="key">Public Key</th>,
+      <th key="firstSeen" style={{width: 150, textAlign: 'right'}}>
+        First seen
+      </th>,
+      <th key="lastSeen" style={{width: 150, textAlign: 'right'}}>
+        Last seen
+      </th>,
+      <th key="tools" />,
     ];
 
     return (
@@ -97,8 +100,8 @@ const AdminRelays = createReactClass({
         />
       </div>
     );
-  },
-});
+  }
+}
 
 export {AdminRelays};
 

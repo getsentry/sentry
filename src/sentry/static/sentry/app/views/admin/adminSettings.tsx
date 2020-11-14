@@ -20,13 +20,24 @@ const optionsAvailable = [
   'beacon.anonymous',
 ];
 
-export default class AdminSettings extends AsyncView {
-  getEndpoints() {
-    return [['data', this.getEndpoint()]];
+type Field = ReturnType<typeof getOption>;
+
+type FieldDef = {
+  field: Field;
+  value: string | undefined;
+};
+
+type State = AsyncView['state'] & {
+  data: Record<string, FieldDef>;
+};
+
+export default class AdminSettings extends AsyncView<{}, State> {
+  get endpoint() {
+    return '/internal/options/';
   }
 
-  getEndpoint() {
-    return '/internal/options/';
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['data', this.endpoint]];
   }
 
   renderBody() {
@@ -36,7 +47,8 @@ export default class AdminSettings extends AsyncView {
     const fields = {};
     for (const key of optionsAvailable) {
       // TODO(dcramer): we should not be mutating options
-      const option = data[key] || {field: {}};
+      const option = data[key] ?? {field: {}, value: undefined};
+
       if (isUndefined(option.value) || option.value === '') {
         const defn = getOption(key);
         initialData[key] = defn.defaultValue ? defn.defaultValue() : '';
@@ -52,8 +64,7 @@ export default class AdminSettings extends AsyncView {
 
         <ApiForm
           apiMethod="PUT"
-          apiEndpoint={this.getEndpoint()}
-          onSubmit={this.onSubmit}
+          apiEndpoint={this.endpoint}
           initialData={initialData}
           requireChanges
         >
