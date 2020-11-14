@@ -46,6 +46,7 @@ export function getTrendsRequestPayload(props: RequestProps) {
   apiPayload.trendFunction = trendFunction.field;
   apiPayload.trendType = eventView?.trendType;
   apiPayload.interval = eventView?.interval;
+  apiPayload.middle = eventView?.middle;
   return apiPayload;
 }
 

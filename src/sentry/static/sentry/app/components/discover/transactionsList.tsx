@@ -41,6 +41,7 @@ type Props = {
   api: Client;
   location: Location;
   eventView: EventView;
+  trendView: TrendView;
   organization: Organization;
   dropdownTitle: string;
   selection: GlobalSelection;
@@ -101,15 +102,17 @@ class TransactionsList extends React.Component<Props> {
             </DropdownItem>
           ))}
         </DropdownControl>
-        <HeaderButtonContainer>
-          <DiscoverButton
-            to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
-            size="small"
-            data-test-id="discover-open"
-          >
-            {t('Open in Discover')}
-          </DiscoverButton>
-        </HeaderButtonContainer>
+        {!this.isTrend() && (
+          <HeaderButtonContainer>
+            <DiscoverButton
+              to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
+              size="small"
+              data-test-id="discover-open"
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          </HeaderButtonContainer>
+        )}
       </Header>
     );
   }
@@ -164,7 +167,7 @@ class TransactionsList extends React.Component<Props> {
 
   renderTrendsTable(): React.ReactNode {
     const {
-      eventView,
+      trendView,
       location,
       selected,
       organization,
@@ -172,8 +175,6 @@ class TransactionsList extends React.Component<Props> {
       dataTestId,
       generateFirstLink,
     } = this.props;
-    eventView.fields = [{field: 'transaction'}];
-    const trendView = eventView as TrendView;
     trendView.sorts = [selected.sort];
     trendView.trendType = selected.trendType;
     trendView.query = selected.query || '';
@@ -190,7 +191,7 @@ class TransactionsList extends React.Component<Props> {
         {({isLoading, trendsData, pageLinks}) => (
           <React.Fragment>
             <TransactionsTable
-              eventView={eventView}
+              eventView={trendView}
               organization={organization}
               location={location}
               isLoading={isLoading}
@@ -215,12 +216,16 @@ class TransactionsList extends React.Component<Props> {
     );
   }
 
-  render() {
+  isTrend(): boolean {
     const {selected} = this.props;
+    return selected.trendType !== undefined;
+  }
+
+  render() {
     return (
       <React.Fragment>
         {this.renderHeader()}
-        {selected.trendType ? this.renderTrendsTable() : this.renderTransactionTable()}
+        {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
   }

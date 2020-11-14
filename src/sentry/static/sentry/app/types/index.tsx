@@ -1187,6 +1187,7 @@ export type ReleaseMeta = {
   version: string;
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
+  released: string;
 };
 
 export type VersionInfo = {
