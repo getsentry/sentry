@@ -76,7 +76,7 @@ steps:
         if [[ $test_return -ne 0 ]]; then
           echo "Test failed.";
           docker-compose ps;
-          docker-compose logs nginx web relay;
+          docker-compose logs;
           exit $test_return;
         fi
     timeout: 450s
@@ -102,7 +102,7 @@ steps:
         if [[ $test_return -ne 0 ]]; then
           echo "Test failed.";
           docker-compose ps;
-          docker-compose logs nginx web relay;
+          docker-compose logs;
           exit $test_return;
         fi
     timeout: 450s
