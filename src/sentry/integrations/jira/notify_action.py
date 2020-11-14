@@ -6,7 +6,10 @@ import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations.jira.utils import transform_jira_fields_to_form_fields
+from sentry.integrations.jira.utils import (
+    transform_jira_fields_to_form_fields,
+    transform_jira_choices_to_strings,
+)
 from sentry.models import ExternalIssue
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
@@ -56,10 +59,10 @@ class JiraCreateTicketAction(TicketEventAction):
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
+            self.label = self.get_label_form(dynamic_fields)
 
-        self.label = self.get_label_form(dynamic_fields)
-
-    def get_label_form(self, data):
+    @staticmethod
+    def get_label_form(data):
         """
         Get the rule as a string. Use human-readable values when available and
         construct the the label by parts because there are so many optional
@@ -92,15 +95,25 @@ class JiraCreateTicketAction(TicketEventAction):
         return " ".join(labels)
 
     def render_label(self):
+        # Make a copy of data.
+        kwargs = transform_jira_choices_to_strings(self.form_fields, self.data)
+
+        # Replace with "removed" if the integration was uninstalled.
+        kwargs.update({"jira_integration": self.get_integration_name()})
+
         # Only add values when they exist.
-        return self.get_label_form(self.data).format(**self.data)
+        return self.get_label_form(self.data).format(**kwargs)
 
     def get_dynamic_form_fields(self):
         """
-        Make an API call to Jira to get the dynamic fields for the selected integration.
+        Either get the dynamic form fields cached on the DB or make an API call
+        to Jira to get them for the selected integration. If both fail, return `None`.
 
         :return: Django form fields dictionary
         """
+        if "dynamic_form_fields" in self.data:
+            return self.data["dynamic_form_fields"]
+
         try:
             integration = self.get_integration()
         except Integration.DoesNotExist:
@@ -114,7 +127,10 @@ class JiraCreateTicketAction(TicketEventAction):
                     # TODO log when the API call fails.
                     logger.info(e)
                 else:
-                    return transform_jira_fields_to_form_fields(fields)
+                    dynamic_form_fields = transform_jira_fields_to_form_fields(fields)
+                    self.data["dynamic_form_fields"] = dynamic_form_fields
+                    # TODO should I wipe out the rest of the data?
+                    return dynamic_form_fields
         return None
 
     def clean(self):
