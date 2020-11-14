@@ -36,14 +36,6 @@ def _get_kafka_cluster_options(
 ):
     options = {}
     custom_options = settings.KAFKA_CLUSTERS[cluster_name].get(config_section, {})
-    # check key validity
-    for configuration_key in custom_options:
-        if configuration_key not in SUPPORTED_KAFKA_CONFIGURATION:
-            raise ValueError(
-                "The `{configuration_key}` configuration key is not supported.".format(
-                    configuration_key=configuration_key
-                )
-            )
     common_options = settings.KAFKA_CLUSTERS[cluster_name].get(COMMON_SECTION, {})
     legacy_options = _get_legacy_kafka_cluster_options(cluster_name)
     if with_legacy and legacy_options:
@@ -55,6 +47,14 @@ def _get_kafka_cluster_options(
     else:
         options.update(common_options)
         options.update(custom_options)
+        # check key validity
+        for configuration_key in options:
+            if configuration_key not in SUPPORTED_KAFKA_CONFIGURATION:
+                raise ValueError(
+                    "The `{configuration_key}` configuration key is not supported.".format(
+                        configuration_key=configuration_key
+                    )
+                )
     if not isinstance(options["bootstrap.servers"], six.string_types):
         raise ValueError("bootstrap.servers must be a comma separated string")
     if override_params:
