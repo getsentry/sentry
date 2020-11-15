@@ -22,7 +22,7 @@ export type SearchItem = {
   desc: string;
   active?: boolean;
   children?: React.ReactNode[];
-  predefined?: boolean;
+  ignoreMaxSearchItems?: boolean;
 };
 
 export type Tag = {

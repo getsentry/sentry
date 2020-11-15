@@ -73,7 +73,8 @@ export function createSearchGroups(
 
   if (maxSearchItems && maxSearchItems > 0) {
     searchItems = searchItems.filter(
-      (value: SearchItem, index: number) => index < maxSearchItems || value.predefined
+      (value: SearchItem, index: number) =>
+        index < maxSearchItems || value.ignoreMaxSearchItems
     );
   }
 

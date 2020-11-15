@@ -1755,6 +1755,11 @@ export type Tag = {
   totalValues?: number;
   predefined?: boolean;
   isInput?: boolean;
+  /**
+   * How many values should be suggested in autocomplete.
+   * Overrides SmartSearchBar's `maxSearchItems` prop.
+   */
+  maxSuggestedValues?: number;
 };
 
 export type TagCollection = {[key: string]: Tag};
