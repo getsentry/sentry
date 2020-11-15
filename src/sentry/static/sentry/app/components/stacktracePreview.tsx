@@ -29,8 +29,12 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     const {api, issueId} = this.props;
-    const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
-    this.setState({event});
+    try {
+      const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
+      this.setState({event});
+    } catch {
+      // preview will not show up
+    }
   };
 
   handleStacktracePreviewClick = (event: React.MouseEvent) => {
@@ -83,8 +87,8 @@ const StyledHovercard = styled(Hovercard)`
     padding: 0;
     max-height: 300px;
     overflow: scroll;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
   }
 
   .traceback {
