@@ -20,7 +20,9 @@ class EventOrGroupTitle extends React.Component<Props> {
     const {title, subtitle} = getTitle(data as Event, organization);
 
     const titleWithHoverStacktrace = (
-      <StacktracePreview issueId={data.id}>{title}</StacktracePreview>
+      <StacktracePreview organization={organization} issueId={data.id}>
+        {title}
+      </StacktracePreview>
     );
 
     return subtitle ? (

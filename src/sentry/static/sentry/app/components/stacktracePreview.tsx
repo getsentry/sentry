@@ -1,17 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Event} from 'app/types';
+import {Event, Organization, PlatformType} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
-import {t} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
 import Hovercard, {Body} from 'app/components/hovercard';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 
-type Props = AsyncComponent['props'] & {
+type Props = {
   issueId: string;
+  organization: Organization;
   api: Client;
 };
 
@@ -34,29 +33,42 @@ class StacktracePreview extends React.Component<Props, State> {
     this.setState({event});
   };
 
+  handleStacktracePreviewClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
+
   render() {
+    const {organization, children} = this.props;
     const {event} = this.state;
     const exception = event?.entries.find(e => e.type === 'exception')?.data;
+    const stacktrace = exception?.values[0]?.stacktrace;
+
+    if (!organization.features.includes('stacktrace-hover-preview')) {
+      return children;
+    }
 
     return (
       <span onMouseEnter={this.fetchData}>
         <StyledHovercard
           body={
-            event && exception ? (
-              <StacktraceContent
-                data={exception.values[0].stacktrace}
-                includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
-                expandFirstFrame={false}
-                platform={event.platform}
-                newestFirst={isStacktraceNewestFirst()}
-                event={event}
-              />
+            event && exception && stacktrace ? (
+              <div onClick={this.handleStacktracePreviewClick}>
+                <StacktraceContent
+                  data={stacktrace}
+                  expandFirstFrame
+                  // includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
+                  includeSystemFrames={stacktrace.frames.every(frame => !frame.inApp)}
+                  platform={(event.platform ?? 'other') as PlatformType}
+                  newestFirst={isStacktraceNewestFirst()}
+                  event={event}
+                />
+              </div>
             ) : null
           }
-          header={event ? t('Stacktrace preview') : null}
           position="left"
         >
-          {this.props.children}
+          {children}
         </StyledHovercard>
       </span>
     );
@@ -81,16 +93,8 @@ const StyledHovercard = styled(Hovercard)`
     box-shadow: none;
   }
 
-  /* remove platform flag set in less file */
-  .frame {
-    &.javascript,
-    &.objc,
-    &.cocoa {
-      &:before,
-      &:after {
-        content: none;
-      }
-    }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    display: none;
   }
 `;
 
