@@ -48,9 +48,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
-        .traceback .frame .btn-toggle {
-          background: transparent;
-        }
         .modal-content {
           background: ${theme.background};
         }
@@ -77,26 +74,33 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-tabs > li.active a:hover {
           color: ${theme.textColor};
         }
+
         .traceback {
           border-color: ${theme.border};
           background-color: ${theme.background};
-        }
-        .traceback .frame {
-          border-top-color: ${theme.border};
-        }
-        .traceback .frame .context {
-          background-color: ${theme.background};
-        }
-        .traceback ol.context > li {
-          color: ${theme.subText};
-        }
-        .traceback .frame .title {
-          background-color: ${theme.backgroundSecondary};
+          ol.context > li {
+            color: ${theme.subText};
+          }
+
+          .frame,
+          .frame.system-frame {
+            border-top-color: ${theme.border};
+
+            &.is-expandable .title:hover {
+              background-color: ${theme.background};
+            }
+            .btn-toggle {
+              background: transparent;
+            }
+            .context {
+              background-color: ${theme.background};
+            }
+            .title {
+              background-color: ${theme.backgroundSecondary};
+            }
+          }
         }
 
-        .traceback .frame.is-expandable .title:hover {
-          background-color: ${theme.background};
-        }
         .exc-message {
           color: ${theme.subText};
         }
@@ -112,6 +116,11 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-left-color: ${theme.border};
           }
         }
+        /* Group Details - User context */
+        .user-widget .avatar {
+          box-shadow: 0 0 0 5px ${theme.background};
+          background: ${theme.background};
+        }
         .nav-header a.help-link {
           color: ${theme.subText};
         }
@@ -126,9 +135,18 @@ const styles = (theme: Theme, isDark: boolean) => css`
           background: ${theme.background};
           color: ${theme.formText};
         }
-        .user-widget .avatar {
-          box-shadow: 0 0 0 5px ${theme.background};
+
+        /* Global Selection header date picker */
+        .rdrCalendarWrapper {
           background: ${theme.background};
+          color: ${theme.textColor};
+        }
+        .rdrDayDisabled {
+          background-color: ${theme.backgroundSecondary};
+          color: ${theme.disabled};
+        }
+        .rdrMonthAndYearPickers select {
+          color: ${theme.textColor};
         }
       `
     : ''}
