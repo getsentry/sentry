@@ -211,7 +211,7 @@ class TransactionsList extends React.Component<Props> {
       selected,
       organization,
       cursorName,
-      dataTestId,
+      linkDataTestId,
       generateFirstLink,
     } = this.props;
     trendView.sorts = [selected.sort];
@@ -241,7 +241,7 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_percentage()'},
                 {field: 'trend_difference()'},
               ])}
-              dataTestId={dataTestId}
+              linkDataTestId={linkDataTestId}
               generateFirstLink={generateFirstLink}
             />
             <StyledPagination
