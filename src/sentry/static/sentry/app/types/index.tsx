@@ -1663,7 +1663,7 @@ export type ExceptionValue = {
   value: string;
   threadId: number | null;
   stacktrace: StacktraceType | null;
-  rawStacktrace: RawStacktrace | null;
+  rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
   frames: Frame[];

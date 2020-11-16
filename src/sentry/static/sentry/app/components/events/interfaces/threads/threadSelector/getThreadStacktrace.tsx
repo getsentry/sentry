@@ -1,13 +1,12 @@
 import {Thread} from 'app/types/events';
-import {Event} from 'app/types';
-import {StacktraceType} from 'app/types/stacktrace';
+import {Event, ExceptionValue} from 'app/types';
 
 import getThreadException from './getThreadException';
 
 function getThreadStacktrace(thread: Thread, event: Event, raw: boolean) {
   const exc = getThreadException(thread, event);
   if (exc) {
-    let rv: StacktraceType | undefined = undefined;
+    let rv: ExceptionValue['stacktrace'] | undefined = undefined;
 
     for (const singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
