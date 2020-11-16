@@ -5,8 +5,6 @@ import logging
 from django import forms
 
 from sentry.rules.actions.base import TicketEventAction
-from sentry.models import GroupLink
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
@@ -52,13 +50,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
         def create_issue(event, futures):
             """Create an Azure DevOps work item for a given event"""
 
-            linked = GroupLink.objects.filter(
-                project_id=self.project.id,
-                group_id=event.group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list("data", flat=True)
-            if not linked or json.loads(linked[0])["provider"] != self.provider:
-                # if multiple tickets are being created via one rule or same criteria
+            if not self.has_linked_issue(event, integration):
                 resp = installation.create_issue(self.data)
                 self.create_link(resp["metadata"]["display_name"], integration, installation, event)
             return
