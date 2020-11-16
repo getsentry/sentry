@@ -16,7 +16,11 @@ class DashboardWidgetSerializer(Serializer):
     def get_attrs(self, item_list, user):
         result = {}
         data_sources = serialize(
-            list(DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list]))
+            list(
+                DashboardWidgetQuery.objects.filter(
+                    widget_id__in=[i.id for i in item_list]
+                ).order_by("order")
+            )
         )
 
         for widget in item_list:
@@ -30,7 +34,6 @@ class DashboardWidgetSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": six.text_type(obj.id),
-            "order": six.text_type(obj.order),
             "title": obj.title,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
             "dateCreated": obj.date_added,
@@ -48,7 +51,6 @@ class DashboardWidgetQuerySerializer(Serializer):
             "fields": obj.fields,
             "conditions": six.text_type(obj.conditions),
             "interval": six.text_type(obj.interval),
-            "order": six.text_type(obj.order),
             "widgetId": six.text_type(obj.widget_id),
         }
 
@@ -59,7 +61,11 @@ class DashboardWithWidgetsSerializer(Serializer):
         result = {}
 
         widgets = serialize(
-            list(DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]))
+            list(
+                DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
+                    "order"
+                )
+            )
         )
 
         for dashboard in item_list:

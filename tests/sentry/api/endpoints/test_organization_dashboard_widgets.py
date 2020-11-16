@@ -25,9 +25,8 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
         )
 
         assert response.status_code == 201
-
         self.assert_widget_data(
-            response.data, order="1", title="User Happiness", display_type="line", queries=queries,
+            response.data, title="User Happiness", display_type="line", queries=queries,
         )
 
         widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id)
@@ -50,9 +49,7 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             queries=[],
         )
         assert response.status_code == 201
-        self.assert_widget_data(
-            response.data, order="1", title="User Happiness", display_type="line"
-        )
+        self.assert_widget_data(response.data, title="User Happiness", display_type="line")
 
         widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id)
         assert len(widgets) == 1
@@ -82,9 +79,7 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             self.organization.slug, self.dashboard.id, displayType="line", title="User Happiness"
         )
         assert response.status_code == 201
-        self.assert_widget_data(
-            response.data, order="3", title="User Happiness", display_type="line"
-        )
+        self.assert_widget_data(response.data, title="User Happiness", display_type="line")
         widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id)
         assert len(widgets) == 3
 

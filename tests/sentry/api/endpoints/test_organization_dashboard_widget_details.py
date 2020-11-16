@@ -41,7 +41,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
         assert response.status_code == 200, response.data
 
         self.assert_widget_data(
-            response.data, order="1", title="User Happiness", display_type="line", queries=queries,
+            response.data, title="User Happiness", display_type="line", queries=queries,
         )
 
         widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id)
@@ -73,9 +73,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
             queries=[],
         )
         assert response.status_code == 200
-        self.assert_widget_data(
-            response.data, order="1", title="User Happiness", display_type="line"
-        )
+        self.assert_widget_data(response.data, title="User Happiness", display_type="line")
 
         widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id)
         assert len(widgets) == 1

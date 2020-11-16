@@ -60,15 +60,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
         )
 
-    def sort_by_order(self, widgets):
-        def get_order(x):
-            try:
-                return x["order"]
-            except TypeError:
-                return x.order
-
-        return sorted(widgets, key=get_order)
-
     def assert_serialized_widget(self, data, expected_widget):
         assert data["id"] == six.text_type(expected_widget.id)
         assert data["title"] == expected_widget.title
@@ -88,7 +79,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["fields"] == widget_data_source.fields
         assert data["conditions"] == widget_data_source.conditions
         assert data["interval"] == widget_data_source.interval
-        assert data["order"] == six.text_type(widget_data_source.order)
 
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
@@ -98,11 +88,11 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
         self.assert_serialized_dashboard(response.data, self.dashboard)
         assert len(response.data["widgets"]) == 2
-        widgets = self.sort_by_order(response.data["widgets"])
+        widgets = response.data["widgets"]
         self.assert_serialized_widget(widgets[0], self.widget_1)
         self.assert_serialized_widget(widgets[1], self.widget_2)
 
-        widget_queries = self.sort_by_order(widgets[0]["queries"])
+        widget_queries = widgets[0]["queries"]
         assert len(widget_queries) == 2
         self.assert_serialized_widget_query(widget_queries[0], self.widget_1_data_1)
         self.assert_serialized_widget_query(widget_queries[1], self.widget_1_data_2)
@@ -146,19 +136,18 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
     def assert_no_changes(self):
-        self.assert_dashboard_and_widgets(self.widget_ids, [1, 2, 3, 4])
+        self.assert_dashboard_and_widgets(self.widget_ids)
 
-    def assert_dashboard_and_widgets(self, widget_ids, order):
+    def assert_dashboard_and_widgets(self, widget_ids):
         assert Dashboard.objects.filter(
             organization=self.organization, id=self.dashboard.id
         ).exists()
 
-        widgets = self.sort_by_order(DashboardWidget.objects.filter(dashboard_id=self.dashboard.id))
+        widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id).order_by("order")
         assert len(widgets) == len(list(widget_ids))
 
-        for widget, id, order in zip(widgets, widget_ids, order):
+        for widget, id in zip(widgets, widget_ids):
             assert widget.id == id
-            assert widget.order == order
 
     def test_put(self):
         response = self.client.put(
@@ -166,15 +155,17 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={
                 "title": "Changed the title",
                 "widgets": [
-                    {"order": 4, "id": self.widget_1.id},
-                    {"order": 3, "id": self.widget_2.id},
-                    {"order": 2, "id": self.widget_3.id},
-                    {"order": 1, "id": self.widget_4.id},
+                    {"id": self.widget_4.id},
+                    {"id": self.widget_1.id},
+                    {"id": self.widget_3.id},
+                    {"id": self.widget_2.id},
                 ],
             },
         )
         assert response.status_code == 200
-        self.assert_dashboard_and_widgets(reversed(self.widget_ids), [5, 6, 7, 8])
+        self.assert_dashboard_and_widgets(
+            [self.widget_4.id, self.widget_1.id, self.widget_3.id, self.widget_2.id]
+        )
 
     def test_change_dashboard_title(self):
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard Hello"})
@@ -188,50 +179,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             self.url(self.dashboard.id),
             data={
                 "widgets": [
-                    {"order": 4, "id": self.widget_1.id},
-                    {"order": 3, "id": self.widget_2.id},
-                    {"order": 2, "id": self.widget_3.id},
-                    {"order": 1, "id": self.widget_4.id},
+                    {"id": self.widget_3.id},
+                    {"id": self.widget_2.id},
+                    {"id": self.widget_1.id},
+                    {"id": self.widget_4.id},
                 ]
             },
         )
         assert response.status_code == 200
-        self.assert_dashboard_and_widgets(reversed(self.widget_ids), [5, 6, 7, 8])
+        self.assert_dashboard_and_widgets(
+            [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
+        )
 
     def test_dashboard_does_not_exist(self):
         response = self.client.put(self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {u"detail": u"The requested resource does not exist"}
 
-    def test_duplicate_order(self):
-        response = self.client.put(
-            self.url(self.dashboard.id),
-            data={
-                "widgets": [
-                    {"order": 4, "id": self.widget_1.id},
-                    {"order": 4, "id": self.widget_2.id},
-                    {"order": 2, "id": self.widget_3.id},
-                    {"order": 1, "id": self.widget_4.id},
-                ]
-            },
-        )
-        assert response.status_code == 400
-        assert response.data == {"widgets": [u"Widgets must not have duplicate order values."]}
-        self.assert_no_changes()
-
     def test_partial_reordering_deletes_widgets(self):
         response = self.client.put(
             self.url(self.dashboard.id),
             data={
                 "title": "Changed the title",
-                "widgets": [
-                    {"order": 2, "id": self.widget_3.id},
-                    {"order": 1, "id": self.widget_4.id},
-                ],
+                "widgets": [{"id": self.widget_3.id}, {"id": self.widget_4.id}],
             },
         )
         assert response.status_code == 200
-        self.assert_dashboard_and_widgets([self.widget_4.id, self.widget_3.id], [5, 6])
+        self.assert_dashboard_and_widgets([self.widget_3.id, self.widget_4.id])
         deleted_widget_ids = [self.widget_1.id, self.widget_2.id]
         assert not DashboardWidget.objects.filter(id__in=deleted_widget_ids).exists()
         assert not DashboardWidgetQuery.objects.filter(widget_id__in=deleted_widget_ids).exists()
@@ -249,11 +223,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             self.url(self.dashboard.id),
             data={
                 "widgets": [
-                    {"order": 5, "id": self.widget_1.id},
-                    {"order": 4, "id": self.widget_2.id},
-                    {"order": 3, "id": self.widget_3.id},
-                    {"order": 2, "id": self.widget_4.id},
-                    {"order": 1, "id": widget.id},
+                    {"id": self.widget_1.id},
+                    {"id": self.widget_2.id},
+                    {"id": self.widget_3.id},
+                    {"id": self.widget_4.id},
+                    {"id": widget.id},
                 ]
             },
         )
@@ -268,11 +242,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             self.url(self.dashboard.id),
             data={
                 "widgets": [
-                    {"order": 5, "id": self.widget_1.id},
-                    {"order": 4, "id": self.widget_2.id},
-                    {"order": 3, "id": self.widget_3.id},
-                    {"order": 2, "id": self.widget_4.id},
-                    {"order": 1, "id": 1234567890},
+                    {"id": self.widget_1.id},
+                    {"id": self.widget_2.id},
+                    {"id": self.widget_3.id},
+                    {"id": self.widget_4.id},
+                    {"id": 1234567890},
                 ]
             },
         )

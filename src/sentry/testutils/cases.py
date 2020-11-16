@@ -991,8 +991,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
         self.assert_widget_queries(widget.id, queries)
 
-    def assert_widget_data(self, data, order, title, display_type, queries=None):
-        assert data["order"] == order
+    def assert_widget_data(self, data, title, display_type, queries=None):
         assert data["displayType"] == display_type
         assert data["title"] == title
 
