@@ -973,15 +973,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if self.conditions and not self._collapse("filtered")
                 else None
             )
-            if self._expand("inbox"):
-                inbox_stats = self._get_inbox_details(item_list)
             for item in item_list:
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                if self._expand("inbox"):
-                    attrs[item].update({"inbox": inbox_stats.get(item.id)})
-
                 attrs[item].update({"stats": stats[item.id]})
+
+        if self._expand("inbox"):
+            inbox_stats = self._get_inbox_details(item_list)
+            for item in item_list:
+                attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
         return attrs
 

@@ -12,7 +12,7 @@ from sentry.db.models import FlexibleForeignKey, Model, JSONField
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
     "properties": {
-        "until": {"type": ["string", "null"], "format": "date-time"},
+        "until": {"type": "string", "format": "date-time"},
         "count": {"type": ["integer", "null"]},
         "window": {"type": ["integer", "null"]},
         "user_count": {"type": ["integer", "null"]},
@@ -51,6 +51,10 @@ class GroupInbox(Model):
 
 def add_group_to_inbox(group, reason, reason_details=None):
     from sentry.snuba.query_subscription_consumer import InvalidSchemaError
+
+    if reason_details is not None:
+        if "until" in reason_details and reason_details["until"] is not None:
+            reason_details["until"] = reason_details["until"].replace(microsecond=0).isoformat()
 
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
