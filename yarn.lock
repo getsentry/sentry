@@ -11519,10 +11519,10 @@ pkg-up@2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-platformicons@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.2.0.tgz#18c551ad6588b15eb8e12706e129c647d91be3c5"
-  integrity sha512-E7N0YnqAFVKMsM/NQ5YxaIjW56Jj2LmdpuRxGR5c3o8R2+hqmNO1dPCpcvUbFQitQmrPqSH8SP56RNv8kb8blw==
+platformicons@^3.2.2:
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.2.2.tgz#d244c8b76852c050032411091f5179fd8350376e"
+  integrity sha512-wAc0rFM6N22Mb24+stnQyjZaMAp3kTBzjzujs9gvnPHDwB4SWUvA+BQ9VRRcvJ7S8jBSpLASD/ZZHtRFedDNZQ==
   dependencies:
     "@types/node" "*"
     "@types/react" "^16 || ^17"

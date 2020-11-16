@@ -388,6 +388,7 @@ const FooterMessage = styled('div')`
 
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
   margin: 1px 0 0 -1px;
   border-radius: ${p => p.theme.borderRadiusBottom};
   width: 100%;
@@ -400,9 +401,9 @@ const StyledHeaderItem = styled(HeaderItem)`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;

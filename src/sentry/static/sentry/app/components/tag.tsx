@@ -21,11 +21,11 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
    * Icon on the left side.
    */
-  icon?: React.ReactElement;
+  icon?: React.ReactNode;
   /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ReactElement | string;
+  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
   /**
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -128,7 +128,7 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')`
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.gray500};
   font-size: 13px;
   max-width: 150px;
   overflow: hidden;
@@ -136,7 +136,7 @@ const Text = styled('span')`
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
   a:hover & {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.gray500};
   }
 `;
 

@@ -189,7 +189,7 @@ const StyledSelect = styled(SelectPicker)`
   }
 
   .Select-option.is-focused {
-    color: white;
+    color: ${p => p.theme.white};
     background-color: ${p => p.theme.purple300};
   }
   .Select-multi-value-wrapper {
