@@ -1,20 +1,16 @@
 import React from 'react';
 
 import {Organization} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
 import withOrganization from 'app/utils/withOrganization';
 import DashboardsV1 from 'app/views/dashboards';
 
 type Props = {
   organization: Organization;
+  children: React.ReactNode;
 };
 
 class DashboardsV2Container extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   renderNoAccess() {
     const {children} = this.props;
     return <DashboardsV1>{children}</DashboardsV1>;
