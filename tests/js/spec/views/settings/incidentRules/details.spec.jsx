@@ -25,6 +25,10 @@ describe('Incident Rules Details', function () {
       body: null,
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
