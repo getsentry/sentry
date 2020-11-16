@@ -133,7 +133,17 @@ class GroupEventDetails extends React.Component<Props, State> {
       `/projects/${orgSlug}/${projSlug}/releases/completion/`
     );
     fetchSentryAppInstallations(api, orgSlug);
-    fetchSentryAppComponents(api, orgSlug, projectId);
+
+    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    if (projectId) {
+      fetchSentryAppComponents(api, orgSlug, projectId);
+    } else {
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('Project ID was not set');
+      });
+    }
 
     const releasesCompletion = await releasesCompletionPromise;
     this.setState({releasesCompletion});
