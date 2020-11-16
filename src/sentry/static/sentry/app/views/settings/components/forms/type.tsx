@@ -89,6 +89,7 @@ type BaseField = {
   selectionInfoFunction?: (props: any) => React.ReactNode;
 
   stacked?: boolean;
+  hideLabel?: boolean;
   flexibleControlStateSize?: boolean;
 };
 
