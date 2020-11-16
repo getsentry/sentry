@@ -99,7 +99,7 @@ class OrganizationDashboardWidgetsPostTestCase(OrganizationDashboardWidgetTestCa
             title="User Happiness",
         )
         assert response.status_code == 400
-        assert response.data == {"displayType": [u"Widget displayType happy-face not recognized."]}
+        assert response.data == {"displayType": [u'"happy-face" is not a valid choice.']}
 
     @pytest.mark.xfail(reason="not implemented yet")
     def test_invalid_query_data(self):

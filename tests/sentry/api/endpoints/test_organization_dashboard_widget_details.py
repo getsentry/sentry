@@ -95,7 +95,7 @@ class OrganizationDashboardWidgetDetailsPutTestCase(OrganizationDashboardWidgetD
             title="User Happiness",
         )
         assert response.status_code == 400
-        assert response.data == {"displayType": [u"Widget displayType happy-face not recognized."]}
+        assert response.data == {"displayType": [u'"happy-face" is not a valid choice.']}
 
     def test_does_not_exists(self):
         response = self.get_response(

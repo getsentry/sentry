@@ -26,15 +26,12 @@ class DashboardWidgetQuerySerializer(serializers.Serializer):
 
 class DashboardWidgetSerializer(serializers.Serializer):
     title = serializers.CharField(required=True)
-    displayType = serializers.CharField(required=True)
+    displayType = serializers.ChoiceField(
+        choices=DashboardWidgetDisplayTypes.as_text_choices(), required=True
+    )
     queries = ListField(
         child=DashboardWidgetQuerySerializer(required=False), required=False, allow_null=True
     )
 
     def validate_displayType(self, display_type):
-        if display_type not in DashboardWidgetDisplayTypes.TYPE_NAMES:
-            raise serializers.ValidationError(
-                "Widget displayType %s not recognized." % display_type
-            )
-
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)

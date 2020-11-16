@@ -21,6 +21,10 @@ class TypesClass(object):
         return [(k, six.text_type(v)) for k, v in cls.TYPES]
 
     @classmethod
+    def as_text_choices(cls):
+        return [(six.text_type(v), six.text_type(v)) for _, v in cls.TYPES]
+
+    @classmethod
     def get_type_name(cls, num):
         for id, name in cls.TYPES:
             if id == num:
