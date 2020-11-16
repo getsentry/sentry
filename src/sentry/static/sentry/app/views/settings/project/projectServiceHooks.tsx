@@ -30,7 +30,10 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
     <Field
       label={
-        <Link to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}>
+        <Link
+          data-test-id="project-service-hook"
+          to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}
+        >
           <Truncate value={hook.url} />
         </Link>
       }
@@ -143,7 +146,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
     const access = new Set(this.context.organization.access);
 
     return (
-      <div className="ref-project-service-hooks">
+      <React.Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
@@ -161,7 +164,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
           }
         />
         <Panel>{body}</Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }
