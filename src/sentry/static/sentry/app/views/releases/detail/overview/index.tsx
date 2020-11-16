@@ -175,6 +175,12 @@ class ReleaseOverview extends AsyncView<Props> {
                         hasDiscover={hasDiscover}
                       />
                     )}
+                    <Issues
+                      orgId={organization.slug}
+                      selection={selection}
+                      version={version}
+                      location={location}
+                    />
                     <Feature features={['release-performance-views']}>
                       <TransactionsList
                         api={api}
@@ -194,12 +200,6 @@ class ReleaseOverview extends AsyncView<Props> {
                         generateFirstLink={generateTransactionLinkFn(version, project.id)}
                       />
                     </Feature>
-                    <Issues
-                      orgId={organization.slug}
-                      selection={selection}
-                      version={version}
-                      location={location}
-                    />
                   </Main>
                   <Side>
                     <ProjectReleaseDetails
