@@ -11,6 +11,7 @@ jest.mock('app/components/charts/lineChart');
 
 describe('Incident Rules Create', () => {
   let eventStatsMock;
+  let eventCountsMock;
   let api;
 
   beforeEach(() => {
@@ -20,6 +21,10 @@ describe('Incident Rules Create', () => {
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: TestStubs.EventsStats(),
+    });
+    eventCountsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
     });
   });
 
@@ -53,6 +58,18 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+        },
+      })
+    );
+
+    expect(eventCountsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          query: 'event.type:error',
+          statsPeriod: '1d',
+          environment: [],
         },
       })
     );
@@ -103,6 +120,18 @@ describe('Incident Rules Create', () => {
           query: 'event.type:error',
           statsPeriod: '1d',
           yAxis: 'count()',
+        },
+      })
+    );
+
+    expect(eventCountsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          project: ['2'],
+          query: 'event.type:error',
+          statsPeriod: '1d',
+          environment: [],
         },
       })
     );

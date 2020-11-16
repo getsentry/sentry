@@ -41,6 +41,10 @@ describe('Incident Rules Form', function () {
       body: TestStubs.EventsStats(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
