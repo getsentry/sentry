@@ -33,7 +33,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
 
         :qparam list groups A list of group ids
         :qparam list expand an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
+        :qparam list collapse an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `filtered`, and `base`
 
         The ``groupStatsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
