@@ -16,8 +16,6 @@ const HintPanelItem = styled('div')`
 
   &:last-child {
     border: 0;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
   }
 `;
 

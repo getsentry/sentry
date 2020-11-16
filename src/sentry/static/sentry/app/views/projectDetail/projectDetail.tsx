@@ -33,20 +33,14 @@ type State = {
 
 class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
-    const {params, organization} = this.props;
+    const {params} = this.props;
 
-    return routeTitleGen(t('Project %s', params.projectId), organization.slug, false);
+    return routeTitleGen(t('Project %s', params.projectId), params.orgId, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
     return [['project', `/projects/${params.orgId}/${params.projectId}/`]];
-  }
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-    };
   }
 
   renderLoading() {
