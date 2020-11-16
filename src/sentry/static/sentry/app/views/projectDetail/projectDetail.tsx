@@ -1,45 +1,22 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import pick from 'lodash/pick';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
 
 import {t} from 'app/locale';
-import {
-  Organization,
-  ReleaseProject,
-  ReleaseMeta,
-  Deploy,
-  GlobalSelection,
-  ReleaseWithHealth,
-  Project,
-  AvatarProject,
-} from 'app/types';
+import {Organization, Project} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {PageContent} from 'app/styles/organization';
-import withOrganization from 'app/utils/withOrganization';
 import routeTitleGen from 'app/utils/routeTitle';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {formatVersion} from 'app/utils/formatters';
-import AsyncComponent from 'app/components/asyncComponent';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconInfo, IconSettings, IconSiren, IconWarning} from 'app/icons';
-import space from 'app/styles/space';
-import Alert from 'app/components/alert';
+import {IconSettings, IconSiren} from 'app/icons';
 import * as Layout from 'app/components/layouts/thirds';
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
+import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import Access from 'app/components/acl/access';
-
-import ReleaseHeader from './releaseHeader';
-import PickProjectToContinue from './pickProjectToContinue';
 import ButtonBar from 'app/components/buttonBar';
-import SearchBar from 'app/components/searchBar';
-import ProjectAvatar from 'app/components/avatar/projectAvatar';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
+import IdBadge from 'app/components/idBadge';
+import TextOverflow from 'app/components/textOverflow';
 
 type RouteParams = {
   orgId: string;
@@ -54,7 +31,7 @@ type State = {
   project?: Project;
 } & AsyncView['state'];
 
-class ProjectDetailContainer extends AsyncView<Props, State> {
+class ProjectDetail extends AsyncView<Props, State> {
   getTitle() {
     const {params, organization} = this.props;
 
@@ -72,11 +49,13 @@ class ProjectDetailContainer extends AsyncView<Props, State> {
     };
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {organization, params} = this.props;
     const {project} = this.state;
-
-    console.log(project);
 
     return (
       <GlobalSelectionHeader shouldForceProject forceProject={project}>
@@ -88,21 +67,28 @@ class ProjectDetailContainer extends AsyncView<Props, State> {
                   crumbs={[{label: t('Projects')}, {label: t('Project Details')}]}
                 />
                 <Layout.Title>
-                  <ProjectBadge project={project!} />
+                  <TextOverflow>
+                    {project && (
+                      <IdBadge
+                        project={project}
+                        avatarSize={28}
+                        displayName={params.projectId}
+                      />
+                    )}
+                  </TextOverflow>
                 </Layout.Title>
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
                   <Button
-                    to={`/settings/${organization.slug}/projects/${params.projectId}/`}
+                    to={`/organizations/${params.orgId}/issues/?project=${params.projectId}`}
                   >
                     {t('View All Issues')}
                   </Button>
                   <Access organization={organization} access={['project:write']}>
                     {({hasAccess}) => (
                       <Button
-                        type="button"
                         disabled={!hasAccess}
                         title={
                           !hasAccess
@@ -112,7 +98,7 @@ class ProjectDetailContainer extends AsyncView<Props, State> {
                             : undefined
                         }
                         icon={<IconSiren />}
-                        to={`/organizations/${organization.slug}/alerts/${params.projectId}/new/`}
+                        to={`/organizations/${params.orgId}/alerts/${params.projectId}/new/`}
                       >
                         {t('Create alert')}
                       </Button>
@@ -121,7 +107,7 @@ class ProjectDetailContainer extends AsyncView<Props, State> {
                   <Button
                     icon={<IconSettings />}
                     label={t('Settings')}
-                    to={`/settings/${organization.slug}/projects/${params.projectId}/`}
+                    to={`/settings/${params.orgId}/projects/${params.projectId}/`}
                   />
                 </ButtonBar>
               </Layout.HeaderActions>
@@ -158,4 +144,4 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export default ProjectDetailContainer;
+export default ProjectDetail;

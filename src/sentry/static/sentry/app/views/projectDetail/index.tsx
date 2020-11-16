@@ -19,8 +19,8 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-class ProjectDetailContainer extends React.Component<Props> {
-  renderNoAccess() {
+function ProjectDetailContainer(props: Props) {
+  function renderNoAccess() {
     return (
       <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -28,19 +28,15 @@ class ProjectDetailContainer extends React.Component<Props> {
     );
   }
 
-  render() {
-    const {organization} = this.props;
-
-    return (
-      <Feature
-        features={[]}
-        organization={organization}
-        renderDisabled={this.renderNoAccess}
-      >
-        <ProjectDetail {...this.props} />
-      </Feature>
-    );
-  }
+  return (
+    <Feature
+      features={['project-detail']}
+      organization={props.organization}
+      renderDisabled={renderNoAccess}
+    >
+      <ProjectDetail {...props} />
+    </Feature>
+  );
 }
 
 export default withOrganization(ProjectDetailContainer);
