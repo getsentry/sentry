@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
 
+import Feature from 'app/components/acl/feature';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -205,36 +206,37 @@ class ReleaseOverview extends AsyncView<Props> {
                         hasDiscover={hasDiscover}
                       />
                     )}
-                    <TransactionsList
-                      api={api}
-                      location={location}
-                      organization={organization}
-                      eventView={releaseEventView}
-                      trendView={releaseTrendView}
-                      dropdownTitle={t('Show')}
-                      selection={selection}
-                      selected={selectedSort}
-                      options={sortOptions}
-                      handleDropdownChange={this.handleTransactionsListSortChange}
-                      titles={[
-                        t('transaction'),
-                        t('failure_rate()'),
-                        t('tpm()'),
-                        t('p50()'),
-                      ]}
-                      generateFirstLink={generateTransactionLinkFn(
-                        version,
-                        project.id,
-                        selection,
-                        location.query.showTransactions
-                      )}
-                    />
                     <Issues
                       orgId={organization.slug}
                       selection={selection}
                       version={version}
                       location={location}
                     />
+                    <Feature features={['release-performance-views']}>
+                      <TransactionsList
+                        api={api}
+                        location={location}
+                        organization={organization}
+                        eventView={releaseEventView}
+                        trendView={releaseTrendView}
+                        dropdownTitle={t('Show')}
+                        selected={selectedSort}
+                        options={sortOptions}
+                        handleDropdownChange={this.handleTransactionsListSortChange}
+                        titles={[
+                          t('transaction'),
+                          t('failure_rate()'),
+                          t('tpm()'),
+                          t('p50()'),
+                        ]}
+                        generateFirstLink={generateTransactionLinkFn(
+                          version,
+                          project.id,
+                          selection,
+                          location.query.showTransactions
+                        )}
+                      />
+                    </Feature>
                   </Main>
                   <Side>
                     <ProjectReleaseDetails

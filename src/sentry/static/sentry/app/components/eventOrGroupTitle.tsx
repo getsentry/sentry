@@ -5,6 +5,8 @@ import {getTitle} from 'app/utils/events';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import withOrganization from 'app/utils/withOrganization';
 
+import StacktracePreview from './stacktracePreview';
+
 type Props = {
   data: Event | Group | GroupTombstone;
   organization: Organization;
@@ -14,13 +16,19 @@ type Props = {
 
 class EventOrGroupTitle extends React.Component<Props> {
   render() {
-    const {hasGuideAnchor, organization} = this.props;
-    const {title, subtitle} = getTitle(this.props.data as Event, organization);
+    const {hasGuideAnchor, data, organization} = this.props;
+    const {title, subtitle} = getTitle(data as Event, organization);
+
+    const titleWithHoverStacktrace = (
+      <StacktracePreview organization={organization} issueId={data.id}>
+        {title}
+      </StacktracePreview>
+    );
 
     return subtitle ? (
       <span style={this.props.style}>
         <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
-          <span>{title}</span>
+          <span>{titleWithHoverStacktrace}</span>
         </GuideAnchor>
         <Spacer />
         <em title={subtitle}>{subtitle}</em>
@@ -29,7 +37,7 @@ class EventOrGroupTitle extends React.Component<Props> {
     ) : (
       <span style={this.props.style}>
         <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
-          {title}
+          {titleWithHoverStacktrace}
         </GuideAnchor>
       </span>
     );

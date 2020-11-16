@@ -14,7 +14,7 @@ import Pagination from 'app/components/pagination';
 import PanelTable from 'app/components/panels/panelTable';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
+import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
 import {TrendView, TrendsDataEvents} from 'app/views/performance/trends/types';
@@ -30,11 +30,23 @@ import {GridCell, GridCellNumber} from 'app/views/performance/styles';
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
 export type DropdownOption = {
+  /**
+   * The sort to apply to the eventView when this is selected.
+   */
   sort: Sort;
+  /**
+   * The unique name to use for this option.
+   */
+  value: string;
+  /**
+   * The label to display in the dropdown
+   */
+  label: string;
+  /**
+   * Included if the option is for a trend
+   */
   trendType?: string;
   query?: string;
-  value: string;
-  label: string;
 };
 
 type Props = {
@@ -43,15 +55,41 @@ type Props = {
   eventView: EventView;
   trendView: TrendView;
   organization: Organization;
+  /**
+   * The prefix to use on the dropdown button.
+   */
   dropdownTitle: string;
-  selection: GlobalSelection;
+  /**
+   * The currently selected option on the dropdown.
+   */
   selected: DropdownOption;
+  /**
+   * The available options for the dropdown.
+   */
   options: DropdownOption[];
+  /**
+   * The callback for when the dropdown option changes.
+   */
   handleDropdownChange: any;
+  /**
+   * The name of the url parameter that contains the cursor info.
+   */
   cursorName: string;
+  /**
+   * The limit to the number of results to fetch.
+   */
   limit: number;
+  /**
+   * A list of preferred table headers to use over the field names.
+   */
   titles?: string[];
-  dataTestId?: string;
+  /**
+   * Alternate data-test-id to use for the optional links in the first column.
+   */
+  linkDataTestId?: string;
+  /**
+   * The callback to generate a link for the first column.
+   */
   generateFirstLink?: (
     organization: Organization,
     tableRow: TableDataRow,
@@ -93,6 +131,7 @@ class TransactionsList extends React.Component<Props> {
         >
           {options.map(({value, label}) => (
             <DropdownItem
+              data-test-id={`option-${value}`}
               key={value}
               onSelect={handleDropdownChange}
               eventKey={value}
@@ -126,7 +165,7 @@ class TransactionsList extends React.Component<Props> {
       cursorName,
       limit,
       titles,
-      dataTestId,
+      linkDataTestId,
       generateFirstLink,
     } = this.props;
     const sortedEventView = eventView.withSorts([selected.sort]);
@@ -151,7 +190,7 @@ class TransactionsList extends React.Component<Props> {
               tableData={tableData}
               columnOrder={columnOrder}
               titles={titles}
-              dataTestId={dataTestId}
+              linkDataTestId={linkDataTestId}
               generateFirstLink={generateFirstLink}
             />
             <StyledPagination
@@ -239,7 +278,7 @@ type TableProps = {
   tableData: TableData | TrendsDataEvents | null | undefined;
   columnOrder: TableColumn<React.ReactText>[];
   titles?: string[];
-  dataTestId?: string;
+  linkDataTestId?: string;
   generateFirstLink?: (
     organization: Organization,
     tableRow: TableDataRow,
@@ -279,8 +318,8 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     rowIndex: number,
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
-  ) {
-    const {organization, location, dataTestId, generateFirstLink} = this.props;
+  ): React.ReactNode[] {
+    const {organization, location, linkDataTestId, generateFirstLink} = this.props;
 
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -297,7 +336,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
         if (isFirstCell) {
           const target = generateFirstLink(organization, row, location.query);
           rendered = (
-            <Link data-test-id={dataTestId ?? 'transactions-list-link'} to={target}>
+            <Link data-test-id={linkDataTestId ?? 'transactions-list-link'} to={target}>
               {rendered}
             </Link>
           );

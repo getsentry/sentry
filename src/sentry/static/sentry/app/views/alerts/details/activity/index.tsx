@@ -11,7 +11,7 @@ import {
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import {NoteType} from 'app/types/alerts';
 import {CreateError} from 'app/components/activity/note/types';
-import {t} from 'app/locale';
+import {DEFAULT_ERROR_JSON} from 'app/constants';
 import {uniqueId} from 'app/utils/guid';
 import ConfigStore from 'app/stores/configStore';
 import withApi from 'app/utils/withApi';
@@ -24,10 +24,6 @@ import {
   IncidentStatus,
 } from '../../types';
 import Activity from './activity';
-
-function makeDefaultErrorJson() {
-  return {detail: t('Unknown error. Please try again.')};
-}
 
 type Activities = Array<ActivityType | ActivityType>;
 
@@ -146,7 +142,7 @@ class ActivityContainer extends React.PureComponent<Props, State> {
           activities,
           createBusy: false,
           createError: true,
-          createErrorJSON: error.responseJSON || makeDefaultErrorJson(),
+          createErrorJSON: error.responseJSON || DEFAULT_ERROR_JSON,
         };
       });
     }
