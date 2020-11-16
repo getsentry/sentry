@@ -285,6 +285,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                     "instance": instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
+                    "error": six.text_type(exc),
                 },
             )
 
