@@ -33,7 +33,7 @@ const CrashTitle = ({
         <GuideAnchor target="exception" disabled={hideGuide} position="bottom">
           {title}
         </GuideAnchor>
-        <Tooltip title={t('Toggle stacktrace order')}>
+        <Tooltip title={t('Toggle stack trace order')}>
           <small>
             (
             <span onClick={handleToggleOrder}>
