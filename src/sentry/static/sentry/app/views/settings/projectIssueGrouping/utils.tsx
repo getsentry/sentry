@@ -52,31 +52,35 @@ export function getGroupingChanges(
   return {updateNotes, riskLevel, latestGroupingConfig, latestEnhancementsBase};
 }
 
-export function getGroupingRisk(riskLevel: number) {
-  let riskNote: React.ReactNode;
-  let alertType: React.ComponentProps<typeof Alert>['type'];
-
+export function getGroupingRisk(
+  riskLevel: number
+): {
+  riskNote: React.ReactNode;
+  alertType: React.ComponentProps<typeof Alert>['type'];
+} {
   switch (riskLevel) {
     case 0:
-      riskNote = t('This upgrade has the chance to create some new issues.');
-      alertType = 'info';
-      break;
+      return {
+        riskNote: t('This upgrade has the chance to create some new issues.'),
+        alertType: 'info',
+      };
     case 1:
-      riskNote = t('This upgrade will create some new issues.');
-      alertType = 'warning';
-      break;
+      return {
+        riskNote: t('This upgrade will create some new issues.'),
+        alertType: 'warning',
+      };
     case 2:
-      riskNote = (
-        <strong>
-          {t(
-            'The new grouping strategy is incompatible with the current and will create entirely new issues.'
-          )}
-        </strong>
-      );
-      alertType = 'error';
-      break;
+      return {
+        riskNote: (
+          <strong>
+            {t(
+              'The new grouping strategy is incompatible with the current and will create entirely new issues.'
+            )}
+          </strong>
+        ),
+        alertType: 'error',
+      };
     default:
+      return {riskNote: undefined, alertType: undefined};
   }
-
-  return {riskNote, alertType};
 }

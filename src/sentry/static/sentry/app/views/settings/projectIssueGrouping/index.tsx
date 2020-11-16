@@ -27,8 +27,8 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type State = {
-  groupingConfigs: EventGroupingConfig[];
-  groupingEnhancementBases: GroupingEnhancementBase[];
+  groupingConfigs: EventGroupingConfig[] | null;
+  groupingEnhancementBases: GroupingEnhancementBase[] | null;
 } & AsyncView['state'];
 
 class ProjectDebugSymbols extends AsyncView<Props, State> {
@@ -100,27 +100,27 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         >
           <JsonForm
             {...jsonFormProps}
-            title={<React.Fragment>{t('Fingerprint Rules')}</React.Fragment>}
+            title={t('Fingerprint Rules')}
             fields={[fields.fingerprintingRules]}
           />
 
           <JsonForm
             {...jsonFormProps}
-            title={<React.Fragment>{t('Stack Trace Rules')}</React.Fragment>}
+            title={t('Stack Trace Rules')}
             fields={[fields.groupingEnhancements]}
           />
 
           <Feature features={['set-grouping-config']} organization={organization}>
             <JsonForm
               {...jsonFormProps}
-              title={<React.Fragment>{t('Change defaults')}</React.Fragment>}
+              title={t('Change defaults')}
               fields={[fields.groupingConfig, fields.groupingEnhancementsBase]}
             />
           </Feature>
 
           <UpgradeGrouping
-            groupingConfigs={groupingConfigs}
-            groupingEnhancementBases={groupingEnhancementBases}
+            groupingConfigs={groupingConfigs ?? []}
+            groupingEnhancementBases={groupingEnhancementBases ?? []}
             organization={organization}
             projectId={params.projectId}
             project={project}

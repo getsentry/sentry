@@ -58,18 +58,22 @@ function UpgradeGrouping({
     newData.groupingEnhancementsBase = latestEnhancementsBase.id;
   }
 
-  const handleUpgrade = () => {
+  const handleUpgrade = async () => {
     addLoadingMessage(t('Changing grouping\u2026'));
-    api
-      .requestPromise(`/projects/${organization.slug}/${projectId}/`, {
-        method: 'PUT',
-        data: newData,
-      })
-      .then(resp => {
-        clearIndicators();
-        ProjectActions.updateSuccess(resp);
-        onUpgrade();
-      }, handleXhrErrorResponse(t('Unable to upgrade config')));
+    try {
+      const response = await api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/`,
+        {
+          method: 'PUT',
+          data: newData,
+        }
+      );
+      clearIndicators();
+      ProjectActions.updateSuccess(response);
+      onUpgrade();
+    } catch {
+      handleXhrErrorResponse(t('Unable to upgrade config'));
+    }
   };
 
   if (!groupingConfigs || !groupingEnhancementBases) {
@@ -98,6 +102,17 @@ function UpgradeGrouping({
     );
   }
 
+  function getButtonTitle() {
+    if (!hasAccess) {
+      return t('You do not have sufficient permissions to do this');
+    }
+    if (noUpdates) {
+      return t('You are already on the latest version');
+    }
+
+    return undefined;
+  }
+
   return (
     <Panel id="upgrade-grouping">
       <PanelHeader>{t('Upgrade Grouping')}</PanelHeader>
@@ -122,13 +137,7 @@ function UpgradeGrouping({
             <div>
               <Button
                 disabled={!hasAccess || noUpdates}
-                title={
-                  !hasAccess
-                    ? t('You do not have sufficient permissions to do this')
-                    : noUpdates
-                    ? t('You are already on the latest version')
-                    : undefined
-                }
+                title={getButtonTitle()}
                 type="button"
                 priority={riskLevel >= 2 ? 'danger' : 'primary'}
               >

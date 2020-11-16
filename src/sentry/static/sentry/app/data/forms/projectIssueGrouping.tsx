@@ -56,7 +56,7 @@ stack.function:malloc -> memory-allocation-error`}
   groupingEnhancements: {
     name: 'groupingEnhancements',
     type: 'string',
-    label: 'Stack Trace Rules',
+    label: t('Stack Trace Rules'),
     hideLabel: true,
     placeholder: t(
       'stack.function:raise_an_exception ^-group\nstack.function:namespace::* +app'
