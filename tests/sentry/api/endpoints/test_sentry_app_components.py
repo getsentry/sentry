@@ -121,6 +121,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         assert response.data == []
 
     @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    def test_project_missing(self, run):
+        response = self.get_response(self.org.slug)
+
+        assert response.status_code == 404
+        assert response.data == []
+
+    @patch("sentry.mediators.sentry_app_components.Preparer.run")
     def test_filter_by_type(self, run):
         sentry_app = self.create_sentry_app(schema={"elements": [{"type": "alert-rule"}]})
 
