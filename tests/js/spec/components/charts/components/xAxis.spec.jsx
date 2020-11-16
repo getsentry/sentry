@@ -1,4 +1,5 @@
 import XAxis from 'app/components/charts/components/xAxis';
+import theme from 'app/utils/theme';
 
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment-timezone');
@@ -11,6 +12,7 @@ describe('Chart XAxis', function () {
   let xAxisObj;
   const props = {
     isGroupedByDate: true,
+    theme,
   };
   const timestamp = 1531094400000;
 

@@ -89,6 +89,7 @@ type BaseField = {
   selectionInfoFunction?: (props: any) => React.ReactNode;
 
   stacked?: boolean;
+  hideLabel?: boolean;
   flexibleControlStateSize?: boolean;
 };
 
@@ -154,7 +155,6 @@ export type ProjectMapperType = {
     allowedDomain: string;
   };
   iconType: string;
-  manageUrl?: string;
 };
 
 //selects a sentry project with avatars

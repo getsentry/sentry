@@ -7,7 +7,7 @@ const FieldErrorReason = styled('div')`
   position: absolute;
   right: 2px;
   margin-top: 6px;
-  background: #fff;
+  background: ${p => p.theme.background};
   padding: 6px 8px;
   font-weight: 600;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -20,7 +20,7 @@ const FieldErrorReason = styled('div')`
   &:after {
     content: '';
     border: 7px solid transparent;
-    border-bottom-color: #fff;
+    border-bottom-color: ${p => p.theme.background};
     position: absolute;
     top: -14px;
     right: 9px;

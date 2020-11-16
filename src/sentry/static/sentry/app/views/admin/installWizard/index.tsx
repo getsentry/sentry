@@ -183,7 +183,7 @@ const Version = styled('small')`
 `;
 
 const SetupWizard = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   margin-top: 40px;

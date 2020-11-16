@@ -873,6 +873,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
+    # Enable custom dashboards (dashboards 2)
+    "organizations:dashboards-v2": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
@@ -905,6 +907,8 @@ SENTRY_FEATURES = {
     "organizations:sso-rippling": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
+    # Enable stack trace preview card on issue row hover
+    "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Enable graph for subscription quota for errors, transactions and

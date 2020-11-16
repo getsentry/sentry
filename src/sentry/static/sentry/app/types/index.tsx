@@ -82,8 +82,11 @@ export type Avatar = {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar';
 };
 
-export type Actor = User & {
+export type Actor = {
   type: 'user' | 'team';
+  id: string;
+  name: string;
+  email?: string;
 };
 
 /**
@@ -216,6 +219,8 @@ export type Project = {
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -714,7 +719,7 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-type InboxDetails = {
+export type InboxDetails = {
   date_added?: string;
   reason?: number;
   reason_details?: {
@@ -770,7 +775,7 @@ export type Group = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
-  inbox?: InboxDetails;
+  inbox?: InboxDetails | null;
 };
 
 export type GroupTombstone = {
@@ -1006,6 +1011,9 @@ export type Integration = {
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
+    };
+    integration_detail?: {
+      uninstallationUrl?: string;
     };
   };
 };
@@ -1534,6 +1542,13 @@ export type EventGroupingConfig = {
   latest: boolean;
   risk: number;
   strategies: string[];
+};
+
+export type GroupingEnhancementBase = {
+  latest: boolean;
+  id: string;
+  changelog: string;
+  bases: any[]; // TODO(ts): not sure what this is
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';

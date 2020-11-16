@@ -921,6 +921,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
 
+    def test_has_unhandled_flag_bug(self):
+        # There was a bug where we tried to access attributes on seen_stats if this feature is active
+        # but seen_stats could be null when we collapse stats.
+        with self.feature("organizations:unhandled-issue-flag"):
+            self.test_collapse_stats()
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"

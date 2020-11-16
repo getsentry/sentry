@@ -28,7 +28,7 @@ const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
 // this should not happen in local
-const IS_CI = !!env.CI || !!env.TRAVIS;
+const IS_CI = !!env.CI;
 const IS_ACCEPTANCE_TEST = IS_CI && !!env.VISUAL_SNAPSHOT_ENABLE;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;

@@ -5,13 +5,22 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 
-export default class AdminEnvironment extends AsyncView {
-  getEndpoints() {
-    return [['data', this.getEndpoint()]];
-  }
+type Data = {
+  mailHost: string;
+  mailPassword: string;
+  mailUsername: string;
+  mailPort: string;
+  mailUseTls: string;
+  mailFrom: string;
+  mailListNamespace: string;
+  testMailEmail: string;
+};
 
-  getEndpoint() {
-    return '/internal/mail/';
+type State = AsyncView['state'] & {data: Data};
+
+export default class AdminMail extends AsyncView<{}, State> {
+  getEndpoints(): [string, string][] {
+    return [['data', '/internal/mail/']];
   }
 
   sendTestEmail = async () => {

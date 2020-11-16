@@ -86,6 +86,6 @@ const SearchInput = styled('input')`
   }
 
   &::placeholder {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.formPlaceholder};
   }
 `;
