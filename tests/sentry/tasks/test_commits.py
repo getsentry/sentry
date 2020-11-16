@@ -4,6 +4,7 @@ from django.core import mail
 from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth
 
+from sentry.app import locks
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import (
     Commit,
@@ -71,6 +72,34 @@ class FetchCommitsTest(TestCase):
         assert latest_repo_release_environment.deploy_id == deploy.id
         assert latest_repo_release_environment.release_id == release2.id
         assert latest_repo_release_environment.commit_id == commit_list[0].id
+
+    def test_release_locked(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+
+        old_release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id, repository_id=repo.id, release=old_release, commit=commit
+        )
+
+        refs = [{"repository": repo.name, "commit": "b" * 40}]
+        new_release = Release.objects.create(organization_id=org.id, version="12345678")
+
+        lock = locks.get(Release.get_lock_key(org.id, new_release.id), duration=10)
+        lock.acquire()
+
+        with self.tasks():
+            fetch_commits(
+                release_id=new_release.id,
+                user_id=self.user.id,
+                refs=refs,
+                previous_release_id=old_release.id,
+            )
+        count_query = ReleaseHeadCommit.objects.filter(release=new_release)
+        # No release commits should be made as the task should return early.
+        assert count_query.count() == 0
 
     @patch("sentry.tasks.commits.handle_invalid_identity")
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")

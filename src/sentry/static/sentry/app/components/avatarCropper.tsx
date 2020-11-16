@@ -428,7 +428,7 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   margin-bottom: 20px;
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  background-color: #fff;
+  background-color: ${p => p.theme.background};
   background-image: linear-gradient(45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(-45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, #eee 75%),
@@ -443,7 +443,7 @@ const CropContainer = styled('div')`
 
 const Cropper = styled('div')`
   position: absolute;
-  border: 2px dashed ${p => p.theme.gray500};
+  border: 2px dashed ${p => p.theme.gray300};
 `;
 
 const Resizer = styled('div')<{position: Position}>`
@@ -451,7 +451,7 @@ const Resizer = styled('div')<{position: Position}>`
   width: 10px;
   height: 10px;
   position: absolute;
-  background-color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.gray300};
   cursor: ${p => `${p.position}-resize`};
   ${p => resizerPositions[p.position].map(pos => `${pos}: -5px;`)}
 `;

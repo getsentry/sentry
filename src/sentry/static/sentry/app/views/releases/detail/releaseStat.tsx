@@ -30,7 +30,7 @@ const Label = styled('div')<{hasHelp: boolean}>`
   font-weight: 600;
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   line-height: 1.3;
   margin-bottom: ${space(0.25)};
   white-space: nowrap;
@@ -46,7 +46,7 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
 
 const Value = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 export default ReleaseStat;

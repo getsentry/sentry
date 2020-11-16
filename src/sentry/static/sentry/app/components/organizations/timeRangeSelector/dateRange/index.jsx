@@ -309,15 +309,15 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrNextPrevButton {
-    background-color: ${p => p.theme.gray300};
+    background-color: ${p => p.theme.gray200};
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.gray700};
+    border-right-color: ${p => p.theme.textColor};
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.gray700};
+    border-left-color: ${p => p.theme.textColor};
   }
 `;
 
@@ -329,7 +329,7 @@ const TimeAndUtcPicker = styled('div')`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
   justify-content: flex-end;

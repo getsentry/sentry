@@ -6,14 +6,11 @@ const colors = {
   white: '#FFFFFF',
   black: '#1D1127',
 
-  gray100: '#FAF9FB',
-  gray200: '#F2F0F5',
-  gray300: '#E7E1EC',
-  gray400: '#C6BECF',
-  gray500: '#9585A3',
-  gray600: '#645574',
-  gray700: '#4A3E56',
-  gray800: '#302839',
+  gray100: '#E7E1EC',
+  gray200: '#C6BECF',
+  gray300: '#9386A0',
+  gray400: '#776589',
+  gray500: '#2B1D38',
 
   yellow100: '#FDE8b4',
   yellow200: '#FFD577',
@@ -46,11 +43,16 @@ const colors = {
   pink300: '#F05781',
 } as const;
 
+/**
+ * This is not in the gray palette because it should [generally] only be used for backgrounds
+ */
+const backgroundSecondary = '#FAF9FB';
+
 const aliases = {
   /**
    * Primary text color
    */
-  textColor: colors.gray800, // TODO(dark): colors.gray500
+  textColor: colors.gray500,
 
   /**
    * Text that should not have as much emphasis
@@ -60,7 +62,7 @@ const aliases = {
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: colors.gray100,
+  bodyBackground: backgroundSecondary,
 
   /**
    * Primary background color
@@ -70,7 +72,7 @@ const aliases = {
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: colors.gray100,
+  backgroundSecondary,
 
   /**
    * Background for the header of a page
@@ -80,28 +82,28 @@ const aliases = {
   /**
    * Primary border color
    */
-  border: colors.gray400,
+  border: colors.gray200,
 
   /**
    * Inner borders, e.g. borders inside of a grid
    */
-  innerBorder: colors.gray300,
+  innerBorder: colors.gray100,
 
   /**
    * A color that denotes a "success", or something good
    */
-  success: colors.green300, // TODO(dark): colors.green200,
+  success: colors.green300,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
-  error: colors.red300, // TODO(dark): colors.red300,
+  error: colors.red300,
 
-  /**red200
+  /**
    * A color that indicates something is disabled where user can not interact or use
    * it in the usual manner (implies that there is an "enabled" state)
    */
-  disabled: colors.gray400, // TODO(dark): colors.gray200,
+  disabled: colors.gray200,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -111,17 +113,17 @@ const aliases = {
   /**
    * Inactive
    */
-  inactive: colors.gray300,
+  inactive: colors.gray200,
 
   /**
    * Link color indicates that something is clickable
    */
-  linkColor: colors.purple200,
+  linkColor: colors.purple300,
 
   /**
    * ...
    */
-  secondaryButton: colors.purple200,
+  secondaryButton: colors.purple300,
 
   /**
    * Gradient for sidebar
@@ -142,21 +144,22 @@ const aliases = {
   /**
    *
    */
-  rowBackground: colors.gray100,
+  rowBackground: backgroundSecondary,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
+   * (This should only be used for yAxis)
    */
-  chartLineColor: colors.gray200,
+  chartLineColor: colors.gray100,
 
   /**
    * Color for chart label text
    */
-  chartLabel: colors.gray300,
+  chartLabel: colors.gray200,
 } as const;
 
 const warning = {
-  background: colors.yellow100,
+  background: colors.yellow300,
   backgroundLight: color(colors.yellow100).alpha(0.3).string(),
   border: colors.yellow300,
   iconColor: colors.yellow300,
@@ -164,8 +167,8 @@ const warning = {
 
 const alert = {
   muted: {
-    background: colors.gray400,
-    backgroundLight: colors.gray100,
+    background: colors.gray200,
+    backgroundLight: aliases.backgroundSecondary,
     border: aliases.border,
     iconColor: 'inherit',
   },
@@ -194,7 +197,7 @@ const alert = {
 
 const badge = {
   alpha: {
-    background: `linear-gradient(90deg, ${colors.orange300}, ${colors.orange500})`,
+    background: colors.orange400,
     indicatorColor: colors.orange400,
   },
   beta: {
@@ -202,14 +205,14 @@ const badge = {
     indicatorColor: colors.purple300,
   },
   new: {
-    background: `linear-gradient(90deg, ${colors.green300}, ${colors.green300})`,
+    background: colors.green300,
     indicatorColor: colors.green300,
   },
 };
 
 const tag = {
   default: {
-    background: colors.gray200,
+    background: colors.gray100,
     iconColor: colors.purple300,
   },
   promotion: {
@@ -238,7 +241,7 @@ const tag = {
   },
   white: {
     background: colors.white,
-    iconColor: colors.gray700,
+    iconColor: colors.gray500,
   },
 };
 
@@ -252,7 +255,7 @@ const generateButtonTheme = alias => ({
     backgroundActive: colors.white,
     border: '#d8d2de',
     borderActive: '#c9c0d1',
-    focusShadow: color(colors.gray300).alpha(0.5).string(),
+    focusShadow: color(colors.gray200).alpha(0.5).string(),
   },
   primary: {
     color: colors.white,
@@ -310,7 +313,7 @@ const iconSizes = {
   xxl: '72px',
 };
 
-const theme = {
+const commonTheme = {
   breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
 
   ...colors,
@@ -428,13 +431,9 @@ const theme = {
     lineHeightBody: '1.4',
   },
 
-  // Aliases
-  ...aliases,
-
   alert,
   badge,
   tag,
-  button: generateButtonTheme(aliases),
 
   charts: {
     colors: CHART_PALETTE[CHART_PALETTE.length - 1],
@@ -443,7 +442,7 @@ const theme = {
     getColorPalette: (length: number) =>
       CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
-    previousPeriod: colors.gray400,
+    previousPeriod: colors.gray200,
     symbolSize: 6,
   },
 
@@ -463,7 +462,43 @@ const theme = {
   space: [0, 8, 16, 20, 30],
 } as const;
 
-export type Theme = typeof theme;
+const darkAliases = {
+  bodyBackground: colors.black,
+  headerBackground: colors.gray500,
+  background: colors.black,
+  backgroundSecondary: colors.gray500,
+  border: colors.gray400,
+  innerBorder: colors.gray500,
+  textColor: colors.white,
+  subText: colors.gray200,
+  linkColor: colors.purple200,
+  disabled: colors.gray200,
+  active: colors.pink300,
+  inactive: colors.gray200,
+  error: colors.red300,
+  success: colors.green300,
+  secondaryButton: colors.purple200,
+  sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
+  formPlaceholder: colors.gray400,
+  formText: colors.white,
+  rowBackground: colors.gray500,
+  chartLineColor: colors.gray500,
+  chartLabel: colors.gray400,
+} as const;
+
+const theme = {
+  ...commonTheme,
+  ...aliases,
+  button: generateButtonTheme(aliases),
+} as const;
+
+export const darkTheme = {
+  ...commonTheme,
+  ...darkAliases,
+  button: generateButtonTheme(darkAliases),
+} as const;
+
+export type Theme = typeof theme | typeof darkTheme;
 export type Color = keyof typeof colors;
 export type IconSize = keyof typeof iconSizes;
 export type Aliases = typeof aliases;

@@ -294,6 +294,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=self.user,
             rule_type="issue",
             sender=type(Rule),
+            is_api_token=False,
         )
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -378,6 +379,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             user=self.user,
             rule_type="issue",
             sender=type(Rule),
+            is_api_token=False,
         )
 
         assert (

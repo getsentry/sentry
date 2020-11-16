@@ -421,6 +421,16 @@ function routes() {
         <Route path=":filterType/" />
       </Route>
       <Route
+        path="issue-grouping/"
+        name={t('Issue Grouping')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectIssueGrouping" */ 'app/views/settings/projectIssueGrouping'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="hooks/"
         name="Service Hooks"
         componentPromise={() =>
@@ -1006,7 +1016,7 @@ function routes() {
           path="/share/issue/:shareId/"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "SharedGroupDetails" */ 'app/views/sharedGroupDetails/sharedGroupDetails'
+              /* webpackChunkName: "SharedGroupDetails" */ 'app/views/sharedGroupDetails'
             )
           }
           component={errorHandler(LazyLoad)}

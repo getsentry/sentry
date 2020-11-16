@@ -20,7 +20,7 @@ import space from 'app/styles/space';
 type Props = {
   frame: Frame;
   event: Event;
-  organization: Organization; //TODO mark as not optional since it's undefined in the share issue view
+  organization?: Organization;
   registers: {[key: string]: string};
   components: Array<SentryAppComponent>;
   isExpanded?: boolean;

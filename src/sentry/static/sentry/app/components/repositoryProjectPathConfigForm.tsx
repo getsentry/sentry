@@ -57,6 +57,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           inline: false,
           placeholder: t('Choose repo'),
           options: repoChoices,
+          deprecatedSelectControl: false,
         },
         {
           name: 'defaultBranch',
@@ -123,7 +124,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
 
 const StyledForm = styled(Form)`
   label {
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.subText};
     font-family: Rubik;
     font-size: 12px;
     font-weight: 500;

@@ -318,6 +318,7 @@ export const Release = PropTypes.shape({
   url: PropTypes.string,
   dateReleased: PropTypes.string,
   owner: User,
+  status: PropTypes.oneOf(['archived', 'open']),
 });
 
 export const Repository = PropTypes.shape({

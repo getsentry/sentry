@@ -15,7 +15,7 @@ type Props = {
 
 const queries = [
   ['is:inbox', t('Inbox')],
-  ['is:unresolved', t('Backlog')],
+  ['!is:inbox is:unresolved', t('Backlog')],
   ['is:ignored', t('Ignored')],
   ['is:resolved', t('Resolved')],
 ];
@@ -68,5 +68,5 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const StyledQueryCount = styled(QueryCount)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;

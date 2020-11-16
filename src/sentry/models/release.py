@@ -10,6 +10,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 from time import time
 
 from sentry.app import locks
@@ -47,6 +48,10 @@ class UnsafeReleaseDeletion(Exception):
     pass
 
 
+class ReleaseCommitError(Exception):
+    pass
+
+
 class ReleaseProject(Model):
     __core__ = False
 
@@ -58,6 +63,38 @@ class ReleaseProject(Model):
         app_label = "sentry"
         db_table = "sentry_release_project"
         unique_together = (("project", "release"),)
+
+
+class ReleaseStatus(object):
+    OPEN = 0
+    ARCHIVED = 1
+
+    @classmethod
+    def from_string(cls, value):
+        if value == "open":
+            return cls.OPEN
+        elif value == "archived":
+            return cls.ARCHIVED
+        else:
+            raise ValueError(repr(value))
+
+    @classmethod
+    def to_string(cls, value):
+        # XXX(markus): Since the column is nullable we need to handle `null` here.
+        # However `null | undefined` in request payloads means "don't change
+        # status of release". This is why `from_string` does not consider
+        # `null` valid.
+        #
+        # We could remove `0` as valid state and only have `null` but I think
+        # that would make things worse.
+        #
+        # Eventually we should backfill releasestatus to 0
+        if value is None or value == ReleaseStatus.OPEN:
+            return "open"
+        elif value == ReleaseStatus.ARCHIVED:
+            return "archived"
+        else:
+            raise ValueError(repr(value))
 
 
 class Release(Model):
@@ -74,6 +111,12 @@ class Release(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
     )
+    status = BoundedPositiveIntegerField(
+        default=ReleaseStatus.OPEN,
+        null=True,
+        choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
+    )
+
     # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
@@ -421,6 +464,11 @@ class Release(Model):
         ]
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
+        if lock.locked():
+            # Signal failure to the consumer rapidly. This aims to prevent the number
+            # of timeouts and prevent web worker exhaustion when customers create
+            # the same release rapidly for different projects.
+            raise ReleaseCommitError
         with TimedRetryPolicy(10)(lock.acquire):
             start = time()
             with transaction.atomic():

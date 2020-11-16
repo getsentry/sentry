@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 
 from rest_framework.response import Response
 
@@ -11,7 +12,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
-from sentry.models import Activity, Environment, Release
+from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
 from sentry.utils.sdk import configure_scope, bind_organization_context
@@ -43,9 +44,11 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset = Release.objects.none()
             environment = None
         else:
-            queryset = Release.objects.filter(
-                projects=project, organization_id=project.organization_id
-            ).select_related("owner")
+            queryset = (
+                Release.objects.filter(projects=project, organization_id=project.organization_id,)
+                .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
+                .select_related("owner")
+            )
             if environment is not None:
                 queryset = queryset.filter(
                     releaseprojectenvironment__project=project,

@@ -120,6 +120,8 @@ export default class SavedSearchSelector extends React.Component<Props> {
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.background};
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
@@ -141,7 +143,7 @@ const ButtonTitle = styled('span')`
 `;
 
 const SearchTitle = styled('strong')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
 
@@ -151,19 +153,19 @@ const SearchTitle = styled('strong')`
 `;
 
 const SearchQuery = styled('code')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
 
 const DeleteButton = styled(Button)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   background: transparent;
   flex-shrink: 0;
   padding: ${space(1.5)} ${space(1.5)} ${space(1)} 0;
@@ -176,6 +178,7 @@ const DeleteButton = styled(Button)`
 
 const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
+  background-color: ${p => p.theme.background};
 
   position: relative;
   border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
@@ -183,7 +186,7 @@ const MenuItem = styled('li')<{last: boolean}>`
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
