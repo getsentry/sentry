@@ -142,12 +142,11 @@ class IssueListOverview extends React.Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
-    this.fetchTags();
-    this.fetchMemberList();
-
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     this.fetchSavedSearches();
+    this.fetchTags();
+    this.fetchMemberList();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
