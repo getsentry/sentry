@@ -267,7 +267,7 @@ class FlagAction(Action):
                 set_in_app(frame, self.flag)
 
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
-        rule_hint = "grouping enhancement rule"
+        rule_hint = "stack trace rule"
         if rule:
             rule_hint = "%s (%s)" % (rule_hint, rule.matcher_description)
 
@@ -327,7 +327,7 @@ class StacktraceState(object):
         description = self.describe_var_rule(var)
         if description is None:
             return hint
-        return "%s by grouping enhancement rule (%s)" % (hint, description)
+        return "%s by stack trace rule (%s)" % (hint, description)
 
 
 class Enhancements(object):
@@ -399,7 +399,7 @@ class Enhancements(object):
             total_contributes = sum(x.contributes for x in components)
             if 0 < total_contributes < min_frames:
                 hint = (
-                    "discarded because stacktrace only contains %d "
+                    "discarded because stack trace only contains %d "
                     "frame%s which is under the configured threshold"
                     % (total_contributes, "s" if total_contributes != 1 else "")
                 )
@@ -462,7 +462,7 @@ class Enhancements(object):
                 msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
             )
         except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid grouping enhancement config: %s" % e)
+            raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
     def from_config_string(self, s, bases=None, id=None):

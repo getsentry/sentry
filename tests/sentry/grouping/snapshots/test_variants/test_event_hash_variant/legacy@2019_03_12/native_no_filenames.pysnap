@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:28.326044Z'
+created: '2020-11-12T10:56:54.425167Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,19 +12,19 @@ app:
           frame
             function (function name is not used if module or filename are available)
               "_main"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::rt::lang_start"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::rt::lang_start_internal"
           frame
             function (function name is not used if module or filename are available)
               "___rust_maybe_catch_panic"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::panicking::try::do_call"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::rt::lang_start::{{closure}}"
           frame
@@ -65,19 +65,19 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "_main"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::rt::lang_start"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::rt::lang_start_internal"
           frame
             function (function name is not used if module or filename are available)
               "___rust_maybe_catch_panic"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::panicking::try::do_call"
-          frame (marked out of app by grouping enhancement rule (family:native function:std::* -app))
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
             function (function name is not used if module or filename are available)
               "std::rt::lang_start::{{closure}}"
           frame

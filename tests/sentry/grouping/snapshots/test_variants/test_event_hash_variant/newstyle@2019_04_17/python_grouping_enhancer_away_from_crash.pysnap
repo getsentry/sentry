@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:36.203844Z'
+created: '2020-11-12T10:56:59.426072Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -44,7 +44,7 @@ app:
               "decorators.py"
             function*
               "bound_func"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -90,49 +90,49 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.core.handlers.base"
             filename (module takes precedence)
               "base.py"
             function*
               "get_response"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.views.generic.base"
             filename (module takes precedence)
               "base.py"
             function*
               "view"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.utils.decorators"
             filename (module takes precedence)
               "decorators.py"
             function*
               "_wrapper"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.views.decorators.csrf"
             filename (module takes precedence)
               "csrf.py"
             function*
               "wrapped_view"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.utils.decorators"
             filename (module takes precedence)
               "decorators.py"
             function*
               "bound_func"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
               "release_webhook.py"
             function*
               "dispatch"
-          frame (ignored by grouping enhancement rule (path:**/release_webhook.py v-group))
+          frame (ignored by stack trace rule (path:**/release_webhook.py v-group))
             module*
               "django.views.generic.base"
             filename (module takes precedence)
