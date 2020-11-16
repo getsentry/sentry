@@ -31,6 +31,7 @@ type Props = {
   organization: Organization;
   location: Location;
   savedQueries: SavedQuery[];
+  renderPrebuilt: boolean;
   pageLinks: string;
   onQueryChange: () => void;
   savedQuerySearchQuery: string;
@@ -82,13 +83,13 @@ class QueryList extends React.Component<Props> {
   };
 
   renderQueries() {
-    const {pageLinks} = this.props;
+    const {pageLinks, renderPrebuilt} = this.props;
     const links = parseLinkHeader(pageLinks || '');
     let cards: React.ReactNode[] = [];
 
     // If we're on the first page (no-previous page exists)
     // include the pre-built queries.
-    if (!links.previous || links.previous.results === false) {
+    if (renderPrebuilt && (!links.previous || links.previous.results === false)) {
       cards = cards.concat(this.renderPrebuiltQueries());
     }
     cards = cards.concat(this.renderSavedQueries());
