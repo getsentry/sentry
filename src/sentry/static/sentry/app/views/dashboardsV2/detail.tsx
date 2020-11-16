@@ -12,6 +12,8 @@ import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import space from 'app/styles/space';
 
+import Controls from './controls';
+
 type Props = {
   location: Location;
   organization: Organization;
@@ -40,6 +42,7 @@ class DashboardDetail extends React.Component<Props> {
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
                 <div>{t('Dashboards')}</div>
+                <Controls />
               </StyledPageHeader>
               <div>dashboard details</div>
             </LightWeightNoProjectMessage>
