@@ -362,7 +362,7 @@ export class Client {
       : any
   > {
     // Create an error object here before we make any async calls so
-    // that we have a helpful stacktrace if it errors
+    // that we have a helpful stack trace if it errors
     //
     // This *should* get logged to Sentry only if the promise rejection is not handled
     // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection

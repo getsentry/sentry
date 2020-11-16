@@ -130,7 +130,7 @@ class ThreadInterface extends React.Component<Props, State> {
             />
           ) : (
             <CrashTitle
-              title={t('Stacktrace')}
+              title={t('Stack Trace')}
               newestFirst={newestFirst}
               hideGuide={hideGuide}
               onChange={this.handleChangeNewestFirst}
