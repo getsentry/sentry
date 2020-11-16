@@ -46,7 +46,7 @@ const UnhandledTag = styled((props: React.ComponentProps<typeof Tag>) => (
 
   & > span,
   & svg {
-    height: 10px;
+    height: 11px;
     width: 10px;
   }
 `;
