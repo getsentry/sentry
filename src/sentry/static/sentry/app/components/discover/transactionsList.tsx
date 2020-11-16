@@ -46,6 +46,9 @@ export type DropdownOption = {
    * Included if the option is for a trend
    */
   trendType?: string;
+  /**
+   * overide the eventView query
+   */
   query?: string;
 };
 
@@ -120,7 +123,6 @@ class TransactionsList extends React.Component<Props> {
       options,
       handleDropdownChange,
     } = this.props;
-    const sortedEventView = eventView.withSorts([selected.sort]);
 
     return (
       <Header>
@@ -144,7 +146,9 @@ class TransactionsList extends React.Component<Props> {
         {!this.isTrend() && (
           <HeaderButtonContainer>
             <DiscoverButton
-              to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
+              to={eventView
+                .withSorts([selected.sort])
+                .getResultsViewUrlTarget(organization.slug)}
               size="small"
               data-test-id="discover-open"
             >
