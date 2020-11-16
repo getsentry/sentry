@@ -103,10 +103,6 @@ export default function getConfiguration({
           title: t('ProGuard'),
           show: () => !!organization?.features?.includes('android-mappings'),
         },
-        {
-          path: `${pathPrefix}/issue-grouping/`,
-          title: t('Issue Grouping'),
-        },
       ],
     },
     {
