@@ -29,12 +29,14 @@ import Alert from 'app/components/alert';
 
 import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
+import {getReleaseEventView} from './utils';
 
 type ReleaseContext = {
   release: ReleaseWithHealth;
   project: Required<ReleaseProject>;
   deploys: Deploy[];
   releaseMeta: ReleaseMeta;
+  refetchData: () => void;
 };
 const ReleaseContext = React.createContext<ReleaseContext>({} as ReleaseContext);
 
@@ -126,6 +128,11 @@ class ReleasesDetail extends AsyncView<Props, State> {
     const {organization, location, selection, releaseMeta} = this.props;
     const {release, deploys, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
+    const releaseEventView = getReleaseEventView(
+      selection,
+      release?.version,
+      organization
+    );
 
     if (!project || !release) {
       if (reloading) {
@@ -140,13 +147,23 @@ class ReleasesDetail extends AsyncView<Props, State> {
         <StyledPageContent>
           <ReleaseHeader
             location={location}
-            orgId={organization.slug}
+            organization={organization}
+            releaseEventView={releaseEventView}
             release={release}
             project={project}
             releaseMeta={releaseMeta}
+            refetchData={this.fetchData}
           />
           <Body>
-            <ReleaseContext.Provider value={{release, project, deploys, releaseMeta}}>
+            <ReleaseContext.Provider
+              value={{
+                release,
+                project,
+                deploys,
+                releaseMeta,
+                refetchData: this.fetchData,
+              }}
+            >
               {this.props.children}
             </ReleaseContext.Provider>
           </Body>
@@ -227,6 +244,19 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
       );
     }
 
+    let defaultSelection = {};
+    if (organization.features.includes('release-performance-views')) {
+      const releaseDate = new Date(releaseMeta.released);
+      // Center the release in a 24h time period
+      defaultSelection = {
+        datetime: {
+          start: new Date(releaseDate.getTime() - 12 * 3600 * 1000),
+          end: new Date(releaseDate.getTime() + 12 * 3600 * 1000),
+          utc: false,
+        },
+      };
+    }
+
     return (
       <GlobalSelectionHeader
         lockedMessageSubject={t('release')}
@@ -236,6 +266,7 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
         disableMultipleProjectSelection
         showProjectSettingsLink
         projectsFooterMessage={this.renderProjectsFooterMessage()}
+        defaultSelection={defaultSelection}
       >
         <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </GlobalSelectionHeader>

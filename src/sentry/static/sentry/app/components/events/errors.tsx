@@ -89,9 +89,9 @@ class EventErrors extends React.Component<Props, State> {
 
 const linkStyle = ({theme}: {theme: Theme}) => css`
   font-weight: bold;
-  color: ${theme.gray400};
+  color: ${theme.subText};
   :hover {
-    color: ${theme.gray500};
+    color: ${theme.textColor};
   }
 `;
 

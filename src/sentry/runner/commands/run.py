@@ -211,10 +211,38 @@ def run_worker(**options):
 @click.option("--without-mingle", is_flag=True, default=False)
 @click.option("--without-heartbeat", is_flag=True, default=False)
 @click.option("--max-tasks-per-child", default=10000)
+@click.option("--ignore-unknown-queues", is_flag=True, default=False)
 @log_options()
 @configuration
-def worker(**options):
+def worker(ignore_unknown_queues, **options):
     """Run background worker instance and autoreload if necessary."""
+
+    from sentry.celery import app
+
+    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_QUEUES)
+
+    if options["queues"] is not None:
+        if not options["queues"].issubset(known_queues):
+            unknown_queues = options["queues"] - known_queues
+            message = "Following queues are not found: %s" % ",".join(sorted(unknown_queues))
+            if ignore_unknown_queues:
+                options["queues"] -= unknown_queues
+                click.echo(message)
+            else:
+                raise click.ClickException(message)
+
+    if options["exclude_queues"] is not None:
+        if not options["exclude_queues"].issubset(known_queues):
+            unknown_queues = options["exclude_queues"] - known_queues
+            message = "Following queues cannot be excluded as they don't exist: %s" % ",".join(
+                sorted(unknown_queues)
+            )
+            if ignore_unknown_queues:
+                options["exclude_queues"] -= unknown_queues
+                click.echo(message)
+            else:
+                raise click.ClickException(message)
+
     if options["autoreload"]:
         from django.utils import autoreload
 

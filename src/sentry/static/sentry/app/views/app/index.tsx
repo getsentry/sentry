@@ -189,9 +189,11 @@ class App extends React.Component<Props, State> {
     if (config.needsUpgrade !== undefined) {
       newState.needsUpgrade = config.needsUpgrade;
     }
+
     if (config.user !== undefined) {
       newState.user = config.user;
     }
+
     if (Object.keys(newState).length > 0) {
       this.setState(newState);
     }

@@ -27,6 +27,7 @@ import TextField from 'app/views/settings/components/forms/textField';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
+import AlertLink from 'app/components/alertLink';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {
@@ -50,11 +51,7 @@ class ProjectGeneralSettings extends AsyncView {
   getEndpoints() {
     const {orgId, projectId} = this.props.params;
 
-    return [
-      ['data', `/projects/${orgId}/${projectId}/`],
-      ['groupingConfigs', '/grouping-configs/'],
-      ['groupingEnhancementBases', '/grouping-enhancements/'],
-    ];
+    return [['data', `/projects/${orgId}/${projectId}/`]];
   }
 
   handleTransferFieldChange = (id, value) => {
@@ -252,9 +249,6 @@ class ProjectGeneralSettings extends AsyncView {
           apiMethod="PUT"
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
-            // this is necessary for the grouping upgrade button to be
-            // updating based on the current selection of the grouping
-            // config.
             this.setState({data: resp});
             if (projectId !== resp.slug) {
               changeProjectSlug(projectId, resp.slug);
@@ -282,6 +276,18 @@ class ProjectGeneralSettings extends AsyncView {
             title={t('Event Settings')}
             fields={[fields.resolveAge]}
           />
+
+          <AlertLink
+            to={`/settings/${organization.slug}/projects/${project.slug}/issue-grouping/`}
+            priority="info"
+          >
+            {tct(
+              "psst. Looking for the Grouping Settings? You'll find that under [underline: Issue Grouping].",
+              {
+                underline: <u />,
+              }
+            )}
+          </AlertLink>
 
           <JsonForm
             {...jsonFormProps}

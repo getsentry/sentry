@@ -232,7 +232,7 @@ const ExploreMenu = styled('div')`
   bottom: 100%;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
 
-  background-color: white;
+  background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
 `;
 

@@ -7,7 +7,7 @@ import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
 import {IconEllipsis, IconPause, IconPlay, IconIssues} from 'app/icons';
 import {Client} from 'app/api';
-import {GlobalSelection, Group, Project, ResolutionStatus, Organization} from 'app/types';
+import {GlobalSelection, Group, Organization, Project, ResolutionStatus} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -25,6 +25,7 @@ import Tooltip from 'app/components/tooltip';
 import Feature from 'app/components/acl/feature';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -155,6 +156,7 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
+  issuesLoading: boolean;
 };
 
 type State = {
@@ -400,12 +402,14 @@ class IssueListActions extends React.Component<Props, State> {
     const {
       allResultsVisible,
       orgId,
-      organization,
       queryCount,
       query,
       realtimeActive,
       selection,
       statsPeriod,
+      organization,
+      groupIds,
+      issuesLoading,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -422,6 +426,8 @@ class IssueListActions extends React.Component<Props, State> {
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
+    const hasInboxReason =
+      issuesLoading || groupIds.some(id => !!GroupStore.get(id)?.inbox);
 
     return (
       <Sticky>
@@ -638,6 +644,10 @@ class IssueListActions extends React.Component<Props, State> {
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
+          <Feature organization={organization} features={['organizations:inbox']}>
+            {hasInboxReason && <ReasonSpacerLabel className="hidden-xs hidden-sm" />}
+            <TimesSpacerLabel className="hidden-xs hidden-sm" />
+          </Feature>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -759,7 +769,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.gray500 : p.theme.disabled)};
+    color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
   }
 `;
 
@@ -790,6 +800,16 @@ const AssigneesLabel = styled('div')`
   margin-right: ${space(2)};
 `;
 
+const ReasonSpacerLabel = styled('div')`
+  width: 95px;
+  margin: 0 ${space(0.25)} 0 ${space(1)};
+`;
+
+const TimesSpacerLabel = styled('div')`
+  width: 170px;
+  margin: 0 ${space(1.5)} 0 ${space(0.5)};
+`;
+
 // New icons are misaligned inside bootstrap buttons.
 // This is a shim that can be removed when buttons are upgraded
 // to styled components.
@@ -813,4 +833,4 @@ const SelectAllLink = styled('a')`
 
 export {IssueListActions};
 
-export default withApi(IssueListActions);
+export default withApi(withOrganization(IssueListActions));

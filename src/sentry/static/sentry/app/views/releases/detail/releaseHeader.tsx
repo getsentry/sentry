@@ -6,10 +6,11 @@ import pick from 'lodash/pick';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
+import Feature from 'app/components/acl/feature';
 import ListLink from 'app/components/links/listLink';
 import ExternalLink from 'app/components/links/externalLink';
 import NavTabs from 'app/components/navTabs';
-import {Release, ReleaseProject, ReleaseMeta} from 'app/types';
+import {Organization, Release, ReleaseProject, ReleaseMeta} from 'app/types';
 import Version from 'app/components/version';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy, IconOpen} from 'app/icons';
@@ -21,24 +22,40 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import DeployBadge from 'app/components/deployBadge';
 import Badge from 'app/components/badge';
 import * as Layout from 'app/components/layouts/thirds';
+import {getTermHelp} from 'app/views/performance/data';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 
 import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
 
 type Props = {
   location: Location;
-  orgId: string;
+  organization: Organization;
+  releaseEventView: EventView;
   release: Release;
   project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
+  refetchData: () => void;
 };
 
-const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) => {
+const ReleaseHeader = ({
+  location,
+  organization,
+  releaseEventView,
+  release,
+  project,
+  releaseMeta,
+  refetchData,
+}: Props) => {
   const {version, newGroups, url, lastDeploy, dateCreated} = release;
   const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
   const {hasHealthData, sessionsCrashed} = project.healthData;
 
-  const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
+  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
+    version
+  )}/`;
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
@@ -81,7 +98,7 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${orgId}/releases/`,
+              to: `/organizations/${organization.slug}/releases/`,
               label: t('Releases'),
               preserveGlobalSelection: true,
             },
@@ -106,10 +123,40 @@ const ReleaseHeader = ({location, orgId, release, project, releaseMeta}: Props) 
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
+          <Feature features={['release-performance-views']}>
+            <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
+              <DiscoverQuery
+                eventView={releaseEventView}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {({isLoading, error, tableData}) => {
+                  if (isLoading || error || !tableData || tableData.data.length === 0) {
+                    return '\u2014';
+                  }
+                  return (
+                    <Count
+                      value={
+                        tableData.data[0][
+                          getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                        ]
+                      }
+                    />
+                  );
+                }}
+              </DiscoverQuery>
+            </ReleaseStat>
+          </Feature>
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
-          <ReleaseActions version={version} orgId={orgId} hasHealthData={hasHealthData} />
+          <ReleaseActions
+            orgSlug={organization.slug}
+            projectSlug={project.slug}
+            release={release}
+            releaseMeta={releaseMeta}
+            refetchData={refetchData}
+          />
         </StatsWrapper>
       </HeaderInfoContainer>
 
@@ -193,7 +240,7 @@ const StyledDeployBadge = styled(DeployBadge)`
 
 const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
 `;
@@ -208,7 +255,7 @@ const IconWrapper = styled('span')`
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.gray500};
+      color: ${p => p.theme.textColor};
     }
   }
 `;
