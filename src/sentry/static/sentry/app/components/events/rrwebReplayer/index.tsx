@@ -1,35 +1,8 @@
-import React, {Component} from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import rrwebPlayer from 'rrweb-player';
 
-import theme from 'app/utils/theme';
+import RRWebReplayer from './rrWebReplayer';
 
-class RRWebReplayer extends Component {
-  static propTypes = {
-    url: PropTypes.string.isRequired,
-  };
-
-  async componentDidMount() {
-    const resp = await fetch(this.props.url);
-    const payload = await resp.json();
-    const _ = new rrwebPlayer({
-      target: this.ref.current,
-      autoplay: false,
-      data: {
-        ...payload,
-      },
-    });
-  }
-
-  ref = React.createRef();
-
-  render() {
-    return <div ref={this.ref} className={this.props.className} />;
-  }
-}
-
-export default styled(RRWebReplayer)`
+const StyledRRWebReplayer = styled(RRWebReplayer)`
   .rr-player {
     width: auto !important;
   }
@@ -60,14 +33,14 @@ export default styled(RRWebReplayer)`
 
   .replayer-mouse,
   .replayer-mouse:after {
-    z-index: ${theme.zIndex.tooltip};
+    z-index: ${p => p.theme.zIndex.tooltip};
   }
 
   .rr-controller {
     width: 100%;
     display: block;
-    padding: ${theme.space[2]}px 0;
-    background: #fff;
+    padding: ${p => p.theme.space[2]}px 0;
+    background: ${p => p.theme.background};
     border-radius: 0 0 5px 5px;
     box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
     position: relative;
@@ -216,3 +189,5 @@ export default styled(RRWebReplayer)`
     left: 1.1em;
   }
 `;
+
+export default StyledRRWebReplayer;

@@ -10,8 +10,28 @@ import {
   RadioBooleanField,
 } from 'app/components/forms';
 
+type Section = {
+  key: string;
+  heading?: string;
+};
+
+type Field = {
+  key: string;
+  label: React.ReactNode;
+  help?: React.ReactNode;
+  noLabel?: string;
+  yesLabel?: string;
+  yesFirst?: boolean;
+  placeholder?: string;
+  required?: boolean;
+  allowEmpty?: boolean;
+  disabledReason?: string;
+  defaultValue?: () => string | false;
+  component?: React.ComponentType<any>;
+};
+
 // This are ordered based on their display order visually
-const sections = [
+const sections: Section[] = [
   {
     key: 'system',
   },
@@ -30,7 +50,7 @@ const sections = [
 ];
 
 // This are ordered based on their display order visually
-const definitions = [
+const definitions: Field[] = [
   {
     key: 'system.url-prefix',
     label: t('Root URL'),
@@ -168,20 +188,20 @@ const disabledReasons = {
   smtpDisabled: 'SMTP mail has been disabled, so this option is unavailable',
 };
 
-export function getOption(option) {
+export function getOption(option: string) {
   return definitionsMap[option];
 }
 
-export function getOptionDefault(option) {
+export function getOptionDefault(option: string) {
   const meta = getOption(option);
   return meta.defaultValue ? meta.defaultValue() : undefined;
 }
 
-function optionsForSection(section) {
+function optionsForSection(section: Section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
-export function getOptionField(option, field) {
+export function getOptionField(option: string, field: Field) {
   const meta = {...getOption(option), ...field};
   const Field = meta.component || TextField;
   return (
@@ -196,7 +216,7 @@ export function getOptionField(option, field) {
   );
 }
 
-function getSectionFieldSet(section, fields) {
+function getSectionFieldSet(section: Section, fields: Field[]) {
   return (
     <fieldset key={section.key}>
       {section.heading && <legend>{section.heading}</legend>}
@@ -205,21 +225,22 @@ function getSectionFieldSet(section, fields) {
   );
 }
 
-export function getForm(fields) {
-  // fields is a object mapping key name to Fields, so the goal is to split
-  // them up into multiple sections, and spit out fieldsets with a grouping of
-  // all fields, in the right order, under their section.
-  const sets = [];
+export function getForm(fieldMap: Record<string, Field>) {
+  const sets: React.ReactNode[] = [];
+
   for (const section of sections) {
-    const set = [];
+    const set: Field[] = [];
+
     for (const option of optionsForSection(section)) {
-      if (fields[option.key]) {
-        set.push(fields[option.key]);
+      if (fieldMap[option.key]) {
+        set.push(fieldMap[option.key]);
       }
     }
+
     if (set.length) {
       sets.push(getSectionFieldSet(section, set));
     }
   }
+
   return sets;
 }

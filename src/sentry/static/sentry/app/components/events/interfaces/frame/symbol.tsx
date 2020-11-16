@@ -89,7 +89,7 @@ const Wrapper = styled('div')`
 
   code {
     background: transparent;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
     padding-right: ${space(0.5)};
   }
 

@@ -61,8 +61,8 @@ export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray400};
-  background-color: ${p => p.theme.white};
+  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.25)} ${space(3)};
@@ -81,6 +81,6 @@ export const OpenInLink = styled(ExternalLink)`
 `;
 
 export const OpenInName = styled('strong')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-weight: 700;
 `;

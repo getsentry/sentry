@@ -26,3 +26,9 @@ class LockBackend(object):
         Release a lock. The return value is not used.
         """
         raise NotImplementedError
+
+    def locked(self, key, routing_key=None):
+        """
+        Check if a lock has been taken.
+        """
+        raise NotImplementedError

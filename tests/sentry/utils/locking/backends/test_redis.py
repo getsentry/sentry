@@ -51,3 +51,12 @@ class RedisLockBackendTestCase(TestCase):
 
         with pytest.raises(Exception):
             self.backend.acquire(key, duration)
+
+    def test_locked(self):
+        key = "lock:testkey"
+        duration = 60
+        assert self.backend.locked(key) is False
+
+        self.backend.acquire(key, duration)
+        assert self.backend.locked(key)
+        self.backend.release(key)

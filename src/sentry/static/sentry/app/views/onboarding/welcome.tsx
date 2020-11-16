@@ -71,7 +71,7 @@ const ActionGroup = styled('div')`
 `;
 
 const SecondaryAction = styled('small')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export default withOrganization(withConfig(OnboardingWelcome));

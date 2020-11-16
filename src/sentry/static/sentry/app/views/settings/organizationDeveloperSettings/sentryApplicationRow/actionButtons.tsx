@@ -98,7 +98,7 @@ const ButtonHolder = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 export default ActionButtons;

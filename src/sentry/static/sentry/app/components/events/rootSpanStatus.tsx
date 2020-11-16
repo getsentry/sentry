@@ -75,7 +75,7 @@ class RootSpanStatus extends React.Component<Props> {
 }
 
 const Container = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
 `;

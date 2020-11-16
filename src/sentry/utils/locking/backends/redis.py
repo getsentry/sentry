@@ -53,3 +53,7 @@ class RedisLockBackend(LockBackend):
     def release(self, key, routing_key=None):
         client = self.get_client(key, routing_key)
         delete_lock(client, (self.prefix_key(key),), (self.uuid,))
+
+    def locked(self, key, routing_key=None):
+        client = self.get_client(key, routing_key)
+        return client.get(self.prefix_key(key)) is not None
