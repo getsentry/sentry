@@ -105,14 +105,6 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
       border: 'none',
     };
 
-    const selectLabel = (label: string) => ({
-      ':before': {
-        content: `"${label}"`,
-        color: theme.gray300,
-        fontWeight: 600,
-      },
-    });
-
     return (
       <StyledPanel>
         <PanelBody>
@@ -130,12 +122,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 styles={{
                   singleValue: (base: any) => ({
                     ...base,
-                    ...selectLabel(t('Env: ')),
                     '.all-environment-note': {display: 'none'},
-                  }),
-                  placeholder: (base: any) => ({
-                    ...base,
-                    ...selectLabel(t('Env: ')),
                   }),
                   option: (base: any, state: any) => ({
                     ...base,
@@ -152,6 +139,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 isClearable
                 inline={false}
                 flexibleControlStateSize
+                inFieldLabel={t('Env: ')}
               />
               <Feature requireAll features={['organizations:performance-view']}>
                 <FormField
@@ -174,16 +162,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                     return (
                       <SelectControl
                         value={mappedValue}
-                        styles={{
-                          singleValue: (base: any) => ({
-                            ...base,
-                            ...selectLabel(t('Data Source: ')),
-                          }),
-                          placeholder: (base: any) => ({
-                            ...base,
-                            ...selectLabel(t('Data Source: ')),
-                          }),
-                        }}
+                        inFieldLabel={t('Data Source: ')}
                         onChange={optionObj => {
                           const optionValue = optionObj.value;
                           onChange(optionValue, {});
