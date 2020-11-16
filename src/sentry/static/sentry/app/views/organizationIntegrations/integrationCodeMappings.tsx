@@ -141,8 +141,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
               <NameRepoColumn>{t('Code Path Mappings')}</NameRepoColumn>
-              <OutputPathColumn>{t('Output Path')}</OutputPathColumn>
-              <InputPathColumn>{t('Input Path')}</InputPathColumn>
+              <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
+              <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
               <ButtonColumn>
                 <AddButton
                   onClick={() => this.openModal()}
