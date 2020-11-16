@@ -232,8 +232,10 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
     const conditions = tokenizeSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
+      this.hasPushedDefaults = true;
       return <React.Fragment>{children}</React.Fragment>;
     } else {
+      this.hasPushedDefaults = true;
       conditions.setTagValues('tpm()', ['>0.01']);
       conditions.setTagValues('transaction.duration', ['>0', `<${DEFAULT_MAX_DURATION}`]);
     }
@@ -250,7 +252,6 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
         view: FilterViews.TRENDS,
       },
     });
-    this.hasPushedDefaults = true;
     return null;
   }
 }

@@ -69,4 +69,4 @@ jobs:
       - name: Run snuba test [py2.7] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
-          make travis-test-snuba
+          make test-snuba

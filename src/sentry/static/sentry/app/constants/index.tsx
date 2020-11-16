@@ -248,3 +248,7 @@ export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const DISABLE_RR_WEB = !!process.env.DISABLE_RR_WEB;
 export const SPA_DSN = process.env.SPA_DSN;
+
+export const DEFAULT_ERROR_JSON = {
+  detail: t('Unknown error. Please try again.'),
+};

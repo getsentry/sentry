@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {IconSound, IconSwitch, IconSync, IconWarning} from 'app/icons';
-import {Group} from 'app/types';
+import {InboxDetails} from 'app/types';
 import Tag from 'app/components/tag';
 import DateTime from 'app/components/dateTime';
 
@@ -16,11 +16,11 @@ const GroupInboxReason = {
 };
 
 type Props = {
-  data: Group;
+  inbox: InboxDetails;
 };
 
-const InboxReason = ({data}: Props) => {
-  const {reason, reason_details, date_added: dateAdded} = data.inbox || {};
+const InboxReason = ({inbox}: Props) => {
+  const {reason, reason_details, date_added: dateAdded} = inbox;
 
   let reasonIcon: React.ReactNode;
   let reasonBadgeText: string;
@@ -48,14 +48,14 @@ const InboxReason = ({data}: Props) => {
   }
 
   const tooltip = (
-    <React.Fragment>
+    <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {dateAdded && (
         <DateWrapper>
           <DateTime date={dateAdded} />
         </DateWrapper>
       )}
-    </React.Fragment>
+    </TooltipWrapper>
   );
 
   return (
@@ -69,4 +69,8 @@ export default InboxReason;
 
 const DateWrapper = styled('div')`
   color: ${p => p.theme.gray200};
+`;
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
 `;
