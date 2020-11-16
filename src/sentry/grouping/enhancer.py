@@ -399,7 +399,7 @@ class Enhancements(object):
             total_contributes = sum(x.contributes for x in components)
             if 0 < total_contributes < min_frames:
                 hint = (
-                    "discarded because stacktrace only contains %d "
+                    "discarded because stack trace only contains %d "
                     "frame%s which is under the configured threshold"
                     % (total_contributes, "s" if total_contributes != 1 else "")
                 )
