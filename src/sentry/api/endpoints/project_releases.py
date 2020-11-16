@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 
 from rest_framework.response import Response
 
@@ -43,9 +44,11 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset = Release.objects.none()
             environment = None
         else:
-            queryset = Release.objects.filter(
-                projects=project, organization_id=project.organization_id, status=ReleaseStatus.OPEN
-            ).select_related("owner")
+            queryset = (
+                Release.objects.filter(projects=project, organization_id=project.organization_id,)
+                .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
+                .select_related("owner")
+            )
             if environment is not None:
                 queryset = queryset.filter(
                     releaseprojectenvironment__project=project,

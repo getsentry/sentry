@@ -90,6 +90,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "newGroups": release.new_groups,
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
+                "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
                 "releaseFileCount": release_file_count,
             }

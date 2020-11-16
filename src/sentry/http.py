@@ -86,38 +86,37 @@ def safe_urlopen(
     if user_agent is not None:
         warnings.warn("user_agent is no longer used with safe_urlopen")
 
-    session = SafeSession()
+    with SafeSession() as session:
+        kwargs = {}
 
-    kwargs = {}
+        if json:
+            kwargs["json"] = json
+            if not headers:
+                headers = {}
+            headers.setdefault("Content-Type", "application/json")
 
-    if json:
-        kwargs["json"] = json
-        if not headers:
-            headers = {}
-        headers.setdefault("Content-Type", "application/json")
+        if data:
+            kwargs["data"] = data
 
-    if data:
-        kwargs["data"] = data
+        if params:
+            kwargs["params"] = params
 
-    if params:
-        kwargs["params"] = params
+        if headers:
+            kwargs["headers"] = headers
 
-    if headers:
-        kwargs["headers"] = headers
+        if method is None:
+            method = "POST" if (data or json) else "GET"
 
-    if method is None:
-        method = "POST" if (data or json) else "GET"
+        response = session.request(
+            method=method,
+            url=url,
+            allow_redirects=allow_redirects,
+            timeout=timeout,
+            verify=verify_ssl,
+            **kwargs
+        )
 
-    response = session.request(
-        method=method,
-        url=url,
-        allow_redirects=allow_redirects,
-        timeout=timeout,
-        verify=verify_ssl,
-        **kwargs
-    )
-
-    return response
+        return response
 
 
 def safe_urlread(response):
@@ -159,93 +158,93 @@ def fetch_file(
 
     logger.debug("Fetching %r from the internet", url)
 
-    http_session = SafeSession()
-    response = None
+    with SafeSession() as http_session:
+        response = None
 
-    try:
         try:
-            start = time.time()
-            response = http_session.get(
-                url,
-                allow_redirects=allow_redirects,
-                verify=verify_ssl,
-                headers=headers,
-                timeout=timeout,
-                stream=True,
-                **kwargs
-            )
-
             try:
-                cl = int(response.headers["content-length"])
-            except (LookupError, ValueError):
+                start = time.time()
+                response = http_session.get(
+                    url,
+                    allow_redirects=allow_redirects,
+                    verify=verify_ssl,
+                    headers=headers,
+                    timeout=timeout,
+                    stream=True,
+                    **kwargs
+                )
+
+                try:
+                    cl = int(response.headers["content-length"])
+                except (LookupError, ValueError):
+                    cl = 0
+                if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                    raise OverflowError()
+
+                return_body = False
+                if outfile is None:
+                    outfile = six.BytesIO()
+                    return_body = True
+
                 cl = 0
-            if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
-                raise OverflowError()
 
-            return_body = False
-            if outfile is None:
-                outfile = six.BytesIO()
-                return_body = True
+                # Only need to even attempt to read the response body if we
+                # got a 200 OK
+                if response.status_code == 200:
+                    for chunk in response.iter_content(16 * 1024):
+                        if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
+                            raise Timeout()
+                        outfile.write(chunk)
+                        cl += len(chunk)
+                        if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                            raise OverflowError()
 
-            cl = 0
+            except Exception as exc:
+                logger.debug("Unable to fetch %r", url, exc_info=True)
+                if isinstance(exc, RestrictedIPAddress):
+                    error = {"type": EventError.RESTRICTED_IP, "url": expose_url(url)}
+                elif isinstance(exc, SuspiciousOperation):
+                    error = {"type": EventError.SECURITY_VIOLATION, "url": expose_url(url)}
+                elif isinstance(exc, (Timeout, ReadTimeout)):
+                    error = {
+                        "type": EventError.FETCH_TIMEOUT,
+                        "url": expose_url(url),
+                        "timeout": settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+                    }
+                elif isinstance(exc, OverflowError):
+                    error = {
+                        "type": EventError.FETCH_TOO_LARGE,
+                        "url": expose_url(url),
+                        # We want size in megabytes to format nicely
+                        "max_size": float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
+                    }
+                elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
+                    error = {
+                        "type": EventError.FETCH_GENERIC_ERROR,
+                        "value": six.text_type(type(exc)),
+                        "url": expose_url(url),
+                    }
+                else:
+                    logger.exception(six.text_type(exc))
+                    error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
 
-            # Only need to even attempt to read the response body if we
-            # got a 200 OK
-            if response.status_code == 200:
-                for chunk in response.iter_content(16 * 1024):
-                    if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
-                        raise Timeout()
-                    outfile.write(chunk)
-                    cl += len(chunk)
-                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
-                        raise OverflowError()
+                # TODO(dcramer): we want to be less aggressive on disabling domains
+                if domain_lock_enabled:
+                    cache.set(domain_key, error or "", 300)
+                    logger.warning("source.disabled", extra=error)
+                raise CannotFetch(error)
 
-        except Exception as exc:
-            logger.debug("Unable to fetch %r", url, exc_info=True)
-            if isinstance(exc, RestrictedIPAddress):
-                error = {"type": EventError.RESTRICTED_IP, "url": expose_url(url)}
-            elif isinstance(exc, SuspiciousOperation):
-                error = {"type": EventError.SECURITY_VIOLATION, "url": expose_url(url)}
-            elif isinstance(exc, (Timeout, ReadTimeout)):
-                error = {
-                    "type": EventError.FETCH_TIMEOUT,
-                    "url": expose_url(url),
-                    "timeout": settings.SENTRY_SOURCE_FETCH_TIMEOUT,
-                }
-            elif isinstance(exc, OverflowError):
-                error = {
-                    "type": EventError.FETCH_TOO_LARGE,
-                    "url": expose_url(url),
-                    # We want size in megabytes to format nicely
-                    "max_size": float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
-                }
-            elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
-                error = {
-                    "type": EventError.FETCH_GENERIC_ERROR,
-                    "value": six.text_type(type(exc)),
-                    "url": expose_url(url),
-                }
-            else:
-                logger.exception(six.text_type(exc))
-                error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
+            headers = {k.lower(): v for k, v in response.headers.items()}
+            encoding = response.encoding
 
-            # TODO(dcramer): we want to be less aggressive on disabling domains
-            if domain_lock_enabled:
-                cache.set(domain_key, error or "", 300)
-                logger.warning("source.disabled", extra=error)
-            raise CannotFetch(error)
+            body = None
+            if return_body:
+                body = outfile.getvalue()
+                outfile.close()  # we only want to close StringIO
 
-        headers = {k.lower(): v for k, v in response.headers.items()}
-        encoding = response.encoding
+            result = (headers, body, response.status_code, encoding)
+        finally:
+            if response is not None:
+                response.close()
 
-        body = None
-        if return_body:
-            body = outfile.getvalue()
-            outfile.close()  # we only want to close StringIO
-
-        result = (headers, body, response.status_code, encoding)
-    finally:
-        if response is not None:
-            response.close()
-
-    return UrlResult(url, result[0], result[1], result[2], result[3])
+        return UrlResult(url, result[0], result[1], result[2], result[3])
