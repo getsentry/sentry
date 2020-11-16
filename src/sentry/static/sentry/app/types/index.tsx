@@ -606,7 +606,7 @@ export type GlobalSelection = {
   };
 };
 
-type Device = {
+type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
   name: string;
@@ -666,7 +666,7 @@ export type Authenticator = {
 
   codes: string[];
 
-  devices: Device[];
+  devices: AuthenticatorDevice[];
 
   phone?: string;
 
