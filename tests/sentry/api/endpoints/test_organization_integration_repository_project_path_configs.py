@@ -154,7 +154,9 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 400
         assert response.data == {
-            "nonFieldErrors": [u"Code path config already exists with this project and input path"]
+            "nonFieldErrors": [
+                u"Code path config already exists with this project and stack trace root"
+            ]
         }
 
     def test_space_in_stack_root(self):
