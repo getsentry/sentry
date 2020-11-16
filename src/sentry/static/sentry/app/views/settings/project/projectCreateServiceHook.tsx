@@ -10,10 +10,11 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 
 function ProjectCreateServiceHook({params}: Props) {
   const {orgId, projectId} = params;
+  const title = t('Create Service Hook');
   return (
-    <DocumentTitle title={t('Create Service Hook - Sentry')}>
+    <DocumentTitle title={`${title} - Sentry`}>
       <React.Fragment>
-        <SettingsPageHeader title={t('Create Service Hook')} />
+        <SettingsPageHeader title={title} />
         <ServiceHookSettingsForm
           orgId={orgId}
           projectId={projectId}
