@@ -107,13 +107,14 @@ class ThreadInterface extends React.Component<Props, State> {
       event,
       stackType !== STACK_TYPE.ORIGINAL
     );
-    const hasThreads = threads.length > 1;
+
+    const hasMoreThanOneThread = threads.length > 1;
 
     return (
       <EventDataSection
         type={type}
         title={
-          hasThreads ? (
+          hasMoreThanOneThread ? (
             <CrashTitle
               title=""
               newestFirst={newestFirst}
@@ -143,12 +144,12 @@ class ThreadInterface extends React.Component<Props, State> {
             platform={event.platform}
             stacktrace={stacktrace}
             stackType={stackType}
-            thread={hasThreads ? activeThread : undefined}
-            exception={hasThreads ? exception : undefined}
+            thread={hasMoreThanOneThread ? activeThread : undefined}
+            exception={hasMoreThanOneThread ? exception : undefined}
             onChange={this.handleChangeStackView}
           />
         }
-        showPermalink={!hasThreads}
+        showPermalink={!hasMoreThanOneThread}
         wrapTitle={false}
       >
         <Content
