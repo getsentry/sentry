@@ -66,8 +66,8 @@ class SessionHistory extends AsyncView<Props, State> {
           </SessionPanelHeader>
 
           <PanelBody>
-            {ipList.map(ipObj => (
-              <SessionRow key={ipObj.id} {...ipObj} />
+            {ipList.map(({id, ...ipObj}) => (
+              <SessionRow key={id} {...ipObj} />
             ))}
           </PanelBody>
         </Panel>
