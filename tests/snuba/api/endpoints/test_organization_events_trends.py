@@ -30,9 +30,9 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
         second = [0, 2, 10]
         for i in range(3):
             data = self.prototype.copy()
-            data["start_timestamp"] = iso_format(self.day_ago + timedelta(hours=1, minutes=30))
+            data["start_timestamp"] = iso_format(self.day_ago + timedelta(hours=1, minutes=30 + i))
             data["timestamp"] = iso_format(
-                self.day_ago + timedelta(hours=1, minutes=30, seconds=second[i])
+                self.day_ago + timedelta(hours=1, minutes=30 + i, seconds=second[i])
             )
             data["user"] = {"email": "foo{}@example.com".format(i)}
             self.store_event(data, project_id=self.project.id)
@@ -539,6 +539,93 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
             [{"count": 2000}],
             [{"count": 4000}],
         ]
+
+    def test_trend_with_middle(self):
+        with self.feature("organizations:performance-view"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "middle": iso_format(self.day_ago + timedelta(hours=1, minutes=31)),
+                    "start": iso_format(self.day_ago),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "avg(transaction.duration)",
+                    "project": [self.project.id],
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        events = response.data["events"]
+        result_stats = response.data["stats"]
+
+        assert len(events["data"]) == 1
+        self.expected_data.update(
+            {
+                "count_range_2": 2,
+                "count_range_1": 2,
+                "aggregate_range_1": 1000,
+                "aggregate_range_2": 6000,
+                "count_percentage": 1.0,
+                "trend_difference": 5000.0,
+                "trend_percentage": 6.0,
+            }
+        )
+        self.assert_event(events["data"][0])
+
+        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        assert [attrs for time, attrs in stats["data"]] == [
+            [{"count": 2000}],
+            [{"count": 4000}],
+        ]
+
+    def test_invalid_middle_date(self):
+        with self.feature("organizations:performance-view"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "middle": "blah",
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "apdex(450)",
+                    "project": [self.project.id],
+                },
+            )
+            assert response.status_code == 400
+
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "middle": iso_format(self.day_ago - timedelta(hours=2)),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "apdex(450)",
+                    "project": [self.project.id],
+                },
+            )
+            assert response.status_code == 400
+
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "middle": iso_format(self.day_ago + timedelta(hours=4)),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "field": ["project", "transaction"],
+                    "query": "event.type:transaction",
+                    "trendFunction": "apdex(450)",
+                    "project": [self.project.id],
+                },
+            )
+            assert response.status_code == 400
 
     def test_invalid_trend_function(self):
         with self.feature("organizations:performance-view"):

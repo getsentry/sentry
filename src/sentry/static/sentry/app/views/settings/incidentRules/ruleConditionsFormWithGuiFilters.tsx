@@ -114,8 +114,8 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     });
 
     return (
-      <StyledPanel>
-        <PanelBody>
+      <Panel>
+        <StyledPanelBody>
           <List symbol="colored-numeric">
             <StyledListItem>{t('Select the events you want to alert on')}</StyledListItem>
             <FormRow>
@@ -318,15 +318,16 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
             </FormRow>
             {this.props.thresholdChart}
           </List>
-        </PanelBody>
-      </StyledPanel>
+        </StyledPanelBody>
+      </Panel>
     );
   }
 }
 
-const StyledPanel = styled(Panel)`
-  /* Sticky graph panel cannot have margin-bottom */
-  padding: ${space(1)};
+const StyledPanelBody = styled(PanelBody)`
+  h4 {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const SearchContainer = styled('div')`
@@ -339,13 +340,13 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin: ${space(2)} ${space(2)} 0 ${space(2)};
+  margin: ${space(3)} ${space(3)} 0 ${space(3)};
 `;
 
 const FormRow = styled('div')`
   display: flex;
   flex-direction: row;
-  padding: ${space(1.5)};
+  padding: ${space(1.5)} ${space(3)};
   align-items: flex-end;
   flex-wrap: wrap;
 `;
