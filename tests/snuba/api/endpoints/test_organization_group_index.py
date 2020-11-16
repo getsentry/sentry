@@ -909,6 +909,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["base"]
         )
+       
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id

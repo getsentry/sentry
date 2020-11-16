@@ -31,19 +31,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super(GroupListTest, self).get_response(org, **kwargs)
 
-    def test_collapse_base(self):
+    def test_simple(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group_a = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        group_b = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
+        group_c = self.create_group(checksum="c" * 32, status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
-            sort_by="date", limit=10, query="is:unresolved", groups=[3232], collapse=["base"]
+            sort_by="date", limit=10, query="is:unresolved", groups=[group_a.id, group_c.id]
         )
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == group.id
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == group_a.id
         assert "title" not in response.data[0]
         assert "hasSeen" not in response.data[0]
         assert "stats" in response.data[0]
@@ -52,3 +54,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "count" in response.data[0]
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
+
+    def test_no_matching_groups(self):
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", groups=[1337]
+        )
+        assert response.status_code == 400
