@@ -37,7 +37,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_a = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
-        group_b = self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
+        self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
         group_c = self.create_group(checksum="c" * 32, status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
@@ -56,14 +56,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "filtered" in response.data[0]
 
     def test_no_matching_groups(self):
-        self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
-        
-        response = self.get_response(
-            sort_by="date", limit=10, query="is:unresolved", groups=[1337]
-        )
+        response = self.get_response(sort_by="date", limit=10, query="is:unresolved", groups=[1337])
         assert response.status_code == 400

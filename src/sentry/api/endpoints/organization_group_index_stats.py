@@ -28,14 +28,12 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         """
         Get the stats on an Organization's Issues
         `````````````````````````````
-        TODO(Chris F.): Write a better docstring
         Return a list of issues (groups) with the requested stats.  All parameters are
         supplied as query string parameters.
 
-        Accepts a list of group ids
-        Accepts a list of environments
-        Accepts a list `include` of strings, each string representing a requested stat
-        "i.e. "timerange_stats, lifetime_stats, filtered_stats"
+        :qparam list groups A list of group ids
+        :qparam list expand an optional list of strings to opt in to additional data. Supports `inbox`
+        :qparam list collapse an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
 
         The ``groupStatsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
@@ -78,7 +76,6 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 status=400,
             )
         else:
-            # TODO(Chris F.): Is this neccessary?
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if not groups:
                 return Response({"detail": "No matching groups found"}, status=400)
