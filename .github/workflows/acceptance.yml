@@ -46,6 +46,9 @@ jobs:
         # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
         instance: [0, 1, 2, 3]
 
+    outputs:
+      merge-base: ${{ steps.merge-base.outputs.sha }}
+
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
