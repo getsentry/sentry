@@ -19,6 +19,7 @@ type OptionType = {
 type Props = {
   dashboards: DashboardListItem[];
   onEdit: () => void;
+  onCommit: () => void;
   dashboardState: DashboardState;
 };
 
@@ -32,7 +33,7 @@ class Controls extends React.Component<Props> {
           <Button
             onClick={e => {
               e.preventDefault();
-              this.props.onEdit();
+              this.props.onCommit();
             }}
             href="#finish-editing"
             priority="primary"

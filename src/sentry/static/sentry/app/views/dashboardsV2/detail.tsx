@@ -56,6 +56,14 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
+  onCommit = () => {
+    // TODO: commit dashboard changes
+
+    this.setState({
+      dashboardState: 'default',
+    });
+  };
+
   getDashboardsList() {
     const {orgDashboards} = this.state;
 
@@ -92,6 +100,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 <Controls
                   dashboards={this.getDashboardsList()}
                   onEdit={this.onEdit}
+                  onCommit={this.onCommit}
                   dashboardState={this.state.dashboardState}
                 />
               </StyledPageHeader>
