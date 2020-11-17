@@ -5,11 +5,8 @@ from rest_framework.response import Response
 
 from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import (
-    get_next_dashboard_order,
-    DashboardWidgetSerializer,
-)
-from sentry.models import DashboardWidget, DashboardWidgetQuery
+from sentry.api.serializers.rest_framework import get_next_dashboard_order, WidgetSerializer
+from sentry.models import Widget, WidgetDataSource
 
 
 class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
@@ -29,9 +26,7 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
         :auth: required
         """
 
-        serializer = DashboardWidgetSerializer(
-            data=request.data, context={"organization": organization}
-        )
+        serializer = WidgetSerializer(data=request.data, context={"organization": organization})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -40,19 +35,19 @@ class OrganizationDashboardWidgetsEndpoint(OrganizationDashboardEndpoint):
 
         try:
             with transaction.atomic():
-                widget = DashboardWidget.objects.create(
+                widget = Widget.objects.create(
                     display_type=result["displayType"],
+                    display_options=result.get("displayOptions", {}),
                     title=result["title"],
                     order=get_next_dashboard_order(dashboard.id),
                     dashboard_id=dashboard.id,
                 )
-                for i, query in enumerate(result.get("queries", [])):
-                    DashboardWidgetQuery.objects.create(
-                        name=query["name"],
-                        fields=query["fields"],
-                        conditions=query["conditions"],
-                        interval=query["interval"],
-                        order=i,
+                for widget_data in result.get("dataSources", []):
+                    WidgetDataSource.objects.create(
+                        name=widget_data["name"],
+                        data=widget_data["data"],
+                        type=widget_data["type"],
+                        order=widget_data["order"],
                         widget_id=widget.id,
                     )
         except IntegrityError:
