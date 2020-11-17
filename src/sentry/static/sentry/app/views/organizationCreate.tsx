@@ -13,7 +13,7 @@ export default class OrganizationCreate extends AsyncView {
     window.location.href = `/organizations/${data.slug}/projects/new/`;
   };
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [];
   }
 

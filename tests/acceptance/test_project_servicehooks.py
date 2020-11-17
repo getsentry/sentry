@@ -25,7 +25,6 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
         with self.feature("projects:servicehooks"):
             self.browser.get(self.list_hooks_path)
             self.browser.wait_until_not(".loading-indicator")
-            self.browser.wait_until(".ref-project-service-hooks")
             self.browser.snapshot("project settings - service hooks - empty list")
             # click "New"
             self.browser.click('[data-test-id="new-service-hook"]')
@@ -37,7 +36,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             self.browser.snapshot("project settings - service hooks - create")
             self.browser.element('input[name="url"]').send_keys("https://example.com/hook")
             # click "Save Changes"
-            self.browser.click('.ref-project-create-service-hook [data-test-id="form-submit"]')
+            self.browser.click('form [data-test-id="form-submit"]')
 
             self.browser.wait_until_not(".loading-indicator")
             assert self.browser.current_url == u"{}{}".format(
@@ -50,7 +49,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             assert not hook.events
 
             # hopefully click the first service hook
-            self.browser.click(".ref-project-service-hooks label a")
+            self.browser.click('[data-test-id="project-service-hook"]')
             self.browser.wait_until_not(".loading-indicator")
             assert self.browser.current_url == u"{}{}".format(
                 self.browser.live_server_url,

@@ -11,6 +11,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsV2EndpointBase, NoProjects
 from sentry.api.event_search import DateArg, parse_function
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.search.utils import parse_datetime_string, InvalidQuery
 from sentry.snuba import discover
 
 
@@ -152,9 +153,20 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             return Response([])
 
         with sentry_sdk.start_span(op="discover.endpoint", description="trend_dates"):
-            middle = params["start"] + timedelta(
-                seconds=(params["end"] - params["start"]).total_seconds() * 0.5
-            )
+            middle_date = request.GET.get("middle")
+            if middle_date:
+                try:
+                    middle = parse_datetime_string(middle_date)
+                except InvalidQuery:
+                    raise ParseError(detail="{} is not a valid date format".format(middle_date))
+                if middle <= params["start"] or middle >= params["end"]:
+                    raise ParseError(
+                        detail="The middle date should be within the duration of the query"
+                    )
+            else:
+                middle = params["start"] + timedelta(
+                    seconds=(params["end"] - params["start"]).total_seconds() * 0.5
+                )
             start, middle, end = (
                 datetime.strftime(params["start"], DateArg.date_format),
                 datetime.strftime(middle, DateArg.date_format),

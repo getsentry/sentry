@@ -748,6 +748,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "assigned_to",
         "inbox",
         "unassigned",
+        "linked",
         "subscribed_by",
         "active_at",
         "first_release",

@@ -28,7 +28,7 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
     return t('Key Details');
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {keyId, orgId, projectId} = this.props.params;
     return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
   }

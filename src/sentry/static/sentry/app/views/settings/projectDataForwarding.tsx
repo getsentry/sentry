@@ -93,7 +93,7 @@ type State = AsyncComponent['state'] & {
 };
 
 class ProjectDataForwarding extends AsyncComponent<Props, State> {
-  getEndpoints(): [[string, string]] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
 
     return [['plugins', `/projects/${orgId}/${projectId}/plugins/`]];

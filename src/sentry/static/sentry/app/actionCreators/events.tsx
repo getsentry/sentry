@@ -11,6 +11,7 @@ import {
   OrganizationSummary,
   MultiSeriesEventsStats,
 } from 'app/types';
+import {LocationQuery} from 'app/utils/discover/eventView';
 
 type Options = {
   organization: OrganizationSummary;
@@ -95,6 +96,7 @@ export type EventQuery = {
   query: string;
   per_page?: number;
   referrer?: string;
+  environment?: string[];
 };
 
 export type TagSegment = {
@@ -134,7 +136,7 @@ export async function fetchTagFacets(
 export async function fetchTotalCount(
   api: Client,
   orgSlug: String,
-  query: EventQuery
+  query: EventQuery & LocationQuery
 ): Promise<number> {
   const urlParams = pick(query, Object.values(URL_PARAM));
 

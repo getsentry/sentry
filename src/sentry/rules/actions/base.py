@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from sentry.constants import ObjectStatus
 from sentry.models.integration import Integration
+from sentry.models import ExternalIssue, GroupLink
 from sentry.rules.base import RuleBase
 
 
@@ -57,6 +58,9 @@ class IntegrationEventAction(EventAction):
             status=ObjectStatus.VISIBLE,
         )
 
+    def get_integration_id(self):
+        return self.get_option(self.integration_key)
+
     def get_integration(self):
         """
         Uses the required class variables `provider` and `integration_key` with
@@ -66,11 +70,14 @@ class IntegrationEventAction(EventAction):
         :return: Integration
         """
         return Integration.objects.get(
-            id=self.get_option(self.integration_key),
+            id=self.get_integration_id(),
             provider=self.provider,
             organizations=self.project.organization,
             status=ObjectStatus.VISIBLE,
         )
+
+    def get_installation(self):
+        return self.get_integration().get_installation(self.project.organization.id)
 
     def get_form_instance(self):
         return self.form_cls(self.data, integrations=self.get_integrations())
@@ -91,4 +98,32 @@ class TicketEventAction(IntegrationEventAction):
         )
         return installation.get_group_description(event.group, event) + self.generate_footer(
             rule_url
+        )
+
+    def has_linked_issue(self, event, integration):
+        linked_issues = GroupLink.objects.filter(
+            project_id=self.project.id,
+            group_id=event.group.id,
+            linked_type=GroupLink.LinkedType.issue,
+        ).values_list("linked_id", flat=True)
+
+        return ExternalIssue.objects.filter(
+            id__in=linked_issues, integration_id=integration.id,
+        ).exists()
+
+    def create_link(self, key, integration, installation, event):
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.project.organization.id,
+            integration_id=integration.id,
+            key=key,
+            title=event.title,
+            description=installation.get_group_description(event.group, event),
+        )
+        GroupLink.objects.create(
+            group_id=event.group.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+            data={"provider": self.provider},
         )

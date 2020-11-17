@@ -180,7 +180,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
           isLoading: false,
           tableFetchID: undefined,
           error: null,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
           tableData,
         }));
       })
