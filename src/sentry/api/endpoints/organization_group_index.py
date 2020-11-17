@@ -12,6 +12,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
+    calculate_stats_period,
     delete_groups,
     get_by_short_id,
     rate_limit_endpoint,
@@ -113,22 +114,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
-
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
-        elif stats_period is None:
-            # default
-            stats_period = "24h"
-        elif stats_period == "":
-            # disable stats
-            stats_period = None
-
-        if stats_period == "auto":
-            stats_period_start = start
-            stats_period_end = end
-        else:
-            stats_period_start = None
-            stats_period_end = None
+        stats_period, stats_period_start, stats_period_end = calculate_stats_period(
+            stats_period, start, end
+        )
 
         environments = self.get_environments(request, organization)
 
