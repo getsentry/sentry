@@ -30,7 +30,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 class IncidentRulesList extends AsyncView<Props, State> {
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [['rules', `/organizations/${orgId}/alert-rules/`] as [string, string]];

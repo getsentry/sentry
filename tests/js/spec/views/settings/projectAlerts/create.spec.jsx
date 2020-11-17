@@ -147,6 +147,10 @@ describe('ProjectAlertsCreate', function () {
           url: '/organizations/org-slug/events-stats/',
           body: TestStubs.EventsStats(),
         });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-meta/',
+          body: {count: 5},
+        });
       });
       it('forces user to select Metric or Issue alert', async function () {
         const {wrapper} = createWrapper({

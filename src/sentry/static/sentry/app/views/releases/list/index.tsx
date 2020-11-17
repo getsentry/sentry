@@ -51,7 +51,7 @@ class ReleasesList extends AsyncView<Props, State> {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
     const sort = this.getSort();

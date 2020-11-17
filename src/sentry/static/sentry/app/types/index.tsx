@@ -245,6 +245,7 @@ export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
+  name: string;
   slug: string;
   isMember: boolean;
   hasAccess: boolean;
@@ -772,7 +773,7 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
-  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  subscriptionDetails: SubscriptionDetails | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
@@ -1474,6 +1475,8 @@ export type UpdateResolutionStatus = {
   statusDetails?: ResolutionStatusDetails;
 };
 
+export type SubscriptionDetails = {disabled?: boolean; reason?: string};
+
 export type Broadcast = {
   id: string;
   message: string;
@@ -1685,3 +1688,12 @@ export type Identity = {
 
 //taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
+
+export type InternetProtocol = {
+  id: string;
+  ipAddress: string;
+  lastSeen: string;
+  firstSeen: string;
+  countryCode: string | null;
+  regionCode: string | null;
+};

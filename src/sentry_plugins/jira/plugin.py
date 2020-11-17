@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import re
+import six
 
 from django.conf import settings
 from django.conf.urls import url
@@ -24,6 +25,8 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry_plugins.jira.client import JiraClient
 from sentry_plugins.utils import get_secret_field_config
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+
+logger = logging.getLogger(__name__)
 
 # A list of common builtin custom field types for JIRA for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -670,7 +673,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue_id = self.create_issue(request={}, group=group, form_data=post_data)
         except PluginError as e:
-            logging.exception("Error creating JIRA ticket: %s", e)
+            logger.info("post_process.fail", extra={"error": six.text_type(e)})
         else:
             prefix = self.get_conf_key()
             GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)

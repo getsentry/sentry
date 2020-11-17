@@ -46,7 +46,7 @@ type State = AsyncComponent['state'] & {
 class ExternalIssueList extends AsyncComponent<Props, State> {
   unsubscribables: any[] = [];
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {group} = this.props;
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }

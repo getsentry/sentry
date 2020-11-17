@@ -42,7 +42,7 @@ class ExternalIssueActions extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [];
   }
 

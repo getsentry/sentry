@@ -46,6 +46,8 @@ class IssueSearchVisitor(SearchVisitor):
             "assigned": (SearchKey("unassigned"), SearchValue(False)),
             "unassigned": (SearchKey("unassigned"), SearchValue(True)),
             "inbox": (SearchKey("inbox"), SearchValue(True)),
+            "linked": (SearchKey("linked"), SearchValue(True)),
+            "unlinked": (SearchKey("linked"), SearchValue(False)),
         }
         for status_key, status_value in STATUS_CHOICES.items():
             is_filter_translators[status_key] = (SearchKey("status"), SearchValue(status_value))
