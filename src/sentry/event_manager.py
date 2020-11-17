@@ -444,11 +444,10 @@ class EventManager(object):
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
         _materialize_event_metrics(jobs)
 
-        if not is_reprocessed:
-            for attachment in attachments:
-                key = "bytes.stored.%s" % (attachment.type,)
-                old_bytes = job["event_metrics"].get(key) or 0
-                job["event_metrics"][key] = old_bytes + attachment.size
+        for attachment in attachments:
+            key = "bytes.stored.%s" % (attachment.type,)
+            old_bytes = job["event_metrics"].get(key) or 0
+            job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
         save_unprocessed_event(project, event_id=job["event"].event_id)
