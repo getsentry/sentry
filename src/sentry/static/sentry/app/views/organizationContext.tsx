@@ -1,12 +1,14 @@
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {PlainRoute} from 'react-router/lib/Route';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {Client} from 'app/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
+import {Organization} from 'app/types';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import {metric} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
@@ -24,11 +26,35 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import RequestError from 'app/utils/requestError/requestError';
 
-const OrganizationContext = createReactClass({
-  displayName: 'OrganizationContext',
+const defaultProps = {
+  detailed: true,
+};
 
-  propTypes: {
+type Props = {
+  api: Client;
+  routes: PlainRoute[];
+  includeSidebar: boolean;
+  useLastOrganization: boolean;
+  organizationsLoading: boolean;
+  organizations: Organization[];
+  detailed: boolean;
+} & typeof defaultProps &
+  RouteComponentProps<{orgId: string}, {}>;
+
+type State = {
+  organization: Organization | null;
+  loading: boolean;
+  dirty?: boolean;
+  errorType?: string | null;
+  error?: RequestError | null;
+  hooks?: React.ReactNode[];
+};
+
+class OrganizationContext extends React.Component<Props, State> {
+  static propTypes = {
     api: PropTypes.object,
     routes: PropTypes.arrayOf(PropTypes.object),
     includeSidebar: PropTypes.bool,
@@ -36,47 +62,27 @@ const OrganizationContext = createReactClass({
     organizationsLoading: PropTypes.bool,
     organizations: PropTypes.arrayOf(SentryTypes.Organization),
     detailed: PropTypes.bool,
-  },
+  } as any;
 
-  childContextTypes: {
+  static childContextTypes = {
     organization: SentryTypes.Organization,
-  },
+  };
 
-  mixins: [
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation'),
-    Reflux.listenTo(OrganizationStore, 'loadOrganization'),
-  ],
+  static defaultProps = defaultProps;
 
-  getDefaultProps() {
-    return {
-      detailed: true,
-    };
-  },
-
-  getInitialState() {
-    if (this.isOrgStorePopulatedCorrectly()) {
-      // retrieve initial state from store
-      return OrganizationStore.get();
-    }
-    return {
-      loading: true,
-      error: null,
-      errorType: null,
-      organization: null,
-    };
-  },
+  state = this.getDefaultState();
 
   getChildContext() {
     return {
       organization: this.state.organization,
     };
-  },
+  }
 
   componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     const hasOrgIdAndChanged =
       prevProps.params.orgId &&
       this.props.params.orgId &&
@@ -102,34 +108,54 @@ const OrganizationContext = createReactClass({
     ) {
       this.remountComponent();
     }
-  },
+  }
+
+  componentWillUnmount() {
+    this.unlisteners.forEach(callIfFunction);
+  }
+
+  unlisteners = [
+    ProjectActions.createSuccess.listen(() => this.onProjectCreation(), undefined),
+    OrganizationStore.listen(data => this.loadOrganization(data), undefined),
+  ];
+
+  getDefaultState(): State {
+    if (this.isOrgStorePopulatedCorrectly()) {
+      // retrieve initial state from store
+      return OrganizationStore.get();
+    }
+    return {
+      loading: true,
+      error: null,
+      errorType: null,
+      organization: null,
+    };
+  }
 
   remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
-  },
+    this.setState(this.getDefaultState(), this.fetchData);
+  }
 
   onProjectCreation() {
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
     fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true, true);
-  },
+  }
 
   getOrganizationSlug() {
     return (
       this.props.params.orgId ||
-      (this.props.useLastOrganization &&
+      ((this.props.useLastOrganization &&
         (ConfigStore.get('lastOrganization') ||
-          (this.props.organizations &&
-            this.props.organizations.length &&
-            this.props.organizations[0].slug)))
+          this.props.organizations?.[0]?.slug)) as string)
     );
-  },
+  }
 
   isOrgChanging() {
     const {organization} = OrganizationStore.get();
     return organization && organization.slug !== this.getOrganizationSlug();
-  },
+  }
 
   isOrgStorePopulatedCorrectly() {
     const {detailed} = this.props;
@@ -141,7 +167,7 @@ const OrganizationContext = createReactClass({
       !this.isOrgChanging() &&
       (!detailed || (detailed && organization.projects && organization.teams))
     );
-  },
+  }
 
   isLoading() {
     // In the absence of an organization slug, the loading state should be
@@ -159,7 +185,7 @@ const OrganizationContext = createReactClass({
         detailed &&
         (!organization || !organization.projects || !organization.teams))
     );
-  },
+  }
 
   fetchData() {
     if (!this.getOrganizationSlug()) {
@@ -177,11 +203,11 @@ const OrganizationContext = createReactClass({
       this.props.detailed,
       !this.isOrgChanging() // if true, will preserve a lightweight org that was fetched
     );
-  },
+  }
 
-  loadOrganization(orgData) {
+  loadOrganization(orgData: State) {
     const {organization, error} = orgData;
-    const hooks = [];
+    const hooks: React.ReactNode[] = [];
 
     if (organization && !error) {
       HookStore.get('organization:header').forEach(cb => {
@@ -224,29 +250,30 @@ const OrganizationContext = createReactClass({
         });
       }
     });
-  },
+  }
 
   getOrganizationDetailsEndpoint() {
     return `/organizations/${this.getOrganizationSlug()}/`;
-  },
+  }
 
   getTitle() {
     if (this.state.organization) {
       return this.state.organization.name;
     }
     return 'Sentry';
-  },
+  }
 
-  renderSidebar() {
+  renderSidebar(): React.ReactNode {
     if (!this.props.includeSidebar) {
       return null;
     }
 
-    return <Sidebar {...this.props} organization={this.state.organization} />;
-  },
+    const {children: _, ...props} = this.props;
+    return <Sidebar {...props} organization={this.state.organization as Organization} />;
+  }
 
   renderError() {
-    let errorComponent;
+    let errorComponent: React.ReactElement;
 
     switch (this.state.errorType) {
       case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
@@ -261,7 +288,7 @@ const OrganizationContext = createReactClass({
     }
 
     return <ErrorWrapper>{errorComponent}</ErrorWrapper>;
-  },
+  }
 
   render() {
     if (this.isLoading()) {
@@ -290,8 +317,8 @@ const OrganizationContext = createReactClass({
         </div>
       </DocumentTitle>
     );
-  },
-});
+  }
+}
 
 export default withApi(withOrganizations(Sentry.withProfiler(OrganizationContext)));
 export {OrganizationContext};
