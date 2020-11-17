@@ -15,7 +15,7 @@ class AlertsContainer extends React.Component<Props> {
       <Feature organization={organization} features={['incidents']}>
         {({hasFeature: hasMetricAlerts}) => (
           <React.Fragment>
-            <div>test</div>
+            <div></div>
             {children && React.isValidElement(children)
               ? React.cloneElement(children, {
                   organization,
