@@ -13,6 +13,7 @@ import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {DashboardListItem, DashboardState} from './types';
 import {PREBUILT_DASHBOARDS} from './data';
@@ -59,6 +60,27 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     return [['orgDashboards', url]];
   }
 
+  componentDidMount() {
+    const {params} = this.props;
+    const dashboardId = params.dashboardId as string | undefined;
+
+    if (typeof dashboardId === 'string') {
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({
+        // TODO: fix
+        currentDashboard: PREBUILT_DASHBOARDS[0],
+      });
+      return;
+    }
+
+    // use a prebuilt dashboard if no specific dashboard was requested.
+
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({
+      currentDashboard: PREBUILT_DASHBOARDS[0],
+    });
+  }
+
   onEdit = () => {
     this.setState({
       dashboardState: 'edit',
@@ -93,8 +115,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {organization, location, params} = this.props;
-    const dashboardId = params.dashboardId as string | undefined;
+    const {organization, location} = this.props;
 
     if (!organization.features.includes('dashboards-v2')) {
       // Redirect to Dashboards v1
@@ -105,6 +126,10 @@ class DashboardDetail extends AsyncComponent<Props, State> {
         },
       });
       return null;
+    }
+
+    if (!this.state.currentDashboard) {
+      return <LoadingIndicator />;
     }
 
     return (
