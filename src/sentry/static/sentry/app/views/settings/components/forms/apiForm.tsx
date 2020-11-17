@@ -18,19 +18,23 @@ export default class ApiForm extends React.Component<Props> {
 
   api: Client = new Client();
 
-  onSubmit = (data, onSuccess, onError) => {
+  onSubmit = (
+    data: Record<string, any>,
+    onSuccess: (response: Record<string, any>) => void,
+    onError: (error: any) => void
+  ) => {
     this.props.onSubmit && this.props.onSubmit(data);
     addLoadingMessage(t('Saving changes\u2026'));
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,
-      success: (...args) => {
+      success: response => {
         clearIndicators();
-        onSuccess(...args);
+        onSuccess(response);
       },
-      error: (...args) => {
+      error: error => {
         clearIndicators();
-        onError(...args);
+        onError(error);
       },
     });
   };
