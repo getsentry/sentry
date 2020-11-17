@@ -24,7 +24,7 @@ export default class AdminQuotas extends AsyncView<{}, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['config', '/internal/quotas/']];
   }
 

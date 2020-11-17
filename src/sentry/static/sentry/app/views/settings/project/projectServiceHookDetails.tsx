@@ -102,7 +102,7 @@ type State = {
 } & AsyncView['state'];
 
 export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId, hookId} = this.props.params;
     return [['hook', `/projects/${orgId}/${projectId}/hooks/${hookId}/`]];
   }

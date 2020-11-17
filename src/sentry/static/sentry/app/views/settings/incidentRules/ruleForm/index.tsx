@@ -119,7 +119,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId} = this.props.params;
 
     // TODO(incidents): This is temporary until new API endpoints

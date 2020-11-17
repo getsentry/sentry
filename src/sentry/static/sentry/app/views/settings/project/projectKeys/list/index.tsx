@@ -39,7 +39,7 @@ class ProjectKeys extends AsyncView<Props, State> {
     return routeTitleGen(t('Client Keys'), projectId, false);
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }

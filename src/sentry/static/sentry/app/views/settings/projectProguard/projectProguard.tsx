@@ -42,7 +42,7 @@ class ProjectProguard extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
     const {orgId, projectId} = params;
 

@@ -64,7 +64,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     return [
       ['member', `/organizations/${organization.slug}/members/${params.memberId}/`],

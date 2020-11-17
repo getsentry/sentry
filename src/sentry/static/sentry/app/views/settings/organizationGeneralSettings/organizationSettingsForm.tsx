@@ -25,7 +25,7 @@ type State = AsyncComponent['state'] & {
 };
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
-  getEndpoints(): Array<[string, string]> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [['authProvider', `/organizations/${organization.slug}/auth-provider/`]];
   }

@@ -11,7 +11,7 @@ type Data = {
 type State = AsyncView['state'] & {data: Data};
 
 export default class AdminPackages extends AsyncView<{}, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/internal/packages/']];
   }
 

@@ -44,7 +44,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [
       ['organizations', '/organizations/'],
       ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],

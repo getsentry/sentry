@@ -20,7 +20,7 @@ type State = {
 } & AsyncComponent['state'];
 
 class AccountSecurityWrapper extends AsyncComponent<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [
       ['authenticators', ENDPOINT],
       ['organizations', '/organizations/'],

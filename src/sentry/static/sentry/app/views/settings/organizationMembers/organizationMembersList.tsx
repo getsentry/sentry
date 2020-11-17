@@ -49,12 +49,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [
-    string,
-    string,
-    {query?: {query: string}},
-    {paginate?: boolean; allowError?: (error: any) => boolean}
-  ][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [

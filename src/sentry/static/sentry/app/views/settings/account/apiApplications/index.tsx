@@ -24,7 +24,7 @@ type State = {
 } & AsyncView['state'];
 
 class ApiApplications extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['appList', '/api-applications/']];
   }
 

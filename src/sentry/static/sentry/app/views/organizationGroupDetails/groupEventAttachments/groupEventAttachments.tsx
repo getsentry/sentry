@@ -29,7 +29,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string, {}][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
 
     return [

@@ -42,7 +42,7 @@ type State = {
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
 

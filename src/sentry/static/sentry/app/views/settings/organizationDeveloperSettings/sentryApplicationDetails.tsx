@@ -128,7 +128,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): Array<[string, string]> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       return [

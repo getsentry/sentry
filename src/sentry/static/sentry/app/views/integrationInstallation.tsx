@@ -36,7 +36,7 @@ export default class IntegrationInstallation extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
   }
 

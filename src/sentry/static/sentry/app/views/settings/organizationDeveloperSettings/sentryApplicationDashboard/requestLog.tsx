@@ -116,7 +116,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     return this.state.currentPage > 0;
   }
 
-  getEndpoints(): Array<[string, string, any] | [string, string]> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {slug} = this.props.app;
 
     const query: any = {};

@@ -20,7 +20,7 @@ class TeamMembers extends AsyncComponent<Props, State> {
     orgId: PropTypes.string.isRequired,
   };
 
-  getEndpoints(): Array<[string, string]> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, teamId} = this.props;
     return [['members', `/teams/${orgId}/${teamId}/members/`]];
   }

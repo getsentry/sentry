@@ -40,7 +40,7 @@ class AccountSecurity extends AsyncView<Props> {
     return t('Security');
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [];
   }
 

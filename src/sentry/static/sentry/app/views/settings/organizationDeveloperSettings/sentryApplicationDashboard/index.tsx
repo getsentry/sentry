@@ -34,7 +34,7 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryApplicationDashboard extends AsyncView<Props, State> {
-  getEndpoints(): Array<[string, string, any] | [string, string]> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
 
     // Default time range for now: 90 days ago to now

@@ -6,7 +6,6 @@ import PropTypes from 'prop-types';
 
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import {EventQuery} from 'app/actionCreators/events';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -87,7 +86,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): Array<[string, string, {query: EventQuery}]> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params, location, eventView} = this.props;
     const {eventSlug} = params;
 

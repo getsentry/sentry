@@ -121,7 +121,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {ruleId, projectId, orgId} = this.props.params;
 
     const endpoints = [

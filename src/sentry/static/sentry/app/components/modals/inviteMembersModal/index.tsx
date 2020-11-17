@@ -75,7 +75,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];

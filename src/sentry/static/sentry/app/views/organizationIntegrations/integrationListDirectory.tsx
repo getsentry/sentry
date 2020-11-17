@@ -154,7 +154,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }
 
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],

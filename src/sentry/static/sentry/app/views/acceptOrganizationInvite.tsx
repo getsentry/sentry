@@ -35,7 +35,7 @@ type State = AsyncView['state'] & {
 };
 
 class AcceptOrganizationInvite extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {memberId, token} = this.props.params;
     return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
   }

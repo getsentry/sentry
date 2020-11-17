@@ -65,7 +65,7 @@ class OrganizationRequestsView extends AsyncView<Props, State> {
     this.handleRedirect();
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];

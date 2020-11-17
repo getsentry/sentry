@@ -61,7 +61,7 @@ class DataDownload extends AsyncView<Props, State> {
     return t('Download Center');
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, dataExportId} = this.props.params;
     return [['download', `/organizations/${orgId}/data-export/${dataExportId}/`]];
   }

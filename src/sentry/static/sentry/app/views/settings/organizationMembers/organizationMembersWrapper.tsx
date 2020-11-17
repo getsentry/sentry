@@ -26,7 +26,7 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [

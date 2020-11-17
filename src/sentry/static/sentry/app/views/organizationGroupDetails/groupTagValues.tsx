@@ -42,7 +42,7 @@ class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  getEndpoints(): [string, string, any?][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {environments: environment} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [
