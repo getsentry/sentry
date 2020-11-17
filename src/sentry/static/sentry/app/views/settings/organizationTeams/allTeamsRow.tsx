@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Client} from 'app/api';
+import {Organization, Team, Project} from 'app/types';
 import {PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
@@ -12,15 +14,20 @@ import IdBadge from 'app/components/idBadge';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-class AllTeamsRow extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    urlPrefix: PropTypes.string.isRequired,
-    organization: PropTypes.object.isRequired,
-    team: PropTypes.object.isRequired,
-    openMembership: PropTypes.bool.isRequired,
-  };
+type Props = {
+  api: Client;
+  urlPrefix: string;
+  organization: Organization;
+  team: Team;
+  openMembership: boolean;
+};
 
+type State = {
+  loading: boolean;
+  error: boolean;
+};
+
+class AllTeamsRow extends React.Component<Props, State> {
   state = {
     loading: false,
     error: false,
