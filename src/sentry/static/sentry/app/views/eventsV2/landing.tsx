@@ -59,7 +59,7 @@ type Props = {
 type State = {
   isBannerHidden: boolean;
   isSmallBanner: boolean;
-  savedQueries: SavedQuery[];
+  savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
 
@@ -83,7 +83,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     isBannerHidden: isBannerHidden(),
     renderPrebuilt: shouldRenderPrebuilt(),
     isSmallBanner: this.mq?.matches,
-    savedQueries: [],
+    savedQueries: null,
     savedQueriesPageLinks: '',
   };
 
@@ -271,7 +271,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           <SwitchLabel>Show Prebuilt</SwitchLabel>
           <Switch
             isActive={renderPrebuilt}
-            isDisabled={renderPrebuilt && savedQueries.length === 0}
+            isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
             size="lg"
             toggle={this.togglePrebuilt}
           />
@@ -327,7 +327,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     return (
       <QueryList
         pageLinks={savedQueriesPageLinks}
-        savedQueries={savedQueries}
+        savedQueries={savedQueries ?? []}
         savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
         renderPrebuilt={renderPrebuilt}
         location={location}
