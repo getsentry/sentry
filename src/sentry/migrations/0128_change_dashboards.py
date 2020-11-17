@@ -72,31 +72,4 @@ class Migration(migrations.Migration):
             name='dashboardwidget',
             unique_together=set([('dashboard', 'title'), ('dashboard', 'order')]),
         ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[],
-            state_operations=[
-                migrations.AlterUniqueTogether(
-                    name='widget',
-                    unique_together=set([]),
-                ),
-                migrations.RemoveField(
-                    model_name='widget',
-                    name='dashboard',
-                ),
-                migrations.AlterUniqueTogether(
-                    name='widgetdatasource',
-                    unique_together=set([]),
-                ),
-                migrations.RemoveField(
-                    model_name='widgetdatasource',
-                    name='widget',
-                ),
-                migrations.DeleteModel(
-                    name='Widget',
-                ),
-                migrations.DeleteModel(
-                    name='WidgetDataSource',
-                ),
-            ]
-        )
     ]
