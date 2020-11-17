@@ -481,6 +481,10 @@ class EventManager(object):
 
         # Do this last to ensure signals get emitted even if connection to the
         # file store breaks temporarily.
+        #
+        # We do not need this for reprocessed events as for those we update the
+        # group_id on existing models in post_process_group, which already does
+        # this because of indiv. attachments.
         if not is_reprocessed:
             with metrics.timer("event_manager.save_attachments"):
                 save_attachments(cache_key, attachments, job)
