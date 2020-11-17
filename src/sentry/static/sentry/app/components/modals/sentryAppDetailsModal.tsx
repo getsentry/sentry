@@ -63,7 +63,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     );
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {sentryApp} = this.props;
     return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
   }

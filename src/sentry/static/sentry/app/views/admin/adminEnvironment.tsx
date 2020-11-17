@@ -21,7 +21,7 @@ type Data = {
 type State = AsyncView['state'] & {data: Data};
 
 export default class AdminEnvironment extends AsyncView<{}, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/internal/environment/']];
   }
 

@@ -75,7 +75,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, params, releaseMeta} = this.props;
 
     const query = {
@@ -176,7 +176,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
 class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>> {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     // fetch projects this release belongs to
     return [
