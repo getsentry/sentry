@@ -47,7 +47,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, params, location} = this.props;
     const {builtinSymbolSources} = this.state || {};
     const {orgId, projectId} = params;

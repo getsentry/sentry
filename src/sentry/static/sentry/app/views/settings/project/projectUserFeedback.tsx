@@ -40,7 +40,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
     window.sentryEmbedCallback = null;
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],

@@ -11,7 +11,7 @@ type Data = {
 type State = AsyncView['state'] & {data: Data | null};
 
 class AdminWarnings extends AsyncView<{}, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/internal/warnings/']];
   }
 
