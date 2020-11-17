@@ -23,6 +23,7 @@ jobs:
     name: 'Release a new version'
     steps:
       - id: killswitch
+        name: Check release blockers
         if: ${{ !github.event.inputs.force }}
         run: |
           if curl -s "https://api.github.com/repos/$GITHUB_REPOSITORY/issues?state=open&labels=release-blocker" | grep -Pzvo '\[[\s\n\r]*\]'; then
@@ -30,6 +31,7 @@ jobs:
             curl -sf -X POST -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }}/cancel;
           fi
       - id: set-version
+        name: Determine version
         run: |
           if [[ -n '${{ github.event.inputs.version }}' ]]; then
             echo 'RELEASE_VERSION=${{ github.event.inputs.version }}' >> $GITHUB_ENV;
@@ -45,10 +47,12 @@ jobs:
         with:
           token: ${{ secrets.GH_SENTRY_BOT_PAT }}
       - id: set-git-user
+        name: Set git user to getsentry-bot
         run: |
           git config user.name getsentry-bot
           git config user.email bot@getsentry.com
       - uses: getsentry/craft@master
+        name: Craft Prepare
         if: ${{ !github.event.inputs.skip_prepare }}
         with:
           action: prepare
@@ -63,6 +67,7 @@ jobs:
       # but it is broken now.
       - run: sleep 10
       - uses: getsentry/craft@master
+        name: Craft Publish
         with:
           action: publish
           version: ${{ env.RELEASE_VERSION }}
@@ -75,6 +80,7 @@ jobs:
           DOCKER_USERNAME: 'sentrybuilder'
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       - id: next-dev-version
+        name: Set new version for development
         if: ${{ !github.event.inputs.dry_run }}
         run: |
           git checkout master
