@@ -11,7 +11,10 @@ import ShortId from 'app/components/shortId';
 import Times from 'app/components/group/times';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag from 'app/views/organizationGroupDetails/unhandledTag';
+import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import InboxCommentsLink from 'app/components/group/inboxBadges/commentsLink';
+import InboxEventAnnotation from 'app/components/group/inboxBadges/eventAnnotation';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
@@ -41,59 +44,89 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra>
-      {isUnhandled && hasInbox && (
-        <TagWrapper>
-          <UnhandledTag />
-        </TagWrapper>
-      )}
-      {shortId && (
-        <GroupShortId
-          shortId={shortId}
-          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
-          onClick={e => {
-            // prevent the clicks from propagating so that the short id can be selected
-            e.stopPropagation();
-          }}
-        />
-      )}
+      {isUnhandled && hasInbox && <UnhandledTag />}
+      {shortId &&
+        (hasInbox ? (
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={14} hideName />
+              )
+            }
+          />
+        ) : (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && <ProjectBadge project={project} avatarSize={14} hideName />
+            }
+            onClick={e => {
+              // prevent the clicks from propagating so that the short id can be selected
+              e.stopPropagation();
+            }}
+          />
+        ))}
       {!hasInbox && (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
-      {numComments > 0 && (
-        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-          <IconChat
-            size="xs"
-            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+      {numComments > 0 &&
+        (hasInbox ? (
+          <InboxCommentsLink
+            to={`${issuesPath}${id}/activity/`}
+            subscriptionDetails={subscriptionDetails}
+            numComments={numComments}
           />
-          <span>{numComments}</span>
-        </CommentsLink>
-      )}
-      {logger && (
-        <LoggerAnnotation>
-          <Link
+        ) : (
+          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+            <IconChat
+              size="xs"
+              color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+            />
+            <span>{numComments}</span>
+          </CommentsLink>
+        ))}
+      {logger &&
+        (hasInbox ? (
+          <InboxEventAnnotation
             to={{
               pathname: issuesPath,
               query: {
                 query: `logger:${logger}`,
               },
             }}
-          >
-            {logger}
-          </Link>
-        </LoggerAnnotation>
-      )}
-      {annotations &&
-        annotations.map((annotation, key) => (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
-            }}
-            key={key}
+            annotation={logger}
           />
+        ) : (
+          <LoggerAnnotation>
+            <Link
+              to={{
+                pathname: issuesPath,
+                query: {
+                  query: `logger:${logger}`,
+                },
+              }}
+            >
+              {logger}
+            </Link>
+          </LoggerAnnotation>
         ))}
+      {annotations &&
+        annotations.map((annotation, key) =>
+          hasInbox ? (
+            <InboxEventAnnotation key={key} annotation={annotation} />
+          ) : (
+            <AnnotationNoMargin
+              dangerouslySetInnerHTML={{
+                __html: annotation,
+              }}
+              key={key}
+            />
+          )
+        )}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
@@ -116,12 +149,6 @@ const GroupExtra = styled('div')`
 
   a {
     color: inherit;
-  }
-`;
-
-const TagWrapper = styled('div')`
-  & > div {
-    margin-right: 0;
   }
 `;
 
@@ -150,6 +177,12 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));
