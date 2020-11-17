@@ -5,7 +5,20 @@ import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 import InternalStatChart from 'app/components/internalStatChart';
 import {SelectField} from 'app/components/forms';
 
-export default class AdminQueue extends AsyncView {
+const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
+
+type TimeWindow = typeof TIME_WINDOWS[number];
+
+type State = AsyncView['state'] & {
+  timeWindow: TimeWindow;
+  since: number;
+  resolution: string;
+  taskName: string;
+  activeTask: string;
+  taskList: string[];
+};
+
+export default class AdminQueue extends AsyncView<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -16,12 +29,12 @@ export default class AdminQueue extends AsyncView {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     return [['taskList', '/internal/queue/tasks/']];
   }
 
-  changeWindow(timeWindow) {
-    let seconds;
+  changeWindow(timeWindow: TimeWindow) {
+    let seconds: number;
     if (timeWindow === '1h') {
       seconds = 3600;
     } else if (timeWindow === '1d') {
@@ -37,9 +50,9 @@ export default class AdminQueue extends AsyncView {
     });
   }
 
-  changeTask = value => {
+  changeTask(value: string) {
     this.setState({activeTask: value});
-  };
+  }
 
   renderBody() {
     const {activeTask, taskList} = this.state;
@@ -47,7 +60,7 @@ export default class AdminQueue extends AsyncView {
     return (
       <div>
         <div className="btn-group pull-right">
-          {['1h', '1d', '1w'].map(r => (
+          {TIME_WINDOWS.map(r => (
             <a
               className={`btn btn-sm ${
                 r === this.state.timeWindow ? 'btn-primary' : 'btn-default'
@@ -82,9 +95,9 @@ export default class AdminQueue extends AsyncView {
             <SelectField
               deprecatedSelectControl
               name="task"
-              onChange={this.changeTask}
+              onChange={value => this.changeTask(value as string)}
               value={activeTask}
-              allowClear
+              clearable
               choices={[''].concat(...taskList).map(t => [t, t])}
             />
           </div>
