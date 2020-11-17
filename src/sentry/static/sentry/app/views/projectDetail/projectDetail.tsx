@@ -28,7 +28,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  project?: Project;
+  project?: Project | null;
 } & AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
@@ -58,7 +58,13 @@ class ProjectDetail extends AsyncView<Props, State> {
             <Layout.Header>
               <Layout.HeaderContent>
                 <Breadcrumbs
-                  crumbs={[{label: t('Projects')}, {label: t('Project Details')}]}
+                  crumbs={[
+                    {
+                      to: `/organizations/${params.orgId}/projects/`,
+                      label: t('Projects'),
+                    },
+                    {label: t('Project Details')},
+                  ]}
                 />
                 <Layout.Title>
                   <TextOverflow>
@@ -94,7 +100,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                         icon={<IconSiren />}
                         to={`/organizations/${params.orgId}/alerts/${params.projectId}/new/`}
                       >
-                        {t('Create alert')}
+                        {t('Create Alert')}
                       </Button>
                     )}
                   </Access>
