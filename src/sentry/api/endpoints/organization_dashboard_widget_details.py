@@ -5,8 +5,8 @@ from rest_framework.response import Response
 
 from sentry.api.bases.dashboard import OrganizationDashboardWidgetEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
-from sentry.models import DashboardWidgetQuery
+from sentry.api.serializers.rest_framework import WidgetSerializer
+from sentry.models import WidgetDataSource
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndpoint):
@@ -47,9 +47,8 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
                                 and replaced with the input provided.
         :auth: required
         """
-        serializer = DashboardWidgetSerializer(
-            data=request.data, context={"organization": organization}
-        )
+        # TODO(lb): better document displayType, displayOptions, and dataSources.
+        serializer = WidgetSerializer(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -59,17 +58,17 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationDashboardWidgetEndp
             widget.update(
                 title=data.get("title", widget.title),
                 display_type=data.get("displayType", widget.display_type),
+                display_options=data.get("displayOptions", widget.display_options),
             )
 
-            if "queries" in data:
-                DashboardWidgetQuery.objects.filter(widget_id=widget.id).delete()
-            for i, query in enumerate(data.get("queries", [])):
-                DashboardWidgetQuery.objects.create(
-                    name=query["name"],
-                    fields=query["fields"],
-                    conditions=query["conditions"],
-                    interval=query["interval"],
-                    order=i,
+            if "dataSources" in data:
+                WidgetDataSource.objects.filter(widget_id=widget.id).delete()
+            for widget_data in data.get("dataSources", []):
+                WidgetDataSource.objects.create(
+                    name=widget_data["name"],
+                    data=widget_data["data"],
+                    type=widget_data["type"],
+                    order=widget_data["order"],
                     widget_id=widget.id,
                 )
 

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Dashboard, DashboardWidget
+from sentry.models import Dashboard, Widget
 
 
 class OrganizationDashboardEndpoint(OrganizationEndpoint):
@@ -32,10 +32,10 @@ class OrganizationDashboardWidgetEndpoint(OrganizationDashboardEndpoint):
             kwargs["widget"] = self._get_widget(
                 request, kwargs["organization"], dashboard_id, widget_id
             )
-        except DashboardWidget.DoesNotExist:
+        except Widget.DoesNotExist:
             raise ResourceDoesNotExist
 
         return (args, kwargs)
 
     def _get_widget(self, request, organization, dashboard_id, widget_id):
-        return DashboardWidget.objects.get(id=widget_id, dashboard_id=dashboard_id)
+        return Widget.objects.get(id=widget_id, dashboard_id=dashboard_id)
