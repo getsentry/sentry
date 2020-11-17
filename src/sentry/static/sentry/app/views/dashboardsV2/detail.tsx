@@ -26,7 +26,12 @@ type Props = {
 };
 
 type State = {
+  // local state
   dashboardState: DashboardState;
+  currentDashboard: DashboardListItem | undefined;
+  changesDashboard: DashboardListItem | undefined;
+
+  // endpoint response
   orgDashboards: DashboardListItem[] | null;
 } & AsyncComponent['state'];
 class DashboardDetail extends AsyncComponent<Props, State> {
@@ -42,6 +47,8 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
     // local state
     dashboardState: 'default',
+    currentDashboard: undefined,
+    changesDashboard: undefined,
   };
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
