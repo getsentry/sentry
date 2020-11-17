@@ -16,6 +16,12 @@ try:
 except ImportError:
     pass
 
+from django.conf import settings
+
+settings.KAFKA_CLUSTERS["default"] = {
+    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "localhost:9092")}
+}
+
 
 @contextmanager
 def create_topic(partitions=1, replication_factor=1):
@@ -68,7 +74,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
 
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group="consumer-{}".format(uuid.uuid1().hex),
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -159,7 +165,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -255,7 +261,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
         consumer_a = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -283,9 +289,8 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
         )
 
         assignments_received[consumer_a].pop()
-
         consumer_b = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -386,7 +391,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
         )
 
         consumer_a = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -416,7 +421,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
         assignments_received[consumer_a].pop()
 
         consumer_b = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -553,9 +558,8 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
             )
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
-
         consumer_a = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
@@ -589,7 +593,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         ), "there should be no more messages to receive"
 
         consumer_b = SynchronizedConsumer(
-            bootstrap_servers=os.environ["SENTRY_KAFKA_HOSTS"],
+            cluster_name="default",
             consumer_group=consumer_group,
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,

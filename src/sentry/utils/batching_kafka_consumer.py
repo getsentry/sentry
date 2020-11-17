@@ -16,10 +16,11 @@ from confluent_kafka import (
 )
 from confluent_kafka.admin import AdminClient
 
+from sentry.utils import kafka_config
+
 from django.conf import settings
 
 logger = logging.getLogger("batching-kafka-consumer")
-
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 10000
@@ -142,7 +143,7 @@ class BatchingKafkaConsumer(object):
         worker,
         max_batch_size,
         max_batch_time,
-        bootstrap_servers,
+        cluster_name,
         group_id,
         metrics=None,
         producer=None,
@@ -187,7 +188,7 @@ class BatchingKafkaConsumer(object):
 
         self.consumer = self.create_consumer(
             topics,
-            bootstrap_servers,
+            cluster_name,
             group_id,
             auto_offset_reset,
             queued_max_messages_kbytes,
@@ -211,32 +212,31 @@ class BatchingKafkaConsumer(object):
     def create_consumer(
         self,
         topics,
-        bootstrap_servers,
+        cluster_name,
         group_id,
         auto_offset_reset,
         queued_max_messages_kbytes,
         queued_min_messages,
     ):
-
-        consumer_config = {
-            "enable.auto.commit": False,
-            "bootstrap.servers": ",".join(bootstrap_servers),
-            "group.id": group_id,
-            "default.topic.config": {"auto.offset.reset": auto_offset_reset},
-            # overridden to reduce memory usage when there's a large backlog
-            "queued.max.messages.kbytes": queued_max_messages_kbytes,
-            "queued.min.messages": queued_min_messages,
-        }
+        consumer_config = kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+            override_params={
+                "enable.auto.commit": False,
+                "group.id": group_id,
+                "default.topic.config": {"auto.offset.reset": auto_offset_reset},
+                # overridden to reduce memory usage when there's a large backlog
+                "queued.max.messages.kbytes": queued_max_messages_kbytes,
+                "queued.min.messages": queued_min_messages,
+            },
+        )
 
         if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
             # This is required for confluent-kafka>=1.5.0, otherwise the topics will
             # not be automatically created.
-            admin_client = AdminClient(
-                {
-                    "bootstrap.servers": consumer_config["bootstrap.servers"],
-                    "allow.auto.create.topics": "true",
-                }
+            conf = kafka_config.get_kafka_admin_cluster_options(
+                cluster_name, override_params={"allow.auto.create.topics": "true"}
             )
+            admin_client = AdminClient(conf)
             wait_for_topics(admin_client, topics)
 
         consumer = Consumer(consumer_config)

@@ -18,7 +18,7 @@ MAX_SECONDS_WAITING_FOR_EVENT = 16
 def kafka_producer():
     def inner(settings):
         producer = Producer(
-            {"bootstrap.servers": settings.KAFKA_CLUSTERS["default"]["bootstrap.servers"]}
+            {"bootstrap.servers": settings.KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"]}
         )
         return producer
 
@@ -30,7 +30,7 @@ class _KafkaAdminWrapper:
         self.test_name = request.node.name
 
         kafka_config = {}
-        for key, val in six.iteritems(settings.KAFKA_CLUSTERS["default"]):
+        for key, val in six.iteritems(settings.KAFKA_CLUSTERS["default"]["common"]):
             kafka_config[key] = val
 
         self.admin_client = AdminClient(kafka_config)
