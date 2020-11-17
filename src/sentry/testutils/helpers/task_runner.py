@@ -43,7 +43,7 @@ def BurstTaskRunner():
             jobs += 1
 
         if queue:
-            raise RuntimeError("Could not empty queue")
+            raise RuntimeError("Could not empty queue, last task items: %s" % repr(queue))
 
     with patch("celery.app.task.Task.apply_async", apply_async):
         yield work

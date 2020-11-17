@@ -4,6 +4,7 @@ import time
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.utils.query import celery_run_batch_query
 
 from sentry.tasks.base import instrumented_task, retry
 
@@ -17,7 +18,7 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
     soft_time_limit=110,
 )
 def reprocess_group(
-    project_id, group_id, offset=0, start_time=None, max_events=None, acting_user_id=None
+    project_id, group_id, query_state=None, start_time=None, max_events=None, acting_user_id=None
 ):
     from sentry.reprocessing2 import start_group_reprocessing
 
@@ -27,14 +28,11 @@ def reprocess_group(
             project_id, group_id, max_events=max_events, acting_user_id=acting_user_id
         )
 
-    events = list(
-        eventstore.get_unfetched_events(
-            eventstore.Filter(project_ids=[project_id], group_ids=[group_id],),
-            limit=GROUP_REPROCESSING_CHUNK_SIZE,
-            orderby=["-timestamp"],
-            offset=offset,
-            referrer="reprocessing2.reprocess_group",
-        )
+    query_state, events = celery_run_batch_query(
+        filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
+        batch_size=GROUP_REPROCESSING_CHUNK_SIZE,
+        state=query_state,
+        referrer="reprocessing2.reprocess_group",
     )
 
     if not events:
@@ -64,7 +62,7 @@ def reprocess_group(
     reprocess_group.delay(
         project_id=project_id,
         group_id=group_id,
-        offset=offset + len(events),
+        query_state=query_state,
         start_time=start_time,
         max_events=max_events,
     )

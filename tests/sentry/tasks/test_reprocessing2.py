@@ -23,15 +23,17 @@ from sentry.utils.cache import cache_key_for_event
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature():
+def reprocessing_feature(monkeypatch):
+    monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
+
     with Feature({"projects:reprocessing-v2": True}):
         yield
 
 
 @pytest.fixture
 def process_and_save(default_project, task_runner):
-    def inner(data):
-        data.setdefault("timestamp", iso_format(before_now(seconds=1)))
+    def inner(data, seconds_ago=1):
+        data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
         data = mgr.get_data()
@@ -208,7 +210,7 @@ def test_max_events(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    task_runner,
+    burst_task_runner,
     monkeypatch,
 ):
     @register_event_preprocessor
@@ -218,17 +220,28 @@ def test_max_events(
         extra["processing_counter"] += 1
         return data
 
-    event_id = process_and_save({"message": "hello world"})
+    event_ids = [
+        process_and_save({"message": "hello world"}, seconds_ago=i + 1) for i in reversed(range(20))
+    ]
 
-    event = eventstore.get_event_by_id(default_project.id, event_id)
+    (group_id,) = {
+        eventstore.get_event_by_id(default_project.id, event_id).group_id for event_id in event_ids
+    }
 
-    # Make sure it never gets called
-    monkeypatch.setattr("sentry.tasks.reprocessing2.reprocess_event", None)
+    with burst_task_runner() as burst:
+        reprocess_group(default_project.id, group_id, max_events=len(event_ids) / 2)
 
-    with task_runner():
-        reprocess_group(default_project.id, event.group_id, max_events=0)
+    burst(max_jobs=100)
 
-    assert is_group_finished(event.group_id)
+    for i, event_id in enumerate(event_ids):
+        event = eventstore.get_event_by_id(default_project.id, event_id)
+        if i < len(event_ids) / 2:
+            assert event is None
+        else:
+            assert event.group_id != group_id
+            assert int(event.get_tag("original_group_id")) == group_id
+
+    assert is_group_finished(group_id)
 
 
 @pytest.mark.django_db
@@ -313,6 +326,7 @@ def test_nodestore_missing(
     burst(max_jobs=100)
 
     new_event = eventstore.get_event_by_id(default_project.id, event_id)
+    assert not new_event.data.get("errors")
     assert new_event.group_id != event.group_id
 
     assert is_group_finished(event.group_id)
