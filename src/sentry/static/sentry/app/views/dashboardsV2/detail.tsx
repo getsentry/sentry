@@ -56,6 +56,12 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
+  onCreate = () => {
+    this.setState({
+      dashboardState: 'create',
+    });
+  };
+
   onCommit = () => {
     // TODO: commit dashboard changes
 
@@ -100,6 +106,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 <Controls
                   dashboards={this.getDashboardsList()}
                   onEdit={this.onEdit}
+                  onCreate={this.onCreate}
                   onCommit={this.onCommit}
                   dashboardState={this.state.dashboardState}
                 />

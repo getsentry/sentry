@@ -19,13 +19,14 @@ type OptionType = {
 type Props = {
   dashboards: DashboardListItem[];
   onEdit: () => void;
+  onCreate: () => void;
   onCommit: () => void;
   dashboardState: DashboardState;
 };
 
 class Controls extends React.Component<Props> {
   render() {
-    const {dashboardState, dashboards} = this.props;
+    const {dashboardState, dashboards, onEdit, onCreate, onCommit} = this.props;
 
     if (dashboardState === 'edit') {
       return (
@@ -33,12 +34,39 @@ class Controls extends React.Component<Props> {
           <Button
             onClick={e => {
               e.preventDefault();
-              this.props.onCommit();
+              console.log('delete');
+            }}
+            priority="danger"
+            size="small"
+          >
+            {t('Delete Dashboard')}
+          </Button>
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              onCommit();
             }}
             priority="primary"
             size="small"
           >
             {t('Finish Editing')}
+          </Button>
+        </ButtonBar>
+      );
+    }
+
+    if (dashboardState === 'create') {
+      return (
+        <ButtonBar gap={1} key="create-controls">
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              onCommit();
+            }}
+            priority="primary"
+            size="small"
+          >
+            {t('Create Dashboard')}
           </Button>
         </ButtonBar>
       );
@@ -56,7 +84,7 @@ class Controls extends React.Component<Props> {
         <Button
           onClick={e => {
             e.preventDefault();
-            this.props.onEdit();
+            onEdit();
           }}
           icon={<IconEdit size="xs" />}
           size="small"
@@ -88,8 +116,7 @@ class Controls extends React.Component<Props> {
         <Button
           onClick={e => {
             e.preventDefault();
-
-            console.log('create dashboard');
+            onCreate();
           }}
           priority="primary"
           icon={<IconAdd size="xs" isCircled />}
