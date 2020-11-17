@@ -75,9 +75,7 @@ from sentry.models import (
     DeletedOrganization,
     Organization,
     Dashboard,
-    ObjectStatus,
-    WidgetDataSource,
-    WidgetDataSourceTypes,
+    DashboardWidgetQuery,
 )
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
@@ -958,71 +956,46 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             title="Dashboard 1", created_by=self.user, organization=self.organization
         )
         self.anon_users_query = {
-            "name": "anonymousUsersAffectedQuery",
-            "fields": [],
-            "conditions": [["user.email", "IS NULL", None]],
-            "aggregations": [["count()", None, "Anonymous Users"]],
-            "limit": 1000,
-            "orderby": "-time",
-            "groupby": ["time"],
-            "rollup": 86400,
+            "name": "Anonymous Users",
+            "fields": ["count()"],
+            "conditions": "!has:user.email",
+            "interval": "1d",
         }
         self.known_users_query = {
-            "name": "knownUsersAffectedQuery",
-            "fields": [],
-            "conditions": [["user.email", "IS NOT NULL", None]],
-            "aggregations": [["uniq", "user.email", "Known Users"]],
-            "limit": 1000,
-            "orderby": "-time",
-            "groupby": ["time"],
-            "rollup": 86400,
+            "name": "Known Users",
+            "fields": ["count_unique(user.email)"],
+            "conditions": "has:user.email",
+            "interval": "1d",
         }
         self.geo_errors_query = {
-            "name": "errorsByGeo",
-            "fields": ["geo.country_code"],
-            "conditions": [["geo.country_code", "IS NOT NULL", None]],
-            "aggregations": [["count()", None, "count"]],
-            "limit": 10,
-            "orderby": "-count",
-            "groupby": ["geo.country_code"],
+            "name": "Errors by Geo",
+            "fields": ["count()", "geo.country_code"],
+            "conditions": "has:geo.country_code",
+            "interval": "1d",
         }
 
-    def assert_widget_data_sources(self, widget_id, data):
-        result_data_sources = sorted(
-            WidgetDataSource.objects.filter(widget_id=widget_id, status=ObjectStatus.VISIBLE),
-            key=lambda x: x.order,
-        )
-        data.sort(key=lambda x: x["order"])
-        for ds, expected_ds in zip(result_data_sources, data):
+    def assert_widget_queries(self, widget_id, data):
+        result_queries = DashboardWidgetQuery.objects.filter(widget_id=widget_id).order_by("order")
+        for ds, expected_ds in zip(result_queries, data):
             assert ds.name == expected_ds["name"]
-            assert ds.type == WidgetDataSourceTypes.get_id_for_type_name(expected_ds["type"])
-            assert ds.order == expected_ds["order"]
-            assert ds.data == expected_ds["data"]
+            assert ds.fields == expected_ds["fields"]
+            assert ds.conditions == expected_ds["conditions"]
 
-    def assert_widget(
-        self, widget, order, title, display_type, display_options=None, data_sources=None
-    ):
+    def assert_widget(self, widget, order, title, display_type, queries=None):
         assert widget.order == order
         assert widget.display_type == display_type
-        if display_options:
-            assert widget.display_options == display_options
         assert widget.title == title
 
-        if not data_sources:
+        if not queries:
             return
 
-        self.assert_widget_data_sources(widget.id, data_sources)
+        self.assert_widget_queries(widget.id, queries)
 
-    def assert_widget_data(
-        self, data, order, title, display_type, display_options=None, data_sources=None
-    ):
-        assert data["order"] == order
+    def assert_widget_data(self, data, title, display_type, queries=None):
         assert data["displayType"] == display_type
-        if display_options:
-            assert data["displayOptions"] == display_options
         assert data["title"] == title
 
-        if not data_sources:
+        if not queries:
             return
 
-        self.assert_widget_data_sources(data["id"], data_sources)
+        self.assert_widget_queries(data["id"], queries)
