@@ -1,6 +1,7 @@
 import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {Organization} from 'app/types';
@@ -20,6 +21,7 @@ import Dashboard from './dashboard';
 
 type Props = {
   location: Location;
+  params: Params;
   organization: Organization;
 };
 
@@ -84,7 +86,8 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {organization, location} = this.props;
+    const {organization, location, params} = this.props;
+    const dashboardId = params.dashboardId as string | undefined;
 
     if (!organization.features.includes('dashboards-v2')) {
       // Redirect to Dashboards v1
