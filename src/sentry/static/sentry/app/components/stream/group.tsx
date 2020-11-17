@@ -1,7 +1,6 @@
 import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Flex, Box} from 'reflexbox';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -21,7 +20,6 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import MenuItem from 'app/components/menuItem';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
-import SentryTypes from 'app/sentryTypes';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -73,20 +71,6 @@ type State = {
 };
 
 class StreamGroup extends React.Component<Props, State> {
-  static propTypes: any = {
-    id: PropTypes.string.isRequired,
-    statsPeriod: PropTypes.string.isRequired,
-    canSelect: PropTypes.bool,
-    query: PropTypes.string,
-    hasGuideAnchor: PropTypes.bool,
-    memberList: PropTypes.array,
-    withChart: PropTypes.bool,
-    selection: SentryTypes.GlobalSelection.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    useFilteredStats: PropTypes.bool,
-    hasInboxReason: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();
