@@ -1517,9 +1517,9 @@ SENTRY_DEVSERVICES = {
         "image": "confluentinc/cp-kafka:5.1.2",
         "ports": {"9092/tcp": 9092},
         "environment": {
-            "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
+            "KAFKA_ZOOKEEPER_CONNECT": "127.0.0.1:2181",
             "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092",
-            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://{containers[kafka][name]}:9093,EXTERNAL://{containers[kafka]"
+            "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://127.0.0.1:9093,EXTERNAL://{containers[kafka]"
             "[ports][9092/tcp][0]}:{containers[kafka][ports][9092/tcp][1]}",
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
             "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
@@ -1564,11 +1564,11 @@ SENTRY_DEVSERVICES = {
             "PYTHONUNBUFFERED": "1",
             "SNUBA_SETTINGS": "docker",
             "DEBUG": "1",
-            "CLICKHOUSE_HOST": "{containers[clickhouse][name]}",
+            "CLICKHOUSE_HOST": "127.0.0.1",
             "CLICKHOUSE_PORT": "9000",
             "CLICKHOUSE_HTTP_PORT": "8123",
-            "DEFAULT_BROKERS": "{containers[kafka][name]}:9093",
-            "REDIS_HOST": "{containers[redis][name]}",
+            "DEFAULT_BROKERS": "127.0.0.1:9093",
+            "REDIS_HOST": "127.0.0.1",
             "REDIS_PORT": "6379",
             "REDIS_DB": "1",
         },
