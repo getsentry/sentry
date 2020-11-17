@@ -162,8 +162,9 @@ class JiraCreateTicketAction(TicketEventAction):
             """Create the Jira ticket for a given event"""
 
             # HACK to get fixVersion in the correct format
-            if not isinstance(self.data["fixVersions"], list):
-                self.data["fixVersions"] = [self.data["fixVersions"]]
+            if self.data.get("fixVersions"):
+                if not isinstance(self.data["fixVersions"], list):
+                    self.data["fixVersions"] = [self.data["fixVersions"]]
 
             if self.data.get("dynamic_form_fields"):
                 del self.data["dynamic_form_fields"]
@@ -171,6 +172,15 @@ class JiraCreateTicketAction(TicketEventAction):
             if not self.has_linked_issue(event, integration):
                 resp = installation.create_issue(self.data)
                 self.create_link(resp["key"], integration, installation, event)
+            else:
+                logger.info(
+                    "jira.rule_trigger.link_already_exists",
+                    extra={
+                        "rule_id": self.rule.id,
+                        "project_id": self.project.id,
+                        "group_id": event.group.id,
+                    },
+                )
             return
 
         key = u"jira:{}".format(integration.id)

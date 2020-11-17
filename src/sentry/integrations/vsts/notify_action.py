@@ -53,6 +53,15 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
             if not self.has_linked_issue(event, integration):
                 resp = installation.create_issue(self.data)
                 self.create_link(resp["metadata"]["display_name"], integration, installation, event)
+            else:
+                logger.info(
+                    "vsts.rule_trigger.link_already_exists",
+                    extra={
+                        "rule_id": self.rule.id,
+                        "project_id": self.project.id,
+                        "group_id": event.group.id,
+                    },
+                )
             return
 
         key = u"vsts:{}".format(integration.id)

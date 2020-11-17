@@ -105,12 +105,11 @@ class TicketEventAction(IntegrationEventAction):
             project_id=self.project.id,
             group_id=event.group.id,
             linked_type=GroupLink.LinkedType.issue,
-        ).values("linked_id")
+        ).values_list("linked_id", flat=True)
 
-        integration_ids = [
-            ExternalIssue.objects.get(id=link["linked_id"]).integration_id for link in linked_issues
-        ]
-        return integration.id in integration_ids
+        return ExternalIssue.objects.filter(
+            id__in=linked_issues, integration_id=integration.id,
+        ).exists()
 
     def create_link(self, key, integration, installation, event):
         external_issue = ExternalIssue.objects.create(
