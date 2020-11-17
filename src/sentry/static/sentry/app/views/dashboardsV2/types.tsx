@@ -33,3 +33,5 @@ export type UserDashboard = {
 };
 
 export type DashboardListItem = PrebuiltDashboard | UserDashboard;
+
+export type DashboardState = 'default' | 'edit' | 'create';

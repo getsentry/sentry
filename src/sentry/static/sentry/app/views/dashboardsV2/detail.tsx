@@ -13,7 +13,7 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 
-import {DashboardListItem} from './types';
+import {DashboardListItem, DashboardState} from './types';
 import {PREBUILT_DASHBOARDS} from './data';
 import Controls from './controls';
 import Dashboard from './dashboard';
@@ -24,7 +24,7 @@ type Props = {
 };
 
 type State = {
-  editing: boolean;
+  dashboardState: DashboardState;
   orgDashboards: DashboardListItem[] | null;
 } & AsyncComponent['state'];
 class DashboardDetail extends AsyncComponent<Props, State> {
@@ -34,10 +34,12 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     reloading: false,
     error: false,
     errors: [],
+
+    // endpoint response
     orgDashboards: [],
 
     // local state
-    editing: false,
+    dashboardState: 'default',
   };
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -50,7 +52,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
   onEdit = () => {
     this.setState({
-      editing: !this.state.editing,
+      dashboardState: 'edit',
     });
   };
 
@@ -90,7 +92,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 <Controls
                   dashboards={this.getDashboardsList()}
                   onEdit={this.onEdit}
-                  editing={this.state.editing}
+                  dashboardState={this.state.dashboardState}
                 />
               </StyledPageHeader>
               <Dashboard />

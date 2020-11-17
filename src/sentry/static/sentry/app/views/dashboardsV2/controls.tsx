@@ -9,7 +9,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {DashboardListItem} from './types';
+import {DashboardListItem, DashboardState} from './types';
 
 type OptionType = {
   label: string;
@@ -19,14 +19,14 @@ type OptionType = {
 type Props = {
   dashboards: DashboardListItem[];
   onEdit: () => void;
-  editing: boolean;
+  dashboardState: DashboardState;
 };
 
 class Controls extends React.Component<Props> {
   render() {
-    const {editing, dashboards} = this.props;
+    const {dashboardState, dashboards} = this.props;
 
-    if (editing) {
+    if (dashboardState === 'edit') {
       return (
         <ButtonBar gap={1} key="edit-controls">
           <Button
