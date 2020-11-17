@@ -50,7 +50,7 @@ function findBestThread(threads: Array<Thread>) {
   );
 }
 
-class ThreadInterface extends React.Component<Props, State> {
+class Threads extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();
@@ -167,4 +167,4 @@ class ThreadInterface extends React.Component<Props, State> {
   }
 }
 
-export default ThreadInterface;
+export default Threads;
