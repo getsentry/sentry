@@ -47,7 +47,7 @@ const ReleaseChartControls = ({
     ? t('This view is only available with Discover feature.')
     : undefined;
   const noPerformanceTooltip = !hasPerformance
-    ? t('This view is only available with Performance feature.')
+    ? t('This view is only available with Performance Monitoring.')
     : undefined;
   const yAxisOptions: SelectValue<YAxis>[] = [
     {
