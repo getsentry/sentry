@@ -174,10 +174,6 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        if event.group_id:
-            # Patch attachments that were ingested on the standalone path.
-            update_existing_attachments(event)
-
         if event.group_id and not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
@@ -236,6 +232,10 @@ def post_process_group(
             from sentry import similarity
 
             safe_execute(similarity.record, event.project, [event])
+
+        if event.group_id:
+            # Patch attachments that were ingested on the standalone path.
+            update_existing_attachments(event)
 
         if not is_reprocessed:
             event_processed.send_robust(
