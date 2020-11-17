@@ -3,13 +3,16 @@ import React from 'react';
 import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 
-export default class AdminPackages extends AsyncView {
-  getEndpoints() {
-    return [['data', this.getEndpoint()]];
-  }
+type Data = {
+  extensions: [key: string, value: string][];
+  modules: [key: string, value: string][];
+};
 
-  getEndpoint() {
-    return '/internal/packages/';
+type State = AsyncView['state'] & {data: Data};
+
+export default class AdminPackages extends AsyncView<{}, State> {
+  getEndpoints(): [string, string][] {
+    return [['data', '/internal/packages/']];
   }
 
   renderBody() {
