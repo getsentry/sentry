@@ -34,10 +34,20 @@ type ChartProps = {
   releaseSeries?: Series | null;
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
+  /**
+   * The default series names are based on the column names. This callback
+   * allows for custom naming of series.
+   */
+  seriesNameTransformer?: (string) => string;
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
   colors?: string[];
+  /**
+   * By default, only the release series is disableable. This adds
+   * a list of series names that are also disableable.
+   */
+  disableableSeries?: string[];
 };
 
 type State = {
@@ -56,9 +66,11 @@ class Chart extends React.Component<ChartProps, State> {
     previousTimeseriesData: PropTypes.object,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
+    seriesNameTransformer: PropTypes.func,
     showDaily: PropTypes.bool,
     yAxis: PropTypes.string,
     colors: PropTypes.array,
+    disableableSeries: PropTypes.array,
   };
 
   state: State = {
@@ -109,11 +121,13 @@ class Chart extends React.Component<ChartProps, State> {
   }
 
   handleLegendSelectChanged = legendChange => {
+    const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
       // we only want them to be able to disable the Releases series,
       // and not any of the other possible series here
-      state[key] = key === 'Releases' ? selected[key] : true;
+      const disableable = key === 'Releases' || disableableSeries.includes(key);
+      state[key] = disableable ? selected[key] : true;
       return state;
     }, {});
 
@@ -136,6 +150,7 @@ class Chart extends React.Component<ChartProps, State> {
       showLegend,
       currentSeriesName,
       previousSeriesName,
+      seriesNameTransformer,
       colors,
       ...props
     } = this.props;
@@ -191,6 +206,12 @@ class Chart extends React.Component<ChartProps, State> {
     const series = Array.isArray(releaseSeries)
       ? [...timeseriesData, ...releaseSeries]
       : timeseriesData;
+
+    if (seriesNameTransformer) {
+      series.forEach(s => {
+        s.seriesName = seriesNameTransformer(s.seriesName);
+      });
+    }
 
     return (
       <Component
@@ -276,7 +297,14 @@ type Props = {
    * Override the default color palette.
    */
   colors?: string[];
-} & Pick<ChartProps, 'currentSeriesName' | 'previousSeriesName' | 'showLegend'>;
+} & Pick<
+  ChartProps,
+  | 'currentSeriesName'
+  | 'previousSeriesName'
+  | 'seriesNameTransformer'
+  | 'showLegend'
+  | 'disableableSeries'
+>;
 
 type ChartDataProps = {
   // TODO(mark) Update this when components/charts/chartZoom is updated.
@@ -307,12 +335,14 @@ class EventsChart extends React.Component<Props> {
     disableReleases: PropTypes.bool,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
+    seriesNameTransformer: PropTypes.func,
     topEvents: PropTypes.number,
     field: PropTypes.arrayOf(PropTypes.string),
     showDaily: PropTypes.bool,
     orderby: PropTypes.string,
     confirmedQuery: PropTypes.bool,
     colors: PropTypes.array,
+    disableableSeries: PropTypes.array,
   };
 
   render() {
@@ -332,6 +362,7 @@ class EventsChart extends React.Component<Props> {
       disableReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
+      seriesNameTransformer,
       field,
       interval,
       showDaily,
@@ -345,7 +376,7 @@ class EventsChart extends React.Component<Props> {
     const includePrevious = !disablePrevious && !start && !end;
 
     const previousSeriesName =
-      previousName ?? yAxis ? t('previous %s', yAxis) : undefined;
+      previousName ?? (yAxis ? t('previous %s', yAxis) : undefined);
     const currentSeriesName = currentName ?? yAxis;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
@@ -383,6 +414,7 @@ class EventsChart extends React.Component<Props> {
             previousTimeseriesData={previousTimeseriesData}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
+            seriesNameTransformer={seriesNameTransformer}
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}

@@ -64,14 +64,19 @@ class ReleaseChartContainer extends React.Component<Props> {
     const {start, end, period, utc} = datetime;
     const eventView = getReleaseEventView(selection, version, yAxis);
     const apiPayload = eventView.getEventsAPIPayload(location);
-    const seriesName =
-      yAxis === YAxis.FAILED_TRANSACTIONS
-        ? t('Failed Transactions')
-        : t('All Transactions');
     const colors =
       yAxis === YAxis.FAILED_TRANSACTIONS
         ? [theme.red300, theme.red100]
         : [theme.purple300, theme.purple100];
+
+    const seriesNameTransformer = (name: string): string => {
+      if (name === 'current') {
+        return 'This Release';
+      } else if (name === 'others') {
+        return 'Other Releases';
+      }
+      return name;
+    };
 
     return (
       <EventsChart
@@ -92,7 +97,12 @@ class ReleaseChartContainer extends React.Component<Props> {
         field={eventView.getFields()}
         topEvents={2}
         orderby={decodeScalar(apiPayload.sort)}
-        currentSeriesName={seriesName}
+        currentSeriesName="This Release"
+        // This seems a little strange but is intentional as EventsChart
+        // uses the previousSeriesName as the secondary series name
+        previousSeriesName="Other Releases"
+        seriesNameTransformer={seriesNameTransformer}
+        disableableSeries={['This Release', 'Other Releases']}
         colors={colors}
       />
     );

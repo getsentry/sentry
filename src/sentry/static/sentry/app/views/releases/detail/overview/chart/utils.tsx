@@ -44,10 +44,10 @@ export function getReleaseEventView(
         id: undefined,
         version: 2,
         name: `${t('Release')} ${formatVersion(version)}`,
-        fields: [`count()`, `to_other(release,${version},current,others)`],
+        fields: [`count()`, `to_other(release,${version},others,current)`],
         query: `${releaseFilter} ${statusFilter}`.trim(),
         // this orderby ensures that the order is [others, current]
-        orderby: `-to_other_release_${version}_current_others`,
+        orderby: `to_other_release_${version}_current_others`,
         range: period,
         environment: environments,
         projects,
