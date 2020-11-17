@@ -32,18 +32,19 @@ def _get_legacy_kafka_cluster_options(cluster_name):
 
 
 def _get_kafka_cluster_options(
-    cluster_name, config_section, with_legacy=False, override_params=None
+    cluster_name, config_section, only_bootstrap=False, override_params=None
 ):
     options = {}
     custom_options = settings.KAFKA_CLUSTERS[cluster_name].get(config_section, {})
     common_options = settings.KAFKA_CLUSTERS[cluster_name].get(COMMON_SECTION, {})
     legacy_options = _get_legacy_kafka_cluster_options(cluster_name)
-    if with_legacy and legacy_options:
-        # producer uses all legacy_options
-        options.update(legacy_options)
-    elif "bootstrap.servers" in legacy_options:
-        # legacy override of bootstrap.servers should be preserved
-        options["bootstrap.servers"] = legacy_options["bootstrap.servers"]
+    if legacy_options:
+        assert "bootstrap.servers" in legacy_options
+        if only_bootstrap:
+            options["bootstrap.servers"] = legacy_options["bootstrap.servers"]
+        else:
+            # producer uses all legacy_options
+            options.update(legacy_options)
     else:
         options.update(common_options)
         options.update(custom_options)
@@ -63,14 +64,16 @@ def _get_kafka_cluster_options(
 
 
 def get_kafka_producer_cluster_options(cluster_name):
-    return _get_kafka_cluster_options(cluster_name, PRODUCERS_SECTION, with_legacy=True)
+    return _get_kafka_cluster_options(cluster_name, PRODUCERS_SECTION)
 
 
 def get_kafka_consumer_cluster_options(cluster_name, override_params=None):
     return _get_kafka_cluster_options(
-        cluster_name, CONSUMERS_SECTION, override_params=override_params
+        cluster_name, CONSUMERS_SECTION, only_bootstrap=True, override_params=override_params
     )
 
 
 def get_kafka_admin_cluster_options(cluster_name, override_params=None):
-    return _get_kafka_cluster_options(cluster_name, ADMIN_SECTION, override_params=override_params)
+    return _get_kafka_cluster_options(
+        cluster_name, ADMIN_SECTION, only_bootstrap=True, override_params=override_params
+    )
