@@ -1,6 +1,6 @@
 import {Frame} from 'app/types';
 
-// TODO(ts): define correct stacktrace type
+// TODO(ts): define correct stack trace type
 function getRelevantFrame(stacktrace: any): Frame {
   if (!stacktrace.hasSystemFrames) {
     return stacktrace.frames[stacktrace.frames.length - 1];

@@ -45,7 +45,11 @@ class GroupUserFeedback extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.params, this.props.params)) {
+    if (
+      !isEqual(prevProps.params, this.props.params) ||
+      prevProps.location.pathname !== this.props.location.pathname ||
+      prevProps.location.search !== this.props.location.search
+    ) {
       this.fetchData();
     }
   }
@@ -56,7 +60,10 @@ class GroupUserFeedback extends React.Component<Props, State> {
       error: false,
     });
 
-    fetchGroupUserReports(this.props.group.id, this.props.params)
+    fetchGroupUserReports(this.props.group.id, {
+      ...this.props.params,
+      cursor: this.props.location.query.cursor || '',
+    })
       .then(([data, _, jqXHR]) => {
         this.setState({
           error: false,
@@ -97,7 +104,7 @@ class GroupUserFeedback extends React.Component<Props, State> {
                 issueId={group.id}
               />
             ))}
-            <Pagination pageLinks={this.state.pageLinks} />
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
           </div>
         </div>
       );

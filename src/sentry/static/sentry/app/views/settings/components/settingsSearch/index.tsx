@@ -62,7 +62,7 @@ const SearchInputWrapper = styled('div')`
 `;
 
 const SearchInputIcon = styled(IconSearch)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   position: absolute;
   left: 10px;
   top: 8px;
@@ -86,6 +86,6 @@ const SearchInput = styled('input')`
   }
 
   &::placeholder {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.formPlaceholder};
   }
 `;

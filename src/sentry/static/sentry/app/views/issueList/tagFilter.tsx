@@ -200,6 +200,6 @@ const StreamTagFilter = styled('div')`
 `;
 
 const StyledHeader = styled('h6')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;

@@ -531,6 +531,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             rule=rule,
             rule_type="issue",
             sender=type(self.project),
+            is_api_token=False,
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"

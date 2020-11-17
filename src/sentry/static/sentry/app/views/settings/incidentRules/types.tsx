@@ -13,6 +13,19 @@ export enum Dataset {
   TRANSACTIONS = 'transactions',
 }
 
+export enum EventTypes {
+  DEFAULT = 'default',
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
+}
+
+export enum Datasource {
+  ERROR_DEFAULT = 'error_default',
+  DEFAULT = 'default',
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
+}
+
 export type UnsavedTrigger = {
   // UnsavedTrigger can be apart of an Unsaved Alert Rule that does not have an
   // id yet
@@ -48,6 +61,7 @@ export type UnsavedIncidentRule = {
   aggregate: string;
   thresholdType: AlertRuleThresholdType;
   resolveThreshold: number | '' | null;
+  eventTypes?: EventTypes[];
 };
 
 export type SavedIncidentRule = UnsavedIncidentRule & {

@@ -119,7 +119,7 @@ function routes() {
             name="Session History"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "AccountSecuritySessionHistory" */ 'app/views/settings/account/accountSecurity/accountSecuritySessionHistory'
+                /* webpackChunkName: "SessionHistory" */ 'app/views/settings/account/accountSecurity/sessionHistory'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -420,6 +420,16 @@ function routes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
+      <Route
+        path="issue-grouping/"
+        name={t('Issue Grouping')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectIssueGrouping" */ 'app/views/settings/projectIssueGrouping'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
       <Route
         path="hooks/"
         name="Service Hooks"
@@ -1006,7 +1016,7 @@ function routes() {
           path="/share/issue/:shareId/"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "SharedGroupDetails" */ 'app/views/sharedGroupDetails/sharedGroupDetails'
+              /* webpackChunkName: "SharedGroupDetails" */ 'app/views/sharedGroupDetails'
             )
           }
           component={errorHandler(LazyLoad)}

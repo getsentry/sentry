@@ -128,7 +128,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): Array<[string, string]> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       return [
@@ -411,7 +411,7 @@ const TokenItem = styled('div')`
 `;
 
 const CreatedTitle = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-bottom: 2px;
 `;
 

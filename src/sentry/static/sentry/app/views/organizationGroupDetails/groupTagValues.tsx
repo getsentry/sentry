@@ -42,7 +42,7 @@ class GroupTagValues extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  getEndpoints(): [string, string, any?][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {environments: environment} = this.props;
     const {groupId, tagKey} = this.props.params;
     return [
@@ -108,12 +108,12 @@ class GroupTagValues extends AsyncComponent<
               </GlobalSelectionLink>
               {tagValue.email && (
                 <StyledExternalLink href={`mailto:${tagValue.email}`}>
-                  <IconMail size="xs" color="gray500" />
+                  <IconMail size="xs" color="gray300" />
                 </StyledExternalLink>
               )}
               {isUrl(tagValue.value) && (
                 <StyledExternalLink href={tagValue.value}>
-                  <IconOpen size="xs" color="gray500" />
+                  <IconOpen size="xs" color="gray300" />
                 </StyledExternalLink>
               )}
             </ValueWrapper>

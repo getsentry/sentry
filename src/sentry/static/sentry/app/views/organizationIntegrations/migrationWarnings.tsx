@@ -18,7 +18,7 @@ type State = {
 } & AsyncComponent['state'];
 
 export default class MigrationWarnings extends AsyncComponent<Props, State> {
-  getEndpoints(): ([string, string] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId} = this.props;
 
     return [['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`]];

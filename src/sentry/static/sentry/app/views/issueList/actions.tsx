@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t, tct, tn} from 'app/locale';
-import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
+import {IconEllipsis, IconPause, IconPlay, IconIssues} from 'app/icons';
 import {Client} from 'app/api';
-import {GlobalSelection, Group, Project, ResolutionStatus} from 'app/types';
+import {GlobalSelection, Group, Organization, Project, ResolutionStatus} from 'app/types';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import ActionLink from 'app/components/actions/actionLink';
@@ -22,8 +22,10 @@ import ResolveActions from 'app/components/actions/resolve';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
+import Feature from 'app/components/acl/feature';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -91,7 +93,7 @@ const getConfirm = (
   };
 
 const getLabel = (numIssues: number, allInQuerySelected: boolean) =>
-  function (action, append = '') {
+  function (action: string, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
       ? t(`Bulk ${action} issues`)
@@ -145,6 +147,7 @@ type Props = {
   api: Client;
   allResultsVisible: boolean;
   orgId: string;
+  organization: Organization;
   selection: GlobalSelection;
   groupIds: string[];
   onRealtimeChange: (realtime: boolean) => void;
@@ -153,6 +156,7 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
+  issuesLoading: boolean;
 };
 
 type State = {
@@ -332,6 +336,7 @@ class IssueListActions extends React.Component<Props, State> {
     action:
       | 'resolve'
       | 'unresolve'
+      | 'backlog'
       | 'ignore'
       | 'unbookmark'
       | 'bookmark'
@@ -345,6 +350,7 @@ class IssueListActions extends React.Component<Props, State> {
       case 'ignore':
       case 'unbookmark':
         return this.state.pageSelected && selectedItems.size > 1;
+      case 'backlog':
       case 'bookmark':
         return selectedItems.size > 1;
       case 'merge':
@@ -401,6 +407,9 @@ class IssueListActions extends React.Component<Props, State> {
       realtimeActive,
       selection,
       statsPeriod,
+      organization,
+      groupIds,
+      issuesLoading,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -417,6 +426,8 @@ class IssueListActions extends React.Component<Props, State> {
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
+    const hasInboxReason =
+      issuesLoading || groupIds.some(id => !!GroupStore.get(id)?.inbox);
 
     return (
       <Sticky>
@@ -425,6 +436,23 @@ class IssueListActions extends React.Component<Props, State> {
             <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
           </ActionsCheckbox>
           <ActionSet>
+            <Feature organization={organization} features={['organizations:inbox']}>
+              <div className="btn-group hidden-sm hidden-xs">
+                <StyledActionLink
+                  className="btn btn-default btn-sm action-merge"
+                  data-test-id="button-backlog"
+                  disabled={!anySelected}
+                  onAction={() => this.handleUpdate({inbox: false})}
+                  shouldConfirm={this.shouldConfirm('backlog')}
+                  message={confirm('move', false, ' to the backlog')}
+                  confirmLabel={label('backlog')}
+                  title={t('Move to backlog')}
+                >
+                  <StyledIconIssues size="xs" />
+                  {t('Backlog')}
+                </StyledActionLink>
+              </div>
+            </Feature>
             {selectedProjectSlug ? (
               <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
                 {({projects, initiallyLoaded, fetchError}) => {
@@ -497,6 +525,22 @@ class IssueListActions extends React.Component<Props, State> {
                     {t('Merge')}
                   </ActionLink>
                 </MenuItem>
+                <Feature organization={organization} features={['organizations:inbox']}>
+                  <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+                  <MenuItem noAnchor>
+                    <ActionLink
+                      className="action-backlog hidden-md hidden-lg hidden-xl"
+                      disabled={!anySelected}
+                      onAction={() => this.handleUpdate({inbox: false})}
+                      shouldConfirm={this.shouldConfirm('backlog')}
+                      message={confirm('move', false, ' to the backlog')}
+                      confirmLabel={label('backlog')}
+                      title={t('Move to backlog')}
+                    >
+                      {t('Move to backlog')}
+                    </ActionLink>
+                  </MenuItem>
+                </Feature>
                 <MenuItem divider className="hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
@@ -600,6 +644,10 @@ class IssueListActions extends React.Component<Props, State> {
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
+          <Feature organization={organization} features={['organizations:inbox']}>
+            {hasInboxReason && <ReasonSpacerLabel className="hidden-xs hidden-sm" />}
+            <TimesSpacerLabel className="hidden-xs hidden-sm" />
+          </Feature>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -656,7 +704,7 @@ const StyledFlex = styled('div')`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
   align-items: center;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;
@@ -703,6 +751,16 @@ const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
 `;
 
+const StyledActionLink = styled(ActionLink)`
+  display: flex;
+  align-items: center;
+  transition: none;
+`;
+
+const StyledIconIssues = styled(IconIssues)`
+  margin-right: ${space(0.5)};
+`;
+
 const GraphToggle = styled('a')<{active: boolean}>`
   font-size: 13px;
   padding-left: 8px;
@@ -711,7 +769,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.gray700 : p.theme.disabled)};
+    color: ${p => (p.active ? p.theme.textColor : p.theme.disabled)};
   }
 `;
 
@@ -742,6 +800,16 @@ const AssigneesLabel = styled('div')`
   margin-right: ${space(2)};
 `;
 
+const ReasonSpacerLabel = styled('div')`
+  width: 95px;
+  margin: 0 ${space(0.25)} 0 ${space(1)};
+`;
+
+const TimesSpacerLabel = styled('div')`
+  width: 170px;
+  margin: 0 ${space(1.5)} 0 ${space(0.5)};
+`;
+
 // New icons are misaligned inside bootstrap buttons.
 // This is a shim that can be removed when buttons are upgraded
 // to styled components.
@@ -765,4 +833,4 @@ const SelectAllLink = styled('a')`
 
 export {IssueListActions};
 
-export default withApi(IssueListActions);
+export default withApi(withOrganization(IssueListActions));

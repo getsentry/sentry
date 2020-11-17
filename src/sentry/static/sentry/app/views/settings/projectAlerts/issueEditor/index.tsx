@@ -121,7 +121,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {ruleId, projectId, orgId} = this.props.params;
 
     const endpoints = [
@@ -509,7 +509,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   <StepContainer>
                     <ChevronContainer>
                       <IconChevron
-                        color="gray400"
+                        color="gray200"
                         isCircled
                         direction="right"
                         size="sm"
@@ -598,7 +598,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <StepContainer>
                       <ChevronContainer>
                         <IconChevron
-                          color="gray400"
+                          color="gray200"
                           isCircled
                           direction="right"
                           size="sm"
@@ -664,7 +664,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <ChevronContainer>
                       <IconChevron
                         isCircled
-                        color="gray400"
+                        color="gray200"
                         direction="right"
                         size="sm"
                       />
@@ -757,7 +757,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray500} dashed;
+  border-right: 1px ${p => p.theme.gray300} dashed;
 `;
 
 const StepLead = styled('div')`

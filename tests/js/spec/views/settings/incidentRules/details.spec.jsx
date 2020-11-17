@@ -25,6 +25,10 @@ describe('Incident Rules Details', function () {
       body: null,
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
@@ -41,7 +45,7 @@ describe('Incident Rules Details', function () {
     const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
     const req = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
     });
 

@@ -11,14 +11,7 @@ import {
   OrganizationSummary,
   MultiSeriesEventsStats,
 } from 'app/types';
-
-function getBaseUrl(org: OrganizationSummary, keyTransactions: boolean | undefined) {
-  if (keyTransactions) {
-    return `/organizations/${org.slug}/key-transactions-stats/`;
-  }
-
-  return `/organizations/${org.slug}/events-stats/`;
-}
+import {LocationQuery} from 'app/utils/discover/eventView';
 
 type Options = {
   organization: OrganizationSummary;
@@ -33,7 +26,6 @@ type Options = {
   query?: string;
   yAxis?: string | string[];
   field?: string[];
-  keyTransactions?: boolean;
   topEvents?: number;
   orderby?: string;
 };
@@ -66,7 +58,6 @@ export const doEventsRequest = (
     query,
     yAxis,
     field,
-    keyTransactions,
     topEvents,
     orderby,
   }: Options
@@ -90,7 +81,7 @@ export const doEventsRequest = (
   // the tradeoff for now.
   const periodObj = getPeriod({period, start, end}, {shouldDoublePeriod});
 
-  return api.requestPromise(`${getBaseUrl(organization, keyTransactions)}`, {
+  return api.requestPromise(`/organizations/${organization.slug}/events-stats/`, {
     query: {
       ...urlQuery,
       ...periodObj,
@@ -105,6 +96,7 @@ export type EventQuery = {
   query: string;
   per_page?: number;
   referrer?: string;
+  environment?: string[];
 };
 
 export type TagSegment = {
@@ -144,7 +136,7 @@ export async function fetchTagFacets(
 export async function fetchTotalCount(
   api: Client,
   orgSlug: String,
-  query: EventQuery
+  query: EventQuery & LocationQuery
 ): Promise<number> {
   const urlParams = pick(query, Object.values(URL_PARAM));
 

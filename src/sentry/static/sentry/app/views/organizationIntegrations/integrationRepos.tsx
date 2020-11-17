@@ -53,7 +53,7 @@ export default class IntegrationRepos extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.context.organization.slug;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],

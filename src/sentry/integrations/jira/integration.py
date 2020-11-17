@@ -30,6 +30,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
 
 from .client import JiraApiClient, JiraCloud
+from .utils import build_user_choice
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -405,7 +406,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         """
         return reverse("sentry-extensions-jira-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, group, field_meta):
+    def build_dynamic_field(self, field_meta, group=None):
         """
         Builds a field based on Jira's meta field information
         """
@@ -425,7 +426,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            fkwargs["url"] = self.search_url(group.organization.slug)
+            organization = (
+                group.organization
+                if group
+                else Organization.objects.get_from_cache(id=self.organization_id)
+            )
+            fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
             # TODO: Implement timetracking (currently unsupported altogether)
@@ -535,12 +541,18 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, **kwargs):
-        kwargs["link_referrer"] = "jira_integration"
-        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
-        params = kwargs.get("params", {})
+    def get_create_issue_config_no_params(self):
+        return self.get_create_issue_config(None, None, params={})
 
-        defaults = self.get_project_defaults(group.project_id)
+    def get_create_issue_config(self, group, user, **kwargs):
+        kwargs["link_referrer"] = "jira_integration"
+        params = kwargs.get("params", {})
+        fields = []
+        defaults = {}
+        if group:
+            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            defaults = self.get_defaults(group.project, user)
+
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
@@ -624,7 +636,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
                 continue
-            mb_field = self.build_dynamic_field(group, issue_type_meta["fields"][field])
+
+            mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
                 mb_field["name"] = field
                 fields.append(mb_field)
@@ -639,6 +652,29 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_versions(meta["key"]))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
+            elif field["name"] == "reporter":
+                reporter_id = defaults.get("reporter", "")
+                if not reporter_id:
+                    continue
+                try:
+                    reporter_info = client.get_user(reporter_id)
+                except ApiError as e:
+                    logger.info(
+                        "jira.get-create-issue-config.no-matching-reporter",
+                        extra={
+                            "integration_id": self.model.id,
+                            "organization_id": self.organization_id,
+                            "persisted_reporter_id": reporter_id,
+                            "error": six.text_type(e),
+                        },
+                    )
+                    continue
+                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
+                if not reporter_tuple:
+                    continue
+                reporter_id, reporter_label = reporter_tuple
+                field["default"] = reporter_id
+                field["choices"] = [(reporter_id, reporter_label)]
 
         return fields
 

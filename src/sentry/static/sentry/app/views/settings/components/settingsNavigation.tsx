@@ -15,6 +15,10 @@ type DefaultProps = {
    * Additional navigation elements driven from hooks
    */
   hooks: React.ReactElement[];
+  /**
+   * How far from the top of the page should the navigation be when stickied.
+   */
+  stickyTop: string;
 };
 
 type Props = DefaultProps &
@@ -29,6 +33,7 @@ class SettingsNavigation extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     hooks: [],
     hookConfigs: [],
+    stickyTop: '70px',
   };
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -42,11 +47,11 @@ class SettingsNavigation extends React.Component<Props> {
   }
 
   render() {
-    const {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;
+    const {navigationObjects, hooks, hookConfigs, stickyTop, ...otherProps} = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
     return (
-      <PositionStickyWrapper>
+      <PositionStickyWrapper stickyTop={stickyTop}>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
@@ -56,15 +61,15 @@ class SettingsNavigation extends React.Component<Props> {
   }
 }
 
-const PositionStickyWrapper = styled('div')`
+const PositionStickyWrapper = styled('div')<{stickyTop: string}>`
   padding: ${space(4)};
   padding-right: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     position: sticky;
-    top: 70px;
+    top: ${p => p.stickyTop};
     overflow: scroll;
-    height: calc(100vh - 70px);
+    height: calc(100vh - ${p => p.stickyTop});
     -ms-overflow-style: none;
     scrollbar-width: none;
 

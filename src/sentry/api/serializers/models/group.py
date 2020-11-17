@@ -98,9 +98,10 @@ class GroupSerializerBase(Serializer):
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
-        for item in seen_stats.values():
-            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                last_seen = item["last_seen"]
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
 
         if last_seen is None:
             return datetime.now(pytz.utc) - timedelta(days=30)
@@ -397,7 +398,8 @@ class GroupSerializerBase(Serializer):
             if has_unhandled_flag:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
-            result[item].update(seen_stats.get(item, {}))
+            if seen_stats:
+                result[item].update(seen_stats.get(item, {}))
         return result
 
     def _get_status(self, attrs, obj):
@@ -531,8 +533,8 @@ class GroupSerializerBase(Serializer):
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
-
-        group_dict.update(self._convert_seen_stats(attrs))
+        if "times_seen" in attrs:
+            group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
 
     def _convert_seen_stats(self, stats):
@@ -865,7 +867,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         start=None,
         end=None,
         search_filters=None,
-        include_inbox=False,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids, start, end, search_filters
@@ -880,35 +884,59 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
-        self.include_inbox = include_inbox
+
+        self.collapse = collapse
+        self.expand = expand
+        self.has_inbox = has_inbox
+
+    def _expand(self, key):
+        if self.expand is None:
+            return False
+
+        if key == "inbox":
+            return self.has_inbox and "inbox" in self.expand
+
+        return key in self.expand
+
+    def _collapse(self, key):
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
     def _get_seen_stats(self, item_list, user):
-        partial_execute_seen_stats_query = functools.partial(
-            self._execute_seen_stats_query,
-            item_list=item_list,
-            environment_ids=self.environment_ids,
-            start=self.start,
-            end=self.end,
-        )
-        time_range_result = partial_execute_seen_stats_query()
-        filtered_result = (
-            partial_execute_seen_stats_query(conditions=self.conditions)
-            if self.conditions
-            else None
-        )
-        lifetime_result = (
-            partial_execute_seen_stats_query(start=None, end=None)
-            if self.start or self.end
-            else time_range_result
-        )
-        for item in item_list:
-            time_range_result[item].update(
-                {
-                    "filtered": filtered_result.get(item) if self.conditions else None,
-                    "lifetime": lifetime_result.get(item),
-                }
+        if not self._collapse("stats"):
+            partial_execute_seen_stats_query = functools.partial(
+                self._execute_seen_stats_query,
+                item_list=item_list,
+                environment_ids=self.environment_ids,
+                start=self.start,
+                end=self.end,
             )
-        return time_range_result
+            time_range_result = partial_execute_seen_stats_query()
+            filtered_result = (
+                partial_execute_seen_stats_query(conditions=self.conditions)
+                if self.conditions and not self._collapse("filtered")
+                else None
+            )
+            if not self._collapse("lifetime"):
+                lifetime_result = (
+                    partial_execute_seen_stats_query(start=None, end=None)
+                    if self.start or self.end
+                    else time_range_result
+                )
+            else:
+                lifetime_result = None
+
+            for item in item_list:
+                time_range_result[item].update(
+                    {
+                        "filtered": filtered_result.get(item) if filtered_result else None,
+                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
+                    }
+                )
+            return time_range_result
+
+        return None
 
     def _get_inbox_details(self, item_list):
         group_ids = [g.id for g in item_list]
@@ -935,20 +963,22 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
-        if self.stats_period:
+        if self.stats_period and not self._collapse("stats"):
             partial_get_stats = functools.partial(
                 self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
             )
             stats = partial_get_stats()
             filtered_stats = (
-                partial_get_stats(conditions=self.conditions) if self.conditions else None
+                partial_get_stats(conditions=self.conditions)
+                if self.conditions and not self._collapse("filtered")
+                else None
             )
-            if self.include_inbox:
+            if self._expand("inbox"):
                 inbox_stats = self._get_inbox_details(item_list)
             for item in item_list:
-                if self.conditions:
+                if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                if self.include_inbox:
+                if self._expand("inbox"):
                     attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
                 attrs[item].update({"stats": stats[item.id]})
@@ -957,25 +987,31 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
     def serialize(self, obj, attrs, user):
         result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
-
-        if self.stats_period:
-            result["stats"] = {self.stats_period: attrs["stats"]}
-
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
 
-        result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
-        if self.stats_period:
-            result["lifetime"].update({"stats": None})  # Not needed in current implementation
-
-        if self.conditions:
-            result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+        if not self._collapse("stats"):
             if self.stats_period:
-                result["filtered"].update({"stats": {self.stats_period: attrs["filtered_stats"]}})
-        else:
-            result["filtered"] = None
+                result["stats"] = {self.stats_period: attrs["stats"]}
 
-        if self.include_inbox:
+            if not self._collapse("lifetime"):
+                result["lifetime"] = self._convert_seen_stats(attrs["lifetime"])
+                if self.stats_period:
+                    result["lifetime"].update(
+                        {"stats": None}
+                    )  # Not needed in current implementation
+
+            if not self._collapse("filtered"):
+                if self.conditions:
+                    result["filtered"] = self._convert_seen_stats(attrs["filtered"])
+                    if self.stats_period:
+                        result["filtered"].update(
+                            {"stats": {self.stats_period: attrs["filtered_stats"]}}
+                        )
+                else:
+                    result["filtered"] = None
+
+        if self._expand("inbox"):
             result["inbox"] = attrs["inbox"]
 
         return result

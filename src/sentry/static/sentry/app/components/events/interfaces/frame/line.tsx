@@ -104,7 +104,7 @@ export class Line extends React.Component<Props, State> {
 
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
-    // of the stacktrace / exception
+    // of the stack trace / exception
     return getPlatform(this.props.data.platform, this.props.platform ?? 'other');
   }
 
@@ -365,7 +365,7 @@ const RepeatedFrames = styled('div')`
   border-style: solid;
   border-color: ${p => p.theme.orange500};
   color: ${p => p.theme.orange500};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
 `;
 

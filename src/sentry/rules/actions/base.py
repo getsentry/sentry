@@ -57,6 +57,9 @@ class IntegrationEventAction(EventAction):
             status=ObjectStatus.VISIBLE,
         )
 
+    def get_integration_id(self):
+        return self.get_option(self.integration_key)
+
     def get_integration(self):
         """
         Uses the required class variables `provider` and `integration_key` with
@@ -65,12 +68,33 @@ class IntegrationEventAction(EventAction):
         :raises: Integration.DoesNotExist
         :return: Integration
         """
-        return Integration.objects.filter(
-            id=self.get_option(self.integration_key),
+        return Integration.objects.get(
+            id=self.get_integration_id(),
             provider=self.provider,
             organizations=self.project.organization,
             status=ObjectStatus.VISIBLE,
         )
 
+    def get_installation(self):
+        return self.get_integration().get_installation(self.project.organization.id)
+
     def get_form_instance(self):
         return self.form_cls(self.data, integrations=self.get_integrations())
+
+
+class TicketEventAction(IntegrationEventAction):
+    """Shared ticket actions"""
+
+    def generate_footer(self, rule_url):
+        raise NotImplementedError
+
+    def build_description(self, event, installation):
+        """
+        Format the description of the ticket/work item
+        """
+        rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
+            self.project.organization.slug, self.project.slug, self.rule.id
+        )
+        return installation.get_group_description(event.group, event) + self.generate_footer(
+            rule_url
+        )

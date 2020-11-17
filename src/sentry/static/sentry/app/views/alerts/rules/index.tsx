@@ -42,7 +42,7 @@ type State = {
 };
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
     const {query} = location;
 
@@ -134,7 +134,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                   >
                     {t('Created')}{' '}
                     <IconArrow
-                      color="gray500"
+                      color="gray300"
                       size="xs"
                       direction={sort.asc ? 'up' : 'down'}
                     />

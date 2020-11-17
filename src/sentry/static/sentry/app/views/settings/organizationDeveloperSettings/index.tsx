@@ -34,7 +34,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Developer Settings'), orgId, false);
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];

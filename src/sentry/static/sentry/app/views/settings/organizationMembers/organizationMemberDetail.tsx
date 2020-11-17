@@ -64,7 +64,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     return [
       ['member', `/organizations/${organization.slug}/members/${params.memberId}/`],
@@ -365,7 +365,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 export default withOrganization(OrganizationMemberDetail);
 
 const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
@@ -386,7 +386,7 @@ const Details = styled('div')`
 const DetailLabel = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.5)};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const OverflowWrapper = styled('div')`

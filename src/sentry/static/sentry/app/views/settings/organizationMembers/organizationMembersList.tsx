@@ -49,12 +49,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): [
-    string,
-    string,
-    {query?: {query: string}},
-    {paginate?: boolean; allowError?: (error: any) => boolean}
-  ][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [
@@ -267,7 +262,7 @@ const StyledMembersFilter = styled(MembersFilter)`
     height: 16px;
     width: 16px;
     border: 8px solid transparent;
-    border-bottom-color: ${p => p.theme.gray100};
+    border-bottom-color: ${p => p.theme.backgroundSecondary};
   }
 
   &:before {
