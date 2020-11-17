@@ -30,7 +30,7 @@ const AdminBuffer = () => {
         </div>
         <InternalStatChart
           since={since}
-          resolution="1hr"
+          resolution="1h"
           stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
           label="Jobs"
         />
@@ -42,7 +42,7 @@ const AdminBuffer = () => {
         </div>
         <InternalStatChart
           since={since}
-          resolution="1hr"
+          resolution="1h"
           stat="buffer.revoked"
           label="Jobs"
         />
