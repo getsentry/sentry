@@ -478,3 +478,13 @@ export function isBannerHidden(): boolean {
 export function setBannerHidden(value: boolean) {
   localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
 }
+
+const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
+
+export function shouldRenderPrebuilt(): boolean {
+  const shouldRender = localStorage.getItem(RENDER_PREBUILT_KEY);
+  return shouldRender === 'true' || shouldRender === null;
+}
+export function setRenderPrebuilt(value: boolean) {
+  localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
+}

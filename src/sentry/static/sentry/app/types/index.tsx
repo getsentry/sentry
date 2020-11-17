@@ -219,6 +219,8 @@ export type Project = {
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -243,6 +245,7 @@ export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
+  name: string;
   slug: string;
   isMember: boolean;
   hasAccess: boolean;
@@ -1540,6 +1543,13 @@ export type EventGroupingConfig = {
   latest: boolean;
   risk: number;
   strategies: string[];
+};
+
+export type GroupingEnhancementBase = {
+  latest: boolean;
+  id: string;
+  changelog: string;
+  bases: any[]; // TODO(ts): not sure what this is
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';

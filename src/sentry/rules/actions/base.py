@@ -57,6 +57,9 @@ class IntegrationEventAction(EventAction):
             status=ObjectStatus.VISIBLE,
         )
 
+    def get_integration_id(self):
+        return self.get_option(self.integration_key)
+
     def get_integration(self):
         """
         Uses the required class variables `provider` and `integration_key` with
@@ -66,11 +69,14 @@ class IntegrationEventAction(EventAction):
         :return: Integration
         """
         return Integration.objects.get(
-            id=self.get_option(self.integration_key),
+            id=self.get_integration_id(),
             provider=self.provider,
             organizations=self.project.organization,
             status=ObjectStatus.VISIBLE,
         )
+
+    def get_installation(self):
+        return self.get_integration().get_installation(self.project.organization.id)
 
     def get_form_instance(self):
         return self.form_cls(self.data, integrations=self.get_integrations())

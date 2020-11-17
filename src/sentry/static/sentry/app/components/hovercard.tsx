@@ -108,12 +108,8 @@ class Hovercard extends React.Component<Props, State> {
   handleToggleOff = () => this.toggleHovercard(false);
 
   toggleHovercard = (visible: boolean) => {
-    const {header, body, displayTimeout} = this.props;
+    const {displayTimeout} = this.props;
 
-    // Don't toggle hovercard if both of these are null
-    if (!header && !body) {
-      return;
-    }
     if (this.hoverWait) {
       clearTimeout(this.hoverWait);
     }
@@ -168,6 +164,7 @@ class Hovercard extends React.Component<Props, State> {
           )}
         </Reference>
         {visible &&
+          (header || body) &&
           ReactDOM.createPortal(
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (

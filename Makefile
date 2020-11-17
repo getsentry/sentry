@@ -220,27 +220,3 @@ lint-js:
 
 
 .PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
-
-
-############################
-# Halt, Travis stuff below #
-############################
-
-.PHONY: travis-noop
-travis-noop:
-	@echo "nothing to do here."
-
-.PHONY: travis-test-lint-js
-travis-test-lint-js: lint-js
-
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
-.PHONY: travis-test-cli travis-test-relay-integration
-travis-test-postgres: test-python-ci
-travis-test-acceptance: test-acceptance
-travis-test-snuba: test-snuba
-travis-test-symbolicator: test-symbolicator
-travis-test-js: test-js-ci
-travis-test-js-build: test-js-build
-travis-test-cli: test-cli
-travis-test-plugins: test-plugins
-travis-test-relay-integration: test-relay-integration
