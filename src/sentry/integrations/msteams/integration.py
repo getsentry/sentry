@@ -96,6 +96,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
             },
+            # TODO: Use user id for external_id in user_identity
             "user_identity": {"type": "msteams", "external_id": team_id, "scopes": [], "data": {}},
         }
         return integration
