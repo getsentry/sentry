@@ -152,6 +152,7 @@ class TransactionHeader extends React.Component<Props> {
               <ListLink
                 to={vitalsTarget}
                 isActive={() => currentTab === Tab.RealUserMonitoring}
+                onClick={this.trackVitalsTabClick}
               >
                 {t('Web Vitals')}
                 <FeatureBadge type="new" />
