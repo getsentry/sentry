@@ -37,6 +37,7 @@ type ChartProps = {
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
+  colors?: string[];
 };
 
 type State = {
@@ -57,6 +58,7 @@ class Chart extends React.Component<ChartProps, State> {
     previousSeriesName: PropTypes.string,
     showDaily: PropTypes.bool,
     yAxis: PropTypes.string,
+    colors: PropTypes.array,
   };
 
   state: State = {
@@ -134,6 +136,7 @@ class Chart extends React.Component<ChartProps, State> {
       showLegend,
       currentSeriesName,
       previousSeriesName,
+      colors,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -161,7 +164,7 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const chartOptions = {
-      colors: theme.charts.getColorPalette(timeseriesData.length - 2),
+      colors: colors ?? theme.charts.getColorPalette(timeseriesData.length - 2),
       grid: {
         left: '24px',
         right: '24px',
@@ -265,10 +268,14 @@ type Props = {
    */
   orderby?: string;
   /**
-   * Overide the interval calculation and show daily results.
+   * Override the interval calculation and show daily results.
    */
   showDaily?: boolean;
   confirmedQuery?: boolean;
+  /**
+   * Override the default color palette.
+   */
+  colors?: string[];
 } & Pick<ChartProps, 'currentSeriesName' | 'previousSeriesName' | 'showLegend'>;
 
 type ChartDataProps = {
@@ -305,6 +312,7 @@ class EventsChart extends React.Component<Props> {
     showDaily: PropTypes.bool,
     orderby: PropTypes.string,
     confirmedQuery: PropTypes.bool,
+    colors: PropTypes.array,
   };
 
   render() {
@@ -330,6 +338,7 @@ class EventsChart extends React.Component<Props> {
       topEvents,
       orderby,
       confirmedQuery,
+      colors,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -377,6 +386,7 @@ class EventsChart extends React.Component<Props> {
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}
+            colors={colors}
           />
         </TransitionChart>
       );

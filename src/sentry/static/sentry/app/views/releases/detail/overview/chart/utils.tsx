@@ -1,4 +1,4 @@
-import {getDiffInMinutes, DateTimeObject} from 'app/components/charts/utils';
+import {TWO_WEEKS, getDiffInMinutes, DateTimeObject} from 'app/components/charts/utils';
 import EventView from 'app/utils/discover/eventView';
 import {GlobalSelection} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
@@ -6,13 +6,12 @@ import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
 import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 
-// In minutes
-const FOURTEEN_DAYS = 20160;
+import {YAxis} from './releaseChartControls';
 
 export function getInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes > FOURTEEN_DAYS) {
+  if (diffInMinutes > TWO_WEEKS) {
     return '6h';
   } else {
     return '1h';
@@ -21,26 +20,48 @@ export function getInterval(datetimeObj: DateTimeObject) {
 
 export function getReleaseEventView(
   selection: GlobalSelection,
-  version: string
+  version: string,
+  yAxis?: YAxis
 ): EventView {
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;
 
-  const discoverQuery = {
-    id: undefined,
-    version: 2,
-    name: `${t('Release')} ${formatVersion(version)}`,
-    fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-    query: stringifyQueryObject(
-      new QueryResults([`release:${version}`, '!event.type:transaction'])
-    ),
-    orderby: '-last_seen',
-    range: period,
-    environment: environments,
-    projects,
-    start: start ? getUtcDateString(start) : undefined,
-    end: end ? getUtcDateString(end) : undefined,
-  } as const;
-
-  return EventView.fromSavedQuery(discoverQuery);
+  switch (yAxis) {
+    case YAxis.ALL_TRANSACTIONS:
+    case YAxis.FAILED_TRANSACTIONS:
+      const query =
+        yAxis === YAxis.FAILED_TRANSACTIONS
+          ? ['ok', 'cancelled', 'unknown'].map(s => `!transaction.status:${s}`).join(' ')
+          : '';
+      return EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `${t('Release')} ${formatVersion(version)}`,
+        fields: [`count()`, `to_other(release,${version},current,others)`],
+        query,
+        // this orderby ensures that the order is [others, current]
+        orderby: `-to_other_release_${version}_current_others`,
+        range: period,
+        environment: environments,
+        projects,
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      });
+    default:
+      return EventView.fromSavedQuery({
+        id: undefined,
+        version: 2,
+        name: `${t('Release')} ${formatVersion(version)}`,
+        fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+        query: stringifyQueryObject(
+          new QueryResults([`release:${version}`, '!event.type:transaction'])
+        ),
+        orderby: '-last_seen',
+        range: period,
+        environment: environments,
+        projects,
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+      });
+  }
 }
