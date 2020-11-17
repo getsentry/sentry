@@ -66,7 +66,7 @@ const TogglableAddress = ({
     <Wrapper>
       {canBeConverted && (
         <AddressIconTooltip
-          title={isAbsolute ? t('Switch to absolute') : t('Switch to relative')}
+          title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
           containerDisplayMode="inline-flex"
         >
           <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
