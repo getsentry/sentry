@@ -85,10 +85,6 @@ def reprocess_event(project_id, event_id, start_time):
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
         data = nodestore.get(node_id)
 
-    # Step 1: Fix up the event payload for reprocessing and put it in event
-    # cache/event_processing_store
-    event_id = data["event_id"]
-
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
         event = eventstore.get_event_by_id(project_id, event_id)
 
@@ -111,8 +107,9 @@ def reprocess_event(project_id, event_id, start_time):
         # the group ID in-place. Like a snuba merge message.
         data = dict(event.data)
 
+    # Step 1: Fix up the event payload for reprocessing and put it in event
+    # cache/event_processing_store
     set_tag(data, "original_group_id", event.group_id)
-
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache

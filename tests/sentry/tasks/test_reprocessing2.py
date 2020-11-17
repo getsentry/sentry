@@ -297,3 +297,22 @@ def test_attachments_and_userfeedback(
     assert rep.event_id == event_id
 
     assert is_group_finished(event.group_id)
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_nodestore_missing(
+    default_project, reset_snuba, process_and_save, burst_task_runner, monkeypatch,
+):
+    event_id = process_and_save({"message": "hello world"})
+    event = eventstore.get_event_by_id(default_project.id, event_id)
+
+    with burst_task_runner() as burst:
+        reprocess_group(default_project.id, event.group_id, max_events=1)
+
+    burst(max_jobs=100)
+
+    new_event = eventstore.get_event_by_id(default_project.id, event_id)
+    assert new_event.group_id != event.group_id
+
+    assert is_group_finished(event.group_id)
