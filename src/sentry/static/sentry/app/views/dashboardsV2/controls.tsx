@@ -9,26 +9,19 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import SelectControl from 'app/components/forms/selectControl';
 
-type FieldValue =
-  | {
-      type: 'user';
-      id: number;
-      name: string;
-    }
-  | {
-      type: 'prebuilt';
-      name: string;
-    };
+import {DashboardListItem} from './types';
+import {PREBUILT_DASHBOARDS} from './data';
 
 type OptionType = {
   label: string;
-  value: FieldValue;
+  value: DashboardListItem;
 };
 
 type Props = {
   onEdit: () => void;
   editing: boolean;
 };
+
 class Controls extends React.Component<Props> {
   render() {
     const {editing} = this.props;
@@ -51,6 +44,13 @@ class Controls extends React.Component<Props> {
       );
     }
 
+    const dropdownOptions: OptionType[] = PREBUILT_DASHBOARDS.map(item => {
+      return {
+        label: item.dashboard.name,
+        value: item,
+      };
+    });
+
     return (
       <ButtonBar gap={1} key="controls">
         <Button
@@ -69,22 +69,8 @@ class Controls extends React.Component<Props> {
             key="select"
             name="parameter"
             placeholder={t('Select Dashboard')}
-            options={[
-              {
-                label: `${t('All Events')} (${t('prebuilt')})`,
-                value: {
-                  type: 'prebuilt',
-                  name: t('All Events'),
-                },
-              },
-            ]}
-            value={{
-              label: `${t('All Events')} (${t('prebuilt')})`,
-              value: {
-                type: 'prebuilt',
-                name: t('All Events'),
-              },
-            }}
+            options={dropdownOptions}
+            value={dropdownOptions[0]}
             components={{
               Option: ({label, data, ...props}: OptionProps<OptionType>) => (
                 <components.Option label={label} {...(props as any)}>
