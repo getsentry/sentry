@@ -10,16 +10,14 @@ type DefaultProps = {
   activeClassName: string;
 };
 
-type Props = DefaultProps & {
-  to: LocationDescriptor;
-  className?: string;
-  query?: string;
-  onClick?: () => void;
-  // If supplied by parent component, decides whether link element
-  // is "active" or not ... overriding default behavior of strict
-  // route matching
-  isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
-};
+type Props = DefaultProps &
+  React.ComponentProps<typeof Link> & {
+    query?: string;
+    // If supplied by parent component, decides whether link element
+    // is "active" or not ... overriding default behavior of strict
+    // route matching
+    isActive?: (location: LocationDescriptor, indexOnly?: boolean) => boolean;
+  };
 
 class ListLink extends React.Component<Props> {
   static displayName = 'ListLink';
