@@ -82,7 +82,7 @@ class OrganizationContext extends React.Component<Props, State> {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     const hasOrgIdAndChanged =
       prevProps.params.orgId &&
       this.props.params.orgId &&
@@ -143,7 +143,7 @@ class OrganizationContext extends React.Component<Props, State> {
     fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true, true);
   }
 
-  getOrganizationSlug(): string {
+  getOrganizationSlug() {
     return (
       this.props.params.orgId ||
       ((this.props.useLastOrganization &&
@@ -256,7 +256,7 @@ class OrganizationContext extends React.Component<Props, State> {
     return `/organizations/${this.getOrganizationSlug()}/`;
   }
 
-  getTitle(): string {
+  getTitle() {
     if (this.state.organization) {
       return this.state.organization.name;
     }
@@ -273,7 +273,7 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   renderError() {
-    let errorComponent: React.ReactNode;
+    let errorComponent: React.ReactElement;
 
     switch (this.state.errorType) {
       case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
