@@ -59,19 +59,28 @@ describe('Release Issues', function () {
       <Issues {...props} selection={{datetime: {period: '24h'}}} />
     );
 
+    await tick();
+
+    wrapper.update();
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
       'No new issues in this release for the last 14 days.'
     );
+
+    wrapper2.update();
     expect(wrapper2.find('EmptyStateWarning').text()).toBe(
       'No new issues in this release for the last 24 hours.'
     );
 
     filterIssues(wrapper, 'resolved');
+    await tick();
+    wrapper.update();
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
       'No resolved issues in this release.'
     );
 
     filterIssues(wrapper2, 'unhandled');
+    await tick();
+    wrapper2.update();
     expect(wrapper2.find('EmptyStateWarning').text()).toBe(
       'No unhandled issues in this release for the last 24 hours.'
     );

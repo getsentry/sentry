@@ -1,8 +1,6 @@
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
 
@@ -19,6 +17,7 @@ import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
 import {Group} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 import GroupListHeader from './groupListHeader';
 
@@ -34,60 +33,44 @@ type Props = {
   orgId: string;
   endpointPath: string;
   renderEmptyMessage?: () => React.ReactNode;
-  queryParams?: {[key: string]: number | string | string[] | undefined | null};
+  queryParams?: Record<string, number | string | string[] | undefined | null>;
 } & Partial<typeof defaultProps>;
 
 type State = {
   loading: boolean;
   error: boolean;
   groups: Group[];
+  pageLinks: string | null;
+  memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-const GroupList = createReactClass<Props, State>({
-  displayName: 'GroupList',
-
-  propTypes: {
-    api: PropTypes.object.isRequired,
-    query: PropTypes.string.isRequired,
-    canSelectGroups: PropTypes.bool,
-    withChart: PropTypes.bool,
-    orgId: PropTypes.string.isRequired,
-    endpointPath: PropTypes.string,
-    renderEmptyMessage: PropTypes.func,
-    queryParams: PropTypes.object,
-    withPagination: PropTypes.bool,
-  },
-
-  contextTypes: {
+class GroupList extends React.Component<Props, State> {
+  static contextTypes = {
     location: PropTypes.object,
-  },
+  };
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
+  static defaultProps = defaultProps;
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      groups: [],
-    };
-  },
-
-  componentWillMount() {
-    this._streamManager = new StreamManager(GroupStore);
-
+  state: State = {
+    loading: true,
+    error: false,
+    groups: [],
+    pageLinks: null,
+  };
+  componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  shouldComponentUpdate(nextProps, nextState) {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
     return (
       !isEqual(this.state, nextState) ||
       nextProps.endpointPath !== this.props.endpointPath ||
       nextProps.query !== this.props.query ||
       !isEqual(nextProps.queryParams, this.props.queryParams)
     );
-  },
+  }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (
       prevProps.orgId !== this.props.orgId ||
       prevProps.endpointPath !== this.props.endpointPath ||
@@ -96,43 +79,41 @@ const GroupList = createReactClass<Props, State>({
     ) {
       this.fetchData();
     }
-  },
+  }
 
   componentWillUnmount() {
-    GroupStore.loadInitialData([]);
-  },
+    GroupStore.reset();
+    callIfFunction(this.listener);
+  }
 
-  fetchData() {
+  listener = GroupStore.listen(() => this.onGroupChange(), undefined);
+  private _streamManager = new StreamManager(GroupStore);
+
+  async fetchData() {
     GroupStore.loadInitialData([]);
     const {api, orgId} = this.props;
 
-    this.setState({
-      loading: true,
-      error: false,
-    });
+    this.setState({loading: true, error: false});
 
     fetchOrgMembers(api, orgId).then(members => {
       this.setState({memberList: indexMembersByProject(members)});
     });
 
-    api.request(this.getGroupListEndpoint(), {
-      success: (data, _, jqXHR) => {
-        this._streamManager.push(data);
+    const endpoint = this.getGroupListEndpoint();
 
-        this.setState({
-          error: false,
-          loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  },
+    try {
+      const [data, , jqXHR] = await api.requestPromise(endpoint);
+      this._streamManager.push(data);
+
+      this.setState({
+        error: false,
+        loading: false,
+        pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+      });
+    } catch {
+      this.setState({error: true, loading: false});
+    }
+  }
 
   getGroupListEndpoint() {
     const {orgId, endpointPath, queryParams} = this.props;
@@ -140,7 +121,7 @@ const GroupList = createReactClass<Props, State>({
     const queryParameters = queryParams ?? this.getQueryParams();
 
     return `${path}?${qs.stringify(queryParameters)}`;
-  },
+  }
 
   getQueryParams() {
     const {query} = this.props;
@@ -151,34 +132,40 @@ const GroupList = createReactClass<Props, State>({
     queryParams.query = query;
 
     return queryParams;
-  },
+  }
 
-  onCursorChange(cursor, path, query, pageDiff) {
+  handleCursorChange(
+    cursor: string,
+    path: string,
+    query: Record<string, any>,
+    pageDiff: number
+  ) {
     const queryPageInt = parseInt(query.page, 10);
-    let nextPage = isNaN(queryPageInt) ? pageDiff : queryPageInt + pageDiff;
+    let nextPage: number | undefined = isNaN(queryPageInt)
+      ? pageDiff
+      : queryPageInt + pageDiff;
+    let nextCursor: string | undefined = cursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
     // first page and user attempts to go backwards
     if (nextPage <= 0) {
-      cursor = undefined;
+      nextCursor = undefined;
       nextPage = undefined;
     }
 
     browserHistory.push({
       pathname: path,
-      query: {...query, cursor},
+      query: {...query, cursor: nextCursor},
     });
-  },
+  }
 
   onGroupChange() {
     const groups = this._streamManager.getAllItems();
     if (!isEqual(groups, this.state.groups)) {
-      this.setState({
-        groups,
-      });
+      this.setState({groups});
     }
-  },
+  }
 
   render() {
     const {canSelectGroups, withChart, renderEmptyMessage, withPagination} = this.props;
@@ -186,9 +173,13 @@ const GroupList = createReactClass<Props, State>({
 
     if (loading) {
       return <LoadingIndicator />;
-    } else if (error) {
+    }
+
+    if (error) {
       return <LoadingError onRetry={this.fetchData} />;
-    } else if (groups.length === 0) {
+    }
+
+    if (groups.length === 0) {
       if (typeof renderEmptyMessage === 'function') {
         return renderEmptyMessage();
       }
@@ -206,13 +197,12 @@ const GroupList = createReactClass<Props, State>({
     return (
       <React.Fragment>
         <Panel>
-          <GroupListHeader withChart={withChart} />
+          <GroupListHeader withChart={!!withChart} />
           <PanelBody>
             {groups.map(({id, project}) => {
-              const members =
-                memberList && memberList.hasOwnProperty(project.slug)
-                  ? memberList[project.slug]
-                  : null;
+              const members = memberList?.hasOwnProperty(project.slug)
+                ? memberList[project.slug]
+                : undefined;
 
               return (
                 <StreamGroup
@@ -221,20 +211,19 @@ const GroupList = createReactClass<Props, State>({
                   canSelect={canSelectGroups}
                   withChart={withChart}
                   memberList={members}
+                  useFilteredStats
                 />
               );
             })}
           </PanelBody>
         </Panel>
         {withPagination && (
-          <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+          <Pagination pageLinks={pageLinks} onCursor={this.handleCursorChange} />
         )}
       </React.Fragment>
     );
-  },
-});
-
-GroupList.defaultProps = defaultProps;
+  }
+}
 
 export {GroupList};
 
