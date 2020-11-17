@@ -15,8 +15,10 @@ from sentry.models import (
     GroupEnvironment,
     Group,
     GroupInbox,
+    GroupLink,
     GroupStatus,
     GroupSubscription,
+    PlatformExternalIssue,
 )
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
@@ -52,6 +54,43 @@ def unassigned_filter(unassigned, projects):
         )
     )
     if unassigned:
+        query = ~query
+    return query
+
+
+def linked_filter(linked, projects):
+    """
+    Builds a filter for whether or not a Group has an issue linked via either
+    a PlatformExternalIssue or an ExternalIssue.
+    """
+    platform_qs = PlatformExternalIssue.objects.filter(project_id__in=[p.id for p in projects])
+    integration_qs = GroupLink.objects.filter(
+        project_id__in=[p.id for p in projects],
+        linked_type=GroupLink.LinkedType.issue,
+        relationship=GroupLink.Relationship.references,
+    )
+
+    group_linked_to_platform_issue_q = Q(id__in=platform_qs.values_list("group_id", flat=True))
+    group_linked_to_integration_issue_q = Q(
+        id__in=integration_qs.values_list("group_id", flat=True)
+    )
+
+    # Usually a user will either only have PlatformExternalIssues or only have ExternalIssues,
+    # i.e. in most cases, at most one of the below expressions evaluates to True:
+    platform_issue_exists = platform_qs.exists()
+    integration_issue_exists = integration_qs.exists()
+    # By optimizing for this case, we're able to produce a filter that roughly translates to
+    # `WHERE group_id IN (SELECT group_id FROM one_issue_table WHERE ...)`, which the planner
+    # is able to optimize with the semi-join strategy.
+    if platform_issue_exists and not integration_issue_exists:
+        query = group_linked_to_platform_issue_q
+    elif integration_issue_exists and not platform_issue_exists:
+        query = group_linked_to_integration_issue_q
+    # ...but if we don't have exactly one type of issues, fallback to doing the OR.
+    else:
+        query = group_linked_to_platform_issue_q | group_linked_to_integration_issue_q
+
+    if not linked:
         query = ~query
     return query
 
@@ -288,6 +327,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "unassigned": QCallbackCondition(
                 functools.partial(unassigned_filter, projects=projects)
             ),
+            "linked": QCallbackCondition(functools.partial(linked_filter, projects=projects)),
             "subscribed_by": QCallbackCondition(
                 lambda user: Q(
                     id__in=GroupSubscription.objects.filter(

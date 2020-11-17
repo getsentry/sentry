@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import uuid
 
 from sentry.utils.compat import mock
 import pytz
@@ -16,6 +17,7 @@ from sentry.models import (
     GroupEnvironment,
     GroupStatus,
     GroupSubscription,
+    Integration,
 )
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
@@ -148,6 +150,41 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.group_p2.last_seen = self.base_datetime - timedelta(days=1)
         self.group_p2.save()
         self.store_group(self.group_p2)
+
+    def create_group_with_integration_external_issue(self, environment="production"):
+        event = self.store_event(
+            data={
+                "fingerprint": ["linked_group1"],
+                "event_id": uuid.uuid4().hex,
+                "timestamp": iso_format(self.base_datetime),
+                "environment": environment,
+            },
+            project_id=self.project.id,
+        )
+        integration = Integration.objects.create(provider="example", name="Example")
+        integration.add_organization(event.group.organization, self.user)
+        self.create_integration_external_issue(
+            group=event.group, integration=integration, key="APP-123",
+        )
+        return event.group
+
+    def create_group_with_platform_external_issue(self, environment="production"):
+        event = self.store_event(
+            data={
+                "fingerprint": ["linked_group2"],
+                "event_id": uuid.uuid4().hex,
+                "timestamp": iso_format(self.base_datetime),
+                "environment": environment,
+            },
+            project_id=self.project.id,
+        )
+        self.create_platform_external_issue(
+            group=event.group,
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
+        )
+        return event.group
 
     def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
@@ -782,6 +819,58 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             date_to=self.event2.datetime + timedelta(minutes=1),
         )
         assert set(results) == set([self.group2])
+
+    def test_linked(self):
+        linked_group1 = self.create_group_with_integration_external_issue()
+        linked_group2 = self.create_group_with_platform_external_issue()
+
+        results = self.make_query(search_filter_query="is:unlinked")
+        assert set(results) == set([self.group1, self.group2])
+
+        results = self.make_query(search_filter_query="is:linked")
+        assert set(results) == set([linked_group1, linked_group2])
+
+    def test_linked_with_only_integration_external_issue(self):
+        linked_group = self.create_group_with_integration_external_issue()
+
+        results = self.make_query(search_filter_query="is:unlinked")
+        assert set(results) == set([self.group1, self.group2])
+
+        results = self.make_query(search_filter_query="is:linked")
+        assert set(results) == set([linked_group])
+
+    def test_linked_with_only_platform_external_issue(self):
+        linked_group = self.create_group_with_platform_external_issue()
+
+        results = self.make_query(search_filter_query="is:unlinked")
+        assert set(results) == set([self.group1, self.group2])
+
+        results = self.make_query(search_filter_query="is:linked")
+        assert set(results) == set([linked_group])
+
+    def test_linked_with_environment(self):
+        linked_group1 = self.create_group_with_integration_external_issue(environment="production")
+        linked_group2 = self.create_group_with_platform_external_issue(environment="staging")
+
+        results = self.make_query(
+            environments=[self.environments["production"]], search_filter_query="is:unlinked"
+        )
+        assert set(results) == set([self.group1])
+
+        results = self.make_query(
+            environments=[self.environments["staging"]], search_filter_query="is:unlinked"
+        )
+        assert set(results) == set([self.group2])
+
+        results = self.make_query(
+            environments=[self.environments["production"]], search_filter_query="is:linked"
+        )
+        assert set(results) == set([linked_group1])
+
+        results = self.make_query(
+            environments=[self.environments["staging"]], search_filter_query="is:linked"
+        )
+        assert set(results) == set([linked_group2])
 
     def test_unassigned(self):
         results = self.make_query(search_filter_query="is:unassigned")

@@ -230,6 +230,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             "bookmarked_by",
             "assigned_to",
             "unassigned",
+            "linked",
             "subscribed_by",
             "active_at",
             "first_release",
