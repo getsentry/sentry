@@ -10,11 +10,11 @@ from sentry.integrations.jira.utils import (
     transform_jira_fields_to_form_fields,
     transform_jira_choices_to_strings,
 )
-from sentry.models import ExternalIssue
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -149,6 +149,7 @@ class JiraCreateTicketAction(TicketEventAction):
             self.rule.label, absolute_uri(rule_url),
         )
 
+    @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()
@@ -160,15 +161,26 @@ class JiraCreateTicketAction(TicketEventAction):
         def create_issue(event, futures):
             """Create the Jira ticket for a given event"""
 
-            # TODO check if a Jira ticket already exists for the given event's issue. if it does, skip creating it
-            resp = installation.create_issue(self.data)
-            ExternalIssue.objects.create(
-                organization_id=organization.id,
-                integration_id=integration.id,
-                key=resp["key"],
-                title=event.title,
-                description=installation.get_group_description(event.group, event),
-            )
+            # HACK to get fixVersion in the correct format
+            if self.data.get("fixVersions"):
+                if not isinstance(self.data["fixVersions"], list):
+                    self.data["fixVersions"] = [self.data["fixVersions"]]
+
+            if self.data.get("dynamic_form_fields"):
+                del self.data["dynamic_form_fields"]
+
+            if not self.has_linked_issue(event, integration):
+                resp = installation.create_issue(self.data)
+                self.create_link(resp["key"], integration, installation, event)
+            else:
+                logger.info(
+                    "jira.rule_trigger.link_already_exists",
+                    extra={
+                        "rule_id": self.rule.id,
+                        "project_id": self.project.id,
+                        "group_id": event.group.id,
+                    },
+                )
             return
 
         key = u"jira:{}".format(integration.id)
