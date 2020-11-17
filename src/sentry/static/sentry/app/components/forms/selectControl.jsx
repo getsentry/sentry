@@ -164,6 +164,33 @@ const defaultStyles = {
   }),
 };
 
+const getFieldLabelStyle = label => ({
+  ':before': {
+    content: `"${label}"`,
+    color: theme.gray300,
+    fontWeight: 600,
+  },
+});
+
+/**
+ * Applies one set of styles onto the other while maintaining the same function
+ * interface that is used by react-styled.
+ * @param {*} newStyles the styles to apply on top of base
+ * @param {*} baseStyles the style to override
+ */
+const combineStyles = (newStyles, baseStyles) => {
+  return Object.keys(newStyles || {}).reduce((computedStyles, key) => {
+    const styleFunc = (provided, state) =>
+      newStyles[key](
+        computedStyles[key] === undefined
+          ? provided
+          : computedStyles[key](provided, state),
+        state
+      );
+    return {...computedStyles, [key]: styleFunc};
+  }, baseStyles);
+};
+
 const SelectControl = props => {
   // TODO(epurkhiser): We should remove all SelectControls (and SelectFields,
   // SelectAsyncFields, etc) that are using this prop, before we can remove the
@@ -182,6 +209,7 @@ const SelectControl = props => {
     components,
     styles,
     value,
+    inFieldLabel,
     ...rest
   } = props;
 
@@ -207,19 +235,24 @@ const SelectControl = props => {
         : flatOptions.find(opt => opt.value === value) || value;
   }
 
+  // Override the default style with in-field labels if they are provided
+  const inFieldLabelStyles = {
+    singleValue: base => ({
+      ...base,
+      ...getFieldLabelStyle(inFieldLabel),
+    }),
+    placeholder: base => ({
+      ...base,
+      ...getFieldLabelStyle(inFieldLabel),
+    }),
+  };
+  const labelOrDefaultStyles = inFieldLabel
+    ? combineStyles(inFieldLabelStyles, defaultStyles)
+    : defaultStyles;
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = Object.keys(styles || {}).reduce((computedStyles, key) => {
-    const styleFunc = (provided, state) =>
-      styles[key](
-        computedStyles[key] === undefined
-          ? provided
-          : computedStyles[key](provided, state),
-        state
-      );
-    return {...computedStyles, [key]: styleFunc};
-  }, defaultStyles);
+  const mappedStyles = combineStyles(styles, labelOrDefaultStyles);
 
   const replacedComponents = {
     ClearIndicator,

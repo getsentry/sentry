@@ -268,6 +268,28 @@ SelectFieldGrouped.story = {
   name: 'SelectField grouped',
 };
 
+export const SelectFieldInFieldLabel = withInfo({
+  text: 'Select Control w/ Label In Field',
+  propTablesExclude: [Form],
+})(() => (
+  <Form>
+    <SelectField
+      name="select"
+      label="Select With Label In Field"
+      inFieldLabel="Label: "
+      choices={[
+        ['choice_one', 'Choice One'],
+        ['choice_two', 'Choice Two'],
+        ['choice_three', 'Choice Three'],
+      ]}
+    />
+  </Form>
+));
+
+SelectFieldInFieldLabel.story = {
+  name: 'SelectField label in field',
+};
+
 export const NonInlineField = withInfo({
   text: 'Radio Group used w/ FormField',
   propTablesExclude: [Form],
