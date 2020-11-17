@@ -9,6 +9,7 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import OptionSelector from 'app/components/charts/optionSelector';
+import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -108,7 +109,7 @@ const ReleaseChartControls = ({
       case YAxis.EVENTS:
         return t('Total Events');
       case YAxis.FAILED_TRANSACTIONS:
-        return t('Total Transactions');
+        return t('Failed Transactions');
       case YAxis.ALL_TRANSACTIONS:
         return t('Total Transactions');
       case YAxis.SESSIONS:
@@ -120,6 +121,13 @@ const ReleaseChartControls = ({
   return (
     <StyledChartControls>
       <InlineContainer>
+        {(yAxis === YAxis.FAILED_TRANSACTIONS || yAxis === YAxis.ALL_TRANSACTIONS) && (
+          <StyledQuestionTooltip
+            position="top"
+            size="sm"
+            title="This only shows the current release."
+          />
+        )}
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
@@ -144,6 +152,10 @@ const StyledChartControls = styled(ChartControls)`
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-right: ${space(1)};
 `;
 
 export default ReleaseChartControls;

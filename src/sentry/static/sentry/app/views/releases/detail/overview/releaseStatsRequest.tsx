@@ -179,7 +179,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   fetchEventData = async () => {
     const {api, orgId, location, yAxis, selection, version, hasHealthData} = this.props;
     const {crashFreeTimeBreakdown} = this.state.data || {};
-    const eventView = getReleaseEventView(selection, version, yAxis);
+    const eventView = getReleaseEventView(selection, version, yAxis, true);
     const payload = eventView.getEventsAPIPayload(location);
     let userResponse, eventsCountResponse;
 
