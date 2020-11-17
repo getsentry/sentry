@@ -47,6 +47,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         for config in configs:
             if not filepath.startswith(config.stack_root):
+                result["config"] = serialize(config, request.user)
+                result["error"] = "stack_root_mismatch"
                 continue
 
             link = get_link(config, filepath, config.default_branch, commitId)
@@ -56,6 +58,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             # case it means we could not find a match for the
             # configuration
             result["sourceUrl"] = link
+            if not link:
+                result["error"] = "file_not_found"
 
             # if we found a match, we can break
             break

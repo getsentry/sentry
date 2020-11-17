@@ -1,7 +1,9 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {
@@ -27,6 +29,7 @@ type Props = AsyncComponent['props'] & {
 type StacktraceResultItem = {
   config?: RepositoryProjectPathConfig;
   sourceUrl?: string;
+  error?: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -46,6 +49,21 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
   get config() {
     return this.match.config;
+  }
+
+  get errorText() {
+    const error = this.match.error;
+
+    switch (error) {
+      case 'stack_root_mismatch':
+        return t('Error matching your configuration, check your stack trace root.');
+      case 'file_not_found':
+        return t(
+          'Could not find source file, check your repository and source code root.'
+        );
+      default:
+        return t('There was an error encountered with the code mapping for this project');
+    }
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -72,8 +90,18 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return null;
   }
   renderMatchNoUrl() {
-    //TODO: Improve UI
-    return <OpenInContainer columnQuantity={2}>No Match</OpenInContainer>;
+    const {config} = this.match;
+    const {organization} = this.props;
+    const text = this.errorText;
+    const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
+    return (
+      <CodeMappingButtonContainer columnQuantity={2}>
+        {text}
+        <Button to={url} size="xsmall">
+          {t('Configure Code Mapping')}
+        </Button>
+      </CodeMappingButtonContainer>
+    );
   }
   renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
@@ -100,3 +128,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 }
 
 export default withProjects(withOrganization(StacktraceLink));
+
+export const CodeMappingButtonContainer = styled(OpenInContainer)`
+  justify-content: space-between;
+`;
