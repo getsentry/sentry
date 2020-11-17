@@ -221,8 +221,18 @@ class SnubaProtocolEventStream(EventStream):
         """
         Tell Snuba to eventually delete these events.
 
-        This is not proper event deletion. Group deletion is still the way to
-        go. This is a hack specific for reprocessing.
+        This marks events as deleted but does not immediately exclude those
+        events from all queries. Because of that limitation this is not proper,
+        because not immediate, event deletion.
+
+        "Proper" group deletion is essentially running this function for every
+        event in the group, plus `exclude_groups` to make sure the changes are
+        immediately user-visible.
+
+        Reprocessing (v2) splits a group into events-to-be-reprocessed
+        (re-insert with new group_id) and events-to-be-deleted
+        (`tombstone_events`), then excludes the group from all queries
+        (`exclude_groups`).
         """
 
         state = {
@@ -232,6 +242,13 @@ class SnubaProtocolEventStream(EventStream):
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 
     def exclude_groups(self, project_id, group_ids):
+        """
+        Exclude a group from queries for a while until event tombstoning takes
+        effect. See docstring of `tombstone_events`.
+
+        `exclude_groups` basically makes Snuba add `where group_id not in (1,
+        2, ...)` to every query.
+        """
         state = {"project_id": project_id, "group_ids": group_ids}
         self._send(project_id, "exclude_groups", extra_data=(state,), asynchronous=False)
 
