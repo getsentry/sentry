@@ -119,7 +119,7 @@ function routes() {
             name="Session History"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "AccountSecuritySessionHistory" */ 'app/views/settings/account/accountSecurity/accountSecuritySessionHistory'
+                /* webpackChunkName: "SessionHistory" */ 'app/views/settings/account/accountSecurity/sessionHistory'
               )
             }
             component={errorHandler(LazyLoad)}

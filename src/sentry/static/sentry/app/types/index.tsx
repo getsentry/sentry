@@ -1686,3 +1686,12 @@ export type Identity = {
 
 //taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
+
+export type InternetProtocol = {
+  id: string;
+  ipAddress: string;
+  lastSeen: string;
+  firstSeen: string;
+  countryCode: string | null;
+  regionCode: string | null;
+};
