@@ -498,7 +498,7 @@ def rate_limit_endpoint(limit=1, window=1):
 
 
 @track_update_groups
-def update_groups(request, projects, organization_id, search_fn, has_inbox):
+def update_groups(request, projects, organization_id, search_fn, has_inbox=False):
     group_ids = request.GET.getlist("id")
     if group_ids:
         group_list = Group.objects.filter(

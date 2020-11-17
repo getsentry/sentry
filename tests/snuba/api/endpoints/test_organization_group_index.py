@@ -1820,6 +1820,25 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
+    def test_set_resolved_inbox(self):
+        group1 = self.create_group(checksum="a" * 32)
+        group2 = self.create_group(checksum="b" * 32)
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:inbox"):
+            response = self.get_valid_response(
+                qs_params={"id": [group1.id, group2.id]}, status="resolved"
+            )
+        assert response.data["inbox"] is False
+        assert not GroupInbox.objects.filter(group=group1).exists()
+        assert not GroupInbox.objects.filter(group=group2).exists()
+
+        with self.feature("organizations:inbox"):
+            response = self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
+        assert GroupInboxReason(response.data["inbox"]["reason"]) == GroupInboxReason.MANUAL
+        assert not GroupInbox.objects.filter(group=group1).exists()
+        assert GroupInbox.objects.filter(group=group2).exists()
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
