@@ -31,10 +31,10 @@ type State = {
 };
 
 const CHART_GRID = {
-  left: space(1),
-  right: space(1),
+  left: space(2),
+  right: space(2),
   top: space(4),
-  bottom: space(1),
+  bottom: space(2),
 };
 
 // Colors to use for trigger thresholds

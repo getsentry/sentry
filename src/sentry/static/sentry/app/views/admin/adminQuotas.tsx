@@ -4,7 +4,18 @@ import AsyncView from 'app/views/asyncView';
 import {TextField} from 'app/components/forms';
 import InternalStatChart from 'app/components/internalStatChart';
 
-export default class AdminQuotas extends AsyncView {
+type Config = {
+  backend: string;
+  options: Record<string, string>;
+};
+
+type State = AsyncView['state'] & {
+  since: number;
+  resolution: string;
+  config: Config;
+};
+
+export default class AdminQuotas extends AsyncView<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -13,7 +24,7 @@ export default class AdminQuotas extends AsyncView {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): [string, string][] {
     return [['config', '/internal/quotas/']];
   }
 
@@ -29,8 +40,9 @@ export default class AdminQuotas extends AsyncView {
           </div>
 
           <div className="box-content with-padding">
-            <TextField value={config.backend} label="Backend" disabled />
+            <TextField name="backend" value={config.backend} label="Backend" disabled />
             <TextField
+              name="rateLimit"
               value={config.options['system.rate-limit']}
               label="Rate Limit"
               disabled

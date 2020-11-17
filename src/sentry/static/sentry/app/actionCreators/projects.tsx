@@ -42,7 +42,9 @@ export function update(api: Client, params: UpdateParams) {
     );
 }
 
-export function loadStats(api: Client, params: UpdateParams) {
+type StatsParams = Pick<UpdateParams, 'orgId' | 'data' | 'query'>;
+
+export function loadStats(api: Client, params: StatsParams) {
   ProjectActions.loadStats(params.orgId, params.data);
 
   const endpoint = `/organizations/${params.orgId}/stats/`;

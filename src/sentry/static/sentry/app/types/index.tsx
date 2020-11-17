@@ -245,6 +245,7 @@ export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
+  name: string;
   slug: string;
   isMember: boolean;
   hasAccess: boolean;
