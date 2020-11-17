@@ -59,9 +59,6 @@ jobs:
           version: ${{ env.RELEASE_VERSION }}
         env:
           DRY_RUN: ${{ github.event.inputs.dry_run }}
-          GIT_COMMITTER_NAME: getsentry-bot
-          GIT_AUTHOR_NAME: getsentry-bot
-          EMAIL: bot@getsentry.com
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       # Wait until the builds start. Craft should do this automatically
       # but it is broken now.
