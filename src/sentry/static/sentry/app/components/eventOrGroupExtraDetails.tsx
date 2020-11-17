@@ -44,23 +44,17 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra>
-      {isUnhandled && hasInbox && (
-        <BadgeWrapper>
-          <UnhandledTag />
-        </BadgeWrapper>
-      )}
+      {isUnhandled && hasInbox && <UnhandledTag />}
       {shortId &&
         (hasInbox ? (
-          <BadgeWrapper>
-            <InboxShortId
-              shortId={shortId}
-              avatar={
-                project && (
-                  <ShadowlessProjectBadge project={project} avatarSize={14} hideName />
-                )
-              }
-            />
-          </BadgeWrapper>
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={14} hideName />
+              )
+            }
+          />
         ) : (
           <GroupShortId
             shortId={shortId}
@@ -188,15 +182,6 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
 const ShadowlessProjectBadge = styled(ProjectBadge)`
   * > img {
     box-shadow: none;
-  }
-`;
-
-const BadgeWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-
-  & > div {
-    margin-right: 0;
   }
 `;
 

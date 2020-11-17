@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router';
 import {Query} from 'history';
 
 import Tag from 'app/components/tag';
@@ -17,13 +16,6 @@ type Props = {
   };
 };
 
-const EventAnnotation = ({annotation, to}: Props) =>
-  to ? (
-    <Link to={to}>
-      <Tag>{annotation}</Tag>
-    </Link>
-  ) : (
-    <Tag>{annotation}</Tag>
-  );
+const EventAnnotation = ({annotation, to}: Props) => <Tag to={to}>{annotation}</Tag>;
 
 export default EventAnnotation;

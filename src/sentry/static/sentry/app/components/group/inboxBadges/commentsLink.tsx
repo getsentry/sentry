@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import {IconChat} from 'app/icons';
 import {SubscriptionDetails} from 'app/types';
@@ -17,18 +16,17 @@ type Props = {
 };
 
 const CommentsLink = ({to, subscriptionDetails, numComments}: Props) => (
-  <Link to={to} className="comments">
-    <Tag
-      icon={
-        <IconChat
-          size="xs"
-          color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
-        />
-      }
-    >
-      {numComments}
-    </Tag>
-  </Link>
+  <Tag
+    to={to}
+    icon={
+      <IconChat
+        size="xs"
+        color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
+      />
+    }
+  >
+    {numComments}
+  </Tag>
 );
 
 export default CommentsLink;
