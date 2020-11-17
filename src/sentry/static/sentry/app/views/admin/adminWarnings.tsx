@@ -3,17 +3,25 @@ import React from 'react';
 import AsyncView from 'app/views/asyncView';
 import {t} from 'app/locale';
 
-export default class AdminSettings extends AsyncView {
-  getEndpoints() {
-    return [['data', this.getEndpoint()]];
-  }
+type Data = {
+  groups: [groupName: string, grouppedWarnings: string[]][];
+  warnings: string[];
+};
 
-  getEndpoint() {
-    return '/internal/warnings/';
+type State = AsyncView['state'] & {data: Data | null};
+
+class AdminWarnings extends AsyncView<{}, State> {
+  getEndpoints(): [string, string][] {
+    return [['data', '/internal/warnings/']];
   }
 
   renderBody() {
     const {data} = this.state;
+
+    if (data === null) {
+      return null;
+    }
+
     const {groups, warnings} = data;
 
     return (
@@ -46,3 +54,5 @@ export default class AdminSettings extends AsyncView {
     );
   }
 }
+
+export default AdminWarnings;
