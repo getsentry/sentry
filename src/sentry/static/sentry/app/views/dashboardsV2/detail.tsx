@@ -65,6 +65,9 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   onCommit = () => {
     // TODO: commit dashboard changes
 
+    // re-fetch dashboard list
+    this.fetchData();
+
     this.setState({
       dashboardState: 'default',
     });
