@@ -62,12 +62,14 @@ def test_get_kafka_consumer_cluster_options():
         KAFKA_CLUSTERS={
             "default": {
                 "consumers": {"bootstrap.servers": "my.other.server:9092"},
-                "security.protocol": "plain",  # legacy config
+                # legacy config:
+                "security.protocol": "plain",
+                "bootstrap.servers": "my.legacy.server:9092",
             }
         }
     ):
         cluster_options = get_kafka_consumer_cluster_options("default")
-        assert cluster_options["bootstrap.servers"] == "my.other.server:9092"
+        assert cluster_options["bootstrap.servers"] == "my.legacy.server:9092"
         assert "security.protocol" not in cluster_options
 
 
