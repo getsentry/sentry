@@ -18,7 +18,21 @@ type Props = {
   location: Location;
   organization: Organization;
 };
-class DashboardDetail extends React.Component<Props> {
+
+type State = {
+  editing: boolean;
+};
+class DashboardDetail extends React.Component<Props, State> {
+  state: State = {
+    editing: false,
+  };
+
+  onEdit = () => {
+    this.setState({
+      editing: !this.state.editing,
+    });
+  };
+
   render() {
     const {organization, location} = this.props;
 
@@ -42,7 +56,7 @@ class DashboardDetail extends React.Component<Props> {
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
                 <div>{t('Some dashboard')}</div>
-                <Controls />
+                <Controls onEdit={this.onEdit} editing={this.state.editing} />
               </StyledPageHeader>
               <div>dashboard details</div>
             </LightWeightNoProjectMessage>

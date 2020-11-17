@@ -24,15 +24,39 @@ type OptionType = {
   label: string;
   value: FieldValue;
 };
-class Controls extends React.Component {
+
+type Props = {
+  onEdit: () => void;
+  editing: boolean;
+};
+class Controls extends React.Component<Props> {
   render() {
+    const {editing} = this.props;
+
+    if (editing) {
+      return (
+        <ButtonBar gap={1} key="edit-controls">
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              this.props.onEdit();
+            }}
+            href="#finish-editing"
+            priority="primary"
+            size="small"
+          >
+            {t('Finish Editing')}
+          </Button>
+        </ButtonBar>
+      );
+    }
+
     return (
-      <ButtonBar gap={1}>
+      <ButtonBar gap={1} key="controls">
         <Button
           onClick={e => {
             e.preventDefault();
-
-            console.log('edit');
+            this.props.onEdit();
           }}
           href="#edit"
           icon={<IconEdit size="xs" />}
