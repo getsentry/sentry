@@ -134,6 +134,9 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
+          const hasPerformance =
+            organization.features.includes('performance-view') &&
+            organization.features.includes('release-performance-views');
           const yAxis = this.getYAxis(hasHealthData);
 
           const releaseEventView = this.getReleaseEventView(version, project.id);
@@ -150,6 +153,7 @@ class ReleaseOverview extends AsyncView<Props> {
               yAxis={yAxis}
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
+              hasPerformance={hasPerformance}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <StyledBody>
@@ -160,7 +164,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       />
                     )}
 
-                    {(hasDiscover || hasHealthData) && (
+                    {(hasDiscover || hasPerformance || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}
                         selection={selection}
@@ -173,6 +177,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         api={api}
                         version={version}
                         hasDiscover={hasDiscover}
+                        hasPerformance={hasPerformance}
                       />
                     )}
                     <Issues

@@ -28,6 +28,7 @@ type Props = {
   onYAxisChange: (value: YAxis) => void;
   hasHealthData: boolean;
   hasDiscover: boolean;
+  hasPerformance: boolean;
 };
 
 const ReleaseChartControls = ({
@@ -36,9 +37,8 @@ const ReleaseChartControls = ({
   onYAxisChange,
   hasHealthData,
   hasDiscover,
+  hasPerformance,
 }: Props) => {
-  // TODO(tonyx): actually get this value
-  const hasPerformance = hasDiscover;
   const noHealthDataTooltip = !hasHealthData
     ? t('This view is only available with release health data.')
     : undefined;
@@ -83,15 +83,19 @@ const ReleaseChartControls = ({
       value: YAxis.FAILED_TRANSACTIONS,
       label: t('Failed Transactions'),
       disabled: !hasPerformance,
+      hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
     {
       value: YAxis.ALL_TRANSACTIONS,
       label: t('All Transactions'),
       disabled: !hasPerformance,
+      hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
-  ];
+  ]
+    .filter(opt => !opt.hidden)
+    .map(({hidden: _hidden, ...rest}) => rest);
 
   const getSummaryHeading = () => {
     switch (yAxis) {

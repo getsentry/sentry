@@ -26,6 +26,7 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   api: Client;
   version: string;
   hasDiscover: boolean;
+  hasPerformance: boolean;
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
@@ -114,9 +115,14 @@ class ReleaseChartContainer extends React.Component<Props> {
   }
 
   render() {
-    const {yAxis, hasDiscover, hasHealthData, chartSummary, onYAxisChange} = this.props;
-    // TODO(tonyx): actually get this value
-    const hasPerformance = hasDiscover;
+    const {
+      yAxis,
+      hasDiscover,
+      hasHealthData,
+      hasPerformance,
+      chartSummary,
+      onYAxisChange,
+    } = this.props;
 
     let chart: React.ReactNode = null;
     if (hasDiscover && yAxis === YAxis.EVENTS) {
@@ -139,6 +145,7 @@ class ReleaseChartContainer extends React.Component<Props> {
           onYAxisChange={onYAxisChange}
           hasDiscover={hasDiscover}
           hasHealthData={hasHealthData}
+          hasPerformance={hasPerformance}
         />
       </Panel>
     );

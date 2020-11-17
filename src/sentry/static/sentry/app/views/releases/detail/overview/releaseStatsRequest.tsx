@@ -54,6 +54,7 @@ type Props = {
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
   hasHealthData: boolean;
   hasDiscover: boolean;
+  hasPerformance: boolean;
 };
 type State = {
   reloading: boolean;
@@ -87,9 +88,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
 
   fetchData = async () => {
     let data: Data | null = null;
-    const {yAxis, hasHealthData, hasDiscover} = this.props;
+    const {yAxis, hasHealthData, hasDiscover, hasPerformance} = this.props;
 
-    if (!hasHealthData && !hasDiscover) {
+    if (!hasHealthData && !hasDiscover && !hasPerformance) {
       return;
     }
 
