@@ -26,7 +26,7 @@ export type PrebuiltDashboard = {
 };
 
 export type UserDashboard = {
-  type: 'user';
+  type: 'org';
   dashboard: Dashboard;
   author: string;
   dateAdded: number;
