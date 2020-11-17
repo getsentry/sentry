@@ -161,6 +161,13 @@ class JiraCreateTicketAction(TicketEventAction):
         def create_issue(event, futures):
             """Create the Jira ticket for a given event"""
 
+            # HACK to get fixVersion in the correct format
+            if not isinstance(self.data["fixVersions"], list):
+                self.data["fixVersions"] = [self.data["fixVersions"]]
+
+            if self.data.get("dynamic_form_fields"):
+                del self.data["dynamic_form_fields"]
+
             if not self.has_linked_issue(event, integration):
                 resp = installation.create_issue(self.data)
                 self.create_link(resp["key"], integration, installation, event)

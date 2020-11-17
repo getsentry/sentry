@@ -42,6 +42,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "jira_integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
+                "fixVersions": "[10000]",
             }
         )
         jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
@@ -113,6 +114,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "jira_integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
+                "fixVersions": "[10000]",
             }
         )
         jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
