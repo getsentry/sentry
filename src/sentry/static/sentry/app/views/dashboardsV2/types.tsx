@@ -20,14 +20,16 @@ export type Dashboard = {
   widgets: Widget[];
 };
 
-export type DashboardListItem =
-  | {
-      type: 'prebuilt';
-      dashboard: Dashboard;
-    }
-  | {
-      type: 'user';
-      dashboard: Dashboard;
-      author: string;
-      dateAdded: number;
-    };
+export type PrebuiltDashboard = {
+  type: 'prebuilt';
+  dashboard: Dashboard;
+};
+
+export type UserDashboard = {
+  type: 'user';
+  dashboard: Dashboard;
+  author: string;
+  dateAdded: number;
+};
+
+export type DashboardListItem = PrebuiltDashboard | UserDashboard;
