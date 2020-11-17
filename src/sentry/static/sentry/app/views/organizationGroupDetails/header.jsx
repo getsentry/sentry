@@ -231,7 +231,7 @@ class GroupHeader extends React.Component {
             to={`${baseUrl}merged/${location.search}`}
             isActive={() => currentTab === TAB.MERGED}
           >
-            {t('Merged')}
+            {t('Merged Issues')}
           </ListLink>
           {hasSimilarView && (
             <ListLink
