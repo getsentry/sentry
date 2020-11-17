@@ -35,7 +35,6 @@ class Controls extends React.Component<Props> {
               e.preventDefault();
               this.props.onCommit();
             }}
-            href="#finish-editing"
             priority="primary"
             size="small"
           >
@@ -59,7 +58,6 @@ class Controls extends React.Component<Props> {
             e.preventDefault();
             this.props.onEdit();
           }}
-          href="#edit"
           icon={<IconEdit size="xs" />}
           size="small"
         >
@@ -94,7 +92,6 @@ class Controls extends React.Component<Props> {
             console.log('create dashboard');
           }}
           priority="primary"
-          href="#create-dashboard"
           icon={<IconAdd size="xs" isCircled />}
           size="small"
         >
