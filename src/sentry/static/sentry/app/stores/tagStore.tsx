@@ -77,7 +77,15 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
       is: {
         key: 'is',
         name: 'Status',
-        values: ['resolved', 'unresolved', 'ignored', 'assigned', 'unassigned'],
+        values: [
+          'resolved',
+          'unresolved',
+          'ignored',
+          'assigned',
+          'unassigned',
+          'linked',
+          'unlinked',
+        ],
         predefined: true,
       },
       has: {
