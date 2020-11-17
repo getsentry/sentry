@@ -10,7 +10,6 @@ import ButtonBar from 'app/components/buttonBar';
 import SelectControl from 'app/components/forms/selectControl';
 
 import {DashboardListItem} from './types';
-import {PREBUILT_DASHBOARDS} from './data';
 
 type OptionType = {
   label: string;
@@ -18,13 +17,14 @@ type OptionType = {
 };
 
 type Props = {
+  dashboards: DashboardListItem[];
   onEdit: () => void;
   editing: boolean;
 };
 
 class Controls extends React.Component<Props> {
   render() {
-    const {editing} = this.props;
+    const {editing, dashboards} = this.props;
 
     if (editing) {
       return (
@@ -44,7 +44,7 @@ class Controls extends React.Component<Props> {
       );
     }
 
-    const dropdownOptions: OptionType[] = PREBUILT_DASHBOARDS.map(item => {
+    const dropdownOptions: OptionType[] = dashboards.map(item => {
       return {
         label: item.dashboard.name,
         value: item,

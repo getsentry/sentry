@@ -13,6 +13,8 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 
+import {DashboardListItem} from './types';
+import {PREBUILT_DASHBOARDS} from './data';
 import Controls from './controls';
 
 type Props = {
@@ -22,7 +24,7 @@ type Props = {
 
 type State = {
   editing: boolean;
-  orgDashboards: any[];
+  orgDashboards: DashboardListItem[] | null;
 } & AsyncComponent['state'];
 class DashboardDetail extends AsyncComponent<Props, State> {
   state: State = {
@@ -51,6 +53,16 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
+  getDashboardsList() {
+    const {orgDashboards} = this.state;
+
+    if (!Array.isArray(orgDashboards)) {
+      return PREBUILT_DASHBOARDS;
+    }
+
+    return [...PREBUILT_DASHBOARDS, ...orgDashboards];
+  }
+
   render() {
     const {organization, location} = this.props;
 
@@ -74,7 +86,11 @@ class DashboardDetail extends AsyncComponent<Props, State> {
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
                 <div>{t('Dashboards')}</div>
-                <Controls onEdit={this.onEdit} editing={this.state.editing} />
+                <Controls
+                  dashboards={this.getDashboardsList()}
+                  onEdit={this.onEdit}
+                  editing={this.state.editing}
+                />
               </StyledPageHeader>
               <div>dashboard details</div>
             </LightWeightNoProjectMessage>
