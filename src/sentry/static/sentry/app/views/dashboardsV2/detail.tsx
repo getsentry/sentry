@@ -16,6 +16,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import {DashboardListItem} from './types';
 import {PREBUILT_DASHBOARDS} from './data';
 import Controls from './controls';
+import Dashboard from './dashboard';
 
 type Props = {
   location: Location;
@@ -92,7 +93,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                   editing={this.state.editing}
                 />
               </StyledPageHeader>
-              <div>dashboard details</div>
+              <Dashboard />
             </LightWeightNoProjectMessage>
           </PageContent>
         </GlobalSelectionHeader>
