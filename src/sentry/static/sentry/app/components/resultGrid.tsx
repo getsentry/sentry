@@ -270,7 +270,7 @@ class ResultGrid extends React.Component<Props, State> {
     });
   }
 
-  onSearch(e: React.FormEvent<HTMLFormElement>) {
+  onSearch = (e: React.FormEvent<HTMLFormElement>) => {
     const location = this.props.location ?? {};
     const {query} = this.state;
     const targetQueryParams = {...(location.query ?? {}), query, cursor: ''};
@@ -281,11 +281,11 @@ class ResultGrid extends React.Component<Props, State> {
       pathname: this.props.path,
       query: targetQueryParams,
     });
-  }
+  };
 
-  onQueryChange(evt: React.ChangeEvent<HTMLInputElement>) {
+  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({query: evt.target.value});
-  }
+  };
 
   renderLoading() {
     return (
