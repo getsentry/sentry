@@ -11,6 +11,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import space from 'app/styles/space';
+import AsyncComponent from 'app/components/asyncComponent';
 
 import Controls from './controls';
 
@@ -21,11 +22,28 @@ type Props = {
 
 type State = {
   editing: boolean;
-};
-class DashboardDetail extends React.Component<Props, State> {
+  orgDashboards: any[];
+} & AsyncComponent['state'];
+class DashboardDetail extends AsyncComponent<Props, State> {
   state: State = {
+    // AsyncComponent state
+    loading: true,
+    reloading: false,
+    error: false,
+    errors: [],
+    orgDashboards: [],
+
+    // local state
     editing: false,
   };
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization} = this.props;
+
+    const url = `/organizations/${organization.slug}/dashboards/`;
+
+    return [['orgDashboards', url]];
+  }
 
   onEdit = () => {
     this.setState({
