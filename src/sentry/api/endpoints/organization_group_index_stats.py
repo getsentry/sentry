@@ -32,9 +32,9 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         Return a list of issues (groups) with the requested stats.  All parameters are
         supplied as query string parameters.
 
-        :qparam list groups A list of group ids
-        :qparam list expand an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `filtered`, and `base`
+        :qparam list groups: A list of group ids
+        :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
+        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `filtered`, and `base`
 
         The ``groupStatsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
@@ -69,13 +69,13 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         try:
             group_ids = set(map(int, request.GET.getlist("groups")))
         except ValueError:
-            return Response({"detail": "Group ids must be integers"}, status=400)
+            raise ParseError(detail="Group ids must be integers")
 
         if not group_ids:
-            return Response(
-                {"detail": "You should include `groups` with your request. (i.e. groups=1,2,3)"},
-                status=400,
+            raise ParseError(
+                detail="You should include `groups` with your request. (i.e. groups=1,2,3)"
             )
+
         else:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if not groups:
@@ -86,7 +86,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
                 raise PermissionDenied
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
-            return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
+            raise ParseError(detail=ERR_INVALID_STATS_PERIOD)
         stats_period, stats_period_start, stats_period_end = calculate_stats_period(
             stats_period, start, end
         )
