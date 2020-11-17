@@ -155,7 +155,7 @@ class ReleaseSeries extends React.Component {
     const {organization, router, tooltip, queryExtra} = this.props;
 
     const query = {...queryExtra};
-    if (new Set(organization.features).has('global-views')) {
+    if (organization.features.includes('global-views')) {
       query.project = router.location.query.project;
     }
 
