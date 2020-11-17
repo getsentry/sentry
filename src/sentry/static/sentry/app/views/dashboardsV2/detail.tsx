@@ -55,7 +55,7 @@ class DashboardDetail extends React.Component<Props, State> {
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <StyledPageHeader>
-                <div>{t('Some dashboard')}</div>
+                <div>{t('Dashboards')}</div>
                 <Controls onEdit={this.onEdit} editing={this.state.editing} />
               </StyledPageHeader>
               <div>dashboard details</div>
