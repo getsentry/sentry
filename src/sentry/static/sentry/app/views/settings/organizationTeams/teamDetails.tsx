@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {fetchTeamDetails, joinTeam} from 'app/actionCreators/teams';
 import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -19,16 +19,24 @@ import NavTabs from 'app/components/navTabs';
 import TeamStore from 'app/stores/teamStore';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
+import withTeams from 'app/utils/withTeams';
+import {Team} from 'app/types';
 
-const TeamDetails = createReactClass({
-  displayName: 'TeamDetails',
+type Props = {
+  api: Client;
+  teams: Team[];
+  children: React.ReactNode;
+} & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
-  propTypes: {
-    api: PropTypes.object,
-    routes: PropTypes.array,
-  },
+type State = {
+  loading: boolean;
+  error: boolean;
+  requesting: boolean;
+  team: Team | null;
+};
 
-  mixins: [Reflux.listenTo(TeamStore, 'onTeamStoreUpdate')],
+class TeamDetails extends React.Component<Props, State> {
+  state = this.getInitialState();
 
   getInitialState() {
     const team = TeamStore.getBySlug(this.props.params.teamId);
@@ -36,11 +44,12 @@ const TeamDetails = createReactClass({
     return {
       loading: !TeamStore.initialized,
       error: false,
+      requesting: false,
       team,
     };
-  },
+  }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     const {params} = this.props;
 
     if (
@@ -49,23 +58,23 @@ const TeamDetails = createReactClass({
     ) {
       this.fetchData();
     }
-  },
+    if (!isEqual(this.props.teams, prevProps.teams)) {
+      this.setActiveTeam();
+    }
+  }
 
-  onTeamStoreUpdate() {
-    const team = TeamStore.getBySlug(this.props.params.teamId);
+  setActiveTeam() {
+    const {teamId} = this.props.params;
+    const team = this.props.teams?.find((item: Team) => item.id === teamId) ?? null;
     const loading = !TeamStore.initialized;
     const error = !loading && !team;
-    this.setState({
-      team,
-      error,
-      loading,
-    });
-  },
 
-  handleRequestAccess() {
+    this.setState({team, loading, error});
+  }
+
+  handleRequestAccess = () => {
     const {api, params} = this.props;
     const {team} = this.state;
-
     if (!team) {
       return;
     }
@@ -103,19 +112,19 @@ const TeamDetails = createReactClass({
         },
       }
     );
-  },
+  };
 
-  fetchData() {
+  fetchData = () => {
     this.setState({
       loading: true,
       error: false,
     });
     fetchTeamDetails(this.props.api, this.props.params);
-  },
+  };
 
-  onTeamChange(data) {
+  onTeamChange = (data: Team) => {
     const team = this.state.team;
-    if (data.slug !== team.slug) {
+    if (data.slug !== team?.slug) {
       const orgId = this.props.params.orgId;
       browserHistory.replace(`/organizations/${orgId}/teams/${data.slug}/settings/`);
     } else {
@@ -126,13 +135,13 @@ const TeamDetails = createReactClass({
         },
       });
     }
-  },
+  };
 
   render() {
     const {params, routes, children} = this.props;
-    const team = this.state.team;
+    const {team, loading, requesting, error} = this.state;
 
-    if (this.state.loading) {
+    if (loading) {
       return <LoadingIndicator />;
     } else if (!team || !team.hasAccess) {
       return (
@@ -143,7 +152,7 @@ const TeamDetails = createReactClass({
                 teamSlug: <strong>{`#${team.slug}`}</strong>,
               })}
               <Button
-                disabled={this.state.requesting || team.isPending}
+                disabled={requesting || team.isPending}
                 size="small"
                 onClick={this.handleRequestAccess}
               >
@@ -155,7 +164,7 @@ const TeamDetails = createReactClass({
           )}
         </Alert>
       );
-    } else if (this.state.error) {
+    } else if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
@@ -173,17 +182,17 @@ const TeamDetails = createReactClass({
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
         </NavTabs>
 
-        {children &&
+        {React.isValidElement(children) &&
           React.cloneElement(children, {
             team,
             onTeamChange: this.onTeamChange,
           })}
       </div>
     );
-  },
-});
+  }
+}
 
-export default withApi(TeamDetails);
+export default withApi(withTeams(TeamDetails));
 
 const RequestAccessWrapper = styled('div')`
   display: flex;
