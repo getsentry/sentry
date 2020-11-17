@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
-  'exception:stacktrace:pairs': t('Stacktrace Frames'),
+  'exception:stacktrace:pairs': t('Stack Trace Frames'),
   'message:message:character-shingles': t('Log Message'),
 };
 

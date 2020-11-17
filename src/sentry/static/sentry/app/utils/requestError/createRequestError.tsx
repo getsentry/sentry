@@ -19,7 +19,7 @@ const ERROR_MAP = {
  * Create a RequestError whose name is equal to HTTP status text defined above
  *
  * @param {Object} resp A XHR response object
- * @param {String} stack The stacktrace to use. Helpful for async calls and we want to preserve a different stack.
+ * @param {String} stack The stack trace to use. Helpful for async calls and we want to preserve a different stack.
  */
 export default function createRequestError(
   resp: JQueryXHR,

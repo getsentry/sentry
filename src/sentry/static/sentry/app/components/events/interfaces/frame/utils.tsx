@@ -13,7 +13,7 @@ export function trimPackage(pkg: string) {
 
 export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
-  // of the stacktrace / exception
+  // of the stack trace / exception
   return dataPlatform || platform;
 }
 

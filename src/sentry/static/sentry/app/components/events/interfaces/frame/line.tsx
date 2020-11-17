@@ -104,7 +104,7 @@ export class Line extends React.Component<Props, State> {
 
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
-    // of the stacktrace / exception
+    // of the stack trace / exception
     return getPlatform(this.props.data.platform, this.props.platform ?? 'other');
   }
 

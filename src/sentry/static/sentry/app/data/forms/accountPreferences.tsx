@@ -25,7 +25,7 @@ const formGroups: JsonFormObject[] = [
           ['2', t('Most recent call first')],
         ],
         label: t('Stack Trace Order'),
-        help: t('Choose the default ordering of frames in stacktraces'),
+        help: t('Choose the default ordering of frames in stack traces'),
         getData: transformOptions,
       },
       {

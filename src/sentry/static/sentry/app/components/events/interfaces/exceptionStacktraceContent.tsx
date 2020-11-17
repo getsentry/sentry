@@ -42,7 +42,7 @@ const ExceptionStacktraceContent = ({
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xs" />}
-          title="No app only stacktrace has been found!"
+          title="No app only stack trace has been found!"
         />
       </Panel>
     );
@@ -56,9 +56,9 @@ const ExceptionStacktraceContent = ({
    * Armin, Markus:
    * If all frames are in app, then no frame is in app.
    * This normally does not matter for the UI but when chained exceptions
-   * are used this causes weird behavior where one exception appears to not have a stacktrace.
+   * are used this causes weird behavior where one exception appears to not have a stack trace.
    *
-   * It is easier to fix the UI logic to show a non-empty stacktrace for chained exceptions
+   * It is easier to fix the UI logic to show a non-empty stack trace for chained exceptions
    */
 
   return (
