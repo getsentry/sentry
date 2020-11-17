@@ -57,6 +57,7 @@ class GroupList extends React.Component<Props, State> {
     groups: [],
     pageLinks: null,
   };
+
   componentDidMount() {
     this.fetchData();
   }
