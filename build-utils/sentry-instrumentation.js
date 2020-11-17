@@ -10,9 +10,8 @@ const {
   SENTRY_WEBPACK_WEBHOOK_SECRET,
   GITHUB_SHA,
   GITHUB_REF,
-  CI,
 } = process.env;
-const IS_CI = !!CI;
+const IS_CI = !!GITHUB_SHA;
 
 const PLUGIN_NAME = 'SentryInstrumentation';
 const GB_BYTE = 1073741824;
