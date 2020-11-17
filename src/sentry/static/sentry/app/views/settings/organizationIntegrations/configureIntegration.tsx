@@ -40,7 +40,7 @@ type State = AsyncView['state'] & {
   tab?: Tab;
 };
 class ConfigureIntegration extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, integrationId} = this.props.params;
 
     return [

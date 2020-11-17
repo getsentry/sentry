@@ -241,7 +241,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['conditions', `/projects/${this.props.organization.slug}/rule-conditions/`]];
   }
 

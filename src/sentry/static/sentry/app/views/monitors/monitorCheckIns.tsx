@@ -31,7 +31,7 @@ export default class MonitorCheckIns extends AsyncComponent<Props, State> {
     monitor: PropTypes.object.isRequired,
   };
 
-  getEndpoints(): [string, string, {query: {per_page: number}}][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {monitor} = this.props;
     return [
       ['checkInList', `/monitors/${monitor.id}/checkins/`, {query: {per_page: 10}}],

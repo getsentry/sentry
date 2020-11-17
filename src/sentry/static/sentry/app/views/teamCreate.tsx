@@ -17,7 +17,7 @@ class TeamCreate extends AsyncView<Props> {
     return t('Create Team');
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [];
   }
 
