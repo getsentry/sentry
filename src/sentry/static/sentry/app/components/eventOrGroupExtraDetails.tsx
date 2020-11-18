@@ -117,7 +117,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
       {annotations &&
         annotations.map((annotation, key) =>
           hasInbox ? (
-            <InboxEventAnnotation key={key} annotation={annotation} />
+            <InboxEventAnnotation key={key} htmlAnnotation={annotation} />
           ) : (
             <AnnotationNoMargin
               dangerouslySetInnerHTML={{
