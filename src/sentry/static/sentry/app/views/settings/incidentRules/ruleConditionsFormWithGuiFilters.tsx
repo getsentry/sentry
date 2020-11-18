@@ -18,6 +18,7 @@ import ListItem from 'app/components/list/listItem';
 import SearchBar from 'app/views/events/searchBar';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SelectControl from 'app/components/forms/selectControl';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import Feature from 'app/components/acl/feature';
@@ -27,15 +28,15 @@ import MetricField from './metricField';
 import {DEFAULT_AGGREGATE} from './constants';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
-  [TimeWindow.ONE_MINUTE]: t('1 minute'),
-  [TimeWindow.FIVE_MINUTES]: t('5 minutes'),
-  [TimeWindow.TEN_MINUTES]: t('10 minutes'),
-  [TimeWindow.FIFTEEN_MINUTES]: t('15 minutes'),
-  [TimeWindow.THIRTY_MINUTES]: t('30 minutes'),
-  [TimeWindow.ONE_HOUR]: t('1 hour'),
-  [TimeWindow.TWO_HOURS]: t('2 hours'),
-  [TimeWindow.FOUR_HOURS]: t('4 hours'),
-  [TimeWindow.ONE_DAY]: t('24 hours'),
+  [TimeWindow.ONE_MINUTE]: t('1 minute window'),
+  [TimeWindow.FIVE_MINUTES]: t('5 minute window'),
+  [TimeWindow.TEN_MINUTES]: t('10 minute window'),
+  [TimeWindow.FIFTEEN_MINUTES]: t('15 minute window'),
+  [TimeWindow.THIRTY_MINUTES]: t('30 minute window'),
+  [TimeWindow.ONE_HOUR]: t('1 hour window'),
+  [TimeWindow.TWO_HOURS]: t('2 hour window'),
+  [TimeWindow.FOUR_HOURS]: t('4 hour window'),
+  [TimeWindow.ONE_DAY]: t('24 hour window'),
 };
 
 type Props = {
@@ -87,7 +88,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
 
     const anyEnvironmentLabel = (
       <React.Fragment>
-        {t('All Environments')}
+        {t('All')}
         <div className="all-environment-note">
           {tct(
             `This will count events across every environment. For example,
@@ -108,16 +109,16 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     return (
       <Panel>
         <StyledPanelBody>
-          <List symbol="colored-numeric">
-            <StyledListItem>{t('Select the events you want to alert on')}</StyledListItem>
+          <StyledList symbol="colored-numeric">
+            <ListItem>{t('Select events')}</ListItem>
             <FormRow>
               <SelectField
                 name="environment"
-                placeholder={t('All Environments')}
+                placeholder={t('All')}
                 style={{
                   ...formElemBaseStyle,
                   minWidth: 250,
-                  flex: 2,
+                  flex: 1,
                 }}
                 styles={{
                   singleValue: (base: any) => ({
@@ -139,7 +140,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 isClearable
                 inline={false}
                 flexibleControlStateSize
-                inFieldLabel={t('Env: ')}
+                inFieldLabel={t('Environment: ')}
               />
               <Feature requireAll features={['organizations:performance-view']}>
                 <FormField
@@ -147,8 +148,8 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                   inline={false}
                   style={{
                     ...formElemBaseStyle,
-                    minWidth: 250,
-                    flex: 3,
+                    minWidth: 300,
+                    flex: 2,
                   }}
                   flexibleControlStateSize
                 >
@@ -218,8 +219,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 inline={false}
                 style={{
                   ...formElemBaseStyle,
-                  flex: 6,
-                  minWidth: 400,
+                  flex: '6 0 700px',
                 }}
                 flexibleControlStateSize
               >
@@ -262,7 +262,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 )}
               </FormField>
             </FormRow>
-            <StyledListItem>{t('Choose a metric')}</StyledListItem>
+            <ListItem>{t('Choose a metric')}</ListItem>
             <FormRow>
               <MetricField
                 name="aggregate"
@@ -278,24 +278,31 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 inFieldLabels
                 required
               />
-              <FormRowText>over</FormRowText>
-              <SelectField
-                name="timeWindow"
-                style={{
-                  ...formElemBaseStyle,
-                  minWidth: 150,
-                }}
-                choices={Object.entries(TIME_WINDOW_MAP)}
-                required
-                isDisabled={disabled}
-                getValue={value => Number(value)}
-                setValue={value => `${value}`}
-                inline={false}
-                flexibleControlStateSize
-              />
+              <FormRowText>over a</FormRowText>
+              <Tooltip
+                title={t(
+                  'Note: Triggers are evaluated every minute regardless of this value.'
+                )}
+              >
+                <SelectField
+                  name="timeWindow"
+                  style={{
+                    ...formElemBaseStyle,
+                    flex: 1,
+                    minWidth: 180,
+                  }}
+                  choices={Object.entries(TIME_WINDOW_MAP)}
+                  required
+                  isDisabled={disabled}
+                  getValue={value => Number(value)}
+                  setValue={value => `${value}`}
+                  inline={false}
+                  flexibleControlStateSize
+                />
+              </Tooltip>
             </FormRow>
-            {this.props.thresholdChart}
-          </List>
+          </StyledList>
+          {this.props.thresholdChart}
         </StyledPanelBody>
       </Panel>
     );
@@ -303,6 +310,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
 }
 
 const StyledPanelBody = styled(PanelBody)`
+  ol,
   h4 {
     margin-bottom: ${space(1)};
   }
@@ -316,22 +324,21 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledListItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin: ${space(3)} ${space(3)} 0 ${space(3)};
+const StyledList = styled(List)`
+  padding: ${space(3)} ${space(3)} 0 ${space(3)};
 `;
 
 const FormRow = styled('div')`
   display: flex;
   flex-direction: row;
-  padding: ${space(1.5)} ${space(3)};
   align-items: flex-end;
   flex-wrap: wrap;
+  margin-bottom: ${space(2)};
 `;
 
 const FormRowText = styled('div')`
   padding: ${space(0.5)};
-  line-height: 38px;
+  line-height: 40px;
 `;
 
 export default RuleConditionsFormWithGuiFilters;
