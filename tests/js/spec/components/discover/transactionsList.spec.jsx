@@ -93,6 +93,20 @@ describe('TransactionsList', function () {
         predicate: (_, opts) => opts && opts.query && opts.query.sort === '-count',
       }
     );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-trends/`,
+      body: {
+        meta: {
+          transaction: 'string',
+          trend_percentage: 'percentage',
+          trend_difference: 'number',
+        },
+        data: [
+          {transaction: '/a', 'trend_percentage()': 1.25, 'trend_difference()': 25},
+          {transaction: '/b', 'trend_percentage()': 1.05, 'trend_difference()': 5},
+        ],
+      },
+    });
   });
 
   const selectDropdownOption = (w, selection) => {
@@ -125,6 +139,40 @@ describe('TransactionsList', function () {
     // 2 for the transaction names
     expect(wrapper.find('GridCell')).toHaveLength(2);
     // 2 for the counts
+    expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+  });
+
+  it('renders a trend view', async function () {
+    options.push({
+      sort: {kind: 'desc', field: 'trend_percentage()'},
+      value: 'regression',
+      label: t('Trending Regressions'),
+      trendType: 'regression',
+    });
+    wrapper = mountWithTheme(
+      <TransactionsList
+        api={api}
+        location={location}
+        organization={organization}
+        trendView={eventView}
+        dropdownTitle={t('Title')}
+        selected={options[2]}
+        options={options}
+        handleDropdownChange={handleDropdownChange}
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('DropdownControl')).toHaveLength(1);
+    expect(wrapper.find('DropdownItem')).toHaveLength(3);
+    expect(wrapper.find('DiscoverButton')).toHaveLength(0);
+    expect(wrapper.find('Pagination')).toHaveLength(1);
+    expect(wrapper.find('PanelTable')).toHaveLength(1);
+    // trend_percentage and transaction name
+    expect(wrapper.find('GridCell')).toHaveLength(4);
+    // trend_difference
     expect(wrapper.find('GridCellNumber')).toHaveLength(2);
   });
 

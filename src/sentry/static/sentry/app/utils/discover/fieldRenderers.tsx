@@ -178,6 +178,7 @@ type SpecialFields = {
   issue: SpecialField;
   release: SpecialField;
   key_transaction: SpecialField;
+  'trend_percentage()': SpecialField;
 };
 
 /**
@@ -332,6 +333,16 @@ const SPECIAL_FIELDS: SpecialFields = {
           transactionName={data.transaction}
         />
       </Container>
+    ),
+  },
+  'trend_percentage()': {
+    sortField: 'trend_percentage()',
+    renderFunc: data => (
+      <NumberContainer>
+        {typeof data.trend_percentage === 'number'
+          ? formatPercentage(data.trend_percentage - 1)
+          : emptyValue}
+      </NumberContainer>
     ),
   },
 };

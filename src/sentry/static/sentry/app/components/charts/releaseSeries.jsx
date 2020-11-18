@@ -52,6 +52,7 @@ class ReleaseSeries extends React.Component {
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
     tooltip: SentryTypes.EChartsTooltip,
+    queryExtra: PropTypes.object,
 
     memoized: PropTypes.bool,
   };
@@ -151,7 +152,12 @@ class ReleaseSeries extends React.Component {
   }
 
   getReleaseSeries = releases => {
-    const {organization, router, tooltip} = this.props;
+    const {organization, router, tooltip, queryExtra} = this.props;
+
+    const query = {...queryExtra};
+    if (organization.features.includes('global-views')) {
+      query.project = router.location.query.project;
+    }
 
     return {
       seriesName: 'Releases',
@@ -199,9 +205,7 @@ class ReleaseSeries extends React.Component {
           onClick: () => {
             router.push({
               pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-              query: new Set(organization.features).has('global-views')
-                ? undefined
-                : {project: router.location.query.project},
+              query,
             });
           },
           label: {
