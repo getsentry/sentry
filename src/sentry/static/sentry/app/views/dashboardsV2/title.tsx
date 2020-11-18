@@ -32,6 +32,8 @@ class DashboardTitle extends React.Component<Props> {
 
     const {changesDashboard, setChangesDashboard} = this.props;
 
+    event.target.innerText = nextDashboardTitle;
+
     if (!changesDashboard) {
       return;
     }
