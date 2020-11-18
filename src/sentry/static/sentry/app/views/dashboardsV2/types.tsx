@@ -21,6 +21,15 @@ export type PrebuiltDashboard = {
   widgets: Widget[];
 };
 
+export type OrgDashboard = {
+  type: 'org';
+} & OrgDashboardResponse;
+
+export type DashboardListItem = PrebuiltDashboard | OrgDashboard;
+
+export type DashboardState = 'default' | 'edit' | 'create';
+
+// POST response when creating a new dashboard
 export type OrgDashboardResponse = {
   title: string;
   dateCreated: string;
@@ -30,10 +39,8 @@ export type OrgDashboardResponse = {
   id: string;
 };
 
-export type OrgDashboard = {
-  type: 'org';
-} & OrgDashboardResponse;
-
-export type DashboardListItem = PrebuiltDashboard | OrgDashboard;
-
-export type DashboardState = 'default' | 'edit' | 'create';
+// PUT body for updating a dashboard
+export type OrgDashboardUpdate = {
+  title: string;
+  widgets: Array<{id: string}>;
+};
