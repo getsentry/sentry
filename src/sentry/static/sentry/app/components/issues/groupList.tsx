@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -111,7 +112,8 @@ class GroupList extends React.Component<Props, State> {
         loading: false,
         pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
       });
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err);
       this.setState({error: true, loading: false});
     }
   }
