@@ -72,7 +72,7 @@ type Props = {
   /**
    * Must be explicitly `null` to disable yAxis
    */
-  yAxis?: EChartOption.YAxis;
+  yAxis?: EChartOption.YAxis | null;
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties

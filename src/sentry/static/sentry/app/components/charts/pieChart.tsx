@@ -1,13 +1,24 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {EChartOption} from 'echarts';
 
 import theme from 'app/utils/theme';
+import {ReactEchartsRef, Series} from 'app/types/echarts';
 
 import BaseChart from './baseChart';
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
 
-class PieChart extends React.Component {
+type ChartProps = React.ComponentProps<typeof BaseChart>;
+
+export type PieChartSeries = Series & Omit<EChartOption.SeriesPie, 'data' | 'name'>;
+
+type Props = Omit<ChartProps, 'series'> & {
+  selectOnRender?: boolean;
+  series: PieChartSeries[];
+};
+
+class PieChart extends React.Component<Props> {
   static propTypes = {
     // We passthrough all props exception `options`
     ...BaseChart.propTypes,
@@ -15,13 +26,6 @@ class PieChart extends React.Component {
     // Attempt to select first series in chart (to show in center of PieChart)
     selectOnRender: PropTypes.bool,
   };
-
-  constructor(props) {
-    super(props);
-    this.chart = React.createRef();
-    this.isInitialSelected = true;
-    this.selected = 0;
-  }
 
   componentDidMount() {
     const {selectOnRender} = this.props;
@@ -35,17 +39,9 @@ class PieChart extends React.Component {
     setTimeout(() => this.highlight(0), 1000);
   }
 
-  // echarts Legend does not have access to percentages (but tooltip does :/)
-  getSeriesPercentages = series => {
-    const total = series.data.reduce((acc, {value}) => acc + value, 0);
-    return series.data.reduce(
-      (acc, {name, value}) => ({
-        ...acc,
-        [name]: Math.round((value / total) * 10000) / 100,
-      }),
-      {}
-    );
-  };
+  isInitialSelected = true;
+  selected = 0;
+  chart = React.createRef<ReactEchartsRef>();
 
   // Select a series to highlight (e.g. shows details of series)
   // This is the same event as when you hover over a series in the chart
@@ -105,11 +101,9 @@ class PieChart extends React.Component {
     return (
       <BaseChart
         ref={this.chart}
-        onChartReady={this.handleChartReady}
         colors={
           firstSeries &&
-          firstSeries.data &&
-          theme.charts.getColorPalette(firstSeries.data.length)
+          firstSeries.data && [...theme.charts.getColorPalette(firstSeries.data.length)]
         }
         // when legend highlights it does NOT pass dataIndex :(
         onHighlight={({name}) => {

@@ -1,12 +1,18 @@
 import {EChartOption} from 'echarts';
+
+import {SeriesDataUnit} from 'app/types/echarts';
 import 'echarts/lib/chart/pie';
 
 export default function PieSeries(
-  props: EChartOption.SeriesPie = {}
+  props: Omit<EChartOption.SeriesPie, 'data'> & {
+    data?: SeriesDataUnit[] | EChartOption.SeriesPie['data'];
+  } = {}
 ): EChartOption.SeriesPie {
+  const {data, ...rest} = props;
   return {
     radius: ['50%', '70%'],
-    ...props,
+    data: data as EChartOption.SeriesPie['data'],
+    ...rest,
     type: 'pie',
   };
 }
