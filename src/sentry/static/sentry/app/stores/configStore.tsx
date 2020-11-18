@@ -30,7 +30,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
 
   set(key, value) {
     // TODO(dark): Dark mode is currently staff only
-    if (key === 'theme' && !this.config.user.isStaff) {
+    if (key === 'theme' && !this.config.user?.isStaff) {
       return;
     }
 
@@ -49,7 +49,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     this.config = {
       ...config,
       features: new Set(config.features || []),
-      theme: config.user.isStaff && prefersDark() ? 'dark' : 'light', // TODO(dark): Remove staff requirement
+      theme: config.user?.isStaff && prefersDark() ? 'dark' : 'light', // TODO(dark): Remove staff requirement
     };
 
     // Language code is passed from django
