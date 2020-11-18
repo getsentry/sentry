@@ -218,7 +218,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
-        dynamic_fields = issue_type_meta.get("fields").keys()
+        dynamic_fields = list(issue_type_meta.get("fields").keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
