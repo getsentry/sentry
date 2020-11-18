@@ -271,11 +271,10 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 disabled={disabled}
                 style={{
                   ...formElemBaseStyle,
-                  flex: 6,
-                  minWidth: 300,
                 }}
                 inline={false}
                 flexibleControlStateSize
+                columnWidth={200}
                 required
               />
               <FormRowText>over</FormRowText>
@@ -283,7 +282,6 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 name="timeWindow"
                 style={{
                   ...formElemBaseStyle,
-                  flex: 1,
                   minWidth: 150,
                 }}
                 choices={Object.entries(TIME_WINDOW_MAP)}
