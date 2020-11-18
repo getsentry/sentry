@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -6,36 +5,36 @@ import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 
-export default class ApiForm extends React.Component {
-  static propTypes = {
-    ...Form.propTypes,
-    onSubmit: PropTypes.func,
-    apiMethod: PropTypes.string.isRequired,
-    apiEndpoint: PropTypes.string.isRequired,
-  };
+type Props = Form['props'] & {
+  onSubmit?: (data: Record<string, any>) => void;
+  apiMethod: string;
+  apiEndpoint: string;
+};
 
-  constructor(props, context) {
-    super(props, context);
-    this.api = new Client();
-  }
-
+export default class ApiForm extends React.Component<Props> {
   componentWillUnmount() {
     this.api.clear();
   }
 
-  onSubmit = (data, onSuccess, onError) => {
+  api: Client = new Client();
+
+  onSubmit = (
+    data: Record<string, any>,
+    onSuccess: (response: Record<string, any>) => void,
+    onError: (error: any) => void
+  ) => {
     this.props.onSubmit && this.props.onSubmit(data);
     addLoadingMessage(t('Saving changes\u2026'));
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,
-      success: (...args) => {
+      success: response => {
         clearIndicators();
-        onSuccess(...args);
+        onSuccess(response);
       },
-      error: (...args) => {
+      error: error => {
         clearIndicators();
-        onError(...args);
+        onError(error);
       },
     });
   };

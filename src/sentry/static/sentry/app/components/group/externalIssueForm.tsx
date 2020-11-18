@@ -60,7 +60,7 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     this.loadTransasaction = this.startTransaction('load');
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {group, integration, action} = this.props;
     return [
       [

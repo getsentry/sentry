@@ -142,12 +142,11 @@ class IssueListOverview extends React.Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
-    this.fetchTags();
-    this.fetchMemberList();
-
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     this.fetchSavedSearches();
+    this.fetchTags();
+    this.fetchMemberList();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -258,11 +257,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (query !== undefined) {
       return query as string;
-    }
-
-    // TODO(workflow): set inbox as new default query
-    if (this.props.organization.features.includes('inbox')) {
-      return 'is:inbox';
     }
 
     return DEFAULT_QUERY;

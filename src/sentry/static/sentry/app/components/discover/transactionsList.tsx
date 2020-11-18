@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import DropdownButton from 'app/components/dropdownButton';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -132,8 +133,16 @@ class TransactionsList extends React.Component<Props> {
       <Header>
         <DropdownControl
           data-test-id="filter-transactions"
-          label={selected.label}
-          buttonProps={{prefix: dropdownTitle, size: 'small'}}
+          button={({isOpen, getActorProps}) => (
+            <StyledDropdownButton
+              {...getActorProps()}
+              isOpen={isOpen}
+              prefix={dropdownTitle}
+              size="small"
+            >
+              {selected.label}
+            </StyledDropdownButton>
+          )}
         >
           {options.map(({value, label}) => (
             <DropdownItem
@@ -423,6 +432,10 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  min-width: 145px;
 `;
 
 const StyledPanelTable = styled(PanelTable)`

@@ -18,17 +18,16 @@ type Props = {
   openMembership: boolean;
 };
 
-const AllTeamsList = ({
+function AllTeamsList({
   organization,
   urlPrefix,
   openMembership,
   teamList,
   access,
-}: Props) => {
+}: Props) {
   const teamNodes = teamList.map(team => (
     <AllTeamsRow
       urlPrefix={urlPrefix}
-      access={access}
       team={team}
       organization={organization}
       openMembership={openMembership}
@@ -62,8 +61,8 @@ const AllTeamsList = ({
     );
   }
 
-  return teamNodes;
-};
+  return <React.Fragment>{teamNodes}</React.Fragment>;
+}
 
 export default AllTeamsList;
 

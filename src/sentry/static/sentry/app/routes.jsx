@@ -119,7 +119,7 @@ function routes() {
             name="Session History"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "AccountSecuritySessionHistory" */ 'app/views/settings/account/accountSecurity/accountSecuritySessionHistory'
+                /* webpackChunkName: "SessionHistory" */ 'app/views/settings/account/accountSecurity/sessionHistory'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -2104,6 +2104,15 @@ function routes() {
         {/* A route tree for lightweight organizational detail views.
           This is strictly for deprecated URLs that we need to maintain */}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
+          {/* This is in the bottom lightweight group because "/organizations/:orgId/projects/new/" in heavyweight needs to be matched first */}
+          <Route
+            path="/organizations/:orgId/projects/:projectId/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectDetail" */ 'app/views/projectDetail')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
           <Route name="Organization" path="/:orgId/">
             <Route path=":projectId/">
               {/* Support for deprecated URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}

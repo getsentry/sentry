@@ -132,7 +132,7 @@ class IssueDiff extends React.Component<Props, State> {
           <HeaderWrapper>
             <ButtonBar merged active={groupingDiff ? 'grouping' : 'event'}>
               <Button barId="event" size="small" onClick={this.toggleDiffMode}>
-                {t('Diff stacktrace and message')}
+                {t('Diff stack trace and message')}
               </Button>
               <Button barId="grouping" size="small" onClick={this.toggleDiffMode}>
                 {t('Diff grouping information')}

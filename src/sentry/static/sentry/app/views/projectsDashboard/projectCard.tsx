@@ -59,16 +59,19 @@ class ProjectCard extends React.Component<Props> {
     const totalErrors =
       stats !== undefined
         ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
-        : '\u2014';
+        : '0';
 
     const totalTransactions =
       transactionStats !== undefined
         ? formatAbbreviatedNumber(
             transactionStats.reduce((sum, [_, value]) => sum + value, 0)
           )
-        : '\u2014';
+        : '0';
     const zeroTransactions = totalTransactions === '0';
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
+    const projectLink = organization.features.includes('project-detail')
+      ? `/organizations/${organization.slug}/projects/${slug}/`
+      : `/organizations/${organization.slug}/issues/?project=${id}`;
 
     return (
       <div data-test-id={slug}>
@@ -81,9 +84,7 @@ class ProjectCard extends React.Component<Props> {
                   avatarSize={18}
                   displayName={
                     hasProjectAccess ? (
-                      <Link
-                        to={`/organizations/${organization.slug}/issues/?project=${id}`}
-                      >
+                      <Link to={projectLink}>
                         <strong>{slug}</strong>
                       </Link>
                     ) : (

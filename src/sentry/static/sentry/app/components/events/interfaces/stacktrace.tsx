@@ -80,7 +80,7 @@ class StacktraceInterface extends React.Component<Props, State> {
         type={type}
         title={
           <CrashTitle
-            title={t('Stacktrace')}
+            title={t('Stack Trace')}
             hideGuide={hideGuide}
             newestFirst={newestFirst}
             onChange={this.handleChangeNewestFirst}

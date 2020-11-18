@@ -891,6 +891,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable the new Project Detail page
+    "organizations:project-detail": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1883,9 +1885,12 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin",)
 
 KAFKA_CLUSTERS = {
     "default": {
-        "bootstrap.servers": "127.0.0.1:9092",
-        "compression.type": "lz4",
-        "message.max.bytes": 50000000,  # 50MB, default is 1MB
+        "common": {"bootstrap.servers": "127.0.0.1:9092"},
+        "producers": {
+            "compression.type": "lz4",
+            "message.max.bytes": 50000000,  # 50MB, default is 1MB
+        },
+        "consumers": {},
     }
 }
 

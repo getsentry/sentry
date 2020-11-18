@@ -20,7 +20,7 @@ from sentry.eventstream.kafka.state import (
     SynchronizedPartitionStateManager,
 )
 from sentry.utils.concurrent import execute
-
+from sentry.utils import kafka_config
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ LOGICAL_OFFSETS = frozenset([OFFSET_BEGINNING, OFFSET_END, OFFSET_STORED, OFFSET
 
 
 def run_commit_log_consumer(
-    bootstrap_servers,
+    cluster_name,
     consumer_group,
     commit_log_topic,
     partition_state_manager,
@@ -62,16 +62,17 @@ def run_commit_log_consumer(
     # this consumer process!!! This ensures that it is able to consume from all
     # partitions of the commit log topic and get a comprehensive view of the
     # state of the consumer groups it is tracking.
-    consumer = Consumer(
-        {
-            "bootstrap.servers": bootstrap_servers,
+    consumer_config = kafka_config.get_kafka_consumer_cluster_options(
+        cluster_name,
+        override_params={
             "group.id": consumer_group,
             "enable.auto.commit": "false",
             "enable.auto.offset.store": "true",
             "enable.partition.eof": "false",
             "default.topic.config": {"auto.offset.reset": "error"},
-        }
+        },
     )
+    consumer = Consumer(consumer_config)
 
     def rewind_partitions_on_assignment(consumer, assignment):
         # The commit log consumer must start consuming from the beginning of
@@ -158,14 +159,14 @@ class SynchronizedConsumer(object):
 
     def __init__(
         self,
-        bootstrap_servers,
+        cluster_name,
         consumer_group,
         commit_log_topic,
         synchronize_commit_group,
         initial_offset_reset="latest",
         on_commit=None,
     ):
-        self.bootstrap_servers = bootstrap_servers
+        self.cluster_name = cluster_name
         self.consumer_group = consumer_group
         self.commit_log_topic = commit_log_topic
         self.synchronize_commit_group = synchronize_commit_group
@@ -185,15 +186,17 @@ class SynchronizedConsumer(object):
             if on_commit is not None:
                 return on_commit(error, partitions)
 
-        consumer_configuration = {
-            "bootstrap.servers": self.bootstrap_servers,
-            "group.id": self.consumer_group,
-            "enable.auto.commit": "false",
-            "enable.auto.offset.store": "true",
-            "enable.partition.eof": "false",
-            "default.topic.config": {"auto.offset.reset": "error"},
-            "on_commit": commit_callback,
-        }
+        consumer_configuration = kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+            override_params={
+                "group.id": self.consumer_group,
+                "enable.auto.commit": "false",
+                "enable.auto.offset.store": "true",
+                "enable.partition.eof": "false",
+                "default.topic.config": {"auto.offset.reset": "error"},
+                "on_commit": commit_callback,
+            },
+        )
 
         self.__consumer = Consumer(consumer_configuration)
 
@@ -206,7 +209,7 @@ class SynchronizedConsumer(object):
         result = execute(
             functools.partial(
                 run_commit_log_consumer,
-                bootstrap_servers=self.bootstrap_servers,
+                cluster_name=self.cluster_name,
                 consumer_group="{}:sync:{}".format(self.consumer_group, uuid.uuid1().hex),
                 commit_log_topic=self.commit_log_topic,
                 synchronize_commit_group=self.synchronize_commit_group,

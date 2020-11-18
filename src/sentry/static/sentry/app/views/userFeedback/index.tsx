@@ -32,7 +32,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       organization,
       location: {search},

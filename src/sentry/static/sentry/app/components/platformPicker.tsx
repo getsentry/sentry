@@ -1,5 +1,4 @@
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
@@ -13,28 +12,34 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import categoryList from 'app/data/platformCategories';
+import categoryList, {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import space from 'app/styles/space';
 import {IconClose, IconSearch, IconProject} from 'app/icons';
+import {PlatformIntegration} from 'app/types';
 
-const PLATFORM_CATEGORIES = categoryList.concat({id: 'all', name: t('All')});
+const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
-class PlatformPicker extends React.Component {
-  static propTypes = {
-    setPlatform: PropTypes.func.isRequired,
-    platform: PropTypes.string,
-    showOther: PropTypes.bool,
-    listClassName: PropTypes.string,
-    listProps: PropTypes.object,
-    noAutoFilter: PropTypes.bool,
-  };
+type Props = {
+  setPlatform: (key: PlatformKey | null) => void;
+  platform?: string | null;
+  showOther?: boolean;
+  listClassName?: string;
+  listProps?: React.HTMLProps<HTMLDivElement>;
+  noAutoFilter?: boolean;
+};
 
+type State = {
+  category: typeof PLATFORM_CATEGORIES[number]['id'];
+  filter: string;
+};
+
+class PlatformPicker extends React.Component<Props, State> {
   static defaultProps = {
     showOther: true,
   };
 
-  state = {
+  state: State = {
     category: PLATFORM_CATEGORIES[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
@@ -43,9 +48,14 @@ class PlatformPicker extends React.Component {
     const {category} = this.state;
     const currentCategory = categoryList.find(({id}) => id === category);
 
-    const subsetMatch = ({id}) => id.includes(this.state.filter.toLowerCase());
-    const categoryMatch = platform =>
-      category === 'all' || currentCategory.platforms.includes(platform.id);
+    const filter = this.state.filter.toLowerCase();
+
+    const subsetMatch = (platform: PlatformIntegration) =>
+      platform.id.includes(filter) || platform.name.toLowerCase().includes(filter);
+
+    const categoryMatch = (platform: PlatformIntegration) =>
+      category === 'all' ||
+      (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
     const filtered = platforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
@@ -64,14 +74,14 @@ class PlatformPicker extends React.Component {
   }, 300);
 
   @keydown('/')
-  focusSearch(e) {
+  focusSearch(e: KeyboardEvent) {
     if (e.target !== this.searchInput.current) {
-      this.searchInput.current.focus();
+      this.searchInput?.current?.focus();
       e.preventDefault();
     }
   }
 
-  searchInput = React.createRef();
+  searchInput = React.createRef<HTMLInputElement>();
 
   render() {
     const platformList = this.platformList;
@@ -85,7 +95,7 @@ class PlatformPicker extends React.Component {
             {PLATFORM_CATEGORIES.map(({id, name}) => (
               <ListLink
                 key={id}
-                onClick={e => {
+                onClick={(e: React.MouseEvent) => {
                   analytics('platformpicker.select_tab', {category: id});
                   this.setState({category: id, filter: ''});
                   e.preventDefault();
@@ -103,7 +113,6 @@ class PlatformPicker extends React.Component {
               type="text"
               ref={this.searchInput}
               value={filter}
-              label={t('Filter Platforms')}
               placeholder={t('Filter Platforms')}
               onChange={e => this.setState({filter: e.target.value}, this.logSearch)}
             />
@@ -116,13 +125,13 @@ class PlatformPicker extends React.Component {
               key={platform.id}
               platform={platform}
               selected={this.props.platform === platform.id}
-              onClear={e => {
-                setPlatform('');
+              onClear={(e: React.MouseEvent) => {
+                setPlatform(null);
                 e.stopPropagation();
               }}
               onClick={() => {
                 analytics('platformpicker.select_platform', {platform: platform.id});
-                setPlatform(platform.id);
+                setPlatform(platform.id as PlatformKey);
               }}
             />
           ))}
@@ -161,7 +170,7 @@ const NavContainer = styled('div')`
 `;
 
 const SearchBar = styled('div')`
-  ${inputStyles};
+  ${p => inputStyles(p)};
   padding: 0 8px;
   color: ${p => p.theme.subText};
   display: flex;
