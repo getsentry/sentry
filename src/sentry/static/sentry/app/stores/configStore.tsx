@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
+import {prefersDark} from 'app/utils/matchMedia';
 
 type ConfigStoreInterface = {
   config: Config;
@@ -28,6 +29,11 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   set(key, value) {
+    // TODO(dark): Dark mode is currently staff only
+    if (key === 'theme' && !this.config.user.isStaff) {
+      return;
+    }
+
     this.config = {
       ...this.config,
       [key]: value,
@@ -43,7 +49,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     this.config = {
       ...config,
       features: new Set(config.features || []),
-      theme: 'light', // TODO(dark): The next step is to have this for staff: config.user.isStaff && prefersDark() ? 'dark' : 'light',
+      theme: config.user.isStaff && prefersDark() ? 'dark' : 'light', // TODO(dark): Remove staff requirement
     };
 
     // Language code is passed from django
