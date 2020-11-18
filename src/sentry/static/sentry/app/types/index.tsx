@@ -748,25 +748,30 @@ export type InboxDetails = {
   };
 };
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
 // TODO(ts): incomplete
-export type Group = {
+export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
-  count: string;
   culprit: string;
   currentRelease: any; // TODO(ts)
   firstRelease: any; // TODO(ts)
-  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
-  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -781,16 +786,14 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, TimeseriesValue[]>;
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
-  userCount: number;
   userReportCount: number;
-  subscriptionDetails: SubscriptionDetails | null;
-  filtered?: any; // TODO(ts)
+  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
 };
