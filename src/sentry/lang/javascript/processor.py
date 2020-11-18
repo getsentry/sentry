@@ -221,6 +221,21 @@ def fetch_release_file(filename, release, dist=None):
     dist_name = dist and dist.name or None
     cache_key = "releasefile:v1:%s:%s" % (release.id, ReleaseFile.get_ident(filename, dist_name))
 
+    if six.PY2:
+        cache_key = "releasefile:v1:%s:%s" % (
+            release.id,
+            ReleaseFile.get_ident(filename, dist_name),
+        )
+    else:
+        # XXX(py3): We need a different cache key since python2 ->
+        # python3 cannot represent bytes and strings, which is what we need
+        # here. So instead we're going to use a different key so we can ensure
+        # we're only dealing with pickles created in python3.
+        cache_key = "releasefile:v2:%s:%s" % (
+            release.id,
+            ReleaseFile.get_ident(filename, dist_name),
+        )
+
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
 
@@ -318,7 +333,14 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # otherwise, try the web-scraping cache and then the web itself
 
-    cache_key = "source:cache:v4:%s" % (md5_text(url).hexdigest(),)
+    if six.PY2:
+        cache_key = "source:cache:v4:%s" % (md5_text(url).hexdigest(),)
+    else:
+        # XXX(py3): We need a different cache key since python2 ->
+        # python3 cannot represent bytes and strings, which is what we need
+        # here. So instead we're going to use a different key so we can ensure
+        # we're only dealing with pickles created in python3.
+        cache_key = "source:cache:v5:%s" % (md5_text(url).hexdigest(),)
 
     if result is None:
         if not allow_scraping or not url.startswith(("http:", "https:")):
