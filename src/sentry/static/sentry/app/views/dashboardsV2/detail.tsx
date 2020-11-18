@@ -116,6 +116,8 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   }
 
   onCommit = () => {
+
+  onCommit = dashboard => () => {
     const {api, organization} = this.props;
     const {dashboardState, changesDashboard} = this.state;
 
@@ -140,6 +142,16 @@ class DashboardDetail extends AsyncComponent<Props, State> {
       }
       case 'edit': {
         if (changesDashboard && changesDashboard.type === 'org') {
+          // only update the dashboard if there are changes
+
+          if (!this.isRevertable(dashboard)) {
+            this.setState({
+              dashboardState: 'default',
+              changesDashboard: undefined,
+            });
+            return;
+          }
+
           updateDashboard(api, organization.slug, changesDashboard).then(() => {
             addSuccessMessage(t('Dashboard updated'));
 
@@ -260,7 +272,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 onCreate={this.onCreate}
                 onRevert={this.onRevert(dashboard)}
                 isRevertable={this.isRevertable(dashboard)}
-                onCommit={this.onCommit}
+                onCommit={this.onCommit(dashboard)}
                 dashboardState={this.state.dashboardState}
               />
             </StyledPageHeader>
