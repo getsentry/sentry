@@ -54,6 +54,8 @@ STATS_PERIOD_CHOICES = {
 
 _PROJECT_SCOPE_PREFIX = "projects:"
 
+LATEST_DEPLOYS_KEY = "latestDeploys"
+
 
 @register(Project)
 class ProjectSerializer(Serializer):
@@ -442,11 +444,11 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             for release in bulk_fetch_project_latest_releases(item_list)
         }
 
-        if not self._collapse("latestDeploys"):
+        if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
-            if not self._collapse("latestDeploys"):
+            if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
@@ -473,8 +475,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "latestRelease": attrs["latest_release"],
             "hasUserReports": attrs["has_user_reports"],
         }
-        if not self._collapse("latestDeploys"):
-            context["latestDeploys"] = attrs["deploys"]
+        if not self._collapse(LATEST_DEPLOYS_KEY):
+            context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
         if "transactionStats" in attrs:
