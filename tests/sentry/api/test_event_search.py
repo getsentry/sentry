@@ -2618,6 +2618,7 @@ class ResolveFieldListTest(unittest.TestCase):
             "count() as as as as as",
             "count() as count()",
             "count() as 123",
+            "count() as 1",
         ]
         for function in bad_function_aliases:
             result = resolve_field_list([function], eventstore.Filter())
@@ -2630,6 +2631,9 @@ class ResolveFieldListTest(unittest.TestCase):
             ("count() AS thecount", "thecount"),
             ("count() AS 123count", "123count"),
             ("count() AS count123", "count123"),
+            ("count() AS c", "c"),
+            ("count() AS c1", "c1"),
+            ("count() AS 1c", "1c"),
         ]
         for function, alias in function_aliases:
             result = resolve_field_list([function], eventstore.Filter())

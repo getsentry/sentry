@@ -1420,7 +1420,7 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
 FUNCTION_PATTERN = re.compile(
     # The alias for alias here is to match any word, but exclude anything that is only digits
     # eg. 123 doesn't match, but test_123 will match
-    r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)( (as|AS) (?P<alias>\w+(?!\d+)\w+))?$"
+    r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)( (as|AS) (?P<alias>(\w+)?(?!\d+)\w+))?$"
 )
 
 
