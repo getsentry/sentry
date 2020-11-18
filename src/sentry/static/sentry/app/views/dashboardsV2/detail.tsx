@@ -29,6 +29,7 @@ import {PREBUILT_DASHBOARDS, EMPTY_DASHBOARD} from './data';
 import {cloneDashboard} from './utils';
 import Controls from './controls';
 import Dashboard from './dashboard';
+import Title from './title';
 
 type Props = {
   api: Client;
@@ -160,6 +161,12 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     return PREBUILT_DASHBOARDS[0];
   }
 
+  setChangesDashboard = (dashboard: DashboardListItem) => {
+    this.setState({
+      changesDashboard: dashboard,
+    });
+  };
+
   renderBody() {
     const dashboard = this.getCurrentDashboard();
 
@@ -192,7 +199,10 @@ class DashboardDetail extends AsyncComponent<Props, State> {
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
-              <div>{t('Dashboards')}</div>
+              <Title
+                changesDashboard={this.state.changesDashboard}
+                setChangesDashboard={this.setChangesDashboard}
+              />
               <Controls
                 organization={organization}
                 dashboards={this.getDashboardsList()}
@@ -240,6 +250,7 @@ const StyledPageHeader = styled('div')`
   color: ${p => p.theme.textColor};
   height: 40px;
   margin-bottom: ${space(1)};
+  white-space: nowrap;
 `;
 
 export default withOrganization(withApi(DashboardDetail));
