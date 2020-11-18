@@ -1,5 +1,5 @@
-import React from 'react';
 import isEqual from 'lodash/isEqual';
+import React from 'react';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import {Params} from 'react-router/lib/Router';
@@ -29,6 +29,7 @@ import {
   OrgDashboardResponse,
   OrgDashboard,
   DashboardState,
+  Widget,
 } from './types';
 import {PREBUILT_DASHBOARDS, EMPTY_DASHBOARD} from './data';
 import {cloneDashboard} from './utils';
@@ -51,6 +52,7 @@ type State = {
   // endpoint response
   orgDashboards: OrgDashboardResponse[] | null;
 } & AsyncComponent['state'];
+
 class DashboardDetail extends AsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
@@ -220,6 +222,18 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   }
 
+  onWidgetChange = (widgets: Widget[]) => {
+    this.setState((prevState: State) => {
+      return {
+        ...prevState,
+        changesDashboard: {
+          ...prevState.changesDashboard,
+          widgets,
+        },
+      };
+    });
+  };
+
   getDashboardsList(): DashboardListItem[] {
     const {orgDashboards} = this.state;
 
@@ -306,7 +320,14 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 dashboardState={this.state.dashboardState}
               />
             </StyledPageHeader>
-            <Dashboard />
+            {this.state.changesDashboard && (
+              <Dashboard
+                dashboard={this.state.changesDashboard}
+                organization={organization}
+                isEditing={this.state.dashboardState === 'edit'}
+                onUpdate={this.onWidgetChange}
+              />
+            )}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>

@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import theme, {IconSize, Color} from 'app/utils/theme';
+import theme, {IconSize, Color, Aliases} from 'app/utils/theme';
 
 type Props = React.SVGAttributes<SVGElement> & {
-  color?: Color;
+  color?: Color | keyof Aliases;
   // TODO (Priscila): make size prop theme icon size only
   size?: IconSize | string;
   className?: string;

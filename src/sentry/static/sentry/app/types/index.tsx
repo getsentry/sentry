@@ -1611,6 +1611,7 @@ export type Artifact = {
   headers: {'Content-Type': string};
 };
 
+// TODO(mark) remove when dashboards 1 is removed.
 export type Widget = {
   queries: {
     discover: DiscoverQuery[];
