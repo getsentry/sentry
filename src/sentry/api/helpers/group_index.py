@@ -690,7 +690,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                 group.resolved_at = now
                 remove_group_from_inbox(group)
                 if has_inbox:
-                    result["inbox"] = False
+                    result["inbox"] = None
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
@@ -743,7 +743,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                 for group in group_ids:
                     remove_group_from_inbox(group)
                 if has_inbox:
-                    result["inbox"] = False
+                    result["inbox"] = None
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)
