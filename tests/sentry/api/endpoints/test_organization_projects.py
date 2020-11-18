@@ -167,7 +167,7 @@ class OrganizationProjectsTest(APITestCase):
         response = self.client.get(self.path + "?all_projects=1&collapse=latestDeploy")
         # Verify all projects in the org are returned in sorted order
         self.check_valid_response(response, sorted_projects)
-        assert response.data[0].get("latestDeploy") is None
+        assert "latestDeploy" not in response.data[0]
 
     def test_user_projects(self):
         self.foo_user = self.create_user("foo@example.com")
