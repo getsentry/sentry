@@ -59,6 +59,7 @@ export async function fetchOrganizationDetails(
           uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
             query: {
               all_projects: 1,
+              collapse: 'latestDeploys',
             },
           }),
           uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
