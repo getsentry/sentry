@@ -269,10 +269,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
         for org_integration in org_integrations:
             assert org_integration.default_auth_id == identity.id
 
-    def test_different_user_same_external_id(self, *args):
-        self.provider = GitlabIntegrationProvider
+    def test_different_user_same_external_id_no_default_needed(self, *args):
         new_user = self.create_user()
-        self.provider.needs_default_identity = True
         integration = Integration.objects.create(
             provider=self.provider.key,
             external_id=self.external_id,
@@ -292,17 +290,14 @@ class FinishPipelineTestCase(IntegrationTestCase):
                 "type": self.provider.key,
                 "external_id": "AccountId",
                 "scopes": [],
-                "data": {
-                    "access_token": "token12345",
-                    "expires_in": "123456789",
-                    "refresh_token": "refresh12345",
-                    "token_type": "typetype",
-                },
+                "data": {},
             },
         }
         resp = self.pipeline.finish_pipeline()
-        assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
-        assert "account is linked to a different Sentry user" in six.text_type(resp.content)
+        self.assertDialogSuccess(resp)
+        assert OrganizationIntegration.objects.filter(
+            integration_id=integration.id, organization=self.organization.id
+        ).exists()
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
@@ -323,3 +318,47 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.finish_pipeline()
 
         assert call.called
+
+
+@patch(
+    "sentry.integrations.gitlab.GitlabIntegrationProvider.build_integration",
+    side_effect=naive_build_integration,
+)
+class GitlabFinishPipelineTest(IntegrationTestCase):
+    provider = GitlabIntegrationProvider
+
+    def setUp(self):
+        super(GitlabFinishPipelineTest, self).setUp()
+        self.external_id = "dummy_id-123"
+
+    def tearDown(self):
+        super(GitlabFinishPipelineTest, self).tearDown()
+
+    def test_different_user_same_external_id(self, *args):
+        new_user = self.create_user()
+        self.setUp()
+        integration = Integration.objects.create(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            metadata={"url": "https://example.com"},
+        )
+        identity_provider = IdentityProvider.objects.create(
+            external_id=self.external_id, type=self.provider.key
+        )
+        Identity.objects.create(
+            idp_id=identity_provider.id, external_id="AccountId", user_id=new_user.id
+        )
+        self.pipeline.state.data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+            "user_identity": {
+                "type": self.provider.key,
+                "external_id": "AccountId",
+                "scopes": [],
+                "data": {},
+            },
+        }
+        resp = self.pipeline.finish_pipeline()
+        assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
+        assert "account is linked to a different Sentry user" in six.text_type(resp.content)

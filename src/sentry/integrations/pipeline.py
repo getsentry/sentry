@@ -137,27 +137,29 @@ class IntegrationPipeline(Pipeline):
                             "external_id": identity["external_id"],
                             "object_id": matched_identity.id,
                             "user_id": self.request.user.id,
+                            "type": identity["type"],
                         },
                     )
-                    # The external_id is linked to a different user.
-                    proper_name = idp.get_provider().name
-                    return self._dialog_response(
-                        {
-                            "error": _(
-                                "The provided %(proper_name)s account is linked to a different Sentry user. "
-                                "To continue linking the current Sentry user, please use a different %(proper_name)s account."
-                            )
-                            % ({"proper_name": proper_name})
-                        },
-                        False,
-                    )
+                    # if we don't need a default identity, we don't have to throw an error
+                    if self.provider.needs_default_identity:
+                        # The external_id is linked to a different user.
+                        proper_name = idp.get_provider().name
+                        return self._dialog_response(
+                            {
+                                "error": _(
+                                    "The provided %(proper_name)s account is linked to a different Sentry user. "
+                                    "To continue linking the current Sentry user, please use a different %(proper_name)s account."
+                                )
+                                % ({"proper_name": proper_name})
+                            },
+                            False,
+                        )
 
         default_auth_id = None
         if self.provider.needs_default_identity:
             if not (identity and identity_model):
                 raise NotImplementedError("Integration requires an identity")
             default_auth_id = identity_model.id
-
         org_integration = self.integration.add_organization(
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
