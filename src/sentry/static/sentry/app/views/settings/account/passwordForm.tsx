@@ -1,5 +1,4 @@
 import React from 'react';
-import {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
@@ -10,13 +9,9 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {PanelAlert, PanelItem} from 'app/components/panels';
 import accountPasswordFields from 'app/data/forms/accountPassword';
 
-type Props = {
-  location: Location;
-};
-
 type OnSubmitSuccess = Parameters<NonNullable<Form['props']['onSubmitSuccess']>>;
 
-function PasswordForm({location}: Props) {
+function PasswordForm() {
   function handleSubmitSuccess(_change: OnSubmitSuccess[0], model: OnSubmitSuccess[1]) {
     // Reset form on success
     model.resetForm();
@@ -39,7 +34,6 @@ function PasswordForm({location}: Props) {
       hideFooter
     >
       <JsonForm
-        location={location}
         forms={accountPasswordFields}
         additionalFieldProps={{user}}
         renderFooter={() => (
