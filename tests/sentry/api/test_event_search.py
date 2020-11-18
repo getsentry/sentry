@@ -2613,11 +2613,27 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_invalid_alias(self):
-        bad_function_aliases = ["count() as ", "count() as as as as as", "count() as count()"]
+        bad_function_aliases = [
+            "count() as ",
+            "count() as as as as as",
+            "count() as count()",
+            "count() as 123",
+        ]
         for function in bad_function_aliases:
             result = resolve_field_list([function], eventstore.Filter())
             # the failed alias should end up being a column
-            assert function in result["selected_columns"]
+            assert function in result["selected_columns"], function
+
+    def test_valid_alias(self):
+        function_aliases = [
+            ("count() as thecount", "thecount"),
+            ("count() AS thecount", "thecount"),
+            ("count() AS 123count", "123count"),
+            ("count() AS count123", "count123"),
+        ]
+        for function, alias in function_aliases:
+            result = resolve_field_list([function], eventstore.Filter())
+            assert result["aggregations"][0][-1] == alias, function
 
     def test_percentile_shortcuts(self):
         columns = [

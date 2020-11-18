@@ -1417,7 +1417,9 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
     return snuba_json
 
 
-FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)( as (?P<alias>\w+))?$")
+FUNCTION_PATTERN = re.compile(
+    r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)( (as|AS) (?P<alias>\w+(?!\d+)\w+))?$"
+)
 
 
 class InvalidFunctionArgument(Exception):
