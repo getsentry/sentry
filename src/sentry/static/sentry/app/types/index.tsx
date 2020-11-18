@@ -773,7 +773,7 @@ export type Group = {
   type: EventOrGroupType;
   userCount: number;
   userReportCount: number;
-  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  subscriptionDetails: SubscriptionDetails | null;
   filtered?: any; // TODO(ts)
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
@@ -1475,6 +1475,8 @@ export type UpdateResolutionStatus = {
   statusDetails?: ResolutionStatusDetails;
 };
 
+export type SubscriptionDetails = {disabled?: boolean; reason?: string};
+
 export type Broadcast = {
   id: string;
   message: string;
@@ -1603,14 +1605,8 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType =
-  | 'java'
-  | 'csharp'
-  | 'objc'
-  | 'cocoa'
-  | 'native'
-  | 'javascript'
-  | 'other';
+// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
+export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Frame = {
   absPath: string | null;
