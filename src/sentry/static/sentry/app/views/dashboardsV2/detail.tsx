@@ -26,6 +26,7 @@ import {
   DashboardState,
 } from './types';
 import {PREBUILT_DASHBOARDS} from './data';
+import {cloneDashboard} from './utils';
 import Controls from './controls';
 import Dashboard from './dashboard';
 
@@ -68,15 +69,17 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     return [['orgDashboards', url]];
   }
 
-  onEdit = () => {
+  onEdit = (dashboard: DashboardListItem) => () => {
     this.setState({
       dashboardState: 'edit',
+      changesDashboard: cloneDashboard(dashboard),
     });
   };
 
-  onCreate = () => {
+  onCreate = (dashboard: DashboardListItem) => () => {
     this.setState({
       dashboardState: 'create',
+      changesDashboard: cloneDashboard(dashboard),
     });
   };
 
@@ -94,6 +97,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
           this.setState({
             dashboardState: 'default',
+            changesDashboard: undefined,
           });
         });
         break;
@@ -103,6 +107,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
       default: {
         this.setState({
           dashboardState: 'default',
+          changesDashboard: undefined,
         });
         break;
       }
@@ -192,8 +197,8 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 organization={organization}
                 dashboards={this.getDashboardsList()}
                 dashboard={dashboard}
-                onEdit={this.onEdit}
-                onCreate={this.onCreate}
+                onEdit={this.onEdit(dashboard)}
+                onCreate={this.onCreate(dashboard)}
                 onCommit={this.onCommit}
                 dashboardState={this.state.dashboardState}
               />
