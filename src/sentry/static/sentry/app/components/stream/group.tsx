@@ -83,7 +83,7 @@ class StreamGroup extends React.Component<Props, State> {
     return {
       data: {
         ...data,
-        filtered: useFilteredStats ? data.filtered : undefined,
+        filtered: useFilteredStats ? data.filtered : null,
       },
     };
   }
@@ -98,7 +98,7 @@ class StreamGroup extends React.Component<Props, State> {
       this.setState({
         data: {
           ...data,
-          filtered: nextProps.useFilteredStats ? data.filtered : undefined,
+          filtered: nextProps.useFilteredStats ? data.filtered : null,
         },
       });
     }
