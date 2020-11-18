@@ -118,7 +118,7 @@ export function joinTeam(
 
 export function leaveTeam(
   api: Client,
-  params: OrgAndTeamSlug & MemberId,
+  params: OrgAndTeamSlug & Partial<MemberId>,
   options: CallbackOptions
 ) {
   const endpoint = `/organizations/${params.orgId}/members/${
