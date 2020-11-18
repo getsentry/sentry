@@ -143,7 +143,8 @@ class TeamDetails extends React.Component<Props, State> {
 
     if (loading) {
       return <LoadingIndicator />;
-    } else if (!team || !team.hasAccess) {
+    }
+    if (!team || !team.hasAccess) {
       return (
         <Alert type="warning">
           {team ? (
@@ -164,7 +165,8 @@ class TeamDetails extends React.Component<Props, State> {
           )}
         </Alert>
       );
-    } else if (error) {
+    }
+    if (error) {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
