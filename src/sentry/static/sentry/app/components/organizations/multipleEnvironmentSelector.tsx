@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {analytics} from 'app/utils/analytics';
+import ConfigStore from 'app/stores/configStore';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
@@ -193,11 +194,12 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   getEnvironments() {
     const {projects, selectedProjects} = this.props;
+    const config = ConfigStore.getConfig();
     let environments: Project['environments'] = [];
     projects.forEach(function (project) {
       const projectId = parseInt(project.id, 10);
-
       // Include environments from:
+      // - all projects if the user is a superuser
       // - the requested projects
       // - all member projects if 'my projects' (empty list) is selected.
       // - all projects if -1 is the only selected project.
@@ -205,7 +207,8 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
         (selectedProjects.length === 1 &&
           selectedProjects[0] === ALL_ACCESS_PROJECTS &&
           project.hasAccess) ||
-        (selectedProjects.length === 0 && project.isMember) ||
+        (selectedProjects.length === 0 &&
+          (project.isMember || config.user.isSuperuser)) ||
         selectedProjects.includes(projectId)
       ) {
         environments = environments.concat(project.environments);
