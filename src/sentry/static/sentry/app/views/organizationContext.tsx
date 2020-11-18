@@ -132,9 +132,9 @@ class OrganizationContext extends React.Component<Props, State> {
     };
   }
 
-  remountComponent() {
+  remountComponent = () => {
     this.setState(this.getDefaultState(), this.fetchData);
-  }
+  };
 
   onProjectCreation() {
     // If a new project was created, we need to re-fetch the
