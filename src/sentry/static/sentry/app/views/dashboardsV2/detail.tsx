@@ -110,13 +110,19 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   };
 
   isRevertable(dashboard: DashboardListItem) {
-    const {changesDashboard} = this.state;
+    const {changesDashboard, dashboardState} = this.state;
 
-    if (!changesDashboard) {
-      return false;
+    switch (dashboardState) {
+      case 'create': {
+        return !isEqual(dashboard, EMPTY_DASHBOARD);
+      }
+      case 'edit': {
+        return !isEqual(dashboard, changesDashboard);
+      }
+      default: {
+        return false;
+      }
     }
-
-    return !isEqual(dashboard, changesDashboard);
   }
 
   onDelete = (dashboard: DashboardListItem) => () => {
@@ -178,7 +184,14 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
             this.reloadData();
           });
+
+          return;
         }
+
+        this.setState({
+          dashboardState: 'default',
+          changesDashboard: undefined,
+        });
         break;
       }
       case 'default':
