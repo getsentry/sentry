@@ -41,11 +41,11 @@ export default class RequestError extends Error {
   }
 
   removeFrames(numLinesToRemove) {
-    // Drop some frames so stacktrace starts at callsite
+    // Drop some frames so stack trace starts at callsite
     //
     // Note that babel will add a call to support extending Error object
 
-    // Old browsers may not have stacktrace
+    // Old browsers may not have stack trace
     if (!this.stack) {
       return;
     }

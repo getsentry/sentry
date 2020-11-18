@@ -12,6 +12,7 @@ class AlertCreatedEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("rule_id"),
         analytics.Attribute("rule_type"),
+        analytics.Attribute("is_api_token"),
     )
 
 

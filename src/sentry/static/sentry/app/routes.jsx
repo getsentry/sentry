@@ -119,7 +119,7 @@ function routes() {
             name="Session History"
             componentPromise={() =>
               import(
-                /* webpackChunkName: "AccountSecuritySessionHistory" */ 'app/views/settings/account/accountSecurity/accountSecuritySessionHistory'
+                /* webpackChunkName: "SessionHistory" */ 'app/views/settings/account/accountSecurity/sessionHistory'
               )
             }
             component={errorHandler(LazyLoad)}
@@ -420,6 +420,16 @@ function routes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
+      <Route
+        path="issue-grouping/"
+        name={t('Issue Grouping')}
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectIssueGrouping" */ 'app/views/settings/projectIssueGrouping'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
       <Route
         path="hooks/"
         name="Service Hooks"
@@ -2094,6 +2104,15 @@ function routes() {
         {/* A route tree for lightweight organizational detail views.
           This is strictly for deprecated URLs that we need to maintain */}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
+          {/* This is in the bottom lightweight group because "/organizations/:orgId/projects/new/" in heavyweight needs to be matched first */}
+          <Route
+            path="/organizations/:orgId/projects/:projectId/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "ProjectDetail" */ 'app/views/projectDetail')
+            }
+            component={errorHandler(LazyLoad)}
+          />
+
           <Route name="Organization" path="/:orgId/">
             <Route path=":projectId/">
               {/* Support for deprecated URLs (pre-Sentry 10). We just redirect users to new canonical URLs. */}

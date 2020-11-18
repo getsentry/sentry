@@ -35,7 +35,7 @@ class LinkedIssue extends AsyncComponent<
     eventId: PropTypes.string.isRequired,
   };
 
-  getEndpoints(): Array<[string, string]> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {groupId} = this.props;
     const groupUrl = `/issues/${groupId}/`;
 

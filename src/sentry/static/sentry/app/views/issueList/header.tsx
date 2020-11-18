@@ -15,9 +15,8 @@ type Props = {
 
 const queries = [
   ['is:inbox', t('Inbox')],
-  ['is:unresolved', t('Backlog')],
+  ['is:unresolved', t('Unresolved')],
   ['is:ignored', t('Ignored')],
-  ['is:resolved', t('Resolved')],
 ];
 
 function IssueListHeader({query, queryCount, queryMaxCount, onTabChange}: Props) {

@@ -33,7 +33,7 @@ type State = AsyncView['state'] & {
 };
 
 export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
   }
 

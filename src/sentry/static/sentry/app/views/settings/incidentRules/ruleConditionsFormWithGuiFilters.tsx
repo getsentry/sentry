@@ -105,17 +105,9 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
       border: 'none',
     };
 
-    const selectLabel = (label: string) => ({
-      ':before': {
-        content: `"${label}"`,
-        color: theme.gray300,
-        fontWeight: 600,
-      },
-    });
-
     return (
-      <StyledPanel>
-        <PanelBody>
+      <Panel>
+        <StyledPanelBody>
           <List symbol="colored-numeric">
             <StyledListItem>{t('Select the events you want to alert on')}</StyledListItem>
             <FormRow>
@@ -130,12 +122,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 styles={{
                   singleValue: (base: any) => ({
                     ...base,
-                    ...selectLabel(t('Env: ')),
                     '.all-environment-note': {display: 'none'},
-                  }),
-                  placeholder: (base: any) => ({
-                    ...base,
-                    ...selectLabel(t('Env: ')),
                   }),
                   option: (base: any, state: any) => ({
                     ...base,
@@ -152,6 +139,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 isClearable
                 inline={false}
                 flexibleControlStateSize
+                inFieldLabel={t('Env: ')}
               />
               <Feature requireAll features={['organizations:performance-view']}>
                 <FormField
@@ -174,16 +162,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                     return (
                       <SelectControl
                         value={mappedValue}
-                        styles={{
-                          singleValue: (base: any) => ({
-                            ...base,
-                            ...selectLabel(t('Data Source: ')),
-                          }),
-                          placeholder: (base: any) => ({
-                            ...base,
-                            ...selectLabel(t('Data Source: ')),
-                          }),
-                        }}
+                        inFieldLabel={t('Data Source: ')}
                         onChange={optionObj => {
                           const optionValue = optionObj.value;
                           onChange(optionValue, {});
@@ -292,11 +271,10 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 disabled={disabled}
                 style={{
                   ...formElemBaseStyle,
-                  flex: 6,
-                  minWidth: 300,
                 }}
                 inline={false}
                 flexibleControlStateSize
+                columnWidth={200}
                 required
               />
               <FormRowText>over</FormRowText>
@@ -304,7 +282,6 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                 name="timeWindow"
                 style={{
                   ...formElemBaseStyle,
-                  flex: 1,
                   minWidth: 150,
                 }}
                 choices={Object.entries(TIME_WINDOW_MAP)}
@@ -318,15 +295,16 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
             </FormRow>
             {this.props.thresholdChart}
           </List>
-        </PanelBody>
-      </StyledPanel>
+        </StyledPanelBody>
+      </Panel>
     );
   }
 }
 
-const StyledPanel = styled(Panel)`
-  /* Sticky graph panel cannot have margin-bottom */
-  padding: ${space(1)};
+const StyledPanelBody = styled(PanelBody)`
+  h4 {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const SearchContainer = styled('div')`
@@ -339,13 +317,13 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin: ${space(2)} ${space(2)} 0 ${space(2)};
+  margin: ${space(3)} ${space(3)} 0 ${space(3)};
 `;
 
 const FormRow = styled('div')`
   display: flex;
   flex-direction: row;
-  padding: ${space(1.5)};
+  padding: ${space(1.5)} ${space(3)};
   align-items: flex-end;
   flex-wrap: wrap;
 `;

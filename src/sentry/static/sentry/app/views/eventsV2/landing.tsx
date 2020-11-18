@@ -20,6 +20,7 @@ import ConfigStore from 'app/stores/configStore';
 import Feature from 'app/components/acl/feature';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
+import Switch from 'app/components/switch';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -29,7 +30,13 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import {getPrebuiltQueries, isBannerHidden, setBannerHidden} from './utils';
+import {
+  getPrebuiltQueries,
+  isBannerHidden,
+  setBannerHidden,
+  shouldRenderPrebuilt,
+  setRenderPrebuilt,
+} from './utils';
 import QueryList from './queryList';
 import Banner from './banner';
 
@@ -52,7 +59,7 @@ type Props = {
 type State = {
   isBannerHidden: boolean;
   isSmallBanner: boolean;
-  savedQueries: SavedQuery[];
+  savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
 
@@ -74,8 +81,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     // local component state
     isBannerHidden: isBannerHidden(),
+    renderPrebuilt: shouldRenderPrebuilt(),
     isSmallBanner: this.mq?.matches,
-    savedQueries: [],
+    savedQueries: null,
     savedQueriesPageLinks: '',
   };
 
@@ -112,7 +120,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
     const views = getPrebuiltQueries(organization);
@@ -120,7 +128,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const cursor = decodeScalar(location.query.cursor);
     let perPage = 9;
-    if (!cursor) {
+    if (!cursor && shouldRenderPrebuilt()) {
       // invariant: we're on the first page
 
       if (searchQuery && searchQuery.length > 0) {
@@ -249,6 +257,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   renderActions() {
     const activeSort = this.getActiveSort();
+    const {renderPrebuilt, savedQueries} = this.state;
 
     return (
       <StyledActions>
@@ -258,6 +267,15 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           placeholder={t('Search saved queries')}
           onSearch={this.handleSearchQuery}
         />
+        <PrebuiltSwitch>
+          <SwitchLabel>Show Prebuilt</SwitchLabel>
+          <Switch
+            isActive={renderPrebuilt}
+            isDisabled={renderPrebuilt && (savedQueries ?? []).length === 0}
+            size="lg"
+            toggle={this.togglePrebuilt}
+          />
+        </PrebuiltSwitch>
         <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
           {SORT_OPTIONS.map(({label, value}) => (
             <DropdownItem
@@ -273,6 +291,15 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       </StyledActions>
     );
   }
+
+  togglePrebuilt = () => {
+    const {renderPrebuilt} = this.state;
+
+    this.setState({renderPrebuilt: !renderPrebuilt}, function () {
+      setRenderPrebuilt(!renderPrebuilt);
+    });
+    this.fetchData();
+  };
 
   onGoLegacyDiscover = () => {
     localStorage.setItem('discover:version', '1');
@@ -295,13 +322,14 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   renderBody() {
     const {location, organization} = this.props;
-    const {savedQueries, savedQueriesPageLinks} = this.state;
+    const {savedQueries, savedQueriesPageLinks, renderPrebuilt} = this.state;
 
     return (
       <QueryList
         pageLinks={savedQueriesPageLinks}
-        savedQueries={savedQueries}
+        savedQueries={savedQueries ?? []}
         savedQuerySearchQuery={this.getSavedQuerySearchQuery()}
+        renderPrebuilt={renderPrebuilt}
         location={location}
         organization={organization}
         onQueryChange={this.handleQueryChange}
@@ -357,6 +385,14 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
+const PrebuiltSwitch = styled('div')`
+  display: flex;
+`;
+
+const SwitchLabel = styled('div')`
+  padding-right: 8px;
+`;
+
 export const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
@@ -373,7 +409,11 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledActions = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
-  grid-template-columns: auto min-content;
+  grid-template-columns: auto max-content min-content;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto;
+  }
 
   align-items: center;
   margin-bottom: ${space(3)};

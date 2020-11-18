@@ -219,6 +219,8 @@ export type Project = {
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -243,6 +245,7 @@ export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
+  name: string;
   slug: string;
   isMember: boolean;
   hasAccess: boolean;
@@ -606,6 +609,12 @@ export type GlobalSelection = {
   };
 };
 
+type AuthenticatorDevice = {
+  key_handle: string;
+  authId: string;
+  name: string;
+};
+
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -653,6 +662,16 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  createdAt: string | null;
+
+  lastUsedAt: string | null;
+
+  codes: string[];
+
+  devices: AuthenticatorDevice[];
+
+  phone?: string;
 
   challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
@@ -717,7 +736,7 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-type InboxDetails = {
+export type InboxDetails = {
   date_added?: string;
   reason?: number;
   reason_details?: {
@@ -729,25 +748,30 @@ type InboxDetails = {
   };
 };
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
 // TODO(ts): incomplete
-export type Group = {
+export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
-  count: string;
   culprit: string;
   currentRelease: any; // TODO(ts)
   firstRelease: any; // TODO(ts)
-  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
-  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -762,18 +786,16 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, TimeseriesValue[]>;
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
-  userCount: number;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered?: any; // TODO(ts)
+  filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
-  inbox?: InboxDetails;
+  inbox?: InboxDetails | null;
 };
 
 export type GroupTombstone = {
@@ -1187,6 +1209,7 @@ export type ReleaseMeta = {
   version: string;
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
+  released: string;
 };
 
 export type VersionInfo = {
@@ -1472,6 +1495,8 @@ export type UpdateResolutionStatus = {
   statusDetails?: ResolutionStatusDetails;
 };
 
+export type SubscriptionDetails = {disabled?: boolean; reason?: string};
+
 export type Broadcast = {
   id: string;
   message: string;
@@ -1542,6 +1567,13 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
+export type GroupingEnhancementBase = {
+  latest: boolean;
+  id: string;
+  changelog: string;
+  bases: any[]; // TODO(ts): not sure what this is
+};
+
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
@@ -1593,14 +1625,8 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType =
-  | 'java'
-  | 'csharp'
-  | 'objc'
-  | 'cocoa'
-  | 'native'
-  | 'javascript'
-  | 'other';
+// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
+export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Frame = {
   absPath: string | null;
@@ -1652,7 +1678,7 @@ export type ExceptionValue = {
   type: string;
   value: string;
   threadId: number | null;
-  stacktrace: StacktraceType;
+  stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
@@ -1676,3 +1702,12 @@ export type Identity = {
 
 //taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
+
+export type InternetProtocol = {
+  id: string;
+  ipAddress: string;
+  lastSeen: string;
+  firstSeen: string;
+  countryCode: string | null;
+  regionCode: string | null;
+};

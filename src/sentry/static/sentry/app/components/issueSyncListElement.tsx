@@ -20,6 +20,7 @@ type Props = {
   integrationType?: string;
   hoverCardHeader?: React.ReactNode;
   hoverCardBody?: React.ReactNode;
+  showHoverCard?: boolean;
 };
 
 class IssueSyncListElement extends React.Component<Props> {
@@ -34,6 +35,17 @@ class IssueSyncListElement extends React.Component<Props> {
     hoverCardHeader: PropTypes.node,
     hoverCardBody: PropTypes.node,
   };
+
+  hoverCardRef = React.createRef<Hovercard>();
+
+  componentDidUpdate(nextProps) {
+    if (
+      this.props.showHoverCard !== nextProps.showHoverCard &&
+      nextProps.showHoverCard === undefined
+    ) {
+      this.hoverCardRef.current && this.hoverCardRef.current.handleToggleOff();
+    }
+  }
 
   isLinked(): boolean {
     return !!(this.props.externalIssueLink && this.props.externalIssueId);
@@ -104,6 +116,7 @@ class IssueSyncListElement extends React.Component<Props> {
         <ClassNames>
           {({css}) => (
             <Hovercard
+              ref={this.hoverCardRef}
               containerClassName={css`
                 display: flex;
                 align-items: center;
@@ -111,6 +124,8 @@ class IssueSyncListElement extends React.Component<Props> {
               `}
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}
+              bodyClassName="issue-list-body"
+              show={this.props.showHoverCard}
             >
               {this.getIcon()}
               {this.getLink()}

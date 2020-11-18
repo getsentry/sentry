@@ -75,7 +75,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, params, releaseMeta} = this.props;
 
     const query = {
@@ -176,7 +176,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
 class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>> {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     // fetch projects this release belongs to
     return [
@@ -244,6 +244,19 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
       );
     }
 
+    let defaultSelection = {};
+    if (organization.features.includes('release-performance-views')) {
+      const releaseDate = new Date(releaseMeta.released);
+      // Center the release in a 24h time period
+      defaultSelection = {
+        datetime: {
+          start: new Date(releaseDate.getTime() - 12 * 3600 * 1000),
+          end: new Date(releaseDate.getTime() + 12 * 3600 * 1000),
+          utc: false,
+        },
+      };
+    }
+
     return (
       <GlobalSelectionHeader
         lockedMessageSubject={t('release')}
@@ -253,6 +266,7 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
         disableMultipleProjectSelection
         showProjectSettingsLink
         projectsFooterMessage={this.renderProjectsFooterMessage()}
+        defaultSelection={defaultSelection}
       >
         <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </GlobalSelectionHeader>

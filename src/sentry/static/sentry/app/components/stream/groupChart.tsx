@@ -24,7 +24,7 @@ function GroupChart({
     ? data.filtered
       ? data.filtered.stats[statsPeriod]
       : data.stats[statsPeriod]
-    : null;
+    : [];
 
   const secondaryStats: TimeseriesValue[] | null =
     statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
