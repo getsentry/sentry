@@ -26,6 +26,7 @@ type Props = {
   onCreate: () => void;
   onRevert: () => void;
   onCommit: () => void;
+  onDelete: () => void;
   isRevertable: boolean;
   dashboardState: DashboardState;
 };
@@ -41,6 +42,7 @@ class Controls extends React.Component<Props> {
       onRevert,
       isRevertable,
       onCommit,
+      onDelete,
     } = this.props;
 
     if (dashboardState === 'edit') {
@@ -59,7 +61,7 @@ class Controls extends React.Component<Props> {
           <Button
             onClick={e => {
               e.preventDefault();
-              console.log('delete');
+              onDelete();
             }}
             priority="danger"
             size="small"

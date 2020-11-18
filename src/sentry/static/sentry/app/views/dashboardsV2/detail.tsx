@@ -17,7 +17,11 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import NotFound from 'app/components/errors/notFound';
-import {createDashboard, updateDashboard} from 'app/actionCreators/dashboards';
+import {
+  createDashboard,
+  updateDashboard,
+  deleteDashboard,
+} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 
 import {
@@ -115,7 +119,19 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     return !isEqual(dashboard, changesDashboard);
   }
 
-  onCommit = () => {
+  onDelete = (dashboard: DashboardListItem) => () => {
+    const {api, organization} = this.props;
+    if (dashboard.type === 'org') {
+      deleteDashboard(api, organization.slug, dashboard.id).then(() => {
+        addSuccessMessage(t('Dashboard deleted'));
+
+        browserHistory.replace({
+          pathname: `/organizations/${organization.slug}/dashboards/`,
+          query: {},
+        });
+      });
+    }
+  };
 
   onCommit = dashboard => () => {
     const {api, organization} = this.props;
@@ -273,6 +289,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 onRevert={this.onRevert(dashboard)}
                 isRevertable={this.isRevertable(dashboard)}
                 onCommit={this.onCommit(dashboard)}
+                onDelete={this.onDelete(dashboard)}
                 dashboardState={this.state.dashboardState}
               />
             </StyledPageHeader>

@@ -65,3 +65,28 @@ export function updateDashboard(
 
   return promise;
 }
+
+export function deleteDashboard(
+  api: Client,
+  orgId: string,
+  dashboardId: string
+): Promise<undefined> {
+  const promise: Promise<undefined> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    {
+      method: 'DELETE',
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      addErrorMessage(errorResponse);
+    } else {
+      addErrorMessage(t('Unable to delete dashboard'));
+    }
+  });
+
+  return promise;
+}
