@@ -81,6 +81,7 @@ describe('Project Ownership Input', function () {
     // Select the user.
     let userSelect = wrapper.find('RuleBuilder SelectOwners');
     openMenu(userSelect, {control: true});
+    await tick();
     await wrapper.update();
 
     // Because this menu is async we can't use selectByValue()
