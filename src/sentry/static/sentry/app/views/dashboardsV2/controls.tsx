@@ -24,6 +24,7 @@ type Props = {
   dashboard: DashboardListItem;
   onEdit: () => void;
   onCreate: () => void;
+  onRevert: () => void;
   onCommit: () => void;
   dashboardState: DashboardState;
 };
@@ -36,12 +37,22 @@ class Controls extends React.Component<Props> {
       dashboard,
       onEdit,
       onCreate,
+      onRevert,
       onCommit,
     } = this.props;
 
     if (dashboardState === 'edit') {
       return (
         <ButtonBar gap={1} key="edit-controls">
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              onRevert();
+            }}
+            size="small"
+          >
+            {t('Revert')}
+          </Button>
           <Button
             onClick={e => {
               e.preventDefault();
@@ -69,6 +80,15 @@ class Controls extends React.Component<Props> {
     if (dashboardState === 'create') {
       return (
         <ButtonBar gap={1} key="create-controls">
+          <Button
+            onClick={e => {
+              e.preventDefault();
+              onRevert();
+            }}
+            size="small"
+          >
+            {t('Revert')}
+          </Button>
           <Button
             onClick={e => {
               e.preventDefault();

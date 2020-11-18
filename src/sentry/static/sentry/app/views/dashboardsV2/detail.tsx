@@ -84,6 +84,26 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
+  onRevert = (dashboard: DashboardListItem) => () => {
+    switch (this.state.dashboardState) {
+      case 'edit': {
+        this.setState({
+          changesDashboard: cloneDashboard(dashboard),
+        });
+        break;
+      }
+      case 'create': {
+        this.setState({
+          changesDashboard: cloneDashboard(EMPTY_DASHBOARD),
+        });
+        break;
+      }
+      default: {
+        // nothing to do
+      }
+    }
+  };
+
   onCommit = () => {
     const {api, organization} = this.props;
     const {dashboardState} = this.state;
@@ -209,6 +229,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 dashboard={dashboard}
                 onEdit={this.onEdit(dashboard)}
                 onCreate={this.onCreate}
+                onRevert={this.onRevert(dashboard)}
                 onCommit={this.onCommit}
                 dashboardState={this.state.dashboardState}
               />
