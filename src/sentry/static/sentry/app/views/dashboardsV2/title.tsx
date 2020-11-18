@@ -17,7 +17,7 @@ class DashboardTitle extends React.Component<Props> {
   refInput = React.createRef<InlineInput>();
 
   onBlur = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextDashboardTitle = (event.target.value || '').trim().slice(0, 255);
+    const nextDashboardTitle = (event.target.value || '').trim().slice(0, 255).trim();
 
     if (!nextDashboardTitle) {
       addErrorMessage(t('Please set the title for this dashboard'));
