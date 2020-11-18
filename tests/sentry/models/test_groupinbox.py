@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from sentry.testutils import TestCase
 from sentry.models import add_group_to_inbox, GroupInbox, GroupInboxReason, remove_group_from_inbox
-from sentry.snuba.query_subscription_consumer import InvalidSchemaError
 
 
 class GroupInboxTestCase(TestCase):
@@ -28,5 +27,5 @@ class GroupInboxTestCase(TestCase):
 
     def test_invalid_reason_details(self):
         reason_details = {"meow": 123}
-        with self.assertRaises(InvalidSchemaError):
-            add_group_to_inbox(self.group, GroupInboxReason.NEW, reason_details)
+        add_group_to_inbox(self.group, GroupInboxReason.NEW, reason_details)
+        assert GroupInbox.objects.get(id=self.group.id).reason_details is None

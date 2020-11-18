@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import jsonschema
+import logging
 
 from enum import Enum
 
@@ -50,8 +51,6 @@ class GroupInbox(Model):
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
-    from sentry.snuba.query_subscription_consumer import InvalidSchemaError
-
     if reason_details is not None:
         if "until" in reason_details and reason_details["until"] is not None:
             reason_details["until"] = reason_details["until"].replace(microsecond=0).isoformat()
@@ -59,7 +58,9 @@ def add_group_to_inbox(group, reason, reason_details=None):
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
     except jsonschema.ValidationError:
-        raise InvalidSchemaError("GroupInbox reason_details does not match schema")
+        logging.error("GroupInbox invalid jsonschema: {}".format(reason_details))
+        reason_details = None
+        pass
 
     group_inbox, created = GroupInbox.objects.get_or_create(
         group=group,
