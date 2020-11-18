@@ -84,18 +84,29 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     const {api, organization} = this.props;
     const {dashboardState} = this.state;
 
-    if (dashboardState === 'create') {
-      createDashboard(api, organization.slug).then(() => {
-        addSuccessMessage(t('Dashboard created'));
+    switch (dashboardState) {
+      case 'create': {
+        createDashboard(api, organization.slug).then(() => {
+          addSuccessMessage(t('Dashboard created'));
 
-        // re-fetch dashboard list
-        this.fetchData();
-      });
+          // re-fetch dashboard list
+          this.fetchData();
+
+          this.setState({
+            dashboardState: 'default',
+          });
+        });
+        break;
+      }
+      case 'edit':
+      case 'default':
+      default: {
+        this.setState({
+          dashboardState: 'default',
+        });
+        break;
+      }
     }
-
-    this.setState({
-      dashboardState: 'default',
-    });
   };
 
   getOrgDashboards(): OrgDashboard[] {
