@@ -1,4 +1,5 @@
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import {Params} from 'react-router/lib/Router';
@@ -103,6 +104,16 @@ class DashboardDetail extends AsyncComponent<Props, State> {
       }
     }
   };
+
+  isRevertable(dashboard: DashboardListItem) {
+    const {changesDashboard} = this.state;
+
+    if (!changesDashboard) {
+      return false;
+    }
+
+    return !isEqual(dashboard, changesDashboard);
+  }
 
   onCommit = () => {
     const {api, organization} = this.props;
@@ -230,6 +241,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 onEdit={this.onEdit(dashboard)}
                 onCreate={this.onCreate}
                 onRevert={this.onRevert(dashboard)}
+                isRevertable={this.isRevertable(dashboard)}
                 onCommit={this.onCommit}
                 dashboardState={this.state.dashboardState}
               />

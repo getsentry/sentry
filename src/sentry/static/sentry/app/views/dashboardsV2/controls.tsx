@@ -26,6 +26,7 @@ type Props = {
   onCreate: () => void;
   onRevert: () => void;
   onCommit: () => void;
+  isRevertable: boolean;
   dashboardState: DashboardState;
 };
 
@@ -38,6 +39,7 @@ class Controls extends React.Component<Props> {
       onEdit,
       onCreate,
       onRevert,
+      isRevertable,
       onCommit,
     } = this.props;
 
@@ -50,6 +52,7 @@ class Controls extends React.Component<Props> {
               onRevert();
             }}
             size="small"
+            disabled={!isRevertable}
           >
             {t('Revert')}
           </Button>
