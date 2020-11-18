@@ -18,6 +18,8 @@ import ButtonBar from 'app/components/buttonBar';
 import IdBadge from 'app/components/idBadge';
 import TextOverflow from 'app/components/textOverflow';
 
+import ProjectTeamAccess from './projectTeamAccess';
+
 type RouteParams = {
   orgId: string;
   projectId: string;
@@ -124,7 +126,8 @@ class ProjectDetail extends AsyncView<Props, State> {
                 </p>
               </Layout.Main>
               <Layout.Side>
-                <h4>sidebar</h4>
+                <ProjectTeamAccess organization={organization} project={project} />
+
                 <p>
                   Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
                   doloremque ut perferendis harum, optio temporibus eaque officia, illo
