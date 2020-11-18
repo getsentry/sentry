@@ -9,3 +9,9 @@ export const PREBUILT_DASHBOARDS: PrebuiltDashboard[] = [
     widgets: [],
   },
 ];
+
+export const EMPTY_DASHBOARD: PrebuiltDashboard = {
+  type: 'prebuilt',
+  title: t('Untitled dashboard'),
+  widgets: [],
+};
