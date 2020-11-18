@@ -296,6 +296,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )
             self.browser.snapshot("events-v2 - transactions query - list")
 
     @patch("django.utils.timezone.now")
