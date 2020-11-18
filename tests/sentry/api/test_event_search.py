@@ -2439,7 +2439,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentile_range(self):
         fields = [
-            "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)"
+            "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1"
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2463,20 +2463,18 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = [
-                "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow, 1)"
-            ]
+            fields = ["percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["percentile_range(transaction.duration, 0.5, today, 2020-05-03T06:48:57, 1)"]
+            fields = ["percentile_range(transaction.duration, 0.5, today, 2020-05-03T06:48:57)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_average_range(self):
         fields = [
-            "avg_range(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57, avg_range_1)"
+            "avg_range(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as avg_range_1"
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2500,12 +2498,12 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, tomorrow, 1)"]
+            fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["avg_range(transaction.duration, today, 2020-05-03T06:48:57, 1)"]
+            fields = ["avg_range(transaction.duration, today, 2020-05-03T06:48:57)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
@@ -2522,9 +2520,9 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentage(self):
         fields = [
-            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)",
-            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34, percentile_range_2)",
-            "percentage(percentile_range_2, percentile_range_1, trend_percentage)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1",
+            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34) as percentile_range_2",
+            "percentage(percentile_range_2, percentile_range_1) as trend_percentage",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2571,9 +2569,9 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_minus(self):
         fields = [
-            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)",
-            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34, percentile_range_2)",
-            "minus(percentile_range_2, percentile_range_1, trend_difference)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1",
+            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34) as percentile_range_2",
+            "minus(percentile_range_2, percentile_range_1) as trend_difference",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2613,6 +2611,13 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
             ["minus", ["percentile_range_2", "percentile_range_1"], "trend_difference"],
         ]
+
+    def test_invalid_alias(self):
+        bad_function_aliases = ["count() as ", "count() as as as as as", "count() as count()"]
+        for function in bad_function_aliases:
+            result = resolve_field_list([function], eventstore.Filter())
+            # the failed alias should end up being a column
+            assert function in result["selected_columns"]
 
     def test_percentile_shortcuts(self):
         columns = [
