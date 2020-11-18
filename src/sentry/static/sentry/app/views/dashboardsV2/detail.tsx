@@ -178,6 +178,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
             <StyledPageHeader>
               <div>{t('Dashboards')}</div>
               <Controls
+                organization={organization}
                 dashboards={this.getDashboardsList()}
                 dashboard={dashboard}
                 onEdit={this.onEdit}

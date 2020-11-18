@@ -2,7 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line import/named
 import {components, SingleValueProps, OptionProps} from 'react-select';
+import {browserHistory} from 'react-router';
 
+import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import {IconAdd, IconEdit} from 'app/icons';
 import Button from 'app/components/button';
@@ -17,6 +19,7 @@ type OptionType = {
 };
 
 type Props = {
+  organization: Organization;
   dashboards: DashboardListItem[];
   dashboard: DashboardListItem;
   onEdit: () => void;
@@ -123,7 +126,22 @@ class Controls extends React.Component<Props> {
                 </components.SingleValue>
               ),
             }}
-            onChange={() => {}}
+            onChange={({value}: {value: DashboardListItem}) => {
+              const {organization} = this.props;
+
+              if (value.type === 'prebuilt') {
+                browserHistory.push({
+                  pathname: `/organizations/${organization.slug}/dashboards/`,
+                  query: {},
+                });
+                return;
+              }
+
+              browserHistory.push({
+                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                query: {},
+              });
+            }}
           />
         </DashboardSelect>
         <Button
