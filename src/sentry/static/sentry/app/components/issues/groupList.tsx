@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as qs from 'query-string';
+import * as Sentry from '@sentry/react';
 
 import {Client} from 'app/api';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -90,7 +91,7 @@ class GroupList extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
   private _streamManager = new StreamManager(GroupStore);
 
-  fetchData = async () => {
+  fetchData = () => {
     GroupStore.loadInitialData([]);
     const {api, orgId} = this.props;
 
@@ -102,18 +103,20 @@ class GroupList extends React.Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    try {
-      const [data, , jqXHR] = await api.requestPromise(endpoint);
-      this._streamManager.push(data);
-
-      this.setState({
-        error: false,
-        loading: false,
-        pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
-      });
-    } catch {
-      this.setState({error: true, loading: false});
-    }
+    api.request(endpoint, {
+      success: (data, _, jqXHR) => {
+        this._streamManager.push(data);
+        this.setState({
+          error: false,
+          loading: false,
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
+        });
+      },
+      error: err => {
+        Sentry.captureException(err);
+        this.setState({error: true, loading: false});
+      },
+    });
   };
 
   getGroupListEndpoint() {
