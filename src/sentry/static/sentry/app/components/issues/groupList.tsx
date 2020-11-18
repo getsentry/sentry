@@ -90,7 +90,7 @@ class GroupList extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
   private _streamManager = new StreamManager(GroupStore);
 
-  async fetchData() {
+  fetchData = async () => {
     GroupStore.loadInitialData([]);
     const {api, orgId} = this.props;
 
@@ -114,7 +114,7 @@ class GroupList extends React.Component<Props, State> {
     } catch {
       this.setState({error: true, loading: false});
     }
-  }
+  };
 
   getGroupListEndpoint() {
     const {orgId, endpointPath, queryParams} = this.props;
