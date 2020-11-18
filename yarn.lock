@@ -12132,7 +12132,12 @@ pretty-hrtime@^1.0.3:
   resolved "https://registry.yarnpkg.com/pretty-hrtime/-/pretty-hrtime-1.0.3.tgz#b7e3ea42435a4c9b2759d99e0f201eb195802ee1"
   integrity sha1-t+PqQkNaTJsnWdmeDyAesZWALuE=
 
-prismjs@^1.21.0, prismjs@^1.8.4:
+prism-sentry@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/prism-sentry/-/prism-sentry-1.0.0.tgz#bc8d7a18e86bf88d59117ed178cd8bed71e53b7b"
+  integrity sha512-MaJJdKOjz0cUS6Wz5OmP4ngJxkovZdb81KcFvoSQoIBYsNsQwVMvWm48TiWrwpZdawpGJMNxSkUt3XNXlDzB7w==
+
+prismjs@^1.8.4:
   version "1.21.0"
   resolved "https://registry.yarnpkg.com/prismjs/-/prismjs-1.21.0.tgz#36c086ec36b45319ec4218ee164c110f9fc015a3"
   integrity sha512-uGdSIu1nk3kej2iZsLyDoJ7e9bnPzIgY0naW/HdknGj61zScaprVEVGHrPoXqI+M9sP0NDnTK2jpkvmldpuqDw==
