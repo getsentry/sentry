@@ -350,34 +350,20 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
-    def get_attrs(self, item_list, user):
-        attrs = super(ProjectSummarySerializer, self).get_attrs(item_list, user)
-
-        projects_with_user_reports = set(
-            UserReport.objects.filter(project_id__in=item_list).values_list("project", flat=True)
+    def __init__(
+        self, environment_id=None, stats_period=None, transaction_stats=None, collapse=None
+    ):
+        super(ProjectWithTeamSerializer, self).__init__(
+            environment_id, stats_period, transaction_stats,
         )
+        self.collapse = collapse
 
-        project_envs = (
-            EnvironmentProject.objects.filter(
-                project_id__in=[i.id for i in item_list],
-                # Including the organization_id is necessary for postgres to use indexes
-                # efficiently.
-                environment__organization_id=item_list[0].organization_id,
-            )
-            .exclude(
-                is_hidden=True,
-                # HACK(lb): avoiding the no environment value
-            )
-            .exclude(environment__name="")
-            .values("project_id", "environment__name")
-        )
+    def _collapse(self, key):
+        if self.collapse is None:
+            return False
+        return key in self.collapse
 
-        environments_by_project = defaultdict(list)
-        for project_env in project_envs:
-            environments_by_project[project_env["project_id"]].append(
-                project_env["environment__name"]
-            )
-
+    def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -420,15 +406,48 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
                 "dateFinished": date_finished,
             }
 
+        return deploys_by_project
+
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectSummarySerializer, self).get_attrs(item_list, user)
+
+        projects_with_user_reports = set(
+            UserReport.objects.filter(project_id__in=item_list).values_list("project", flat=True)
+        )
+
+        project_envs = (
+            EnvironmentProject.objects.filter(
+                project_id__in=[i.id for i in item_list],
+                # Including the organization_id is necessary for postgres to use indexes
+                # efficiently.
+                environment__organization_id=item_list[0].organization_id,
+            )
+            .exclude(
+                is_hidden=True,
+                # HACK(lb): avoiding the no environment value
+            )
+            .exclude(environment__name="")
+            .values("project_id", "environment__name")
+        )
+
+        environments_by_project = defaultdict(list)
+        for project_env in project_envs:
+            environments_by_project[project_env["project_id"]].append(
+                project_env["environment__name"]
+            )
+
         # We just return the version key here so that we cut down on response size
         latest_release_versions = {
             release.actual_project_id: {"version": release.version}
             for release in bulk_fetch_project_latest_releases(item_list)
         }
 
+        if not self._collapse("latestDeploys"):
+            deploys_by_project = self.get_deploys_by_project(item_list)
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
-            attrs[item]["deploys"] = deploys_by_project.get(item.id)
+            if not self._collapse("latestDeploys"):
+                attrs[item]["deploys"] = deploys_by_project.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
 
@@ -451,10 +470,11 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             "firstTransactionEvent": True if obj.flags.has_transactions else False,
             "platform": obj.platform,
             "platforms": attrs["platforms"],
-            "latestDeploys": attrs["deploys"],
             "latestRelease": attrs["latest_release"],
             "hasUserReports": attrs["has_user_reports"],
         }
+        if not self._collapse("latestDeploys"):
+            context["latestDeploys"] = attrs["deploys"]
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
         if "transactionStats" in attrs:
