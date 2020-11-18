@@ -74,7 +74,7 @@ class Controls extends React.Component<Props> {
 
     const dropdownOptions: OptionType[] = dashboards.map(item => {
       return {
-        label: item.dashboard.name,
+        label: item.title,
         value: item,
       };
     });

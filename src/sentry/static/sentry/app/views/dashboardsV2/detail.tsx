@@ -7,6 +7,8 @@ import styled from '@emotion/styled';
 import {Organization} from 'app/types';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
+import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {PageContent} from 'app/styles/organization';
@@ -14,13 +16,21 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {createDashboard} from 'app/actionCreators/dashboards';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 
-import {DashboardListItem, DashboardState} from './types';
+import {
+  DashboardListItem,
+  OrgDashboardResponse,
+  OrgDashboard,
+  DashboardState,
+} from './types';
 import {PREBUILT_DASHBOARDS} from './data';
 import Controls from './controls';
 import Dashboard from './dashboard';
 
 type Props = {
+  api: Client;
   location: Location;
   params: Params;
   organization: Organization;
@@ -33,7 +43,7 @@ type State = {
   changesDashboard: DashboardListItem | undefined;
 
   // endpoint response
-  orgDashboards: DashboardListItem[] | null;
+  orgDashboards: OrgDashboardResponse[] | null;
 } & AsyncComponent['state'];
 class DashboardDetail extends AsyncComponent<Props, State> {
   state: State = {
@@ -94,24 +104,38 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   };
 
   onCommit = () => {
-    // TODO: commit dashboard changes
+    const {api, organization} = this.props;
+    const {dashboardState} = this.state;
 
-    // re-fetch dashboard list
-    this.fetchData();
+    if (dashboardState === 'create') {
+      createDashboard(api, organization.slug).then(() => {
+        addSuccessMessage(t('Dashboard created'));
+
+        // re-fetch dashboard list
+        this.fetchData();
+      });
+    }
 
     this.setState({
       dashboardState: 'default',
     });
   };
 
-  getDashboardsList() {
+  getDashboardsList(): DashboardListItem[] {
     const {orgDashboards} = this.state;
 
     if (!Array.isArray(orgDashboards)) {
       return PREBUILT_DASHBOARDS;
     }
 
-    return [...PREBUILT_DASHBOARDS, ...orgDashboards];
+    const normalizedOrgDashboards: OrgDashboard[] = orgDashboards.map(dashboard => {
+      return {
+        type: 'org',
+        ...dashboard,
+      };
+    });
+
+    return [...PREBUILT_DASHBOARDS, ...normalizedOrgDashboards];
   }
 
   render() {
@@ -168,4 +192,4 @@ const StyledPageHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export default withOrganization(DashboardDetail);
+export default withOrganization(withApi(DashboardDetail));

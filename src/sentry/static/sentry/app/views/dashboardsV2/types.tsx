@@ -15,23 +15,25 @@ type Widget = {
   queries: WidgetQuery[];
 };
 
-export type Dashboard = {
-  name: string;
+export type PrebuiltDashboard = {
+  type: 'prebuilt';
+  title: string;
   widgets: Widget[];
 };
 
-export type PrebuiltDashboard = {
-  type: 'prebuilt';
-  dashboard: Dashboard;
+export type OrgDashboardResponse = {
+  title: string;
+  dateCreated: string;
+  createdBy: string;
+  widgets: Widget[];
+  organization: string;
+  id: string;
 };
 
-export type UserDashboard = {
+export type OrgDashboard = {
   type: 'org';
-  dashboard: Dashboard;
-  author: string;
-  dateAdded: number;
-};
+} & OrgDashboardResponse;
 
-export type DashboardListItem = PrebuiltDashboard | UserDashboard;
+export type DashboardListItem = PrebuiltDashboard | OrgDashboard;
 
 export type DashboardState = 'default' | 'edit' | 'create';
