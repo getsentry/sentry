@@ -50,7 +50,7 @@ export function fetchTeams(api: Client, params: OrgSlug, options: CallbackOption
 export function fetchTeamDetails(
   api: Client,
   params: OrgAndTeamSlug,
-  options: CallbackOptions
+  options?: CallbackOptions
 ) {
   TeamActions.fetchDetails(params.teamId);
   return api.request(`/teams/${params.orgId}/${params.teamId}/`, {
@@ -118,7 +118,7 @@ export function joinTeam(
 
 export function leaveTeam(
   api: Client,
-  params: OrgAndTeamSlug & MemberId,
+  params: OrgAndTeamSlug & Partial<MemberId>,
   options: CallbackOptions
 ) {
   const endpoint = `/organizations/${params.orgId}/members/${

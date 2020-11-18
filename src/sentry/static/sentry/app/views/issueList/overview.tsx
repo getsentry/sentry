@@ -259,11 +259,6 @@ class IssueListOverview extends React.Component<Props, State> {
       return query as string;
     }
 
-    // TODO(workflow): set inbox as new default query
-    if (this.props.organization.features.includes('inbox')) {
-      return 'is:inbox';
-    }
-
     return DEFAULT_QUERY;
   }
 
