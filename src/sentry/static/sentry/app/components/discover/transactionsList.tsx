@@ -17,7 +17,11 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
-import {TrendView, TrendsDataEvents} from 'app/views/performance/trends/types';
+import {
+  TrendView,
+  TrendsDataEvents,
+  TrendChangeType,
+} from 'app/views/performance/trends/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {Sort, getAggregateAlias} from 'app/utils/discover/fields';
@@ -45,7 +49,7 @@ export type DropdownOption = {
   /**
    * Included if the option is for a trend
    */
-  trendType?: string;
+  trendType?: TrendChangeType;
   /**
    * overide the eventView query
    */

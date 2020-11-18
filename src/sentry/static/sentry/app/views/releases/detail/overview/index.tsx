@@ -15,7 +15,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {TrendView} from 'app/views/performance/trends/types';
+import {TrendView, TrendChangeType} from 'app/views/performance/trends/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
@@ -341,14 +341,14 @@ function getDropdownOptions(): DropdownOption[] {
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
       query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
-      trendType: 'regression',
+      trendType: TrendChangeType.REGRESSION,
       value: 'regression',
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
       query: 'tpm():>0.01 trend_percentage():>0% t_test():>6',
-      trendType: 'improved',
+      trendType: TrendChangeType.IMPROVED,
       value: 'improved',
       label: t('Trending Improvements'),
     },
