@@ -17,7 +17,7 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
 import NotFound from 'app/components/errors/notFound';
-import {createDashboard} from 'app/actionCreators/dashboards';
+import {createDashboard, updateDashboard} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 
 import {
@@ -138,7 +138,21 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
         break;
       }
-      case 'edit':
+      case 'edit': {
+        if (changesDashboard && changesDashboard.type === 'org') {
+          updateDashboard(api, organization.slug, changesDashboard).then(() => {
+            addSuccessMessage(t('Dashboard updated'));
+
+            this.setState({
+              dashboardState: 'default',
+              changesDashboard: undefined,
+            });
+
+            this.reloadData();
+          });
+        }
+        break;
+      }
       case 'default':
       default: {
         this.setState({
