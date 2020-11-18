@@ -1829,7 +1829,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(
                 qs_params={"id": [group1.id, group2.id]}, status="resolved"
             )
-        assert response.data["inbox"] is False
+        assert response.data["inbox"] is None
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
