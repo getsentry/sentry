@@ -2,42 +2,52 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Threads from 'app/components/events/interfaces/threads/threads';
+import Threads from 'app/components/events/interfaces/threads';
 
 describe('Threads', () => {
-  let event;
-  let type;
-  let data;
-
-  beforeEach(() => {
-    const entries = TestStubs.Entries()[0];
-    event = TestStubs.Event({entries});
-    const exceptionEntry = entries[0];
-    data = exceptionEntry.data;
-    type = exceptionEntry.type;
-  });
+  const entries = TestStubs.Entries()[0];
+  const event = TestStubs.Event({entries});
+  const exceptionEntry = entries[0];
+  const data = exceptionEntry.data;
+  const type = exceptionEntry.type;
 
   it('Display multiple frames', () => {
-    event.entries[0].data.values[1] = {
-      module: 'example.application',
-      type: 'Error',
-      value: 'an error occurred',
-      stacktrace: {
-        frames: [
-          {
-            function: 'main',
-            module: 'example.application',
-            lineNo: 1,
-            filename: 'application',
+    const newEvent = {
+      ...event,
+      entries: [
+        {
+          ...event.entries[0],
+          data: {
+            ...event.entries[0].data,
+            values: [
+              event.entries[0].data.values[0],
+              {
+                module: 'example.application',
+                type: 'Error',
+                value: 'an error occurred',
+                stacktrace: {
+                  frames: [
+                    {
+                      function: 'main',
+                      module: 'example.application',
+                      lineNo: 1,
+                      filename: 'application',
+                    },
+                    {
+                      function: 'doThing',
+                      module: 'example.application',
+                      lineNo: 2,
+                      filename: 'application',
+                    },
+                  ],
+                },
+              },
+            ],
           },
-          {
-            function: 'doThing',
-            module: 'example.application',
-            lineNo: 2,
-            filename: 'application',
-          },
-        ],
-      },
+        },
+        event.entries[1],
+        event.entries[2],
+      ],
     };
 
     const wrapper = mountWithTheme(
@@ -46,29 +56,39 @@ describe('Threads', () => {
         data={data}
         orgId="org-slug"
         projectId="project-id"
-        event={event}
+        event={newEvent}
       />
     );
 
-    // total frames passed
+    // Total frames passed
     const totalFramesPasses =
-      event.entries[0].data.values[0].stacktrace.frames.length +
-      event.entries[0].data.values[1].stacktrace.frames.length;
+      newEvent.entries[0].data.values[0].stacktrace.frames.length +
+      newEvent.entries[0].data.values[1].stacktrace.frames.length;
 
     expect(wrapper.find('Line').length).toBe(totalFramesPasses);
   });
 
   it('Display no frame', () => {
-    delete event.entries[0].data.values[0].stacktrace;
-    data.values[0].id = '1';
-
     const wrapper = mountWithTheme(
       <Threads
         type={type}
-        data={data}
+        data={{...data, values: [{...data.values[0], stacktrace: null}]}}
         orgId="org-slug"
         projectId="project-id"
-        event={event}
+        event={{
+          ...event,
+          entries: [
+            {
+              ...event.entries[0],
+              data: {
+                ...event.entries[0].data,
+                values: [{...event.entries[0].data.values[0], id: 0, stacktrace: null}],
+              },
+            },
+            event.entries[1],
+            event.entries[2],
+          ],
+        }}
       />
     );
 
@@ -76,18 +96,50 @@ describe('Threads', () => {
     expect(wrapper.find('Line').length).toBe(0);
   });
 
-  it('Displays frame exception if data.values.length equals 1 && data.values[0].threadId equals null', () => {
-    const wrapper = mountWithTheme(
-      <Threads
-        type={type}
-        data={data}
-        orgId="org-slug"
-        projectId="project-id"
-        event={event}
-      />
-    );
+  describe('Displays frame exception or a data of the active Thread if data.values.length equals 1 && data.values[0].threadId equals null', () => {
+    const threadsEntry = entries[1];
 
-    // data.values of an exception's entry has threadId equals null and length equals 1
-    expect(wrapper.find('Line').length).toBe(1);
+    it('Displays the exception stacktrace', () => {
+      const wrapper = mountWithTheme(
+        <Threads
+          type={threadsEntry.type}
+          data={threadsEntry.data}
+          orgId="org-slug"
+          projectId="project-id"
+          event={event}
+        />
+      );
+
+      // envent.entries[0].data.values[0].stacktrace is defined
+      expect(wrapper.find('Line').length).toBe(1);
+    });
+
+    it('Displays the the active thread stacktrace', () => {
+      const wrapper = mountWithTheme(
+        <Threads
+          type={threadsEntry.type}
+          data={threadsEntry.data}
+          orgId="org-slug"
+          projectId="project-id"
+          event={{
+            ...event,
+            entries: [
+              {
+                ...event.entries[0],
+                data: {
+                  ...event.entries[0].data,
+                  values: [{...event.entries[0].data.values[0], stacktrace: null}],
+                },
+              },
+              event.entries[1],
+              event.entries[2],
+            ],
+          }}
+        />
+      );
+
+      // the 'threads' entry has a stack trace with 23 frames, but as one of them is duplicated, we only display 22
+      expect(wrapper.find('Line').length).toBe(22);
+    });
   });
 });
