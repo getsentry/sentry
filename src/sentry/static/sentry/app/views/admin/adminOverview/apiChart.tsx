@@ -1,40 +1,45 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
+import {Client} from 'app/api';
+import {TimeseriesValue} from 'app/types';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import withApi from 'app/utils/withApi';
 import theme from 'app/utils/theme';
 
-class ApiChart extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    since: PropTypes.number.isRequired,
-    resolution: PropTypes.string.isRequired,
-  };
+const initialState = {
+  error: false,
+  loading: true,
+  rawData: {
+    'client-api.all-versions.responses.2xx': [],
+    'client-api.all-versions.responses.4xx': [],
+    'client-api.all-versions.responses.5xx': [],
+  },
+};
 
-  state = this.getInitialState();
+type Props = {
+  api: Client;
+  since: number;
+  resolution: string;
+};
 
-  getInitialState() {
-    return {
-      error: false,
-      loading: true,
-      rawData: {
-        'client-api.all-versions.responses.2xx': null,
-        'client-api.all-versions.responses.4xx': null,
-        'client-api.all-versions.responses.5xx': null,
-      },
-    };
-  }
+type State = {
+  error: boolean;
+  loading: boolean;
+  rawData: Record<string, TimeseriesValue[]>;
+};
+
+class ApiChart extends React.Component<Props, State> {
+  state: State = initialState;
 
   componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (this.props.since !== nextProps.since) {
-      this.setState(this.getInitialState(), this.fetchData);
+      this.setState(initialState, this.fetchData);
     }
   }
 
@@ -73,9 +78,6 @@ class ApiChart extends React.Component {
 
   requestFinished = () => {
     const {rawData} = this.state;
-    if (rawData['events.total'] && rawData['events.dropped']) {
-      this.processOrgData();
-    }
     if (
       rawData['client-api.all-versions.responses.2xx'] &&
       rawData['client-api.all-versions.responses.4xx'] &&
@@ -87,7 +89,7 @@ class ApiChart extends React.Component {
     }
   };
 
-  processRawSeries(series) {
+  processRawSeries(series: TimeseriesValue[]) {
     return series.map(item => ({name: item[0] * 1000, value: item[1]}));
   }
 
