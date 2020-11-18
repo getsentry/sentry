@@ -29,8 +29,8 @@ import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import {queryToObj} from 'app/utils/stream';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import TimesBadge from 'app/components/group/timesBadge';
-import InboxReason from 'app/components/group/inboxReason';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -83,7 +83,7 @@ class StreamGroup extends React.Component<Props, State> {
     return {
       data: {
         ...data,
-        filtered: useFilteredStats ? data.filtered : undefined,
+        filtered: useFilteredStats ? data.filtered : null,
       },
     };
   }
@@ -98,7 +98,7 @@ class StreamGroup extends React.Component<Props, State> {
       this.setState({
         data: {
           ...data,
-          filtered: nextProps.useFilteredStats ? data.filtered : undefined,
+          filtered: nextProps.useFilteredStats ? data.filtered : null,
         },
       });
     }
@@ -388,7 +388,7 @@ class StreamGroup extends React.Component<Props, State> {
             )}
             <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
               <BadgeWrapper>
-                <TimesBadge
+                <TimesTag
                   lastSeen={data.lifetime?.lastSeen || data.lastSeen}
                   firstSeen={data.lifetime?.firstSeen || data.firstSeen}
                 />

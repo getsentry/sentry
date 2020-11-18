@@ -57,6 +57,21 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(key=SearchKey(name="unassigned"), operator="!=", value=SearchValue(False))
         ]
 
+    def test_is_query_linked(self):
+        assert parse_search_query("is:linked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="=", value=SearchValue(True))
+        ]
+        assert parse_search_query("is:unlinked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="=", value=SearchValue(False))
+        ]
+
+        assert parse_search_query("!is:linked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="!=", value=SearchValue(True))
+        ]
+        assert parse_search_query("!is:unlinked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="!=", value=SearchValue(False))
+        ]
+
     def test_is_query_status(self):
         for status_string, status_val in STATUS_CHOICES.items():
             assert parse_search_query("is:%s" % status_string) == [
