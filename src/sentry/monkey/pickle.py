@@ -108,7 +108,66 @@ def patch_pickle_loaders():
     original_pickle_dump = pickle.dump
     original_pickle_loads = pickle.loads
     original_pickle_dumps = pickle.dumps
+    original_pickle_Pickler = pickle.Pickler
+    original_pickle_Unpickler = pickle.Unpickler
     original_kombu_pickle_loads = kombu_serializer.pickle_loads
+
+    # Patched Picker and Unpickler
+    #
+    # A NOTE on these Compat service classes. Unfortunately because pickle is a
+    # C module we can't subclass, so instead we just delegate with __getattr__.
+    # It's very possible we missed some more subtle uses of the classes here.
+
+    class CompatPickler(object):
+        def __init__(self, *args, **kwargs):
+            # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
+            # DEFAULT_PROTOCOL above to understand why we must pass the kwarg due
+            # to _pickle.
+            if len(args) == 1:
+                kwargs["protocol"] = pickle.DEFAULT_PROTOCOL
+            else:
+                largs = list(args)
+                largs[1] = pickle.DEFAULT_PROTOCOL
+                args = tuple(largs)
+
+            self.__pickler = original_pickle_Pickler(*args, **kwargs)
+
+        def __getattr__(self, key):
+            return getattr(self.__pickler, key)
+
+    class CompatUnpickler(object):
+        def __init__(self, *args, **kwargs):
+            self.__orig_args = args
+            self.__orig_kwargs = kwargs
+            self.__make_unpickler()
+
+        def __make_unpickler(self):
+            self.__unpickler = original_pickle_Unpickler(*self.__orig_args, **self.__orig_kwargs)
+
+        def __getattr__(self, key):
+            return getattr(self.__unpickler, key)
+
+        def load(self):
+            try:
+                return self.__unpickler.load()
+            except UnicodeDecodeError:
+                from sentry.utils import metrics
+
+                metrics.incr(
+                    "pickle.compat_pickle_pickler_load.had_unicode_decode_error", sample_rate=1
+                )
+
+                # We must seek back to the start of the buffer to depickle
+                # again after failing above, without this we'll get a buffer
+                # underflow error during the depickle.
+                self.__orig_args[0].seek(0)
+
+                # Rebuild the Unpickler with modified encoding, only if it was left unset
+                self.__orig_kwargs["encoding"] = self.__orig_kwargs.get("encoding", "latin-1")
+                self.__make_unpickler()
+                return self.__unpickler.load()
+
+    # Patched dump and dumps
 
     def py3_compat_pickle_dump(*args, **kwargs):
         # Enforce protocol kwarg as DEFAULT_PROTOCOL. See the comment above
@@ -136,6 +195,8 @@ def patch_pickle_loaders():
 
         return original_pickle_dumps(*args, **kwargs)
 
+    # Patched load and loads
+
     def py3_compat_pickle_load(*args, **kwargs):
         try:
             return original_pickle_load(*args, **kwargs)
@@ -157,6 +218,8 @@ def patch_pickle_loaders():
 
             kwargs["encoding"] = kwargs.get("encoding", "latin-1")
             return original_pickle_loads(*args, **kwargs)
+
+    # patched kombu
 
     def __py3_compat_kombu_pickle_load(*args, **kwargs):
         """
@@ -185,4 +248,7 @@ def patch_pickle_loaders():
     pickle.dump = py3_compat_pickle_dump
     pickle.loads = py3_compat_pickle_loads
     pickle.dumps = py3_compat_pickle_dumps
+    pickle.Pickler = CompatPickler
+    pickle.Unpickler = CompatUnpickler
+
     kombu_serializer.pickle_loads = py3_compat_kombu_pickle_loads
