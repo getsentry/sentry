@@ -117,21 +117,25 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
   onCommit = () => {
     const {api, organization} = this.props;
-    const {dashboardState} = this.state;
+    const {dashboardState, changesDashboard} = this.state;
 
     switch (dashboardState) {
       case 'create': {
-        createDashboard(api, organization.slug).then(() => {
-          addSuccessMessage(t('Dashboard created'));
+        if (changesDashboard) {
+          createDashboard(api, organization.slug, changesDashboard).then(
+            (newDashboard: OrgDashboardResponse) => {
+              addSuccessMessage(t('Dashboard created'));
 
-          // re-fetch dashboard list
-          this.fetchData();
+              // redirect to new dashboard
 
-          this.setState({
-            dashboardState: 'default',
-            changesDashboard: undefined,
-          });
-        });
+              browserHistory.replace({
+                pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}`,
+                query: {},
+              });
+            }
+          );
+        }
+
         break;
       }
       case 'edit':

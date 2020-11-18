@@ -1,14 +1,18 @@
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-// import {UserDashboard} from 'app/views/dashboardsV2/types';
+import {DashboardListItem, OrgDashboardResponse} from 'app/views/dashboardsV2/types';
 
-export function createDashboard(api: Client, orgId: string): Promise<undefined> {
-  const promise: Promise<undefined> = api.requestPromise(
+export function createDashboard(
+  api: Client,
+  orgId: string,
+  newDashboard: DashboardListItem
+): Promise<OrgDashboardResponse> {
+  const promise: Promise<OrgDashboardResponse> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title: 'my own dashboard'},
+      data: {title: newDashboard.title},
     }
   );
 
