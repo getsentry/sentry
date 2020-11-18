@@ -179,6 +179,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
               <div>{t('Dashboards')}</div>
               <Controls
                 dashboards={this.getDashboardsList()}
+                dashboard={dashboard}
                 onEdit={this.onEdit}
                 onCreate={this.onCreate}
                 onCommit={this.onCommit}

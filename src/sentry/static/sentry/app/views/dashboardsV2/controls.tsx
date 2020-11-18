@@ -18,6 +18,7 @@ type OptionType = {
 
 type Props = {
   dashboards: DashboardListItem[];
+  dashboard: DashboardListItem;
   onEdit: () => void;
   onCreate: () => void;
   onCommit: () => void;
@@ -26,7 +27,14 @@ type Props = {
 
 class Controls extends React.Component<Props> {
   render() {
-    const {dashboardState, dashboards, onEdit, onCreate, onCommit} = this.props;
+    const {
+      dashboardState,
+      dashboards,
+      dashboard,
+      onEdit,
+      onCreate,
+      onCommit,
+    } = this.props;
 
     if (dashboardState === 'edit') {
       return (
@@ -79,6 +87,11 @@ class Controls extends React.Component<Props> {
       };
     });
 
+    const currentOption: OptionType = {
+      label: dashboard.title,
+      value: dashboard,
+    };
+
     return (
       <ButtonBar gap={1} key="controls">
         <Button
@@ -97,7 +110,7 @@ class Controls extends React.Component<Props> {
             name="parameter"
             placeholder={t('Select Dashboard')}
             options={dropdownOptions}
-            value={dropdownOptions[0]}
+            value={currentOption}
             components={{
               Option: ({label, data, ...props}: OptionProps<OptionType>) => (
                 <components.Option label={label} {...(props as any)}>
