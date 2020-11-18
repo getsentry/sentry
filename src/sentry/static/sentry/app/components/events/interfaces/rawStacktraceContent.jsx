@@ -164,7 +164,7 @@ function getFrame(frame, frameIdx, platform) {
 export default function render(data, platform, exception) {
   const frames = [];
 
-  data.frames.forEach((frame, frameIdx) => {
+  data?.frames.forEach((frame, frameIdx) => {
     frames.push(getFrame(frame, frameIdx, platform));
   });
 
