@@ -2,7 +2,7 @@ import {Project} from 'app/types';
 import {PlatformKey} from 'app/data/platformCategories';
 
 export type StepData = {
-  platform?: PlatformKey;
+  platform?: PlatformKey | null;
 };
 
 export type StepProps = {

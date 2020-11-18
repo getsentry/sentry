@@ -1605,14 +1605,8 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType =
-  | 'java'
-  | 'csharp'
-  | 'objc'
-  | 'cocoa'
-  | 'native'
-  | 'javascript'
-  | 'other';
+// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
+export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Frame = {
   absPath: string | null;

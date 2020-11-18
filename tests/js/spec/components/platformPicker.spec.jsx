@@ -94,7 +94,7 @@ describe('PlatformPicker', function () {
       );
 
       wrapper.find('ClearButton').simulate('click');
-      expect(props.setPlatform).toHaveBeenCalledWith('');
+      expect(props.setPlatform).toHaveBeenCalledWith(null);
     });
   });
 });

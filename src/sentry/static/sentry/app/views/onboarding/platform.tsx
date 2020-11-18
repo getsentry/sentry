@@ -92,7 +92,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
     }
   }
 
-  handleSetPlatform = (platform: PlatformKey) => {
+  handleSetPlatform = (platform: PlatformKey | null) => {
     const {onUpdate, onReturnToStep} = this.props;
 
     if (platform) {
