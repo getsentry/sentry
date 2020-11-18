@@ -15,7 +15,7 @@ import {PageContent} from 'app/styles/organization';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import space from 'app/styles/space';
 import AsyncComponent from 'app/components/asyncComponent';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
 import {createDashboard} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 
@@ -39,7 +39,6 @@ type Props = {
 type State = {
   // local state
   dashboardState: DashboardState;
-  currentDashboard: DashboardListItem | undefined;
   changesDashboard: DashboardListItem | undefined;
 
   // endpoint response
@@ -58,7 +57,6 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
     // local state
     dashboardState: 'default',
-    currentDashboard: undefined,
     changesDashboard: undefined,
   };
 
@@ -68,27 +66,6 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     const url = `/organizations/${organization.slug}/dashboards/`;
 
     return [['orgDashboards', url]];
-  }
-
-  componentDidMount() {
-    const {params} = this.props;
-    const dashboardId = params.dashboardId as string | undefined;
-
-    if (typeof dashboardId === 'string') {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        // TODO: fix
-        currentDashboard: PREBUILT_DASHBOARDS[0],
-      });
-      return;
-    }
-
-    // use a prebuilt dashboard if no specific dashboard was requested.
-
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState({
-      currentDashboard: PREBUILT_DASHBOARDS[0],
-    });
   }
 
   onEdit = () => {
@@ -121,6 +98,21 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
+  getOrgDashboards(): OrgDashboard[] {
+    const {orgDashboards} = this.state;
+
+    if (!Array.isArray(orgDashboards)) {
+      return [];
+    }
+
+    return orgDashboards.map(dashboard => {
+      return {
+        type: 'org',
+        ...dashboard,
+      };
+    });
+  }
+
   getDashboardsList(): DashboardListItem[] {
     const {orgDashboards} = this.state;
 
@@ -138,7 +130,69 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     return [...PREBUILT_DASHBOARDS, ...normalizedOrgDashboards];
   }
 
-  render() {
+  getCurrentDashboard(): DashboardListItem | undefined {
+    const {params} = this.props;
+    const dashboardId = params.dashboardId as string | undefined;
+    const orgDashboards = this.getOrgDashboards();
+
+    if (typeof dashboardId === 'string') {
+      return orgDashboards.find(dashboard => {
+        return dashboard.id === dashboardId;
+      });
+    }
+
+    return PREBUILT_DASHBOARDS[0];
+  }
+
+  renderBody() {
+    const dashboard = this.getCurrentDashboard();
+
+    if (!dashboard) {
+      return <NotFound />;
+    }
+
+    return this.renderContent(dashboard);
+  }
+
+  renderError(error: Error) {
+    const notFound = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 404
+    );
+
+    if (notFound) {
+      return <NotFound />;
+    }
+
+    return super.renderError(error, true, true);
+  }
+
+  renderContent(dashboard: DashboardListItem) {
+    const {organization} = this.props;
+
+    return (
+      <GlobalSelectionHeader
+        skipLoadLastUsed={organization.features.includes('global-views')}
+      >
+        <PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
+            <StyledPageHeader>
+              <div>{t('Dashboards')}</div>
+              <Controls
+                dashboards={this.getDashboardsList()}
+                onEdit={this.onEdit}
+                onCreate={this.onCreate}
+                onCommit={this.onCommit}
+                dashboardState={this.state.dashboardState}
+              />
+            </StyledPageHeader>
+            <Dashboard />
+          </LightWeightNoProjectMessage>
+        </PageContent>
+      </GlobalSelectionHeader>
+    );
+  }
+
+  renderComponent() {
     const {organization, location} = this.props;
 
     if (!organization.features.includes('dashboards-v2')) {
@@ -152,31 +206,9 @@ class DashboardDetail extends AsyncComponent<Props, State> {
       return null;
     }
 
-    if (!this.state.currentDashboard) {
-      return <LoadingIndicator />;
-    }
-
     return (
       <SentryDocumentTitle title={t('Dashboards')} objSlug={organization.slug}>
-        <GlobalSelectionHeader
-          skipLoadLastUsed={organization.features.includes('global-views')}
-        >
-          <PageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <StyledPageHeader>
-                <div>{t('Dashboards')}</div>
-                <Controls
-                  dashboards={this.getDashboardsList()}
-                  onEdit={this.onEdit}
-                  onCreate={this.onCreate}
-                  onCommit={this.onCommit}
-                  dashboardState={this.state.dashboardState}
-                />
-              </StyledPageHeader>
-              <Dashboard />
-            </LightWeightNoProjectMessage>
-          </PageContent>
-        </GlobalSelectionHeader>
+        {super.renderComponent()}
       </SentryDocumentTitle>
     );
   }
