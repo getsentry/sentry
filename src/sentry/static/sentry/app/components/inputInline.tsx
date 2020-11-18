@@ -64,6 +64,15 @@ class InputInline extends React.Component<Props, State> {
     isHovering: false,
   };
 
+  componentDidUpdate() {
+    if (this.refInput.current) {
+      // Since contentEditable HTML DOM elements are managed outside of React,
+      // we need to set the contents to the right values according to the given
+      // props.
+      this.refInput.current.innerText = this.getInnerText();
+    }
+  }
+
   private refInput = React.createRef<HTMLDivElement>();
 
   /**
@@ -116,7 +125,7 @@ class InputInline extends React.Component<Props, State> {
       }
     }
 
-    callIfFunction(this.props.onKeyUp, InputInline.setValueOnEvent(event));
+    callIfFunction(this.props.onKeyDown, InputInline.setValueOnEvent(event));
   };
   onKeyUp = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape' && this.refInput.current) {
@@ -147,11 +156,14 @@ class InputInline extends React.Component<Props, State> {
     callIfFunction(this.props.onClick, InputInline.setValueOnEvent(event));
   };
 
-  render() {
-    const {value, placeholder, disabled} = this.props;
-    const {isFocused} = this.state;
+  getInnerText() {
+    const {value, placeholder} = this.props;
+    return value || placeholder || '';
+  }
 
-    const innerText = value || placeholder || '';
+  render() {
+    const {disabled} = this.props;
+    const {isFocused} = this.state;
 
     return (
       <Wrapper
@@ -174,7 +186,7 @@ class InputInline extends React.Component<Props, State> {
           onKeyDown={this.onKeyDown}
           onKeyUp={this.onKeyUp}
         >
-          {innerText}
+          {this.getInnerText()}
         </Input>
 
         {!isFocused && !disabled && (
