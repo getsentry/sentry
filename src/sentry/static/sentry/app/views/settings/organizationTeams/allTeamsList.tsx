@@ -28,7 +28,6 @@ function AllTeamsList({
   const teamNodes = teamList.map(team => (
     <AllTeamsRow
       urlPrefix={urlPrefix}
-      access={access}
       team={team}
       organization={organization}
       openMembership={openMembership}
