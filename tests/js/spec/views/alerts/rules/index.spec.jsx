@@ -55,8 +55,8 @@ describe('OrganizationRuleList', () => {
   it('displays list', async () => {
     const wrapper = await createWrapper();
 
-    const items = wrapper.find('AlertRulesPanelItem');
-    expect(items).toHaveLength(1);
+    const items = wrapper.find('Column');
+    expect(items).toHaveLength(5);
     expect(items.find('RuleType').text()).toBe('Issue');
     expect(items.find('Title').text()).toBe('First Issue Alert');
     expect(items.find('CreatedBy').text()).toBe('Samwise');
@@ -71,7 +71,7 @@ describe('OrganizationRuleList', () => {
         query: {query: 'slug:earth'},
       })
     );
-    expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
+    expect(items.find('IdBadge').prop('project')).toMatchObject({
       slug: 'earth',
     });
   });

@@ -8,7 +8,7 @@ import {IconCheckmark, IconArrow} from 'app/icons';
 import {Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelTable, PanelTableHeader} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
@@ -23,7 +23,6 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
-import {TableLayout} from './styles';
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
@@ -115,14 +114,17 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Panel>
-            <PanelHeader>
-              <TableLayout>
-                <div>{t('Type')}</div>
-                <div>{t('Alert Name')}</div>
-                <div>{t('Project')}</div>
-                <div>{t('Created By')}</div>
-                <div>
+          {loading ? (
+            <LoadingIndicator />
+          ) : (
+            <StyledPanel>
+              <StyledPanelTable
+                headers={[
+                  t('Type'),
+                  t('Alert Name'),
+                  t('Project'),
+                  t('Created By'),
+                  // eslint-disable-next-line react/jsx-key
                   <StyledSortLink
                     to={{
                       pathname: `/organizations/${orgId}/alerts/rules/`,
@@ -138,37 +140,30 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                       size="xs"
                       direction={sort.asc ? 'up' : 'down'}
                     />
-                  </StyledSortLink>
-                </div>
-                <div>{t('Actions')}</div>
-              </TableLayout>
-            </PanelHeader>
-
-            {loading ? (
-              <LoadingIndicator />
-            ) : (
-              this.tryRenderEmpty() ?? (
-                <PanelBody>
-                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                    {({initiallyLoaded, projects}) =>
-                      ruleList.map(rule => (
-                        <RuleListRow
-                          // Metric and issue alerts can have the same id
-                          key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                          projectsLoaded={initiallyLoaded}
-                          projects={projects as Project[]}
-                          rule={rule}
-                          orgId={orgId}
-                          onDelete={this.handleDeleteRule}
-                        />
-                      ))
-                    }
-                  </Projects>
-                </PanelBody>
-              )
-            )}
-          </Panel>
-
+                  </StyledSortLink>,
+                  t('Actions'),
+                ]}
+                isEmpty={false}
+              >
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    ruleList.map(rule => (
+                      <RuleListRow
+                        // Metric and issue alerts can have the same id
+                        key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects as Project[]}
+                        rule={rule}
+                        orgId={orgId}
+                        onDelete={this.handleDeleteRule}
+                      />
+                    ))
+                  }
+                </Projects>
+              </StyledPanelTable>
+              {this.tryRenderEmpty()}
+            </StyledPanel>
+          )}
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </Layout.Body>
@@ -225,4 +220,34 @@ const StyledSortLink = styled(Link)`
   :hover {
     color: inherit;
   }
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  ${PanelTableHeader} {
+    line-height: normal;
+  }
+  grid-template-columns: 65px 1.5fr minmax(150px, 1fr) 1fr minmax(150px, 1fr) 92px;
+  border-radius: 4px 4px 0 0;
+  border: 0;
+  width: 100%;
+  margin-bottom: 0;
+  align-items: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: grid;
+  overflow: auto;
+  ::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const StyledPanel = styled(Panel)`
+  ${StyledPanelTable} {
+    border-radius: 4px 4px 0 0;
+  }
+  border-radius: ${p => p.theme.borderRadius};
+  ${EmptyMessage} {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+  overflow: auto;
 `;
