@@ -10,7 +10,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
-import {IconNot} from 'app/icons';
+import {IconMute, IconNot} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -36,6 +36,7 @@ const IGNORE_WINDOWS: [number, string][] = [
 const defaultProps = {
   isIgnored: false,
   confirmLabel: t('Ignore'),
+  inboxHoverAction: false,
 };
 
 type Props = {
@@ -43,6 +44,7 @@ type Props = {
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
+  inboxHoverAction?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -87,10 +89,16 @@ export default class IgnoreActions extends React.Component<Props, State> {
       shouldConfirm,
       confirmMessage,
       confirmLabel,
+      inboxHoverAction,
     } = this.props;
 
     const linkClassName = classNames('btn btn-default btn-sm', {
       active: isIgnored,
+    });
+
+    const submenuClassName = classNames('dropdown-submenu', {
+      flex: inboxHoverAction,
+      'expand-left': inboxHoverAction,
     });
 
     const actionLinkProps = {
@@ -145,25 +153,31 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
-          <StyledActionLink
-            {...actionLinkProps}
-            title={t('Ignore')}
-            className={linkClassName}
-            onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-          >
-            <StyledIconNot size="xs" />
-            {t('Ignore')}
-          </StyledActionLink>
+          {!inboxHoverAction && (
+            <StyledActionLink
+              {...actionLinkProps}
+              title={t('Ignore')}
+              className={linkClassName}
+              onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+            >
+              <StyledIconNot size="xs" />
+              {t('Ignore')}
+            </StyledActionLink>
+          )}
 
           <StyledDropdownLink
-            caret
+            caret={!inboxHoverAction}
             className={linkClassName}
+            customTitle={
+              inboxHoverAction ? <IconMute size="xs" color="gray200" /> : undefined
+            }
             title=""
             alwaysRenderMenu
             disabled={disabled}
+            anchorRight={inboxHoverAction}
           >
             <MenuItem header>Ignore</MenuItem>
-            <li className="dropdown-submenu">
+            <li className={submenuClassName}>
               <DropdownLink
                 title={t('For\u2026')}
                 caret={false}
@@ -188,7 +202,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 </MenuItem>
               </DropdownLink>
             </li>
-            <li className="dropdown-submenu">
+            <li className={submenuClassName}>
               <DropdownLink
                 title={t('Until this occurs again\u2026')}
                 caret={false}
@@ -196,7 +210,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 alwaysRenderMenu
               >
                 {IGNORE_COUNTS.map(count => (
-                  <li className="dropdown-submenu" key={count}>
+                  <li className={submenuClassName} key={count}>
                     <DropdownLink
                       title={
                         count === 1
@@ -241,7 +255,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 </MenuItem>
               </DropdownLink>
             </li>
-            <li className="dropdown-submenu">
+            <li className={submenuClassName}>
               <DropdownLink
                 title={t('Until this affects an additional\u2026')}
                 caret={false}
@@ -249,7 +263,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 alwaysRenderMenu
               >
                 {IGNORE_COUNTS.map(count => (
-                  <li className="dropdown-submenu" key={count}>
+                  <li className={submenuClassName} key={count}>
                     <DropdownLink
                       title={tn('one user\u2026', '%s users\u2026', count)}
                       caret={false}
@@ -319,5 +333,11 @@ const StyledActionLink = styled(ActionLink)`
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
+  display: flex;
+  align-items: center;
   transition: none;
+  & > .dropdown-menu {
+    left: none;
+    right: -5px;
+  }
 `;

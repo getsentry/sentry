@@ -17,10 +17,12 @@ import Link from 'app/components/links/link';
 import MenuItem from 'app/components/menuItem';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {PanelItem} from 'app/components/panels';
+import Feature from 'app/components/acl/feature';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+import GroupHoverActions from 'app/components/stream/groupHoverActions';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
@@ -235,6 +237,15 @@ class StreamGroup extends React.Component<Props, State> {
 
     return (
       <Wrapper data-test-id="group" onClick={this.toggleSelect}>
+        <Feature organization={organization} features={['organizations:inbox']}>
+          <GroupHoverActions
+            group={data}
+            orgId={organization.slug}
+            projectSlug={data.project}
+            selection={selection}
+            query={query}
+          />
+        </Feature>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -400,7 +411,9 @@ class StreamGroup extends React.Component<Props, State> {
   }
 }
 
+// Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)`
+  position: relative;
   padding: ${space(1)} 0;
   align-items: center;
   line-height: 1.1;

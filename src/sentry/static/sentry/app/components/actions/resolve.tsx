@@ -23,6 +23,7 @@ const defaultProps = {
   isResolved: false,
   isAutoResolved: false,
   confirmLabel: t('Resolve'),
+  inboxHoverAction: false,
 };
 
 type Props = {
@@ -36,6 +37,7 @@ type Props = {
   disabled?: boolean;
   disableDropdown?: boolean;
   projectFetchError?: boolean;
+  inboxHoverAction?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -126,6 +128,7 @@ class ResolveActions extends React.Component<Props, State> {
       confirmLabel,
       disableDropdown,
       projectFetchError,
+      inboxHoverAction,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -158,23 +161,29 @@ class ResolveActions extends React.Component<Props, State> {
         />
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
           <div className="btn-group">
-            <StyledActionLink
-              {...actionLinkProps}
-              title={t('Resolve')}
-              className={buttonClass}
-              onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
-            >
-              <StyledIconCheckmark size="xs" />
-              {t('Resolve')}
-            </StyledActionLink>
+            {!inboxHoverAction && (
+              <StyledActionLink
+                {...actionLinkProps}
+                title={t('Resolve')}
+                className={buttonClass}
+                onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+              >
+                <StyledIconCheckmark size="xs" />
+                {t('Resolve')}
+              </StyledActionLink>
+            )}
 
             <StyledDropdownLink
               key="resolve-dropdown"
-              caret
+              caret={!inboxHoverAction}
               className={buttonClass}
+              customTitle={
+                inboxHoverAction ? <IconCheckmark size="xs" color="gray200" /> : undefined
+              }
               title=""
               alwaysRenderMenu
               disabled={disableDropdown || disabled}
+              anchorRight={inboxHoverAction}
             >
               <MenuItem header>{t('Resolved In')}</MenuItem>
               <MenuItem noAnchor>
@@ -250,6 +259,8 @@ const StyledActionLink = styled(ActionLink)`
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
+  display: flex;
+  align-items: center;
   transition: none;
 `;
 
