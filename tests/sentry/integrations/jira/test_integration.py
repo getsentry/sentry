@@ -9,61 +9,23 @@ import copy
 from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 from exam import fixture
-from sentry.utils.compat.mock import Mock
 
 from sentry.integrations.jira import JiraIntegrationProvider
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models import (
     ExternalIssue,
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from tests.fixtures.integrations.jira.mocks.jira import StubJiraApiClient
 from tests.fixtures.integrations.mock_service import StubService
-
-
-class MockJiraApiClient(object):
-    def get_create_meta_for_project(self, project):
-        resp = json.loads(SAMPLE_CREATE_META_RESPONSE)
-        if project == "10001":
-            resp["projects"][0]["id"] = "10001"
-        return resp["projects"][0]
-
-    def get_projects_list(self):
-        return json.loads(SAMPLE_PROJECT_LIST_RESPONSE)
-
-    def get_issue(self, issue_key):
-        return json.loads(SAMPLE_GET_ISSUE_RESPONSE.strip())
-
-    def create_comment(self, issue_id, comment):
-        return comment
-
-    def update_comment(self, issue_key, comment_id, comment):
-        return comment
-
-    def create_issue(self, data):
-        return {"key": "APP-123"}
-
-    def get_transitions(self, issue_key):
-        return json.loads(SAMPLE_TRANSITION_RESPONSE)["transitions"]
-
-    def transition_issue(self, issue_key, transition_id):
-        pass
-
-    def user_id_field(self):
-        return "accountId"
-
-    def get_user(self, user_id):
-        user = json.loads(EXAMPLE_JIRA_CLOUD_USER)
-        if user["accountId"] == user_id:
-            return user
-        raise ApiError("no user found")
 
 
 class JiraIntegrationTest(APITestCase):
@@ -103,7 +65,7 @@ class JiraIntegrationTest(APITestCase):
         installation = self.integration.get_installation(org.id)
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
             assert installation.get_create_issue_config(group, self.user) == [
@@ -202,7 +164,7 @@ class JiraIntegrationTest(APITestCase):
         installation = self.integration.get_installation(org.id)
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         # When persisted reporter matches a user JIRA knows about, a default is picked.
         account_id = StubService.get_stub_data("jira", "user.json")["accountId"]
@@ -253,7 +215,7 @@ class JiraIntegrationTest(APITestCase):
         installation = self.integration.get_installation(org.id)
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
             # Initially all fields are present
@@ -305,7 +267,7 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration.save()
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(
@@ -342,7 +304,7 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration.save()
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -379,7 +341,7 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration.save()
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
             fields = installation.get_create_issue_config(group, self.user)
@@ -473,7 +435,7 @@ class JiraIntegrationTest(APITestCase):
         installation = self.integration.get_installation(org.id)
 
         def get_client():
-            return MockJiraApiClient()
+            return StubJiraApiClient()
 
         with mock.patch.object(installation, "get_client", get_client):
             assert installation.create_issue(
@@ -560,10 +522,10 @@ class JiraIntegrationTest(APITestCase):
 
         installation = integration.get_installation(org.id)
 
-        with mock.patch.object(MockJiraApiClient, "transition_issue") as mock_transition_issue:
+        with mock.patch.object(StubJiraApiClient, "transition_issue") as mock_transition_issue:
 
             def get_client():
-                return MockJiraApiClient()
+                return StubJiraApiClient()
 
             with mock.patch.object(installation, "get_client", get_client):
                 # test unresolve -- 21 is "in progress" transition id
@@ -880,14 +842,14 @@ class JiraIntegrationTest(APITestCase):
         integration.add_organization(org, self.user)
         installation = integration.get_installation(org.id)
 
-        group_note = Mock()
+        group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
         group_note.data = {}
         group_note.data["text"] = comment
-        with mock.patch.object(MockJiraApiClient, "create_comment") as mock_create_comment:
+        with mock.patch.object(StubJiraApiClient, "create_comment") as mock_create_comment:
 
             def get_client():
-                return MockJiraApiClient()
+                return StubJiraApiClient()
 
             with mock.patch.object(installation, "get_client", get_client):
                 installation.create_comment(1, self.user.id, group_note)
@@ -907,15 +869,15 @@ class JiraIntegrationTest(APITestCase):
         integration.add_organization(org, self.user)
         installation = integration.get_installation(org.id)
 
-        group_note = Mock()
+        group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
         group_note.data = {}
         group_note.data["text"] = comment
         group_note.data["external_id"] = "123"
-        with mock.patch.object(MockJiraApiClient, "update_comment") as mock_update_comment:
+        with mock.patch.object(StubJiraApiClient, "update_comment") as mock_update_comment:
 
             def get_client():
-                return MockJiraApiClient()
+                return StubJiraApiClient()
 
             with mock.patch.object(installation, "get_client", get_client):
                 installation.update_comment(1, self.user.id, group_note)
