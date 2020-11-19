@@ -153,7 +153,7 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location} = this.props;
+    const {organization, projects, location} = this.props;
     const {eventView} = this.state;
     const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
@@ -169,9 +169,25 @@ class TransactionSummary extends React.Component<Props, State> {
     }
     const [totalsView, emptyValues] = this.getTotalsEventView(organization, eventView);
 
+    const shouldForceProject = eventView.project.length === 1;
+    const forceProject = shouldForceProject
+      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
+      : undefined;
+    const projectSlugs = eventView.project
+      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
+      .filter((p: Project | undefined): p is Project => p !== undefined)
+      .map(p => p.slug);
+
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <GlobalSelectionHeader>
+        <GlobalSelectionHeader
+          lockedMessageSubject={t('transaction')}
+          shouldForceProject={shouldForceProject}
+          forceProject={forceProject}
+          specificProjectSlugs={projectSlugs}
+          disableMultipleProjectSelection
+          showProjectSettingsLink
+        >
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <DiscoverQuery
