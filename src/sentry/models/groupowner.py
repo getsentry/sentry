@@ -39,7 +39,7 @@ class GroupOwner(Model):
         ), "Must have Team or User, not both"
         super(GroupOwner, self).save(*args, **kwargs)
 
-    def assigned_actor_id(self):
+    def owner_id(self):
         if self.user:
             return u"user:{}".format(self.user_id)
 
@@ -48,7 +48,7 @@ class GroupOwner(Model):
 
         raise NotImplementedError("Unknown Owner")
 
-    def assigned_actor(self):
+    def owner(self):
         from sentry.api.fields.actor import Actor
 
-        return Actor.from_actor_identifier(self.assigned_actor_id())
+        return Actor.from_actor_identifier(self.owner_id())
