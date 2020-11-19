@@ -891,6 +891,10 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable the new Performance Landing page
+    "organizations:performance-landing-v2": False,
+    # Enable the views for performance vitals
+    "organizations:performance-vitals-overview": False,
     # Enable the new Project Detail page
     "organizations:project-detail": False,
     # Enable the new Related Events feature

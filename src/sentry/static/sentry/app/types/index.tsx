@@ -214,7 +214,7 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
-  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
@@ -1209,6 +1209,7 @@ export type ReleaseMeta = {
   version: string;
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
+  released: string;
 };
 
 export type VersionInfo = {

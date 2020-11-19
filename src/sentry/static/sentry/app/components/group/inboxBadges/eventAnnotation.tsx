@@ -9,13 +9,22 @@ import Tag from 'app/components/tag';
  */
 
 type Props = {
-  annotation: string;
+  annotation?: string;
+  htmlAnnotation?: string;
   to?: {
     pathname: string;
     query: Query;
   };
 };
 
-const EventAnnotation = ({annotation, to}: Props) => <Tag to={to}>{annotation}</Tag>;
+const EventAnnotation = ({annotation, htmlAnnotation, to}: Props) => (
+  <Tag to={to}>
+    {htmlAnnotation ? (
+      <span dangerouslySetInnerHTML={{__html: htmlAnnotation}} />
+    ) : (
+      annotation
+    )}
+  </Tag>
+);
 
 export default EventAnnotation;
