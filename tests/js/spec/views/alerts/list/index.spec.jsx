@@ -108,7 +108,7 @@ describe('IncidentsList', function () {
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {query: 'slug:a slug:b slug:c'},
+        query: expect.objectContaining({query: 'slug:a slug:b slug:c'}),
       })
     );
     expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
