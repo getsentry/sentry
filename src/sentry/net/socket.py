@@ -93,7 +93,7 @@ def is_safe_hostname(hostname):
             # Only one bad apple will spoil the entire lookup, so be nice.
             if not is_ipaddress_allowed(address[0]):
                 return False
-    except socket.gaierror:
+    except (socket.gaierror, UnicodeError):
         # If we fail to resolve, automatically bad
         return False
 
