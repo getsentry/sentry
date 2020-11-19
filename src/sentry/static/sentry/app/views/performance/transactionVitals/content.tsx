@@ -4,7 +4,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
@@ -55,7 +55,7 @@ class VitalsContent extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})

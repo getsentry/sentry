@@ -60,7 +60,6 @@ def add_group_to_inbox(group, reason, reason_details=None):
     except jsonschema.ValidationError:
         logging.error("GroupInbox invalid jsonschema: {}".format(reason_details))
         reason_details = None
-        pass
 
     group_inbox, created = GroupInbox.objects.get_or_create(
         group=group,
@@ -80,3 +79,18 @@ def remove_group_from_inbox(group):
         group_inbox.delete()
     except GroupInbox.DoesNotExist:
         pass
+
+
+def get_inbox_details(group_list):
+    group_ids = [g.id for g in group_list]
+    group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
+    inbox_stats = {
+        gi.group_id: {
+            "reason": gi.reason,
+            "reason_details": gi.reason_details,
+            "date_added": gi.date_added,
+        }
+        for gi in group_inboxes
+    }
+
+    return inbox_stats

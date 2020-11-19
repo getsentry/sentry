@@ -31,7 +31,6 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupEnvironment,
-    GroupInbox,
     GroupLink,
     GroupMeta,
     GroupResolution,
@@ -48,6 +47,7 @@ from sentry.models import (
     UserOptionValue,
     Organization,
 )
+from sentry.models.groupinbox import get_inbox_details
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
@@ -939,20 +939,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         return None
 
-    def _get_inbox_details(self, item_list):
-        group_ids = [g.id for g in item_list]
-        group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
-        inbox_stats = {
-            gi.group_id: {
-                "reason": gi.reason,
-                "reason_details": gi.reason_details,
-                "date_added": gi.date_added,
-            }
-            for gi in group_inboxes
-        }
-
-        return inbox_stats
-
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
         return snuba_tsdb.get_range(
             model=snuba_tsdb.models.group,
@@ -974,6 +960,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if self.conditions and not self._collapse("filtered")
                 else None
             )
+<<<<<<< HEAD
+=======
+            if self._expand("inbox"):
+                inbox_stats = get_inbox_details(item_list)
+>>>>>>> origin
             for item in item_list:
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
