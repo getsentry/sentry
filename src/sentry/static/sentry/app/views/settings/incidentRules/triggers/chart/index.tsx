@@ -137,11 +137,12 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment} = this.props;
+    const {query, environment, timeWindow} = this.props;
     const {statsPeriod} = this.state;
     if (
       prevProps.environment !== environment ||
       prevProps.query !== query ||
+      prevProps.timeWindow !== timeWindow ||
       prevState.statsPeriod !== statsPeriod
     ) {
       this.fetchTotalCount();
