@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import {
@@ -8,7 +9,7 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import OptionSelector from 'app/components/charts/optionSelector';
-import styled from 'app/styled';
+import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -18,6 +19,8 @@ export enum YAxis {
   CRASH_FREE = 'crashFree',
   SESSION_DURATION = 'sessionDuration',
   EVENTS = 'events',
+  FAILED_TRANSACTIONS = 'failedTransactions',
+  ALL_TRANSACTIONS = 'allTransactions',
 }
 
 type Props = {
@@ -26,6 +29,7 @@ type Props = {
   onYAxisChange: (value: YAxis) => void;
   hasHealthData: boolean;
   hasDiscover: boolean;
+  hasPerformance: boolean;
 };
 
 const ReleaseChartControls = ({
@@ -34,12 +38,16 @@ const ReleaseChartControls = ({
   onYAxisChange,
   hasHealthData,
   hasDiscover,
+  hasPerformance,
 }: Props) => {
   const noHealthDataTooltip = !hasHealthData
     ? t('This view is only available with release health data.')
     : undefined;
   const noDiscoverTooltip = !hasDiscover
     ? t('This view is only available with Discover feature.')
+    : undefined;
+  const noPerformanceTooltip = !hasPerformance
+    ? t('This view is only available with Performance Monitoring.')
     : undefined;
   const yAxisOptions: SelectValue<YAxis>[] = [
     {
@@ -72,7 +80,23 @@ const ReleaseChartControls = ({
       disabled: !hasDiscover,
       tooltip: noDiscoverTooltip,
     },
-  ];
+    {
+      value: YAxis.FAILED_TRANSACTIONS,
+      label: t('Failed Transactions'),
+      disabled: !hasPerformance,
+      hidden: !hasPerformance,
+      tooltip: noPerformanceTooltip,
+    },
+    {
+      value: YAxis.ALL_TRANSACTIONS,
+      label: t('All Transactions'),
+      disabled: !hasPerformance,
+      hidden: !hasPerformance,
+      tooltip: noPerformanceTooltip,
+    },
+  ]
+    .filter(opt => !opt.hidden)
+    .map(({hidden: _hidden, ...rest}) => rest);
 
   const getSummaryHeading = () => {
     switch (yAxis) {
@@ -84,6 +108,10 @@ const ReleaseChartControls = ({
         return t('Median Duration');
       case YAxis.EVENTS:
         return t('Total Events');
+      case YAxis.FAILED_TRANSACTIONS:
+        return t('Failed Transactions');
+      case YAxis.ALL_TRANSACTIONS:
+        return t('Total Transactions');
       case YAxis.SESSIONS:
       default:
         return t('Total Sessions');
@@ -93,6 +121,13 @@ const ReleaseChartControls = ({
   return (
     <StyledChartControls>
       <InlineContainer>
+        {(yAxis === YAxis.FAILED_TRANSACTIONS || yAxis === YAxis.ALL_TRANSACTIONS) && (
+          <StyledQuestionTooltip
+            position="top"
+            size="sm"
+            title="This only shows the current release."
+          />
+        )}
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
       </InlineContainer>
@@ -117,6 +152,10 @@ const StyledChartControls = styled(ChartControls)`
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-right: ${space(1)};
 `;
 
 export default ReleaseChartControls;
