@@ -338,7 +338,8 @@ const FormRow = styled('div')`
 
 const FormRowText = styled('div')`
   padding: ${space(0.5)};
-  line-height: 40px;
+  /* Match the height of the select controls */
+  line-height: 36px;
 `;
 
 export default RuleConditionsFormWithGuiFilters;
