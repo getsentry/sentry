@@ -19,6 +19,7 @@ import TextOverflow from 'app/components/textOverflow';
 import CreateAlertButton from 'app/components/createAlertButton';
 
 import ProjectScoreCards from './projectScoreCards';
+import ProjectTeamAccess from './projectTeamAccess';
 
 type RouteParams = {
   orgId: string;
@@ -106,7 +107,8 @@ class ProjectDetail extends AsyncView<Props, State> {
                 <ProjectScoreCards />
               </Layout.Main>
               <Layout.Side>
-                <h4>sidebar</h4>
+                <ProjectTeamAccess organization={organization} project={project} />
+
                 <p>
                   Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
                   doloremque ut perferendis harum, optio temporibus eaque officia, illo
