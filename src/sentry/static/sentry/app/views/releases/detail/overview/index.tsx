@@ -108,8 +108,8 @@ class ReleaseOverview extends AsyncView<Props> {
       version: 2,
       name: `Release ${formatVersion(version)}`,
       query: `release:${version}`,
-      fields: ['transaction', 'failure_rate()', 'epm()', 'p50()'],
-      orderby: 'epm',
+      fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
+      orderby: '-failure_count',
       range: period,
       environment: environments,
       projects: [projectId],
@@ -230,7 +230,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         handleDropdownChange={this.handleTransactionsListSortChange}
                         titles={[
                           t('transaction'),
-                          t('failure_rate()'),
+                          t('failure_count()'),
                           t('tpm()'),
                           t('p50()'),
                         ]}
@@ -329,8 +329,8 @@ function getDropdownOptions(): DropdownOption[] {
       label: t('Transactions'),
     },
     {
-      sort: {kind: 'desc', field: 'failure_rate'},
-      value: 'failure_rate',
+      sort: {kind: 'desc', field: 'failure_count'},
+      value: 'failure_count',
       label: t('Failing Transactions'),
     },
     {

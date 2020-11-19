@@ -2818,6 +2818,31 @@ class ResolveFieldListTest(unittest.TestCase):
             "this": "'b'",
         }
 
+    def test_failure_count_function(self):
+        fields = ["failure_count()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "and",
+                        [
+                            ["notEquals", ["transaction_status", 0]],
+                            [
+                                "and",
+                                [
+                                    ["notEquals", ["transaction_status", 1]],
+                                    ["notEquals", ["transaction_status", 2]],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                "failure_count",
+            ],
+        ]
+
 
 def with_type(type, argument):
     argument.get_type = lambda *_: type
