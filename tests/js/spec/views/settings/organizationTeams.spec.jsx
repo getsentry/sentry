@@ -48,7 +48,7 @@ describe('OrganizationTeams', function () {
       const wrapper = createWrapper();
 
       // Click "Create Team" in Panel Header
-      wrapper.find('SettingsPageHeading Button').simulate('click');
+      wrapper.find('SettingsPageHeader Button').simulate('click');
 
       // action creator to open "create team modal" is called
       expect(openCreateTeamModal).toHaveBeenCalledWith(
