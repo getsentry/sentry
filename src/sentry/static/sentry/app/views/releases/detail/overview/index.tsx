@@ -113,8 +113,8 @@ class ReleaseOverview extends AsyncView<Props> {
           id: undefined,
           version: 2,
           name: `Release ${formatVersion(version)}`,
-          query: `release:${version} has:measurements.lcp`,
-          fields: ['transaction', 'failure_rate()', 'epm()', 'p75(measurements.lcp)'],
+          query: `event.type:transactions release:${version} has:measurements.lcp`,
+          fields: ['transaction', 'failure_count()', 'epm()', 'p75(measurements.lcp)'],
           orderby: 'p75_measurements_lcp',
           range: period,
           environment: environments,
@@ -127,9 +127,9 @@ class ReleaseOverview extends AsyncView<Props> {
           id: undefined,
           version: 2,
           name: `Release ${formatVersion(version)}`,
-          query: `release:${version}`,
-          fields: ['transaction', 'failure_rate()', 'epm()', 'p50()'],
-          orderby: 'epm',
+          query: `event.type:transactions release:${version}`,
+          fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
+          orderby: '-failure_count',
           range: period,
           environment: environments,
           projects: [projectId],
@@ -181,6 +181,9 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
+          const hasPerformance =
+            organization.features.includes('performance-view') &&
+            organization.features.includes('release-performance-views');
           const yAxis = this.getYAxis(hasHealthData);
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
@@ -191,8 +194,8 @@ class ReleaseOverview extends AsyncView<Props> {
           );
           const titles =
             selectedSort.value !== 'p75_lcp'
-              ? [t('transaction'), t('failure_rate()'), t('tpm()'), t('p50()')]
-              : [t('transaction'), t('failure_rate()'), t('tpm()'), t('p75(lcp)')];
+              ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')]
+              : [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')];
           const releaseTrendView = this.getReleaseTrendView(
             version,
             project.id,
@@ -210,6 +213,7 @@ class ReleaseOverview extends AsyncView<Props> {
               yAxis={yAxis}
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
+              hasPerformance={hasPerformance}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <StyledBody>
@@ -220,7 +224,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       />
                     )}
 
-                    {(hasDiscover || hasHealthData) && (
+                    {(hasDiscover || hasPerformance || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}
                         selection={selection}
@@ -233,6 +237,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         api={api}
                         version={version}
                         hasDiscover={hasDiscover}
+                        hasPerformance={hasPerformance}
                       />
                     )}
                     <Issues
@@ -248,7 +253,6 @@ class ReleaseOverview extends AsyncView<Props> {
                         organization={organization}
                         eventView={releaseEventView}
                         trendView={releaseTrendView}
-                        dropdownTitle={t('Show')}
                         selected={selectedSort}
                         options={sortOptions}
                         handleDropdownChange={this.handleTransactionsListSortChange}
@@ -343,13 +347,8 @@ function generateTransactionLinkFn(
 function getDropdownOptions(): DropdownOption[] {
   return [
     {
-      sort: {kind: 'asc', field: 'transaction'},
-      value: 'name',
-      label: t('Transactions'),
-    },
-    {
-      sort: {kind: 'desc', field: 'failure_rate'},
-      value: 'failure_rate',
+      sort: {kind: 'desc', field: 'failure_count'},
+      value: 'failure_count',
       label: t('Failing Transactions'),
     },
     {

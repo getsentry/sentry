@@ -29,6 +29,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         :auth: required
         """
         stats_period = request.GET.get("statsPeriod")
+        collapse = request.GET.getlist("collapse", [])
         if stats_period not in (None, "", "24h", "14d", "30d"):
             return Response(
                 {"error": {"params": {"stats_period": {"message": ERR_INVALID_STATS_PERIOD}}}},
@@ -98,7 +99,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
-            return Response(serialize(list(queryset), request.user, ProjectSummarySerializer()))
+            return Response(
+                serialize(list(queryset), request.user, ProjectSummarySerializer(collapse=collapse))
+            )
         else:
 
             def serialize_on_result(result):
@@ -108,6 +111,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     environment_id=environment_id,
                     stats_period=stats_period,
                     transaction_stats=transaction_stats,
+                    collapse=collapse,
                 )
                 return serialize(result, request.user, serializer)
 

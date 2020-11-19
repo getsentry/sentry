@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withRouter, WithRouterProps} from 'react-router';
 
 import {Project, Organization} from 'app/types';
 import {t, tct} from 'app/locale';
@@ -14,6 +15,7 @@ import {
   transactionFieldConfig,
 } from 'app/views/settings/incidentRules/constants';
 import Link from 'app/components/links/link';
+import {navigateTo} from 'app/actionCreators/navigation';
 
 /**
  * Discover query supports more features than alert rules
@@ -167,7 +169,7 @@ function IncompatibleQueryAlert({
   );
 }
 
-type Props = React.ComponentProps<typeof Button> & {
+type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
   className?: string;
   projects: Project[];
   /**
@@ -231,7 +233,7 @@ function incompatibleYAxis(eventView: EventView): boolean {
  * Provide a button that can create an alert from an event view.
  * Emits incompatible query issues on click
  */
-function CreateAlertButton({
+function CreateAlertFromViewButton({
   projects,
   eventView,
   organization,
@@ -239,7 +241,7 @@ function CreateAlertButton({
   onIncompatibleQuery,
   onSuccess,
   ...buttonProps
-}: Props) {
+}: CreateAlertFromViewButtonProps) {
   // Must have exactly one project selected and not -1 (all projects)
   const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
   // Must have one or zero environments
@@ -290,28 +292,64 @@ function CreateAlertButton({
   };
 
   return (
-    <Access organization={organization} access={['project:write']}>
-      {({hasAccess}) => (
-        <Button
-          type="button"
-          disabled={!hasAccess}
-          title={
-            !hasAccess
-              ? t('Users with admin permission or higher can create alert rules.')
-              : undefined
-          }
-          icon={<IconSiren />}
-          to={to}
-          onClick={handleClick}
-          {...buttonProps}
-        >
-          {t('Create alert')}
-        </Button>
-      )}
-    </Access>
+    <CreateAlertButton
+      organization={organization}
+      onClick={handleClick}
+      to={to}
+      {...buttonProps}
+    />
   );
 }
 
+type Props = {
+  organization: Organization;
+  projectSlug?: string;
+  iconProps?: React.ComponentProps<typeof IconSiren>;
+  referrer?: string;
+} & WithRouterProps &
+  React.ComponentProps<typeof Button>;
+
+const CreateAlertButton = withRouter(
+  ({organization, projectSlug, iconProps, referrer, router, ...buttonProps}: Props) => {
+    function handleClickWithoutProject(event: React.MouseEvent) {
+      event.preventDefault();
+
+      navigateTo(
+        `/organizations/${organization.slug}/alerts/:projectId/new/${
+          referrer ? `?referrer=${referrer}` : ''
+        }`,
+        router
+      );
+    }
+
+    return (
+      <Access organization={organization} access={['project:write']}>
+        {({hasAccess}) => (
+          <Button
+            disabled={!hasAccess}
+            title={
+              !hasAccess
+                ? t('Users with admin permission or higher can create alert rules.')
+                : undefined
+            }
+            icon={<IconSiren {...iconProps} />}
+            to={
+              projectSlug
+                ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
+                : undefined
+            }
+            onClick={projectSlug ? undefined : handleClickWithoutProject}
+            {...buttonProps}
+          >
+            {buttonProps.children ?? t('Create Alert')}
+          </Button>
+        )}
+      </Access>
+    );
+  }
+);
+
+export {CreateAlertFromViewButton};
 export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`

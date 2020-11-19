@@ -104,7 +104,7 @@ class TrendChart extends React.Component<Props> {
         fontSize: 11,
         fontFamily: 'Rubik',
       },
-      selected: getSeriesSelection(location),
+      selected: getSeriesSelection(location, 'trendsUnselectedSeries'),
     };
 
     const datetimeSelection = {
