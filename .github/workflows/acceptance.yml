@@ -151,6 +151,9 @@ jobs:
           yarn install --frozen-lockfile
 
       - name: webpack
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn webpack --display errors-only
 
