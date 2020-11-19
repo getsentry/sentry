@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-// eslint-disable-next-line import/named
-import {components, SingleValueProps, OptionProps} from 'react-select';
 import {browserHistory} from 'react-router';
 
 import {Organization} from 'app/types';
