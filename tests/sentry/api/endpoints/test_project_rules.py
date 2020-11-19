@@ -1,60 +1,54 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
 
-class ProjectRuleListTest(APITestCase):
-    def test_simple(self):
+class ProjectRuleBaseTest(APITestCase):
+    endpoint = "sentry-api-0-project-rules"
+
+    def setUp(self):
         self.login_as(user=self.user)
 
+
+class ProjectRuleListTest(ProjectRuleBaseTest):
+    def setUp(self):
+        super(ProjectRuleListTest, self).setUp()
+
+    def test_simple(self):
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         self.create_project(teams=[team], name="bar")
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
-        )
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200, response.content
-
+        response = self.get_valid_response(project1.organization.slug, project1.slug)
         rule_count = Rule.objects.filter(project=project1).count()
         assert len(response.data) == rule_count
 
 
-class CreateProjectRuleTest(APITestCase):
+class CreateProjectRuleTest(ProjectRuleBaseTest):
+    method = "post"
+
+    def setUp(self):
+        super(CreateProjectRuleTest, self).setUp()
+
     def test_simple(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
 
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "hello world",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
                 "conditions": conditions,
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["id"]
         assert response.data["createdBy"] == {
             "id": self.user.id,
@@ -74,23 +68,16 @@ class CreateProjectRuleTest(APITestCase):
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
 
     def test_with_environment(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        Environment.get_or_create(project, "production")
+        Environment.get_or_create(self.project, "production")
 
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
 
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "hello world",
                 "environment": "production",
                 "conditions": conditions,
@@ -98,11 +85,8 @@ class CreateProjectRuleTest(APITestCase):
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["id"]
         assert response.data["environment"] == "production"
 
@@ -113,21 +97,14 @@ class CreateProjectRuleTest(APITestCase):
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
 
     def test_with_null_environment(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
 
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "hello world",
                 "environment": None,
                 "conditions": conditions,
@@ -135,11 +112,8 @@ class CreateProjectRuleTest(APITestCase):
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["id"]
         assert response.data["environment"] is None
 
@@ -148,8 +122,6 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.environment_id is None
 
     def test_slack_channel_id_saved(self):
-        self.login_as(user=self.user)
-
         project = self.create_project()
         integration = Integration.objects.create(
             provider="slack",
@@ -159,13 +131,10 @@ class CreateProjectRuleTest(APITestCase):
         )
         integration.add_organization(project.organization, self.user)
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            project.organization.slug,
+            project.slug,
+            **{
                 "name": "hello world",
                 "environment": None,
                 "actionMatch": "any",
@@ -182,44 +151,28 @@ class CreateProjectRuleTest(APITestCase):
                 "conditions": [
                     {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
                 ],
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["actions"][0]["channel_id"] == "CSVK0921"
 
     def test_missing_name(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
 
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            status_code=400,
+            **{
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
                 "conditions": conditions,
-            },
-            format="json",
+            }
         )
 
-        assert response.status_code == 400, response.content
-
     def test_match_values(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [
             {
                 "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
@@ -230,24 +183,18 @@ class CreateProjectRuleTest(APITestCase):
 
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "hello world",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
                 "conditions": conditions,
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
 
         # should fail if using another match type
         conditions = [
@@ -258,39 +205,31 @@ class CreateProjectRuleTest(APITestCase):
             }
         ]
 
-        response = self.client.post(
-            url,
-            data={
+        self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            status_code=400,
+            **{
                 "name": "hello world",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
                 "conditions": conditions,
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
 
-        assert response.status_code == 400, response.content
-
     def test_with_filters(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         filters = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "hello world",
                 "conditions": conditions,
                 "filters": filters,
@@ -298,11 +237,8 @@ class CreateProjectRuleTest(APITestCase):
                 "filterMatch": "any",
                 "actionMatch": "any",
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["id"]
 
         rule = Rule.objects.get(id=response.data["id"])
@@ -310,93 +246,64 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.data["conditions"] == conditions + filters
 
     def test_with_no_filter_match(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
 
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "hello world",
                 "conditions": conditions,
                 "actions": actions,
                 "actionMatch": "any",
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["id"]
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == "hello world"
 
     def test_with_filters_without_match(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         filters = [
             {"id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter", "value": 10}
         ]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            status_code=400,
+            **{
                 "name": "hello world",
                 "conditions": conditions,
                 "filters": filters,
                 "actions": actions,
                 "actionMatch": "any",
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 400
         assert json.loads(response.content) == {
             "filterMatch": ["Must select a filter match (all, any, none) if filters are supplied."]
         }
 
     def test_no_actions(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
 
-        url = reverse(
-            "sentry-api-0-project-rules",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.post(
-            url,
-            data={
+        response = self.get_valid_response(
+            self.project.organization.slug,
+            self.project.slug,
+            **{
                 "name": "no action rule",
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "conditions": conditions,
                 "frequency": 30,
-            },
-            format="json",
+            }
         )
-
-        assert response.status_code == 200, response.content
         assert response.data["id"]
         assert response.data["createdBy"] == {
             "id": self.user.id,

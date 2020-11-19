@@ -5,8 +5,6 @@ import responses
 from exam import fixture
 from six.moves.urllib.parse import urlparse, parse_qs
 
-from django.core.urlresolvers import reverse
-
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 
@@ -46,6 +44,8 @@ SAMPLE_USER_SEARCH_RESPONSE = """
 
 
 class JiraSearchEndpointTest(APITestCase):
+    endpoint = "sentry-extensions-jira-search"
+
     @fixture
     def integration(self):
         integration = Integration.objects.create(
@@ -73,11 +73,12 @@ class JiraSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
-
-        resp = self.client.get("%s?field=externalIssue&query=test" % (path,))
-        assert resp.status_code == 200
-        assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
+        response = self.get_valid_response(
+            org.slug, self.integration.id, qs_params={"field": "externalIssue", "query": "test"}
+        )
+        assert response.data == [
+            {"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}
+        ]
 
     @responses.activate
     def test_issue_search_id(self):
@@ -95,12 +96,13 @@ class JiraSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
-
         # queries come through from the front end lowercased, so HSP-1 -> hsp-1
-        resp = self.client.get("%s?field=externalIssue&query=hsp-1" % (path,))
-        assert resp.status_code == 200
-        assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
+        response = self.get_valid_response(
+            org.slug, self.integration.id, qs_params={"field": "externalIssue", "query": "hsp-1"}
+        )
+        assert response.data == [
+            {"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}
+        ]
 
     @responses.activate
     def test_issue_search_error(self):
@@ -114,11 +116,15 @@ class JiraSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
-
-        resp = self.client.get("%s?field=externalIssue&query=test" % (path,))
-        assert resp.status_code == 400
-        assert resp.data == {"detail": "Error Communicating with Jira (HTTP 500): unknown error"}
+        response = self.get_valid_response(
+            org.slug,
+            self.integration.id,
+            qs_params={"field": "externalIssue", "query": "test"},
+            status_code=400,
+        )
+        assert response.data == {
+            "detail": "Error Communicating with Jira (HTTP 500): unknown error"
+        }
 
     @responses.activate
     def test_assignee_search(self):
@@ -145,11 +151,12 @@ class JiraSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
-
-        resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
-        assert resp.status_code == 200
-        assert resp.data == [{"value": "deadbeef123", "label": "Bobby - bob@example.org"}]
+        response = self.get_valid_response(
+            org.slug,
+            self.integration.id,
+            qs_params={"project": "10000", "field": "assignee", "query": "bob"},
+        )
+        assert response.data == [{"value": "deadbeef123", "label": "Bobby - bob@example.org"}]
 
     @responses.activate
     def test_assignee_search_error(self):
@@ -169,7 +176,9 @@ class JiraSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
-
-        resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
-        assert resp.status_code == 400
+        self.get_valid_response(
+            org.slug,
+            self.integration.id,
+            qs_params={"project": "10000", "field": "assignee", "query": "bob"},
+            status_code=400,
+        )
