@@ -85,14 +85,14 @@ const DebugFileRow = ({
             </FeatureTags>
           )}
           {showDetails && (
-            <Details>
+            <div>
               {/* there will be more stuff here in the future */}
               {codeId && (
                 <DetailsItem>
                   {t('Code ID')}: {codeId}
                 </DetailsItem>
               )}
-            </Details>
+            </div>
           )}
         </Description>
       </Column>
@@ -211,8 +211,6 @@ const Description = styled('div')`
     line-height: 1.7;
   }
 `;
-
-const Details = styled('div')``;
 
 const DetailsItem = styled('div')`
   ${overflowEllipsis}

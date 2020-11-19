@@ -125,6 +125,7 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
 
 const IconWrapper = styled('span')`
   margin-right: ${space(0.5)};
+  display: inline-flex;
 `;
 
 const Text = styled('span')`
