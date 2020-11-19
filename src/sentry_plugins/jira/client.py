@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 def md5(*bits):
-    return _md5(":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
 
 
 class JiraClient(ApiClient):
@@ -26,11 +26,11 @@ class JiraClient(ApiClient):
     META_URL = "/rest/api/2/issue/createmeta"
     CREATE_URL = "/rest/api/2/issue"
     PRIORITIES_URL = "/rest/api/2/priority"
-    VERSIONS_URL = "/rest/api/2/project/%s/versions"
+    VERSIONS_URL = u"/rest/api/2/project/{}/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
-    ISSUE_URL = "/rest/api/2/issue/%s"
+    ISSUE_URL = u"/rest/api/2/issue/{}"
     SEARCH_URL = "/rest/api/2/search/"
-    COMMENT_URL = "/rest/api/2/issue/%s/comment"
+    COMMENT_URL = u"/rest/api/2/issue/{}/comment"
     HTTP_TIMEOUT = 5
     plugin_name = "jira"
 
@@ -71,7 +71,7 @@ class JiraClient(ApiClient):
             return None
 
     def get_versions(self, project):
-        return self.get_cached(self.VERSIONS_URL % project)
+        return self.get_cached(self.VERSIONS_URL.format(project))
 
     def get_priorities(self):
         return self.get_cached(self.PRIORITIES_URL)
@@ -87,18 +87,18 @@ class JiraClient(ApiClient):
         return self.post(self.CREATE_URL, data=data)
 
     def get_issue(self, key):
-        return self.get(self.ISSUE_URL % key)
+        return self.get(self.ISSUE_URL.format(key))
 
     def create_comment(self, issue_key, comment):
-        return self.post(self.COMMENT_URL % issue_key, data={"body": comment})
+        return self.post(self.COMMENT_URL.format(issue_key), data={"body": comment})
 
     def search_issues(self, project, query):
         # check if it looks like an issue id
         if re.search(r"^[A-Za-z]+-\d+$", query) and project.lower() in query.lower():
-            jql = 'id="%s"' % query.replace('"', '\\"')
+            jql = u'id="{}"'.format(query.replace('"', '\\"'))
         else:
-            jql = 'text ~ "%s"' % query.replace('"', '\\"')
-        jql = 'project="%s" AND %s' % (project, jql)
+            jql = u'text ~ "{}"'.format(query.replace('"', '\\"'))
+        jql = u'project="{project}" AND {jql}'.format(project=project, jql=jql)
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
     # Steve(XXX): Might consider moving this method to the base plugin API client

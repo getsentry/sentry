@@ -3,47 +3,54 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Dashboard, Widget, WidgetDataSource, WidgetDisplayTypes
+from sentry.models import (
+    Dashboard,
+    DashboardWidget,
+    DashboardWidgetQuery,
+    DashboardWidgetDisplayTypes,
+)
 
 
-@register(Widget)
-class WidgetSerializer(Serializer):
+@register(DashboardWidget)
+class DashboardWidgetSerializer(Serializer):
     def get_attrs(self, item_list, user):
         result = {}
         data_sources = serialize(
-            list(WidgetDataSource.objects.filter(widget_id__in=[i.id for i in item_list]))
+            list(
+                DashboardWidgetQuery.objects.filter(
+                    widget_id__in=[i.id for i in item_list]
+                ).order_by("order")
+            )
         )
 
         for widget in item_list:
             widget_data_sources = [
                 d for d in data_sources if d["widgetId"] == six.text_type(widget.id)
             ]
-            result[widget] = {"dataSources": widget_data_sources}
+            result[widget] = {"queries": widget_data_sources}
 
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": six.text_type(obj.id),
-            "order": six.text_type(obj.order),
             "title": obj.title,
-            "displayType": WidgetDisplayTypes.get_type_name(obj.display_type),
-            "displayOptions": obj.display_options,
+            "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
             "dateCreated": obj.date_added,
             "dashboardId": six.text_type(obj.dashboard_id),
-            "dataSources": attrs["dataSources"],
+            "queries": attrs["queries"],
         }
 
 
-@register(WidgetDataSource)
-class WidgetDataSourceSerializer(Serializer):
+@register(DashboardWidgetQuery)
+class DashboardWidgetQuerySerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": six.text_type(obj.id),
-            "type": obj.type,
             "name": obj.name,
-            "data": obj.data,
-            "order": six.text_type(obj.order),
+            "fields": obj.fields,
+            "conditions": six.text_type(obj.conditions),
+            "interval": six.text_type(obj.interval),
             "widgetId": six.text_type(obj.widget_id),
         }
 
@@ -53,7 +60,13 @@ class DashboardWithWidgetsSerializer(Serializer):
     def get_attrs(self, item_list, user):
         result = {}
 
-        widgets = serialize(list(Widget.objects.filter(dashboard_id__in=[i.id for i in item_list])))
+        widgets = serialize(
+            list(
+                DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
+                    "order"
+                )
+            )
+        )
 
         for dashboard in item_list:
             dashboard_widgets = [

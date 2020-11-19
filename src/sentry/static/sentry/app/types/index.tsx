@@ -214,7 +214,7 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
-  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
@@ -609,6 +609,12 @@ export type GlobalSelection = {
   };
 };
 
+type AuthenticatorDevice = {
+  key_handle: string;
+  authId: string;
+  name: string;
+};
+
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -656,6 +662,16 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  createdAt: string | null;
+
+  lastUsedAt: string | null;
+
+  codes: string[];
+
+  devices: AuthenticatorDevice[];
+
+  phone?: string;
 
   challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
@@ -732,25 +748,30 @@ export type InboxDetails = {
   };
 };
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
 // TODO(ts): incomplete
-export type Group = {
+export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
-  count: string;
   culprit: string;
   currentRelease: any; // TODO(ts)
   firstRelease: any; // TODO(ts)
-  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
-  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -765,16 +786,14 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, TimeseriesValue[]>;
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
-  userCount: number;
   userReportCount: number;
-  subscriptionDetails: SubscriptionDetails | null;
-  filtered?: any; // TODO(ts)
+  subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
 };
@@ -1190,6 +1209,7 @@ export type ReleaseMeta = {
   version: string;
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
+  released: string;
 };
 
 export type VersionInfo = {
@@ -1605,14 +1625,8 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType =
-  | 'java'
-  | 'csharp'
-  | 'objc'
-  | 'cocoa'
-  | 'native'
-  | 'javascript'
-  | 'other';
+// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
+export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Frame = {
   absPath: string | null;
@@ -1664,7 +1678,7 @@ export type ExceptionValue = {
   type: string;
   value: string;
   threadId: number | null;
-  stacktrace: StacktraceType;
+  stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
