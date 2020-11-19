@@ -108,6 +108,7 @@ from .endpoints.organization_events_meta import (
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
+from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
 from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
@@ -880,6 +881,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
                     OrganizationGroupIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
+                    OrganizationGroupIndexStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-group-index-stats",
                 ),
                 url(r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/", include(GROUP_URLS)),
                 url(

@@ -1010,3 +1010,20 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def calculate_stats_period(stats_period, start, end):
+    if stats_period is None:
+        # default
+        stats_period = "24h"
+    elif stats_period == "":
+        # disable stats
+        stats_period = None
+
+    if stats_period == "auto":
+        stats_period_start = start
+        stats_period_end = end
+    else:
+        stats_period_start = None
+        stats_period_end = None
+    return stats_period, stats_period_start, stats_period_end
