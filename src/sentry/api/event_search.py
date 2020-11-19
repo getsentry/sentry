@@ -1928,23 +1928,19 @@ FUNCTIONS = {
                 "countIf",
                 [
                     [
-                        "and",
+                        "not",
                         [
-                            ["notEquals", ["transaction_status", SPAN_STATUS_NAME_TO_CODE["ok"]]],
                             [
-                                "and",
+                                "has",
                                 [
                                     [
-                                        "notEquals",
+                                        "array",
                                         [
-                                            "transaction_status",
-                                            SPAN_STATUS_NAME_TO_CODE["cancelled"],
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
                                         ],
                                     ],
-                                    [
-                                        "notEquals",
-                                        ["transaction_status", SPAN_STATUS_NAME_TO_CODE["unknown"]],
-                                    ],
+                                    "transaction_status",
                                 ],
                             ],
                         ],

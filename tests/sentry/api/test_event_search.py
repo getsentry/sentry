@@ -5,7 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -2826,14 +2826,19 @@ class ResolveFieldListTest(unittest.TestCase):
                 "countIf",
                 [
                     [
-                        "and",
+                        "not",
                         [
-                            ["notEquals", ["transaction_status", 0]],
                             [
-                                "and",
+                                "has",
                                 [
-                                    ["notEquals", ["transaction_status", 1]],
-                                    ["notEquals", ["transaction_status", 2]],
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
                                 ],
                             ],
                         ],
