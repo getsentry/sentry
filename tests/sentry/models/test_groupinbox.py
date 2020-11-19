@@ -24,3 +24,8 @@ class GroupInboxTestCase(TestCase):
         assert not GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
+
+    def test_invalid_reason_details(self):
+        reason_details = {"meow": 123}
+        add_group_to_inbox(self.group, GroupInboxReason.NEW, reason_details)
+        assert GroupInbox.objects.get(group=self.group.id).reason_details is None
