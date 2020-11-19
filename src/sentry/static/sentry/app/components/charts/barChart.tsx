@@ -16,10 +16,6 @@ type Props = Omit<ChartProps, 'series'> & {
 };
 
 export default class BarChart extends React.Component<Props> {
-  static propTypes = {
-    ...BaseChart.propTypes,
-  };
-
   render() {
     const {series, stacked, xAxis, ...props} = this.props;
 

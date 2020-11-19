@@ -102,7 +102,10 @@ class Chart extends React.Component<ChartProps, State> {
     return true;
   }
 
-  getChartComponent() {
+  getChartComponent():
+    | React.ComponentType<BarChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']> {
     const {showDaily, timeseriesData, yAxis} = this.props;
     if (showDaily) {
       return BarChart;

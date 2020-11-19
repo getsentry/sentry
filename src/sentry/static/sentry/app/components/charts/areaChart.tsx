@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {EChartOption} from 'echarts';
 
 import {Series} from 'app/types/echarts';
@@ -17,11 +16,6 @@ type Props = Omit<ChartProps, 'series'> & {
 };
 
 class AreaChart extends React.Component<Props> {
-  static propTypes = {
-    ...BaseChart.propTypes,
-    stacked: PropTypes.bool,
-  };
-
   render() {
     const {series, stacked, colors, ...props} = this.props;
 

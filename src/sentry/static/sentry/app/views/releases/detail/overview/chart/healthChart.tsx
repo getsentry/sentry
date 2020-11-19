@@ -145,7 +145,10 @@ class HealthChart extends React.Component<Props> {
     return undefined;
   }
 
-  getChart() {
+  getChart():
+    | React.ComponentType<StackedAreaChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']> {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.SESSION_DURATION:
