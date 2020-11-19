@@ -1418,6 +1418,7 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
 
 
 class InvalidFunctionArgument(Exception):
@@ -1442,6 +1443,13 @@ class FunctionArg(object):
 
     def get_type(self, value):
         raise InvalidFunctionArgument(u"{} has no type defined".format(self.name))
+
+
+class FunctionAliasArg(FunctionArg):
+    def normalize(self, value, params):
+        if not ALIAS_PATTERN.match(value):
+            raise InvalidFunctionArgument(u"{} is not a valid function alias".format(value))
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -2050,7 +2058,7 @@ FUNCTIONS = {
         Function(
             "compare_aggregate",
             required_args=[
-                FunctionArg("aggregate_alias"),
+                FunctionAliasArg("aggregate_alias"),
                 ConditionArg("condition"),
                 NumberRange("value", 0, None),
             ],
@@ -2084,7 +2092,7 @@ FUNCTIONS = {
                 NumberRange("percentile", 0, 1),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"quantileIf({percentile:.2f})",
@@ -2126,7 +2134,7 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"avgIf",
@@ -2151,7 +2159,7 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"varSampIf",
@@ -2172,7 +2180,7 @@ FUNCTIONS = {
         ),
         Function(
             "count_range",
-            required_args=[DateArg("start"), DateArg("end"), FunctionArg("query_alias")],
+            required_args=[DateArg("start"), DateArg("end"), FunctionAliasArg("query_alias")],
             aggregate=[
                 u"countIf",
                 [
@@ -2192,9 +2200,9 @@ FUNCTIONS = {
         Function(
             "percentage",
             required_args=[
-                FunctionArg("numerator"),
-                FunctionArg("denominator"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("numerator"),
+                FunctionAliasArg("denominator"),
+                FunctionAliasArg("query_alias"),
             ],
             # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
             # This is because as a column it will be added to the `WHERE` clause instead of the `HAVING` clause
@@ -2209,12 +2217,12 @@ FUNCTIONS = {
         Function(
             "t_test",
             required_args=[
-                FunctionArg("avg_1"),
-                FunctionArg("avg_2"),
-                FunctionArg("variance_1"),
-                FunctionArg("variance_2"),
-                FunctionArg("count_1"),
-                FunctionArg("count_2"),
+                FunctionAliasArg("avg_1"),
+                FunctionAliasArg("avg_2"),
+                FunctionAliasArg("variance_1"),
+                FunctionAliasArg("variance_2"),
+                FunctionAliasArg("count_1"),
+                FunctionAliasArg("count_2"),
             ],
             aggregate=[
                 u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
@@ -2226,9 +2234,9 @@ FUNCTIONS = {
         Function(
             "minus",
             required_args=[
-                FunctionArg("minuend"),
-                FunctionArg("subtrahend"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("minuend"),
+                FunctionAliasArg("subtrahend"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], "{query_alias}"],
             default_result_type="duration",

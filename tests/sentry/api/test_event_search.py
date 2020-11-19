@@ -2671,7 +2671,16 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid condition" in six.text_type(err)
+            assert "is not a valid condition" in six.text_type(err), field
+
+        fields = [
+            "compare_aggregate(p50_tr(where,=,50)",
+            "compare_aggregate(a.b.c.d,=,50)",
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([field], eventstore.Filter())
+            assert "is not a valid function alias" in six.text_type(err), field
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
