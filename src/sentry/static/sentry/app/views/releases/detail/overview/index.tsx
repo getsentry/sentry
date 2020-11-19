@@ -107,7 +107,7 @@ class ReleaseOverview extends AsyncView<Props> {
       id: undefined,
       version: 2,
       name: `Release ${formatVersion(version)}`,
-      query: `release:${version}`,
+      query: `event.type:transactions release:${version}`,
       fields: ['transaction', 'failure_rate()', 'epm()', 'p50()'],
       orderby: 'epm',
       range: period,
