@@ -11,10 +11,10 @@ type Props = {
 };
 
 class DashboardsV2Container extends React.Component<Props> {
-  renderNoAccess() {
+  renderNoAccess = () => {
     const {children} = this.props;
     return <DashboardsV1>{children}</DashboardsV1>;
-  }
+  };
 
   render() {
     const {organization, children} = this.props;
