@@ -15,6 +15,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 import {isIssueAlert} from '../utils';
 
@@ -106,23 +107,22 @@ class RuleListRow extends React.Component<Props, State> {
 }
 
 const Column = styled('div')`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
-  align-items: center;
-  padding: 20px 16px 20px 16px;
-  overflow: hidden;
-  ${overflowEllipsis}
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
 `;
 
 const RightColumn = styled('div')`
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
-  padding: 16px;
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const RuleType = styled('div')`
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
   color: ${p => p.theme.gray300};
   text-transform: uppercase;
@@ -138,7 +138,6 @@ const CreatedBy = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-  padding: 2px;
 `;
 
 export default RuleListRow;
