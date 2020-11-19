@@ -4,12 +4,8 @@ import styled from '@emotion/styled';
 import Feature from 'app/components/acl/feature';
 import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
-<<<<<<< HEAD
-import {IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-=======
->>>>>>> removed unhandled tag icon
 
 // TODO(matej): remove "unhandled-issue-flag" feature flag once testing is over (otherwise this won't ever be rendered in a shared event)
 function UnhandledTag() {
