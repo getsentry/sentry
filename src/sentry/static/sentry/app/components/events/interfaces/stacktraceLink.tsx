@@ -91,7 +91,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           view: 'stacktrace_issue_details',
           provider: provider.key,
         },
-        this.props.organization
+        this.props.organization,
+        {startSession: true}
       );
     }
   }
@@ -107,7 +108,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           provider: provider.key,
           error_reason: error,
         },
-        this.props.organization
+        this.props.organization,
+        {startSession: true}
       );
     }
   }

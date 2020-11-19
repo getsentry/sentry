@@ -38,7 +38,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             return Response({"detail": "Filepath is required"}, status=400)
 
         commitId = request.GET.get("commitId")
-        result = {"config": None}
+        result = {"config": None, "sourceUrl": None}
 
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
@@ -46,14 +46,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         configs = RepositoryProjectPathConfig.objects.filter(project=project)
 
         for config in configs:
+            result["config"] = serialize(config, request.user)
+
             if not filepath.startswith(config.stack_root):
-                result["config"] = serialize(config, request.user)
                 result["error"] = "stack_root_mismatch"
                 continue
 
             link = get_link(config, filepath, config.default_branch, commitId)
 
-            result["config"] = serialize(config, request.user)
             # it's possible for the link to be None, and in that
             # case it means we could not find a match for the
             # configuration

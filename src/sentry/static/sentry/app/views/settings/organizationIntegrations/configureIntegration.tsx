@@ -51,7 +51,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
 
   componentDidMount() {
     const {location} = this.props;
-    const value = location.query.tab === 'repos' ? 'repos' : 'codeMappings';
+    const value = location.query.tab === 'codeMappings' ? 'codeMappings' : 'repos';
     // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({tab: value});
   }
