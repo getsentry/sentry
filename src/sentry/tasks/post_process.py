@@ -165,18 +165,22 @@ def post_process_group(
         # renormalize when loading old data from the database.
         event.data = EventDict(event.data, skip_renormalization=True)
 
-        if event.group_id:
-            # Re-bind Group since we're reading the Event object
-            # from cache, which may contain a stale group and project
-            event.group, _ = get_group_with_redirect(event.group_id)
-            event.group_id = event.group.id
-
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
+
+        if event.group_id:
+            # Re-bind Group since we're reading the Event object
+            # from cache, which may contain a stale group and project
+            event.group, _ = get_group_with_redirect(event.group_id)
+            event.group_id = event.group.id
+
+            event.group.project = event.project
+            event.group.project._organization_cache = event.project._organization_cache
+
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
