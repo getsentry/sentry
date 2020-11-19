@@ -158,6 +158,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 }
 
 export default withProjects(withOrganization(StacktraceLink));
+export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
