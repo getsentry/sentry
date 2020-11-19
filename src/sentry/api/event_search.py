@@ -1536,6 +1536,30 @@ class ConditionArg(FunctionArg):
         return self.CONDITION_MAP[value]
 
 
+class Column(FunctionArg):
+    def __init__(self, name, allowed_columns=None):
+        super(Column, self).__init__(name)
+        # make sure to map the allowed columns to their snuba names
+        self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
+
+    def normalize(self, value, params):
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+        elif self.allowed_columns is not None and snuba_column not in self.allowed_columns:
+            raise InvalidFunctionArgument(u"{} is not an allowed column".format(value))
+        return snuba_column
+
+
+class ColumnNoLookup(Column):
+    def __init__(self, name, allowed_columns=None):
+        super(ColumnNoLookup, self).__init__(name, allowed_columns=allowed_columns)
+
+    def normalize(self, value, params):
+        super(ColumnNoLookup, self).normalize(value, params)
+        return value
+
+
 class NumericColumn(FunctionArg):
     def _normalize(self, value):
         # This method is written in this way so that `get_type` can always call
@@ -2055,26 +2079,6 @@ FUNCTIONS = {
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
         ),
-        Function(
-            "compare_aggregate",
-            required_args=[
-                FunctionAliasArg("aggregate_alias"),
-                ConditionArg("condition"),
-                NumberRange("value", 0, None),
-            ],
-            optional_args=[
-                with_default("pass", StringArg("pass")),
-                with_default("fail", StringArg("fail")),
-            ],
-            aggregate=[
-                # snuba json syntax isn't compatible with this query here
-                # this function can't be a column, since we want to use this with aggregates
-                "if({condition}({aggregate_alias},{value}),{pass},{fail})",
-                None,
-                None,
-            ],
-            default_result_type="string",
-        ),
         # Currently only being used by the baseline PoC
         Function(
             "absolute_delta",
@@ -2249,6 +2253,45 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+        ),
+        Function(
+            "compare_duration_aggregate",
+            required_args=[
+                FunctionAliasArg("aggregate_alias"),
+                ConditionArg("condition"),
+                NumberRange("value", 0, None),
+            ],
+            optional_args=[
+                with_default("pass", StringArg("pass")),
+                with_default("fail", StringArg("fail")),
+            ],
+            aggregate=[
+                # snuba json syntax isn't compatible with this query here
+                # this function can't be a column, since we want to use this with aggregates
+                "if({condition}({aggregate_alias},{value}),{pass},{fail})",
+                None,
+                None,
+            ],
+            default_result_type="string",
+        ),
+        Function(
+            "to_other",
+            required_args=[
+                ColumnNoLookup("column", allowed_columns=["release"]),
+                StringArg("value"),
+            ],
+            optional_args=[
+                with_default("that", StringArg("that")),
+                with_default("this", StringArg("this")),
+            ],
+            column=[
+                "if",
+                [
+                    ["equals", [ArgValue("column"), ArgValue("value")]],
+                    ArgValue("this"),
+                    ArgValue("that"),
+                ],
+            ],
         ),
     ]
 }

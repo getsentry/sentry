@@ -15,6 +15,7 @@ import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {TrendView, TrendChangeType} from 'app/views/performance/trends/types';
 import {formatVersion} from 'app/utils/formatters';
 import routeTitleGen from 'app/utils/routeTitle';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
@@ -22,6 +23,7 @@ import {restoreRelease} from 'app/actionCreators/release';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
 import {decodeScalar} from 'app/utils/queryString';
 
 import ReleaseChart from './chart/';
@@ -105,7 +107,7 @@ class ReleaseOverview extends AsyncView<Props> {
       id: undefined,
       version: 2,
       name: `Release ${formatVersion(version)}`,
-      query: `release:${version}`,
+      query: `event.type:transactions release:${version}`,
       fields: ['transaction', 'failure_rate()', 'epm()', 'p50()'],
       orderby: 'epm',
       range: period,
@@ -114,6 +116,30 @@ class ReleaseOverview extends AsyncView<Props> {
       start: start ? getUtcDateString(start) : undefined,
       end: end ? getUtcDateString(end) : undefined,
     });
+  }
+
+  getReleaseTrendView(
+    version: string,
+    projectId: number,
+    versionDate: string
+  ): EventView {
+    const {selection} = this.props;
+    const {environments, datetime} = selection;
+    const {start, end, period} = datetime;
+
+    const trendView = EventView.fromSavedQuery({
+      id: undefined,
+      version: 2,
+      name: `Release ${formatVersion(version)}`,
+      fields: ['transaction'],
+      range: period,
+      environment: environments,
+      projects: [projectId],
+      start: start ? getUtcDateString(start) : undefined,
+      end: end ? getUtcDateString(end) : undefined,
+    }) as TrendView;
+    trendView.middle = versionDate;
+    return trendView;
   }
 
   handleTransactionsListSortChange = (value: string) => {
@@ -134,9 +160,17 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
+          const hasPerformance =
+            organization.features.includes('performance-view') &&
+            organization.features.includes('release-performance-views');
           const yAxis = this.getYAxis(hasHealthData);
 
           const releaseEventView = this.getReleaseEventView(version, project.id);
+          const releaseTrendView = this.getReleaseTrendView(
+            version,
+            project.id,
+            releaseMeta.released
+          );
           const {selectedSort, sortOptions} = getTransactionListSort(location);
 
           return (
@@ -150,6 +184,7 @@ class ReleaseOverview extends AsyncView<Props> {
               yAxis={yAxis}
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
+              hasPerformance={hasPerformance}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <StyledBody>
@@ -160,7 +195,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       />
                     )}
 
-                    {(hasDiscover || hasHealthData) && (
+                    {(hasDiscover || hasPerformance || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}
                         selection={selection}
@@ -173,6 +208,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         api={api}
                         version={version}
                         hasDiscover={hasDiscover}
+                        hasPerformance={hasPerformance}
                       />
                     )}
                     <Issues
@@ -187,6 +223,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         location={location}
                         organization={organization}
                         eventView={releaseEventView}
+                        trendView={releaseTrendView}
                         dropdownTitle={t('Show')}
                         selected={selectedSort}
                         options={sortOptions}
@@ -197,7 +234,12 @@ class ReleaseOverview extends AsyncView<Props> {
                           t('tpm()'),
                           t('p50()'),
                         ]}
-                        generateFirstLink={generateTransactionLinkFn(version, project.id)}
+                        generateFirstLink={generateTransactionLinkFn(
+                          version,
+                          project.id,
+                          selection,
+                          location.query.showTransactions
+                        )}
                       />
                     </Feature>
                   </Main>
@@ -247,18 +289,34 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 }
 
-function generateTransactionLinkFn(version: string, projectId: number) {
+function generateTransactionLinkFn(
+  version: string,
+  projectId: number,
+  selection: GlobalSelection,
+  value: string
+) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
     _query: Query
   ): LocationDescriptor => {
     const {transaction} = tableRow;
+    const trendTransaction = ['regression', 'improved'].includes(value);
+    const {environments, datetime} = selection;
+    const {start, end, period} = datetime;
+
     return transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transaction! as string,
-      query: {query: `release:${version}`},
+      query: {
+        query: trendTransaction ? '' : `release:${version}`,
+        environment: environments,
+        start: start ? getUtcDateString(start) : undefined,
+        end: end ? getUtcDateString(end) : undefined,
+        statsPeriod: period,
+      },
       projectID: projectId.toString(),
+      display: trendTransaction ? DisplayModes.TREND : DisplayModes.DURATION,
     });
   };
 }
@@ -284,6 +342,20 @@ function getDropdownOptions(): DropdownOption[] {
       sort: {kind: 'desc', field: 'p50'},
       value: 'p50',
       label: t('Slow Transactions'),
+    },
+    {
+      sort: {kind: 'desc', field: 'trend_percentage()'},
+      query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
+      trendType: TrendChangeType.REGRESSION,
+      value: 'regression',
+      label: t('Trending Regressions'),
+    },
+    {
+      sort: {kind: 'asc', field: 'trend_percentage()'},
+      query: 'tpm():>0.01 trend_percentage():>0% t_test():>6',
+      trendType: TrendChangeType.IMPROVED,
+      value: 'improved',
+      label: t('Trending Improvements'),
     },
   ];
 }

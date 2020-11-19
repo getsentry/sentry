@@ -827,7 +827,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
-            sort_by="date", limit=10, query="is:unresolved", collapse="stats"
+            sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
         )
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -902,7 +902,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_has_unhandled_flag_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
-        with self.feature("organizations:unhandled-issue-flag"):
+        with self.feature(["organizations:unhandled-issue-flag", "organizations:inbox"]):
             self.test_collapse_stats()
 
 
@@ -1819,6 +1819,25 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data == {"inbox": False}
         assert GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
+
+    def test_set_resolved_inbox(self):
+        group1 = self.create_group(checksum="a" * 32)
+        group2 = self.create_group(checksum="b" * 32)
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:inbox"):
+            response = self.get_valid_response(
+                qs_params={"id": [group1.id, group2.id]}, status="resolved"
+            )
+        assert response.data["inbox"] is None
+        assert not GroupInbox.objects.filter(group=group1).exists()
+        assert not GroupInbox.objects.filter(group=group2).exists()
+
+        with self.feature("organizations:inbox"):
+            response = self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
+        assert GroupInboxReason(response.data["inbox"]["reason"]) == GroupInboxReason.MANUAL
+        assert not GroupInbox.objects.filter(group=group1).exists()
+        assert GroupInbox.objects.filter(group=group2).exists()
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):

@@ -25,12 +25,12 @@ import withOrganization from 'app/utils/withOrganization';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {promptsUpdate} from 'app/actionCreators/prompts';
 import Alert from 'app/components/alert';
+import CreateAlertButton from 'app/components/createAlertButton';
 
 import {Incident} from '../types';
 import AlertHeader from './header';
 import {TableLayout, TitleAndSparkLine} from './styles';
 import AlertListRow from './row';
-import CreateRuleButton from './createRuleButton';
 import Onboarding from './onboarding';
 
 const DEFAULT_QUERY_STATUS = 'open';
@@ -134,6 +134,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   tryRenderOnboarding() {
     const {firstVisitShown} = this.state;
+    const {organization} = this.props;
 
     if (!firstVisitShown) {
       return null;
@@ -144,11 +145,15 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         <Button size="small" external href={DOCS_URL}>
           {t('View Features')}
         </Button>
-        <CreateRuleButton
-          {...this.props}
+        <CreateAlertButton
+          organization={organization}
           iconProps={{size: 'xs'}}
-          buttonProps={{size: 'small'}}
-        />
+          size="small"
+          priority="primary"
+          referrer="alert_stream"
+        >
+          {t('Create Alert Rule')}
+        </CreateAlertButton>
       </React.Fragment>
     );
 
