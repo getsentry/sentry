@@ -18,6 +18,8 @@ import ButtonBar from 'app/components/buttonBar';
 import IdBadge from 'app/components/idBadge';
 import TextOverflow from 'app/components/textOverflow';
 
+import ProjectScoreCards from './projectScoreCards';
+
 type RouteParams = {
   orgId: string;
   projectId: string;
@@ -28,7 +30,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  project?: Project | null;
+  project: Project | null;
 } & AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
@@ -115,13 +117,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               <Layout.Main>
-                <h4>main</h4>
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Aut eius
-                  mollitia maiores dolorum possimus animi, quasi sapiente facilis, eum
-                  necessitatibus dicta corporis eaque excepturi. Molestiae, ipsa? At,
-                  laborum possimus. Reiciendis?
-                </p>
+                <ProjectScoreCards />
               </Layout.Main>
               <Layout.Side>
                 <h4>sidebar</h4>
