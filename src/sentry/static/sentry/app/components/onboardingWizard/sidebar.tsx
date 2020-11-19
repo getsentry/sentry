@@ -53,7 +53,7 @@ const Heading = styled(motion.div)`
 `;
 
 Heading.defaultProps = {
-  positionTransition: true,
+  layout: true,
   transition: testableTransition(),
 };
 
@@ -175,7 +175,7 @@ AnimatedTaskItem.defaultProps = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',
-  positionTransition: true,
+  layout: true,
   variants: {
     initial: {
       opacity: 0,
