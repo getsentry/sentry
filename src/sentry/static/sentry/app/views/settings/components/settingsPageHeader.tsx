@@ -23,7 +23,7 @@ type Props = {
   tabs?: React.ReactNode;
 };
 
-class SettingsPageHeading extends React.Component<Props> {
+class UnstyledSettingsPageHeader extends React.Component<Props> {
   static propTypes = {
     icon: PropTypes.node,
     title: PropTypes.node.isRequired,
@@ -88,11 +88,11 @@ const Action = styled('div')<{tabs?: React.ReactNode}>`
   ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
 `;
 
-const StyledSettingsPageHeading = styled(SettingsPageHeading)<
+const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
   margin-top: -${space(4)};
 `;
 
-export default StyledSettingsPageHeading;
+export default SettingsPageHeader;
