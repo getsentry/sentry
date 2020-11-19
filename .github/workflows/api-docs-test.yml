@@ -16,35 +16,36 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: volta-cli/action@v1
-
-      - name: Check for python file changes
+      - name: Check for python and `api-docs` file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - uses: volta-cli/action@v1
+        if: steps.changes.outputs.api_docs == 'true'
+
       - name: Set python version output
         id: python-version
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
 
       - name: pip cache
         uses: actions/cache@v2
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
           key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
@@ -54,7 +55,7 @@ jobs:
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           python: 3
           snuba: true
@@ -62,7 +63,7 @@ jobs:
       - name: yarn cache
         uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -72,11 +73,11 @@ jobs:
       # Note we don't depend on Sentry's frontend application, a potential optimization would be to
       # split off api docs dependencies from Sentry's main package.json
       - name: Install Javascript Dependencies
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           yarn install --frozen-lockfile
 
       - name: Run API docs tests
-        if: steps.changes.outputs.backend == 'true'
+        if: steps.changes.outputs.api_docs == 'true'
         run: |
           make test-api-docs
