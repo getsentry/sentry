@@ -107,6 +107,8 @@ default_manager.add("organizations:inbox", OrganizationFeature)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

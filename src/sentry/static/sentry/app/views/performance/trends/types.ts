@@ -7,13 +7,15 @@ import {EventQuery} from 'app/actionCreators/events';
 export type TrendView = EventView & {
   orderby?: string;
   trendFunction?: string;
-  trendType?: string;
+  trendType?: TrendChangeType;
+  middle?: string;
 };
 
 export type TrendsQuery = EventQuery &
   LocationQuery & {
     trendFunction?: string;
-    trendType?: string;
+    trendType?: TrendChangeType;
+    middle?: string;
     intervalRatio?: number;
     interval?: string;
   };
