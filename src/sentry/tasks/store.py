@@ -35,6 +35,8 @@ SYMBOLICATE_EVENT_APM_SAMPLING = float(
     getattr(settings, "SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING", 0.0)
 )
 
+SYMBOLICATOR_MAX_RETRY_AFTER = float(getattr(settings, "SYMBOLICATOR_MAX_RETRY_AFTER", 5))
+
 
 class RetryProcessing(Exception):
     pass
@@ -264,12 +266,12 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                         has_changed = True
                         break
                     else:
-                        # sleep for `retry_after` seconds and try again
+                        # sleep for `retry_after` but max 5 seconds and try again
                         metrics.incr(
                             "tasks.store.symbolicate_event.retry",
                             tags={"symbolication_function": symbolication_function.__name__},
                         )
-                        sleep(e.retry_after)
+                        sleep(min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER))
                         continue
                 except Exception:
                     metrics.incr(
@@ -308,8 +310,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
-    time_limit=65,
-    soft_time_limit=60,
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
 )
 def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     """
@@ -335,8 +338,9 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    time_limit=65,
-    soft_time_limit=60,
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
     with sentry_sdk.start_transaction(

@@ -2005,7 +2005,11 @@ SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 
 # Block symbolicate_event for this many seconds to wait for a initial response
 # from symbolicator after the task submission.
-SYMBOLICATOR_POLL_TIMEOUT = 30
+SYMBOLICATOR_POLL_TIMEOUT = 10
+
+# When retrying symbolication requests or querying for the result this set the
+# max number of second to wait between subsequent attempts.
+SYMBOLICATOR_MAX_RETRY_AFTER = 5
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
