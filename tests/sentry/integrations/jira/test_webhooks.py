@@ -2,14 +2,13 @@ from __future__ import absolute_import
 
 import responses
 
-from sentry.utils.compat.mock import patch
-
 from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.utils.compat.mock import patch
 from tests.fixtures.integrations.mock_service import StubService
 
 

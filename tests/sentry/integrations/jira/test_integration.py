@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.utils.compat import mock
+import copy
 import responses
 import six
 import pytest
-import copy
 
 from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
@@ -20,6 +19,7 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase, IntegrationTestCase
 from sentry.utils import json
+from sentry.utils.compat import mock
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from sentry.testutils.factories import DEFAULT_EVENT_DATA

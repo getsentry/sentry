@@ -771,7 +771,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            self.raise_error(e)
+            return self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:
