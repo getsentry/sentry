@@ -84,7 +84,7 @@ class ReleaseOverview extends AsyncView<Props> {
     }
   };
 
-  getYAxis(hasHealthData: boolean): YAxis {
+  getYAxis(hasHealthData: boolean, hasPerformance: boolean): YAxis {
     const {yAxis} = this.props.location.query;
 
     if (typeof yAxis === 'string') {
@@ -93,6 +93,10 @@ class ReleaseOverview extends AsyncView<Props> {
 
     if (hasHealthData) {
       return YAxis.SESSIONS;
+    }
+
+    if (hasPerformance) {
+      return YAxis.FAILED_TRANSACTIONS;
     }
 
     return YAxis.EVENTS;
@@ -163,7 +167,7 @@ class ReleaseOverview extends AsyncView<Props> {
           const hasPerformance =
             organization.features.includes('performance-view') &&
             organization.features.includes('release-performance-views');
-          const yAxis = this.getYAxis(hasHealthData);
+          const yAxis = this.getYAxis(hasHealthData, hasPerformance);
 
           const releaseEventView = this.getReleaseEventView(version, project.id);
           const releaseTrendView = this.getReleaseTrendView(
