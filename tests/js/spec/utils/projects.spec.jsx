@@ -116,6 +116,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'slug:a slug:b',
+            collapse: ['latestDeploys'],
           },
         })
       );
@@ -181,6 +182,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'slug:a slug:b',
+            collapse: ['latestDeploys'],
           },
         })
       );
@@ -253,7 +255,9 @@ describe('utils.projects', function () {
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: {},
+          query: {
+            collapse: ['latestDeploys'],
+          },
         })
       );
 
@@ -317,6 +321,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
+            collapse: ['latestDeploys'],
           },
         })
       );
@@ -374,6 +379,7 @@ describe('utils.projects', function () {
         expect.objectContaining({
           query: {
             query: 'test',
+            collapse: ['latestDeploys'],
           },
         })
       );
@@ -463,6 +469,7 @@ describe('utils.projects', function () {
         url: '/organizations/org-slug/projects/',
         query: {
           all_projects: '1',
+          collapse: ['latestDeploys'],
         },
         body: mockProjects,
       });
@@ -488,7 +495,7 @@ describe('utils.projects', function () {
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: {all_projects: 1},
+          query: {all_projects: 1, collapse: ['latestDeploys']},
         })
       );
 
