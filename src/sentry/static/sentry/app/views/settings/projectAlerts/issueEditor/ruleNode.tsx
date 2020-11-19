@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import Modal from 'react-bootstrap/lib/Modal';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -20,11 +21,8 @@ import {
 import Input from 'app/views/settings/components/forms/controls/input';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
 import ExternalLink from 'app/components/links/externalLink';
-import {GroupIntegration, Organization, Project} from 'app/types'
-import {IconDelete} from 'app/icons';
-import Modal from 'react-bootstrap/lib/Modal'
-import NavTabs from 'app/components/navTabs'
-import ExternalIssueForm from 'app/components/group/externalIssueForm'
+import {Organization, Project} from 'app/types';
+import {IconDelete, IconSettings} from 'app/icons';
 
 type FormField = {
   // Type of form fields
@@ -44,7 +42,17 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-class RuleNode extends React.Component<Props> {
+class RuleNode extends React.Component<Props, State> {
+  constructor(props: Props, context) {
+    super(props, context);
+
+    this.state = {
+      showModal: false,
+      action: 'create',
+      // selectedIntegration: null,
+      // ...this.getDefaultState(),
+    };
+  }
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -195,15 +203,13 @@ class RuleNode extends React.Component<Props> {
   openModal = (formFields: any) => {
     this.setState({
       showModal: true,
-      formFields: formFields,
-      action: 'create',
+      formFields,
     });
   };
 
   closeModal = () => {
     this.setState({
       showModal: false,
-      action: null,
       selectedIntegration: null,
     });
   };
@@ -219,7 +225,6 @@ class RuleNode extends React.Component<Props> {
         </Separator>
       );
     }
-    // TODO be able to render a button
 
     const {label, formFields} = node;
 
@@ -237,55 +242,45 @@ class RuleNode extends React.Component<Props> {
       }
 
       let formPart;
-      if (formFields && formFields.hasOwnProperty(key)) {
-        formPart = this.getField(key, formFields[key])
-      } else if (formFields["type"] === "modalButton") {
-        formPart = <Button
-          onClick={() => this.openModal(formFields)}
-        >
-          {
-            <Modal
-              show={this.state.showModal}
-              onHide={this.closeModal}
-              animation={false}
-              enforceFocus={false}
-              backdrop="static"
+      if (formFields.hasOwnProperty('rule_type')) {
+        formPart = this.getField(key, formFields[key]);
+
+        return (
+          <React.Fragment>
+            <Separator key={key}>{formPart}</Separator>
+            with these
+            <SettingsButton
+              size="small"
+              icon={<IconSettings size="xs" />}
+              onClick={() => this.openModal(formFields)}
             >
-              <Modal.Header closeButton>
-                <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
-              </Modal.Header>
-              <NavTabs underlined>
-                <li className={action === 'create' ? 'active' : ''}>
-                  <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
-                </li>
-                <li className={action === 'link' ? 'active' : ''}>
-                  <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
-                </li>
-              </NavTabs>
-              <Modal.Body>
-                {action && (
-                  <ExternalIssueForm
-                    // need the key here so React will re-render
-                    // with a new action prop
-                    key={action}
-                    group={this.props.group}
-                    integration={selectedIntegration}
-                    action={action}
-                    onSubmitSuccess={(_, onSuccess) => this.linkIssueSuccess(onSuccess)}
-                  />
-                )}
-              </Modal.Body>
-            </Modal>
-          )}
-        </Button>;
+              {
+                <Modal
+                  show={this.state.showModal}
+                  onHide={this.closeModal}
+                  animation={false}
+                  enforceFocus={false}
+                  backdrop="static"
+                >
+                  <Modal.Header closeButton>
+                    <Modal.Title>Issue Link Settings</Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body>
+                    replace me with an ExternalIssueForm in API-1448
+                  </Modal.Body>
+                </Modal>
+              }
+              Issue Link Settings
+            </SettingsButton>
+          </React.Fragment>
+        );
+      } else if (formFields && formFields.hasOwnProperty(key)) {
+        formPart = this.getField(key, formFields[key]);
       } else {
         formPart = part;
       }
 
-
-      return (
-        <Separator key={key}>{ formPart }</Separator>
-      );
+      return <Separator key={key}>{formPart}</Separator>;
     });
 
     const [title, ...inputs] = parts;
@@ -405,6 +400,10 @@ const Rule = styled('div')`
   align-items: center;
   flex: 1;
   flex-wrap: wrap;
+`;
+
+const SettingsButton = styled(Button)`
+  margin-left: ${space(1)};
 `;
 
 const DeleteButton = styled(Button)`

@@ -35,8 +35,8 @@ class JiraNotifyServiceForm(forms.Form):
 
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"""Create a Jira ticket in the {jira_integration} account"""
-    prompt = "Create a Jira ticket"
+    label = u"""Create a Jira issue in {jira_integration} """
+    prompt = "Create a Jira issue"
     provider = "jira"
     integration_key = "jira_integration"
 
@@ -71,26 +71,26 @@ class JiraCreateTicketAction(TicketEventAction):
         :return: String
         """
 
-        labels = ["Create a Jira ticket in the {jira_integration} account"]
+        labels = ["Create a Jira issue in {jira_integration} "]
 
-        if data.get("project"):
-            labels.append("and {project} project")
-        if data.get("issuetype"):
-            labels.append("of type {issuetype}")
-        if data.get("components"):
-            labels.append("with components {components}")
-        if data.get("duedate"):
-            labels.append("and due date {duedate}")
-        if data.get("fixVersions"):
-            labels.append("with fixVersions {fixVersions}")
-        if data.get("assignee"):
-            labels.append("assigned to {assignee}")
-        if data.get("reporter"):
-            labels.append("reported by {reporter}")
-        if data.get("labels"):
-            labels.append("with the labels {labels}")
-        if data.get("priority"):
-            labels.append("priority {priority}")
+        # if data.get("project"):
+        #     labels.append("and {project} project")
+        # if data.get("issuetype"):
+        #     labels.append("of type {issuetype}")
+        # if data.get("components"):
+        #     labels.append("with components {components}")
+        # if data.get("duedate"):
+        #     labels.append("and due date {duedate}")
+        # if data.get("fixVersions"):
+        #     labels.append("with fixVersions {fixVersions}")
+        # if data.get("assignee"):
+        #     labels.append("assigned to {assignee}")
+        # if data.get("reporter"):
+        #     labels.append("reported by {reporter}")
+        # if data.get("labels"):
+        #     labels.append("with the labels {labels}")
+        # if data.get("priority"):
+        #     labels.append("priority {priority}")
 
         return " ".join(labels)
 
@@ -130,6 +130,7 @@ class JiraCreateTicketAction(TicketEventAction):
                     dynamic_form_fields = transform_jira_fields_to_form_fields(fields)
                     self.data["dynamic_form_fields"] = dynamic_form_fields
                     # TODO should I wipe out the rest of the data?
+                    dynamic_form_fields["rule_type"] = "jira"
                     return dynamic_form_fields
         return None
 
