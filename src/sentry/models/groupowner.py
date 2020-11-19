@@ -15,7 +15,7 @@ class GroupOwnerType(Enum):
 
 class GroupOwner(Model):
     """
-    Tracks the "owners" or "suggested assignees" or a group.
+    Tracks the "owners" or "suggested assignees" of a group.
     """
 
     __core__ = False
