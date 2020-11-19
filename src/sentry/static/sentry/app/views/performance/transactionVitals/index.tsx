@@ -83,6 +83,15 @@ class TransactionVitals extends React.Component<Props> {
       return null;
     }
 
+    const shouldForceProject = eventView.project.length === 1;
+    const forceProject = shouldForceProject
+      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
+      : undefined;
+    const projectSlugs = eventView.project
+      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
+      .filter((p: Project | undefined): p is Project => p !== undefined)
+      .map(p => p.slug);
+
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
         <Feature
@@ -90,7 +99,14 @@ class TransactionVitals extends React.Component<Props> {
           organization={organization}
           renderDisabled={this.renderNoAccess}
         >
-          <GlobalSelectionHeader>
+          <GlobalSelectionHeader
+            lockedMessageSubject={t('transaction')}
+            shouldForceProject={shouldForceProject}
+            forceProject={forceProject}
+            specificProjectSlugs={projectSlugs}
+            disableMultipleProjectSelection
+            showProjectSettingsLink
+          >
             <StyledPageContent>
               <LightWeightNoProjectMessage organization={organization}>
                 <RumContent

@@ -97,8 +97,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            sentry_url = "/api/0/issues/%s/plugins/%s/autocomplete" % (group.id, self.slug)
-            fkwargs["url"] = "%s?jira_url=%s" % (
+            sentry_url = u"/api/0/issues/%s/plugins/%s/autocomplete" % (group.id, self.slug)
+            fkwargs["url"] = u"%s?jira_url=%s" % (
                 sentry_url,
                 quote_plus(field_meta["autoCompleteUrl"]),
             )
@@ -163,7 +163,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         if not meta:
             raise PluginError(
-                "Error in JIRA configuration, no projects " "found for user %s." % client.username
+                u"Error in JIRA configuration, no projects " "found for user %s." % client.username
             )
 
         # check if the issuetype was passed as a GET parameter
@@ -218,7 +218,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
-        dynamic_fields = issue_type_meta.get("fields").keys()
+        dynamic_fields = list(issue_type_meta.get("fields").keys())
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
@@ -281,12 +281,12 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         instance = self.get_option("instance_url", group.project)
-        return "%s/browse/%s" % (instance, issue_id)
+        return u"%s/browse/%s" % (instance, issue_id)
 
     def _get_formatted_user(self, user):
-        display = "%s %s(%s)" % (
+        display = u"%s %s(%s)" % (
             user.get("displayName", user["name"]),
-            "- %s " % user.get("emailAddress") if user.get("emailAddress") else "",
+            u"- %s " % user.get("emailAddress") if user.get("emailAddress") else "",
             user["name"],
         )
         return {"id": user["name"], "text": display}
@@ -310,7 +310,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 )
             else:
                 issues = [
-                    {"text": "(%s) %s" % (i["key"], i["fields"]["summary"]), "id": i["key"]}
+                    {"text": u"(%s) %s" % (i["key"], i["fields"]["summary"]), "id": i["key"]}
                     for i in response.get("issues", [])
                 ]
                 return Response({field: issues})
@@ -379,6 +379,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                         jira_query.get("project"), jira_query.get("username")
                     )
                 except (ApiUnauthorized, ApiError) as e:
+
                     return Response(
                         {
                             "error_type": "validation",
@@ -405,7 +406,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([u"%s: %s" % (k, v) for k, v in data.get("errors").items()])
         return message
 
     def create_issue(self, request, group, form_data, **kwargs):
@@ -540,7 +541,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             else:
                 if projects:
                     project_choices = [
-                        (p.get("key"), "%s (%s)" % (p.get("name"), p.get("key"))) for p in projects
+                        (p.get("key"), u"%s (%s)" % (p.get("name"), p.get("key"))) for p in projects
                     ]
                     jira_project = jira_project or projects[0]["key"]
 
@@ -552,7 +553,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 else:
                     if priorities:
                         priority_choices = [
-                            (p.get("id"), "%s" % (p.get("name"))) for p in priorities
+                            (p.get("id"), u"%s" % (p.get("name"))) for p in priorities
                         ]
 
                         default_priority = default_priority or priorities[0]["id"]
@@ -640,7 +641,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # XXX(dcramer): Sentry doesn't expect GroupMeta referenced here so we
         # need to populate the cache
         GroupMeta.objects.populate_cache([group])
-        if GroupMeta.objects.get_value(group, "%s:tid" % self.get_conf_key(), None):
+        if GroupMeta.objects.get_value(group, u"%s:tid" % self.get_conf_key(), None):
             return False
 
         return True
@@ -666,7 +667,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         interface = event.interfaces.get("sentry.interfaces.Exception")
 
         if interface:
-            post_data["description"] += "\n{code}%s{code}" % interface.get_stacktrace(
+            post_data["description"] += u"\n{code}%s{code}" % interface.get_stacktrace(
                 event, system_frames=False, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES
             )
 
@@ -676,4 +677,4 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             logger.info("post_process.fail", extra={"error": six.text_type(e)})
         else:
             prefix = self.get_conf_key()
-            GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)
+            GroupMeta.objects.set_value(group, u"%s:tid" % prefix, issue_id)

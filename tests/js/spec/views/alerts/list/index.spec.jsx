@@ -253,8 +253,7 @@ describe('IncidentsList', function () {
     // Enabled with access
     wrapper = await createWrapper();
 
-    // NOTE: A link when not disabled
-    const addLink = wrapper.find('a[aria-label="Create Alert Rule"]');
+    const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
   });
 });

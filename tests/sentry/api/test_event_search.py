@@ -2810,6 +2810,39 @@ class ResolveFieldListTest(unittest.TestCase):
             "percentile": 0.5,
         }
 
+    def test_to_other_function(self):
+        fields = [
+            "to_other(release,r)",
+            "to_other(release,r,a)",
+            "to_other(release,r,a,b)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["to_other_release_r"].instance.name == "to_other"
+        assert functions["to_other_release_r"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release_r_a"].instance.name == "to_other"
+        assert functions["to_other_release_r_a"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'a'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release_r_a_b"].instance.name == "to_other"
+        assert functions["to_other_release_r_a_b"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'a'",
+            "this": "'b'",
+        }
+
 
 def with_type(type, argument):
     argument.get_type = lambda *_: type

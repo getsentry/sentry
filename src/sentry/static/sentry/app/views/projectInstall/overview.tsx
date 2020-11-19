@@ -15,8 +15,9 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, PlatformType} from 'app/types';
+import {Organization} from 'app/types';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
+import {PlatformKey} from 'app/data/platformCategories';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
@@ -36,7 +37,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 
-  redirectToDocs = (platform: PlatformType) => {
+  redirectToDocs = (platform: PlatformKey | null) => {
     const {orgId, projectId} = this.props.params;
 
     const installUrl = this.isGettingStarted

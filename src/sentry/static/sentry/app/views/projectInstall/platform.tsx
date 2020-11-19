@@ -1,7 +1,7 @@
 import {browserHistory, WithRouterProps} from 'react-router';
 import React from 'react';
 import styled from '@emotion/styled';
-import 'prismjs/themes/prism-tomorrow.css';
+import 'prism-sentry/index.css';
 
 import {Client} from 'app/api';
 import {
