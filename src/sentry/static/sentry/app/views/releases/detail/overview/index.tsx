@@ -224,7 +224,6 @@ class ReleaseOverview extends AsyncView<Props> {
                         organization={organization}
                         eventView={releaseEventView}
                         trendView={releaseTrendView}
-                        dropdownTitle={t('Show')}
                         selected={selectedSort}
                         options={sortOptions}
                         handleDropdownChange={this.handleTransactionsListSortChange}
@@ -323,11 +322,6 @@ function generateTransactionLinkFn(
 
 function getDropdownOptions(): DropdownOption[] {
   return [
-    {
-      sort: {kind: 'asc', field: 'transaction'},
-      value: 'name',
-      label: t('Transactions'),
-    },
     {
       sort: {kind: 'desc', field: 'failure_rate'},
       value: 'failure_rate',
