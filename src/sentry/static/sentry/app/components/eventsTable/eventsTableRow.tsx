@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 import AttachmentUrl from 'app/utils/attachmentUrl';
@@ -7,19 +6,20 @@ import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import {Tag, Event, Organization, AvatarUser} from 'app/types';
 
-class EventsTableRow extends React.Component {
-  static propTypes = {
-    hasUser: PropTypes.bool,
-    orgId: PropTypes.string.isRequired,
-    groupId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
-    event: SentryTypes.Event.isRequired,
-    tagList: PropTypes.arrayOf(SentryTypes.Tag),
-  };
+type Props = {
+  hasUser?: boolean;
+  orgId: string;
+  groupId: string;
+  projectId: string;
+  event: Event;
+  tagList: Tag[];
+  organization: Organization;
+} & React.HTMLAttributes<HTMLDivElement>;
 
+class EventsTableRow extends React.Component<Props> {
   renderCrashFileLink() {
     const {event, projectId} = this.props;
     if (!event.crashFile) {
@@ -38,8 +38,8 @@ class EventsTableRow extends React.Component {
         {url =>
           url && (
             <small>
-              {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile.name}</a> (
-              <FileSize bytes={event.crashFile.size} />)
+              {crashFileType}: <a href={`${url}?download=1`}>{event.crashFile?.name}</a> (
+              <FileSize bytes={event.crashFile?.size || 0} />)
             </small>
           )
         }
@@ -72,7 +72,7 @@ class EventsTableRow extends React.Component {
             {event.user ? (
               <div>
                 <UserAvatar
-                  user={event.user}
+                  user={event.user as AvatarUser} // TODO(ts): Some of the user fields are optional from event, this cast can probably be removed in the future
                   size={24}
                   className="avatar"
                   gravatar={false}
