@@ -64,10 +64,6 @@ type Props = {
   trendView: TrendView;
   organization: Organization;
   /**
-   * The prefix to use on the dropdown button.
-   */
-  dropdownTitle: string;
-  /**
    * The currently selected option on the dropdown.
    */
   selected: DropdownOption;
@@ -120,14 +116,7 @@ class TransactionsList extends React.Component<Props> {
   };
 
   renderHeader(): React.ReactNode {
-    const {
-      eventView,
-      organization,
-      dropdownTitle,
-      selected,
-      options,
-      handleDropdownChange,
-    } = this.props;
+    const {eventView, organization, selected, options, handleDropdownChange} = this.props;
 
     return (
       <Header>
@@ -137,7 +126,7 @@ class TransactionsList extends React.Component<Props> {
             <StyledDropdownButton
               {...getActorProps()}
               isOpen={isOpen}
-              prefix={dropdownTitle}
+              prefix={t('Filter')}
               size="small"
             >
               {selected.label}
