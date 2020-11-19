@@ -1,4 +1,4 @@
-import {Box, Flex} from 'reflexbox';
+import {Box, Flex} from 'reflexbox'; // eslint-disable-line
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -107,6 +107,7 @@ class OrganizationApiKeysList extends React.Component {
 
                     <Box px={2} width={100}>
                       <LinkWithConfirmation
+                        aria-label={t('Remove API Key')}
                         className="btn btn-default btn-sm"
                         onConfirm={e => onRemove(id, e)}
                         message={t('Are you sure you want to remove this API key?')}
