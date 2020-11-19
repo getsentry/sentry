@@ -9,14 +9,14 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import {PageContent} from 'app/styles/organization';
 import routeTitleGen from 'app/utils/routeTitle';
-import {IconSettings, IconSiren} from 'app/icons';
+import {IconSettings} from 'app/icons';
 import * as Layout from 'app/components/layouts/thirds';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
-import Access from 'app/components/acl/access';
 import ButtonBar from 'app/components/buttonBar';
 import IdBadge from 'app/components/idBadge';
 import TextOverflow from 'app/components/textOverflow';
+import CreateAlertButton from 'app/components/createAlertButton';
 
 import ProjectScoreCards from './projectScoreCards';
 
@@ -88,24 +88,10 @@ class ProjectDetail extends AsyncView<Props, State> {
                   >
                     {t('View All Issues')}
                   </Button>
-                  <Access organization={organization} access={['project:write']}>
-                    {({hasAccess}) => (
-                      <Button
-                        disabled={!hasAccess}
-                        title={
-                          !hasAccess
-                            ? t(
-                                'Users with admin permission or higher can create alert rules.'
-                              )
-                            : undefined
-                        }
-                        icon={<IconSiren />}
-                        to={`/organizations/${params.orgId}/alerts/${params.projectId}/new/`}
-                      >
-                        {t('Create Alert')}
-                      </Button>
-                    )}
-                  </Access>
+                  <CreateAlertButton
+                    organization={organization}
+                    projectSlug={params.projectId}
+                  />
                   <Button
                     icon={<IconSettings />}
                     label={t('Settings')}

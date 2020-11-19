@@ -15,7 +15,7 @@ import {fetchTotalCount} from 'app/actionCreators/events';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {fetchProjectsCount} from 'app/actionCreators/projects';
 import Alert from 'app/components/alert';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -332,7 +332,7 @@ class Results extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     const {organization} = this.props;
     trackAnalyticsEvent({
