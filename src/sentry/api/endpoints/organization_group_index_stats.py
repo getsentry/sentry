@@ -79,7 +79,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         else:
             groups = list(Group.objects.filter(id__in=group_ids, project_id__in=project_ids))
             if not groups:
-                return Response({"detail": "No matching groups found"}, status=400)
+                return ParseError(detail="No matching groups found")
             elif len(groups) > 25:
                 return Response({"detail": "Too many groups requested."}, status=400)
             elif any(g for g in groups if not request.access.has_project_access(g.project)):
