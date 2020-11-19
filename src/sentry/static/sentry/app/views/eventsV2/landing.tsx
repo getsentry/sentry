@@ -128,7 +128,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const cursor = decodeScalar(location.query.cursor);
     let perPage = 9;
-    if (!cursor && shouldRenderPrebuilt()) {
+
+    const canRenderPrebuilt = this.state
+      ? this.state.renderPrebuilt
+      : shouldRenderPrebuilt();
+
+    if (!cursor && canRenderPrebuilt) {
       // invariant: we're on the first page
 
       if (searchQuery && searchQuery.length > 0) {
@@ -295,10 +300,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   togglePrebuilt = () => {
     const {renderPrebuilt} = this.state;
 
-    this.setState({renderPrebuilt: !renderPrebuilt}, function () {
+    this.setState({renderPrebuilt: !renderPrebuilt}, () => {
       setRenderPrebuilt(!renderPrebuilt);
+      this.fetchData({reloading: true});
     });
-    this.fetchData();
   };
 
   onGoLegacyDiscover = () => {
