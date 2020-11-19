@@ -5,7 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -2817,6 +2817,36 @@ class ResolveFieldListTest(unittest.TestCase):
             "that": "'a'",
             "this": "'b'",
         }
+
+    def test_failure_count_function(self):
+        fields = ["failure_count()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "not",
+                        [
+                            [
+                                "has",
+                                [
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                "failure_count",
+            ],
+        ]
 
 
 def with_type(type, argument):

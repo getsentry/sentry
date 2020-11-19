@@ -2484,6 +2484,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]
             assert datum["count"] == expected[idx][1]
 
+    def test_failure_count_alias_field(self):
+        project = self.create_project()
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/failure_count/success"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/failure_count/unknown"
+        data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(data, project_id=project.id)
+
+        for i in range(6):
+            data = load_data("transaction", timestamp=before_now(minutes=1))
+            data["transaction"] = "/failure_count/{}".format(i)
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
+
+        query = {"field": ["count()", "failure_count()"], "query": "event.type:transaction"}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["count"] == 8
+        assert data[0]["failure_count"] == 6
+
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()

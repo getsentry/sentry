@@ -1923,6 +1923,34 @@ FUNCTIONS = {
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
         Function(
+            "failure_count",
+            aggregate=[
+                "countIf",
+                [
+                    [
+                        "not",
+                        [
+                            [
+                                "has",
+                                [
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                None,
+            ],
+            default_result_type="integer",
+        ),
+        Function(
             "array_join",
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
