@@ -8,25 +8,16 @@ import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import DateTime from 'app/components/dateTime';
 import DropdownButton from 'app/components/dropdownButton';
-<<<<<<< HEAD
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-=======
-import Tag from 'app/components/tag';
->>>>>>> replaced requestLog tagDeprecated with new tag
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
-<<<<<<< HEAD
 import space from 'app/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'app/types';
-import {Theme} from 'app/utils/theme';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-=======
-import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
->>>>>>> replaced requestLog tagDeprecated with new tag
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
