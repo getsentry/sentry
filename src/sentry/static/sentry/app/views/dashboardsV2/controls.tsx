@@ -139,18 +139,6 @@ class Controls extends React.Component<Props> {
             placeholder={t('Select Dashboard')}
             options={dropdownOptions}
             value={currentOption}
-            components={{
-              Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-                <components.Option label={label} {...(props as any)}>
-                  <span>{label}</span>
-                </components.Option>
-              ),
-              SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-                <components.SingleValue data={data} {...(props as any)}>
-                  <span>{data.label}</span>
-                </components.SingleValue>
-              ),
-            }}
             onChange={({value}: {value: DashboardListItem}) => {
               const {organization} = this.props;
 
