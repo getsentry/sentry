@@ -153,7 +153,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
               // redirect to new dashboard
 
               browserHistory.replace({
-                pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}`,
+                pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
                 query: {},
               });
             }
