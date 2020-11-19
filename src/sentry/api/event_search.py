@@ -1489,6 +1489,11 @@ class CountColumn(FunctionArg):
         return value
 
 
+class StringArg(FunctionArg):
+    def normalize(self, value, params):
+        return u"'{}'".format(value)
+
+
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
@@ -1500,6 +1505,27 @@ class DateArg(FunctionArg):
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
         return u"'{}'".format(value)
+
+
+class ConditionArg(FunctionArg):
+    CONDITION_MAP = {
+        "==": "equals",
+        "!=": "notEquals",
+        "<=": "lessOrEquals",
+        ">=": "greaterOrEquals",
+        "<": "less",
+        ">": "greater",
+    }
+
+    def normalize(self, value, params):
+        if value not in self.CONDITION_MAP:
+            raise InvalidFunctionArgument(
+                u"{} is not a valid condition, the only supported conditions are: {}".format(
+                    value, ",".join(self.CONDITION_MAP.keys()),
+                )
+            )
+
+        return self.CONDITION_MAP[value]
 
 
 class NumericColumn(FunctionArg):
@@ -2020,6 +2046,26 @@ FUNCTIONS = {
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+        ),
+        Function(
+            "compare_aggregate",
+            required_args=[
+                FunctionArg("aggregate_alias"),
+                ConditionArg("condition"),
+                NumberRange("value", 0, None),
+            ],
+            optional_args=[
+                with_default("pass", StringArg("pass")),
+                with_default("fail", StringArg("fail")),
+            ],
+            aggregate=[
+                # snuba json syntax isn't compatible with this query here
+                # can't be a column, since we want to use this with aggregates
+                "if({condition}({aggregate_alias},{value}),{pass},{fail})",
+                None,
+                None,
+            ],
+            default_result_type="string",
         ),
         # Currently only being used by the baseline PoC
         Function(

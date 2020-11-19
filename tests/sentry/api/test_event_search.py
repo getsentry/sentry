@@ -2644,6 +2644,35 @@ class ResolveFieldListTest(unittest.TestCase):
                 ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
             ]
 
+    def test_compare_aggregate(self):
+        fields = [
+            "compare_aggregate(p50_transaction_duration,>,50)",
+            "compare_aggregate(p50_transaction_duration,!=,50)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "if(greater(p50_transaction_duration,50.0),'pass','fail')",
+                None,
+                "compare_aggregate_p50_transaction_duration_>_50",
+            ],
+            [
+                "if(notEquals(p50_transaction_duration,50.0),'pass','fail')",
+                None,
+                "compare_aggregate_p50_transaction_duration_!=_50",
+            ],
+        ]
+
+    def test_invalid_compare_aggregate(self):
+        fields = [
+            "compare_aggregate(p50_transaction_duration,>+,50)",
+            "compare_aggregate(p50_transaction_duration,=,50)",
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([field], eventstore.Filter())
+            assert "is not a valid condition" in six.text_type(err)
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
