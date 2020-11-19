@@ -13,7 +13,7 @@ import {
   Event,
   Project,
 } from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 
@@ -29,7 +29,7 @@ type Props = AsyncComponent['props'] & {
 type StacktraceResultItem = {
   config?: RepositoryProjectPathConfig;
   sourceUrl?: string;
-  error?: string;
+  error?: 'file_not_found' | 'stack_root_mismatch';
 };
 
 type State = AsyncComponent['state'] & {
@@ -81,6 +81,36 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       ],
     ];
   }
+  onOpenLink() {
+    const provider = this.config?.provider;
+    if (provider) {
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.stacktrace_link_clicked',
+          eventName: 'Integrations: Stacktrace Link Clicked',
+          view: 'stacktrace_issue_details',
+          provider: provider.key,
+        },
+        this.props.organization
+      );
+    }
+  }
+  onReconfigureMapping() {
+    const provider = this.config?.provider;
+    const error = this.match.error;
+    if (provider) {
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.reconfigure_stacktrace_setup',
+          eventName: 'Integrations: Reconfigure Stacktrace Setup',
+          view: 'stacktrace_issue_details',
+          provider: provider.key,
+          error_reason: error,
+        },
+        this.props.organization
+      );
+    }
+  }
   renderLoading() {
     //TODO: Add loading
     return null;
@@ -97,7 +127,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         {text}
-        <Button to={url} size="xsmall">
+        <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
           {t('Configure Code Mapping')}
         </Button>
       </CodeMappingButtonContainer>
@@ -108,7 +138,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return (
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
-        <OpenInLink href={url} openInNewTab>
+        <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
           {getIntegrationIcon(config.provider.key)}
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
