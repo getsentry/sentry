@@ -6,7 +6,29 @@ import * as Sentry from '@sentry/react';
 import ConfigStore from 'app/stores/configStore';
 import {t, tct} from 'app/locale';
 
-class U2fInterface extends React.Component {
+type ChallengeData = {
+  authenticateRequests: u2f.SignRequest;
+  registerRequests: u2f.RegisterRequest;
+};
+
+type Props = {
+  challengeData: ChallengeData;
+  flowMode: string;
+  style?: React.CSSProperties;
+  silentIfUnsupported: boolean;
+  onTap: ({response, challenge}) => Promise<any>;
+};
+
+type State = {
+  responseElement: HTMLInputElement | null;
+  formElement: HTMLFormElement | null;
+  challengeElement: HTMLInputElement | null;
+  isSupported: boolean | null;
+  hasBeenTapped: boolean;
+  deviceFailure: string | null;
+};
+
+class U2fInterface extends React.Component<Props, State> {
   static propTypes = {
     challengeData: PropTypes.object.isRequired,
     flowMode: PropTypes.string.isRequired,
@@ -18,7 +40,7 @@ class U2fInterface extends React.Component {
     silentIfUnsupported: false,
   };
 
-  state = {
+  state: State = {
     isSupported: null,
     formElement: null,
     challengeElement: null,
@@ -71,8 +93,10 @@ class U2fInterface extends React.Component {
             const u2fResponse = JSON.stringify(data);
             const challenge = JSON.stringify(this.props.challengeData);
 
-            // eslint-disable-next-line react/no-direct-mutation-state
-            this.state.responseElement.value = u2fResponse;
+            if (this.state.responseElement) {
+              // eslint-disable-next-line react/no-direct-mutation-state
+              this.state.responseElement.value = u2fResponse;
+            }
 
             if (!this.props.onTap) {
               this.state.formElement && this.state.formElement.submit();
@@ -188,7 +212,7 @@ class U2fInterface extends React.Component {
                   support,
                 }
               ),
-            }[deviceFailure]
+            }[deviceFailure || '']
           }
         </div>
         {this.canTryAgain() && (
