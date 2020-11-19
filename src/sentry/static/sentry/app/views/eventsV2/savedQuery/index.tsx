@@ -19,7 +19,7 @@ import {IconDelete} from 'app/icons';
 import EventView from 'app/utils/discover/eventView';
 import withProjects from 'app/utils/withProjects';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {setBannerHidden} from 'app/views/eventsV2/utils';
 
@@ -47,7 +47,7 @@ type Props = DefaultProps & {
   projects: Project[];
   updateCallback: () => void;
   onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
 };
 
@@ -306,7 +306,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     const {eventView, organization, projects, onIncompatibleAlertQuery} = this.props;
 
     return (
-      <CreateAlertButton
+      <CreateAlertFromViewButton
         eventView={eventView}
         organization={organization}
         projects={projects}

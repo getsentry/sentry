@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import Tags from 'app/views/eventsV2/tags';
 import SearchBar from 'app/views/events/searchBar';
@@ -75,7 +75,7 @@ class SummaryContent extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})

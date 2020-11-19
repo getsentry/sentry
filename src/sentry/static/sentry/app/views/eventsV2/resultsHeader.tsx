@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
 import * as Layout from 'app/components/layouts/thirds';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 
 import DiscoverBreadcrumb from './breadcrumb';
 import EventInputName from './eventInputName';
@@ -23,7 +23,7 @@ type Props = {
   errorCode: number;
   eventView: EventView;
   onIncompatibleAlertQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
 };
 
