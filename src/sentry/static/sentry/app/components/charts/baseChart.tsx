@@ -11,6 +11,7 @@ import {
   EChartEventHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
+  ReactEchartsRef,
 } from 'app/types/echarts';
 import {Theme} from 'app/utils/theme';
 import space from 'app/styles/space';
@@ -491,7 +492,7 @@ const ChartContainer = styled('div')`
 
 const BaseChartWithTheme = withTheme(BaseChart);
 
-const BaseChartRef = React.forwardRef<ReactEchartsCore, Omit<Props, 'theme'>>(
+const BaseChartRef = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
   (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
 );
 BaseChartRef.displayName = 'forwardRef(BaseChart)';
