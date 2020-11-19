@@ -68,7 +68,7 @@ describe('OrganizationRuleList', () => {
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {query: 'slug:earth'},
+        query: expect.objectContaining({query: 'slug:earth'}),
       })
     );
     expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({

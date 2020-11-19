@@ -411,7 +411,11 @@ async function fetchProjects(
     cursor?: typeof cursor;
     per_page?: number;
     all_projects?: number;
-  } = {};
+    collapse: string[];
+  } = {
+    // Never return latestDeploys project property from api
+    collapse: ['latestDeploys'],
+  };
 
   if (slugs && slugs.length) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
