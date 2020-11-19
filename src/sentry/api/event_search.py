@@ -2068,7 +2068,7 @@ FUNCTIONS = {
             ],
             aggregate=[
                 # snuba json syntax isn't compatible with this query here
-                # can't be a column, since we want to use this with aggregates
+                # this function can't be a column, since we want to use this with aggregates
                 "if({condition}({aggregate_alias},{value}),{pass},{fail})",
                 None,
                 None,
