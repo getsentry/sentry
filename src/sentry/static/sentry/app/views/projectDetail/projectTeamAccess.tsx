@@ -55,14 +55,11 @@ class ProjectTeamAccess extends React.Component<Props, State> {
 
     const {teams} = project;
     const {collapsed} = this.state;
-
     const canExpand = teams.length > ProjectTeamAccess.MAX_WHEN_COLLAPSED;
-
-    let teamsToRender = teams;
-    if (collapsed && canExpand) {
-      teamsToRender = teams.slice(0, ProjectTeamAccess.MAX_WHEN_COLLAPSED);
-    }
-
+    const teamsToRender =
+      collapsed && canExpand
+        ? teams.slice(0, ProjectTeamAccess.MAX_WHEN_COLLAPSED)
+        : teams;
     const numberOfCollapsedTeams = teams.length - teamsToRender.length;
 
     return (
@@ -98,7 +95,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
       <Section>
         <SectionHeading>{t('Team Access')}</SectionHeading>
 
-        <Wrapper>{this.renderInnerBody()}</Wrapper>
+        <div>{this.renderInnerBody()}</div>
       </Section>
     );
   }
@@ -107,8 +104,6 @@ class ProjectTeamAccess extends React.Component<Props, State> {
 const Section = styled('div')`
   margin-bottom: ${space(4)};
 `;
-
-const Wrapper = styled('div')``;
 
 const StyledLink = styled(Link)`
   display: block;
