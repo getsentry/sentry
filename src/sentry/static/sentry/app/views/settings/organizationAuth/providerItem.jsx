@@ -7,18 +7,12 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
-<<<<<<< HEAD
 import {PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import {IconLock} from 'app/icons';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-=======
-import SentryTypes from 'app/sentryTypes';
-import {IconLock} from 'app/icons';
-import Tag from 'app/components/tag';
->>>>>>> replaced providerItem tagDeprecated with new tag
 import {descopeFeatureName} from 'app/utils';
 
 export default class ProviderItem extends React.PureComponent {
