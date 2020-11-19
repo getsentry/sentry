@@ -29,6 +29,7 @@ type Props = Omit<FormField['props'], 'children'> & {
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
+  inFieldLabels?: boolean;
 };
 
 const getFieldOptionConfig = (dataset: Dataset) => {
@@ -83,7 +84,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   );
 };
 
-const MetricField = ({organization, columnWidth, ...props}: Props) => (
+const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props) => (
   <FormField help={help} {...props}>
     {({onChange, value, model}) => {
       const dataset = model.getValue('dataset');
@@ -105,10 +106,13 @@ const MetricField = ({organization, columnWidth, ...props}: Props) => (
 
       return (
         <React.Fragment>
-          <AggregateHeader>
-            <div>{t('Function')}</div>
-            {numParameters > 0 && <div>{t('Parameter')}</div>}
-          </AggregateHeader>
+          {!inFieldLabels && (
+            <AggregateHeader>
+              <div>{t('Function')}</div>
+              {numParameters > 0 && <div>{t('Parameter')}</div>}
+              {numParameters > 1 && <div>{t('Value')}</div>}
+            </AggregateHeader>
+          )}
           <StyledQueryField
             filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
             fieldOptions={fieldOptions}
@@ -116,6 +120,7 @@ const MetricField = ({organization, columnWidth, ...props}: Props) => (
             onChange={v => onChange(generateFieldAsString(v), {})}
             columnWidth={columnWidth}
             gridColumns={numParameters}
+            inFieldLabels={inFieldLabels}
           />
         </React.Fragment>
       );

@@ -56,6 +56,11 @@ type Props = {
    * list, as tag items in the list may be used as parameters to functions.
    */
   filterPrimaryOptions?: (option: SelectValue<FieldValue>) => boolean;
+  /**
+   * Whether or not to add labels inside of the input fields, currently only
+   * used for the metric alert builder.
+   */
+  inFieldLabels?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
 };
 
@@ -276,6 +281,7 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
+    const {inFieldLabels} = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
@@ -287,6 +293,7 @@ class QueryField extends React.Component<Props> {
             value={descriptor.value}
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
+            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
           />
         );
       }
@@ -350,7 +357,7 @@ class QueryField extends React.Component<Props> {
   }
 
   render() {
-    const {className, takeFocus, filterPrimaryOptions} = this.props;
+    const {className, takeFocus, filterPrimaryOptions, inFieldLabels} = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
     const allFieldOptions = filterPrimaryOptions
@@ -363,6 +370,7 @@ class QueryField extends React.Component<Props> {
       placeholder: t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
+      inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -395,7 +403,7 @@ class QueryField extends React.Component<Props> {
       <Container className={className} gridColumns={parameters.length + 1}>
         <SelectControl
           {...selectProps}
-          styles={styles}
+          styles={!inFieldLabels ? styles : undefined}
           components={{
             Option: ({label, data, ...props}: OptionProps<OptionType>) => (
               <components.Option label={label} {...(props as any)}>
