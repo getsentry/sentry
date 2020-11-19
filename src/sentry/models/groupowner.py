@@ -5,7 +5,7 @@ from enum import Enum
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField
 
 
 class GroupOwnerType(Enum):
@@ -26,7 +26,7 @@ class GroupOwner(Model):
     owner_type = models.PositiveSmallIntegerField(null=False)
     # ID of team/user, based on owner_type
     # Wondering if this should just be team_id and user_id as nullable foreign keys and one is just not used per entry.
-    owner_id = models.PositiveSmallIntegerField(null=False)
+    owner_id = BoundedBigIntegerField(null=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
