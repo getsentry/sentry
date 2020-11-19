@@ -1,18 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
-<<<<<<< HEAD
-import Tag from 'app/components/tagDeprecated';
-import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t} from 'app/locale';
-=======
-import {IconCheckmark, IconClose} from 'app/icons';
-import {t} from 'app/locale';
 import Tag from 'app/components/tag';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
->>>>>>> replaced debugFileFeature tagDeprecated with new tag
 
 const FEATURE_TOOLTIPS = {
   symtab: t(
