@@ -2733,26 +2733,31 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "{}:0".format(count_unique), field=[count_unique]
         )
 
-    def test_compare_aggregate(self):
+    def test_compare_numeric_aggregate(self):
         self.store_event(self.transaction_data, self.project.id)
 
         query = {
-            "field": ["p75(measurements.fcp)", "compare_aggregate(p75_measurements_fcp,>,0)"],
+            "field": [
+                "p75(measurements.fcp)",
+                "compare_numeric_aggregate(p75_measurements_fcp,>,0)",
+            ],
         }
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["compare_aggregate_p75_measurements_fcp_>_0"] == "pass"
+        assert (
+            response.data["data"][0]["compare_numeric_aggregate_p75_measurements_fcp_>_0"] == "pass"
+        )
 
         query = {
-            "field": ["p75()", "compare_aggregate(p75,==,0)"],
+            "field": ["p75()", "compare_numeric_aggregate(p75,==,0)"],
         }
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["compare_aggregate_p75_!=_0"] == "fail"
+        assert response.data["data"][0]["compare_numeric_aggregate_p75_!=_0"] == "fail"
 
     def test_no_key_transactions(self):
         transactions = [

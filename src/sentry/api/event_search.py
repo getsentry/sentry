@@ -2255,7 +2255,7 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "compare_duration_aggregate",
+            "compare_numeric_aggregate",
             required_args=[
                 FunctionAliasArg("aggregate_alias"),
                 ConditionArg("condition"),

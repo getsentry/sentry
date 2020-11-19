@@ -2644,29 +2644,29 @@ class ResolveFieldListTest(unittest.TestCase):
                 ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
             ]
 
-    def test_compare_aggregate(self):
+    def test_compare_numeric_aggregate(self):
         fields = [
-            "compare_aggregate(p50_transaction_duration,>,50)",
-            "compare_aggregate(p50_transaction_duration,!=,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,>,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,!=,50)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
                 "if(greater(p50_transaction_duration,50.0),'pass','fail')",
                 None,
-                "compare_aggregate_p50_transaction_duration_>_50",
+                "compare_numeric_aggregate_p50_transaction_duration_>_50",
             ],
             [
                 "if(notEquals(p50_transaction_duration,50.0),'pass','fail')",
                 None,
-                "compare_aggregate_p50_transaction_duration_!=_50",
+                "compare_numeric_aggregate_p50_transaction_duration_!=_50",
             ],
         ]
 
-    def test_invalid_compare_aggregate(self):
+    def test_invalid_compare_numeric_aggregate(self):
         fields = [
-            "compare_aggregate(p50_transaction_duration,>+,50)",
-            "compare_aggregate(p50_transaction_duration,=,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,>+,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,=,50)",
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
@@ -2674,8 +2674,8 @@ class ResolveFieldListTest(unittest.TestCase):
             assert "is not a valid condition" in six.text_type(err), field
 
         fields = [
-            "compare_aggregate(p50_tr(where,=,50)",
-            "compare_aggregate(a.b.c.d,=,50)",
+            "compare_numeric_aggregate(p50_tr(where,=,50)",
+            "compare_numeric_aggregate(a.b.c.d,=,50)",
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
