@@ -28,8 +28,12 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="dashboard",
-            name="status",
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveField(
+                    model_name="dashboard",
+                    name="status",
+                ),
+            ]
+        )
     ]
