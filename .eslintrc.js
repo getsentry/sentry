@@ -28,8 +28,11 @@ module.exports = {
           // Packages. `react` related packages come first.
           ['^react', '^@?\\w'],
 
+          // Test should be separate from the app
+          ['^(sentry-test)(/.*|$)'],
+
           // Internal packages.
-          ['^(app|sentry|sentry-test|sentry-locale)(/.*|$)'],
+          ['^(app|sentry|sentry-locale)(/.*|$)'],
 
           // Style imports.
           ['^.+\\.less$'],
