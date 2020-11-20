@@ -43,6 +43,7 @@ type Props = ReactRouter.WithRouterProps &
     api: Client;
     location: Location;
     organization: OrganizationSummary;
+    queryExtra: object;
   };
 
 const YAXIS_VALUES = [
@@ -78,6 +79,7 @@ class VitalsChart extends React.Component<Props> {
       query,
       statsPeriod,
       router,
+      queryExtra,
     } = this.props;
 
     const start = this.props.start
@@ -203,6 +205,7 @@ class VitalsChart extends React.Component<Props> {
                   <ReleaseSeries
                     start={start}
                     end={end}
+                    queryExtra={queryExtra}
                     period={statsPeriod}
                     utc={utc}
                     projects={project}

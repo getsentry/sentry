@@ -9,7 +9,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import {GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
+import {Organization, GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {percent, defined} from 'app/utils';
 import {Series} from 'app/types/echarts';
@@ -46,7 +46,7 @@ export type ReleaseStatsRequestRenderProps = Data & {
 type Props = {
   api: Client;
   version: string;
-  orgId: string;
+  organization: Organization;
   projectSlug: string;
   selection: GlobalSelection;
   location: Location;
@@ -105,6 +105,8 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       } else if (
         yAxis === YAxis.EVENTS ||
         yAxis === YAxis.FAILED_TRANSACTIONS ||
+        yAxis === YAxis.COUNT_DURATION ||
+        yAxis === YAxis.COUNT_LCP ||
         yAxis === YAxis.ALL_TRANSACTIONS
       ) {
         data = await this.fetchEventData();
@@ -177,15 +179,23 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   fetchEventData = async () => {
-    const {api, orgId, location, yAxis, selection, version, hasHealthData} = this.props;
+    const {
+      api,
+      organization,
+      location,
+      yAxis,
+      selection,
+      version,
+      hasHealthData,
+    } = this.props;
     const {crashFreeTimeBreakdown} = this.state.data || {};
-    const eventView = getReleaseEventView(selection, version, yAxis, true);
+    const eventView = getReleaseEventView(selection, version, yAxis, organization, true);
     const payload = eventView.getEventsAPIPayload(location);
     let userResponse, eventsCountResponse;
 
     // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
     if (crashFreeTimeBreakdown || !hasHealthData) {
-      eventsCountResponse = await fetchTotalCount(api, orgId, payload);
+      eventsCountResponse = await fetchTotalCount(api, organization.slug, payload);
     } else {
       [userResponse, eventsCountResponse] = await Promise.all([
         api.requestPromise(this.statsPath, {
@@ -194,7 +204,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             type: YAxis.USERS,
           },
         }),
-        fetchTotalCount(api, orgId, payload),
+        fetchTotalCount(api, organization.slug, payload),
       ]);
     }
 
@@ -205,9 +215,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   get statsPath() {
-    const {orgId, projectSlug, version} = this.props;
+    const {organization, projectSlug, version} = this.props;
 
-    return `/projects/${orgId}/${projectSlug}/releases/${version}/stats/`;
+    return `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`;
   }
 
   get baseQueryParams() {
