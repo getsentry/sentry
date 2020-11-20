@@ -1302,6 +1302,8 @@ def get_alert_rule_trigger_action_pagerduty_service(
     target_value, organization, integration_id, use_async_lookup=False
 ):
     try:
+        # TODO: query the org as well to make sure we don't allow
+        # cross org access
         service = PagerDutyService.objects.get(id=target_value)
     except PagerDutyService.DoesNotExist:
         raise InvalidTriggerActionError("No PagerDuty service found.")
@@ -1311,7 +1313,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
     try:
-        sentry_app = SentryApp.objects.get(id=sentry_app_id, owner=organization)
+        # query for the sentry app but make sure it's installed on that org
+        sentry_app = SentryApp.objects.get(
+            installations__organization_id=organization.id,
+            installations__status=SentryAppInstallationStatus.INSTALLED,
+            installations__date_deleted=None,
+            id=sentry_app_id,
+        )
     except SentryApp.DoesNotExist:
         raise InvalidTriggerActionError("No SentryApp found.")
 

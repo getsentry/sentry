@@ -106,8 +106,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_sentry_app(self):
+        other_org = self.create_organization(owner=self.user)
         sentry_app = self.create_sentry_app(
-            name="foo", organization=self.organization, is_alertable=True, verify_install=False
+            name="foo", organization=other_org, is_alertable=True, verify_install=False
         )
         self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
@@ -131,13 +132,22 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
     def test_missing_sentry_app(self):
+        # install it on another org
+        other_org = self.create_organization(owner=self.user)
+        sentry_app = self.create_sentry_app(
+            name="foo", organization=other_org, is_alertable=True, verify_install=False
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=other_org, user=self.user
+        )
+
         valid_alert_rule = deepcopy(self.alert_rule_dict)
         valid_alert_rule["name"] = "InvalidSentryAppTestRule"
         valid_alert_rule["triggers"][0]["actions"][0] = {
             "type": "sentry_app",
             "targetType": "sentry_app",
-            "targetIdentifier": 1,
-            "sentryAppId": 1,
+            "targetIdentifier": sentry_app.id,
+            "sentryAppId": sentry_app.id,
         }
 
         with self.feature("organizations:incidents"):
