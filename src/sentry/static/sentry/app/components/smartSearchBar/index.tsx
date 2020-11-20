@@ -1,50 +1,50 @@
-import {ClassNames} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
-import debounce from 'lodash/debounce';
+import {browserHistory} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import createReactClass from 'create-react-class';
+import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {defined} from 'app/utils';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
-import DropdownLink from 'app/components/dropdownLink';
-import {IconEllipsis, IconSearch, IconSliders, IconClose, IconPin} from 'app/icons';
-import MemberListStore from 'app/stores/memberListStore';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {LightWeightOrganization, SavedSearch, Tag, SavedSearchType} from 'app/types';
 import {
   fetchRecentSearches,
   pinSearch,
   saveRecentSearch,
   unpinSearch,
 } from 'app/actionCreators/savedSearches';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import DropdownLink from 'app/components/dropdownLink';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
 } from 'app/constants';
+import {IconClose, IconEllipsis, IconPin, IconSearch, IconSliders} from 'app/icons';
+import {t} from 'app/locale';
+import MemberListStore from 'app/stores/memberListStore';
+import space from 'app/styles/space';
+import {LightWeightOrganization, SavedSearch, SavedSearchType, Tag} from 'app/types';
+import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 
 import SearchDropdown from './searchDropdown';
-import {SearchItem, SearchGroup, ItemType} from './types';
+import {ItemType, SearchGroup, SearchItem} from './types';
 import {
   addSpace,
-  removeSpace,
   createSearchGroups,
   filterSearchGroupsByIndex,
+  removeSpace,
 } from './utils';
 
 const DROPDOWN_BLUR_DURATION = 200;

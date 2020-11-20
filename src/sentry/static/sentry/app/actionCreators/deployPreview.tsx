@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
-import {t, tct} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
 import ExternalLink from 'app/components/links/externalLink';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
+import {t, tct} from 'app/locale';
 
 export function displayDeployPreviewAlert() {
   if (!DEPLOY_PREVIEW_CONFIG) {

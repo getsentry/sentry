@@ -3,21 +3,21 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {t, tn} from 'app/locale';
-import {CommitFile, Repository} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import {formatVersion} from 'app/utils/formatters';
-import withApi from 'app/utils/withApi';
+import FileChange from 'app/components/fileChange';
 import {Main} from 'app/components/layouts/thirds';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tn} from 'app/locale';
+import {CommitFile, Repository} from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
+import routeTitleGen from 'app/utils/routeTitle';
+import withApi from 'app/utils/withApi';
 import AsyncView from 'app/views/asyncView';
-import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
-import FileChange from 'app/components/fileChange';
 
-import {getFilesByRepository, getReposToRender, getQuery} from './utils';
-import withRepositories from './withRepositories';
-import RepositorySwitcher from './repositorySwitcher';
 import EmptyState from './emptyState';
+import RepositorySwitcher from './repositorySwitcher';
+import {getFilesByRepository, getQuery, getReposToRender} from './utils';
+import withRepositories from './withRepositories';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   api: Client;

@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import theme from 'app/utils/theme';
 
-import BaseChart from './baseChart';
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
+import BaseChart from './baseChart';
 
 class PieChart extends React.Component {
   static propTypes = {

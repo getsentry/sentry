@@ -1,6 +1,6 @@
-import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
+import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 const PanelItem = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.innerBorder};

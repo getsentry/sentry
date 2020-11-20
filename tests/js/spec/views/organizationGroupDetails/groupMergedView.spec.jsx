@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {GroupMergedView} from 'app/views/organizationGroupDetails/groupMerged';
 import {Client} from 'app/api';
+import {GroupMergedView} from 'app/views/organizationGroupDetails/groupMerged';
 
 jest.mock('app/api');
 

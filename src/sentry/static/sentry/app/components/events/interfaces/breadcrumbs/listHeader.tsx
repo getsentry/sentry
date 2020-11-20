@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 import {IconSwitch} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 import {GridCell} from './styles';
 

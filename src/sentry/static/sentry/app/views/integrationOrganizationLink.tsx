@@ -1,28 +1,28 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
-import {components} from 'react-select';
 
-import {Organization, IntegrationProvider, Integration} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
-import {
-  trackIntegrationEvent,
-  getIntegrationFeatureGate,
-  SingleIntegrationEvent,
-} from 'app/utils/integrationUtil';
-import {singleLineRenderer} from 'app/utils/marked';
 import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import Field from 'app/views/settings/components/forms/field';
-import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
-import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NarrowLayout from 'app/components/narrowLayout';
+import {IconFlag} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {Integration, IntegrationProvider, Organization} from 'app/types';
+import {
+  getIntegrationFeatureGate,
+  SingleIntegrationEvent,
+  trackIntegrationEvent,
+} from 'app/utils/integrationUtil';
+import {singleLineRenderer} from 'app/utils/marked';
+import AsyncView from 'app/views/asyncView';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import Field from 'app/views/settings/components/forms/field';
 
 //installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;

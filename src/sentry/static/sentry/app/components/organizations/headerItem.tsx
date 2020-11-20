@@ -1,14 +1,14 @@
-import {Link} from 'react-router';
 import React from 'react';
-import PropTypes from 'prop-types';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
-import {IconClose, IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
+import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 type DefaultProps = {
   allowClear: boolean;

@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import Tag from 'app/components/tag';
 import Feature from 'app/components/acl/feature';
+import Tag from 'app/components/tag';
 import {IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
 
 /**
  * Used in new inbox

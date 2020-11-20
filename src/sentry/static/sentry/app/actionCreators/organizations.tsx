@@ -1,14 +1,14 @@
 import {browserHistory} from 'react-router';
 
-import {Client} from 'app/api';
-import {Organization, LightWeightOrganization} from 'app/types';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
+import {Client} from 'app/api';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import {LightWeightOrganization, Organization} from 'app/types';
 
 type RedirectRemainingOrganizationParams = {
   /**

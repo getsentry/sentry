@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import {openSudo, openHelpSearchModal} from 'app/actionCreators/modal';
-import {toggleLocaleDebug} from 'app/locale';
+import {openHelpSearchModal, openSudo} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
+import {toggleLocaleDebug} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
 const ACTIONS = [
   {

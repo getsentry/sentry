@@ -1,8 +1,8 @@
 import React from 'react';
 
+import Tag from 'app/components/tag';
 import {IconChat} from 'app/icons';
 import {SubscriptionDetails} from 'app/types';
-import Tag from 'app/components/tag';
 
 /**
  * Used in new inbox

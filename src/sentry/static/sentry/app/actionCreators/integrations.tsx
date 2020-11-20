@@ -1,10 +1,10 @@
-import {Client} from 'app/api';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import {t, tct} from 'app/locale';
 import {Integration, Repository} from 'app/types';
 

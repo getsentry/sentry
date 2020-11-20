@@ -3,12 +3,12 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import {disconnectIdentity} from 'app/actionCreators/account';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import {Identity} from 'app/types';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
+import {Identity} from 'app/types';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/social-identities/';

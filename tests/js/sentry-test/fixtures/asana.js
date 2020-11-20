@@ -74,4 +74,4 @@ function AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE]) {
   return {[type]: values};
 }
 
-export {AsanaPlugin, AsanaCreate, AsanaAutocomplete};
+export {AsanaAutocomplete, AsanaCreate, AsanaPlugin};

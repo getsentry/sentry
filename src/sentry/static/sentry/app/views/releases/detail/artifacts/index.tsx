@@ -1,14 +1,14 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import routeTitleGen from 'app/utils/routeTitle';
-import {formatVersion} from 'app/utils/formatters';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
 import AlertLink from 'app/components/alertLink';
 import {Main} from 'app/components/layouts/thirds';
+import {t, tct} from 'app/locale';
+import {Organization} from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
+import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
 import {ReleaseContext} from '..';
 

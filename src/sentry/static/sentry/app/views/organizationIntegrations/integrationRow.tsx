@@ -2,18 +2,18 @@ import React from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
-import {IconWarning} from 'app/icons';
-import Button from 'app/components/button';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {Organization, SentryApp, IntegrationInstallationStatus} from 'app/types';
-import {t} from 'app/locale';
+import {IntegrationInstallationStatus, Organization, SentryApp} from 'app/types';
 import {
-  trackIntegrationEvent,
   convertIntegrationTypeToSnakeCase,
+  trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
 
 import IntegrationStatus from './integrationStatus';

@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Meta} from 'app/types';
-import Tooltip from 'app/components/tooltip';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import Tooltip from 'app/components/tooltip';
 import {IconSliders} from 'app/icons';
 import {t} from 'app/locale';
+import {Meta} from 'app/types';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 

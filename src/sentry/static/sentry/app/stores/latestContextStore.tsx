@@ -1,9 +1,9 @@
 import Reflux from 'reflux';
 
-import ProjectActions from 'app/actions/projectActions';
+import NavigationActions from 'app/actions/navigationActions';
 import OrganizationActions from 'app/actions/organizationActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
-import NavigationActions from 'app/actions/navigationActions';
+import ProjectActions from 'app/actions/projectActions';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 
 type OrgTypes = LightWeightOrganization | Organization | null;

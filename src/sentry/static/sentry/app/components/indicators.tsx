@@ -1,14 +1,14 @@
-import {AnimatePresence} from 'framer-motion';
-import {ThemeProvider} from 'emotion-theming';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import {ThemeProvider} from 'emotion-theming';
+import {AnimatePresence} from 'framer-motion';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {removeIndicator, Indicator} from 'app/actionCreators/indicator';
-import IndicatorStore from 'app/stores/indicatorStore';
+import {Indicator, removeIndicator} from 'app/actionCreators/indicator';
 import ToastIndicator from 'app/components/alerts/toastIndicator';
+import IndicatorStore from 'app/stores/indicatorStore';
 import theme from 'app/utils/theme';
 
 const Toasts = styled('div')`

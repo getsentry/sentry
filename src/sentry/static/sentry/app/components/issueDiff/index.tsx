@@ -2,17 +2,17 @@ import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import getStacktraceBody from 'app/utils/getStacktraceBody';
-import SplitDiff from 'app/components/splitDiff';
-import ButtonBar from 'app/components/buttonBar';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SplitDiff from 'app/components/splitDiff';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project} from 'app/types';
+import getStacktraceBody from 'app/utils/getStacktraceBody';
+import withApi from 'app/utils/withApi';
 
 import renderGroupingInfo from './renderGroupingInfo';
 

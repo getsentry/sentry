@@ -1,9 +1,9 @@
 import {Location, LocationDescriptor, Query} from 'history';
 
-import {OrganizationSummary, GlobalSelection} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
-import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
+import {GlobalSelection, OrganizationSummary} from 'app/types';
 import {statsPeriodToDays} from 'app/utils/dates';
+import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
+import {decodeScalar} from 'app/utils/queryString';
 
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;

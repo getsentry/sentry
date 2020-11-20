@@ -1,21 +1,21 @@
 import React from 'react';
-import isEqual from 'lodash/isEqual';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
-import {Organization} from 'app/types';
-import EventsRequest from 'app/components/charts/eventsRequest';
 import AreaChart from 'app/components/charts/areaChart';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import {getInterval} from 'app/components/charts/utils';
+import LoadingContainer from 'app/components/loading/loadingContainer';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {IconWarning} from 'app/icons';
+import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingContainer from 'app/components/loading/loadingContainer';
-import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
 import EventView from 'app/utils/discover/eventView';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   organization: Organization;

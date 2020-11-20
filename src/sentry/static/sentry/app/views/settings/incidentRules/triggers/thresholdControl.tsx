@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {
-  ThresholdControlValue,
-  AlertRuleThresholdType,
-} from 'app/views/settings/incidentRules/types';
-import {t, tct} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
 import NumberDragControl from 'app/components/numberDragControl';
 import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
+import {
+  AlertRuleThresholdType,
+  ThresholdControlValue,
+} from 'app/views/settings/incidentRules/types';
 
 type Props = ThresholdControlValue & {
   type: string;

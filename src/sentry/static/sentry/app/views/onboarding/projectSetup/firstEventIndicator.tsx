@@ -1,14 +1,14 @@
 import React from 'react';
-import {motion, AnimatePresence, Variants} from 'framer-motion';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion, Variants} from 'framer-motion';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import EventWaiter from 'app/utils/eventWaiter';
-import space from 'app/styles/space';
-import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
-import {Group, Organization} from 'app/types';
 import {IconCheckmark} from 'app/icons';
+import {t} from 'app/locale';
+import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
+import space from 'app/styles/space';
+import {Group, Organization} from 'app/types';
+import EventWaiter from 'app/utils/eventWaiter';
 import testableTransition from 'app/utils/testableTransition';
 
 type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;

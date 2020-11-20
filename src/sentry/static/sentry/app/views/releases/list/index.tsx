@@ -1,34 +1,35 @@
 import React from 'react';
+import {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import {forceCheck} from 'react-lazyload';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import AsyncView from 'app/views/asyncView';
-import {Organization, Release, GlobalSelection, ReleaseStatus} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import SearchBar from 'app/components/searchBar';
-import Pagination from 'app/components/pagination';
-import PageHeading from 'app/components/pageHeading';
-import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import {PageContent, PageHeader} from 'app/styles/organization';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
+import PageHeading from 'app/components/pageHeading';
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {t} from 'app/locale';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
+import {GlobalSelection, Organization, Release, ReleaseStatus} from 'app/types';
 import {defined} from 'app/utils';
+import routeTitleGen from 'app/utils/routeTitle';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
-import ReleaseListSortOptions from './releaseListSortOptions';
-import ReleaseLanding from './releaseLanding';
+import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
+
 import IntroBanner from './introBanner';
 import ReleaseCard from './releaseCard';
+import ReleaseLanding from './releaseLanding';
 import ReleaseListDisplayOptions from './releaseListDisplayOptions';
-import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
+import ReleaseListSortOptions from './releaseListSortOptions';
 
 type RouteParams = {
   orgId: string;

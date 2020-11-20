@@ -1,24 +1,24 @@
 import React, {CSSProperties} from 'react';
-import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named
-import {components, SingleValueProps, OptionProps} from 'react-select';
+import {components, OptionProps, SingleValueProps} from 'react-select';
+import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
-import Input from 'app/views/settings/components/forms/controls/input';
-import SelectControl from 'app/components/forms/selectControl';
-import {SelectValue} from 'app/types';
-import {t} from 'app/locale';
 import Badge from 'app/components/badge';
+import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {SelectValue} from 'app/types';
 import {
-  ColumnType,
   AggregateParameter,
+  ColumnType,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import {FieldValueKind, FieldValue, FieldValueColumns} from './types';
+import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
 type FieldOptions = Record<string, SelectValue<FieldValue>>;
 

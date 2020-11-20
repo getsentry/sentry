@@ -1,10 +1,10 @@
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import SavedSearchesActions from 'app/actions/savedSearchesActions';
 import {Client} from 'app/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'app/constants';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import SavedSearchesActions from 'app/actions/savedSearchesActions';
+import {RecentSearch, SavedSearch, SavedSearchType} from 'app/types';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import {SavedSearch, RecentSearch, SavedSearchType} from 'app/types';
 
 export function resetSavedSearches() {
   SavedSearchesActions.resetSavedSearches();

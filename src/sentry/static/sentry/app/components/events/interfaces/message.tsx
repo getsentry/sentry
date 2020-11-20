@@ -1,7 +1,7 @@
 import React from 'react';
 
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import EventDataSection from 'app/components/events/eventDataSection';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import Annotated from 'app/components/events/meta/annotated';
 import {t} from 'app/locale';
 import {objectIsEmpty} from 'app/utils';
