@@ -43,7 +43,7 @@ class GroupOwner(Model):
         if self.user:
             return u"user:{}".format(self.user_id)
 
-        if self.team:
+        if self.team_id:
             return u"team:{}".format(self.team_id)
 
         raise NotImplementedError("Unknown Owner")
