@@ -6,9 +6,13 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SelectControl from 'app/components/forms/selectControl';
 import HookOrDefault from 'app/components/hookOrDefault';
+<<<<<<< HEAD
 import {PanelItem} from 'app/components/panels';
 import RoleSelectControl from 'app/components/roleSelectControl';
 import Tag from 'app/components/tagDeprecated';
+=======
+import Tag from 'app/components/tag';
+>>>>>>> replaced inviteRequestRow tagDeprecated with new tag
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -50,7 +54,7 @@ const InviteRequestRow = ({
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>
-        <h5 style={{marginBottom: '3px'}}>
+        <h5 style={{marginBottom: space(0.5)}}>
           <UserName>{inviteRequest.email}</UserName>
         </h5>
         {inviteRequest.inviteStatus === 'requested_to_be_invited' ? (
@@ -68,9 +72,11 @@ const InviteRequestRow = ({
             </Description>
           )
         ) : (
-          <Tooltip title={t('This user has asked to join your organization.')}>
-            <JoinRequestIndicator size="small">{t('Join request')}</JoinRequestIndicator>
-          </Tooltip>
+          <JoinRequestIndicator
+            tooltipText={t('This user has asked to join your organization.')}
+          >
+            {t('Join request')}
+          </JoinRequestIndicator>
         )}
       </div>
 
@@ -165,8 +171,6 @@ InviteRequestRow.propTypes = {
 };
 
 const JoinRequestIndicator = styled(Tag)`
-  padding: ${space(0.5)} ${space(0.75)};
-  font-size: 10px;
   text-transform: uppercase;
 `;
 

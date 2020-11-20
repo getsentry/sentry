@@ -5,20 +5,12 @@ import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-<<<<<<< HEAD
 import {IntegrationFeature, Organization, SentryApp} from 'app/types';
-=======
-import {t, tct} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconFlag} from 'app/icons';
-import Tag from 'app/components/tag';
->>>>>>> replaced sentryAppDetailsModal tagDeprecated with new tag
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
