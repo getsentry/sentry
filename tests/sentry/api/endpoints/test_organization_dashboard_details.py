@@ -19,13 +19,13 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         super(OrganizationDashboardDetailsTestCase, self).setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=1,
+            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=2,
+            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
         )
@@ -35,7 +35,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.anon_users_query["fields"],
             conditions=self.anon_users_query["conditions"],
             interval=self.anon_users_query["interval"],
-            order=1,
+            order=0,
         )
         self.widget_1_data_2 = DashboardWidgetQuery.objects.create(
             widget=self.widget_1,
@@ -43,7 +43,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.known_users_query["fields"],
             conditions=self.known_users_query["conditions"],
             interval=self.known_users_query["interval"],
-            order=2,
+            order=1,
         )
         self.widget_2_data_1 = DashboardWidgetQuery.objects.create(
             widget=self.widget_2,
@@ -51,7 +51,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             fields=self.geo_errors_query["fields"],
             conditions=self.geo_errors_query["conditions"],
             interval=self.geo_errors_query["interval"],
-            order=1,
+            order=0,
         )
 
     def url(self, dashboard_id):
@@ -138,13 +138,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         super(OrganizationDashboardDetailsPutTest, self).setUp()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=3,
+            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
-            order=4,
+            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         )
@@ -303,6 +303,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
 
+    def test_update_widget_reorder_queries(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "title": "New title",
+                    "queries": [
+                        {"id": six.text_type(self.widget_1_data_2.id)},
+                        {"id": six.text_type(self.widget_1_data_1.id)},
+                    ],
+                },
+                {"id": six.text_type(self.widget_2.id)},
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        # two widgets should be removed
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 2
+
+        queries = self.get_widget_queries(widgets[0])
+        assert len(queries) == 2
+        assert queries[0].id == self.widget_1_data_2.id
+        assert queries[1].id == self.widget_1_data_1.id
+
     def test_remove_widget_and_add_new(self):
         # Remove a widget from the middle of the set and put a new widget there
         data = {
@@ -372,7 +399,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 ]
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
         self.assert_dashboard_and_widgets(
             [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
         )

@@ -18,6 +18,14 @@ def get_next_dashboard_order(dashboard_id):
     return max_order + 1 if max_order else 1
 
 
+def get_next_query_order(widget_id):
+    max_order = DashboardWidgetQuery.objects.filter(widget_id=widget_id).aggregate(Max("order"))[
+        "order__max"
+    ]
+
+    return max_order + 1 if max_order else 1
+
+
 def validate_id(self, value):
     try:
         return int(value)
@@ -102,7 +110,7 @@ class DashboardDetailsSerializer(serializers.Serializer):
         # Remove widgets that are not in the current request.
         self.remove_missing_widgets(instance.id, widget_ids)
 
-        # Get new ordering start point.
+        # Get new ordering start point to avoid constraint errors
         next_order = get_next_dashboard_order(instance.id)
 
         for i, data in enumerate(widget_data):
@@ -161,11 +169,14 @@ class DashboardDetailsSerializer(serializers.Serializer):
         existing = DashboardWidgetQuery.objects.filter(widget=widget, id__in=query_ids)
         existing_map = {query.id: query for query in existing}
 
+        # Get new ordering start point to avoid constraint errors
+        next_order = get_next_query_order(widget.id)
+
         new_queries = []
         for i, query_data in enumerate(data):
             query_id = query_data.get("id")
             if query_id and query_id in existing_map:
-                self.update_widget_query(existing_map[query_id], query_data, i)
+                self.update_widget_query(existing_map[query_id], query_data, next_order + i)
             if not query_id:
                 new_queries.append(
                     DashboardWidgetQuery(
@@ -174,7 +185,7 @@ class DashboardDetailsSerializer(serializers.Serializer):
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
                         interval=query_data.get("interval", "5m"),
-                        order=i,
+                        order=next_order + i,
                     )
                 )
         DashboardWidgetQuery.objects.bulk_create(new_queries)
