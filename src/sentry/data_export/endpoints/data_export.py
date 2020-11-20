@@ -119,7 +119,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
         data = serializer.validated_data
 
         try:
-            # If this user has sent a sent a request with the same payload and organization,
+            # If this user has sent a request with the same payload and organization,
             # we return them the latest one that is NOT complete (i.e. don't start another)
             query_type = ExportQueryType.from_str(data["query_type"])
             data_export, created = ExportedData.objects.get_or_create(
