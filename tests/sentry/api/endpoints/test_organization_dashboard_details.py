@@ -5,7 +5,6 @@ import six
 from django.core.urlresolvers import reverse
 from sentry.models import (
     Dashboard,
-    ObjectStatus,
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
@@ -110,7 +109,14 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
     def test_delete(self):
         response = self.client.delete(self.url(self.dashboard.id))
         assert response.status_code == 204
-        assert Dashboard.objects.get(id=self.dashboard.id).status == ObjectStatus.PENDING_DELETION
+
+        assert self.client.get(self.url(self.dashboard.id)).status_code == 404
+
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
+        assert not DashboardWidget.objects.filter(id=self.widget_1.id).exists()
+        assert not DashboardWidget.objects.filter(id=self.widget_2.id).exists()
+        assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_1.id).exists()
+        assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_2.id).exists()
 
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))

@@ -11,7 +11,7 @@ from sentry.api.serializers.rest_framework import (
     ListField,
     ValidationError,
 )
-from sentry.models import ObjectStatus, DashboardWidget
+from sentry.models import DashboardWidget
 
 
 def remove_widgets(dashboard_widgets, widget_data):
@@ -92,9 +92,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :pparam int dashboard_id: the id of the dashboard.
         :auth: required
         """
-
-        dashboard.status = ObjectStatus.PENDING_DELETION
-        dashboard.save()
+        dashboard.delete()
 
         return self.respond(status=204)
 
