@@ -102,8 +102,7 @@ pre {
 }
 
 ul,
-ol,
-table {
+ol {
   margin: 0 0 20px;
 }
 
@@ -388,22 +387,11 @@ kbd {
 }
 
 pre,
-code,
-kbd,
-sample {
-  font-family: @font-family-code;
-}
-
-pre,
 code {
   border: 0;
   background-color: @white-darker;
   color: @gray-darker;
   border-radius: 3px;
-
-  &.small {
-    font-size: 12px;
-  }
 }
 
 pre {
@@ -434,13 +422,6 @@ pre {
 
 // Forms
 // ==========================================================================
-
-//
-// Known limitation: by default, Chrome and Safari on OS X allow very limited
-// styling of `select`, unless a `border` property is set.
-//
-
-//
 // 1. Correct color not being inherited.
 //    Known issue: affects color of disabled elements.
 // 2. Correct font properties not being inherited.
@@ -597,14 +578,10 @@ optgroup {
 
 // Tables
 // ==========================================================================
-
-//
-// Remove most spacing between table cells.
-//
-
 table {
   border-collapse: collapse;
   border-spacing: 0;
+  margin: 0 0 20px;
 }
 
 td,
