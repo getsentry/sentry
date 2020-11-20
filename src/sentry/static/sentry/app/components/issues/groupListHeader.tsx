@@ -1,5 +1,5 @@
 import React from 'react';
-import {Flex, Box} from 'reflexbox';
+import {Flex, Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import {t} from 'app/locale';
 import {PanelHeader} from 'app/components/panels';

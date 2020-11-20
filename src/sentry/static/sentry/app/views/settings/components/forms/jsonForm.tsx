@@ -1,4 +1,4 @@
-import {Box} from 'reflexbox';
+import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 import PropTypes from 'prop-types';
 import React from 'react';
 import scrollToElement from 'scroll-to-element';

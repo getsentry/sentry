@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports
-import {Flex} from 'reflexbox';
+import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 
