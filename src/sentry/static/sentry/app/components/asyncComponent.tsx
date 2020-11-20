@@ -92,9 +92,6 @@ export default class AsyncComponent<
   // and it will need to handle any additional "reloading" states
   shouldReload = false;
 
-  // should `renderError` render the `detail` attribute of a 400 error
-  shouldRenderBadRequests = false;
-
   shouldRaiseRequestErrorToParent = false;
 
   constructor(props: P, context: any) {
@@ -402,7 +399,6 @@ export default class AsyncComponent<
     return <LoadingIndicator />;
   }
 
-  //void if subclass throws an error
   renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
     const {errors} = this.state;
 
@@ -442,10 +438,6 @@ export default class AsyncComponent<
       if (badRequests.length) {
         return <LoadingError message={badRequests.join('\n')} />;
       }
-    }
-
-    if (this.shouldRaiseRequestErrorToParent) {
-      throw error;
     }
 
     return (

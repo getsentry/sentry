@@ -37,8 +37,6 @@ type State = AsyncComponent['state'] & {
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
-  shouldRaiseRequestErrorToParent = true;
   get project() {
     // we can't use the withProject HoC on an the issue page
     // so we ge around that by using the withProjects HoC
@@ -114,6 +112,11 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         {startSession: true}
       );
     }
+  }
+
+  // let the ErrorBoundary handle errors by raising it
+  renderError(): React.ReactNode {
+    throw new Error('Error loading endpoints');
   }
 
   renderLoading() {
