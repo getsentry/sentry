@@ -281,9 +281,7 @@ const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
 `;
 
 const Features = styled('div')`
-  margin-left: -${space(0.5)};
-  margin-right: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
+  margin: -${space(0.5)};
 `;
 
 const StyledTag = styled(Tag)`
