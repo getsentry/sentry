@@ -77,7 +77,7 @@ class DashboardDetailsSerializer(serializers.Serializer):
         """
         Update a dashboard, the connected widgets and queries
 
-        - Widgets in the dashboard currently, but not in widget_data will be removed.
+        - Widgets in the dashboard currently, but not in validated_data will be removed.
         - Widgets without ids will be created.
         - Widgets with matching IDs will be updated.
         - The order of the widgets will be updated based on the order in the request data.
@@ -115,7 +115,7 @@ class DashboardDetailsSerializer(serializers.Serializer):
                 self.create_widget(instance, data, next_order + i)
             else:
                 raise serializers.ValidationError(
-                    "You cannot use existing widgets that are not part of this dashboard."
+                    "You cannot update widgets that are not part of this dashboard."
                 )
 
     def remove_missing_widgets(self, dashboard_id, keep_ids):
