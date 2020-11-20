@@ -43,6 +43,7 @@ type Props = ReactRouter.WithRouterProps &
     api: Client;
     location: Location;
     organization: OrganizationSummary;
+    queryExtra: object;
     trendDisplay: string;
   };
 
@@ -82,6 +83,7 @@ class TrendChart extends React.Component<Props> {
       statsPeriod,
       router,
       trendDisplay,
+      queryExtra,
     } = this.props;
 
     const start = this.props.start
@@ -219,6 +221,7 @@ class TrendChart extends React.Component<Props> {
                   <ReleaseSeries
                     start={start}
                     end={end}
+                    queryExtra={queryExtra}
                     period={statsPeriod}
                     utc={utc}
                     projects={project}
