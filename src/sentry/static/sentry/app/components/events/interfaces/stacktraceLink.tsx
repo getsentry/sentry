@@ -113,6 +113,12 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       );
     }
   }
+
+  // let the ErrorBoundary handle errors by raising it
+  renderError(): React.ReactNode {
+    throw new Error('Error loading endpoints');
+  }
+
   renderLoading() {
     //TODO: Add loading
     return null;
