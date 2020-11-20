@@ -11,6 +11,7 @@ import {PlatformType, Event, Frame} from 'app/types';
 const defaultProps = {
   includeSystemFrames: true,
   expandFirstFrame: true,
+  hideStacktraceLink: false as boolean | undefined,
 };
 
 type Props = {
@@ -122,6 +123,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       expandFirstFrame,
       platform,
       includeSystemFrames,
+      hideStacktraceLink,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -209,6 +211,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
+            hideStacktraceLink={hideStacktraceLink}
           />
         );
       }
