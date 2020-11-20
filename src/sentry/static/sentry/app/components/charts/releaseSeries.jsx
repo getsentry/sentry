@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
+import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
@@ -147,11 +148,9 @@ class ReleaseSeries extends React.Component {
 
   setReleasesWithSeries(releases) {
     const {emphasizeReleases = []} = this.props;
-    const unemphasizedReleases = releases.filter(
+    const [unemphasizedReleases, emphasizedReleases] = partition(
+      releases,
       release => !emphasizeReleases.includes(release.version)
-    );
-    const emphasizedReleases = releases.filter(release =>
-      emphasizeReleases.includes(release.version)
     );
     const releaseSeries = [];
     if (unemphasizedReleases.length) {
