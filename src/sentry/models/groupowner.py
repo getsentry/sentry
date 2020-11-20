@@ -40,7 +40,7 @@ class GroupOwner(Model):
         super(GroupOwner, self).save(*args, **kwargs)
 
     def owner_id(self):
-        if self.user:
+        if self.user_id:
             return u"user:{}".format(self.user_id)
 
         if self.team_id:
