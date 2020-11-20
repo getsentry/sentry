@@ -276,6 +276,10 @@ type Props = {
    */
   disableReleases?: boolean;
   /**
+   * A list of release names to visually emphasize. Can only be used when `disableReleases` is false.
+   */
+  emphasizeReleases?: string[];
+  /**
    * Fetch n top events as dictated by the field and orderby props.
    */
   topEvents?: number;
@@ -336,6 +340,7 @@ class EventsChart extends React.Component<Props> {
     yAxis: PropTypes.string,
     disablePrevious: PropTypes.bool,
     disableReleases: PropTypes.bool,
+    emphasizeReleases: PropTypes.array,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
     seriesNameTransformer: PropTypes.func,
@@ -363,6 +368,7 @@ class EventsChart extends React.Component<Props> {
       yAxis,
       disablePrevious,
       disableReleases,
+      emphasizeReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
       seriesNameTransformer,
@@ -437,6 +443,7 @@ class EventsChart extends React.Component<Props> {
           end={end}
           projects={projects}
           environments={environments}
+          emphasizeReleases={emphasizeReleases}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>
