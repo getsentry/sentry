@@ -20,7 +20,7 @@ function handleColorSchemeChange(e: MediaQueryListEvent): void {
   const isDark = e.media === '(prefers-color-scheme: dark)' && e.matches;
   const type = isDark ? 'dark' : 'light';
   changeFavicon(type);
-  ConfigStore.set('theme', type);
+  ConfigStore.updateTheme(type);
 }
 
 export function prefersDark(): boolean {
@@ -31,7 +31,7 @@ export function setupColorScheme(): void {
   // Set favicon to dark on load if necessary)
   if (prefersDark()) {
     changeFavicon('dark');
-    ConfigStore.set('theme', 'dark');
+    ConfigStore.updateTheme('dark');
   }
 
   // Watch for changes in preferred color scheme

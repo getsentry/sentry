@@ -14,8 +14,6 @@ module.exports = {
     ],
   ],
   plugins: [
-    '@babel/plugin-syntax-dynamic-import',
-    '@babel/plugin-proposal-object-rest-spread',
     '@babel/plugin-transform-runtime',
     // NOTE: The order of the decorator and class-property plugins is important
     // here. Decorators must be processed first before class properties, see:
@@ -59,6 +57,7 @@ module.exports = {
       ].filter(Boolean),
     },
     test: {
+      // Required, see https://github.com/facebook/jest/issues/9430
       plugins: ['dynamic-import-node'],
     },
   },
