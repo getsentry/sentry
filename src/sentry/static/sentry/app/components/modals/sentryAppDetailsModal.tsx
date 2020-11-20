@@ -10,7 +10,15 @@ import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
+<<<<<<< HEAD
 import {IntegrationFeature, Organization, SentryApp} from 'app/types';
+=======
+import {t, tct} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
+import marked, {singleLineRenderer} from 'app/utils/marked';
+import {IconFlag} from 'app/icons';
+import Tag from 'app/components/tag';
+>>>>>>> replaced sentryAppDetailsModal tagDeprecated with new tag
 import {toPermissions} from 'app/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
@@ -162,7 +170,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
-            <div>{features.length && this.featureTags(features)}</div>
+            {!!features.length && <Features>{this.featureTags(features)}</Features>}
           </HeadingInfo>
         </Heading>
 
@@ -218,7 +226,6 @@ const Heading = styled('div')`
 const HeadingInfo = styled('div')`
   display: grid;
   grid-template-rows: max-content max-content;
-  grid-gap: ${space(0.5)};
   align-items: start;
 `;
 
@@ -255,12 +262,6 @@ const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
   font-size: 0.9em;
 `;
 
-const StyledTag = styled(Tag)`
-  &:not(:first-child) {
-    margin-left: ${space(0.5)};
-  }
-`;
-
 const Text = styled('p')`
   margin: 0px 6px;
 `;
@@ -285,4 +286,14 @@ const Title = styled('p')`
 const Indicator = styled(p => <CircleIndicator size={7} {...p} />)`
   margin-top: 7px;
   color: ${p => p.theme.success};
+`;
+
+const Features = styled('div')`
+  margin-left: -${space(0.5)};
+  margin-right: -${space(0.5)};
+  margin-bottom: -${space(0.5)};
+`;
+
+const StyledTag = styled(Tag)`
+  padding: ${space(0.5)};
 `;
