@@ -4,12 +4,10 @@ import six
 from django.db import models
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     ArrayField,
-    JSONField,
     Model,
     sane_repr,
 )
@@ -53,57 +51,6 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (TABLE, "table"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
-
-
-class Widget(Model):
-    """
-    Deprecated widget class. Will be removed very soon.
-    """
-
-    __core__ = True
-
-    dashboard = FlexibleForeignKey("sentry.Dashboard", db_constraint=False, db_index=False)
-    order = BoundedPositiveIntegerField()
-    title = models.CharField(max_length=255)
-
-    display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
-    display_options = JSONField(default={})
-    date_added = models.DateTimeField(default=timezone.now)
-    status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
-    )
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_widget"
-        unique_together = (("dashboard", "order"), ("dashboard", "title"))
-
-    __repr__ = sane_repr("dashboard", "title")
-
-
-class WidgetDataSource(Model):
-    """
-    Deprecated widget class. Will be removed very soon.
-    """
-
-    __core__ = True
-
-    widget = FlexibleForeignKey("sentry.Widget", db_constraint=False, db_index=False)
-    name = models.CharField(max_length=255)
-    type = BoundedPositiveIntegerField(choices=[(0, "discover_saved_search")])
-    data = JSONField(default={})  # i.e. saved discover query
-    order = BoundedPositiveIntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-    status = BoundedPositiveIntegerField(
-        default=ObjectStatus.VISIBLE, choices=ObjectStatus.as_choices()
-    )
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_widgetdatasource"
-        unique_together = (("widget", "name"), ("widget", "order"))
-
-    __repr__ = sane_repr("widget", "type", "name")
 
 
 class DashboardWidgetQuery(Model):
