@@ -85,9 +85,9 @@ const ResponseCode = ({code}: {code: number}) => {
   }
 
   return (
-    <div>
-      <Tag type={type}>{code === 0 ? 'timeout' : code}</Tag>
-    </div>
+    <Tags>
+      <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
+    </Tags>
   );
 };
 
@@ -356,4 +356,13 @@ const StyledErrorsOnlyButton = styled(Button)`
 const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
   color: ${p => p.theme.subText};
+`;
+
+const Tags = styled('div')`
+  margin: -${space(0.5)};
+`;
+
+const StyledTag = styled(Tag)`
+  padding: ${space(0.5)};
+  display: inline-flex;
 `;
