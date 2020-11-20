@@ -31,7 +31,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = {
+type State = AsyncView['state'] & {
   apiKey: DeprecatedApiKey;
 };
 
