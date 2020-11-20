@@ -107,6 +107,7 @@ function getTermDescriptions(platform: PlatformKey) {
 }
 
 type Term = keyof ReturnType<typeof getTermDescriptions>;
+
 export function getSessionTermDescription(term: Term, platform: PlatformKey) {
   return getTermDescriptions(platform)[term];
 }
