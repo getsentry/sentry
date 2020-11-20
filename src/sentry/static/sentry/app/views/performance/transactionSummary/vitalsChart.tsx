@@ -205,7 +205,10 @@ class VitalsChart extends React.Component<Props> {
                   <ReleaseSeries
                     start={start}
                     end={end}
-                    queryExtra={queryExtra}
+                    queryExtra={{
+                      ...queryExtra,
+                      showTransactions: 'slow_lcp',
+                    }}
                     period={statsPeriod}
                     utc={utc}
                     projects={project}
