@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import pytest
 
 from django.core.urlresolvers import reverse
 from sentry.models import (
@@ -61,11 +62,14 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
 
     def assert_serialized_widget(self, data, expected_widget):
-        assert data["id"] == six.text_type(expected_widget.id)
-        assert data["title"] == expected_widget.title
-        assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
-            expected_widget.display_type
-        )
+        if "id" in data:
+            assert data["id"] == six.text_type(expected_widget.id)
+        if "title" in data:
+            assert data["title"] == expected_widget.title
+        if "displayType" in data:
+            assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
+                expected_widget.display_type
+            )
 
     def assert_serialized_dashboard(self, data, dashboard):
         assert data["id"] == six.text_type(dashboard.id)
@@ -74,11 +78,16 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["createdBy"] == six.text_type(dashboard.created_by.id)
 
     def assert_serialized_widget_query(self, data, widget_data_source):
-        assert data["id"] == six.text_type(widget_data_source.id)
-        assert data["name"] == widget_data_source.name
-        assert data["fields"] == widget_data_source.fields
-        assert data["conditions"] == widget_data_source.conditions
-        assert data["interval"] == widget_data_source.interval
+        if "id" in data:
+            assert data["id"] == six.text_type(widget_data_source.id)
+        if "name" in data:
+            assert data["name"] == widget_data_source.name
+        if "fields" in data:
+            assert data["fields"] == widget_data_source.fields
+        if "conditions" in data:
+            assert data["conditions"] == widget_data_source.conditions
+        if "interval" in data:
+            assert data["interval"] == widget_data_source.interval
 
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
@@ -135,6 +144,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
+    def get_widgets(self, dashboard_id):
+        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
+
+    def get_widget_queries(self, widget):
+        return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
+
     def assert_no_changes(self):
         self.assert_dashboard_and_widgets(self.widget_ids)
 
@@ -143,36 +158,201 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             organization=self.organization, id=self.dashboard.id
         ).exists()
 
-        widgets = DashboardWidget.objects.filter(dashboard_id=self.dashboard.id).order_by("order")
+        widgets = self.get_widgets(self.dashboard)
         assert len(widgets) == len(list(widget_ids))
 
         for widget, id in zip(widgets, widget_ids):
             assert widget.id == id
 
-    def test_put(self):
-        response = self.client.put(
-            self.url(self.dashboard.id),
-            data={
-                "title": "Changed the title",
-                "widgets": [
-                    {"id": self.widget_4.id},
-                    {"id": self.widget_1.id},
-                    {"id": self.widget_3.id},
-                    {"id": self.widget_2.id},
-                ],
-            },
-        )
-        assert response.status_code == 200
-        self.assert_dashboard_and_widgets(
-            [self.widget_4.id, self.widget_1.id, self.widget_3.id, self.widget_2.id]
-        )
+    def test_dashboard_does_not_exist(self):
+        response = self.client.put(self.url(1234567890))
+        assert response.status_code == 404
+        assert response.data == {u"detail": u"The requested resource does not exist"}
 
     def test_change_dashboard_title(self):
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard Hello"})
-        assert response.status_code == 200
+        assert response.status_code == 200, response.data
         assert Dashboard.objects.filter(
             title="Dashboard Hello", organization=self.organization, id=self.dashboard.id
         ).exists()
+
+    def test_add_widget(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {"id": six.text_type(self.widget_2.id)},
+                {"id": six.text_type(self.widget_3.id)},
+                {"id": six.text_type(self.widget_4.id)},
+                {
+                    "title": "Errors over time",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "conditions": "event.type:error",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 5
+
+        last = list(widgets).pop()
+        self.assert_serialized_widget(data["widgets"][4], last)
+
+        queries = last.queries.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
+
+    @pytest.mark.skip(reason="will be done in a future set of changes")
+    def test_add_widget_invalid_query(self):
+        pass
+
+    @pytest.mark.skip(reason="will be done in a future set of changes")
+    def test_add_widget_invalid_fields(self):
+        pass
+
+    def test_update_widget_title(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id), "title": "New title"},
+                {"id": six.text_type(self.widget_2.id)},
+                {"id": six.text_type(self.widget_3.id)},
+                {"id": six.text_type(self.widget_4.id)},
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200
+
+        widgets = self.get_widgets(self.dashboard.id)
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+    def test_update_widget_add_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "title": "New title",
+                    "queries": [
+                        {"id": six.text_type(self.widget_1_data_1.id)},
+                        {
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+                {"id": six.text_type(self.widget_2.id)},
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        # two widgets should be removed
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 2
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = self.get_widget_queries(widgets[0])
+        assert len(queries) == 2
+        assert data["widgets"][0]["queries"][0]["id"] == six.text_type(queries[0].id)
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][1], queries[1])
+
+    def test_update_widget_remove_and_update_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "title": "New title",
+                    "queries": [
+                        {
+                            "id": six.text_type(self.widget_1_data_1.id),
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        # only one widget should remain
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = self.get_widget_queries(widgets[0])
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_remove_widget_and_add_new(self):
+        # Remove a widget from the middle of the set and put a new widget there
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {"id": six.text_type(self.widget_2.id)},
+                {
+                    "title": "Errors over time",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "conditions": "event.type:error",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+                {"id": six.text_type(self.widget_4.id)},
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 4
+        # Check ordering
+        assert self.widget_1.id == widgets[0].id
+        assert self.widget_2.id == widgets[1].id
+        self.assert_serialized_widget(data["widgets"][2], widgets[2])
+        assert self.widget_4.id == widgets[3].id
+
+    @pytest.mark.skip(reason="not done yet")
+    def test_update_widget_invalid_query(self):
+        pass
+
+    @pytest.mark.skip(reason="not done yet")
+    def test_update_widget_invalid_fields(self):
+        pass
+
+    def test_remove_widgets(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id), "title": "New title"},
+                {"id": six.text_type(self.widget_2.id), "title": "Other title"},
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 2
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+        self.assert_serialized_widget(data["widgets"][1], widgets[1])
 
     def test_reorder_widgets(self):
         response = self.client.put(
@@ -190,11 +370,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_dashboard_and_widgets(
             [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
         )
-
-    def test_dashboard_does_not_exist(self):
-        response = self.client.put(self.url(1234567890))
-        assert response.status_code == 404
-        assert response.data == {u"detail": u"The requested resource does not exist"}
 
     def test_partial_reordering_deletes_widgets(self):
         response = self.client.put(
@@ -221,37 +396,21 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         response = self.client.put(
             self.url(self.dashboard.id),
-            data={
-                "widgets": [
-                    {"id": self.widget_1.id},
-                    {"id": self.widget_2.id},
-                    {"id": self.widget_3.id},
-                    {"id": self.widget_4.id},
-                    {"id": widget.id},
-                ]
-            },
+            data={"widgets": [{"id": self.widget_4.id}, {"id": widget.id}]},
         )
         assert response.status_code == 400
-        assert response.data == {
-            "widgets": [u"All widgets must exist within this dashboard prior to reordering."]
-        }
+        assert response.data == [
+            u"You cannot use existing widgets that are not part of this dashboard."
+        ]
         self.assert_no_changes()
 
     def test_widget_does_not_exist(self):
         response = self.client.put(
             self.url(self.dashboard.id),
-            data={
-                "widgets": [
-                    {"id": self.widget_1.id},
-                    {"id": self.widget_2.id},
-                    {"id": self.widget_3.id},
-                    {"id": self.widget_4.id},
-                    {"id": 1234567890},
-                ]
-            },
+            data={"widgets": [{"id": self.widget_4.id}, {"id": 1234567890}]},
         )
         assert response.status_code == 400
-        assert response.data == {
-            "widgets": [u"All widgets must exist within this dashboard prior to reordering."]
-        }
+        assert response.data == [
+            u"You cannot use existing widgets that are not part of this dashboard."
+        ]
         self.assert_no_changes()
