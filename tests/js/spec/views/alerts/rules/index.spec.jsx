@@ -55,8 +55,7 @@ describe('OrganizationRuleList', () => {
   it('displays list', async () => {
     const wrapper = await createWrapper();
 
-    const items = wrapper.find('Column');
-    expect(items).toHaveLength(5);
+    const items = wrapper.find('div');
     expect(items.find('RuleType').text()).toBe('Issue');
     expect(items.find('Title').text()).toBe('First Issue Alert');
     expect(items.find('CreatedBy').text()).toBe('Samwise');

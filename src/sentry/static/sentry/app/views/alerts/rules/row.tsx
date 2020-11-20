@@ -1,6 +1,7 @@
 import React from 'react';
 import moment from 'moment';
 import styled from '@emotion/styled';
+import {css} from '@emotion/core';
 import memoize from 'lodash/memoize';
 
 import {t, tct} from 'app/locale';
@@ -47,26 +48,16 @@ class RuleListRow extends React.Component<Props, State> {
 
     return (
       <ErrorBoundary>
-        <Column>
-          <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
-        </Column>
-        <Column>
-          <Title>
-            <Link to={link}>{rule.name}</Link>
-          </Title>
-        </Column>
-        <Column>
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
-        </Column>
-        <Column>
-          <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
-        </Column>
-        <Column>
-          <div>{dateCreated}</div>
-        </Column>
+        <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
+        <Title>
+          <Link to={link}>{rule.name}</Link>
+        </Title>
+        <ProjectBadge
+          avatarSize={18}
+          project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+        />
+        <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
+        <div>{dateCreated}</div>
         <RightColumn>
           <Access access={['project:write']}>
             {({hasAccess}) => (
@@ -106,8 +97,7 @@ class RuleListRow extends React.Component<Props, State> {
   }
 }
 
-const Column = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+const columnCss = css`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -126,14 +116,17 @@ const RuleType = styled('div')`
   font-weight: 400;
   color: ${p => p.theme.gray300};
   text-transform: uppercase;
+  ${columnCss}
 `;
 
 const Title = styled('div')`
   ${overflowEllipsis}
+  ${columnCss}
 `;
 
 const CreatedBy = styled('div')`
   ${overflowEllipsis}
+  ${columnCss}
 `;
 
 const ProjectBadge = styled(IdBadge)`

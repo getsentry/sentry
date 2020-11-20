@@ -228,16 +228,8 @@ const StyledPanelTable = styled(PanelTable)`
     line-height: normal;
   }
   grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
-  height: 100%;
-  width: 100%;
   margin-bottom: 0;
-  align-items: center;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  overflow: auto;
-  ::-webkit-scrollbar {
-    display: none;
-  }
   ${p =>
     p.emptyMessage &&
     `svg:not([data-test-id='icon-check-mark']) {
