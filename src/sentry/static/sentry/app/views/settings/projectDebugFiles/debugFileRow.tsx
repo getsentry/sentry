@@ -152,7 +152,7 @@ const DescriptionText = styled('span')`
 const FeatureTags = styled('div')`
   display: inline-flex;
   flex-wrap: wrap;
-  margin: -4px;
+  margin: -${space(0.5)};
 `;
 
 const StyledTag = styled(Tag)`
