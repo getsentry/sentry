@@ -22,7 +22,7 @@ class AzureDevopsNotifyServiceForm(forms.Form):
 
 class AzureDevopsCreateTicketAction(TicketEventAction):
     form_cls = AzureDevopsNotifyServiceForm
-    label = u"TODO Create a {name} Azure DevOps work item with these "
+    label = u"TODO Create an Azure DevOps work item in {name} with these "
     prompt = "Create an Azure DevOps work item"
     provider = "vsts"
     integration_key = "vsts_integration"
