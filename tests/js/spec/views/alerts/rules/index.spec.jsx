@@ -55,11 +55,9 @@ describe('OrganizationRuleList', () => {
   it('displays list', async () => {
     const wrapper = await createWrapper();
 
-    const items = wrapper.find('AlertRulesPanelItem');
-    expect(items).toHaveLength(1);
-    expect(items.find('RuleType').text()).toBe('Issue');
-    expect(items.find('Title').text()).toBe('First Issue Alert');
-    expect(items.find('CreatedBy').text()).toBe('Samwise');
+    expect(wrapper.find('RuleType').text()).toBe('Issue');
+    expect(wrapper.find('Title').text()).toBe('First Issue Alert');
+    expect(wrapper.find('CreatedBy').text()).toBe('Samwise');
 
     // GlobalSelectionHeader loads projects + the Projects render-prop
     // component to load projects for all rows.
@@ -71,7 +69,7 @@ describe('OrganizationRuleList', () => {
         query: expect.objectContaining({query: 'slug:earth'}),
       })
     );
-    expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
+    expect(wrapper.find('IdBadge').prop('project')).toMatchObject({
       slug: 'earth',
     });
   });
