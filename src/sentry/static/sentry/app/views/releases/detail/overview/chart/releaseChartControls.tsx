@@ -88,12 +88,6 @@ const ReleaseChartControls = ({
       tooltip: noHealthDataTooltip,
     },
     {
-      value: YAxis.EVENTS,
-      label: t('Event Count'),
-      disabled: !hasDiscover,
-      tooltip: noDiscoverTooltip,
-    },
-    {
       value: YAxis.FAILED_TRANSACTIONS,
       label: t('Failed Transactions'),
       disabled: !hasPerformance,
@@ -120,6 +114,12 @@ const ReleaseChartControls = ({
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
+    },
+    {
+      value: YAxis.EVENTS,
+      label: t('Event Count'),
+      disabled: !hasDiscover,
+      tooltip: noDiscoverTooltip,
     },
   ]
     .filter(opt => !opt.hidden)
