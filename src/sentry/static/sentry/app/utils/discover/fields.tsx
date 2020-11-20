@@ -81,6 +81,12 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  failure_count: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   min: {
     parameters: [
       {
