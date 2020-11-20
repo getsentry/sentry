@@ -6,6 +6,8 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
 } from 'app/utils/discover/genericDiscoverQuery';
 
+import {vitalsBaseFields, vitalsThresholdFields} from './utils';
+
 export type TableDataRow = {
   id: string;
   [key: string]: React.ReactText;
@@ -22,25 +24,11 @@ type Props = DiscoverQueryProps & {
 function getRequestPayload(props: Props) {
   const {eventView, onlyVital} = props;
   const apiPayload = eventView?.getEventsAPIPayload(props.location);
-  let vitalFields = [
-    'count_at_least(measurements.lcp, 4000)',
-    'count_at_least(measurements.fcp, 3000)',
-    'count_at_least(measurements.fp, 3000)',
-    'count_at_least(measurements.fid, 300)',
-    'count_at_least(measurements.cls, 0.25)',
-    'percentage(count_at_least_measurements_lcp_4000, count, lcp_percentage)',
-    'percentage(count_at_least_measurements_fcp_3000, count, fcp_percentage)',
-    'percentage(count_at_least_measurements_fp_3000, count, fp_percentage)',
-    'percentage(count_at_least_measurements_fid_300, count, fid_percentage)',
-    'percentage(count_at_least_measurements_cls_0_25, count, cls_percentage)',
-  ];
-  if (onlyVital) {
-    vitalFields = vitalFields.filter(field =>
-      field.includes(onlyVital.replace('measurements.', ''))
-    );
-  }
+  const vitalFields = onlyVital
+    ? [vitalsThresholdFields[onlyVital], vitalsBaseFields[onlyVital]]
+    : [...Object.values(vitalsThresholdFields), ...Object.values(vitalsBaseFields)];
   apiPayload.field = ['count()', ...vitalFields];
-  apiPayload.query = 'event.type:transaction has:measurements.lcp'; // This is only somewhat accurate, just for the time being
+  apiPayload.query = 'event.type:transaction';
   delete apiPayload.sort;
   return apiPayload;
 }

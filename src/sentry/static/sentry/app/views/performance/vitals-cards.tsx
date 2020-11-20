@@ -8,11 +8,16 @@ import {Organization} from 'app/types';
 import {Panel} from 'app/components/panels';
 import {formatPercentage} from 'app/utils/formatters';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
-import {WebVital} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 
-import {vitalAbbreviations, vitalDetailRouteWithQuery} from './vitalDetail/utils';
+import {
+  vitalAbbreviations,
+  vitalDetailRouteWithQuery,
+  vitalsBaseFields,
+  vitalsThresholdFields,
+} from './vitalDetail/utils';
 
 type Props = {
   eventView: EventView;
@@ -116,9 +121,13 @@ export function VitalsCard(props: CardProps) {
 
   const result = tableData.data[0];
 
-  const value = formatPercentage(
-    1 - parseFloat(result[`${measurement?.toLowerCase()}_percentage`] || 1)
-  );
+  const thresholdCount: number =
+    parseFloat(result[getAggregateAlias(vitalsThresholdFields[vitalName])]) || 0;
+  const baseCount: number =
+    parseFloat(result[getAggregateAlias(vitalsBaseFields[vitalName])]) ||
+    Number.MIN_VALUE;
+
+  const value = formatPercentage(1 - thresholdCount / baseCount);
 
   return (
     <Container>
