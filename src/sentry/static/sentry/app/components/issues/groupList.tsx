@@ -1,24 +1,24 @@
-import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
-import * as qs from 'query-string';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
+import * as qs from 'query-string';
 
-import {Client} from 'app/api';
-import {Panel, PanelBody} from 'app/components/panels';
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import StreamGroup from 'app/components/stream/group';
-import StreamManager from 'app/utils/streamManager';
-import withApi from 'app/utils/withApi';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+import StreamGroup from 'app/components/stream/group';
+import {t} from 'app/locale';
+import GroupStore from 'app/stores/groupStore';
 import {Group} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import StreamManager from 'app/utils/streamManager';
+import withApi from 'app/utils/withApi';
 
 import GroupListHeader from './groupListHeader';
 

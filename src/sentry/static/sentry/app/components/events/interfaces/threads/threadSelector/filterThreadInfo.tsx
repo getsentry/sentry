@@ -1,9 +1,9 @@
-import {Thread} from 'app/types/events';
-import {Event, Frame} from 'app/types';
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
+import {Event, Frame} from 'app/types';
+import {Thread} from 'app/types/events';
 
-import getThreadStacktrace from './getThreadStacktrace';
 import getRelevantFrame from './getRelevantFrame';
+import getThreadStacktrace from './getThreadStacktrace';
 import trimFilename from './trimFilename';
 
 type ThreadInfo = {

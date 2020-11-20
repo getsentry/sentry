@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import OnboardingHovercard from 'app/views/settings/projectAlerts/onboardingHovercard';
 
 jest.mock('app/actionCreators/onboardingTasks');
 

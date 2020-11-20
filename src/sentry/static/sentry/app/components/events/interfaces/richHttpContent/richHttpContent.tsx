@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {defined} from 'app/utils';
-import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
-import RichHttpContentClippedBoxKeyValueList from './richHttpContentClippedBoxKeyValueList';
 import RichHttpContentClippedBoxBodySection from './richHttpContentClippedBoxBodySection';
+import RichHttpContentClippedBoxKeyValueList from './richHttpContentClippedBoxKeyValueList';
 import {RichHttpContentData} from './types';
 
 const RichHttpContent = ({data}: RichHttpContentData) => (

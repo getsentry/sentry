@@ -1,22 +1,22 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {API_ACCESS_SCOPES} from 'app/constants';
-import {Organization} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {API_ACCESS_SCOPES} from 'app/constants';
 import {t} from 'app/locale';
-import ApiForm from 'app/views/settings/components/forms/apiForm';
-import FormField from 'app/views/settings/components/forms/formField';
-import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
-import AsyncView from 'app/views/asyncView';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextField from 'app/views/settings/components/forms/textField';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
+import {Organization} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import ApiForm from 'app/views/settings/components/forms/apiForm';
+import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
+import FormField from 'app/views/settings/components/forms/formField';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
+import TextField from 'app/views/settings/components/forms/textField';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import {DeprecatedApiKey} from './types';
 

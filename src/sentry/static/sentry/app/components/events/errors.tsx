@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
-import uniqWith from 'lodash/uniqWith';
-import isEqual from 'lodash/isEqual';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import uniqWith from 'lodash/uniqWith';
+import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import EventErrorItem from 'app/components/events/errorItem';
-import {Event} from 'app/types';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {Event} from 'app/types';
 import {Theme} from 'app/utils/theme';
 
 import {BannerContainer, BannerSummary} from './styles';

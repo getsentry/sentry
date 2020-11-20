@@ -1,31 +1,31 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import SelectControl from 'app/components/forms/selectControl';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
+import {Panel, PanelBody} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Environment, Organization} from 'app/types';
+import {getDisplayName} from 'app/utils/environment';
+import theme from 'app/utils/theme';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'app/views/alerts/utils';
-import {Environment, Organization} from 'app/types';
-import {Panel, PanelBody} from 'app/components/panels';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getDisplayName} from 'app/utils/environment';
-import {t, tct} from 'app/locale';
-import FormField from 'app/views/settings/components/forms/formField';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import SearchBar from 'app/views/events/searchBar';
+import FormField from 'app/views/settings/components/forms/formField';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import SelectControl from 'app/components/forms/selectControl';
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import Feature from 'app/components/acl/feature';
 
-import {TimeWindow, IncidentRule, Datasource} from './types';
-import MetricField from './metricField';
 import {DEFAULT_AGGREGATE} from './constants';
+import MetricField from './metricField';
+import {Datasource, IncidentRule, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute window'),

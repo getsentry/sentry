@@ -1,30 +1,30 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import Modal from 'react-bootstrap/lib/Modal';
+import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import {IconAdd} from 'app/icons';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import RepositoryProjectPathConfigForm from 'app/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
+  ButtonColumn,
+  InputPathColumn,
   NameRepoColumn,
   OutputPathColumn,
-  InputPathColumn,
-  ButtonColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import RepositoryProjectPathConfigForm from 'app/components/repositoryProjectPathConfigForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import space from 'app/styles/space';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import space from 'app/styles/space';
 import {
   Integration,
   Organization,
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;

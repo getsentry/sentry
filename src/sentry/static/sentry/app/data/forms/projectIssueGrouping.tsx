@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
-import marked from 'app/utils/marked';
-import ExternalLink from 'app/components/links/externalLink';
 import {GroupingConfigItem} from 'app/components/events/groupingInfo';
+import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import marked from 'app/utils/marked';
 import {Field} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help

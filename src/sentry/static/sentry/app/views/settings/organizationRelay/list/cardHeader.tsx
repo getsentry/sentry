@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import ConfirmDelete from 'app/components/confirmDelete';
 import ButtonBar from 'app/components/buttonBar';
-import QuestionTooltip from 'app/components/questionTooltip';
+import Clipboard from 'app/components/clipboard';
+import ConfirmDelete from 'app/components/confirmDelete';
 import DateTime from 'app/components/dateTime';
-import {IconEdit, IconDelete, IconCopy} from 'app/icons';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {IconCopy, IconDelete, IconEdit} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Relay} from 'app/types';
-import Clipboard from 'app/components/clipboard';
 
 type Props = Relay & {
   onEdit: (publicKey: Relay['publicKey']) => () => void;

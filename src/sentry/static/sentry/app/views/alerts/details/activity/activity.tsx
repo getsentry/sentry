@@ -1,22 +1,23 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
-import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import {User} from 'app/types';
-import {NoteType} from 'app/types/alerts';
-import {t} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
+import Note from 'app/components/activity/note';
+import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
+import {CreateError} from 'app/components/activity/note/types';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingError from 'app/components/loadingError';
-import Note from 'app/components/activity/note';
-import {CreateError} from 'app/components/activity/note/types';
-import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
 import TimeSince from 'app/components/timeSince';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {User} from 'app/types';
+import {NoteType} from 'app/types/alerts';
 
-import {Incident, IncidentActivityType, ActivityType} from '../../types';
+import {ActivityType, Incident, IncidentActivityType} from '../../types';
+
 import ActivityPlaceholder from './activityPlaceholder';
 import DateDivider from './dateDivider';
 import StatusItem from './statusItem';

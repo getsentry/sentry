@@ -1,15 +1,15 @@
 import React from 'react';
 
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PreviewFeature from 'app/components/previewFeature';
+import {t, tct} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectExpectCtReports extends AsyncView {
   getEndpoints() {

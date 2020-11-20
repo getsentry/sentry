@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 
-import EventsRequest from 'app/components/charts/eventsRequest';
 import {doEventsRequest} from 'app/actionCreators/events';
+import EventsRequest from 'app/components/charts/eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,

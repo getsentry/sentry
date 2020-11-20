@@ -1,13 +1,13 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {defined} from 'app/utils';
-import {Organization, Project, Plugin} from 'app/types';
 import {fetchPlugins} from 'app/actionCreators/plugins';
-import getDisplayName from 'app/utils/getDisplayName';
-import PluginsStore from 'app/stores/pluginsStore';
 import SentryTypes from 'app/sentryTypes';
+import PluginsStore from 'app/stores/pluginsStore';
+import {Organization, Plugin, Project} from 'app/types';
+import {defined} from 'app/utils';
+import getDisplayName from 'app/utils/getDisplayName';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
 

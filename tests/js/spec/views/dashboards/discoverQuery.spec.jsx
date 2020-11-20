@@ -4,8 +4,8 @@ import {mount} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
-import DiscoverQuery from 'app/views/dashboards/discoverQuery';
 import ProjectsStore from 'app/stores/projectsStore';
+import DiscoverQuery from 'app/views/dashboards/discoverQuery';
 
 describe('DiscoverQuery', function () {
   const {organization, router, routerContext} = initializeOrg({

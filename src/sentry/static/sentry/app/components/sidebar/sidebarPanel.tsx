@@ -1,12 +1,12 @@
-import ReactDOM from 'react-dom';
 import React from 'react';
-import styled from '@emotion/styled';
+import ReactDOM from 'react-dom';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
-import space from 'app/styles/space';
 import {IconClose} from 'app/icons';
 import {slideInLeft} from 'app/styles/animations';
+import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 import {CommonSidebarProps} from './types';
 

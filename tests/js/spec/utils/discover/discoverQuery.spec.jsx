@@ -3,8 +3,8 @@ import React from 'react';
 import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
-import EventView from 'app/utils/discover/eventView';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
 
 describe('DiscoverQuery', function () {
   let location, api, eventView;

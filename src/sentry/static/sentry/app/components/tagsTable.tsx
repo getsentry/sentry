@@ -5,11 +5,11 @@ import {LocationDescriptor} from 'history';
 import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Event, EventTag} from 'app/types';
 import Version from 'app/components/version';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Event, EventTag} from 'app/types';
 
 type Props = {
   event: Event;

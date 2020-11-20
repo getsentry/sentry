@@ -1,10 +1,10 @@
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {
   DashboardListItem,
-  OrgDashboardResponse,
   OrgDashboard,
+  OrgDashboardResponse,
   OrgDashboardUpdate,
 } from 'app/views/dashboardsV2/types';
 

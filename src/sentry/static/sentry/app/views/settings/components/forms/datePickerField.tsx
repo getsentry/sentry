@@ -1,14 +1,14 @@
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
-import {Calendar} from 'react-date-range';
 import React from 'react';
-import moment from 'moment';
+import {Calendar} from 'react-date-range';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {inputStyles} from 'app/styles/input';
 import DropdownMenu from 'app/components/dropdownMenu';
 import {IconCalendar} from 'app/icons';
+import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 
 import InputField, {onEvent} from './inputField';

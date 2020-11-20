@@ -1,25 +1,25 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import {InjectedRouter} from 'react-router/lib/Router';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import {DateString, OrganizationSummary} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {t} from 'app/locale';
-import {getInterval} from 'app/components/charts/utils';
-import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
+import LineChart from 'app/components/charts/lineChart';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {getInterval} from 'app/components/charts/utils';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {DateString, OrganizationSummary} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType} from 'app/utils/discover/fields';
+import theme from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
 

@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {ReleaseWithHealth, ReleaseMeta} from 'app/types';
-import Version from 'app/components/version';
-import TimeSince from 'app/components/timeSince';
+import Count from 'app/components/count';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
-import Count from 'app/components/count';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
+import {ReleaseMeta, ReleaseWithHealth} from 'app/types';
 
 import {SectionHeading, Wrapper} from './styles';
 

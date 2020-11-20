@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
-import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 import LineChart from 'app/components/charts/lineChart';
+import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
 
 jest.mock('app/components/charts/lineChart');
 

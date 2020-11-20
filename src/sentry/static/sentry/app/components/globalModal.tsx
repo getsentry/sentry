@@ -1,11 +1,11 @@
-import {ClassNames} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
-import Reflux from 'reflux';
+import Modal from 'react-bootstrap/lib/Modal';
+import {browserHistory} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {closeModal, ModalRenderProps, ModalOptions} from 'app/actionCreators/modal';
+import {closeModal, ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
 

@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
+import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import {IconMute} from 'app/icons';
 import {t} from 'app/locale';
 import {ResolutionStatusDetails} from 'app/types';
