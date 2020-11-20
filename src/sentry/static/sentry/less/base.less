@@ -1,3 +1,6 @@
+@font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+@font-family-code: 'IBM Plex', Consolas, 'Courier New', monospace;
+
 * {
   box-sizing: border-box;
 }
@@ -63,15 +66,45 @@ h6 {
   font-size: 1.4rem;
 }
 
+dl {
+  margin-top: 0; // Remove browser default
+  margin-bottom: @line-height-computed;
+}
+
+dt,
+dd {
+  line-height: @line-height-base;
+}
+
+dt {
+  font-weight: 700;
+}
+
+dd {
+  margin-left: 0; // Undo browser default
+}
+
 ul,
 ol {
   margin-top: 0;
+  margin-bottom: (@line-height-computed / 2);
   padding: 0 0 0 20px;
 
   ul,
   ol {
     margin-bottom: 0;
   }
+}
+
+p,
+pre {
+  margin: 0 0 20px;
+}
+
+ul,
+ol,
+table {
+  margin: 0 0 20px;
 }
 
 p,
@@ -112,9 +145,9 @@ textarea {
   line-height: inherit;
 }
 
-// Links
-
 a {
+  cursor: pointer;
+  .transition(color linear 0.2s);
   color: @link-color;
   text-decoration: none;
 
@@ -126,6 +159,7 @@ a {
 
   &:focus {
     .tab-focus();
+    text-decoration: none;
   }
 }
 
@@ -137,8 +171,6 @@ a {
 figure {
   margin: 0;
 }
-
-// Images
 
 img {
   vertical-align: middle;
@@ -251,45 +283,19 @@ abbr[title] {
   text-decoration: underline dotted; // 2
 }
 
-//
-// Address style set to `bolder` in Firefox 4+, Safari, and Chrome.
-//
-
 b,
 strong {
   font-weight: bold;
 }
 
-//
-// Address styling not present in Safari and Chrome.
-//
-
 dfn {
   font-style: italic;
 }
-
-//
-// Address variable `h1` font-size and margin within `section` and `article`
-// contexts in Firefox 4+, Safari, and Chrome.
-//
-
-h1 {
-  font-size: 2em;
-  margin: 0.67em 0;
-}
-
-//
-// Address styling not present in IE 8/9.
-//
 
 mark {
   background: #ff0;
   color: #000;
 }
-
-//
-// Address inconsistent and variable font size in all browsers.
-//
 
 small {
   font-size: 80%;
@@ -337,25 +343,9 @@ svg:not(:root) {
 // Grouping content
 // ==========================================================================
 
-//
-// Address differences between Firefox and other browsers.
-//
-
 hr {
   box-sizing: content-box;
   height: 0;
-}
-
-//
-// Contain overflow in all browsers.
-//
-
-code,
-kbd,
-pre,
-samp {
-  font-family: monospace, monospace;
-  font-size: 1em;
 }
 
 //
@@ -368,6 +358,7 @@ kbd,
 pre,
 samp {
   font-family: @font-family-monospace;
+  font-size: 1em;
 }
 
 // Inline code
@@ -396,7 +387,25 @@ kbd {
   }
 }
 
-// Blocks of code
+pre,
+code,
+kbd,
+sample {
+  font-family: @font-family-code;
+}
+
+pre,
+code {
+  border: 0;
+  background-color: @white-darker;
+  color: @gray-darker;
+  border-radius: 3px;
+
+  &.small {
+    font-size: 12px;
+  }
+}
+
 pre {
   display: block;
   padding: ((@line-height-computed - 1) / 2);
@@ -405,6 +414,7 @@ pre {
   line-height: @line-height-base;
   color: @pre-color;
   word-break: break-all;
+  white-space: pre-wrap;
   word-wrap: break-word;
   background-color: @pre-bg;
   border: 1px solid @pre-border-color;
