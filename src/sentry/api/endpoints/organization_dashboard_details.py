@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
-from sentry.models import ObjectStatus
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -37,9 +36,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :pparam int dashboard_id: the id of the dashboard.
         :auth: required
         """
-
-        dashboard.status = ObjectStatus.PENDING_DELETION
-        dashboard.save()
+        dashboard.delete()
 
         return self.respond(status=204)
 

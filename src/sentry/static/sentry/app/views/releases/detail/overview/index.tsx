@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {Organization, GlobalSelection, ReleaseProject} from 'app/types';
+import {NewQuery, Organization, GlobalSelection, ReleaseProject} from 'app/types';
 import {Client} from 'app/api';
 import withApi from 'app/utils/withApi';
 import {getUtcDateString} from 'app/utils/dates';
@@ -111,35 +111,35 @@ class ReleaseOverview extends AsyncView<Props> {
     const {environments, datetime} = selection;
     const {start, end, period} = datetime;
 
+    const baseQuery: NewQuery = {
+      id: undefined,
+      version: 2,
+      name: `Release ${formatVersion(version)}`,
+      query: `event.type:transaction release:${version}`,
+      fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
+      orderby: '-failure_count',
+      range: period,
+      environment: environments,
+      projects: [projectId],
+      start: start ? getUtcDateString(start) : undefined,
+      end: end ? getUtcDateString(end) : undefined,
+    };
+
     switch (selectedSort.value) {
       case 'p75_lcp':
         return EventView.fromSavedQuery({
-          id: undefined,
-          version: 2,
-          name: `Release ${formatVersion(version)}`,
-          query: `event.type:transaction release:${version} has:measurements.lcp`,
+          ...baseQuery,
+          query: `event.type:transaction release:${version} epm():>0.01 has:measurements.lcp`,
           fields: ['transaction', 'failure_count()', 'epm()', 'p75(measurements.lcp)'],
           orderby: 'p75_measurements_lcp',
-          range: period,
-          environment: environments,
-          projects: [projectId],
-          start: start ? getUtcDateString(start) : undefined,
-          end: end ? getUtcDateString(end) : undefined,
+        });
+      case 'p50':
+        return EventView.fromSavedQuery({
+          ...baseQuery,
+          query: `event.type:transaction release:${version} epm():>0.01`,
         });
       default:
-        return EventView.fromSavedQuery({
-          id: undefined,
-          version: 2,
-          name: `Release ${formatVersion(version)}`,
-          query: `event.type:transaction release:${version}`,
-          fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
-          orderby: '-failure_count',
-          range: period,
-          environment: environments,
-          projects: [projectId],
-          start: start ? getUtcDateString(start) : undefined,
-          end: end ? getUtcDateString(end) : undefined,
-        });
+        return EventView.fromSavedQuery(baseQuery);
     }
   }
 
@@ -391,7 +391,7 @@ function getTransactionsListSort(
   location: Location
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getDropdownOptions();
-  const urlParam = decodeScalar(location.query.showTransactions) || 'tpm';
+  const urlParam = decodeScalar(location.query.showTransactions) || 'failure_count';
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }
