@@ -80,6 +80,7 @@
     "intersection-observer": "^0.7.0",
     "ios-device-list": "^1.1.30",
     "jed": "^1.1.0",
+    "jest-circus": "^26.6.3",
     "jquery": "2.2.2",
     "js-cookie": "2.2.1",
     "less": "^3.9.0",
