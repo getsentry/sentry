@@ -7,6 +7,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
+from sentry.utils.compat import filter
 
 
 class GroupOwnerType(Enum):
@@ -22,9 +23,14 @@ class GroupOwner(Model):
     __core__ = False
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
-    project = FlexibleForeignKey("sentry.Project", null=False, db_constraint=False)
-    organization = FlexibleForeignKey("sentry.Organization", null=False, db_constraint=False)
-    owner_type = models.PositiveSmallIntegerField(null=False)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
+    organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
+    type = models.PositiveSmallIntegerField(
+        choices=(
+            (GroupOwnerType.SUSPECT_COMMIT, u"Suspect Commit"),
+            (GroupOwnerType.OWNERSHIP_RULE, u"Ownership Rule"),
+        )
+    )
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -34,9 +40,8 @@ class GroupOwner(Model):
         db_table = "sentry_groupowner"
 
     def save(self, *args, **kwargs):
-        assert not (self.user_id is not None and self.team_id is not None) and not (
-            self.user_id is None and self.team_id is None
-        ), "Must have Team or User, not both"
+        keys = list(filter(None, [self.user_id, self.team_id]))
+        assert len(keys) == 1, "Must have team or user, not both"
         super(GroupOwner, self).save(*args, **kwargs)
 
     def owner_id(self):
