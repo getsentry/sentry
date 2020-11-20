@@ -23,6 +23,15 @@ type Props = {
 export default function VitalsCards(props: Props) {
   const {eventView, organization, location} = props;
   const vitalsView = eventView.clone();
+
+  const shownVitals = [
+    WebVital.FP,
+    WebVital.FCP,
+    WebVital.LCP,
+    WebVital.FID,
+    WebVital.CLS,
+  ];
+
   return (
     <VitalsCardsDiscoverQuery
       eventView={vitalsView}
@@ -32,36 +41,15 @@ export default function VitalsCards(props: Props) {
       {({isLoading, tableData}) => (
         <React.Fragment>
           <VitalsContainer>
-            <LinkedVitalsCard
-              vitalName={WebVital.FP}
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-            />
-            <LinkedVitalsCard
-              vitalName={WebVital.FCP}
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-            />
-            <LinkedVitalsCard
-              vitalName={WebVital.LCP}
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-            />
-            <LinkedVitalsCard
-              vitalName={WebVital.FID}
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-            />
-            <LinkedVitalsCard
-              vitalName={WebVital.CLS}
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-            />
+            {shownVitals.map(vitalName => (
+              <LinkedVitalsCard
+                key={vitalName}
+                vitalName={vitalName}
+                tableData={tableData}
+                isLoading={isLoading}
+                {...props}
+              />
+            ))}
           </VitalsContainer>
         </React.Fragment>
       )}
@@ -156,7 +144,14 @@ const VitalLink = (props: VitalLinkProps) => {
     vitalName,
   });
 
-  return <StyledVitalLink to={target}>{children}</StyledVitalLink>;
+  return (
+    <StyledVitalLink
+      to={target}
+      data-test-id={`vitals-linked-card-${vitalAbbreviations[vitalName]}`}
+    >
+      {children}
+    </StyledVitalLink>
+  );
 };
 
 const StyledVitalLink = styled(Link)`
