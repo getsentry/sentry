@@ -95,6 +95,10 @@ export default class AsyncComponent<
   // should `renderError` render the `detail` attribute of a 400 error
   shouldRenderBadRequests = false;
 
+  // if there is a request error, raise an error so the parent
+  // component can handle it (ErrorBoundary)
+  shouldRaiseRequestErrorToParent = false;
+
   constructor(props: P, context: any) {
     super(props, context);
 
@@ -402,6 +406,10 @@ export default class AsyncComponent<
 
   renderError(error?: Error, disableLog = false, disableReport = false): React.ReactNode {
     const {errors} = this.state;
+
+    if (this.shouldRaiseRequestErrorToParent) {
+      throw error;
+    }
 
     // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
     const unauthorizedErrors = Object.values(errors).find(
