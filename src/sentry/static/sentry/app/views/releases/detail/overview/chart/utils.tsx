@@ -1,12 +1,12 @@
-import {TWO_WEEKS, getDiffInMinutes, DateTimeObject} from 'app/components/charts/utils';
-import EventView from 'app/utils/discover/eventView';
-import {GlobalSelection} from 'app/types';
-import {formatVersion} from 'app/utils/formatters';
-import {getUtcDateString} from 'app/utils/dates';
+import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
 import {t} from 'app/locale';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {GlobalSelection} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
+import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
+import {formatVersion} from 'app/utils/formatters';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 import {YAxis} from './releaseChartControls';
 

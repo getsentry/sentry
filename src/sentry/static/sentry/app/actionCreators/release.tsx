@@ -1,15 +1,15 @@
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import ReleaseActions from 'app/actions/releaseActions';
-import {Client} from 'app/api';
-import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';
-import {Deploy, Release, ReleaseStatus} from 'app/types';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import ReleaseActions from 'app/actions/releaseActions';
+import {Client} from 'app/api';
+import {t} from 'app/locale';
+import ReleaseStore, {getReleaseStoreKey} from 'app/stores/releaseStore';
+import {Deploy, Release, ReleaseStatus} from 'app/types';
 
 type ParamsGet = {
   orgSlug: string;

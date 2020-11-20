@@ -1,18 +1,18 @@
-import {ECharts} from 'echarts';
 import React from 'react';
 import color from 'color';
+import {ECharts} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import Graphic from 'app/components/charts/components/graphic';
+import Legend from 'app/components/charts/components/legend';
+import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
-import Graphic from 'app/components/charts/components/graphic';
-import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
-import Legend from 'app/components/charts/components/legend';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Trigger, AlertRuleThresholdType, IncidentRule} from '../../types';
+import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
   data: Series[];

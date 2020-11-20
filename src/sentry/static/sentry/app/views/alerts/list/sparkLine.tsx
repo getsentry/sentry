@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IncidentStats} from 'app/views/alerts/types';
 import Placeholder from 'app/components/placeholder';
 import theme from 'app/utils/theme';
+import {IncidentStats} from 'app/views/alerts/types';
 
 // Height of sparkline
 const SPARKLINE_HEIGHT = 38;

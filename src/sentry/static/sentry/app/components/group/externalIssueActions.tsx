@@ -2,16 +2,16 @@ import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import IssueSyncListElement from 'app/components/issueSyncListElement';
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+import IssueSyncListElement from 'app/components/issueSyncListElement';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Group, GroupIntegration} from 'app/types';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 
 type Props = AsyncComponent['props'] & {
   configurations: GroupIntegration[];

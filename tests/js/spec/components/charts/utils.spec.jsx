@@ -1,7 +1,7 @@
 import {
   canIncludePreviousPeriod,
-  getInterval,
   getDiffInMinutes,
+  getInterval,
 } from 'app/components/charts/utils';
 
 describe('Chart Utils', function () {

@@ -1,14 +1,14 @@
 import React from 'react';
 import isFunction from 'lodash/isFunction';
 
-import {Client} from 'app/api';
-import {FormState, GenericField} from 'app/components/forms';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import {FormState, GenericField} from 'app/components/forms';
 import {t} from 'app/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {

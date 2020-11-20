@@ -2,16 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 
-import {Event, Organization, PlatformType} from 'app/types';
 import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
-import Hovercard, {Body} from 'app/components/hovercard';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import Hovercard, {Body} from 'app/components/hovercard';
 import {t} from 'app/locale';
-import {StacktraceType} from 'app/types/stacktrace';
 import space from 'app/styles/space';
+import {Event, Organization, PlatformType} from 'app/types';
+import {StacktraceType} from 'app/types/stacktrace';
 import {Theme} from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   issueId: string;

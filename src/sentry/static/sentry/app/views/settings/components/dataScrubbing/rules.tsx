@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
+import Button from 'app/components/button';
 import TextOverflow from 'app/components/textOverflow';
 import {IconDelete, IconEdit} from 'app/icons';
-import Button from 'app/components/button';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
+import {MethodType, Rule, RuleType} from './types';
 import {getMethodLabel, getRuleLabel} from './utils';
-import {RuleType, MethodType, Rule} from './types';
 
 type Props = {
   rules: Array<Rule>;

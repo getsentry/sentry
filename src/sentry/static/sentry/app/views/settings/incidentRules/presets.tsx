@@ -1,6 +1,6 @@
+import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
-import Link from 'app/components/links/link';
 import {DisplayModes} from 'app/utils/discover/types';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Incident, IncidentStats} from 'app/views/alerts/types';

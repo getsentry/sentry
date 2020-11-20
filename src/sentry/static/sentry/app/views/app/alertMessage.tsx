@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import ExternalLink from 'app/components/links/externalLink';
-import Alert from 'app/components/alert';
 import AlertActions from 'app/actions/alertActions';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 type AlertType = {
   /**

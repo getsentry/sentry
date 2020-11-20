@@ -1,20 +1,20 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
+import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
+import Link from 'app/components/links/link';
+import SentryTypes from 'app/sentryTypes';
+import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import recreateRoute from 'app/utils/recreateRoute';
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
 import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
-import SentryTypes from 'app/sentryTypes';
-import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
-import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
-import Link from 'app/components/links/link';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import recreateRoute from 'app/utils/recreateRoute';
 
 const MENUS = {
   Organization: OrganizationCrumb,

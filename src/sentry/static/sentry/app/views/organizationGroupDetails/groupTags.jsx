@@ -1,21 +1,21 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
+import Alert from 'app/components/alert';
 import Count from 'app/components/count';
 import DeviceName from 'app/components/deviceName';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {percent} from 'app/utils';
-import {t, tct} from 'app/locale';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Alert from 'app/components/alert';
-import withApi from 'app/utils/withApi';
-import space from 'app/styles/space';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Version from 'app/components/version';
+import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import {percent} from 'app/utils';
+import withApi from 'app/utils/withApi';
 
 class GroupTags extends React.Component {
   static propTypes = {

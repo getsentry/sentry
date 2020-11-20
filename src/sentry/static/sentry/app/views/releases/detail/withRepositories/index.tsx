@@ -2,14 +2,15 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import {Client} from 'app/api';
-import getDisplayName from 'app/utils/getDisplayName';
-import {Repository} from 'app/types';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import {Repository} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 import {ReleaseContext} from '..';
+
 import NoRepoConnected from './noRepoConnected';
 
 // We require these props when using this HOC

@@ -2,11 +2,11 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
-import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import EventView from 'app/utils/discover/eventView';
+import {ALL_VIEWS} from 'app/views/eventsV2/data';
+import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
-import {setBannerHidden, isBannerHidden} from 'app/views/eventsV2/utils';
+import {isBannerHidden, setBannerHidden} from 'app/views/eventsV2/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'ButtonSaveAs';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';

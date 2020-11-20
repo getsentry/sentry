@@ -1,15 +1,16 @@
 import React from 'react';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import {Params} from 'react-router/lib/Router';
 
+import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spans/utils';
+import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event, Organization} from 'app/types';
-import Link from 'app/components/links/link';
-import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spans/utils';
 
 import {getTransactionDetailsUrl} from '../utils';
+
 import {isTransactionEvent} from './utils';
 
 type Props = {

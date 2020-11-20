@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
-import space from 'app/styles/space';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconDownload} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
 
 type Props = {
   api: Client;

@@ -1,20 +1,20 @@
-import {ClassNames} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {formFooterClass} from 'app/views/auth/login';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
 import Form from 'app/components/forms/form';
-import Link from 'app/components/links/link';
 import PasswordField from 'app/components/forms/passwordField';
-import {IconGithub, IconGoogle, IconVsts} from 'app/icons';
-import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/components/forms/textField';
+import Link from 'app/components/links/link';
+import {IconGithub, IconGoogle, IconVsts} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import {formFooterClass} from 'app/views/auth/login';
 
 // TODO(epurkhiser): The abstraction here would be much nicer if we just
 // exposed a configuration object telling us what auth providers there are.

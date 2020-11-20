@@ -1,24 +1,24 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Alert from 'app/components/alert';
-import {IconDelete, IconFlag, IconSettings} from 'app/icons';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
 import {
   addErrorMessage,
-  addSuccessMessage,
   addLoadingMessage,
+  addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {PluginNoProject, PluginProjectItem, Organization, AvatarProject} from 'app/types';
-import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
-import space from 'app/styles/space';
+import {Client} from 'app/api';
+import Access from 'app/components/acl/access';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Switch from 'app/components/switch';
+import {IconDelete, IconFlag, IconSettings} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {AvatarProject, Organization, PluginNoProject, PluginProjectItem} from 'app/types';
+import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
+import withApi from 'app/utils/withApi';
 
 export type Props = {
   api: Client;

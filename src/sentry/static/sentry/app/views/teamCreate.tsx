@@ -1,12 +1,12 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import NarrowLayout from 'app/components/narrowLayout';
 import CreateTeamForm from 'app/components/teams/createTeamForm';
-import withOrganization from 'app/utils/withOrganization';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
 type Props = WithRouterProps<{orgId: string}, {}> & {
   organization: Organization;

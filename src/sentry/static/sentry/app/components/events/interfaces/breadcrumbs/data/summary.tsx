@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Highlight from 'app/components/highlight';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import Highlight from 'app/components/highlight';
 import {defined} from 'app/utils';
 
 type Props = {

@@ -1,61 +1,62 @@
 import React from 'react';
-import {Location, Query} from 'history';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
-import {Panel} from 'app/components/panels';
-import Pagination from 'app/components/pagination';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, Project, AvatarProject} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
-import space from 'app/styles/space';
-import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
-import Link from 'app/components/links/link';
+import {Client} from 'app/api';
+import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import Button from 'app/components/button';
+import Count from 'app/components/count';
+import DropdownLink from 'app/components/dropdownLink';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/components/menuItem';
+import Pagination from 'app/components/pagination';
+import {Panel} from 'app/components/panels';
+import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
-import Count from 'app/components/count';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {formatPercentage, getDuration} from 'app/utils/formatters';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withProjects from 'app/utils/withProjects';
 import {IconEllipsis} from 'app/icons';
-import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
-import ProjectAvatar from 'app/components/avatar/projectAvatar';
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import QuestionTooltip from 'app/components/questionTooltip';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {AvatarProject, Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {formatPercentage, getDuration} from 'app/utils/formatters';
+import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
+import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
 
-import TrendsDiscoverQuery from './trendsDiscoverQuery';
-import Chart from './chart';
-import {
-  TrendChangeType,
-  TrendView,
-  NormalizedTrendsTransaction,
-  TrendFunctionField,
-  TrendsStats,
-} from './types';
-import {
-  trendToColor,
-  transformValueDelta,
-  transformDeltaSpread,
-  modifyTrendView,
-  normalizeTrends,
-  getSelectedQueryKey,
-  getCurrentTrendFunction,
-  getCurrentConfidenceLevel,
-  StyledIconArrow,
-  getTrendProjectId,
-  trendCursorNames,
-} from './utils';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {HeaderTitleLegend} from '../styles';
 import {DisplayModes} from '../transactionSummary/charts';
+import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+
+import Chart from './chart';
+import TrendsDiscoverQuery from './trendsDiscoverQuery';
+import {
+  NormalizedTrendsTransaction,
+  TrendChangeType,
+  TrendFunctionField,
+  TrendsStats,
+  TrendView,
+} from './types';
+import {
+  getCurrentConfidenceLevel,
+  getCurrentTrendFunction,
+  getSelectedQueryKey,
+  getTrendProjectId,
+  modifyTrendView,
+  normalizeTrends,
+  StyledIconArrow,
+  transformDeltaSpread,
+  transformValueDelta,
+  trendCursorNames,
+  trendToColor,
+} from './utils';
 
 type Props = {
   api: Client;

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import ErrorBoundary from 'app/components/errorBoundary';
 import ClippedBox from 'app/components/clippedBox';
+import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
 import {Meta} from 'app/types';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {t, tct} from 'app/locale';
 import {Client} from 'app/api';
+import {t, tct} from 'app/locale';
 
 /**
  * Fetches group data and mark as seen

@@ -2,25 +2,26 @@ import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
 import Button from 'app/components/button';
 import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
+import Field from 'app/views/settings/components/forms/field';
+
+import {
+  EventId,
+  KeysOfUnion,
+  MethodType,
+  Rule,
+  RuleType,
+  SourceSuggestion,
+} from '../../types';
+import {getMethodLabel, getRuleLabel} from '../../utils';
 
 import EventIdField from './eventIdField';
 import SelectField from './selectField';
 import SourceField from './sourceField';
-import {getRuleLabel, getMethodLabel} from '../../utils';
-import {
-  MethodType,
-  RuleType,
-  Rule,
-  SourceSuggestion,
-  KeysOfUnion,
-  EventId,
-} from '../../types';
 
 type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
 

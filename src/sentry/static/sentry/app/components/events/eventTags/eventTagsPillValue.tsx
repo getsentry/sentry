@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {Meta, EventTag} from 'app/types';
-import Version from 'app/components/version';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
 import DeviceName from 'app/components/deviceName';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 import Link from 'app/components/links/link';
+import Version from 'app/components/version';
+import {EventTag, Meta} from 'app/types';
 import {defined} from 'app/utils';
 
 type Props = {

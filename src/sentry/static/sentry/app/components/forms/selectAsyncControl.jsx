@@ -1,10 +1,10 @@
+import React from 'react';
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
-import React from 'react';
 
-import {t} from 'app/locale';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
 import SelectControl from './selectControl';

@@ -1,19 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import withOrganization from 'app/utils/withOrganization';
-import withProjects from 'app/utils/withProjects';
+import {t} from 'app/locale';
 import {
-  Frame,
-  RepositoryProjectPathConfig,
-  Organization,
   Event,
+  Frame,
+  Organization,
   Project,
+  RepositoryProjectPathConfig,
 } from 'app/types';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 
