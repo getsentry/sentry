@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconFlag} from 'app/icons';
+import {tct} from 'app/locale';
 import space from 'app/styles/space';
 import getPendingInvite from 'app/utils/getPendingInvite';
 

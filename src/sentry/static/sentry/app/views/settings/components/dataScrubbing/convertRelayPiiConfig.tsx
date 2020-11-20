@@ -1,4 +1,4 @@
-import {RuleType, MethodType, Rule, PiiConfig, Applications, RuleDefault} from './types';
+import {Applications, MethodType, PiiConfig, Rule, RuleDefault, RuleType} from './types';
 
 // Remap PII config format to something that is more usable in React. Ideally
 // we would stop doing this at some point and make some updates to how we

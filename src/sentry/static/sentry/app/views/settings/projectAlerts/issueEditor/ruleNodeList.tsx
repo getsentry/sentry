@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import SelectControl from 'app/components/forms/selectControl';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
-import SelectControl from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
 
 import RuleNode from './ruleNode';
 

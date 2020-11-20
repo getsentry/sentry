@@ -1,30 +1,30 @@
-import {browserHistory} from 'react-router';
 import React, {MouseEvent} from 'react';
-import classNames from 'classnames';
-import moment from 'moment';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import {Location, Query} from 'history';
+import moment from 'moment';
 
-import {Client} from 'app/api';
-import {IconEllipsis} from 'app/icons';
-import {Organization, SavedQuery} from 'app/types';
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Client} from 'app/api';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {IconEllipsis} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, SavedQuery} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 
-import {getPrebuiltQueries} from './utils';
-import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
+import {getPrebuiltQueries} from './utils';
 
 type Props = {
   api: Client;

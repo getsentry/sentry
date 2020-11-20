@@ -1,21 +1,21 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
 
-import {DEFAULT_DEBOUNCE_DURATION, TEAMS_PER_PAGE} from 'app/constants';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {IconSubtract} from 'app/icons';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/links/link';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {DEFAULT_DEBOUNCE_DURATION, TEAMS_PER_PAGE} from 'app/constants';
+import {IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 class TeamSelect extends React.Component {
   static propTypes = {

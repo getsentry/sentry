@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {t} from 'app/locale';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
+import {t} from 'app/locale';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
 

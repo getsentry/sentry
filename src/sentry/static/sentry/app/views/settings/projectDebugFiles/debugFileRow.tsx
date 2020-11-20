@@ -1,22 +1,22 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
-import Tag from 'app/components/tagDeprecated';
-import FileSize from 'app/components/fileSize';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import {IconDelete, IconClock, IconDownload} from 'app/icons';
 import Access from 'app/components/acl/access';
 import Role from 'app/components/acl/role';
+import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
+import FileSize from 'app/components/fileSize';
+import Tag from 'app/components/tagDeprecated';
+import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
+import {IconClock, IconDelete, IconDownload} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
-import {getFileType, getFeatureTooltip} from './utils';
 import {DebugFile} from './types';
+import {getFeatureTooltip, getFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;

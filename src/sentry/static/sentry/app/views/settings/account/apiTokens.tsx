@@ -1,21 +1,21 @@
 import React from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import AlertLink from 'app/components/alertLink';
+import Button from 'app/components/button';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {InternalAppApiToken, Organization} from 'app/types';
-import AlertLink from 'app/components/alertLink';
-import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
+import ApiTokenRow from 'app/views/settings/account/apiTokenRow';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;

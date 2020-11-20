@@ -1,14 +1,15 @@
 import React from 'react';
 
-import {Event, Project} from 'app/types';
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import withProjects from 'app/utils/withProjects';
-import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
-import Link from 'app/components/links/link';
-import Highlight from 'app/components/highlight';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import Highlight from 'app/components/highlight';
+import Link from 'app/components/links/link';
+import {Event, Project} from 'app/types';
+import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
+import withProjects from 'app/utils/withProjects';
 
 import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from '../types';
+
 import Summary from './summary';
 
 type Props = {

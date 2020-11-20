@@ -1,20 +1,20 @@
-import moment from 'moment';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment';
+import PropTypes from 'prop-types';
 
-import Button from 'app/components/button';
 import codesworth from 'app/../images/spot/codesworth.png';
+import {promptsUpdate} from 'app/actionCreators/prompts';
+import Button from 'app/components/button';
 import CommitRow from 'app/components/commitRow';
-import getDynamicText from 'app/utils/getDynamicText';
 import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
-import {promptsUpdate} from 'app/actionCreators/prompts';
-import SentryTypes from 'app/sentryTypes';
-import {snoozedDays} from 'app/utils/promptsActivity';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
+import getDynamicText from 'app/utils/getDynamicText';
+import {snoozedDays} from 'app/utils/promptsActivity';
 import withApi from 'app/utils/withApi';
 
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];

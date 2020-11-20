@@ -1,13 +1,11 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
+import ProjectActions from 'app/actions/projectActions';
+import Feature from 'app/components/acl/feature';
+import ExternalLink from 'app/components/links/externalLink';
 import {fields} from 'app/data/forms/projectIssueGrouping';
 import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import {
   EventGroupingConfig,
   GroupingEnhancementBase,
@@ -15,9 +13,11 @@ import {
   Project,
 } from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
-import ProjectActions from 'app/actions/projectActions';
-import Feature from 'app/components/acl/feature';
-import ExternalLink from 'app/components/links/externalLink';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import UpgradeGrouping from './upgradeGrouping';
 

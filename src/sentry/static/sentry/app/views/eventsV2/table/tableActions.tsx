@@ -1,18 +1,18 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import {Location} from 'history';
+import PropTypes from 'prop-types';
 
-import {OrganizationSummary} from 'app/types';
-import DataExport, {ExportQueryType} from 'app/components/dataExport';
-import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {IconDownload, IconStack, IconTag} from 'app/icons';
+import Button from 'app/components/button';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import Hovercard from 'app/components/hovercard';
+import {IconDownload, IconStack, IconTag} from 'app/icons';
 import {t} from 'app/locale';
+import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventView from 'app/utils/discover/eventView';
 import {TableData} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
 
 import {downloadAsCsv} from '../utils';
 

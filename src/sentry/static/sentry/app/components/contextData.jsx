@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import isString from 'lodash/isString';
-import isNumber from 'lodash/isNumber';
-import isArray from 'lodash/isArray';
 import styled from '@emotion/styled';
+import isArray from 'lodash/isArray';
+import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
+import PropTypes from 'prop-types';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {IconOpen, IconAdd, IconSubtract} from 'app/icons';
-import {isUrl} from 'app/utils';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconAdd, IconOpen, IconSubtract} from 'app/icons';
+import {isUrl} from 'app/utils';
 
 function looksLikeObjectRepr(value) {
   const a = value[0];

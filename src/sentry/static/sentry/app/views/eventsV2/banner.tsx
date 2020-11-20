@@ -3,21 +3,22 @@ import styled from '@emotion/styled';
 
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import FeatureTourModal, {
+  TourImage,
   TourStep,
   TourText,
-  TourImage,
 } from 'app/components/modals/featureTourModal';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import BackgroundSpace from './backgroundSpace';
+import tourAlert from '../../../images/spot/discover-tour-alert.svg';
 import tourExplore from '../../../images/spot/discover-tour-explore.svg';
 import tourFilter from '../../../images/spot/discover-tour-filter.svg';
 import tourGroup from '../../../images/spot/discover-tour-group.svg';
-import tourAlert from '../../../images/spot/discover-tour-alert.svg';
+
+import BackgroundSpace from './backgroundSpace';
 
 const docsUrl = 'https://docs.sentry.io/product/discover-queries/';
 

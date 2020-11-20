@@ -1,41 +1,32 @@
+import React from 'react';
 import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
 
-import {Organization, Project} from 'app/types';
-import FormModel from 'app/views/settings/components/forms/model';
-import {defined} from 'app/utils';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {fetchOrganizationTags} from 'app/actionCreators/tags';
-import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Feature from 'app/components/acl/feature';
-import Form from 'app/views/settings/components/forms/form';
-import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
-import Triggers from 'app/views/settings/incidentRules/triggers';
-import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
-import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
-import withProject from 'app/utils/withProject';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
+import {fetchOrganizationTags} from 'app/actionCreators/tags';
+import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
+import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withProject from 'app/utils/withProject';
 import {convertDatasetEventTypesToSource} from 'app/views/alerts/utils';
+import Form from 'app/views/settings/components/forms/form';
+import FormModel from 'app/views/settings/components/forms/model';
+import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
+import Triggers from 'app/views/settings/incidentRules/triggers';
+import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
+import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 
-import {
-  AlertRuleThresholdType,
-  IncidentRule,
-  MetricActionTemplate,
-  Trigger,
-  Dataset,
-  UnsavedIncidentRule,
-  Datasource,
-} from '../types';
 import {addOrUpdateRule} from '../actions';
 import {
   createDefaultTrigger,
@@ -44,6 +35,15 @@ import {
 } from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import RuleConditionsFormWithGuiFilters from '../ruleConditionsFormWithGuiFilters';
+import {
+  AlertRuleThresholdType,
+  Dataset,
+  Datasource,
+  IncidentRule,
+  MetricActionTemplate,
+  Trigger,
+  UnsavedIncidentRule,
+} from '../types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 

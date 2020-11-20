@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import ActivityAuthor from 'app/components/activity/author';
-import ConfigStore from 'app/stores/configStore';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {User} from 'app/types';
 import {Theme} from 'app/utils/theme';
-import Tooltip from 'app/components/tooltip';
 
 import EditorTools from './editorTools';
 

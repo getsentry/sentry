@@ -1,19 +1,19 @@
-import {Link} from 'react-router';
 import React from 'react';
+import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {t} from 'app/locale';
-import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
 import NavTabs from 'app/components/navTabs';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
-import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {t} from 'app/locale';
+import {Project} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import withProject from 'app/utils/withProject';
-import {Project} from 'app/types';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
+import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
+import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
 
 type Props = {
   project: Project;

@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
-import {Member, AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Link from 'app/components/links/link';
+import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import SentryTypes from 'app/sentryTypes';
+import {AvatarUser, Member} from 'app/types';
 
 type Props = {
   member: Member;

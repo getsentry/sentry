@@ -1,26 +1,26 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Project, Organization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import OnboardingPanel from 'app/components/onboardingPanel';
-import withProject from 'app/utils/withProject';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FeatureTourModal, {
-  TourStep,
   TourImage,
+  TourStep,
   TourText,
 } from 'app/components/modals/featureTourModal';
+import OnboardingPanel from 'app/components/onboardingPanel';
+import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
 import commitImage from '../../../../images/spot/releases-tour-commits.svg';
-import statsImage from '../../../../images/spot/releases-tour-stats.svg';
-import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
 import emailImage from '../../../../images/spot/releases-tour-email.svg';
+import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
+import statsImage from '../../../../images/spot/releases-tour-stats.svg';
 
 const TOUR_STEPS: TourStep[] = [
   {

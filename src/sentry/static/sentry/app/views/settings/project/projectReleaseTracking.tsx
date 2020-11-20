@@ -1,24 +1,24 @@
 import React from 'react';
 import {WithRouterProps} from 'react-router';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import Field from 'app/views/settings/components/forms/field';
-import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PluginList from 'app/components/pluginList';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import {IconFlag} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {Organization, Plugin, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import withPlugins from 'app/utils/withPlugins';
 import routeTitleGen from 'app/utils/routeTitle';
-import {Organization, Project, Plugin} from 'app/types';
+import withPlugins from 'app/utils/withPlugins';
+import AsyncView from 'app/views/asyncView';
+import Field from 'app/views/settings/components/forms/field';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';

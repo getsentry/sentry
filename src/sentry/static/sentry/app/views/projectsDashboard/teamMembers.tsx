@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {Member} from 'app/types';
 import AsyncComponent from 'app/components/asyncComponent';
 import AvatarList from 'app/components/avatar/avatarList';
+import {Member} from 'app/types';
 
 type Props = AsyncComponent['props'] & {
   teamId: string;

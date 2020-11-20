@@ -1,27 +1,28 @@
-import {withTheme} from 'emotion-theming';
-import React from 'react';
 import 'zrender/lib/svg/svg';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+
+import React from 'react';
 import styled from '@emotion/styled';
+import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {withTheme} from 'emotion-theming';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import space from 'app/styles/space';
 import {
-  Series,
-  EChartEventHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
+  EChartEventHandler,
   ReactEchartsRef,
+  Series,
 } from 'app/types/echarts';
 import {Theme} from 'app/utils/theme';
-import space from 'app/styles/space';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
+import LineSeries from './series/lineSeries';
 
 // If dimension is a number convert it to pixels, otherwise use dimension without transform
 const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {

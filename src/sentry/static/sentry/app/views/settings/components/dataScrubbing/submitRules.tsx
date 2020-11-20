@@ -1,6 +1,6 @@
 import {Client} from 'app/api';
 
-import {RuleType, MethodType, PiiConfig, Applications, Rule} from './types';
+import {Applications, MethodType, PiiConfig, Rule, RuleType} from './types';
 
 function getSubmitFormatRule(rule: Rule): PiiConfig {
   if (rule.type === RuleType.PATTERN && rule.method === MethodType.REPLACE) {

@@ -1,21 +1,21 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import NotFound from 'app/components/errors/notFound';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
-import FetchEvent, {ChildrenProps} from './fetchEvent';
 import TransactionComparisonContent from './content';
+import FetchEvent, {ChildrenProps} from './fetchEvent';
 
 type ComparedEventSlugs = {
   baselineEventSlug: string | undefined;

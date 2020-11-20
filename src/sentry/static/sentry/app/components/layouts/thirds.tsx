@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import NavTabs from 'app/components/navTabs';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 /**
  * Base container for 66/33 containers.

@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Event, SentryTransactionEvent} from 'app/types';
-import {TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {SectionHeading} from 'app/components/charts/styles';
+import {TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Event, SentryTransactionEvent} from 'app/types';
 
 type Props = {
   event: Event;

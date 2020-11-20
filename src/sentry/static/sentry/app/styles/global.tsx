@@ -1,5 +1,5 @@
 import React from 'react';
-import {Global, css} from '@emotion/core';
+import {css, Global} from '@emotion/core';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {Theme} from 'app/utils/theme';

@@ -2,17 +2,17 @@ import React, {Component} from 'react';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
 import {switchOrganization} from 'app/actionCreators/organizations';
-import {t, tct} from 'app/locale';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import AlertActions from 'app/actions/alertActions';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Footer from 'app/components/footer';
 import NarrowLayout from 'app/components/narrowLayout';
-import OrganizationContext from 'app/views/organizationContext';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import OrganizationContext from 'app/views/organizationContext';
 
 class DeletionInProgress extends Component {
   static propTypes = {

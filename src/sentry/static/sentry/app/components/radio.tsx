@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
 import {growIn} from 'app/styles/animations';
 import {Theme} from 'app/utils/theme';

@@ -1,13 +1,13 @@
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import isEqual from 'lodash/isEqual';
 
-import {Group, Organization, Project, UserReport} from 'app/types';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
+import {Panel} from 'app/components/panels';
+import {Group, Organization, Project, UserReport} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import UserFeedbackEmpty from 'app/views/userFeedback/userFeedbackEmpty';
 

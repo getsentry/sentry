@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import {withProfiler} from '@sentry/react';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 type Props = {
   overlay?: boolean;

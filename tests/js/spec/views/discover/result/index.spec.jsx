@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import Result from 'app/views/discover/result';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
+import Result from 'app/views/discover/result';
 
 describe('Result', function () {
   describe('New query', function () {

@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import RangeField from 'app/views/settings/components/forms/rangeField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';

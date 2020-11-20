@@ -1,5 +1,5 @@
-import {Location} from 'history';
 import {PlainRoute} from 'react-router/lib/Route';
+import {Location} from 'history';
 import findLastIndex from 'lodash/findLastIndex';
 
 import replaceRouterParams from 'app/utils/replaceRouterParams';

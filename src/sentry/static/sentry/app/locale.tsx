@@ -1,10 +1,10 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import Jed from 'jed';
-import {sprintf} from 'sprintf-js';
-import isString from 'lodash/isString';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
-import {css} from '@emotion/core';
+import isString from 'lodash/isString';
+import {sprintf} from 'sprintf-js';
 
 import {getTranslations} from 'app/translations';
 
@@ -361,4 +361,4 @@ export function gettextComponentTemplate(template: string, components: Component
 /**
  * Shorthand versions should primarily be used.
  */
-export {gettext as t, ngettext as tn, gettextComponentTemplate as tct};
+export {gettext as t, gettextComponentTemplate as tct, ngettext as tn};

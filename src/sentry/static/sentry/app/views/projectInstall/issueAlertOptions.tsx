@@ -1,16 +1,16 @@
 import React, {ReactElement} from 'react';
-import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
-import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 import AsyncComponent from 'app/components/asyncComponent';
-import Input from 'app/views/settings/components/forms/controls/input';
-import PageHeading from 'app/components/pageHeading';
 import SelectControl from 'app/components/forms/selectControl';
+import PageHeading from 'app/components/pageHeading';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
+import Input from 'app/views/settings/components/forms/controls/input';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
 enum MetricValues {

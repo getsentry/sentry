@@ -1,23 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
-import {t, tct, tn} from 'app/locale';
-import {Release, ReleaseMeta} from 'app/types';
-import space from 'app/styles/space';
-import Button from 'app/components/button';
-import {IconEllipsis} from 'app/icons';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import {formatVersion} from 'app/utils/formatters';
-import Tooltip from 'app/components/tooltip';
-import TextOverflow from 'app/components/textOverflow';
 import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import DropdownLink from 'app/components/dropdownLink';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import MenuItem from 'app/components/menuItem';
+import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
+import {IconEllipsis} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import {Release, ReleaseMeta} from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
 
 import {isReleaseArchived} from '../utils';
 

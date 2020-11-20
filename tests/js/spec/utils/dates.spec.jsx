@@ -1,11 +1,11 @@
+import ConfigStore from 'app/stores/configStore';
 import {
-  setDateToTime,
+  getTimeFormat,
   intervalToMilliseconds,
   parsePeriodToHours,
+  setDateToTime,
   use24Hours,
-  getTimeFormat,
 } from 'app/utils/dates';
-import ConfigStore from 'app/stores/configStore';
 
 describe('utils.dates', function () {
   describe('setDateToTime', function () {

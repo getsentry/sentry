@@ -1,5 +1,5 @@
-import {Color} from 'app/utils/theme';
 import SvgIcon from 'app/icons/svgIcon';
+import {Color} from 'app/utils/theme';
 
 export type IconProps = React.ComponentProps<typeof SvgIcon>;
 

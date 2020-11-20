@@ -1,19 +1,19 @@
 import React from 'react';
 
+import EventDataSection from 'app/components/events/eventDataSection';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import {t} from 'app/locale';
 import {Event, Project} from 'app/types';
+import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import EventDataSection from 'app/components/events/eventDataSection';
-import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
-import {Thread} from 'app/types/events';
 
-import ThreadSelector from './threadSelector';
-import Content from './content';
-import getThreadStacktrace from './threadSelector/getThreadStacktrace';
 import getThreadException from './threadSelector/getThreadException';
+import getThreadStacktrace from './threadSelector/getThreadStacktrace';
+import Content from './content';
+import ThreadSelector from './threadSelector';
 
 const defaultProps = {
   hideGuide: false,

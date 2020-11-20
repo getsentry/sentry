@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
 import {PlainRoute} from 'react-router';
+import Reflux from 'reflux';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';

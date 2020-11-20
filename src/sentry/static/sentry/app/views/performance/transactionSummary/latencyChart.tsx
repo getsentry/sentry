@@ -3,19 +3,19 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
+import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import QuestionTooltip from 'app/components/questionTooltip';
-import AsyncComponent from 'app/components/asyncComponent';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import theme from 'app/utils/theme';
+import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
-import BarChartZoom from 'app/components/charts/barChartZoom';
+import theme from 'app/utils/theme';
 
 import {HeaderTitleLegend} from '../styles';
 

@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import Link from 'app/components/links/link';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {ReleaseProject} from 'app/types';
 import Button from 'app/components/button';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Link from 'app/components/links/link';
+import {t, tn} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {ReleaseProject} from 'app/types';
 
 import {SectionHeading, Wrapper} from './styles';
 

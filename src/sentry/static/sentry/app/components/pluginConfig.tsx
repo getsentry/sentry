@@ -1,23 +1,23 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import PluginIcon from 'app/plugins/components/pluginIcon';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
 import plugins from 'app/plugins';
+import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
+import {Organization, Plugin, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
-import {Organization, Project, Plugin} from 'app/types';
-import {Client} from 'app/api';
 
 type Props = {
   organization: Organization;

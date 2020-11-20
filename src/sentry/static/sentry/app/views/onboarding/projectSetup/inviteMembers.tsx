@@ -2,23 +2,23 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
 import {getCurrentMember} from 'app/actionCreators/members';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import EmailField from 'app/views/settings/components/forms/emailField';
-import Form from 'app/views/settings/components/forms/form';
 import Panel from 'app/components/panels/panel';
 import {IconGroup} from 'app/icons';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Config, MemberRole, Organization, Project} from 'app/types';
+import {analytics} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {Organization, Config, Project, MemberRole} from 'app/types';
+import EmailField from 'app/views/settings/components/forms/emailField';
+import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import {StepProps} from '../types';
 

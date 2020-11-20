@@ -1,15 +1,15 @@
-import flatten from 'lodash/flatten';
-import debounce from 'lodash/debounce';
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
+import debounce from 'lodash/debounce';
+import flatten from 'lodash/flatten';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import withLatestContext from 'app/utils/withLatestContext';
 import {documentIntegrationList} from 'app/views/organizationIntegrations/constants';
 

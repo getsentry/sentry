@@ -1,12 +1,12 @@
 import React from 'react';
-import moment from 'moment';
 import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {t} from 'app/locale';
-import {IconSound, IconSwitch, IconSync, IconWarning} from 'app/icons';
-import {InboxDetails} from 'app/types';
-import Tag from 'app/components/tag';
 import DateTime from 'app/components/dateTime';
+import Tag from 'app/components/tag';
+import {IconSound, IconSwitch, IconSync, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {InboxDetails} from 'app/types';
 
 const GroupInboxReason = {
   NEW: 0,

@@ -1,20 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import {t} from 'app/locale';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import withApi from 'app/utils/withApi';
-import Well from 'app/components/well';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Client} from 'app/api';
 import Avatar from 'app/components/avatar';
 import AvatarCropper from 'app/components/avatarCropper';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Client} from 'app/api';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Well from 'app/components/well';
+import {t} from 'app/locale';
 import {AvatarUser, Organization, Team} from 'app/types';
+import withApi from 'app/utils/withApi';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 
 type Model = Pick<AvatarUser, 'avatar'>;
 type AvatarType = Required<Model>['avatar']['avatarType'];

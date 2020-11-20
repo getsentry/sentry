@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {tct} from 'app/locale';
 import Button from 'app/components/button';
 import {IconAdd, IconSubtract} from 'app/icons';
+import {tct} from 'app/locale';
+import space from 'app/styles/space';
 
 import {GroupingComponentListItem} from './groupingComponent';
 

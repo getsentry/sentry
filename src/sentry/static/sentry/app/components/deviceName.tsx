@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import {IOSDeviceList} from 'app/types/iOSDeviceList';
 

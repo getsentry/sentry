@@ -1,16 +1,16 @@
 import React from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'app/icons';
+import {t} from 'app/locale';
+import {Broadcast, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import {Organization, Broadcast} from 'app/types';
 
 import {CommonSidebarProps} from './types';
 

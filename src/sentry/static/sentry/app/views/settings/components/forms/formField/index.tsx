@@ -1,21 +1,21 @@
-import {Observer} from 'mobx-react';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
+import PropTypes from 'prop-types';
 
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import PanelAlert from 'app/components/panels/panelAlert';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {defined} from 'app/utils';
 import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
 import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
-import PanelAlert from 'app/components/panels/panelAlert';
-import ReturnButton from 'app/views/settings/components/forms/returnButton';
-import space from 'app/styles/space';
-import Alert from 'app/components/alert';
 import FormModel from 'app/views/settings/components/forms/model';
+import ReturnButton from 'app/views/settings/components/forms/returnButton';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {Actor} from 'app/types';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
+import {Actor} from 'app/types';
 
 type Value = {
   actor: Actor;

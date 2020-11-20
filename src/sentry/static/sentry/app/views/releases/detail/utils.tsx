@@ -1,19 +1,19 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {t} from 'app/locale';
 import {
   Commit,
   CommitFile,
-  LightWeightOrganization,
   FilesByRepository,
   GlobalSelection,
+  LightWeightOrganization,
   Repository,
 } from 'app/types';
-import {t} from 'app/locale';
-import EventView from 'app/utils/discover/eventView';
 import {getUtcDateString} from 'app/utils/dates';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import EventView from 'app/utils/discover/eventView';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];

@@ -1,6 +1,6 @@
-import isEqual from 'lodash/isEqual';
-import createReactClass from 'create-react-class';
 import React from 'react';
+import createReactClass from 'create-react-class';
+import isEqual from 'lodash/isEqual';
 import Reflux from 'reflux';
 
 import SentryTypes from 'app/sentryTypes';

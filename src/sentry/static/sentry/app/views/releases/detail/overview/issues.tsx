@@ -1,25 +1,26 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import {Location} from 'history';
+import pick from 'lodash/pick';
 
-import {t, tct} from 'app/locale';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import DropdownButton from 'app/components/dropdownButton';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DiscoverButton from 'app/components/discoverButton';
+import DropdownButton from 'app/components/dropdownButton';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GroupList from 'app/components/issues/groupList';
-import space from 'app/styles/space';
 import {Panel} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {GlobalSelection} from 'app/types';
-import Feature from 'app/components/acl/feature';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import ButtonBar from 'app/components/buttonBar';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {GlobalSelection} from 'app/types';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+
+import EmptyState from '../emptyState';
 
 import {getReleaseEventView} from './chart/utils';
-import EmptyState from '../emptyState';
 
 enum IssuesType {
   NEW = 'new',

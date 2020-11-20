@@ -1,20 +1,20 @@
 import React from 'react';
 
-import {Organization, Project} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
-import {t} from 'app/locale';
-import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 import withProjects from 'app/utils/withProjects';
 import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
+import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
 
 import {
+  Action,
   AlertRuleThresholdType,
   MetricActionTemplate,
   Trigger,
   UnsavedIncidentRule,
-  Action,
 } from '../types';
 
 type Props = {

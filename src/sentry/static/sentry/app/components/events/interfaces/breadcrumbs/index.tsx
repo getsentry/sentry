@@ -1,32 +1,32 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {t} from 'app/locale';
-import {Event} from 'app/types';
-import space from 'app/styles/space';
 import SearchBar from 'app/components/searchBar';
-import Button from 'app/components/button';
 import {IconWarning} from 'app/icons/iconWarning';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Event} from 'app/types';
 import {defined} from 'app/utils';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
+import Filter from './filter';
+import Icon from './icon';
+import Level from './level';
+import List from './list';
+import {aroundContentStyle} from './styles';
+import transformCrumbs from './transformCrumbs';
 import {
   Breadcrumb,
+  BreadcrumbLevelType,
   BreadcrumbsWithDetails,
   BreadcrumbType,
-  BreadcrumbLevelType,
 } from './types';
-import transformCrumbs from './transformCrumbs';
-import Filter from './filter';
-import List from './list';
-import Level from './level';
-import Icon from './icon';
-import {aroundContentStyle} from './styles';
 
 const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
 

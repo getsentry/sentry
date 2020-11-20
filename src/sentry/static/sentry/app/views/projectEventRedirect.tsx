@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import PropTypes from 'prop-types';
 
-import {PageContent} from 'app/styles/organization';
-import {t} from 'app/locale';
 import DetailedError from 'app/components/errors/detailedError';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 
 type Props = RouteComponentProps<{}, {}>;
 

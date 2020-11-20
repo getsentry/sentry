@@ -1,15 +1,15 @@
-import pickBy from 'lodash/pickBy';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import pickBy from 'lodash/pickBy';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import {IconAdd, IconDelete, IconSettings} from 'app/icons';
+import {t} from 'app/locale';
 import InputField from 'app/views/settings/components/forms/inputField';
-import Confirm from 'app/components/confirm';
 
 const RichListProps = {
   /**

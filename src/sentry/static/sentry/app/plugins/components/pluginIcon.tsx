@@ -1,18 +1,18 @@
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import placeholder from 'app/../images/logos/logo-default.svg';
-import sentry from 'app/../images/logos/logo-sentry.svg';
 import amixr from 'app/../images/logos/logo-amixr.svg';
 import asana from 'app/../images/logos/logo-asana.svg';
 import asayer from 'app/../images/logos/logo-asayer.svg';
 import aws from 'app/../images/logos/logo-aws.svg';
+import vsts from 'app/../images/logos/logo-azure.svg';
 import bitbucket from 'app/../images/logos/logo-bitbucket.svg';
 import bitbucketserver from 'app/../images/logos/logo-bitbucket-server.svg';
 import campfire from 'app/../images/logos/logo-campfire.svg';
 import clickup from 'app/../images/logos/logo-clickup.svg';
 import clubhouse from 'app/../images/logos/logo-clubhouse.svg';
 import datadog from 'app/../images/logos/logo-datadog.svg';
+import placeholder from 'app/../images/logos/logo-default.svg';
 import flowdock from 'app/../images/logos/logo-flowdock.svg';
 import fullstory from 'app/../images/logos/logo-fullstory.svg';
 import github from 'app/../images/logos/logo-github.svg';
@@ -35,17 +35,17 @@ import redmine from 'app/../images/logos/logo-redmine.svg';
 import rocketchat from 'app/../images/logos/logo-rocketchat.svg';
 import rookout from 'app/../images/logos/logo-rookout.svg';
 import segment from 'app/../images/logos/logo-segment.svg';
+import sentry from 'app/../images/logos/logo-sentry.svg';
 import slack from 'app/../images/logos/logo-slack.svg';
 import split from 'app/../images/logos/logo-split.svg';
 import taiga from 'app/../images/logos/logo-taiga.svg';
 import teamwork from 'app/../images/logos/logo-teamwork.svg';
 import trello from 'app/../images/logos/logo-trello.svg';
 import twilio from 'app/../images/logos/logo-twilio.svg';
-import visualstudio from 'app/../images/logos/logo-visualstudio.svg';
-import vsts from 'app/../images/logos/logo-azure.svg';
-import youtrack from 'app/../images/logos/logo-youtrack.svg';
 import vercel from 'app/../images/logos/logo-vercel.svg';
 import victorops from 'app/../images/logos/logo-victorops.svg';
+import visualstudio from 'app/../images/logos/logo-visualstudio.svg';
+import youtrack from 'app/../images/logos/logo-youtrack.svg';
 import zulip from 'app/../images/logos/logo-zulip.svg';
 
 // Map of plugin id -> logo filename

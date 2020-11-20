@@ -1,24 +1,24 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {Organization, OnboardingTask, OnboardingTaskKey} from 'app/types';
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {IconLightning, IconLock, IconCheckmark} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
+import {Client} from 'app/api';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'app/components/sidebar/types';
+import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconLightning, IconLock} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
 import testableTransition from 'app/utils/testableTransition';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
-import {findUpcomingTasks, findCompleteTasks, findActiveTasks, taskIsDone} from './utils';
-import {getMergedTasks} from './taskConfig';
-import Task from './task';
 import ProgressHeader from './progressHeader';
+import Task from './task';
+import {getMergedTasks} from './taskConfig';
+import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from './utils';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;

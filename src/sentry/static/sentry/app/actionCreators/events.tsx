@@ -2,16 +2,16 @@ import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {canIncludePreviousPeriod} from 'app/components/charts/utils';
-import {getPeriod} from 'app/utils/getPeriod';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {
-  EventsStats,
   DateString,
-  OrganizationSummary,
+  EventsStats,
   MultiSeriesEventsStats,
+  OrganizationSummary,
 } from 'app/types';
 import {LocationQuery} from 'app/utils/discover/eventView';
+import {getPeriod} from 'app/utils/getPeriod';
 
 type Options = {
   organization: OrganizationSummary;

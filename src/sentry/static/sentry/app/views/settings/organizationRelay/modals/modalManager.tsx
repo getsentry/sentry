@@ -1,16 +1,16 @@
 import React from 'react';
-import omit from 'lodash/omit';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Organization, Relay} from 'app/types';
 
 import Form from './form';
-import Modal from './modal';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
+import Modal from './modal';
 
 type FormProps = React.ComponentProps<typeof Form>;
 type Values = FormProps['values'];

@@ -1,9 +1,9 @@
-import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
 import {
   closeGuide,
@@ -14,10 +14,10 @@ import {
   unregisterAnchor,
 } from 'app/actionCreators/guides';
 import {Guide} from 'app/components/assistant/types';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import GuideStore from 'app/stores/guideStore';
 import Hovercard, {Body as HovercardBody} from 'app/components/hovercard';
+import {t, tct} from 'app/locale';
+import GuideStore from 'app/stores/guideStore';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 

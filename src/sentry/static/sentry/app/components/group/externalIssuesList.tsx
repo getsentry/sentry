@@ -1,30 +1,30 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {
-  Group,
-  Project,
-  Organization,
-  PlatformExternalIssue,
-  Event,
-  SentryAppComponent,
-  SentryAppInstallation,
-  GroupIntegration,
-} from 'app/types';
-import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
-import ExternalIssueStore from 'app/stores/externalIssueStore';
+import PluginActions from 'app/components/group/pluginActions';
+import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import Placeholder from 'app/components/placeholder';
-import PluginActions from 'app/components/group/pluginActions';
 import {IconGeneric} from 'app/icons';
+import {t} from 'app/locale';
+import ExternalIssueStore from 'app/stores/externalIssueStore';
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
-import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import space from 'app/styles/space';
+import {
+  Event,
+  Group,
+  GroupIntegration,
+  Organization,
+  PlatformExternalIssue,
+  Project,
+  SentryAppComponent,
+  SentryAppInstallation,
+} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import SidebarSection from './sidebarSection';

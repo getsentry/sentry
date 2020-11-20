@@ -1,20 +1,20 @@
 import React from 'react';
-import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
-import {IconAdd} from 'app/icons';
-import {Member, Organization, Project, Team, User} from 'app/types';
 import {addTeamToProject} from 'app/actionCreators/projects';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import SelectControl from 'app/components/forms/selectControl';
 import TeamStore from 'app/stores/teamStore';
-import Tooltip from 'app/components/tooltip';
+import {Member, Organization, Project, Team, User} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>

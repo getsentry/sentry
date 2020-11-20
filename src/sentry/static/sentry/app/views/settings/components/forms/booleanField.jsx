@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import InputField from 'app/views/settings/components/forms/inputField';
-import Switch from 'app/components/switch';
 import Confirm from 'app/components/confirm';
+import Switch from 'app/components/switch';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 export default class BooleanField extends InputField {
   static propTypes = {

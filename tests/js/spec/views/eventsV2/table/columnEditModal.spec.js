@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByLabel, openMenu} from 'sentry-test/select-new';
+import {openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import ColumnEditModal from 'app/views/eventsV2/table/columnEditModal';
 

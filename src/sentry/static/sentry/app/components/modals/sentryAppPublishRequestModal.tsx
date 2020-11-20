@@ -1,17 +1,17 @@
+import React from 'react';
 import {Body, Header} from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
-import React from 'react';
 import intersection from 'lodash/intersection';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {SentryApp, Scope} from 'app/types';
+import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
 import {t} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import space from 'app/styles/space';
-import {SENTRY_APP_PERMISSIONS, PermissionChoice} from 'app/constants';
+import {Scope, SentryApp} from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import FormModel from 'app/views/settings/components/forms/model';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option

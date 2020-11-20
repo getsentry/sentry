@@ -1,23 +1,23 @@
 import React from 'react';
 
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import ProjectActions from 'app/actions/projectActions';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import {
   EventGroupingConfig,
   GroupingEnhancementBase,
   Organization,
   Project,
 } from 'app/types';
-import ProjectActions from 'app/actions/projectActions';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import marked from 'app/utils/marked';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Field from 'app/views/settings/components/forms/field';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import {Client} from 'app/api';
+import marked from 'app/utils/marked';
+import Field from 'app/views/settings/components/forms/field';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import {getGroupingChanges, getGroupingRisk} from './utils';
 

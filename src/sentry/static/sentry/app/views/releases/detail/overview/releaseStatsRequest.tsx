@@ -1,26 +1,27 @@
 import React from 'react';
-import pick from 'lodash/pick';
-import omitBy from 'lodash/omitBy';
-import isEqual from 'lodash/isEqual';
-import meanBy from 'lodash/meanBy';
-import mean from 'lodash/mean';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import mean from 'lodash/mean';
+import meanBy from 'lodash/meanBy';
+import omitBy from 'lodash/omitBy';
+import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
-import {Organization, GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {percent, defined} from 'app/utils';
-import {Series} from 'app/types/echarts';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {getExactDuration} from 'app/utils/formatters';
 import {fetchTotalCount} from 'app/actionCreators/events';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {t, tct} from 'app/locale';
+import {CrashFreeTimeBreakdown, GlobalSelection, Organization} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {defined, percent} from 'app/utils';
+import {getExactDuration} from 'app/utils/formatters';
+
+import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
 
 import {YAxis} from './chart/releaseChartControls';
 import {getInterval, getReleaseEventView} from './chart/utils';
-import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>

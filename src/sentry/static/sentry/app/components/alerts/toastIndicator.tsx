@@ -1,15 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import {motion} from 'framer-motion';
+import PropTypes from 'prop-types';
 
 import {Indicator} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {IconCheckmark, IconClose} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import testableTransition from 'app/utils/testableTransition';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import testableTransition from 'app/utils/testableTransition';
 
 const Toast = styled(motion.div)`
   display: flex;

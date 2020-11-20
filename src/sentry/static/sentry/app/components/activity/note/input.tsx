@@ -1,20 +1,20 @@
-import {MentionsInput, Mention} from 'react-mentions';
 import React from 'react';
+import {Mention, MentionsInput} from 'react-mentions';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {NoteType} from 'app/types/alerts';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
 import {IconMarkdown} from 'app/icons';
-import marked from 'app/utils/marked';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
+import {NoteType} from 'app/types/alerts';
+import marked from 'app/utils/marked';
 
-import {Mentionable, Mentioned, MentionChangeEvent, CreateError} from './types';
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
+import {CreateError, Mentionable, MentionChangeEvent, Mentioned} from './types';
 
 const defaultProps = {
   placeholder: t('Add a comment.\nTag users with @, or teams with #'),

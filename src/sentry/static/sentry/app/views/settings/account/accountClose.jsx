@@ -1,7 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import {addErrorMessage, addMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import {
   Panel,
   PanelAlert,
@@ -9,14 +14,9 @@ import {
   PanelHeader,
   PanelItem,
 } from 'app/components/panels';
-import {addMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
 import {IconFlag} from 'app/icons';
+import {t, tct} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 

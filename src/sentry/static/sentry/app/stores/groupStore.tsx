@@ -2,10 +2,10 @@ import isArray from 'lodash/isArray';
 import isUndefined from 'lodash/isUndefined';
 import Reflux from 'reflux';
 
-import {Activity, Group} from 'app/types';
 import GroupActions from 'app/actions/groupActions';
-import IndicatorStore from 'app/stores/indicatorStore';
 import {t} from 'app/locale';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Activity, Group} from 'app/types';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {

@@ -1,21 +1,21 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {withRouter, WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import {Project, Organization} from 'app/types';
-import {t, tct} from 'app/locale';
-import {IconInfo, IconClose, IconSiren} from 'app/icons';
-import Button from 'app/components/button';
-import EventView from 'app/utils/discover/eventView';
-import Alert from 'app/components/alert';
+import {navigateTo} from 'app/actionCreators/navigation';
 import Access from 'app/components/acl/access';
-import {explodeFieldString, AGGREGATIONS, Aggregation} from 'app/utils/discover/fields';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Link from 'app/components/links/link';
+import {IconClose, IconInfo, IconSiren} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
+import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
   transactionFieldConfig,
 } from 'app/views/settings/incidentRules/constants';
-import Link from 'app/components/links/link';
-import {navigateTo} from 'app/actionCreators/navigation';
 
 /**
  * Discover query supports more features than alert rules

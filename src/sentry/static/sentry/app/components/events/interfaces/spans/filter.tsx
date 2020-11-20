@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import {IconFilter} from 'app/icons';
-import DropdownControl from 'app/components/dropdownControl';
-import DropdownButton from 'app/components/dropdownButton';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
+import DropdownButton from 'app/components/dropdownButton';
+import DropdownControl from 'app/components/dropdownControl';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
+import {IconFilter} from 'app/icons';
+import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 import {ParsedTraceType} from './types';
 

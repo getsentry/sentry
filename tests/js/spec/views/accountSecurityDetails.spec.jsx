@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
 import AccountSecurityDetails from 'app/views/settings/account/accountSecurity/accountSecurityDetails';

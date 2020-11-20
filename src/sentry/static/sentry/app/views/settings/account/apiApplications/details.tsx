@@ -1,19 +1,19 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {ApiApplication} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import apiApplication from 'app/data/forms/apiApplication';
 import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import ConfigStore from 'app/stores/configStore';
+import {ApiApplication} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import apiApplication from 'app/data/forms/apiApplication';
-import getDynamicText from 'app/utils/getDynamicText';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;
 type State = {

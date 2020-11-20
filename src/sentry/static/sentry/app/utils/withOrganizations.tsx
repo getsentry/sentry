@@ -1,10 +1,10 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import getDisplayName from 'app/utils/getDisplayName';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {OrganizationSummary} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedOrganizationsProps = {
   organizationsLoading?: boolean;

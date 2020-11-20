@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import overflowEllipsisLeft from 'app/styles/overflowEllipsisLeft';
 
 type Props = {
   children: React.ReactNode;

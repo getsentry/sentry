@@ -1,13 +1,13 @@
 import React from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {PanelAlert, PanelItem} from 'app/components/panels';
 import accountPasswordFields from 'app/data/forms/accountPassword';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
 
 type OnSubmitSuccess = Parameters<NonNullable<Form['props']['onSubmitSuccess']>>;
 

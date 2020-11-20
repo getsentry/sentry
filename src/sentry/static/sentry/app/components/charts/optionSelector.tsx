@@ -1,12 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownMenu from 'app/components/dropdownMenu';
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
-import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownBubble from 'app/components/dropdownBubble';
+import DropdownButton from 'app/components/dropdownButton';
+import {DropdownItem} from 'app/components/dropdownControl';
+import DropdownMenu from 'app/components/dropdownMenu';
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';

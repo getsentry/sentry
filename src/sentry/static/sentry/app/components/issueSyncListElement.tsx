@@ -1,12 +1,12 @@
-import {ClassNames} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
+import PropTypes from 'prop-types';
 
+import Hovercard from 'app/components/hovercard';
 import {IconAdd, IconClose} from 'app/icons';
 import space from 'app/styles/space';
-import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getIntegrationIcon} from 'app/utils/integrationUtil';
 

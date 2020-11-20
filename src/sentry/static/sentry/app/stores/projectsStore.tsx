@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import {Project, Team} from 'app/types';
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
+import {Project, Team} from 'app/types';
 
 type State = {
   projects: Project[];

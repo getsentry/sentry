@@ -1,23 +1,24 @@
 import React from 'react';
-import {Location} from 'history';
 import * as ReactRouter from 'react-router';
+import {Location} from 'history';
 
-import {Organization} from 'app/types';
 import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
-import {getInterval} from 'app/components/charts/utils';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingPanel from 'app/components/charts/loadingPanel';
-import QuestionTooltip from 'app/components/questionTooltip';
-import getDynamicText from 'app/utils/getDynamicText';
+import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
-import EventView from 'app/utils/discover/eventView';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
+import {Organization} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import EventView from 'app/utils/discover/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
+import withApi from 'app/utils/withApi';
 
 import {getAxisOptions} from '../data';
-import {HeaderContainer, HeaderTitle, ErrorPanel} from '../styles';
+import {ErrorPanel, HeaderContainer, HeaderTitle} from '../styles';
+
 import Chart from './chart';
 import Footer from './footer';
 

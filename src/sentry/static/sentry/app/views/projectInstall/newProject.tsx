@@ -1,9 +1,9 @@
-import DocumentTitle from 'react-document-title';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
 
-import CreateProject from 'app/views/projectInstall/createProject';
 import space from 'app/styles/space';
+import CreateProject from 'app/views/projectInstall/createProject';
 
 const NewProject = () => (
   <Container>

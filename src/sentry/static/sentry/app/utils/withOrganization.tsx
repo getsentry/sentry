@@ -1,8 +1,8 @@
 import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
+import {LightWeightOrganization, Organization} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
-import {Organization, LightWeightOrganization} from 'app/types';
 
 type InjectedOrganizationProps = {
   organization?: Organization | LightWeightOrganization;

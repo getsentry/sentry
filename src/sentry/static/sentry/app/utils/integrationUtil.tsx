@@ -1,7 +1,15 @@
-import capitalize from 'lodash/capitalize';
 import React from 'react';
+import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
+import {
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconVsts,
+} from 'app/icons';
 import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
@@ -20,14 +28,6 @@ import {
 import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-import {
-  IconBitbucket,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconJira,
-  IconVsts,
-} from 'app/icons';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 

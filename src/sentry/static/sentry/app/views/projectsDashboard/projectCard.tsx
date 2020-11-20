@@ -1,23 +1,23 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {Organization, Project} from 'app/types';
-import BookmarkStar from 'app/components/projects/bookmarkStar';
-import {Client} from 'app/api';
 import {loadStatsForProject} from 'app/actionCreators/projects';
-import {t, tn} from 'app/locale';
+import {Client} from 'app/api';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import ProjectsStatsStore from 'app/stores/projectsStatsStore';
-import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
-import withApi from 'app/utils/withApi';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {t, tn} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {formatAbbreviatedNumber} from 'app/utils/formatters';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 import Chart from './chart';
 import Deploys from './deploys';

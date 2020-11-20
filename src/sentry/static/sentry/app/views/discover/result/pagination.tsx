@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconChevron} from 'app/icons';
 import Button from 'app/components/button';
+import {IconChevron} from 'app/icons';
 
 type PaginationProps = {
   getNextPage: () => void;

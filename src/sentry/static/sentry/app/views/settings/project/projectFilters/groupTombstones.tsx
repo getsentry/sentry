@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import {Panel, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
-import {Panel, PanelItem} from 'app/components/panels';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GroupTombstone} from 'app/types';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type RowProps = {
   data: GroupTombstone;

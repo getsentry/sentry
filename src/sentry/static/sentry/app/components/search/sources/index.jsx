@@ -1,6 +1,6 @@
+import React from 'react';
 import flatten from 'lodash/flatten';
 import PropTypes from 'prop-types';
-import React from 'react';
 
 class SearchSources extends React.Component {
   static propTypes = {

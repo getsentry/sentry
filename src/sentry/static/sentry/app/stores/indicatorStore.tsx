@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
-import {t} from 'app/locale';
 import {Indicator} from 'app/actionCreators/indicator';
 import IndicatorActions from 'app/actions/indicatorActions';
+import {t} from 'app/locale';
 
 type IndicatorStoreInterface = {
   init: () => void;

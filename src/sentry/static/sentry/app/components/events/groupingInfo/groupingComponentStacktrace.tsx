@@ -3,8 +3,8 @@ import React from 'react';
 import {EventGroupComponent} from 'app/types';
 
 import GroupingComponent from './groupingComponent';
-import {groupingComponentFilter} from './utils';
 import GroupingComponentFrames from './groupingComponentFrames';
+import {groupingComponentFilter} from './utils';
 
 type FrameGroup = {
   key: string;

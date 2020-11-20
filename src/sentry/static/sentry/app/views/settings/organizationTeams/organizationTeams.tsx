@@ -2,14 +2,14 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import recreateRoute from 'app/utils/recreateRoute';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
 import {Organization, Team} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import AllTeamsList from './allTeamsList';
 

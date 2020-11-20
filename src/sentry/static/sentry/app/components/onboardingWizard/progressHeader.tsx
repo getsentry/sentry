@@ -1,12 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {OnboardingTaskStatus, OnboardingTaskDescriptor} from 'app/types';
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import ProgressRing from 'app/components/progressRing';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'app/types';
+import theme from 'app/utils/theme';
 
 type Props = {
   allTasks: OnboardingTaskDescriptor[];

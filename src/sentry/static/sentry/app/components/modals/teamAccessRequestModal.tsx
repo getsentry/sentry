@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {Client} from 'app/api';
 import {ModalRenderProps, TeamAccessRequestModalOptions} from 'app/actionCreators/modal';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 

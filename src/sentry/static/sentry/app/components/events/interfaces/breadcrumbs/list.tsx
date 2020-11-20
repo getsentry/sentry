@@ -1,18 +1,18 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {
-  List,
-  ListRowProps,
+  AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
-  AutoSizer,
+  List,
+  ListRowProps,
   ScrollbarPresenceParams,
 } from 'react-virtualized';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {aroundContentStyle} from './styles';
-import ListHeader from './listHeader';
 import ListBody from './listBody';
+import ListHeader from './listHeader';
+import {aroundContentStyle} from './styles';
 import {BreadcrumbsWithDetails} from './types';
 
 const LIST_MAX_HEIGHT = 400;

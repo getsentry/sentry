@@ -1,23 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
+import ActionLink from 'app/components/actions/actionLink';
+import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
+import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
+import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
+import MenuItem from 'app/components/menuItem';
+import Tooltip from 'app/components/tooltip';
 import {IconNot} from 'app/icons';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
 import {
   ResolutionStatus,
   ResolutionStatusDetails,
   UpdateResolutionStatus,
 } from 'app/types';
-import {t, tn} from 'app/locale';
-import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
-import Duration from 'app/components/duration';
-import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
-import ActionLink from 'app/components/actions/actionLink';
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 
 enum ModalStates {
   COUNT,

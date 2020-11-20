@@ -1,8 +1,8 @@
 import moment from 'moment';
 
-import {use24Hours} from 'app/utils/dates';
-import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import {defined} from 'app/utils';
+import {use24Hours} from 'app/utils/dates';
 import {getDuration} from 'app/utils/formatters';
 
 const timeFormat = 'HH:mm:ss';

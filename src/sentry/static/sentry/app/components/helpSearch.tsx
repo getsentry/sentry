@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
 import Search from 'app/components/search';
-import HelpSource from 'app/components/search/sources/helpSource';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import space from 'app/styles/space';
+import HelpSource from 'app/components/search/sources/helpSource';
 import {IconWindow} from 'app/icons';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
 
 type HelpResult = Parameters<
   React.ComponentProps<typeof HelpSource>['children']

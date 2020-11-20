@@ -1,34 +1,34 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import pick from 'lodash/pick';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
+import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {
-  Organization,
-  ReleaseProject,
-  ReleaseMeta,
   Deploy,
   GlobalSelection,
+  Organization,
+  ReleaseMeta,
+  ReleaseProject,
   ReleaseWithHealth,
 } from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import {PageContent} from 'app/styles/organization';
-import withOrganization from 'app/utils/withOrganization';
-import routeTitleGen from 'app/utils/routeTitle';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {formatVersion} from 'app/utils/formatters';
-import AsyncComponent from 'app/components/asyncComponent';
+import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {IconInfo, IconWarning} from 'app/icons';
-import space from 'app/styles/space';
-import Alert from 'app/components/alert';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
-import ReleaseHeader from './releaseHeader';
 import PickProjectToContinue from './pickProjectToContinue';
+import ReleaseHeader from './releaseHeader';
 import {getReleaseEventView} from './utils';
 
 type ReleaseContext = {
@@ -289,5 +289,5 @@ const Body = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-export {ReleasesDetailContainer, ReleaseContext};
+export {ReleaseContext, ReleasesDetailContainer};
 export default withGlobalSelection(withOrganization(ReleasesDetailContainer));

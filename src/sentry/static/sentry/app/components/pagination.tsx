@@ -1,15 +1,15 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
+import PropTypes from 'prop-types';
 
-import {IconChevron} from 'app/icons';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 const defaultProps = {
   size: 'small',

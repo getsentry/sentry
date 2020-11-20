@@ -1,51 +1,51 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
-import SearchBar from 'app/views/events/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {PageContent} from 'app/styles/organization';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import FeatureBadge from 'app/components/featureBadge';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import space from 'app/styles/space';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import FeatureBadge from 'app/components/featureBadge';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import {
+  QueryResults,
+  stringifyQueryObject,
+  tokenizeSearch,
+} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  QueryResults,
-} from 'app/utils/tokenizeSearch';
-import {decodeScalar} from 'app/utils/queryString';
+import SearchBar from 'app/views/events/searchBar';
 
-import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
-import Table from './table';
 import Charts from './charts/index';
-import Onboarding from './onboarding';
-import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
 import TrendsContent from './trends/content';
 import {
-  modifyTrendsViewDefaultPeriod,
-  DEFAULT_TRENDS_STATS_PERIOD,
   DEFAULT_MAX_DURATION,
+  DEFAULT_TRENDS_STATS_PERIOD,
+  modifyTrendsViewDefaultPeriod,
 } from './trends/utils';
+import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
+import Onboarding from './onboarding';
+import Table from './table';
+import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',

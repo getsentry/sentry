@@ -1,23 +1,23 @@
-import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AutoSelectText from 'app/components/autoSelectText';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import PlatformPicker from 'app/components/platformPicker';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {PlatformKey} from 'app/data/platformCategories';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
-import {PlatformKey} from 'app/data/platformCategories';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;

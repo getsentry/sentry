@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconSearch} from 'app/icons';
 import space from 'app/styles/space';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   small?: boolean;

@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import PropTypes from 'prop-types';
 
-import withApi from 'app/utils/withApi';
+import {Client, RequestOptions} from 'app/api';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import {IconSearch} from 'app/icons';
-import {Client, RequestOptions} from 'app/api';
+import withApi from 'app/utils/withApi';
 
 type Option = [value: string, label: string];
 

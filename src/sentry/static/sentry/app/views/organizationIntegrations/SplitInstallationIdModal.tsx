@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import {addSuccessMessage} from 'app/actionCreators/indicator';
 
 type Props = {
   installationId: string;

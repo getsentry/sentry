@@ -1,12 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
-import {Actor, Commit} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Actor, Commit} from 'app/types';
 
 import SidebarSection from '../sidebarSection';
 

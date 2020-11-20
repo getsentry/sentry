@@ -1,5 +1,5 @@
-import {Modal} from 'react-bootstrap';
 import React from 'react';
+import {Modal} from 'react-bootstrap';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 

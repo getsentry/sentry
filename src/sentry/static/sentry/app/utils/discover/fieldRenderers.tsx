@@ -1,25 +1,26 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
-import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {defined} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
-import {formatFloat, formatPercentage} from 'app/utils/formatters';
-import {getAggregateAlias, AGGREGATIONS} from 'app/utils/discover/fields';
-import Projects from 'app/utils/projects';
+import {AGGREGATIONS, getAggregateAlias} from 'app/utils/discover/fields';
 import {getShortEventId} from 'app/utils/events';
+import {formatFloat, formatPercentage} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
+import Projects from 'app/utils/projects';
 
-import KeyTransactionField from './keyTransactionField';
 import ArrayValue from './arrayValue';
+import {EventData, MetaType} from './eventView';
+import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
   Container,
@@ -29,7 +30,6 @@ import {
   StyledShortId,
   VersionContainer,
 } from './styles';
-import {MetaType, EventData} from './eventView';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.

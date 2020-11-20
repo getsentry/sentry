@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Project, Deploy as DeployType} from 'app/types';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import SentryTypes from 'app/sentryTypes';
 import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
-import space from 'app/styles/space';
-import getDynamicText from 'app/utils/getDynamicText';
 import {IconReleases} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import {Deploy as DeployType, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const DEPLOY_COUNT = 2;
 

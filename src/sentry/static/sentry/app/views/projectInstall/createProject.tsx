@@ -1,31 +1,31 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import PlatformIcon from 'platformicons';
+import PropTypes from 'prop-types';
 
-import {Organization, Project, Team} from 'app/types';
-import {inputStyles} from 'app/styles/input';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import ProjectActions from 'app/actions/projectActions';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
-import ProjectActions from 'app/actions/projectActions';
-import SelectControl from 'app/components/forms/selectControl';
 import Tooltip from 'app/components/tooltip';
-import getPlatformName from 'app/utils/getPlatformName';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
+import {Organization, Project, Team} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import getPlatformName from 'app/utils/getPlatformName';
+import slugify from 'app/utils/slugify';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import slugify from 'app/utils/slugify';
-import {IconAdd} from 'app/icons';
 
 type RuleEventData = {
   eventKey: string;

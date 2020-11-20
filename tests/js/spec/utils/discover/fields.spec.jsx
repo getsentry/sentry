@@ -1,12 +1,12 @@
 import {
+  aggregateMultiPlotType,
+  aggregateOutputType,
+  explodeField,
+  generateAggregateFields,
   getAggregateAlias,
   isAggregateField,
   isMeasurement,
   measurementType,
-  explodeField,
-  aggregateOutputType,
-  aggregateMultiPlotType,
-  generateAggregateFields,
 } from 'app/utils/discover/fields';
 
 describe('getAggregateAlias', function () {

@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
+import {t, tct} from 'app/locale';
+import {Config, Organization} from 'app/types';
+import {analytics} from 'app/utils/analytics';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
-import {Config, Organization} from 'app/types';
 
 import {StepProps} from './types';
 

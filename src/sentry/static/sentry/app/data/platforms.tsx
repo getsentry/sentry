@@ -1,7 +1,8 @@
 /* eslint import/no-unresolved:0 import/order:0 */
-import {PlatformIntegration} from 'app/types';
 import {platforms} from 'integration-docs-platforms';
+
 import {t} from 'app/locale';
+import {PlatformIntegration} from 'app/types';
 
 import {tracing} from './platformCategories';
 

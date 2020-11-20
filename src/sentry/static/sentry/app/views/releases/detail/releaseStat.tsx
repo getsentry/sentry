@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import QuestionTooltip from 'app/components/questionTooltip';
+import space from 'app/styles/space';
 
 type Props = {
   label: string;

@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {mountWithTheme, mount} from 'sentry-test/enzyme';
+import {mount, mountWithTheme} from 'sentry-test/enzyme';
 
+import {closeModal, openModal} from 'app/actionCreators/modal';
 import GlobalModal from 'app/components/globalModal';
-import {openModal, closeModal} from 'app/actionCreators/modal';
 
 describe('GlobalModal', function () {
   it('renders', function () {

@@ -3,7 +3,7 @@ import React from 'react';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {IntegrationWithConfig, IntegrationProvider, Organization} from 'app/types';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 
 import AddIntegration from './addIntegration';
 

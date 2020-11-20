@@ -1,5 +1,9 @@
 import React from 'react';
 
+import GenericDiscoverQuery, {
+  DiscoverQueryProps,
+  GenericChildrenProps,
+} from 'app/utils/discover/genericDiscoverQuery';
 import withApi from 'app/utils/withApi';
 import {
   TrendChangeType,
@@ -9,10 +13,6 @@ import {
   TrendView,
 } from 'app/views/performance/trends/types';
 import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
-import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
-} from 'app/utils/discover/genericDiscoverQuery';
 
 export type TrendsRequest = {
   trendChangeType?: TrendChangeType;

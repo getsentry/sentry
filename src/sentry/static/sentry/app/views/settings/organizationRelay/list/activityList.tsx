@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {PanelTable} from 'app/components/panels';
-import {RelayActivity} from 'app/types';
 import DateTime from 'app/components/dateTime';
+import {PanelTable} from 'app/components/panels';
+import {t} from 'app/locale';
+import {RelayActivity} from 'app/types';
 
 type Props = {
   activities: Array<RelayActivity>;

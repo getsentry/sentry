@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'app/api';
-import {buildUserId, buildTeamId} from 'app/utils';
-import {uniqueId} from 'app/utils/guid';
 import GroupActions from 'app/actions/groupActions';
+import {Client} from 'app/api';
 import GroupStore from 'app/stores/groupStore';
-import {Member, User, Group, Actor, Note} from 'app/types';
+import {Actor, Group, Member, Note, User} from 'app/types';
+import {buildTeamId, buildUserId} from 'app/utils';
+import {uniqueId} from 'app/utils/guid';
 
 type AssignToUserParams = {
   /**

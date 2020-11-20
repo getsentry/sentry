@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconCircle, IconCheckmark, IconFlag} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconCircle, IconFlag} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = {

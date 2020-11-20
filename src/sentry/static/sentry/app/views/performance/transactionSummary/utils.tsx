@@ -1,6 +1,7 @@
 import {Query} from 'history';
 
 import {TrendFunctionField} from '../trends/types';
+
 import {DisplayModes} from './charts';
 
 export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {

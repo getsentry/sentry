@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {defined} from 'app/utils';
-import {IconStar} from 'app/icons';
-import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
-import withApi from 'app/utils/withApi';
-import {Organization, Project} from 'app/types';
 import {Client} from 'app/api';
+import {IconStar} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;

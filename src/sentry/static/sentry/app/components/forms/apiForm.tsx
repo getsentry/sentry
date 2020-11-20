@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 
-import {APIRequestMethod, Client} from 'app/api';
 import {
+  addErrorMessage,
   addLoadingMessage,
   clearIndicators,
-  addErrorMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {APIRequestMethod, Client} from 'app/api';
 import Form from 'app/components/forms/form';
 import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
 
 type Props = Form['props'] & {
   onSubmit?: (data: object) => void;

@@ -1,12 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 import {Value} from 'react-select-legacy';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconWarning} from 'app/icons';
 import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
-import LoadingIndicator from 'app/components/loadingIndicator';
 
 import {InviteStatus} from './types';
 

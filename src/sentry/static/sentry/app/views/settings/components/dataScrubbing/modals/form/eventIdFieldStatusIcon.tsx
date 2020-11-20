@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import ControlState from 'app/views/settings/components/forms/field/controlState';
-import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
-import {IconClose, IconCheckmark} from 'app/icons';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
+import ControlState from 'app/views/settings/components/forms/field/controlState';
 
 import {EventIdStatus} from '../../types';
 

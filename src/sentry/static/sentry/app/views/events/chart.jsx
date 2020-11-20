@@ -1,7 +1,7 @@
 import React from 'react';
 
-import SentryTypes from 'app/sentryTypes';
 import EventsChart from 'app/components/charts/eventsChart';
+import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 

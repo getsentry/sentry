@@ -2,19 +2,20 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import Button from 'app/components/button';
-import {t} from 'app/locale';
 import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
 
-import QueryFields from './queryFields';
-import {parseSavedQuery} from '../utils';
+import {QueryBuilder} from '../queryBuilder';
 import {
   ButtonSpinner,
   QueryActions,
   QueryActionsGroup,
   SavedQueryAction,
 } from '../styles';
-import {QueryBuilder} from '../queryBuilder';
 import {SavedQuery} from '../types';
+import {parseSavedQuery} from '../utils';
+
+import QueryFields from './queryFields';
 
 type EditSavedQueryProps = {
   queryBuilder: QueryBuilder;

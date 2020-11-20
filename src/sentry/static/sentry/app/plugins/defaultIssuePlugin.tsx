@@ -2,7 +2,7 @@ import React from 'react';
 
 import BasePlugin from 'app/plugins/basePlugin';
 import IssueActions from 'app/plugins/components/issueActions';
-import {Plugin, Group, Project, Organization} from 'app/types';
+import {Group, Organization, Plugin, Project} from 'app/types';
 
 type Props = {
   plugin: Plugin;

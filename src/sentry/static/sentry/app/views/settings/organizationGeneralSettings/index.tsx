@@ -1,25 +1,25 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Client} from 'app/api';
-import {Organization} from 'app/types';
-import {Panel, PanelHeader} from 'app/components/panels';
 import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {
   changeOrganizationSlug,
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'app/actionCreators/organizations';
-import {t, tct} from 'app/locale';
-import Field from 'app/views/settings/components/forms/field';
+import {Client} from 'app/api';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+import {Panel, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {t, tct} from 'app/locale';
+import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import Field from 'app/views/settings/components/forms/field';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 

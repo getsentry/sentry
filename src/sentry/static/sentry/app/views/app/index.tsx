@@ -1,33 +1,33 @@
-import $ from 'jquery';
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import $ from 'jquery';
+import Cookies from 'js-cookie';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import {Config} from 'app/types';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
 } from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
-import ConfigStore from 'app/stores/configStore';
+import {Client} from 'app/api';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
-import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NewsletterConsent from 'app/views/newsletterConsent';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
+import {Config} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import NewsletterConsent from 'app/views/newsletterConsent';
 
 import SystemAlerts from './systemAlerts';
 

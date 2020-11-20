@@ -1,13 +1,13 @@
-import throttle from 'lodash/throttle';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import zxcvbn from 'zxcvbn';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import throttle from 'lodash/throttle';
+import zxcvbn from 'zxcvbn';
 
 import {tct} from 'app/locale';
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 /**
  * NOTE: Do not import this component synchronously. The zxcvbn library is

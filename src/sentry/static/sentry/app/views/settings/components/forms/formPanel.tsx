@@ -1,9 +1,9 @@
 import React from 'react';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import {Scope} from 'app/types';
+import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
+import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 
 import {FieldObject, JsonFormObject} from './type';
 

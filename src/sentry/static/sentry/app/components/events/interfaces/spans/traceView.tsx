@@ -1,19 +1,19 @@
 import React from 'react';
 import pick from 'lodash/pick';
 
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {SentryTransactionEvent, Organization} from 'app/types';
+import {t} from 'app/locale';
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
-import DragManager, {DragManagerChildrenProps} from './dragManager';
-import SpanTree from './spanTree';
-import {RawSpanType, ParsedTraceType} from './types';
-import {generateRootSpan, getSpanID, getTraceContext} from './utils';
-import TraceViewHeader from './header';
 import * as CursorGuideHandler from './cursorGuideHandler';
+import DragManager, {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
+import TraceViewHeader from './header';
+import SpanTree from './spanTree';
+import {ParsedTraceType, RawSpanType} from './types';
+import {generateRootSpan, getSpanID, getTraceContext} from './utils';
 
 type IndexedFusedSpan = {
   span: RawSpanType;

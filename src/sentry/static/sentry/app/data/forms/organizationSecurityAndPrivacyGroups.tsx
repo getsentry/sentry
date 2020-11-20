@@ -1,8 +1,8 @@
-import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
 import {t} from 'app/locale';
+import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
 import {
-  getStoreCrashReportsValues,
   formatStoreCrashReports,
+  getStoreCrashReportsValues,
   SettingScope,
 } from 'app/utils/crashReports';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';

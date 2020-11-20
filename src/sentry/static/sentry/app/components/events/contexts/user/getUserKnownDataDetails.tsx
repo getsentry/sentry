@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import {IconMail} from 'app/icons';
-import {AvatarUser as UserType} from 'app/types';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconMail} from 'app/icons';
+import {t} from 'app/locale';
+import {AvatarUser as UserType} from 'app/types';
 
 import {UserKnownDataType} from './types';
 

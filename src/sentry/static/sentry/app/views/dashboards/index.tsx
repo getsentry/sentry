@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {PageContent, PageHeader} from 'app/styles/organization';
-import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
-import PageHeading from 'app/components/pageHeading';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import withOrganization from 'app/utils/withOrganization';
+import PageHeading from 'app/components/pageHeading';
+import {t} from 'app/locale';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;

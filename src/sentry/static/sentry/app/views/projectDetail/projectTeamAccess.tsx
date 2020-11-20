@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization, Project} from 'app/types';
-import {SectionHeading} from 'app/components/charts/styles';
-import {t, tn} from 'app/locale';
-import Link from 'app/components/links/link';
-import space from 'app/styles/space';
-import Placeholder from 'app/components/placeholder';
-import IdBadge from 'app/components/idBadge';
 import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 
 type Props = {
   organization: Organization;

@@ -5,14 +5,14 @@ import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {GenericChildrenProps} from 'app/utils/discover/genericDiscoverQuery';
+import {decodeScalar} from 'app/utils/queryString';
 
-import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
+import {NUM_BUCKETS, PERCENTILE, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
+import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 import {HistogramData, VitalGroup} from './types';
 import VitalCard from './vitalCard';
-import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
 type Props = {
   organization: Organization;

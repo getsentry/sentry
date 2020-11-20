@@ -1,13 +1,14 @@
+// Import to ensure echarts components are loaded.
+import './components/markPoint';
+
 import React from 'react';
 import set from 'lodash/set';
 
-import theme from 'app/utils/theme';
 import {getFormattedDate} from 'app/utils/dates';
+import theme from 'app/utils/theme';
 
 import BarChart, {BarChartSeries} from './barChart';
 import BaseChart from './baseChart';
-// Import to ensure echarts components are loaded.
-import './components/markPoint';
 import {truncationFormatter} from './utils';
 
 type Marker = {

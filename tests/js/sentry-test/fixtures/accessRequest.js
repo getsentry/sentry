@@ -1,5 +1,5 @@
-import {Team} from './team';
 import {Member} from './member';
+import {Team} from './team';
 
 export function AccessRequest(params = {}) {
   return {

@@ -2,8 +2,9 @@ import React from 'react';
 
 import {t} from 'app/locale';
 
+import {ProjectId, Rule} from '../types';
+
 import ModalManager from './modalManager';
-import {Rule, ProjectId} from '../types';
 
 type ModalManagerProps<T extends ProjectId> = ModalManager<T>['props'];
 type Props<T extends ProjectId> = Omit<

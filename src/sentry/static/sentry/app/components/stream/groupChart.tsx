@@ -1,10 +1,10 @@
-import LazyLoad from 'react-lazyload';
 import React from 'react';
+import LazyLoad from 'react-lazyload';
 
-import {Series} from 'app/types/echarts';
-import {Group, TimeseriesValue} from 'app/types';
-import {t} from 'app/locale';
 import MiniBarChart from 'app/components/charts/miniBarChart';
+import {t} from 'app/locale';
+import {Group, TimeseriesValue} from 'app/types';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
 type Props = {

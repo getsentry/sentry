@@ -1,19 +1,19 @@
+import React from 'react';
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {css} from '@emotion/core';
-import PropTypes from 'prop-types';
-import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {IssueAlertRule} from 'app/types/alerts';
-import {
-  SavedIncidentRule,
-  AlertRuleThresholdType,
-} from 'app/views/settings/incidentRules/types';
-import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
-import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import {IssueAlertRule} from 'app/types/alerts';
+import {getDisplayName} from 'app/utils/environment';
+import recreateRoute from 'app/utils/recreateRoute';
+import {
+  AlertRuleThresholdType,
+  SavedIncidentRule,
+} from 'app/views/settings/incidentRules/types';
 
 function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');

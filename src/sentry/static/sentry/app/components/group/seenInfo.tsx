@@ -4,15 +4,15 @@ import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
-import space from 'app/styles/space';
 import {IconInfo} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
-import {defined, toTitleCase} from 'app/utils';
 import {t} from 'app/locale';
-import {Release} from 'app/types';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Release} from 'app/types';
+import {defined, toTitleCase} from 'app/utils';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 

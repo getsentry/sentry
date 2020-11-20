@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
+import {mountWithTheme} from 'sentry-test/enzyme';
 
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
 import localStorage from 'app/utils/localStorage';

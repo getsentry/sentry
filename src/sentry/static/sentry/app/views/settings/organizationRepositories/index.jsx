@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {sortArray} from 'app/utils';
-import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
+import {sortArray} from 'app/utils';
 import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 

@@ -1,7 +1,10 @@
-import PropTypes from 'prop-types';
 import React, {Component} from 'react';
 import {WithRouterProps} from 'react-router';
+import PropTypes from 'prop-types';
 
+import Access from 'app/components/acl/access';
+import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {
   Panel,
   PanelAlert,
@@ -10,12 +13,9 @@ import {
   PanelItem,
 } from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import Access from 'app/components/acl/access';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import RouteError from 'app/views/routeError';
 import SentryTypes from 'app/sentryTypes';
 import {Plugin} from 'app/types';
+import RouteError from 'app/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';
 

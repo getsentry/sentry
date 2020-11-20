@@ -3,16 +3,16 @@ import DocumentTitle from 'react-document-title';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import AsyncView from 'app/views/asyncView';
+import sentryPattern from 'app/../images/pattern/sentry-pattern.png';
+import Alert from 'app/components/alert';
+import {ApiForm} from 'app/components/forms';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {ApiForm} from 'app/components/forms';
-import sentryPattern from 'app/../images/pattern/sentry-pattern.png';
 import space from 'app/styles/space';
-import Alert from 'app/components/alert';
-import {IconWarning} from 'app/icons';
+import AsyncView from 'app/views/asyncView';
 
-import {getOptionDefault, getOptionField, getForm} from '../options';
+import {getForm, getOptionDefault, getOptionField} from '../options';
 
 type Props = {
   onConfigured: () => void;

@@ -6,7 +6,7 @@ import Button from 'app/components/button';
 import ContextPickerModal from 'app/components/contextPickerModal';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {PluginWithProjectList, PluginProjectItem} from 'app/types';
+import {PluginProjectItem, PluginWithProjectList} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';

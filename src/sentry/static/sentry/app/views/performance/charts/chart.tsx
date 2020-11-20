@@ -3,11 +3,11 @@ import * as ReactRouter from 'react-router';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import {Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateOutputType} from 'app/utils/discover/fields';
-import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 
 type Props = {

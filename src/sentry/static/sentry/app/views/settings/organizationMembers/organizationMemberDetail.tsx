@@ -1,34 +1,34 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Member, Organization, Team} from 'app/types';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {removeAuthenticator} from 'app/actionCreators/account';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {inputStyles} from 'app/styles/input';
-import {removeAuthenticator} from 'app/actionCreators/account';
 import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
-import ExternalLink from 'app/components/links/externalLink';
-import Field from 'app/views/settings/components/forms/field';
 import NotFound from 'app/components/errors/notFound';
+import ExternalLink from 'app/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
+import space from 'app/styles/space';
+import {Member, Organization, Team} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TeamSelect from 'app/views/settings/components/teamSelect';
-import Tooltip from 'app/components/tooltip';
-import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
 
 import RoleSelect from './inviteMember/roleSelect';
 

@@ -1,5 +1,5 @@
-import {Vital} from 'app/views/performance/transactionVitals/types';
 import {getDuration} from 'app/utils/formatters';
+import {Vital} from 'app/views/performance/transactionVitals/types';
 
 export function formattedValue(record: Vital | undefined, value: number): string {
   if (record && record.type === 'duration') {

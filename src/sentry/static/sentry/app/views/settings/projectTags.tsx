@@ -1,23 +1,23 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import routeTitleGen from 'app/utils/routeTitle';
+import {IconDelete} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {TagWithTopValues} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
   AsyncView['props'];

@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import EventDataSection from 'app/components/events/eventDataSection';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent/richHttpContent';
-import {getFullUrl, getCurlCommand} from 'app/components/events/interfaces/utils';
-import {isUrl} from 'app/utils';
-import {t} from 'app/locale';
+import {getCurlCommand, getFullUrl} from 'app/components/events/interfaces/utils';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconOpen} from 'app/icons';
-import space from 'app/styles/space';
 import Truncate from 'app/components/truncate';
+import {IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import {isUrl} from 'app/utils';
 
 class RequestInterface extends React.Component {
   static propTypes = {

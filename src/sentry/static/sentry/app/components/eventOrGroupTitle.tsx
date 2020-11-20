@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {Organization, Event, Group, GroupTombstone} from 'app/types';
-import {getTitle} from 'app/utils/events';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {Event, Group, GroupTombstone, Organization} from 'app/types';
+import {getTitle} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 
 import StacktracePreview from './stacktracePreview';

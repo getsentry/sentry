@@ -1,16 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {PanelBody} from 'app/components/panels';
-import {ReleaseProject, Release} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Release, ReleaseProject} from 'app/types';
 
 import ClippedHealthRows from '../clippedHealthRows';
+
 import Header from './header';
+import IssuesQuantity from './issuesQuantity';
 import Item from './item';
 import ProjectName from './projectName';
-import IssuesQuantity from './issuesQuantity';
 
 type Props = {
   projects: Array<ReleaseProject>;

@@ -1,19 +1,19 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import SentryTypes from 'app/sentryTypes';
-import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
+import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
-import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
 import withProjects from 'app/utils/withProjects';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 
 import {CrumbLink} from '.';
 

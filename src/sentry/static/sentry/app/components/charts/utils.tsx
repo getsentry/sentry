@@ -2,11 +2,11 @@ import {EChartOption} from 'echarts';
 import {Location} from 'history';
 import moment from 'moment';
 
-import {GlobalSelection} from 'app/types';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {GlobalSelection} from 'app/types';
+import {escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
-import {escape} from 'app/utils';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 

@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
 import React from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link from 'app/components/links/link';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 

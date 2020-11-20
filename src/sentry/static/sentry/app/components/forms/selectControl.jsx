@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactSelect, {components as selectComponents} from 'react-select';
 import Async from 'react-select/async';
-import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
+import Creatable from 'react-select/creatable';
 
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {IconChevron, IconClose} from 'app/icons';
+import space from 'app/styles/space';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import theme from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
 

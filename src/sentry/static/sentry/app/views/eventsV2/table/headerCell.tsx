@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {ColumnValueType, getAggregateAlias} from 'app/utils/discover/fields';
 import {Alignments} from 'app/components/gridEditable/sortLink';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import {ColumnValueType, getAggregateAlias} from 'app/utils/discover/fields';
 
 import {TableColumn} from './types';
 

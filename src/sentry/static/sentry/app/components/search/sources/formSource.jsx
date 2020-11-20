@@ -1,12 +1,12 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
+import {withRouter} from 'react-router';
 import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
 import {loadSearchMap} from 'app/actionCreators/formSearch';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import FormSearchStore from 'app/stores/formSearchStore';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 class FormSource extends React.Component {

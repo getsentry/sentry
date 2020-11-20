@@ -1,15 +1,15 @@
 import React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 
-import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
-import {t} from 'app/locale';
+import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withPlugins from 'app/utils/withPlugins';
+import {Organization, Plugin, Project} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
-import {Plugin, Organization, Project} from 'app/types';
+import withPlugins from 'app/utils/withPlugins';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import ProjectPlugins from './projectPlugins';
 

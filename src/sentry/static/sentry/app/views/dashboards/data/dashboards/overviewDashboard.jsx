@@ -1,7 +1,7 @@
 import affectedUsers from '../widgets/affectedUsers';
 import errorsByGeo from '../widgets/errorsByGeo';
-import eventsByReleasePercent from '../widgets/eventsByReleasePercent';
 import events from '../widgets/events';
+import eventsByReleasePercent from '../widgets/eventsByReleasePercent';
 import handledVsUnhandled from '../widgets/handledVsUnhandled';
 import topDevicesAndBrowsers from '../widgets/topDevicesAndBrowsers';
 

@@ -3,8 +3,8 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MemberListStore from 'app/stores/memberListStore';
-import TeamStore from 'app/stores/teamStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
 jest.mock('jquery');

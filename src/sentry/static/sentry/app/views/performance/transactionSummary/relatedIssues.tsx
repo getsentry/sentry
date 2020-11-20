@@ -1,20 +1,20 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {t, tct} from 'app/locale';
+import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import GroupList from 'app/components/issues/groupList';
+import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {SectionHeading} from 'app/components/charts/styles';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel, PanelBody} from 'app/components/panels';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import GroupList from 'app/components/issues/groupList';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;

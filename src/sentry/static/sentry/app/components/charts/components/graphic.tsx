@@ -1,5 +1,6 @@
-import {EChartOption} from 'echarts';
 import 'echarts/lib/component/graphic';
+
+import {EChartOption} from 'echarts';
 
 /**
  * eCharts graphic

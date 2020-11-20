@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IconCheckmark, IconWarning, IconFire} from 'app/icons';
 
 import {Incident, IncidentStatus} from './types';
 

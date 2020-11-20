@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconSentry} from 'app/icons';
 import Link from 'app/components/links/link';
 import Panel from 'app/components/panels/panel';
+import {IconSentry} from 'app/icons';
 import space from 'app/styles/space';
 
 const BODY_CLASSES = ['narrow'];

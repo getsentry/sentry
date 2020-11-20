@@ -1,16 +1,16 @@
-import {keyframes} from '@emotion/core';
 import React from 'react';
+import {keyframes} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {Panel, PanelItem} from 'app/components/panels';
-import {slideInLeft} from 'app/styles/animations';
 import Button from 'app/components/button';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {Panel, PanelItem} from 'app/components/panels';
+import {slideInLeft} from 'app/styles/animations';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import ExternalLink from 'app/components/links/externalLink';
 
 const HEADER_HEIGHT = 60;
 

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import {ProcessingIssue} from 'app/types';
-import {IconWarning, IconSettings} from 'app/icons';
 import TimeSince from 'app/components/timeSince';
-import {t, tn, tct} from 'app/locale';
+import {IconSettings, IconWarning} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {ProcessingIssue} from 'app/types';
 
 type Props = {
   showProject: boolean;

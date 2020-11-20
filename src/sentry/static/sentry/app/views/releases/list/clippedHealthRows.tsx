@@ -1,10 +1,10 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 
 const defaultprops = {
   maxVisibleItems: 4,

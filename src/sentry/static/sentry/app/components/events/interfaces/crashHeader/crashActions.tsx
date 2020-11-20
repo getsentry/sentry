@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {ExceptionValue} from 'app/types';
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type NotifyOptions = {
   stackView?: STACK_VIEW;

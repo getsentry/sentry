@@ -1,19 +1,19 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Activity, Organization} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
-import routeTitle from 'app/utils/routeTitle';
+import {Panel} from 'app/components/panels';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Activity, Organization} from 'app/types';
+import routeTitle from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
 import ActivityFeedItem from './activityFeedItem';
 

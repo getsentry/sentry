@@ -1,10 +1,10 @@
 import React from 'react';
 import {Location} from 'history';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconPrevious, IconNext} from 'app/icons';
+import {IconNext, IconPrevious} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = {
   location: Location;

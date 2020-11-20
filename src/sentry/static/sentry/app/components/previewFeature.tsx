@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {IconLab} from 'app/icons';
 import Alert, {Props as AlertProps} from 'app/components/alert';
+import {IconLab} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = {
   type?: AlertProps['type'];

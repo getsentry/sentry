@@ -1,31 +1,31 @@
-import {Params} from 'react-router/lib/Router';
 import React from 'react';
-import moment from 'moment';
-import styled from '@emotion/styled';
+import {Params} from 'react-router/lib/Router';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
+import moment from 'moment';
 
-import {PageHeader} from 'app/styles/organization';
-import {t} from 'app/locale';
+import Breadcrumbs from 'app/components/breadcrumbs';
 import Count from 'app/components/count';
+import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import LoadingError from 'app/components/loadingError';
 import MenuItem from 'app/components/menuItem';
 import PageHeading from 'app/components/pageHeading';
 import Placeholder from 'app/components/placeholder';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Projects from 'app/utils/projects';
 import SubscribeButton from 'app/components/subscribeButton';
-import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
 import {IconCheckmark} from 'app/icons';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import {Dataset} from 'app/views/settings/incidentRules/types';
-import DropdownControl from 'app/components/dropdownControl';
+import {t} from 'app/locale';
+import {PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {use24Hours} from 'app/utils/dates';
+import getDynamicText from 'app/utils/getDynamicText';
+import Projects from 'app/utils/projects';
+import {Dataset} from 'app/views/settings/incidentRules/types';
 
+import Status from '../status';
 import {Incident, IncidentStats} from '../types';
 import {isOpen} from '../utils';
-import Status from '../status';
 
 type Props = {
   className?: string;

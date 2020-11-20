@@ -1,16 +1,16 @@
+import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {Location} from 'history';
-import React from 'react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
 import AsyncComponent from 'app/components/asyncComponent';
 import AvatarChooser from 'app/components/avatarChooser';
+import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
+import {Organization, Scope} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, Scope} from 'app/types';
 
 type Props = {
   location: Location;

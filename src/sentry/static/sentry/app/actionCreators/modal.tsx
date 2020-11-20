@@ -1,9 +1,9 @@
 import React from 'react';
+import {ModalBody, ModalFooter, ModalHeader} from 'react-bootstrap';
 import {css} from '@emotion/core';
-import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Organization, SentryApp, Project, Team, Group, Event} from 'app/types';
+import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;

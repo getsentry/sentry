@@ -1,13 +1,14 @@
 import React from 'react';
 import {Value} from 'react-select-legacy';
 
-import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 
-import {getInternal, getExternal} from './utils';
-import {Aggregation, DiscoverBaseProps, ReactSelectOption} from '../types';
-import {PlaceholderText} from '../styles';
 import {ARRAY_FIELD_PREFIXES} from '../data';
+import {PlaceholderText} from '../styles';
+import {Aggregation, DiscoverBaseProps, ReactSelectOption} from '../types';
+
+import {getExternal, getInternal} from './utils';
 
 type AggregationProps = DiscoverBaseProps & {
   value: Aggregation;

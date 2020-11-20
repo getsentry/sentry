@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
-import {IconAdd, IconChevron} from 'app/icons';
-import withOrganizations from 'app/utils/withOrganizations';
-import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
-import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
-import {OrganizationSummary} from 'app/types';
+import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
+import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
+import {IconAdd, IconChevron} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {OrganizationSummary} from 'app/types';
+import withOrganizations from 'app/utils/withOrganizations';
 
 import Divider from './divider.styled';
 

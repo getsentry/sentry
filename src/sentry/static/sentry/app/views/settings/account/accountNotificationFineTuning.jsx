@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {fields} from 'app/data/forms/accountNotificationSettings';
 import {t} from 'app/locale';
+import withOrganizations from 'app/utils/withOrganizations';
 import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Pagination from 'app/components/pagination';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import withOrganizations from 'app/utils/withOrganizations';
 
 const ACCOUNT_NOTIFICATION_FIELDS = {
   alerts: {

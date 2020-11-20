@@ -1,14 +1,14 @@
 import React from 'react';
+import Modal, {Body, Footer, Header} from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
-import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
-import {SelectAsyncField} from 'app/components/forms';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {SelectAsyncField} from 'app/components/forms';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
-import {Release} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Release} from 'app/types';
 
 type Props = {
   onSelected: ({inRelease: string}) => void;

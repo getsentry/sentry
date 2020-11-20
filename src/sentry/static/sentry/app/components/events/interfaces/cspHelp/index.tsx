@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconOpen} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
+import {IconOpen} from 'app/icons';
 import space from 'app/styles/space';
 
 import effectiveDirectives from './effectiveDirectives';

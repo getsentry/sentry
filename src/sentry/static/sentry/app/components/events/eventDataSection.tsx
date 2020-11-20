@@ -1,15 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {DataSection} from 'app/components/events/styles';
-import {IconAnchor} from 'app/icons/iconAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {DataSection} from 'app/components/events/styles';
+import {IconAnchor} from 'app/icons/iconAnchor';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 const defaultProps = {
   wrapTitle: true,

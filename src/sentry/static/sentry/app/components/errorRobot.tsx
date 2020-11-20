@@ -1,16 +1,16 @@
-import {Link} from 'react-router';
 import React from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
-import Button from 'app/components/button';
-import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
-import withApi from 'app/utils/withApi';
+import robotBackground from 'app/../images/spot/sentry-robot.png';
 import {Client} from 'app/api';
+import Button from 'app/components/button';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {LightWeightOrganization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import space from 'app/styles/space';
-import robotBackground from 'app/../images/spot/sentry-robot.png';
+import withApi from 'app/utils/withApi';
+import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 
 type Props = {
   api: Client;

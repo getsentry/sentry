@@ -1,22 +1,22 @@
-import {css} from '@emotion/core';
-import {Link} from 'react-router';
-import PropTypes from 'prop-types';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {Link} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import ExternalLink from 'app/components/links/externalLink';
 import Access from 'app/components/acl/access';
+import ExternalLink from 'app/components/links/externalLink';
+import Switch from 'app/components/switch';
+import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
-import Switch from 'app/components/switch';
+import {Organization, Plugin, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
-import {Organization, Project, Plugin} from 'app/types';
 
 const grayText = css`
   color: #979ba0;

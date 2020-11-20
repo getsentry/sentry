@@ -1,26 +1,26 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
+import ProjectActions from 'app/actions/projectActions';
+import Checkbox from 'app/components/checkbox';
+import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import Pagination from 'app/components/pagination';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import {Organization, Project} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
-import Checkbox from 'app/components/checkbox';
-import SearchBar from 'app/components/searchBar';
-import ProjectActions from 'app/actions/projectActions';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
-import {DebugFile, BuiltinSymbolSource} from './types';
 import DebugFileRow from './debugFileRow';
+import {BuiltinSymbolSource, DebugFile} from './types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;

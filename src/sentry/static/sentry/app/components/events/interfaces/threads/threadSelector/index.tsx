@@ -2,18 +2,18 @@ import React from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {Thread} from 'app/types/events';
-import {Event, EntryData} from 'app/types';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import theme from 'app/utils/theme';
 import {t} from 'app/locale';
+import {EntryData, Event} from 'app/types';
+import {Thread} from 'app/types/events';
+import theme from 'app/utils/theme';
 
 import filterThreadInfo from './filterThreadInfo';
 import getThreadException from './getThreadException';
+import Header from './header';
 import Option from './option';
 import SelectedOption from './selectedOption';
-import Header from './header';
 
 type Props = {
   threads: Array<Thread>;

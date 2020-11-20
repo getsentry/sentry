@@ -1,14 +1,14 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import IdBadge from 'app/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
-import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 import space from 'app/styles/space';
+import highlightFuseMatches from 'app/utils/highlightFuseMatches';
+import SettingsSearch from 'app/views/settings/components/settingsSearch';
 
 class SearchResult extends React.Component {
   static propTypes = {

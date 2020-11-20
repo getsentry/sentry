@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
+import {loadIncidents} from 'app/actionCreators/serviceIncidents';
 import Button from 'app/components/button';
 import {IconWarning} from 'app/icons';
-import {loadIncidents} from 'app/actionCreators/serviceIncidents';
-import {SentryServiceStatus} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {SentryServiceStatus} from 'app/types';
 
-import {CommonSidebarProps} from './types';
-import SidebarPanelEmpty from './sidebarPanelEmpty';
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
+import SidebarPanelEmpty from './sidebarPanelEmpty';
+import {CommonSidebarProps} from './types';
 
 type Props = CommonSidebarProps;
 

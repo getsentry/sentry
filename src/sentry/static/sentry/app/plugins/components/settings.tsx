@@ -1,15 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import {Form, FormState} from 'app/components/forms';
-import {parseRepo} from 'app/utils';
-import {t, tct} from 'app/locale';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
-import {trackIntegrationEvent, SingleIntegrationEvent} from 'app/utils/integrationUtil';
-import {Organization, Project, Plugin} from 'app/types';
+import {Form, FormState} from 'app/components/forms';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t, tct} from 'app/locale';
+import {Organization, Plugin, Project} from 'app/types';
+import {parseRepo} from 'app/utils';
+import {SingleIntegrationEvent, trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
   organization: Organization;

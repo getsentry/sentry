@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
-import localStorage from 'app/utils/localStorage';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import localStorage from 'app/utils/localStorage';
 
 import backgroundLighthouse from '../../../../images/spot/background-lighthouse.svg';
 

@@ -1,6 +1,6 @@
 import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {NoteType} from 'app/types/alerts';
 
 /**

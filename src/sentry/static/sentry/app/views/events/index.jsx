@@ -1,22 +1,22 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t} from 'app/locale';
-import FeatureBadge from 'app/components/featureBadge';
 import Feature from 'app/components/acl/feature';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import FeatureBadge from 'app/components/featureBadge';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SentryTypes from 'app/sentryTypes';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import PageHeading from 'app/components/pageHeading';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import {PageContent, PageHeader} from 'app/styles/organization';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {PageContent, PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
 
 import SearchBar from './searchBar';
 

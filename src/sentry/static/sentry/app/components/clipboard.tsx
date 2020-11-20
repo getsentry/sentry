@@ -1,7 +1,7 @@
-import Clip from 'clipboard';
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Clip from 'clipboard';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 

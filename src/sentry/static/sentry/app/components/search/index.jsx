@@ -1,24 +1,24 @@
-import debounce from 'lodash/debounce';
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {navigateTo} from 'app/actionCreators/navigation';
-import {t} from 'app/locale';
-import ApiSource from 'app/components/search/sources/apiSource';
 import AutoComplete from 'app/components/autoComplete';
-import CommandSource from 'app/components/search/sources/commandSource';
-import FormSource from 'app/components/search/sources/formSource';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import RouteSource from 'app/components/search/sources/routeSource';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
 import SearchSources from 'app/components/search/sources';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
+import ApiSource from 'app/components/search/sources/apiSource';
+import CommandSource from 'app/components/search/sources/commandSource';
+import FormSource from 'app/components/search/sources/formSource';
+import RouteSource from 'app/components/search/sources/routeSource';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // "Omni" search
 class Search extends React.Component {

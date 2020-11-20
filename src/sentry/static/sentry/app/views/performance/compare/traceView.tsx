@@ -1,13 +1,13 @@
 import React from 'react';
 
+import {getTraceContext} from 'app/components/events/interfaces/spans/utils';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {Event} from 'app/types';
-import {IconWarning} from 'app/icons';
-import {getTraceContext} from 'app/components/events/interfaces/spans/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import {isTransactionEvent} from './utils';
 import SpanTree from './spanTree';
+import {isTransactionEvent} from './utils';
 
 type Props = {
   baselineEvent: Event;

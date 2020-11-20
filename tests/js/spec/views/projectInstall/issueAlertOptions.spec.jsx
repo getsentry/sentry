@@ -1,13 +1,13 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  MOCK_RESP_VERBOSE,
   MOCK_RESP_INCONSISTENT_INTERVALS,
   MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
   MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
+  MOCK_RESP_VERBOSE,
 } from 'sentry-test/fixtures/ruleConditions';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 

@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
+import {ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
 import ModalActions from 'app/actions/modalActions';
-import {ModalRenderProps, ModalOptions} from 'app/actionCreators/modal';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 

@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import pick from 'lodash/pick';
+import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsTable from 'app/components/eventsTable/eventsTable';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import parseApiError from 'app/utils/parseApiError';
+import withApi from 'app/utils/withApi';
 
 class GroupEvents extends React.Component {
   static propTypes = {

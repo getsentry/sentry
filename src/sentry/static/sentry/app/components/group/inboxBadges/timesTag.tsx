@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {IconClock} from 'app/icons';
-import TimeSince from 'app/components/timeSince';
 import Tag from 'app/components/tag';
+import TimeSince from 'app/components/timeSince';
+import {IconClock} from 'app/icons';
+import {t} from 'app/locale';
 
 /**
  * Used in new inbox

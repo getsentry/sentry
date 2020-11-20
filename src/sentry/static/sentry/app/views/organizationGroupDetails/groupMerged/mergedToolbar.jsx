@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import pick from 'lodash/pick';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import pick from 'lodash/pick';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
 import {openDiffModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import GroupingStore from 'app/stores/groupingStore';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import SpreadLayout from 'app/components/spreadLayout';
 import Toolbar from 'app/components/toolbar';
-import space from 'app/styles/space';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import GroupingStore from 'app/stores/groupingStore';
+import space from 'app/styles/space';
 
 const MergedToolbar = createReactClass({
   displayName: 'MergedToolbar',

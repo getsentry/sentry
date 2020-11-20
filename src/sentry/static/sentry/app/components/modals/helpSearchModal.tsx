@@ -1,14 +1,14 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {ClassNames, css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import HelpSearch from 'app/components/helpSearch';
 import Hook from 'app/components/hook';
-import {Organization} from 'app/types';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import theme from 'app/utils/theme';
 
 type Props = ModalRenderProps & {
   organization: Organization;

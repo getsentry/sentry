@@ -2,8 +2,8 @@ import React from 'react';
 
 import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
 
-import {DiffSpanType, SpanGeneratedBoundsType} from './utils';
 import SpanBar from './spanBar';
+import {DiffSpanType, SpanGeneratedBoundsType} from './utils';
 
 type Props = {
   span: Readonly<DiffSpanType>;

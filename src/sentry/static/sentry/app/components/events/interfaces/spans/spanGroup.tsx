@@ -3,9 +3,9 @@ import React from 'react';
 import {Organization, SentryTransactionEvent} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
-import {SpanBoundsType, SpanGeneratedBoundsType, isGapSpan, getSpanID} from './utils';
-import {ProcessedSpanType, ParsedTraceType, TreeDepthType} from './types';
 import SpanBar from './spanBar';
+import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import {getSpanID, isGapSpan, SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 
 type PropType = {
   orgId: string;

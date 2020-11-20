@@ -1,7 +1,7 @@
 import React from 'react';
-import xor from 'lodash/xor';
-import uniq from 'lodash/uniq';
 import intersection from 'lodash/intersection';
+import uniq from 'lodash/uniq';
+import xor from 'lodash/xor';
 
 import BulkNotice from './bulkNotice';
 

@@ -1,13 +1,13 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {selectByValue} from 'sentry-test/select-new';
 
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');

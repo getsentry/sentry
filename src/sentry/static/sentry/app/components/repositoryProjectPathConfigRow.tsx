@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {RepositoryProjectPathConfig, Project} from 'app/types';
-import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete, IconEdit} from 'app/icons';
-import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
 import IdBadge from 'app/components/idBadge';
+import Tooltip from 'app/components/tooltip';
+import {IconDelete, IconEdit} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Project, RepositoryProjectPathConfig} from 'app/types';
 
 type Props = {
   pathConfig: RepositoryProjectPathConfig;

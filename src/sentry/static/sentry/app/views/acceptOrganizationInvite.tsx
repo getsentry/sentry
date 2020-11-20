@@ -1,20 +1,20 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
-import {urlEncode} from '@sentry/utils';
 import React, {MouseEvent} from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import {urlEncode} from '@sentry/utils';
 
 import {logout} from 'app/actionCreators/account';
-import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import NarrowLayout from 'app/components/narrowLayout';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
   orgSlug: string;

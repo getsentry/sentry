@@ -1,14 +1,15 @@
 import React from 'react';
 import omit from 'lodash/omit';
 
-import ExternalLink from 'app/components/links/externalLink';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import Highlight from 'app/components/highlight';
+import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 import {defined} from 'app/utils';
-import Highlight from 'app/components/highlight';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
 
 import {BreadcrumbTypeHTTP} from '../types';
+
 import Summary from './summary';
 
 type Props = {

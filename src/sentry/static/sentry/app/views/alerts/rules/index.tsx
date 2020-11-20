@@ -1,27 +1,28 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import AsyncComponent from 'app/components/asyncComponent';
+import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import Pagination from 'app/components/pagination';
+import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {IconCheckmark, IconArrow} from 'app/icons';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {PanelTable, PanelTableHeader} from 'app/components/panels';
-import AsyncComponent from 'app/components/asyncComponent';
-import ExternalLink from 'app/components/links/externalLink';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Link from 'app/components/links/link';
-import * as Layout from 'app/components/layouts/thirds';
-import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import space from 'app/styles/space';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
+
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {

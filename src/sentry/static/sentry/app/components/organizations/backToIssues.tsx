@@ -1,5 +1,5 @@
-import styled from '@emotion/styled';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 

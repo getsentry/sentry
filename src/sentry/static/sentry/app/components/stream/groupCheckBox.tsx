@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
+import {t} from 'app/locale';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 type Props = {

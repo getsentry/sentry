@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
+import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 
 const EXIT_DELAY = 0;

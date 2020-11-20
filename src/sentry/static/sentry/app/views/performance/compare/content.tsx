@@ -1,19 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Params} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import * as Layout from 'app/components/layouts/thirds';
+import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
-import {Panel} from 'app/components/panels';
-import * as Layout from 'app/components/layouts/thirds';
-import Breadcrumb from 'app/views/performance/breadcrumb';
 import {decodeScalar} from 'app/utils/queryString';
+import Breadcrumb from 'app/views/performance/breadcrumb';
+
+import {FilterViews} from '../landing';
 
 import TraceView from './traceView';
 import TransactionSummary from './transactionSummary';
 import {isTransactionEvent} from './utils';
-import {FilterViews} from '../landing';
 
 type Props = {
   organization: Organization;

@@ -1,19 +1,19 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
+import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import {fetchTotalCount} from 'app/actionCreators/events';
-import OptionSelector from 'app/components/charts/optionSelector';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 

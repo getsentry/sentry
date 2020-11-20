@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {t} from 'app/locale';
 import Alert from 'app/components/alert';
+import {t} from 'app/locale';
 import {EventGroupingConfig, GroupingEnhancementBase, Project} from 'app/types';
 
 export function getGroupingChanges(

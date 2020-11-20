@@ -1,5 +1,5 @@
-import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import {Client} from 'app/api';
+import SentryAppInstallationStore from 'app/stores/sentryAppInstallationsStore';
 import {SentryAppInstallation} from 'app/types';
 
 const fetchSentryAppInstallations = async (api: Client, orgSlug: string) => {

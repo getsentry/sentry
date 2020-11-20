@@ -1,7 +1,7 @@
 import {
-  tokenizeSearch,
-  stringifyQueryObject,
   QueryResults,
+  stringifyQueryObject,
+  tokenizeSearch,
   TokenType,
 } from 'app/utils/tokenizeSearch';
 

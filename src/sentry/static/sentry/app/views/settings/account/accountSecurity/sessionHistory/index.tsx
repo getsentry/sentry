@@ -1,15 +1,15 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import recreateRoute from 'app/utils/recreateRoute';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
 import {InternetProtocol} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
 import {tableLayout} from './utils';

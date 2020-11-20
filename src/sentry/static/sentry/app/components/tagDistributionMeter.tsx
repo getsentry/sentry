@@ -1,17 +1,17 @@
 import React from 'react';
 import {Link} from 'react-router';
+import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
-import isPropValid from '@emotion/is-prop-valid';
 
 import {TagSegment} from 'app/actionCreators/events';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {percent} from 'app/utils';
 import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {percent} from 'app/utils';
 
 type DefaultProps = {
   isLoading: boolean;

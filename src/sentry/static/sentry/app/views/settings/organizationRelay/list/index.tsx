@@ -2,12 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {Relay, RelayActivity} from 'app/types';
 import space from 'app/styles/space';
+import {Relay, RelayActivity} from 'app/types';
 
-import {getRelaysByPublicKey} from './utils';
-import CardHeader from './cardHeader';
 import ActivityList from './activityList';
+import CardHeader from './cardHeader';
+import {getRelaysByPublicKey} from './utils';
 import WaitingActivity from './waitingActivity';
 
 type CardHeaderProps = React.ComponentProps<typeof CardHeader>;

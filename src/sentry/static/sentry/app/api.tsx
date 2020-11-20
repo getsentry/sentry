@@ -1,18 +1,18 @@
-import isUndefined from 'lodash/isUndefined';
-import isNil from 'lodash/isNil';
-import $ from 'jquery';
 import {Severity} from '@sentry/react';
+import $ from 'jquery';
+import isNil from 'lodash/isNil';
+import isUndefined from 'lodash/isUndefined';
 
+import {openSudo, redirectToProject} from 'app/actionCreators/modal';
+import GroupActions from 'app/actions/groupActions';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'app/constants/apiErrorCodes';
-import {run} from 'app/utils/apiSentryClient';
 import {metric} from 'app/utils/analytics';
-import {openSudo, redirectToProject} from 'app/actionCreators/modal';
+import {run} from 'app/utils/apiSentryClient';
 import {uniqueId} from 'app/utils/guid';
-import GroupActions from 'app/actions/groupActions';
 import createRequestError from 'app/utils/requestError/createRequestError';
 
 export class Request {

@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
+import NoteInput from 'app/components/activity/note/input';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
-import NoteInput from 'app/components/activity/note/input';
 import ProjectsStore from 'app/stores/projectsStore';
+import {GroupActivity} from 'app/views/organizationGroupDetails/groupActivity';
 
 describe('GroupActivity', function () {
   const project = TestStubs.Project();

@@ -1,14 +1,14 @@
-import {withRouter, WithRouterProps} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import * as Sentry from '@sentry/react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
-import {t, tct} from 'app/locale';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 type Props = WithRouterProps & {
   error: Error | undefined;

@@ -1,28 +1,28 @@
 import React from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
 import DocumentTitle from 'react-document-title';
+import {browserHistory, WithRouterProps} from 'react-router';
 
-import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
-import {t} from 'app/locale';
-import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
+import {updateDateTime, updateProjects} from 'app/actionCreators/globalSelection';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
+import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
+import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import Redirect from 'app/utils/redirect';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
-import {
-  getQueryFromQueryString,
-  fetchSavedQuery,
-  parseSavedQuery,
-  getView,
-} from './utils';
 import {DiscoverWrapper} from './styles';
 import {SavedQuery} from './types';
+import {
+  fetchSavedQuery,
+  getQueryFromQueryString,
+  getView,
+  parseSavedQuery,
+} from './utils';
 
 type Props = {
   organization: Organization;

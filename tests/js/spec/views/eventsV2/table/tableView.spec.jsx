@@ -1,8 +1,8 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import EventView from 'app/utils/discover/eventView';
 import TableView from 'app/views/eventsV2/table/tableView';

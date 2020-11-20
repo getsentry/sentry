@@ -1,24 +1,24 @@
 import React from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
-import ProjectTable from 'app/views/organizationStats/projectTable';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import PageHeading from 'app/components/pageHeading';
-import {
-  ProjectTableLayout,
-  ProjectTableDataElement,
-} from 'app/views/organizationStats/projectTableLayout';
-import MiniBarChart from 'app/components/charts/miniBarChart';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
+import {Organization, Project} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {Project, Organization} from 'app/types';
+import PerformanceAlert from 'app/views/organizationStats/performanceAlert';
+import ProjectTable from 'app/views/organizationStats/projectTable';
+import {
+  ProjectTableDataElement,
+  ProjectTableLayout,
+} from 'app/views/organizationStats/projectTableLayout';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
-import {ProjectTotal, OrgTotal} from './types';
+import {OrgTotal, ProjectTotal} from './types';
 
 type Props = {
   organization: Organization;

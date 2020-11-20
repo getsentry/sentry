@@ -1,18 +1,18 @@
-import isNil from 'lodash/isNil';
+import React from 'react';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
+import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 import PropTypes from 'prop-types';
-import React from 'react';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
-import space from 'app/styles/space';
-import Pills from 'app/components/pills';
-import Pill from 'app/components/pill';
-import ExternalLink from 'app/components/links/externalLink';
 import Hovercard from 'app/components/hovercard';
-import {t} from 'app/locale';
+import ExternalLink from 'app/components/links/externalLink';
+import Pill from 'app/components/pill';
+import Pills from 'app/components/pills';
 import {IconInfo, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {isUrl} from 'app/utils';
 
 class ExceptionMechanism extends React.Component {

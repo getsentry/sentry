@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {
-  Project,
-  Organization,
   Integration,
+  Organization,
+  Project,
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 type Props = {

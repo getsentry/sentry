@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import ReleaseActions from 'app/actions/releaseActions';
 import OrganizationActions from 'app/actions/organizationActions';
+import ReleaseActions from 'app/actions/releaseActions';
 import {Deploy, Organization, Release} from 'app/types';
 
 type StoreRelease = Map<string, Release>;

@@ -1,46 +1,46 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import moment from 'moment';
 
+import {updateDateTime, updateProjects} from 'app/actionCreators/globalSelection';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {getUtcDateString} from 'app/utils/dates';
-import {t, tct} from 'app/locale';
-import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
-import ConfigStore from 'app/stores/configStore';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import PageHeading from 'app/components/pageHeading';
+import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getUtcDateString} from 'app/utils/dates';
 import localStorage from 'app/utils/localStorage';
 
-import {
-  DiscoverContainer,
-  DiscoverGlobalSelectionHeader,
-  Body,
-  BodyContent,
-  HeadingContainer,
-  Sidebar,
-  SidebarTabs,
-  SavedQueryWrapper,
-} from './styles';
-import {
-  getQueryStringFromQuery,
-  getQueryFromQueryString,
-  deleteSavedQuery,
-  updateSavedQuery,
-  queryHasChanged,
-} from './utils';
 import {isValidAggregation} from './aggregations/utils';
 import {isValidCondition} from './conditions/utils';
-import {trackQuery} from './analytics';
+import ResultLoading from './result/loading';
 import EditSavedQuery from './sidebar/editSavedQuery';
-import Intro from './intro';
 import NewQuery from './sidebar/newQuery';
 import QueryPanel from './sidebar/queryPanel';
-import Result from './result';
-import ResultLoading from './result/loading';
 import SavedQueryList from './sidebar/savedQueryList';
+import {trackQuery} from './analytics';
+import Intro from './intro';
+import Result from './result';
 import createResultManager from './resultManager';
+import {
+  Body,
+  BodyContent,
+  DiscoverContainer,
+  DiscoverGlobalSelectionHeader,
+  HeadingContainer,
+  SavedQueryWrapper,
+  Sidebar,
+  SidebarTabs,
+} from './styles';
 import {SavedQuery} from './types';
+import {
+  deleteSavedQuery,
+  getQueryFromQueryString,
+  getQueryStringFromQuery,
+  queryHasChanged,
+  updateSavedQuery,
+} from './utils';
 
 type DefaultProps = {
   utc: boolean | null;

@@ -1,26 +1,26 @@
-import {browserHistory, WithRouterProps} from 'react-router';
 import React from 'react';
+import {browserHistory, WithRouterProps} from 'react-router';
 
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ErrorBoundary from 'app/components/errorBoundary';
-import Field from 'app/views/settings/components/forms/field';
-import {IconFlag} from 'app/icons';
-import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import MiniBarChart from 'app/components/charts/miniBarChart';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import getDynamicText from 'app/utils/getDynamicText';
+import ErrorBoundary from 'app/components/errorBoundary';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 import {ServiceHook} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import ServiceHookSettingsForm from 'app/views/settings/project/serviceHookSettingsForm';
 
 type Params = {orgId: string; projectId: string; hookId: string};
 

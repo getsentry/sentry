@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import {defined} from 'app/utils';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
+import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 import formatMemory from './formatMemory';
 import formatStorage from './formatStorage';
-import {DeviceKnownDataType, DeviceData} from './types';
+import {DeviceData, DeviceKnownDataType} from './types';
 
 type Output = {
   subject: string;

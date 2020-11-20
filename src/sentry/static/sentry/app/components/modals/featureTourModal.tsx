@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {openModal, ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
 import {IconClose} from 'app/icons';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 export type TourStep = {
   title: string;

@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {inputStyles} from 'app/styles/input';
-import {selectText} from 'app/utils/selectText';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import {IconCopy} from 'app/icons';
+import {inputStyles} from 'app/styles/input';
+import {selectText} from 'app/utils/selectText';
 
 const Wrapper = styled('div')`
   display: flex;

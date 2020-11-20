@@ -3,8 +3,8 @@ import {EChartOption} from 'echarts';
 
 import {Series} from 'app/types/echarts';
 
-import BaseChart from './baseChart';
 import LineSeries from './series/lineSeries';
+import BaseChart from './baseChart';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 

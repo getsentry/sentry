@@ -1,18 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
 import DateTime from 'app/components/dateTime';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 /**
  * List u2f devices w/ ability to remove a single device

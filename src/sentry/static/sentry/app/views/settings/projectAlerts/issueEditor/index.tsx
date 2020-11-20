@@ -1,12 +1,28 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
-import classNames from 'classnames';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import omit from 'lodash/omit';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import LoadingMask from 'app/components/loadingMask';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {Environment, Organization, Project, OnboardingTaskKey} from 'app/types';
+import {IconChevron, IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Environment, OnboardingTaskKey, Organization, Project} from 'app/types';
 import {
   IssueAlertRule,
   IssueAlertRuleAction,
@@ -14,31 +30,15 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
-import {IconWarning, IconChevron} from 'app/icons';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Input from 'app/views/settings/components/forms/controls/input';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
-import {t, tct} from 'app/locale';
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Form from 'app/views/settings/components/forms/form';
-import LoadingMask from 'app/components/loadingMask';
-import SelectField from 'app/views/settings/components/forms/selectField';
 import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import AsyncView from 'app/views/asyncView';
+import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
+import Form from 'app/views/settings/components/forms/form';
+import SelectField from 'app/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
 

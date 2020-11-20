@@ -1,23 +1,23 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryTransactionEvent} from 'app/types';
-import {
-  TreeDepthType,
-  OrphanTreeDepth,
-} from 'app/components/events/interfaces/spans/types';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
-
 import {
-  diffTransactions,
-  DiffSpanType,
-  SpanChildrenLookupType,
-  getSpanID,
-  boundsGenerator,
-  SpanGeneratedBoundsType,
-  isOrphanDiffSpan,
-} from './utils';
+  OrphanTreeDepth,
+  TreeDepthType,
+} from 'app/components/events/interfaces/spans/types';
+import {SentryTransactionEvent} from 'app/types';
+
 import SpanGroup from './spanGroup';
+import {
+  boundsGenerator,
+  DiffSpanType,
+  diffTransactions,
+  getSpanID,
+  isOrphanDiffSpan,
+  SpanChildrenLookupType,
+  SpanGeneratedBoundsType,
+} from './utils';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;

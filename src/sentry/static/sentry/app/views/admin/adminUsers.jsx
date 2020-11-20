@@ -2,9 +2,9 @@
 import React from 'react';
 import moment from 'moment';
 
-import {t} from 'app/locale';
 import Link from 'app/components/links/link';
 import ResultGrid from 'app/components/resultGrid';
+import {t} from 'app/locale';
 
 export const prettyDate = function (x) {
   return moment(x).format('ll');

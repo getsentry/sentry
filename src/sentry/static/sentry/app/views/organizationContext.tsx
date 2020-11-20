@@ -1,33 +1,33 @@
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
+import DocumentTitle from 'react-document-title';
 import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
-import {Organization} from 'app/types';
-import {fetchOrganizationDetails} from 'app/actionCreators/organization';
-import {metric} from 'app/utils/analytics';
 import {openSudo} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {fetchOrganizationDetails} from 'app/actionCreators/organization';
+import ProjectActions from 'app/actions/projectActions';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import ConfigStore from 'app/stores/configStore';
-import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationStore from 'app/stores/organizationStore';
-import ProjectActions from 'app/actions/projectActions';
-import SentryTypes from 'app/sentryTypes';
 import Sidebar from 'app/components/sidebar';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import {ORGANIZATION_FETCH_ERROR_TYPES} from 'app/constants';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
+import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {metric} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import RequestError from 'app/utils/requestError/requestError';
 import withApi from 'app/utils/withApi';
 import withOrganizations from 'app/utils/withOrganizations';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import RequestError from 'app/utils/requestError/requestError';
 
 const defaultProps = {
   detailed: true,

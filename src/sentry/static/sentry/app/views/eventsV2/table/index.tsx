@@ -1,17 +1,17 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {Client} from 'app/api';
+import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import {Organization, TagCollection} from 'app/types';
 import {metric} from 'app/utils/analytics';
+import {TableData} from 'app/utils/discover/discoverQuery';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-import Measurements from 'app/utils/measurements/measurements';
-import Pagination from 'app/components/pagination';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
-import {TableData} from 'app/utils/discover/discoverQuery';
 
 import TableView from './tableView';
 

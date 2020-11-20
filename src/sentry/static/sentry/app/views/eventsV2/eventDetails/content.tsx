@@ -1,40 +1,41 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import PropTypes from 'prop-types';
 
-import {BorderlessEventEntries} from 'app/components/events/eventEntries';
-import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getMessage, getTitle} from 'app/utils/events';
-import {Organization, Event, EventTag} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
-import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
-import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import NotFound from 'app/components/errors/notFound';
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import EventMetadata from 'app/components/events/eventMetadata';
+import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import RealUserMonitoring from 'app/components/events/realUserMonitoring';
-import EventMetadata from 'app/components/events/eventMetadata';
-import LoadingError from 'app/components/loadingError';
-import NotFound from 'app/components/errors/notFound';
-import TagsTable from 'app/components/tagsTable';
-import AsyncComponent from 'app/components/asyncComponent';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Projects from 'app/utils/projects';
-import EventView from 'app/utils/discover/eventView';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {eventDetailsRoute} from 'app/utils/discover/urls';
+import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import * as Layout from 'app/components/layouts/thirds';
-import ButtonBar from 'app/components/buttonBar';
-import {FIELD_TAGS} from 'app/utils/discover/fields';
+import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import TagsTable from 'app/components/tagsTable';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
+import {Event, EventTag, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {FIELD_TAGS} from 'app/utils/discover/fields';
+import {eventDetailsRoute} from 'app/utils/discover/urls';
+import {getMessage, getTitle} from 'app/utils/events';
+import Projects from 'app/utils/projects';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
-import {generateTitle, getExpandedResults} from '../utils';
-import LinkedIssue from './linkedIssue';
 import DiscoverBreadcrumb from '../breadcrumb';
+import {generateTitle, getExpandedResults} from '../utils';
+
+import LinkedIssue from './linkedIssue';
 
 const slugValidator = function (
   props: {[key: string]: any},

@@ -1,19 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import MemberListStore from 'app/stores/memberListStore';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import {IconAdd, IconChevron} from 'app/icons';
+import {t} from 'app/locale';
+import MemberListStore from 'app/stores/memberListStore';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import Input from 'app/views/settings/components/forms/controls/input';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import SelectOwners, {
   Owner,
 } from 'app/views/settings/project/projectOwnership/selectOwners';
-import space from 'app/styles/space';
-import {Project, Organization} from 'app/types';
 
 const initialState = {
   text: '',

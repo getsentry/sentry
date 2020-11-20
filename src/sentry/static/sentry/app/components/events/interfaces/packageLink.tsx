@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 import Tooltip from 'app/components/tooltip';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
-import {trimPackage} from 'app/components/events/interfaces/frame/utils';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type Props = {
   onClick: (event: React.MouseEvent<HTMLAnchorElement>) => void;

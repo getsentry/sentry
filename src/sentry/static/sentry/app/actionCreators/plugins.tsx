@@ -1,11 +1,11 @@
-import {Client, RequestOptions} from 'app/api';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import PluginActions from 'app/actions/pluginActions';
+import {Client, RequestOptions} from 'app/api';
+import {t} from 'app/locale';
 import {Plugin} from 'app/types';
 
 const activeFetch = {};

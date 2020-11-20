@@ -1,21 +1,21 @@
 import React from 'react';
 import moment from 'moment';
 
-import getDynamicText from 'app/utils/getDynamicText';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 
-import {fetchSavedQueries} from '../utils';
 import {
   Fieldset,
   LoadingContainer,
+  SavedQueryLink,
   SavedQueryList,
   SavedQueryListItem,
-  SavedQueryLink,
   SavedQueryUpdated,
 } from '../styles';
 import {SavedQuery} from '../types';
+import {fetchSavedQueries} from '../utils';
 
 type SavedQueriesProps = {
   organization: Organization;

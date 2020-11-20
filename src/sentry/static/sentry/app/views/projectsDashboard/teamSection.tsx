@@ -1,14 +1,14 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Team, Project, Scope} from 'app/types';
+import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import PageHeading from 'app/components/pageHeading';
+import {Project, Scope, Team} from 'app/types';
 
-import TeamMembers from './teamMembers';
 import ProjectCard from './projectCard';
+import TeamMembers from './teamMembers';
 
 type Props = {
   team: Team;

@@ -1,11 +1,11 @@
 import React from 'react';
 
+import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
-import Access from 'app/components/acl/access';
 
 import RelayWrapper from './relayWrapper';
 

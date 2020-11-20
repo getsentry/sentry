@@ -1,11 +1,26 @@
 import React from 'react';
 import {Location} from 'history';
 
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 
+import {
+  Body,
+  Grid,
+  GridBody,
+  GridBodyCell,
+  GridBodyCellStatus,
+  GridHead,
+  GridHeadCell,
+  GridHeadCellStatic,
+  GridResizer,
+  GridRow,
+  Header,
+  HeaderButtonContainer,
+  HeaderTitle,
+} from './styles';
 import {
   GridColumn,
   GridColumnHeader,
@@ -13,21 +28,6 @@ import {
   GridColumnSortBy,
   ObjectKey,
 } from './types';
-import {
-  Header,
-  HeaderTitle,
-  HeaderButtonContainer,
-  Body,
-  Grid,
-  GridRow,
-  GridHead,
-  GridHeadCell,
-  GridHeadCellStatic,
-  GridBody,
-  GridBodyCell,
-  GridBodyCellStatus,
-  GridResizer,
-} from './styles';
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {

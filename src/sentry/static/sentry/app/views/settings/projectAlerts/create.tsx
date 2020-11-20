@@ -1,19 +1,19 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {Organization, Project} from 'app/types';
-import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {uniqueId} from 'app/utils/guid';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {uniqueId} from 'app/utils/guid';
+import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import PageHeading from 'app/components/pageHeading';
 
 import AlertTypeChooser from './alertTypeChooser';
 

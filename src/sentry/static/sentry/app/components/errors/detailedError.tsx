@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import * as Sentry from '@sentry/react';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {IconFlag} from 'app/icons';
 import Button from 'app/components/button';
+import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 
 type DefaultProps = {
   /**

@@ -1,11 +1,11 @@
-import {observable, computed, action, ObservableMap} from 'mobx';
 import isEqual from 'lodash/isEqual';
+import {action, computed, observable, ObservableMap} from 'mobx';
 
-import {Client, APIRequestMethod} from 'app/api';
 import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
-import {defined} from 'app/utils';
-import {t} from 'app/locale';
+import {APIRequestMethod, Client} from 'app/api';
 import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;

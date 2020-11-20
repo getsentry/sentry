@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {IconReturn} from 'app/icons/iconReturn';
 import Tooltip from 'app/components/tooltip';
+import {IconReturn} from 'app/icons/iconReturn';
+import {t} from 'app/locale';
 
 const SubmitButton = styled('div')`
   background: transparent;

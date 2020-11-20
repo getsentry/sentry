@@ -1,4 +1,4 @@
-import {StacktraceType, RawStacktrace} from './stacktrace';
+import {RawStacktrace, StacktraceType} from './stacktrace';
 
 export interface Thread {
   id: number;

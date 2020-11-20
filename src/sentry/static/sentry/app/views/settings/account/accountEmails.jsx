@@ -1,21 +1,21 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Tag from 'app/components/tagDeprecated';
+import accountEmailsFields from 'app/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Tag from 'app/components/tagDeprecated';
-import accountEmailsFields from 'app/data/forms/accountEmails';
-import space from 'app/styles/space';
-import ButtonBar from 'app/components/buttonBar';
 
 const ENDPOINT = '/users/me/emails/';
 

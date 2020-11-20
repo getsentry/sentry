@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
 
 type Data = {
   mailHost: string;

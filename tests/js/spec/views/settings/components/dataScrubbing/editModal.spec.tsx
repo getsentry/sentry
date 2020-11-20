@@ -3,17 +3,17 @@ import sortBy from 'lodash/sortBy';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GlobalModal from 'app/components/globalModal';
 import {openModal} from 'app/actionCreators/modal';
-import Edit from 'app/views/settings/components/dataScrubbing/modals/edit';
+import GlobalModal from 'app/components/globalModal';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import Edit from 'app/views/settings/components/dataScrubbing/modals/edit';
+import submitRules from 'app/views/settings/components/dataScrubbing/submitRules';
 import {MethodType, RuleType} from 'app/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
   valueSuggestions,
 } from 'app/views/settings/components/dataScrubbing/utils';
-import submitRules from 'app/views/settings/components/dataScrubbing/submitRules';
 
 // @ts-expect-error
 const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();

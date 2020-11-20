@@ -1,12 +1,13 @@
 import React from 'react';
 import omit from 'lodash/omit';
 
-import {getMeta} from 'app/components/events/meta/metaProxy';
-import {defined} from 'app/utils';
-import Highlight from 'app/components/highlight';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import Highlight from 'app/components/highlight';
+import {defined} from 'app/utils';
 
 import {BreadcrumbTypeDefault} from '../types';
+
 import Summary from './summary';
 
 type Props = {

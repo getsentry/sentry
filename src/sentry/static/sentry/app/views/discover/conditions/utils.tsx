@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import {Column, Condition} from '../types';
 import {CONDITION_OPERATORS} from '../data';
+import {Column, Condition} from '../types';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
 

@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
+import {IconFilter} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Frame} from 'app/types';
 import {defined} from 'app/utils';
-import {t} from 'app/locale';
-import {IconFilter} from 'app/icons';
 
 import FunctionName from './functionName';
 import {getFrameHint} from './utils';

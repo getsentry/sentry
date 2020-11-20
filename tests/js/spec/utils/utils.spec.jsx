@@ -1,12 +1,12 @@
 import {
-  valueIsEqual,
+  deepFreeze,
+  descopeFeatureName,
+  escapeDoubleQuotes,
+  explodeSlug,
   extractMultilineFields,
   parseRepo,
-  explodeSlug,
   sortProjects,
-  descopeFeatureName,
-  deepFreeze,
-  escapeDoubleQuotes,
+  valueIsEqual,
 } from 'app/utils';
 
 describe('utils.valueIsEqual', function () {

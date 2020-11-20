@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import Well from 'app/components/well';
 import {AVATAR_URL_MAP} from 'app/constants';
 import {t, tct} from 'app/locale';
-import Well from 'app/components/well';
 import {AvatarUser} from 'app/types';
 
 const resizerPositions = {

@@ -2,22 +2,22 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import CircleIndicator from 'app/components/circleIndicator';
+import Tag from 'app/components/tagDeprecated';
+import {IconFlag} from 'app/icons';
+import {t, tct} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import marked, {singleLineRenderer} from 'app/utils/marked';
-import {IconFlag} from 'app/icons';
-import Tag from 'app/components/tagDeprecated';
+import {IntegrationFeature, Organization, SentryApp} from 'app/types';
 import {toPermissions} from 'app/utils/consolidatedScopes';
-import CircleIndicator from 'app/components/circleIndicator';
-import {IntegrationFeature, SentryApp, Organization} from 'app/types';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
-  trackIntegrationEvent,
   getIntegrationFeatureGate,
+  trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
+import marked, {singleLineRenderer} from 'app/utils/marked';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 
 type Props = {
   closeModal: () => void;

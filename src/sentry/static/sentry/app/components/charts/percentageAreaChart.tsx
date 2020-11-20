@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
 import {EChartOption} from 'echarts';
+import moment from 'moment';
+import PropTypes from 'prop-types';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 

@@ -1,23 +1,23 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {Client} from 'app/api';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import ExternalLink from 'app/components/links/externalLink';
-import Button from 'app/components/button';
-import {Organization, Project} from 'app/types';
 import {openModal} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 
-import Edit from './modals/edit';
 import Add from './modals/add';
-import OrganizationRules from './organizationRules';
-import {Rule, ProjectId} from './types';
-import convertRelayPiiConfig from './convertRelayPiiConfig';
-import submitRules from './submitRules';
+import Edit from './modals/edit';
 import Content from './content';
+import convertRelayPiiConfig from './convertRelayPiiConfig';
+import OrganizationRules from './organizationRules';
+import submitRules from './submitRules';
+import {ProjectId, Rule} from './types';
 
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/data-management/advanced-datascrubbing/';

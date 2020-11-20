@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import {IconSentry} from 'app/icons';
 import Placeholder from 'app/components/placeholder';
+import {IconSentry} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
+import {AvatarUser} from 'app/types';
 
 type Props = {
   type: 'system' | 'user';

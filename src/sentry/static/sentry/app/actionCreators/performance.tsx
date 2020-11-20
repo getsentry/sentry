@@ -1,6 +1,6 @@
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 
 export function toggleKeyTransaction(
   api: Client,

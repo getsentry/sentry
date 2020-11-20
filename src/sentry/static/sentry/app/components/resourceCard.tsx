@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
+import {analytics} from 'app/utils/analytics';
 
 type Props = {
   title: string;

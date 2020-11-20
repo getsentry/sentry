@@ -1,24 +1,24 @@
-import {browserHistory} from 'react-router';
-import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import {Panel} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import AsyncComponent from 'app/components/asyncComponent';
-import AsyncView from 'app/views/asyncView';
 import Feature from 'app/components/acl/feature';
+import AsyncComponent from 'app/components/asyncComponent';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
+import {Panel} from 'app/components/panels';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withOrganization from 'app/utils/withOrganization';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import AsyncView from 'app/views/asyncView';
 
-import EventsTable from './eventsTable';
 import Chart from './chart';
+import EventsTable from './eventsTable';
 
 const parseRowFromLinks = (links, numRows) => {
   links = parseLinkHeader(links);

@@ -1,18 +1,18 @@
 import React from 'react';
 
+import {experimentConfig, unassignedValue} from 'app/data/experimentConfig';
 import ConfigStore from 'app/stores/configStore';
 import {Organization} from 'app/types';
-import {experimentConfig, unassignedValue} from 'app/data/experimentConfig';
-import getDisplayName from 'app/utils/getDisplayName';
-import {logExperiment} from 'app/utils/analytics';
 import {
-  Experiments,
-  ExperimentKey,
   ExperimentAssignment,
+  ExperimentKey,
+  Experiments,
   ExperimentType,
   OrgExperiments,
   UserExperiments,
 } from 'app/types/experiments';
+import {logExperiment} from 'app/utils/analytics';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type Options<E extends ExperimentKey, L extends boolean> = {
   /**

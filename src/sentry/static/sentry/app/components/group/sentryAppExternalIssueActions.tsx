@@ -1,28 +1,28 @@
 import React, {ReactElement} from 'react';
-import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
 import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
-import {IconAdd, IconClose} from 'app/icons';
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import {IntegrationLink} from 'app/components/issueSyncListElement';
-import {SentryAppIcon} from 'app/components/sentryAppIcon';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
+import {IntegrationLink} from 'app/components/issueSyncListElement';
 import NavTabs from 'app/components/navTabs';
+import {SentryAppIcon} from 'app/components/sentryAppIcon';
+import {IconAdd, IconClose} from 'app/icons';
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {deleteExternalIssue} from 'app/actionCreators/platformExternalIssues';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import {
+  Event,
   Group,
   PlatformExternalIssue,
-  Event,
   SentryAppComponent,
   SentryAppInstallation,
 } from 'app/types';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;

@@ -1,13 +1,13 @@
-import isObject from 'lodash/isObject';
-import forEach from 'lodash/forEach';
-import set from 'lodash/set';
 import React from 'react';
+import forEach from 'lodash/forEach';
+import isObject from 'lodash/isObject';
+import set from 'lodash/set';
 
-import {t} from 'app/locale';
 import {openDebugFileSourceModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
+import {t} from 'app/locale';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 // Export route to make these forms searchable by label/help

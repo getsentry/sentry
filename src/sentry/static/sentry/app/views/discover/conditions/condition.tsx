@@ -1,15 +1,16 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Value} from 'react-select-legacy';
+import styled from '@emotion/styled';
 
+import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import SelectControl from 'app/components/forms/selectControl';
 
-import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
-import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
+import {ARRAY_FIELD_PREFIXES, CONDITION_OPERATORS} from '../data';
 import {PlaceholderText} from '../styles';
-import {DiscoverBaseProps, Condition, ReactSelectOption} from '../types';
+import {Condition, DiscoverBaseProps, ReactSelectOption} from '../types';
+
+import {getExternal, getInternal, ignoreCase, isValidCondition} from './utils';
 
 type ConditionProps = DiscoverBaseProps & {
   value: Condition;

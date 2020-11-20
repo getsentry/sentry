@@ -1,22 +1,22 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import {Config, Organization, Project} from 'app/types';
 import {fetchOrgMembers} from 'app/actionCreators/members';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import CircleIndicator from 'app/components/circleIndicator';
-import Field from 'app/views/settings/components/forms/field';
-import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Config, Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
-import space from 'app/styles/space';
+import Field from 'app/views/settings/components/forms/field';
+import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
 
 import {
   AlertRuleThresholdType,
+  ThresholdControlValue,
   Trigger,
   UnsavedIncidentRule,
-  ThresholdControlValue,
   UnsavedTrigger,
 } from '../types';
 

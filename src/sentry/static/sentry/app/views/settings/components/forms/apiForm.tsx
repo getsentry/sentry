@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {Client} from 'app/api';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 

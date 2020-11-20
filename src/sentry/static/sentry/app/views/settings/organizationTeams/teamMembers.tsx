@@ -1,34 +1,34 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import debounce from 'lodash/debounce';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import {Panel, PanelItem, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
+import {Client} from 'app/api';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import {Item} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IdBadge from 'app/components/idBadge';
-import {IconSubtract, IconUser} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
+import {IconSubtract, IconUser} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {Config, Member, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {Config, Member, Organization} from 'app/types';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type RouteParams = {
   orgId: string;

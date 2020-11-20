@@ -2,10 +2,10 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DataScrubbing from 'app/views/settings/components/dataScrubbing';
-import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
+import DataScrubbing from 'app/views/settings/components/dataScrubbing';
+import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
 
 jest.mock('app/actionCreators/modal');
 

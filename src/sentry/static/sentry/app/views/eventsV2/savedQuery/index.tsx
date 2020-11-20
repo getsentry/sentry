@@ -1,29 +1,29 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {Organization, SavedQuery, Project} from 'app/types';
-import withApi from 'app/utils/withApi';
-import Button from 'app/components/button';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import Hovercard from 'app/components/hovercard';
-import Input from 'app/components/forms/input';
-import space from 'app/styles/space';
-import {IconDelete} from 'app/icons';
-import EventView from 'app/utils/discover/eventView';
-import withProjects from 'app/utils/withProjects';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import Button from 'app/components/button';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import DropdownButton from 'app/components/dropdownButton';
+import DropdownControl from 'app/components/dropdownControl';
+import Input from 'app/components/forms/input';
+import Hovercard from 'app/components/hovercard';
+import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project, SavedQuery} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
+import withApi from 'app/utils/withApi';
+import withProjects from 'app/utils/withProjects';
 import {setBannerHidden} from 'app/views/eventsV2/utils';
 
-import {handleCreateQuery, handleUpdateQuery, handleDeleteQuery} from './utils';
+import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
 type DefaultProps = {
   disabled: boolean;

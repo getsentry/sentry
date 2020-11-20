@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
+import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {Event, Frame, PlatformType} from 'app/types';
 import {StacktraceType} from 'app/types/stacktrace';
-import {PlatformType, Event, Frame} from 'app/types';
 
 const defaultProps = {
   includeSystemFrames: true,

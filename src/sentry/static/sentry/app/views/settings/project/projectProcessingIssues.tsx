@@ -1,28 +1,28 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import {IconQuestion, IconSettings} from 'app/icons';
-import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t, tn} from 'app/locale';
+import {Client} from 'app/api';
 import Access from 'app/components/acl/access';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
+import {IconQuestion, IconSettings} from 'app/icons';
+import {t, tn} from 'app/locale';
+import {Organization, ProcessingIssue, ProcessingIssueItem} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {Client} from 'app/api';
-import {Organization, ProcessingIssue, ProcessingIssueItem} from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),

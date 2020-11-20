@@ -1,6 +1,6 @@
+import GuideActions from 'app/actions/guideActions';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
-import GuideActions from 'app/actions/guideActions';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 const api = new Client();

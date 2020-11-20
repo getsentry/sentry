@@ -2,12 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
 
-import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
-import {t, tct, tn} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
 import platforms from 'app/data/platforms';
-import slugify from 'app/utils/slugify';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
+import getDynamicText from 'app/utils/getDynamicText';
+import slugify from 'app/utils/slugify';
 import {Field} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help

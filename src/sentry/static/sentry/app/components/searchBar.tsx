@@ -2,11 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {t} from 'app/locale';
-import {IconClose} from 'app/icons/iconClose';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import Button from 'app/components/button';
 import {IconSearch} from 'app/icons';
+import {IconClose} from 'app/icons/iconClose';
+import {t} from 'app/locale';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type DefaultProps = {
   query: string;

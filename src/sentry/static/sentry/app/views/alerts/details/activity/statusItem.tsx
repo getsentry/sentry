@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
 import ActivityItem from 'app/components/activity/item';
+import {t, tct} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
 
 import {
+  ActivityType,
   Incident,
   IncidentActivityType,
   IncidentStatus,
-  ActivityType,
   IncidentStatusMethod,
 } from '../../types';
 

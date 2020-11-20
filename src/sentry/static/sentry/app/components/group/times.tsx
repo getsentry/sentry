@@ -2,11 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {IconClock} from 'app/icons';
-import space from 'app/styles/space';
 import TimeSince from 'app/components/timeSince';
+import {IconClock} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 /**
  * Renders the first & last seen times for a group or event with

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {Organization} from 'app/types';
 import Feature from 'app/components/acl/feature';
+import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import DashboardsV1 from 'app/views/dashboards';
 

@@ -1,12 +1,12 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {Client} from 'app/api';
-import {Repository} from 'app/types';
-import RepositoryActions from 'app/actions/repositoryActions';
 import {getRepositories} from 'app/actionCreators/repositories';
+import RepositoryActions from 'app/actions/repositoryActions';
+import {Client} from 'app/api';
 import RepositoryStore from 'app/stores/repositoryStore';
+import {Repository} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type DependentProps = {

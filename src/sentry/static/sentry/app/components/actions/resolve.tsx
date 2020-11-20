@@ -1,16 +1,15 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {IconCheckmark} from 'app/icons';
-import CustomResolutionModal from 'app/components/customResolutionModal';
-import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
 import ActionLink from 'app/components/actions/actionLink';
+import CustomResolutionModal from 'app/components/customResolutionModal';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
-import {formatVersion} from 'app/utils/formatters';
+import {IconCheckmark} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
   Release,
@@ -18,6 +17,7 @@ import {
   ResolutionStatusDetails,
   UpdateResolutionStatus,
 } from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
 
 const defaultProps = {
   isResolved: false,

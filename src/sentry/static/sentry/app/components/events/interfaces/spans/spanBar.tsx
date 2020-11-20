@@ -1,50 +1,51 @@
-import React from 'react';
-import styled from '@emotion/styled';
 import 'intersection-observer'; // this is a polyfill
 
-import {Organization, SentryTransactionEvent} from 'app/types';
-import {t} from 'app/locale';
-import {defined, OmitHtmlDivProps} from 'app/utils';
-import space from 'app/styles/space';
+import React from 'react';
+import styled from '@emotion/styled';
+
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {IconChevron, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, SentryTransactionEvent} from 'app/types';
+import {defined, OmitHtmlDivProps} from 'app/utils';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import globalTheme from 'app/utils/theme';
 
-import {
-  toPercent,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  SpanViewBoundsType,
-  getHumanDuration,
-  getSpanID,
-  getSpanOperation,
-  isOrphanSpan,
-  unwrapTreeDepth,
-  isOrphanTreeDepth,
-  isEventFromBrowserJavaScriptSDK,
-  durationlessBrowserOps,
-  getMeasurements,
-  getMeasurementBounds,
-} from './utils';
-import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
+import * as MeasurementsManager from './measurementsManager';
+import SpanDetail from './spanDetail';
 import {
+  getHatchPattern,
   SPAN_ROW_HEIGHT,
   SPAN_ROW_PADDING,
   SpanRow,
   zIndex,
-  getHatchPattern,
 } from './styles';
-import * as DividerHandlerManager from './dividerHandlerManager';
-import * as CursorGuideHandler from './cursorGuideHandler';
-import * as MeasurementsManager from './measurementsManager';
-import SpanDetail from './spanDetail';
+import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import {
+  durationlessBrowserOps,
+  getHumanDuration,
+  getMeasurementBounds,
+  getMeasurements,
+  getSpanID,
+  getSpanOperation,
+  isEventFromBrowserJavaScriptSDK,
+  isOrphanSpan,
+  isOrphanTreeDepth,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  SpanViewBoundsType,
+  toPercent,
+  unwrapTreeDepth,
+} from './utils';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {

@@ -2,15 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import {objectIsEmpty} from 'app/utils';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {objectIsEmpty} from 'app/utils';
 
-import ContextSummaryUser from './contextSummaryUser';
-import ContextSummaryGeneric from './contextSummaryGeneric';
 import ContextSummaryDevice from './contextSummaryDevice';
+import ContextSummaryGeneric from './contextSummaryGeneric';
 import ContextSummaryGPU from './contextSummaryGPU';
 import ContextSummaryOS from './contextSummaryOS';
+import ContextSummaryUser from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
 const MIN_CONTEXTS = 3;

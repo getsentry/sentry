@@ -1,6 +1,6 @@
-import keyBy from 'lodash/keyBy';
 import React from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
@@ -12,7 +12,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
 import {sortArray} from 'app/utils';
-import {isSlackWorkspaceApp, getReauthAlertText} from 'app/utils/integrationUtil';
+import {getReauthAlertText, isSlackWorkspaceApp} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';

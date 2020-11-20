@@ -1,11 +1,11 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {Location} from 'history';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
 
+import NotFound from 'app/components/errors/notFound';
 import Footer from 'app/components/footer';
 import Sidebar from 'app/components/sidebar';
-import NotFound from 'app/components/errors/notFound';
 
 type Props = {
   location: Location;

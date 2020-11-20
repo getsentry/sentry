@@ -1,10 +1,15 @@
 import * as ReactRouter from 'react-router';
+import * as Sentry from '@sentry/react';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
-import * as Sentry from '@sentry/react';
 
+import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+import {
+  getDefaultSelection,
+  getStateFromQuery,
+} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
   DATE_TIME,
   LOCAL_STORAGE_KEY,
@@ -18,12 +23,7 @@ import {
   Project,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {
-  getDefaultSelection,
-  getStateFromQuery,
-} from 'app/components/organizations/globalSelectionHeader/utils';
 import {getUtcDateString} from 'app/utils/dates';
-import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import localStorage from 'app/utils/localStorage';
 
 /**

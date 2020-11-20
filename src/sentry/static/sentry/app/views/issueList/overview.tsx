@@ -1,36 +1,37 @@
+import React from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
+import {Location} from 'history';
 import Cookies from 'js-cookie';
-import React from 'react';
 import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
-import {withProfiler} from '@sentry/react';
-import {Location} from 'history';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 
-import {Client} from 'app/api';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {tct} from 'app/locale';
-import {Panel, PanelBody} from 'app/components/panels';
-import {analytics, metric} from 'app/utils/analytics';
-import {defined} from 'app/utils';
+import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {
   deleteSavedSearch,
   fetchSavedSearches,
   resetSavedSearches,
 } from 'app/actionCreators/savedSearches';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {loadOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
-import {getUtcDateString} from 'app/utils/dates';
-import CursorPoller from 'app/utils/cursorPoller';
-import GroupStore from 'app/stores/groupStore';
+import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+import QueryCount from 'app/components/queryCount';
+import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {tct} from 'app/locale';
+import GroupStore from 'app/stores/groupStore';
+import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {
   GlobalSelection,
   Member,
@@ -38,26 +39,25 @@ import {
   SavedSearch,
   TagCollection,
 } from 'app/types';
-import QueryCount from 'app/components/queryCount';
-import StreamGroup from 'app/components/stream/group';
-import StreamManager from 'app/utils/streamManager';
+import {defined} from 'app/utils';
+import {analytics, metric} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import CursorPoller from 'app/utils/cursorPoller';
+import {getUtcDateString} from 'app/utils/dates';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withIssueTags from 'app/utils/withIssueTags';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
-import withIssueTags from 'app/utils/withIssueTags';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import space from 'app/styles/space';
-import {PageContent} from 'app/styles/organization';
-import Feature from 'app/components/acl/feature';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
-import IssueListSidebar from './sidebar';
 import NoGroupsHandler from './noGroupsHandler';
+import IssueListSidebar from './sidebar';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';

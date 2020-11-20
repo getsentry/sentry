@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
-import {defined} from 'app/utils';
-import Tooltip from 'app/components/tooltip';
-import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
+import {defined} from 'app/utils';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import {getFormattedTimestamp} from './utils';
 

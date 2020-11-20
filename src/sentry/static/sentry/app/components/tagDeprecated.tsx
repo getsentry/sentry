@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   priority?: keyof Theme['badge'] | keyof Theme['alert'];

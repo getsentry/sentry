@@ -1,33 +1,33 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {defined, objectIsEmpty} from 'app/utils';
-import {t} from 'app/locale';
-import TogglableAddress, {
-  AddressToggleIcon,
-} from 'app/components/events/interfaces/togglableAddress';
+import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
+import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus, {
   PackageStatusIcon,
 } from 'app/components/events/interfaces/packageStatus';
-import StrictClick from 'app/components/strictClick';
-import space from 'app/styles/space';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
+import TogglableAddress, {
+  AddressToggleIcon,
+} from 'app/components/events/interfaces/togglableAddress';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import {IconRefresh, IconChevron} from 'app/icons';
+import StrictClick from 'app/components/strictClick';
+import {IconChevron, IconRefresh} from 'app/icons';
+import {t} from 'app/locale';
+import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Frame, SentryAppComponent, PlatformType, Event} from 'app/types';
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
+import space from 'app/styles/space';
+import {Event, Frame, PlatformType, SentryAppComponent} from 'app/types';
+import {defined, objectIsEmpty} from 'app/utils';
+import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from './context';
-import {getPlatform} from './utils';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
+import {getPlatform} from './utils';
 
 type Props = {
   data: Frame;

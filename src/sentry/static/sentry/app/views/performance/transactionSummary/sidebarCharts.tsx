@@ -4,31 +4,31 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import ChartZoom from 'app/components/charts/chartZoom';
-import LineChart from 'app/components/charts/lineChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
-import QuestionTooltip from 'app/components/questionTooltip';
+import LineChart from 'app/components/charts/lineChart';
 import {SectionHeading} from 'app/components/charts/styles';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
-import {getTermHelp} from 'app/views/performance/data';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {LightWeightOrganization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {tooltipFormatter} from 'app/utils/discover/charts';
+import EventView from 'app/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
 } from 'app/utils/formatters';
-import {tooltipFormatter} from 'app/utils/discover/charts';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
+import {getTermHelp} from 'app/views/performance/data';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;

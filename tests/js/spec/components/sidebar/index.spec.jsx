@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'app/stores/configStore';
-import SidebarContainer, {Sidebar} from 'app/components/sidebar';
 import * as incidentActions from 'app/actionCreators/serviceIncidents';
+import SidebarContainer, {Sidebar} from 'app/components/sidebar';
+import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/actionCreators/serviceIncidents');
 

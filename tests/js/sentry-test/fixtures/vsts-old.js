@@ -52,4 +52,4 @@ function VstsCreate() {
   ];
 }
 
-export {VstsPlugin, VstsCreate};
+export {VstsCreate, VstsPlugin};

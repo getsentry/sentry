@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {toggleKeyTransaction} from 'app/actionCreators/performance';
 import {Client} from 'app/api';
 import {IconStar} from 'app/icons';
-import {Project, Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 

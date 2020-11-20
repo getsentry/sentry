@@ -1,10 +1,10 @@
 import React from 'react';
+import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import {InjectedRouter} from 'react-router';
 
-import {t} from 'app/locale';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Repository} from 'app/types';

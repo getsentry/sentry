@@ -2,9 +2,9 @@ import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import Panel from './panel';

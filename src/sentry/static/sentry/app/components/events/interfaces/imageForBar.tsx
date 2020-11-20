@@ -1,10 +1,10 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import FunctionName from 'app/components/events/interfaces/frame/functionName';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Frame} from 'app/types';
 
 type Props = {

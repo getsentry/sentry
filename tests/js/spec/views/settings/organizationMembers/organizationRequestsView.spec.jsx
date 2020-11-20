@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import OrganizationRequestsView from 'app/views/settings/organizationMembers/organizationRequestsView';
 import OrganizationMembersWrapper from 'app/views/settings/organizationMembers/organizationMembersWrapper';
+import OrganizationRequestsView from 'app/views/settings/organizationMembers/organizationRequestsView';
 
 jest.mock('app/utils/analytics', () => ({
   trackAnalyticsEvent: jest.fn(),

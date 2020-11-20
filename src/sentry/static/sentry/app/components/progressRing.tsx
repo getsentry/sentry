@@ -1,9 +1,9 @@
 import React from 'react';
 import styled, {SerializedStyles} from '@emotion/styled';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import theme, {Theme} from 'app/utils/theme';
 import testableTransition from 'app/utils/testableTransition';
+import theme, {Theme} from 'app/utils/theme';
 
 type TextProps = {
   textCss?: Props['textCss'];
@@ -166,4 +166,4 @@ const RingBar = styled('circle')<{
 export default ProgressRing;
 
 // We export components to allow for css selectors
-export {RingBar, RingBackground, Text as RingText};
+export {RingBackground, RingBar, Text as RingText};

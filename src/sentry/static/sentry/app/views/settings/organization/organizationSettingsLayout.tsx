@@ -1,8 +1,8 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import OrganizationSettingsNavigation from 'app/views/settings/organization/organizationSettingsNavigation';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import OrganizationSettingsNavigation from 'app/views/settings/organization/organizationSettingsNavigation';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   children: React.ReactNode;

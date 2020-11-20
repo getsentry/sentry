@@ -1,8 +1,8 @@
 import {
-  getInternal,
   getExternal,
-  isValidCondition,
+  getInternal,
   ignoreCase,
+  isValidCondition,
 } from 'app/views/discover/conditions/utils';
 import {COLUMNS} from 'app/views/discover/data';
 

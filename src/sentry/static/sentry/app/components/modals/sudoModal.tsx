@@ -1,21 +1,21 @@
-import {withRouter} from 'react-router';
 import React from 'react';
+import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
+import U2fContainer from 'app/components/u2f/u2fContainer';
+import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 import Form from 'app/views/settings/components/forms/form';
 import InputField from 'app/views/settings/components/forms/inputField';
-import {IconFlag} from 'app/icons';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import U2fContainer from 'app/components/u2f/u2fContainer';
-import space from 'app/styles/space';
-import {Client} from 'app/api';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 

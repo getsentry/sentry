@@ -1,6 +1,6 @@
-import createQueryBuilder from 'app/views/discover/queryBuilder';
 import {openModal} from 'app/actionCreators/modal';
 import ConfigStore from 'app/stores/configStore';
+import createQueryBuilder from 'app/views/discover/queryBuilder';
 
 jest.mock('app/actionCreators/modal');
 

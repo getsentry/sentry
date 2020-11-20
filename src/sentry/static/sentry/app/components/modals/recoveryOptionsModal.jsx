@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 class RecoveryOptionsModal extends AsyncComponent {
   static propTypes = {

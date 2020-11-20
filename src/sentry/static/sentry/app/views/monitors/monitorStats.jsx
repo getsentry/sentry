@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
+import MiniBarChart from 'app/components/charts/miniBarChart';
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import MiniBarChart from 'app/components/charts/miniBarChart';
 import theme from 'app/utils/theme';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 export default class MonitorStats extends AsyncComponent {
   static propTypes = {

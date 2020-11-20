@@ -1,14 +1,14 @@
 import React from 'react';
-import moment from 'moment';
 import Modal from 'react-bootstrap/lib/Modal';
+import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import {IconWarning} from 'app/icons';
 import ButtonBar from 'app/components/buttonBar';
-import {ResolutionStatusDetails} from 'app/types';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import {ResolutionStatusDetails} from 'app/types';
 
 const defaultProps = {
   label: t('Ignore this issue until \u2026'),

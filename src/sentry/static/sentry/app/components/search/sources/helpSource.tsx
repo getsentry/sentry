@@ -1,16 +1,16 @@
 import React from 'react';
-import debounce from 'lodash/debounce';
-import dompurify from 'dompurify';
 import {withRouter, WithRouterProps} from 'react-router';
 import {
+  Result as SearchResult,
   SentryGlobalSearch,
   standardSDKSlug,
-  Result as SearchResult,
 } from '@sentry-internal/global-search';
+import dompurify from 'dompurify';
+import debounce from 'lodash/debounce';
 
-import withLatestContext from 'app/utils/withLatestContext';
 import {Organization, Project} from 'app/types';
 import parseHtmlMarks from 'app/utils/parseHtmlMarks';
+import withLatestContext from 'app/utils/withLatestContext';
 
 type MarkedText = ReturnType<typeof parseHtmlMarks>;
 

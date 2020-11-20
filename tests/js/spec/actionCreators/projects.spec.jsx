@@ -1,5 +1,5 @@
-import {Client} from 'app/api';
 import {_debouncedLoadStats} from 'app/actionCreators/projects';
+import {Client} from 'app/api';
 
 describe('Projects ActionCreators', function () {
   const api = new Client();

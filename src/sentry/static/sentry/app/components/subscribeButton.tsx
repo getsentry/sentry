@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
-import {t} from 'app/locale';
 import {IconBell} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = {
   onClick: (e: React.MouseEvent) => void;

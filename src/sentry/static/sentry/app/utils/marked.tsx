@@ -1,5 +1,5 @@
-import marked from 'marked'; // eslint-disable-line no-restricted-imports
 import dompurify from 'dompurify';
+import marked from 'marked'; // eslint-disable-line no-restricted-imports
 
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'app/constants';
 

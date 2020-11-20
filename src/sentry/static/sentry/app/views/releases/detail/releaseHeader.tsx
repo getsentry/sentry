@@ -1,34 +1,34 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
-import ListLink from 'app/components/links/listLink';
-import ExternalLink from 'app/components/links/externalLink';
-import NavTabs from 'app/components/navTabs';
-import {Organization, Release, ReleaseProject, ReleaseMeta} from 'app/types';
-import Version from 'app/components/version';
-import Clipboard from 'app/components/clipboard';
-import {IconCopy, IconOpen} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
-import Count from 'app/components/count';
-import TimeSince from 'app/components/timeSince';
-import {formatVersion, formatAbbreviatedNumber} from 'app/utils/formatters';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import DeployBadge from 'app/components/deployBadge';
 import Badge from 'app/components/badge';
+import Breadcrumbs from 'app/components/breadcrumbs';
+import Clipboard from 'app/components/clipboard';
+import Count from 'app/components/count';
+import DeployBadge from 'app/components/deployBadge';
 import * as Layout from 'app/components/layouts/thirds';
-import {getTermHelp} from 'app/views/performance/data';
+import ExternalLink from 'app/components/links/externalLink';
+import ListLink from 'app/components/links/listLink';
+import NavTabs from 'app/components/navTabs';
+import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
+import Version from 'app/components/version';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconCopy, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Release, ReleaseMeta, ReleaseProject} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {formatAbbreviatedNumber, formatVersion} from 'app/utils/formatters';
+import {getTermHelp} from 'app/views/performance/data';
 
-import ReleaseStat from './releaseStat';
 import ReleaseActions from './releaseActions';
+import ReleaseStat from './releaseStat';
 
 type Props = {
   location: Location;

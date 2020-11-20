@@ -1,13 +1,12 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import {Organization} from 'app/types';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {Organization} from 'app/types';
 
-import QueryFields from './queryFields';
-import {createSavedQuery, generateQueryName} from '../utils';
+import {QueryBuilder} from '../queryBuilder';
 import {
   ButtonSpinner,
   QueryActions,
@@ -15,7 +14,9 @@ import {
   QueryFieldsContainer,
 } from '../styles';
 import {SavedQuery} from '../types';
-import {QueryBuilder} from '../queryBuilder';
+import {createSavedQuery, generateQueryName} from '../utils';
+
+import QueryFields from './queryFields';
 
 type NewQueryProps = {
   organization: Organization;
