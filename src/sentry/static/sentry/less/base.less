@@ -439,19 +439,15 @@ textarea {
 }
 
 //
-// Address `overflow` set to `hidden` in IE 8/9/10/11.
-//
-
-button {
-  overflow: visible;
-}
-
-//
 // Address inconsistent `text-transform` inheritance for `button` and `select`.
 // All other form control elements do not inherit `text-transform` values.
 // Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.
 // Correct `select` style inheritance in Firefox.
 //
+
+button {
+  overflow: visible;
+}
 
 button,
 select {
@@ -467,9 +463,9 @@ select {
 //
 
 button,
-  html input[type="button"], // 1
-  input[type="reset"],
-  input[type="submit"] {
+html input[type="button"], // 1
+input[type="reset"],
+input[type="submit"] {
   -webkit-appearance: button; // 2
   cursor: pointer; // 3
 }
