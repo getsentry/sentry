@@ -13,6 +13,7 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import Projects from 'app/utils/projects';
 import SentryTypes from 'app/sentryTypes';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -183,6 +184,9 @@ class GroupDetails extends React.Component<Props, State> {
         case 404:
           errorType = ERROR_TYPES.GROUP_NOT_FOUND;
           break;
+        case 403:
+          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
+          break;
         default:
       }
 
@@ -234,6 +238,12 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderError() {
+    const {organization, location} = this.props;
+    const projects = organization.projects;
+    const projectId = location.query.project;
+
+    const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
+
     if (!this.state.error) {
       return null;
     }
@@ -242,6 +252,14 @@ class GroupDetails extends React.Component<Props, State> {
       case ERROR_TYPES.GROUP_NOT_FOUND:
         return (
           <LoadingError message={t('The issue you were looking for was not found.')} />
+        );
+
+      case ERROR_TYPES.MISSING_MEMBERSHIP:
+        return (
+          <MissingProjectMembership
+            organization={this.props.organization}
+            projectId={projectSlug}
+          />
         );
       default:
         return <LoadingError onRetry={this.remountComponent} />;

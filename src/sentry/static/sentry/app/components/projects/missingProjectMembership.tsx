@@ -15,7 +15,7 @@ import {Organization, Project, Team} from 'app/types';
 type Props = {
   api: Client;
   organization: Organization;
-  projectId: string;
+  projectId?: string;
 };
 
 type State = {
