@@ -2652,12 +2652,12 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
-                "if(greater(p50_transaction_duration,50.0),'pass','fail')",
+                "greater(p50_transaction_duration,50.0)",
                 None,
                 "compare_numeric_aggregate_p50_transaction_duration_>_50",
             ],
             [
-                "if(notEquals(p50_transaction_duration,50.0),'pass','fail')",
+                "notEquals(p50_transaction_duration,50.0)",
                 None,
                 "compare_numeric_aggregate_p50_transaction_duration_!=_50",
             ],

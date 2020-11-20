@@ -2261,18 +2261,14 @@ FUNCTIONS = {
                 ConditionArg("condition"),
                 NumberRange("value", 0, None),
             ],
-            optional_args=[
-                with_default("pass", StringArg("pass")),
-                with_default("fail", StringArg("fail")),
-            ],
             aggregate=[
                 # snuba json syntax isn't compatible with this query here
                 # this function can't be a column, since we want to use this with aggregates
-                "if({condition}({aggregate_alias},{value}),{pass},{fail})",
+                "{condition}({aggregate_alias},{value})",
                 None,
                 None,
             ],
-            default_result_type="string",
+            default_result_type="number",
         ),
         Function(
             "to_other",

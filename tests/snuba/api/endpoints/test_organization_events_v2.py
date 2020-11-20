@@ -2746,9 +2746,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert (
-            response.data["data"][0]["compare_numeric_aggregate_p75_measurements_fcp_>_0"] == "pass"
-        )
+        assert response.data["data"][0]["compare_numeric_aggregate_p75_measurements_fcp_>_0"] == 1
 
         query = {
             "field": ["p75()", "compare_numeric_aggregate(p75,==,0)"],
@@ -2757,7 +2755,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["compare_numeric_aggregate_p75_!=_0"] == "fail"
+        assert response.data["data"][0]["compare_numeric_aggregate_p75_==_0"] == 0
 
     def test_no_key_transactions(self):
         transactions = [
