@@ -60,7 +60,7 @@ class StacktracePreview extends React.Component<Props, State> {
               <div onClick={this.handleStacktracePreviewClick}>
                 <StacktraceContent
                   data={stacktrace}
-                  expandFirstFrame
+                  expandFirstFrame={false}
                   // includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
                   includeSystemFrames={stacktrace.frames.every(frame => !frame.inApp)}
                   platform={(event.platform ?? 'other') as PlatformType}
