@@ -10,7 +10,7 @@ import {t} from 'app/locale';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
-import ReleaseChartControls, {YAxis} from './releaseChartControls';
+import ReleaseChartControls, {YAxis, PERFORMANCE_AXIS} from './releaseChartControls';
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 import HealthChartContainer from './healthChartContainer';
 import {getReleaseEventView} from './utils';
@@ -35,7 +35,7 @@ class ReleaseChartContainer extends React.Component<Props> {
     const {location, router, organization, api, yAxis, selection, version} = this.props;
     const {projects, environments, datetime} = selection;
     const {start, end, period, utc} = datetime;
-    const eventView = getReleaseEventView(selection, version, yAxis);
+    const eventView = getReleaseEventView(selection, version, yAxis, organization);
     const apiPayload = eventView.getEventsAPIPayload(location);
 
     return (
@@ -72,7 +72,7 @@ class ReleaseChartContainer extends React.Component<Props> {
     } = this.props;
     const {projects, environments, datetime} = selection;
     const {start, end, period, utc} = datetime;
-    const eventView = getReleaseEventView(selection, version, yAxis);
+    const eventView = getReleaseEventView(selection, version, yAxis, organization);
     const apiPayload = eventView.getEventsAPIPayload(location);
     const colors =
       yAxis === YAxis.FAILED_TRANSACTIONS
@@ -142,15 +142,13 @@ class ReleaseChartContainer extends React.Component<Props> {
       hasPerformance,
       chartSummary,
       onYAxisChange,
+      organization,
     } = this.props;
 
     let chart: React.ReactNode = null;
     if (hasDiscover && yAxis === YAxis.EVENTS) {
       chart = this.renderEventsChart();
-    } else if (
-      hasPerformance &&
-      (yAxis === YAxis.FAILED_TRANSACTIONS || yAxis === YAxis.ALL_TRANSACTIONS)
-    ) {
+    } else if (hasPerformance && PERFORMANCE_AXIS.includes(yAxis)) {
       chart = this.renderTransactionsChart();
     } else {
       chart = this.renderHealthChart();
@@ -163,6 +161,7 @@ class ReleaseChartContainer extends React.Component<Props> {
           summary={chartSummary}
           yAxis={yAxis}
           onYAxisChange={onYAxisChange}
+          organization={organization}
           hasDiscover={hasDiscover}
           hasHealthData={hasHealthData}
           hasPerformance={hasPerformance}
