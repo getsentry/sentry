@@ -336,8 +336,4 @@ const StyledDropdownLink = styled(DropdownLink)`
   display: flex;
   align-items: center;
   transition: none;
-  & > .dropdown-menu {
-    left: none;
-    right: -5px;
-  }
 `;
