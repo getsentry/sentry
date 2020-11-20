@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.db.models import Max
 from rest_framework import serializers
 
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models import (
     DashboardWidget,
     DashboardWidgetQuery,
@@ -33,7 +34,7 @@ def validate_id(self, value):
         raise serializers.ValidationError("Invalid ID format. Must be a numeric string")
 
 
-class DashboardWidgetQuerySerializer(serializers.Serializer):
+class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
@@ -53,16 +54,16 @@ class DashboardWidgetQuerySerializer(serializers.Serializer):
         return data
 
 
-class DashboardWidgetSerializer(serializers.Serializer):
+class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False)
-    displayType = serializers.ChoiceField(
+    display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
 
-    def validate_displayType(self, display_type):
+    def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
     validate_id = validate_id
@@ -73,7 +74,7 @@ class DashboardWidgetSerializer(serializers.Serializer):
         return data
 
 
-class DashboardDetailsSerializer(serializers.Serializer):
+class DashboardDetailsSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False)
@@ -135,7 +136,7 @@ class DashboardDetailsSerializer(serializers.Serializer):
     def create_widget(self, dashboard, widget_data, order):
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
-            display_type=widget_data["displayType"],
+            display_type=widget_data["display_type"],
             title=widget_data["title"],
             order=order,
         )
@@ -155,7 +156,7 @@ class DashboardDetailsSerializer(serializers.Serializer):
 
     def update_widget(self, widget, data, order):
         widget.title = data.get("title", widget.title)
-        widget.display_type = data.get("displayType", widget.display_type)
+        widget.display_type = data.get("display_type", widget.display_type)
         widget.order = order
         widget.save()
 
