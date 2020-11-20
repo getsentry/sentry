@@ -25,8 +25,8 @@ class GroupOwner(Model):
     project = FlexibleForeignKey("sentry.Project", null=False, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization", null=False, db_constraint=False)
     owner_type = models.PositiveSmallIntegerField(null=False)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_owner_set", null=True)
-    team = FlexibleForeignKey("sentry.Team", related_name="sentry_owner_set", null=True)
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
