@@ -241,7 +241,6 @@ class StreamGroup extends React.Component<Props, State> {
           <GroupHoverActions
             group={data}
             orgId={organization.slug}
-            projectSlug={data.project}
             selection={selection}
             query={query}
           />
