@@ -242,8 +242,7 @@ class GroupDetails extends React.Component<Props, State> {
     const projects = organization.projects;
     const projectId = location.query.project;
 
-    const project = projects.filter(proj => proj.id === projectId);
-    const projectSlug = project.find(proj => proj.id === projectId)?.slug;
+    const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
 
     if (!this.state.error) {
       return null;
