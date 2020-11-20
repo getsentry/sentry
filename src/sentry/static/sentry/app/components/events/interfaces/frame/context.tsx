@@ -95,7 +95,8 @@ const Context = ({
               {organization?.features.includes('integrations-stacktrace-link') &&
                 !hideStacktraceLink &&
                 isActive &&
-                isExpanded && (
+                isExpanded &&
+                frame.filename && (
                   <ErrorBoundary mini>
                     <StacktraceLink
                       key={index}
