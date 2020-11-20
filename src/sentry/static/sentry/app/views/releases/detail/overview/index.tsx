@@ -98,24 +98,45 @@ class ReleaseOverview extends AsyncView<Props> {
     return YAxis.EVENTS;
   }
 
-  getReleaseEventView(version: string, projectId: number): EventView {
+  getReleaseEventView(
+    version: string,
+    projectId: number,
+    selectedSort: DropdownOption
+  ): EventView {
     const {selection} = this.props;
     const {environments, datetime} = selection;
     const {start, end, period} = datetime;
 
-    return EventView.fromSavedQuery({
-      id: undefined,
-      version: 2,
-      name: `Release ${formatVersion(version)}`,
-      query: `event.type:transactions release:${version}`,
-      fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
-      orderby: '-failure_count',
-      range: period,
-      environment: environments,
-      projects: [projectId],
-      start: start ? getUtcDateString(start) : undefined,
-      end: end ? getUtcDateString(end) : undefined,
-    });
+    switch (selectedSort.value) {
+      case 'p75_lcp':
+        return EventView.fromSavedQuery({
+          id: undefined,
+          version: 2,
+          name: `Release ${formatVersion(version)}`,
+          query: `event.type:transaction release:${version} has:measurements.lcp`,
+          fields: ['transaction', 'failure_count()', 'epm()', 'p75(measurements.lcp)'],
+          orderby: 'p75_measurements_lcp',
+          range: period,
+          environment: environments,
+          projects: [projectId],
+          start: start ? getUtcDateString(start) : undefined,
+          end: end ? getUtcDateString(end) : undefined,
+        });
+      default:
+        return EventView.fromSavedQuery({
+          id: undefined,
+          version: 2,
+          name: `Release ${formatVersion(version)}`,
+          query: `event.type:transaction release:${version}`,
+          fields: ['transaction', 'failure_count()', 'epm()', 'p50()'],
+          orderby: '-failure_count',
+          range: period,
+          environment: environments,
+          projects: [projectId],
+          start: start ? getUtcDateString(start) : undefined,
+          end: end ? getUtcDateString(end) : undefined,
+        });
+    }
   }
 
   getReleaseTrendView(
@@ -165,13 +186,21 @@ class ReleaseOverview extends AsyncView<Props> {
             organization.features.includes('release-performance-views');
           const yAxis = this.getYAxis(hasHealthData);
 
-          const releaseEventView = this.getReleaseEventView(version, project.id);
+          const {selectedSort, sortOptions} = getTransactionsListSort(location);
+          const releaseEventView = this.getReleaseEventView(
+            version,
+            project.id,
+            selectedSort
+          );
+          const titles =
+            selectedSort.value !== 'p75_lcp'
+              ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')]
+              : [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')];
           const releaseTrendView = this.getReleaseTrendView(
             version,
             project.id,
             releaseMeta.released
           );
-          const {selectedSort, sortOptions} = getTransactionListSort(location);
 
           return (
             <ReleaseStatsRequest
@@ -227,12 +256,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         selected={selectedSort}
                         options={sortOptions}
                         handleDropdownChange={this.handleTransactionsListSortChange}
-                        titles={[
-                          t('transaction'),
-                          t('failure_count()'),
-                          t('tpm()'),
-                          t('p50()'),
-                        ]}
+                        titles={titles}
                         generateFirstLink={generateTransactionLinkFn(
                           version,
                           project.id,
@@ -338,6 +362,11 @@ function getDropdownOptions(): DropdownOption[] {
       label: t('Slow Transactions'),
     },
     {
+      sort: {kind: 'desc', field: 'p75_measurements_lcp'},
+      value: 'p75_lcp',
+      label: t('Slow LCP'),
+    },
+    {
       sort: {kind: 'desc', field: 'trend_percentage()'},
       query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
       trendType: TrendChangeType.REGRESSION,
@@ -354,7 +383,7 @@ function getDropdownOptions(): DropdownOption[] {
   ];
 }
 
-function getTransactionListSort(
+function getTransactionsListSort(
   location: Location
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getDropdownOptions();
