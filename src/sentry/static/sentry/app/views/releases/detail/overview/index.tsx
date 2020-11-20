@@ -363,12 +363,12 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'p50'},
-      value: 'p50',
+      value: 'slow',
       label: t('Slow Transactions'),
     },
     {
       sort: {kind: 'desc', field: 'p75_measurements_lcp'},
-      value: 'p75_lcp',
+      value: 'slow_lcp',
       label: t('Slow LCP'),
     },
     {

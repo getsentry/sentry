@@ -89,7 +89,7 @@ const ReleaseChartControls = ({
     },
     {
       value: YAxis.FAILED_TRANSACTIONS,
-      label: t('Failed Transactions'),
+      label: t('Failed Transaction Count'),
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
@@ -110,7 +110,7 @@ const ReleaseChartControls = ({
     },
     {
       value: YAxis.ALL_TRANSACTIONS,
-      label: t('All Transactions'),
+      label: t('Transaction Count'),
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
