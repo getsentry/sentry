@@ -79,7 +79,7 @@ class ResultsHeader extends React.Component<Props, State> {
     }
     return (
       <Subtitle>
-        {t('Created by:')} {createdBy} | {t('Last Edited:')} {lastEdit}
+        {t('Created by:')} {createdBy} | {t('Last edited:')} {lastEdit}
       </Subtitle>
     );
   }
