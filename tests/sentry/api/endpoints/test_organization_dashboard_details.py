@@ -405,9 +405,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={"widgets": [{"id": self.widget_4.id}, {"id": widget.id}]},
         )
         assert response.status_code == 400
-        assert response.data == [
-            u"You cannot use existing widgets that are not part of this dashboard."
-        ]
+        assert response.data == [u"You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
 
     def test_widget_does_not_exist(self):
@@ -416,7 +414,5 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={"widgets": [{"id": self.widget_4.id}, {"id": 1234567890}]},
         )
         assert response.status_code == 400
-        assert response.data == [
-            u"You cannot use existing widgets that are not part of this dashboard."
-        ]
+        assert response.data == [u"You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()

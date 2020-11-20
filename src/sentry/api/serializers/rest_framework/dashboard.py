@@ -131,15 +131,19 @@ class DashboardDetailsSerializer(serializers.Serializer):
             title=widget_data["title"],
             order=order,
         )
+        new_queries = []
         for i, query in enumerate(widget_data.pop("queries")):
-            DashboardWidgetQuery.objects.create(
-                widget=widget,
-                fields=query["fields"],
-                conditions=query["conditions"],
-                name=query.get("name", ""),
-                interval=query.get("interval", "5m"),
-                order=i,
+            new_queries.append(
+                DashboardWidgetQuery(
+                    widget=widget,
+                    fields=query["fields"],
+                    conditions=query["conditions"],
+                    name=query.get("name", ""),
+                    interval=query.get("interval", "5m"),
+                    order=i,
+                )
             )
+        DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget(self, widget, data, order):
         widget.title = data.get("title", widget.title)
@@ -157,12 +161,23 @@ class DashboardDetailsSerializer(serializers.Serializer):
         existing = DashboardWidgetQuery.objects.filter(widget=widget, id__in=query_ids)
         existing_map = {query.id: query for query in existing}
 
+        new_queries = []
         for i, query_data in enumerate(data):
             query_id = query_data.get("id")
             if query_id and query_id in existing_map:
                 self.update_widget_query(existing_map[query_id], query_data, i)
             if not query_id:
-                self.create_widget_query(widget, query_data, i)
+                new_queries.append(
+                    DashboardWidgetQuery(
+                        widget=widget,
+                        fields=query_data["fields"],
+                        conditions=query_data["conditions"],
+                        name=query_data.get("name", ""),
+                        interval=query_data.get("interval", "5m"),
+                        order=i,
+                    )
+                )
+        DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget_query(self, query, data, order):
         query.name = data.get("name", query.name)
@@ -171,16 +186,6 @@ class DashboardDetailsSerializer(serializers.Serializer):
         query.interval = data.get("interval", query.interval)
         query.order = order
         query.save()
-
-    def create_widget_query(self, widget, data, order):
-        DashboardWidgetQuery.objects.create(
-            widget=widget,
-            name=data.get("name", ""),
-            fields=data["fields"],
-            conditions=data["conditions"],
-            interval=data.get("interval", "5m"),
-            order=order,
-        )
 
     def remove_missing_queries(self, widget_id, keep_ids):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
