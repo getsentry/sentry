@@ -981,10 +981,10 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          path="/extensions/external-install/:providerId/:installationId"
+          path="/extensions/external-install/:integrationSlug/:installationId"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ExtensionsIntegrationInstallation" */ 'app/views/integrationInstallation'
+              /* webpackChunkName: "IntegrationOrganizationLink" */ 'app/views/integrationOrganizationLink'
             )
           }
           component={errorHandler(LazyLoad)}
