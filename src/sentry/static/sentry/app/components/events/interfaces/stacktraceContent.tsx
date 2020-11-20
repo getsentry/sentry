@@ -11,7 +11,6 @@ import {PlatformType, Event, Frame} from 'app/types';
 const defaultProps = {
   includeSystemFrames: true,
   expandFirstFrame: true,
-  hideStacktraceLink: false as boolean | undefined,
 };
 
 type Props = {
@@ -20,6 +19,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
+  hideStacktraceLink?: boolean;
 } & typeof defaultProps;
 
 type State = {
