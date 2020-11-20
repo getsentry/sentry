@@ -6,7 +6,10 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
-import {vitalNameFromLocation} from './vitalDetail/utils';
+import {
+  getVitalDetailTableStatusFunction,
+  vitalNameFromLocation,
+} from './vitalDetail/utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 
@@ -170,6 +173,7 @@ export function generatePerformanceVitalDetailView(
       `p50(${vitalName})`,
       `p75(${vitalName})`,
       `p95(${vitalName})`,
+      getVitalDetailTableStatusFunction(vitalName),
     ],
     version: 2,
   };
@@ -177,7 +181,7 @@ export function generatePerformanceVitalDetailView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || `-count`; // TODO: Switch for sorting by pass/fail first
+  savedQuery.orderby = decodeScalar(query.sort) || `-count`;
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);

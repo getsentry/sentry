@@ -20,14 +20,17 @@ import styled from 'app/styled';
 import space from 'app/styles/space';
 import Tag from 'app/components/tagDeprecated';
 import {t} from 'app/locale';
-import {WebVital} from 'app/utils/discover/fields';
+import {getAggregateAlias, Sort, WebVital} from 'app/utils/discover/fields';
 
-import {vitalAbbreviations, vitalNameFromLocation} from './utils';
+import {
+  getVitalDetailTableStatusFunction,
+  vitalAbbreviations,
+  vitalNameFromLocation,
+} from './utils';
 import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from '../transactionSummary/utils';
-import {WEB_VITAL_DETAILS} from '../transactionVitals/constants';
 import {DisplayModes} from '../transactionSummary/charts';
 
 const COLUMN_TITLES = ['Transaction', 'Project', 'Unique Users', 'Count'];
@@ -62,17 +65,6 @@ export function getProjectID(
 
   return project.id;
 }
-
-const modifyTableData = (threshold, meta: any, data: any[]) => {
-  // TODO: Replace this once compare aggregate api is in
-  meta.vitalPass = 'integer';
-  return data.map(d => {
-    const key = Object.keys(d).find(i => i.includes('p75'))!;
-    const p75 = d[key];
-    d.vitalPass = p75 < threshold ? 1 : 0;
-    return d;
-  });
-};
 
 type Props = {
   eventView: EventView;
@@ -155,11 +147,11 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field === 'vitalPass') {
-      if (dataRow[field]) {
-        return <PassTag>{t('PASS')}</PassTag>;
-      } else {
+    if (field === getVitalDetailTableStatusFunction(vitalName)) {
+      if (dataRow[getAggregateAlias(field)]) {
         return <FailTag>{t('FAIL')}</FailTag>;
+      } else {
+        return <PassTag>{t('PASS')}</PassTag>;
       }
     }
 
@@ -306,23 +298,26 @@ class Table extends React.Component<Props, State> {
     this.setState({widths});
   };
 
-  getSortedEventView() {
+  getSortedEventView(vitalName: WebVital) {
     const {eventView} = this.props;
 
-    // We special case sort by key transactions here to include
-    // the transaction name and project as the secondary sorts.
-    const keyTransactionSort = eventView.sorts.find(
-      sort => sort.field === 'key_transaction'
+    const aggregateField = getAggregateAlias(
+      getVitalDetailTableStatusFunction(vitalName)
     );
-    if (keyTransactionSort) {
-      const sorts = ['key_transaction', 'transaction', 'project'].map(field => ({
-        field,
-        kind: keyTransactionSort.kind,
-      }));
-      return eventView.withSorts(sorts);
-    }
+    const isSortingByStatus = eventView.sorts.some(sort =>
+      sort.field.includes(aggregateField)
+    );
 
-    return eventView;
+    const additionalSorts: Sort[] = isSortingByStatus
+      ? []
+      : [
+          {
+            field: aggregateField,
+            kind: 'desc',
+          },
+        ];
+
+    return eventView.withSorts([...additionalSorts, ...eventView.sorts]);
   }
 
   render() {
@@ -330,7 +325,7 @@ class Table extends React.Component<Props, State> {
     const {widths} = this.state;
 
     const fakeColumnView = eventView.clone();
-    fakeColumnView.fields = [...eventView.fields, {field: 'vitalPass'}];
+    fakeColumnView.fields = [...eventView.fields];
     const columnOrder = fakeColumnView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
@@ -343,10 +338,9 @@ class Table extends React.Component<Props, State> {
         return col;
       });
 
-    const sortedEventView = this.getSortedEventView();
-    const columnSortBy = sortedEventView.getSorts();
     const vitalName = vitalNameFromLocation(location);
-    const vitalThreshold = WEB_VITAL_DETAILS[vitalName].failureThreshold;
+    const sortedEventView = this.getSortedEventView(vitalName);
+    const columnSortBy = sortedEventView.getSorts();
 
     const prependColumnWidths = organization.features.includes('key-transactions')
       ? ['max-content']
@@ -364,11 +358,7 @@ class Table extends React.Component<Props, State> {
             <React.Fragment>
               <GridEditable
                 isLoading={isLoading}
-                data={
-                  tableData
-                    ? modifyTableData(vitalThreshold, tableData.meta, tableData.data)
-                    : []
-                }
+                data={tableData ? tableData.data : []}
                 columnOrder={columnOrder}
                 columnSortBy={columnSortBy}
                 grid={{

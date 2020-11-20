@@ -1,8 +1,10 @@
 import {Query, Location} from 'history';
 
-import {WebVital} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Series} from 'app/types/echarts';
+
+import {WEB_VITAL_DETAILS} from '../transactionVitals/constants';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -62,6 +64,14 @@ export function vitalNameFromLocation(location: Location): WebVital {
   } else {
     return WebVital.FID;
   }
+}
+
+export function getVitalDetailTableStatusFunction(vitalName: WebVital): string {
+  const vitalThreshold = WEB_VITAL_DETAILS[vitalName].failureThreshold;
+  const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
+    `p75(${vitalName})`
+  )},greater,${vitalThreshold})`;
+  return statusFunction;
 }
 
 export const vitalMap: Partial<Record<WebVital, string>> = {
