@@ -2646,20 +2646,20 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_compare_numeric_aggregate(self):
         fields = [
-            "compare_numeric_aggregate(p50_transaction_duration,>,50)",
-            "compare_numeric_aggregate(p50_transaction_duration,!=,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,greater,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,notEquals,50)",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
                 "greater(p50_transaction_duration,50.0)",
                 None,
-                "compare_numeric_aggregate_p50_transaction_duration_>_50",
+                "compare_numeric_aggregate_p50_transaction_duration_greater_50",
             ],
             [
                 "notEquals(p50_transaction_duration,50.0)",
                 None,
-                "compare_numeric_aggregate_p50_transaction_duration_!=_50",
+                "compare_numeric_aggregate_p50_transaction_duration_notEquals_50",
             ],
         ]
 

@@ -1516,24 +1516,25 @@ class DateArg(FunctionArg):
 
 
 class ConditionArg(FunctionArg):
-    CONDITION_MAP = {
-        "==": "equals",
-        "!=": "notEquals",
-        "<=": "lessOrEquals",
-        ">=": "greaterOrEquals",
-        "<": "less",
-        ">": "greater",
-    }
+    # List and not a set so the error message is consistent
+    VALID_CONDITIONS = [
+        "equals",
+        "notEquals",
+        "lessOrEquals",
+        "greaterOrEquals",
+        "less",
+        "greater",
+    ]
 
     def normalize(self, value, params):
-        if value not in self.CONDITION_MAP:
+        if value not in self.VALID_CONDITIONS:
             raise InvalidFunctionArgument(
                 u"{} is not a valid condition, the only supported conditions are: {}".format(
-                    value, ",".join(self.CONDITION_MAP.keys()),
+                    value, ",".join(self.VALID_CONDITIONS),
                 )
             )
 
-        return self.CONDITION_MAP[value]
+        return value
 
 
 class Column(FunctionArg):
