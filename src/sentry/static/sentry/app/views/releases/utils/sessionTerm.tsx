@@ -79,7 +79,7 @@ function getTermDescriptions(platform: PlatformKey) {
           'During the session at least one error occurred that did not bubble up to the global handlers, not resulting in the application loading process crashing.'
         ),
         unhandled:
-          'En error bubbled up to the global onerror or onunhandledrejection handler',
+          "En error bubbled up to the global 'onerror' or 'onunhandledrejection' handler",
       };
     case 'apple-ios':
     case 'minidump':
