@@ -252,15 +252,32 @@ class StreamGroup extends React.Component<Props, State> {
           <EventOrGroupHeader includeLink data={data} query={query} size="normal" />
           <EventOrGroupExtraDetails data={data} />
         </GroupSummary>
+        {hasInbox && (
+          <ReasonAndTimesContainer>
+            {hasInboxReason && data.inbox ? (
+              <InboxReasonWrapper>
+                <InboxReason inbox={data.inbox} />
+              </InboxReasonWrapper>
+            ) : (
+              <InboxPlaceholder />
+            )}
+            <div>
+              <TimesTag
+                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+              />
+            </div>
+          </ReasonAndTimesContainer>
+        )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
-          <Box width={160} mx={2} className="hidden-xs hidden-sm">
+          <ChartWrapper className="hidden-xs hidden-sm">
             <GroupChart
               statsPeriod={statsPeriod!}
               data={data}
               showSecondaryPoints={showSecondaryPoints}
             />
-          </Box>
+          </ChartWrapper>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <DropdownMenu isNestedDropdown>
@@ -374,28 +391,9 @@ class StreamGroup extends React.Component<Props, State> {
             }}
           </DropdownMenu>
         </Flex>
-        <Box width={80} mx={2} className="hidden-xs hidden-sm">
+        <AssigneeWrapper className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
-        </Box>
-        {hasInbox && (
-          <React.Fragment>
-            {hasInboxReason && (
-              <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
-                <BadgeWrapper>
-                  {data.inbox ? <InboxReason inbox={data.inbox} /> : <div />}
-                </BadgeWrapper>
-              </ReasonBox>
-            )}
-            <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
-              <BadgeWrapper>
-                <TimesTag
-                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-                />
-              </BadgeWrapper>
-            </TimesBox>
-          </React.Fragment>
-        )}
+        </AssigneeWrapper>
       </Wrapper>
     );
   }
@@ -403,20 +401,11 @@ class StreamGroup extends React.Component<Props, State> {
 
 const Wrapper = styled(PanelItem)`
   padding: ${space(1)} 0;
-  align-items: center;
   line-height: 1.1;
 `;
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
-`;
-
-const ReasonBox = styled(Box)`
-  margin: 0 ${space(0.25)} 0 ${space(1)};
-`;
-
-const TimesBox = styled(Box)`
-  margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 
 const GroupCheckbox = styled(Box)`
@@ -483,9 +472,32 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const BadgeWrapper = styled('div')`
+const ReasonAndTimesContainer = styled('div')`
   display: flex;
-  justify-content: center;
+  width: 175px;
+  flex-direction: column;
+  align-items: end;
+  margin: 0 ${space(2)};
+`;
+
+const InboxReasonWrapper = styled('div')`
+  margin-bottom: ${space(0.5)};
+`;
+
+const InboxPlaceholder = styled('div')`
+  height: 20px;
+`;
+
+const ChartWrapper = styled('div')`
+  width: 160px;
+  align-self: center;
+  margin: 0 ${space(2)};
+`;
+
+const AssigneeWrapper = styled('div')`
+  width: 80px;
+  align-self: center;
+  margin: 0 ${space(2)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

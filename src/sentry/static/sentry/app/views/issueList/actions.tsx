@@ -156,7 +156,6 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
-  issuesLoading: boolean;
 };
 
 type State = {
@@ -408,8 +407,6 @@ class IssueListActions extends React.Component<Props, State> {
       selection,
       statsPeriod,
       organization,
-      groupIds,
-      issuesLoading,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -426,8 +423,6 @@ class IssueListActions extends React.Component<Props, State> {
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
-    const hasInboxReason =
-      issuesLoading || groupIds.some(id => !!GroupStore.get(id)?.inbox);
 
     return (
       <Sticky>
@@ -620,6 +615,13 @@ class IssueListActions extends React.Component<Props, State> {
               </Tooltip>
             </div>
           </ActionSet>
+          <Feature organization={organization} features={['organizations:inbox']}>
+            <TimesSpacerLabel className="hidden-xs hidden-sm">
+              <FirstSeenLastSeenHeader>
+                {t('Last Seen')} &nbsp;|&nbsp; {t('First Seen')}
+              </FirstSeenLastSeenHeader>
+            </TimesSpacerLabel>
+          </Feature>
           <GraphHeaderWrapper className="hidden-xs hidden-sm">
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
@@ -644,10 +646,6 @@ class IssueListActions extends React.Component<Props, State> {
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
-          <Feature organization={organization} features={['organizations:inbox']}>
-            {hasInboxReason && <ReasonSpacerLabel className="hidden-xs hidden-sm" />}
-            <TimesSpacerLabel className="hidden-xs hidden-sm" />
-          </Feature>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -794,20 +792,19 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   }
 `;
 
+const FirstSeenLastSeenHeader = styled(ToolbarHeader)`
+  white-space: nowrap;
+`;
+
 const AssigneesLabel = styled('div')`
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 `;
 
-const ReasonSpacerLabel = styled('div')`
-  width: 95px;
-  margin: 0 ${space(0.25)} 0 ${space(1)};
-`;
-
 const TimesSpacerLabel = styled('div')`
-  width: 170px;
-  margin: 0 ${space(1.5)} 0 ${space(0.5)};
+  width: 175px;
+  margin: 0 ${space(2)};
 `;
 
 // New icons are misaligned inside bootstrap buttons.
