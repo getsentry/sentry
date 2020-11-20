@@ -225,6 +225,35 @@ export type Project = {
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
 
+// Response from project_keys endpoints.
+export type ProjectKey = {
+  id: string;
+  name: string;
+  label: string;
+  public: string;
+  secret: string;
+  projectId: string;
+  isActive: boolean;
+  rateLimit: {
+    window: string;
+    count: number;
+  } | null;
+  dsn: {
+    secret: string;
+    public: string;
+    csp: string;
+    security: string;
+    minidump: string;
+    unreal: string;
+    cdn: string;
+  };
+  browserSdkVersion: string;
+  browserSdk: {
+    choices: [key: string, value: string][];
+  };
+  dateCreated: string;
+};
+
 export type Health = {
   totalUsers: number;
   totalUsers24h: number | null;

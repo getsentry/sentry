@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {RouteComponentProps} from 'react-router';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -10,9 +11,16 @@ import routeTitleGen from 'app/utils/routeTitle';
 import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import {ProjectKey} from 'app/types';
 
-export default class ProjectSecurityHeaders extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
+
+type State = {
+  keyList: null | ProjectKey[];
+} & AsyncView['state'];
+
+export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
@@ -40,11 +48,17 @@ export default class ProjectSecurityHeaders extends AsyncView {
   }
 
   renderBody() {
+    const {params} = this.props;
+    const {keyList} = this.state;
+    if (keyList === null) {
+      return null;
+    }
+
     return (
       <div>
         <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <ReportUri keyList={this.state.keyList} params={this.props.params} />
+        <ReportUri keyList={keyList} projectId={params.projectId} orgId={params.orgId} />
 
         <Panel>
           <PanelHeader>{t('Additional Configuration')}</PanelHeader>
