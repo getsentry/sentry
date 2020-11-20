@@ -37,6 +37,7 @@ type State = AsyncComponent['state'] & {
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
+  shouldRenderBadRequests = true;
   get project() {
     // we can't use the withProject HoC on an the issue page
     // so we ge around that by using the withProjects HoC
