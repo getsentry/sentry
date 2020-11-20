@@ -231,6 +231,7 @@ class ReleaseOverview extends AsyncView<Props> {
                     {(hasDiscover || hasPerformance || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}
+                        releaseMeta={releaseMeta}
                         selection={selection}
                         yAxis={yAxis}
                         onYAxisChange={this.handleYAxisChange}
