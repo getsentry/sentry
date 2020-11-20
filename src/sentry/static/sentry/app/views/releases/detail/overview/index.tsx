@@ -391,7 +391,7 @@ function getTransactionsListSort(
   location: Location
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getDropdownOptions();
-  const urlParam = decodeScalar(location.query.showTransactions) || 'tpm';
+  const urlParam = decodeScalar(location.query.showTransactions) || 'failure_count';
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }
