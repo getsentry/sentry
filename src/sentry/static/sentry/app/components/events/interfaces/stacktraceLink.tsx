@@ -37,7 +37,6 @@ type State = AsyncComponent['state'] & {
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
   get project() {
     // we can't use the withProject HoC on an the issue page
     // so we ge around that by using the withProjects HoC
@@ -114,6 +113,12 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       );
     }
   }
+
+  renderError() {
+    //let the ErrorBoundary parent handle errors instead of AsyncComponent
+    throw new Error('Error ocurred loading endpoints');
+  }
+
   renderLoading() {
     //TODO: Add loading
     return null;
