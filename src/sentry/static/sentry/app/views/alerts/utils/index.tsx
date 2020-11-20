@@ -13,7 +13,7 @@ import {
 import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 import {IssueAlertRule} from 'app/types/alerts';
 
-import {Incident, IncidentStats, IncidentStatus} from './types';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
 
 export function fetchIncident(
   api: Client,
