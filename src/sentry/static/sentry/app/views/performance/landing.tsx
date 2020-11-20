@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import Feature from 'app/components/acl/feature';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
@@ -46,6 +47,7 @@ import {
   DEFAULT_TRENDS_STATS_PERIOD,
   DEFAULT_MAX_DURATION,
 } from './trends/utils';
+import VitalsCards from './vitals-cards';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -359,6 +361,13 @@ class PerformanceLanding extends React.Component<Props, State> {
                     )}
                     onSearch={this.handleSearch}
                   />
+                  <Feature features={['performance-vitals-overview']}>
+                    <VitalsCards
+                      eventView={eventView}
+                      organization={organization}
+                      location={location}
+                    />
+                  </Feature>
                   <Charts
                     eventView={eventView}
                     organization={organization}

@@ -30,6 +30,7 @@ import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {GridCell, GridCellNumber} from '../styles';
 import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
 import BaselineQuery, {BaselineQueryResults} from './baselineQuery';
+import {TransactionFilterOptions} from './utils';
 
 const TOP_TRANSACTION_LIMIT = 5;
 
@@ -45,25 +46,25 @@ function getFilterOptions({p95}: {p95: number}): FilterOption[] {
     {
       query: null,
       sort: {kind: 'asc', field: 'transaction.duration'},
-      value: 'fastest',
+      value: TransactionFilterOptions.FASTEST,
       label: t('Fastest Transactions'),
     },
     {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'slow',
+      value: TransactionFilterOptions.SLOW,
       label: t('Slow Transactions (p95)'),
     },
     {
       query: null,
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'outlier',
+      value: TransactionFilterOptions.OUTLIER,
       label: t('Outlier Transactions (p100)'),
     },
     {
       query: null,
       sort: {kind: 'desc', field: 'timestamp'},
-      value: 'recent',
+      value: TransactionFilterOptions.RECENT,
       label: t('Recent Transactions'),
     },
   ];
@@ -74,7 +75,8 @@ function getTransactionSort(
   p95: number
 ): {selected: FilterOption; options: FilterOption[]} {
   const options = getFilterOptions({p95});
-  const urlParam = decodeScalar(location.query.showTransactions) || 'slow';
+  const urlParam =
+    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
   const selected = options.find(opt => opt.value === urlParam) || options[0];
   return {selected, options};
 }
