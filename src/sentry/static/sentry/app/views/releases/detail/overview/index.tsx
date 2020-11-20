@@ -209,7 +209,7 @@ class ReleaseOverview extends AsyncView<Props> {
           return (
             <ReleaseStatsRequest
               api={api}
-              orgId={organization.slug}
+              organization={organization}
               projectSlug={project.slug}
               version={version}
               selection={selection}

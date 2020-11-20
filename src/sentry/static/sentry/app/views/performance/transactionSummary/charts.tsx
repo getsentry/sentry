@@ -14,6 +14,7 @@ import {
 } from 'app/components/charts/styles';
 import {decodeScalar} from 'app/utils/queryString';
 import OptionSelector from 'app/components/charts/optionSelector';
+import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {ChartContainer} from '../styles';
 import DurationChart from './durationChart';
@@ -81,6 +82,13 @@ class TransactionSummaryCharts extends React.Component<Props> {
       trendDisplay = TrendFunctionField.P50;
     }
 
+    let releaseQueryExtra = {};
+    if (organization.features.includes('release-performance-views')) {
+      releaseQueryExtra = {
+        yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_LCP : YAxis.COUNT_DURATION,
+      };
+    }
+
     return (
       <Panel>
         <ChartContainer>
@@ -100,6 +108,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <DurationChart
               organization={organization}
               query={eventView.query}
+              queryExtra={releaseQueryExtra}
               project={eventView.project}
               environment={eventView.environment}
               start={eventView.start}
@@ -124,6 +133,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
               trendDisplay={trendDisplay}
               organization={organization}
               query={eventView.query}
+              queryExtra={releaseQueryExtra}
               project={eventView.project}
               environment={eventView.environment}
               start={eventView.start}
@@ -135,6 +145,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <VitalsChart
               organization={organization}
               query={eventView.query}
+              queryExtra={releaseQueryExtra}
               project={eventView.project}
               environment={eventView.environment}
               start={eventView.start}

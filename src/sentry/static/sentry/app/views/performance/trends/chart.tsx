@@ -17,6 +17,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
+import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {
   getCurrentTrendFunction,
@@ -292,7 +293,10 @@ class Chart extends React.Component<Props> {
 
     let queryExtra = {};
     if (organization.features.includes('release-performance-views')) {
-      queryExtra = {showTransactions: trendChangeType};
+      queryExtra = {
+        showTransactions: trendChangeType,
+        yAxis: YAxis.COUNT_DURATION,
+      };
     }
 
     const chartOptions = {
