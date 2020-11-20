@@ -29,6 +29,7 @@ import {getTermHelp} from 'app/views/performance/data';
 
 import ReleaseActions from './releaseActions';
 import ReleaseStat from './releaseStat';
+import {getSessionTermDescription} from '../utils/sessionTerm';
 
 type Props = {
   location: Location;
@@ -118,7 +119,7 @@ const ReleaseHeader = ({
           {hasHealthData && (
             <ReleaseStat
               label={t('Crashes')}
-              help={t('Crash means that user experienced an unhandled error')}
+              help={getSessionTermDescription('crashes', project.platform)}
             >
               <Count value={sessionsCrashed} />
             </ReleaseStat>
