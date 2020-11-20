@@ -65,7 +65,7 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert response.status_code == 200, response.content
         assert not response.data["config"]
 
-    def test_config_but_no_source_url(self):
+    def test_file_not_found_error(self):
         self.login_as(user=self.user)
         url = u"{}?file={}".format(self.url, self.filepath)
 
@@ -93,6 +93,37 @@ class ProjectStacktraceLinkTest(APITestCase):
             "defaultBranch": None,
         }
         assert not response.data["sourceUrl"]
+        assert response.data["error"] == "file_not_found"
+
+    def test_stack_root_mismatch_error(self):
+        self.login_as(user=self.user)
+        url = u"{}?file={}".format(self.url, "wrong/file/path")
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["config"] == {
+            "id": six.text_type(self.config.id),
+            "projectId": six.text_type(self.project.id),
+            "projectSlug": self.project.slug,
+            "repoId": six.text_type(self.repo.id),
+            "repoName": self.repo.name,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "Example",
+                "canDisable": False,
+                "key": "example",
+                "slug": "example",
+                "canAdd": True,
+            },
+            "sourceRoot": self.config.source_root,
+            "stackRoot": self.config.stack_root,
+            "integrationId": six.text_type(self.integration.id),
+            "defaultBranch": None,
+        }
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
