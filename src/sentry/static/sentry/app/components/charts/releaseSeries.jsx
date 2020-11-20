@@ -55,6 +55,7 @@ class ReleaseSeries extends React.Component {
     queryExtra: PropTypes.object,
 
     memoized: PropTypes.bool,
+    emphasizeReleases: PropTypes.arrayOf(PropTypes.string),
   };
 
   state = {
@@ -145,13 +146,28 @@ class ReleaseSeries extends React.Component {
   }
 
   setReleasesWithSeries(releases) {
+    const {emphasizeReleases = []} = this.props;
+    const unemphasizedReleases = releases.filter(
+      release => !emphasizeReleases.includes(release.version)
+    );
+    const emphasizedReleases = releases.filter(release =>
+      emphasizeReleases.includes(release.version)
+    );
+    const releaseSeries = [];
+    if (unemphasizedReleases.length) {
+      releaseSeries.push(this.getReleaseSeries(unemphasizedReleases));
+    }
+    if (emphasizedReleases.length) {
+      releaseSeries.push(this.getReleaseSeries(emphasizedReleases, 0.8));
+    }
+
     this.setState({
       releases,
-      releaseSeries: [this.getReleaseSeries(releases)],
+      releaseSeries,
     });
   }
 
-  getReleaseSeries = releases => {
+  getReleaseSeries = (releases, opacity = 0.3) => {
     const {organization, router, tooltip, queryExtra} = this.props;
 
     const query = {...queryExtra};
@@ -167,7 +183,7 @@ class ReleaseSeries extends React.Component {
         lineStyle: {
           normal: {
             color: theme.purple300,
-            opacity: 0.3,
+            opacity,
             type: 'solid',
           },
         },
