@@ -310,29 +310,29 @@ class RuleNode extends React.Component<Props, State> {
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
             {ticketRule && (
-              <Button
-                size="small"
-                icon={<IconSettings size="xs" />}
-                onClick={() => this.openModal()}
-              >
-                {
-                  <Modal
-                    show={this.state.showModal}
-                    onHide={this.closeModal}
-                    animation={false}
-                    enforceFocus={false}
-                    backdrop="static"
-                  >
-                    <Modal.Header closeButton>
-                      <Modal.Title>Issue Link Settings</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                      replace me with an ExternalIssueForm in API-1448
-                    </Modal.Body>
-                  </Modal>
-                }
-                Issue Link Settings
-              </Button>
+              <React.Fragment>
+                <Button
+                  size="small"
+                  icon={<IconSettings size="xs" />}
+                  onClick={() => this.openModal()}
+                >
+                  Issue Link Settings
+                </Button>
+                <Modal
+                  show={this.state.showModal}
+                  onHide={this.closeModal}
+                  animation={false}
+                  enforceFocus={false}
+                  backdrop="static"
+                >
+                  <Modal.Header closeButton>
+                    <Modal.Title>Issue Link Settings</Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body>
+                    replace me with an ExternalIssueForm in API-1448
+                  </Modal.Body>
+                </Modal>
+              </React.Fragment>
             )}
           </Rule>
           <DeleteButton

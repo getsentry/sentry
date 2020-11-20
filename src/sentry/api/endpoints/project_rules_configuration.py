@@ -38,7 +38,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
 
-            if can_create_tickets and node.id in TICKET_ACTIONS:
+            if node.id in TICKET_ACTIONS:
                 context["actionType"] = "ticket"
             # It is possible for a project to have no services. In that scenario we do
             # not want the front end to render the action as the action does not have
