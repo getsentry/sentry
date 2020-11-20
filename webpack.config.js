@@ -334,8 +334,13 @@ let appConfig = {
     ...(SHOULD_FORK_TS
       ? [
           new ForkTsCheckerWebpackPlugin({
-            eslint: TS_FORK_WITH_ESLINT,
-            tsconfig: path.resolve(__dirname, './config/tsconfig.build.json'),
+            eslint: {
+              enabled: TS_FORK_WITH_ESLINT,
+              files: './sentry/**/*.{ts,tsx,js,jsx}',
+            },
+            typescript: {
+              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+            },
           }),
         ]
       : []),
