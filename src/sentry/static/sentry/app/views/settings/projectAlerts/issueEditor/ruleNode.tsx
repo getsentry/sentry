@@ -42,17 +42,14 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-class RuleNode extends React.Component<Props, State> {
-  constructor(props: Props, context) {
-    super(props, context);
+type State = {
+  showModal: boolean;
+};
 
-    this.state = {
-      showModal: false,
-      action: 'create',
-      // selectedIntegration: null,
-      // ...this.getDefaultState(),
-    };
-  }
+class RuleNode extends React.Component<Props, State> {
+  state: State = {
+    showModal: false,
+  };
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -200,17 +197,15 @@ class RuleNode extends React.Component<Props, State> {
     return getFieldTypes[fieldConfig.type](name, fieldConfig);
   };
 
-  openModal = (formFields: any) => {
+  openModal = () => {
     this.setState({
       showModal: true,
-      formFields,
     });
   };
 
   closeModal = () => {
     this.setState({
       showModal: false,
-      selectedIntegration: null,
     });
   };
 
@@ -240,57 +235,23 @@ class RuleNode extends React.Component<Props, State> {
       if (key === 'value' && data && (data.match === 'is' || data.match === 'ns')) {
         return null;
       }
-
-      let formPart;
-      if (formFields.hasOwnProperty('rule_type')) {
-        formPart = this.getField(key, formFields[key]);
-
-        return (
-          <React.Fragment>
-            <Separator key={key}>{formPart}</Separator>
-            with these
-            <SettingsButton
-              size="small"
-              icon={<IconSettings size="xs" />}
-              onClick={() => this.openModal(formFields)}
-            >
-              {
-                <Modal
-                  show={this.state.showModal}
-                  onHide={this.closeModal}
-                  animation={false}
-                  enforceFocus={false}
-                  backdrop="static"
-                >
-                  <Modal.Header closeButton>
-                    <Modal.Title>Issue Link Settings</Modal.Title>
-                  </Modal.Header>
-                  <Modal.Body>
-                    replace me with an ExternalIssueForm in API-1448
-                  </Modal.Body>
-                </Modal>
-              }
-              Issue Link Settings
-            </SettingsButton>
-          </React.Fragment>
-        );
-      } else if (formFields && formFields.hasOwnProperty(key)) {
-        formPart = this.getField(key, formFields[key]);
-      } else {
-        formPart = part;
-      }
-
-      return <Separator key={key}>{formPart}</Separator>;
+      return (
+        <Separator key={key}>
+          {formFields && formFields.hasOwnProperty(key)
+            ? this.getField(key, formFields[key])
+            : part}
+        </Separator>
+      );
     });
 
     const [title, ...inputs] = parts;
 
     // We return this so that it can be a grid
     return (
-      <Rule>
+      <React.Fragment>
         {title}
         {inputs}
-      </Rule>
+      </React.Fragment>
     );
   }
 
@@ -339,13 +300,41 @@ class RuleNode extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, disabled} = this.props;
+    const {data, disabled, node} = this.props;
+    const ticketRule = node?.hasOwnProperty('actionType');
 
     return (
       <RuleRowContainer>
         <RuleRow>
-          {data && <input type="hidden" name="id" value={data.id} />}
-          {this.renderRow()}
+          <Rule>
+            {data && <input type="hidden" name="id" value={data.id} />}
+            {this.renderRow()}
+            {ticketRule && (
+              <Button
+                size="small"
+                icon={<IconSettings size="xs" />}
+                onClick={() => this.openModal()}
+              >
+                {
+                  <Modal
+                    show={this.state.showModal}
+                    onHide={this.closeModal}
+                    animation={false}
+                    enforceFocus={false}
+                    backdrop="static"
+                  >
+                    <Modal.Header closeButton>
+                      <Modal.Title>Issue Link Settings</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                      replace me with an ExternalIssueForm in API-1448
+                    </Modal.Body>
+                  </Modal>
+                }
+                Issue Link Settings
+              </Button>
+            )}
+          </Rule>
           <DeleteButton
             disabled={disabled}
             label={t('Delete Node')}
@@ -400,10 +389,6 @@ const Rule = styled('div')`
   align-items: center;
   flex: 1;
   flex-wrap: wrap;
-`;
-
-const SettingsButton = styled(Button)`
-  margin-left: ${space(1)};
 `;
 
 const DeleteButton = styled(Button)`
