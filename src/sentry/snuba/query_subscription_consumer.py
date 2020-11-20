@@ -105,16 +105,19 @@ class QuerySubscriptionConsumer(object):
         self.offsets.clear()
 
         def on_assign(consumer, partitions):
+            updated_partitions = []
             for partition in partitions:
                 if self.resolve_partition_force_offset:
                     partition = self.resolve_partition_force_offset(partition)
-                    self.consumer.assign([partition])
+                    updated_partitions.append(partition)
 
                 if partition.offset == OFFSET_INVALID:
                     updated_offset = None
                 else:
                     updated_offset = partition.offset
                 self.offsets[partition.partition] = updated_offset
+            if updated_partitions:
+                self.consumer.assign(updated_partitions)
             logger.info(
                 "query-subscription-consumer.on_assign",
                 extra={
