@@ -92,7 +92,8 @@ export default class AsyncComponent<
   // and it will need to handle any additional "reloading" states
   shouldReload = false;
 
-  shouldRaiseRequestErrorToParent = false;
+  // should `renderError` render the `detail` attribute of a 400 error
+  shouldRenderBadRequests = false;
 
   constructor(props: P, context: any) {
     super(props, context);
