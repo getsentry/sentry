@@ -17,9 +17,11 @@ import ButtonBar from 'app/components/buttonBar';
 import IdBadge from 'app/components/idBadge';
 import TextOverflow from 'app/components/textOverflow';
 import CreateAlertButton from 'app/components/createAlertButton';
+import Feature from 'app/components/acl/feature';
 
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
+import ProjectLatestAlerts from './projectLatestAlerts';
 
 type RouteParams = {
   orgId: string;
@@ -51,7 +53,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params} = this.props;
+    const {organization, params, location} = this.props;
     const {project} = this.state;
 
     return (
@@ -108,13 +110,13 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
-                  doloremque ut perferendis harum, optio temporibus eaque officia, illo
-                  est quia animi eum sunt dolorem in eligendi quod, corrupti dolores
-                  doloribus!
-                </p>
+                <Feature features={['incidents']}>
+                  <ProjectLatestAlerts
+                    organization={organization}
+                    projectSlug={params.projectId}
+                    location={location}
+                  />
+                </Feature>
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>
