@@ -32,6 +32,7 @@ export const PERFORMANCE_AXIS = [
   YAxis.ALL_TRANSACTIONS,
   YAxis.COUNT_DURATION,
   YAxis.COUNT_LCP,
+  YAxis.EVENTS,
 ];
 
 type Props = {
@@ -117,7 +118,7 @@ const ReleaseChartControls = ({
     },
     {
       value: YAxis.EVENTS,
-      label: t('Event Count'),
+      label: t('Error Count'),
       disabled: !hasDiscover,
       tooltip: noDiscoverTooltip,
     },
@@ -136,7 +137,7 @@ const ReleaseChartControls = ({
       case YAxis.EVENTS:
         return t('Total Events');
       case YAxis.FAILED_TRANSACTIONS:
-        return t('Failed Transactions');
+        return t('Total Failed Transactions');
       case YAxis.COUNT_DURATION:
         return t(`Count over ${organization.apdexThreshold}ms`);
       case YAxis.COUNT_LCP:
@@ -152,15 +153,15 @@ const ReleaseChartControls = ({
   return (
     <StyledChartControls>
       <InlineContainer>
-        {PERFORMANCE_AXIS.includes(yAxis) && (
-          <StyledQuestionTooltip
-            position="top"
-            size="sm"
-            title="This only shows the current release."
-          />
-        )}
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
+        {PERFORMANCE_AXIS.includes(yAxis) && (
+          <QuestionTooltip
+            position="top"
+            size="sm"
+            title="This count shows only the current release."
+          />
+        )}
       </InlineContainer>
 
       <OptionSelector
@@ -183,10 +184,6 @@ const StyledChartControls = styled(ChartControls)`
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-right: ${space(1)};
 `;
 
 export default ReleaseChartControls;

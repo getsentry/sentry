@@ -1,6 +1,6 @@
 import {TWO_WEEKS, getDiffInMinutes, DateTimeObject} from 'app/components/charts/utils';
 import EventView from 'app/utils/discover/eventView';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, NewQuery} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import {getUtcDateString} from 'app/utils/dates';
 import {t} from 'app/locale';
@@ -36,26 +36,33 @@ export function getReleaseEventView(
   const {start, end, period} = datetime;
   const releaseFilter = currentOnly ? `release:${version}` : '';
 
+  const baseQuery: Omit<NewQuery, 'query'> = {
+    id: undefined,
+    version: 2,
+    name: `${t('Release')} ${formatVersion(version)}`,
+    fields: [`count()`, `to_other(release,${version},others,current)`],
+    orderby: `to_other_release_${version}_current_others`,
+    range: period,
+    environment: environments,
+    projects,
+    start: start ? getUtcDateString(start) : undefined,
+    end: end ? getUtcDateString(end) : undefined,
+  };
+
   switch (yAxis) {
     case YAxis.ALL_TRANSACTIONS:
     case YAxis.FAILED_TRANSACTIONS:
-      const statusFilter =
-        yAxis === YAxis.FAILED_TRANSACTIONS
-          ? ['ok', 'cancelled', 'unknown'].map(s => `!transaction.status:${s}`).join(' ')
-          : '';
+      const notStatuses =
+        yAxis === YAxis.FAILED_TRANSACTIONS ? ['ok', 'cancelled', 'unknown'] : [];
       return EventView.fromSavedQuery({
-        id: undefined,
-        version: 2,
-        name: `${t('Release')} ${formatVersion(version)}`,
-        fields: [`count()`, `to_other(release,${version},others,current)`],
-        query: `${releaseFilter} ${statusFilter}`.trim(),
-        // this orderby ensures that the order is [others, current]
-        orderby: `to_other_release_${version}_current_others`,
-        range: period,
-        environment: environments,
-        projects,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults([
+            releaseFilter,
+            'event.type:transaction',
+            ...notStatuses.map(s => `!transaction.status:${s}`),
+          ])
+        ),
       });
     case YAxis.COUNT_LCP:
     case YAxis.COUNT_DURATION:
@@ -66,34 +73,32 @@ export function getReleaseEventView(
           ? organization.apdexThreshold
           : WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold;
       return EventView.fromSavedQuery({
-        id: undefined,
-        version: 2,
-        name: `${t('Release')} ${formatVersion(version)}`,
-        fields: ['count()', `to_other(release,${version},others,current)`],
-        query: `event.type:transaction ${releaseFilter} ${column}:>${threshold}`,
-        // this orderby ensures that the order is [others, current]
-        orderby: `to_other_release_${version}_current_others`,
-        range: period,
-        environment: environments,
-        projects,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults([
+            releaseFilter,
+            'event.type:transaction',
+            `${column}:>${threshold}`,
+          ])
+        ),
+      });
+    case YAxis.EVENTS:
+      return EventView.fromSavedQuery({
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults([releaseFilter, '!event.type:transaction'])
+        ),
       });
     default:
+      // If this was an unknown YAxis, we assume this is for an Open in Discover button
+      // for the issues list.
       return EventView.fromSavedQuery({
-        id: undefined,
-        version: 2,
-        name: `${t('Release')} ${formatVersion(version)}`,
+        ...baseQuery,
         fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
         query: stringifyQueryObject(
           new QueryResults([`release:${version}`, '!event.type:transaction'])
         ),
         orderby: '-last_seen',
-        range: period,
-        environment: environments,
-        projects,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
       });
   }
 }
