@@ -1,6 +1,17 @@
 import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 
+export const sessionTerm = {
+  crashes: t('Crashes'),
+  crashed: t('Crashed'),
+  abnormal: t('Abnormal'),
+  'crash-free-users': t('Crash Free Users'),
+  'crash-free-sessions': t('Crash Free Sessions'),
+  healthy: t('Healthy'),
+  errored: t('Errored'),
+  unhandled: t('Unhandled'),
+};
+
 const commonTermsDescription = {
   crashes: t('Number of sessions with a crashed state'),
   'crash-free-users': t('Number of unique users with non-crashed sessions'),

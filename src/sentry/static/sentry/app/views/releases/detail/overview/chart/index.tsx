@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
+import {PlatformKey} from 'app/data/platformCategories';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 
@@ -23,6 +24,7 @@ import {getReleaseEventView} from './utils';
 type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   releaseMeta: ReleaseMeta;
   selection: GlobalSelection;
+  platform: PlatformKey;
   yAxis: YAxis;
   eventType: EventType;
   onYAxisChange: (yAxis: YAxis) => void;
@@ -148,10 +150,20 @@ class ReleaseChartContainer extends React.Component<Props> {
   }
 
   renderHealthChart() {
-    const {loading, errored, reloading, chartData, selection, yAxis, router} = this.props;
+    const {
+      loading,
+      errored,
+      reloading,
+      chartData,
+      selection,
+      yAxis,
+      router,
+      platform,
+    } = this.props;
 
     return (
       <HealthChartContainer
+        platform={platform}
         loading={loading}
         errored={errored}
         reloading={reloading}
