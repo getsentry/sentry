@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import Modal from 'react-bootstrap/lib/Modal';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -21,8 +20,9 @@ import {
 import Input from 'app/views/settings/components/forms/controls/input';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
 import ExternalLink from 'app/components/links/externalLink';
+import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
 import {Organization, Project} from 'app/types';
-import {IconDelete, IconSettings} from 'app/icons';
+import {IconDelete} from 'app/icons';
 
 type FormField = {
   // Type of form fields
@@ -197,18 +197,6 @@ class RuleNode extends React.Component<Props, State> {
     return getFieldTypes[fieldConfig.type](name, fieldConfig);
   };
 
-  openModal = () => {
-    this.setState({
-      showModal: true,
-    });
-  };
-
-  closeModal = () => {
-    this.setState({
-      showModal: false,
-    });
-  };
-
   renderRow() {
     const {data, node} = this.props;
 
@@ -309,31 +297,7 @@ class RuleNode extends React.Component<Props, State> {
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && (
-              <React.Fragment>
-                <Button
-                  size="small"
-                  icon={<IconSettings size="xs" />}
-                  onClick={() => this.openModal()}
-                >
-                  Issue Link Settings
-                </Button>
-                <Modal
-                  show={this.state.showModal}
-                  onHide={this.closeModal}
-                  animation={false}
-                  enforceFocus={false}
-                  backdrop="static"
-                >
-                  <Modal.Header closeButton>
-                    <Modal.Title>Issue Link Settings</Modal.Title>
-                  </Modal.Header>
-                  <Modal.Body>
-                    replace me with an ExternalIssueForm in API-1448
-                  </Modal.Body>
-                </Modal>
-              </React.Fragment>
-            )}
+            {ticketRule && <TicketRuleForm showModal={this.state.showModal} />}
           </Rule>
           <DeleteButton
             disabled={disabled}
