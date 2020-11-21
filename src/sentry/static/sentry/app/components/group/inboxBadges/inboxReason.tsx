@@ -23,6 +23,7 @@ const InboxReason = ({inbox}: Props) => {
 
   let reasonBadgeText: string;
   let tooltipText: string | undefined;
+  let tagType: React.ComponentProps<typeof Tag>['type'];
 
   if (reason === GroupInboxReason.UNIGNORED) {
     reasonBadgeText = t('Unignored');
@@ -31,13 +32,16 @@ const InboxReason = ({inbox}: Props) => {
       window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
     });
   } else if (reason === GroupInboxReason.REGRESSION) {
+    tagType = 'error';
     reasonBadgeText = t('Regression');
-    tooltipText = t('Issue was previously resolved.');
+    tooltipText = t('Issue was resolved.');
   } else if (reason === GroupInboxReason.MANUAL) {
+    tagType = 'highlight';
     reasonBadgeText = t('Manual');
     // TODO(scttcper): Add tooltip text for a manual move
     // Moved to inbox by {full_name}.
   } else {
+    tagType = 'warning';
     reasonBadgeText = t('New Issue');
   }
 
@@ -52,7 +56,11 @@ const InboxReason = ({inbox}: Props) => {
     </TooltipWrapper>
   );
 
-  return <Tag tooltipText={tooltip}>{reasonBadgeText}</Tag>;
+  return (
+    <Tag type={tagType} tooltipText={tooltip}>
+      {reasonBadgeText}
+    </Tag>
+  );
 };
 
 export default InboxReason;

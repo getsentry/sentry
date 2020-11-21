@@ -254,12 +254,10 @@ class StreamGroup extends React.Component<Props, State> {
         </GroupSummary>
         {hasInbox && (
           <ReasonAndTimesContainer>
-            {hasInboxReason && data.inbox ? (
+            {hasInboxReason && data.inbox && (
               <InboxReasonWrapper>
                 <InboxReason inbox={data.inbox} />
               </InboxReasonWrapper>
-            ) : (
-              <InboxPlaceholder />
             )}
             <div>
               <TimesTag
@@ -401,6 +399,7 @@ class StreamGroup extends React.Component<Props, State> {
 
 const Wrapper = styled(PanelItem)`
   padding: ${space(1)} 0;
+  align-items: center;
   line-height: 1.1;
 `;
 
@@ -476,27 +475,20 @@ const ReasonAndTimesContainer = styled('div')`
   display: flex;
   width: 175px;
   flex-direction: column;
-  align-items: end;
   margin: 0 ${space(2)};
 `;
 
 const InboxReasonWrapper = styled('div')`
-  margin-bottom: ${space(0.5)};
-`;
-
-const InboxPlaceholder = styled('div')`
-  height: 20px;
+  margin-bottom: ${space(0.75)};
 `;
 
 const ChartWrapper = styled('div')`
   width: 160px;
-  align-self: center;
   margin: 0 ${space(2)};
 `;
 
 const AssigneeWrapper = styled('div')`
   width: 80px;
-  align-self: center;
   margin: 0 ${space(2)};
 `;
 
