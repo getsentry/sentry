@@ -63,6 +63,10 @@ describe('ProjectAlerts -> IssueEditor', function () {
       body: TestStubs.ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/2/',
+      body: TestStubs.ProjectAlertRule(),
+    });
+    MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
       body: TestStubs.Environments(),
     });
