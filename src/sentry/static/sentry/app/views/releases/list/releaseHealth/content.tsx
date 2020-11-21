@@ -4,12 +4,11 @@ import {Location} from 'history';
 
 import Count from 'app/components/count';
 import Link from 'app/components/links/link';
-import {PanelBody} from 'app/components/panels';
+import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import ScoreBar from 'app/components/scoreBar';
-import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Release, ReleaseProject} from 'app/types';
@@ -26,7 +25,6 @@ import HealthStatsSubject, {StatsSubject} from '../healthStatsSubject';
 import NotAvailable from '../notAvailable';
 
 import Header from './header';
-import Item from './item';
 import ProjectName from './projectName';
 
 type Props = {
@@ -50,243 +48,209 @@ const Content = ({
   return (
     <React.Fragment>
       <Header>
-        <HeaderLayout>
+        <Layout>
           <ProjectColumn>{t('Project name')}</ProjectColumn>
-          <AdoptionColumn>{t('Release adoption')}</AdoptionColumn>
-          <CrashFreeUsersColumn>{t('Crash free users')}</CrashFreeUsersColumn>
-          <CrashFreeSessionsColumn>{t('Crash free sessions')}</CrashFreeSessionsColumn>
-          <DailyUsersColumn>
+          <AdoptionColumn>{t('User Adoption')}</AdoptionColumn>
+          <UsersColumn>{t('Crash-free users')}</UsersColumn>
+          <SessionsColumn>{t('Crash-free sessions')}</SessionsColumn>
+          <DailyColumn>
             <HealthStatsSubject location={location} activeSubject={activeStatsSubject} />
             <HealthStatsPeriod location={location} activePeriod={activeStatsPeriod} />
-          </DailyUsersColumn>
+          </DailyColumn>
           <CrashesColumn>{t('Crashes')}</CrashesColumn>
-          <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-        </HeaderLayout>
+          <IssuesColumn>{t('New Issues')}</IssuesColumn>
+        </Layout>
       </Header>
 
-      <PanelBody>
-        <StyledClippedHealthRows>
-          {projects.map(project => {
-            const {slug, healthData, newGroups} = project;
-            const {
-              hasHealthData,
-              adoption,
-              stats,
-              crashFreeUsers,
-              crashFreeSessions,
-              sessionsCrashed,
-              totalUsers,
-              totalUsers24h,
-              totalSessions,
-              totalSessions24h,
-            } = healthData || {};
+      <ClippedHealthRows>
+        {projects.map(project => {
+          const {slug, healthData, newGroups} = project;
+          const {
+            hasHealthData,
+            adoption,
+            stats,
+            crashFreeUsers,
+            crashFreeSessions,
+            sessionsCrashed,
+            totalUsers,
+            totalUsers24h,
+            totalSessions,
+            totalSessions24h,
+          } = healthData || {};
 
-            return (
-              <Item key={`${releaseVersion}-${slug}-health`}>
-                <Layout>
-                  <ProjectColumn>
-                    <ProjectName
-                      orgSlug={orgSlug}
-                      project={project}
-                      releaseVersion={releaseVersion}
-                    />
-                  </ProjectColumn>
+          return (
+            <ProjectRow key={`${releaseVersion}-${slug}-health`}>
+              <Layout>
+                <ProjectColumn>
+                  <ProjectName
+                    orgSlug={orgSlug}
+                    project={project}
+                    releaseVersion={releaseVersion}
+                  />
+                </ProjectColumn>
 
-                  <AdoptionColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="150px" />
-                    ) : defined(adoption) ? (
-                      <AdoptionWrapper>
-                        <Tooltip
-                          title={
-                            <AdoptionTooltip
-                              totalUsers={totalUsers!}
-                              totalSessions={totalSessions!}
-                              totalUsers24h={totalUsers24h!}
-                              totalSessions24h={totalSessions24h!}
-                            />
-                          }
-                        >
-                          <StyledScoreBar
-                            score={convertAdoptionToProgress(adoption)}
-                            size={20}
-                            thickness={5}
-                            radius={0}
-                            palette={Array(10).fill(theme.purple300)}
+                <AdoptionColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="150px" />
+                  ) : defined(adoption) ? (
+                    <AdoptionProgress>
+                      <Tooltip
+                        title={
+                          <AdoptionTooltip
+                            totalUsers={totalUsers!}
+                            totalSessions={totalSessions!}
+                            totalUsers24h={totalUsers24h!}
+                            totalSessions24h={totalSessions24h!}
                           />
-                        </Tooltip>
-                        <TextOverflow>
-                          <Count value={totalUsers24h ?? 0} />{' '}
-                          {tn('user', 'users', totalUsers24h)}
-                        </TextOverflow>
-                      </AdoptionWrapper>
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </AdoptionColumn>
-
-                  <CrashFreeUsersColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeUsers) ? (
-                      <CrashFree percent={crashFreeUsers} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeUsersColumn>
-
-                  <CrashFreeSessionsColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeSessions) ? (
-                      <CrashFree percent={crashFreeSessions} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashFreeSessionsColumn>
-
-                  <DailyUsersColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder />
-                    ) : hasHealthData && defined(stats) ? (
-                      <ChartWrapper>
-                        <HealthStatsChart
-                          data={stats}
-                          height={20}
-                          period={activeStatsPeriod}
-                          subject={activeStatsSubject}
-                        />
-                      </ChartWrapper>
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </DailyUsersColumn>
-
-                  <CrashesColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="30px" />
-                    ) : hasHealthData && defined(sessionsCrashed) ? (
-                      <Count value={sessionsCrashed} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </CrashesColumn>
-
-                  <NewIssuesColumn>
-                    <Tooltip title={t('Open in Issues')}>
-                      <Link
-                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                        }
                       >
-                        <Count value={newGroups || 0} />
-                      </Link>
-                    </Tooltip>
-                  </NewIssuesColumn>
-                </Layout>
-              </Item>
-            );
-          })}
-        </StyledClippedHealthRows>
-      </PanelBody>
+                        <ScoreBar
+                          score={convertAdoptionToProgress(adoption)}
+                          size={20}
+                          thickness={5}
+                          radius={0}
+                          palette={Array(10).fill(theme.purple300)}
+                        />
+                      </Tooltip>
+                      <Count value={totalUsers24h ?? 0} />
+                    </AdoptionProgress>
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </AdoptionColumn>
+
+                <UsersColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="60px" />
+                  ) : defined(crashFreeUsers) ? (
+                    <CrashFree percent={crashFreeUsers} />
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </UsersColumn>
+
+                <SessionsColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="60px" />
+                  ) : defined(crashFreeSessions) ? (
+                    <CrashFree percent={crashFreeSessions} />
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </SessionsColumn>
+
+                <DailyColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder />
+                  ) : hasHealthData && defined(stats) ? (
+                    <ChartWrapper>
+                      <HealthStatsChart
+                        data={stats}
+                        height={20}
+                        period={activeStatsPeriod}
+                        subject={activeStatsSubject}
+                      />
+                    </ChartWrapper>
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </DailyColumn>
+
+                <CrashesColumn>
+                  {showPlaceholders ? (
+                    <StyledPlaceholder width="30px" />
+                  ) : hasHealthData && defined(sessionsCrashed) ? (
+                    <Count value={sessionsCrashed} />
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </CrashesColumn>
+
+                <IssuesColumn>
+                  <Tooltip title={t('Open in Issues')}>
+                    <Link
+                      to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                    >
+                      <Count value={newGroups || 0} />
+                    </Link>
+                  </Tooltip>
+                </IssuesColumn>
+              </Layout>
+            </ProjectRow>
+          );
+        })}
+      </ClippedHealthRows>
     </React.Fragment>
   );
 };
 
 export default Content;
 
-const StyledClippedHealthRows = styled(ClippedHealthRows)`
-  margin-bottom: -1px;
+const ProjectRow = styled(PanelItem)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    font-size: ${p => p.theme.fontSizeMedium};
+    max-height: 41px;
+  }
 `;
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-areas: 'project adoption crash-free-users crash-free-sessions daily-users crashes new-issues';
-  grid-template-columns: 2fr 2fr 1.4fr 1.4fr 2.1fr 0.7fr 0.8fr;
-  grid-column-gap: ${space(1.5)};
+  grid-template-columns: 1fr 1fr 0.5fr 0.5fr;
+  grid-column-gap: ${space(1)};
+  align-content: center;
   width: 100%;
-  align-items: center;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-areas: 'project adoption crash-free-users crash-free-sessions crashes new-issues';
-    grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr 1fr;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-areas: 'project crash-free-users crash-free-sessions crashes new-issues';
-    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-areas: 'project crash-free-sessions new-issues';
-    grid-template-columns: 2fr 1.6fr 1fr;
-  }
-`;
 
-const HeaderLayout = styled(Layout)`
-  align-items: flex-end;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: 1fr 1fr 1fr 1fr 0.5fr 0.5fr;
+  }
 `;
 
 const Column = styled('div')`
   ${overflowEllipsis};
 `;
 
-const RightColumn = styled(Column)`
+const ProjectColumn = styled(Column)``;
+
+const AdoptionColumn = styled(Column)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: flex;
+    /* Chart tooltips need overflow */
+    overflow: visible;
+  }
+`;
+
+const AdoptionProgress = styled('span')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+`;
+
+const UsersColumn = styled(Column)`
+  display: none;
+`;
+
+const SessionsColumn = styled(Column)``;
+
+const DailyColumn = styled(Column)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    display: flex;
+    /* Chart tooltips need overflow */
+    overflow: visible;
+  }
+`;
+
+const CrashesColumn = styled(Column)`
   text-align: right;
 `;
 
-const CenterColumn = styled(Column)`
-  text-align: center;
-`;
-
-const ProjectColumn = styled(Column)`
-  grid-area: project;
-`;
-
-const DailyUsersColumn = styled(Column)`
-  grid-area: daily-users;
-  display: flex;
-  align-items: flex-end;
-  /* Chart tooltips need overflow */
-  overflow: visible;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    display: none;
-  }
-`;
-const AdoptionColumn = styled(Column)`
-  grid-area: adoption;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
-  }
-`;
-const CrashFreeUsersColumn = styled(CenterColumn)`
-  grid-area: crash-free-users;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    text-align: left;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-const CrashFreeSessionsColumn = styled(CenterColumn)`
-  grid-area: crash-free-sessions;
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    text-align: left;
-  }
-`;
-const CrashesColumn = styled(RightColumn)`
-  grid-area: crashes;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
-  }
-`;
-const NewIssuesColumn = styled(RightColumn)`
-  grid-area: new-issues;
-`;
-
-const AdoptionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-`;
-
-const StyledScoreBar = styled(ScoreBar)`
-  margin-right: ${space(1)};
+const IssuesColumn = styled(Column)`
+  text-align: right;
 `;
 
 const ChartWrapper = styled('div')`

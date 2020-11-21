@@ -5,7 +5,6 @@ import partition from 'lodash/partition';
 
 import {GlobalSelection, Release} from 'app/types';
 
-import CompactContent from './compactContent';
 import Content from './content';
 
 type Props = {
@@ -32,27 +31,15 @@ const ReleaseHealth = ({
     )
   );
 
-  const hasAtLeastOneHealthData = sortedProjects.some(
-    sortedProject => sortedProject.hasHealthData
-  );
-
   const contentProps = {
     projects: sortedProjects,
     releaseVersion: release.version,
     orgSlug,
   };
 
-  if (hasAtLeastOneHealthData) {
-    return (
-      <Content
-        {...contentProps}
-        location={location}
-        showPlaceholders={showPlaceholders}
-      />
-    );
-  }
-
-  return <CompactContent {...contentProps} />;
+  return (
+    <Content {...contentProps} location={location} showPlaceholders={showPlaceholders} />
+  );
 };
 
 export default ReleaseHealth;

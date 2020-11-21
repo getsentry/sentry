@@ -27,8 +27,8 @@ import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 
 import ReleaseCard from './releaseCard';
 import ReleaseLanding from './releaseLanding';
-import ReleaseListDisplayOptions from './releaseListDisplayOptions';
 import ReleaseListSortOptions from './releaseListSortOptions';
+import ReleaseListStatusOptions from './releaseListStatusOptions';
 
 type RouteParams = {
   orgId: string;
@@ -268,7 +268,7 @@ class ReleasesList extends AsyncView<Props, State> {
             <StyledPageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
-                <ReleaseListDisplayOptions
+                <ReleaseListStatusOptions
                   selected={this.getDisplay()}
                   onSelect={this.handleDisplay}
                 />

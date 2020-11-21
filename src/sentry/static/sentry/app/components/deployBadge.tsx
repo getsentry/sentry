@@ -52,14 +52,13 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
 const Badge = styled(Tag)`
   background-color: ${p => p.theme.textColor};
   color: ${p => p.theme.background};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   align-items: center;
-  height: 20px;
 `;
 
 const Label = styled('span')`
   max-width: 100px;
-  line-height: 20px;
+  vertical-align: middle;
   ${overflowEllipsis}
 `;
 

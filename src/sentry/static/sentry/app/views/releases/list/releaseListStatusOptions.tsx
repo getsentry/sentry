@@ -20,10 +20,10 @@ type Props = {
   onSelect: (key: string) => void;
 };
 
-function ReleaseListDisplayOptions({selected, onSelect}: Props) {
+function ReleaseListStatusOptions({selected, onSelect}: Props) {
   return (
     <ReleaseListDropdown
-      label={t('Display')}
+      label={t('Status')}
       options={options}
       selected={selected}
       onSelect={onSelect}
@@ -31,4 +31,4 @@ function ReleaseListDisplayOptions({selected, onSelect}: Props) {
   );
 }
 
-export default ReleaseListDisplayOptions;
+export default ReleaseListStatusOptions;

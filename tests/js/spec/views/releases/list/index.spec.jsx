@@ -64,15 +64,15 @@ describe('ReleasesList', function () {
   });
 
   it('renders list', function () {
-    const items = wrapper.find('StyledPanel');
+    const items = wrapper.find('StyledReleaseCard');
 
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
-    expect(items.at(0).text()).toContain('Release adoption');
+    expect(items.at(0).text()).toContain('User Adoption');
     expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('DailyUsersColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(1).find('DailyColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(items.at(2).find('Header').text()).toEqual('Projects');
+    expect(items.at(2).find('Header').text()).toContain('Project');
   });
 
   it('displays the right empty state', function () {
@@ -87,7 +87,7 @@ describe('ReleasesList', function () {
       <ReleasesList {...props} location={location} />,
       routerContext
     );
-    expect(wrapper.find('StyledPanel')).toHaveLength(0);
+    expect(wrapper.find('StyledReleaseCard')).toHaveLength(0);
     expect(wrapper.find('Promo').text()).toContain('Demystify Releases');
 
     location = {query: {statsPeriod: '30d'}};
@@ -95,7 +95,7 @@ describe('ReleasesList', function () {
       <ReleasesList {...props} location={location} />,
       routerContext
     );
-    expect(wrapper.find('StyledPanel')).toHaveLength(0);
+    expect(wrapper.find('StyledReleaseCard')).toHaveLength(0);
     expect(wrapper.find('EmptyMessage').text()).toEqual('There are no releases.');
 
     location = {query: {query: 'abc'}};
@@ -185,7 +185,7 @@ describe('ReleasesList', function () {
     expect(archivedWrapper.find('ReleaseArchivedNotice').exists()).toBeTruthy();
 
     const displayOptions = archivedWrapper
-      .find('ReleaseListDisplayOptions')
+      .find('ReleaseListStatusOptions')
       .first()
       .find('DropdownItem span');
     const displayActiveOption = displayOptions.at(0);
@@ -234,7 +234,7 @@ describe('ReleasesList', function () {
       })
     );
 
-    const healthStatsControls = wrapper.find('DailyUsersColumn').first();
+    const healthStatsControls = wrapper.find('DailyColumn').first();
 
     expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
     expect(healthStatsControls.find('Title[selected=true]').text()).toEqual('Sessions');
