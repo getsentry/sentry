@@ -5,7 +5,7 @@ import {Location} from 'history';
 import space from 'app/styles/space';
 import EventView from 'app/utils/discover/eventView';
 import {Organization} from 'app/types';
-import {Panel} from 'app/components/panels';
+import Card from 'app/components/card';
 import {formatPercentage} from 'app/utils/formatters';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
@@ -66,6 +66,7 @@ const VitalsContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
   gap: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 type CardProps = Props & {
@@ -79,18 +80,14 @@ const NonPanel = styled('div')`
   flex-grow: 1;
 `;
 
-const Card = styled(Panel)`
-  padding: ${space(2)};
-  cursor: pointer;
-`;
+const StyledVitalCard = styled(Card)`
+  color: ${p => p.theme.textColor};
+  padding: ${space(1.5)} ${space(2)} ${space(2)} ${space(2)};
 
-const StyledQueryCard = styled(Card)`
   &:focus,
   &:hover {
+    color: ${p => p.theme.textColor};
     top: -1px;
-    box-shadow: 0px 0px 0px 6px rgba(209, 202, 216, 0.2);
-    position: relative;
-    outline: none;
   }
 `;
 
@@ -108,11 +105,11 @@ export function VitalsCard(props: CardProps) {
 
   const measurement = vitalAbbreviations[vitalName];
 
-  const Container = noBorder ? NonPanel : StyledQueryCard;
+  const Container = noBorder ? NonPanel : StyledVitalCard;
 
   if (isLoading || !tableData || !tableData.data || !tableData.data[0]) {
     return (
-      <Container>
+      <Container interactive>
         <CardTitle>{t(`${measurement} Passing`)}</CardTitle>
         <CardValue>-</CardValue>
       </Container>
@@ -130,7 +127,7 @@ export function VitalsCard(props: CardProps) {
   const value = formatPercentage(1 - thresholdCount / baseCount);
 
   return (
-    <Container>
+    <Container interactive>
       <CardTitle>Total Passing {measurement}</CardTitle>
       <CardValue>{value}</CardValue>
     </Container>
@@ -154,23 +151,19 @@ const VitalLink = (props: VitalLinkProps) => {
   });
 
   return (
-    <StyledVitalLink
+    <Link
       to={target}
       data-test-id={`vitals-linked-card-${vitalAbbreviations[vitalName]}`}
     >
       {children}
-    </StyledVitalLink>
+    </Link>
   );
 };
 
-const StyledVitalLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-`;
-
 const CardTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 const CardValue = styled('div')`
-  font-size: 30px;
+  font-size: 32px;
 `;

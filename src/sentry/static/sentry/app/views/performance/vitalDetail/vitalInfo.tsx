@@ -8,7 +8,7 @@ import {WebVital} from 'app/utils/discover/fields';
 import VitalsCardDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 import space from 'app/styles/space';
 
-import {VitalsCard} from '../vitals-cards';
+import {VitalsCard} from '../vitalsCards';
 import {vitalDescription} from './utils';
 
 type Props = {

@@ -47,7 +47,7 @@ import {
   DEFAULT_TRENDS_STATS_PERIOD,
   DEFAULT_MAX_DURATION,
 } from './trends/utils';
-import VitalsCards from './vitals-cards';
+import VitalsCards from './vitalsCards';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
