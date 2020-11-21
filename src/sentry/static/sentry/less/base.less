@@ -153,7 +153,7 @@ a {
   &:hover,
   &:focus {
     color: @link-hover-color;
-    text-decoration: @link-hover-decoration;
+    text-decoration: none;
   }
 
   &:focus {
@@ -297,7 +297,7 @@ mark {
 }
 
 small {
-  font-size: 80%;
+  font-size: 12px;
 }
 
 //
@@ -397,7 +397,6 @@ code {
 pre {
   display: block;
   padding: ((@line-height-computed - 1) / 2);
-  margin: 0 0 (@line-height-computed / 2);
   font-size: (@font-size-base - 1); // 14px to 13px
   line-height: @line-height-base;
   color: @pre-color;
@@ -405,7 +404,6 @@ pre {
   white-space: pre-wrap;
   word-wrap: break-word;
   background-color: @pre-bg;
-  border: 1px solid @pre-border-color;
   border-radius: @border-radius-base;
   overflow: auto;
 
