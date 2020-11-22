@@ -8,19 +8,21 @@ import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
+import {PlatformKey} from 'app/data/platformCategories';
 import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeList} from 'app/utils/queryString';
-<<<<<<< HEAD
 import theme from 'app/utils/theme';
-=======
-import {PlatformKey} from 'app/data/platformCategories';
->>>>>>> parent 2a30ac698d80403fdb6d9b7b4a11dd2e45e9f902
+
+import {
+  getSessionTermDescription,
+  SessionTerm,
+  sessionTerm,
+} from '../../../utils/sessionTerm';
 
 import {YAxis} from './releaseChartControls';
-import {sessionTerm, getSessionTermDescription} from '../../../utils/sessionTerm';
 
 type Props = {
   reloading: boolean;
@@ -173,17 +175,17 @@ class HealthChart extends React.Component<Props> {
 
     switch (serieName) {
       case sessionTerm.crashed:
-        return getSessionTermDescription('crashed', platform);
+        return getSessionTermDescription(SessionTerm.CRASHED, platform);
       case sessionTerm.abnormal:
-        return getSessionTermDescription('abnormal', platform);
+        return getSessionTermDescription(SessionTerm.ABNORMAL, platform);
       case sessionTerm.errored:
-        return getSessionTermDescription('errored', platform);
+        return getSessionTermDescription(SessionTerm.ERRORED, platform);
       case sessionTerm.healthy:
-        return getSessionTermDescription('healthy', platform);
+        return getSessionTermDescription(SessionTerm.HEALTHY, platform);
       case sessionTerm['crash-free-users']:
-        return getSessionTermDescription('crash-free-users', platform);
+        return getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, platform);
       case sessionTerm['crash-free-sessions']:
-        return getSessionTermDescription('crash-free-sessions', platform);
+        return getSessionTermDescription(SessionTerm.CRASH_FREE_SESSIONS, platform);
       default:
         return '';
     }
@@ -217,15 +219,15 @@ class HealthChart extends React.Component<Props> {
           legendIndex: number;
           name: string;
         }): string => {
-          const serieNameDesc = this.getLegendTooltipDescription(params.name);
+          const seriesNameDesc = this.getLegendTooltipDescription(params.name);
 
-          if (!serieNameDesc) {
+          if (!seriesNameDesc) {
             return '';
           }
 
           return [
             '<div class="tooltip-description">',
-            `<div>${serieNameDesc}</div>`,
+            `<div>${seriesNameDesc}</div>`,
             '</div>',
           ].join('');
         },

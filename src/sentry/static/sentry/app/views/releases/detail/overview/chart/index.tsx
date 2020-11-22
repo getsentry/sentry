@@ -5,11 +5,11 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
 import {Panel} from 'app/components/panels';
+import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {PlatformKey} from 'app/data/platformCategories';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 

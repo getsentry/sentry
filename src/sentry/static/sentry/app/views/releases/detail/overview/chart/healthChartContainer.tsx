@@ -5,11 +5,12 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {PlatformKey} from 'app/data/platformCategories';
 import {IconWarning} from 'app/icons';
 import {GlobalSelection} from 'app/types';
-import {PlatformKey} from 'app/data/platformCategories';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
+
 import HealthChart from './healthChart';
 import {YAxis} from './releaseChartControls';
 
