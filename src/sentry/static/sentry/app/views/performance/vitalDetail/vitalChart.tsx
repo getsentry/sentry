@@ -171,132 +171,128 @@ class VitalChart extends React.Component<Props> {
     };
 
     return (
-      <Panel>
-        <ChartBody>
-          <HeaderTitleLegend>
-            {t(chartTitle || '')}
-            <QuestionTooltip
-              size="sm"
-              position="top"
-              title={t(
-                `Web Vitals Breakdown reflects the 75th percentile of web vitals over time.`
-              )}
-            />
-          </HeaderTitleLegend>
-          <ChartZoom
-            router={router}
-            period={statsPeriod}
-            projects={project}
-            environments={environment}
-          >
-            {zoomRenderProps => (
-              <EventsRequest
-                api={api}
-                organization={organization}
-                period={statsPeriod}
-                project={[...project]}
-                environment={[...environment]}
-                start={start}
-                end={end}
-                interval={getInterval(datetimeSelection, true)}
-                showLoading={false}
-                query={query}
-                includePrevious={false}
-                yAxis={yAxis}
-              >
-                {({results, errored, loading, reloading}) => {
-                  if (errored) {
-                    return (
-                      <ErrorPanel>
-                        <IconWarning color="gray500" size="lg" />
-                      </ErrorPanel>
-                    );
-                  }
-                  const colors =
-                    (results && theme.charts.getColorPalette(results.length - 2)) || [];
+      <ChartBody>
+        <HeaderTitleLegend>
+          {t(chartTitle || '')}
+          <QuestionTooltip
+            size="sm"
+            position="top"
+            title={t(`The durations shown should fall under the vital threshold.`)}
+          />
+        </HeaderTitleLegend>
+        <ChartZoom
+          router={router}
+          period={statsPeriod}
+          projects={project}
+          environments={environment}
+        >
+          {zoomRenderProps => (
+            <EventsRequest
+              api={api}
+              organization={organization}
+              period={statsPeriod}
+              project={[...project]}
+              environment={[...environment]}
+              start={start}
+              end={end}
+              interval={getInterval(datetimeSelection, true)}
+              showLoading={false}
+              query={query}
+              includePrevious={false}
+              yAxis={yAxis}
+            >
+              {({results, errored, loading, reloading}) => {
+                if (errored) {
+                  return (
+                    <ErrorPanel>
+                      <IconWarning color="gray500" size="lg" />
+                    </ErrorPanel>
+                  );
+                }
+                const colors =
+                  (results && theme.charts.getColorPalette(results.length - 2)) || [];
 
-                  const {smoothedResults} = transformEventStatsSmoothed(results);
+                const {smoothedResults} = transformEventStatsSmoothed(results);
 
-                  const smoothedSeries = smoothedResults
-                    ? smoothedResults.map(({seriesName, ...rest}, i: number) => {
-                        return {
-                          seriesName: replaceSmoothedSeriesName(seriesName) || 'Current',
-                          ...rest,
-                          color: colors[i],
-                          lineStyle: {
-                            opacity: 1,
-                            width: 3,
-                          },
-                        };
-                      })
-                    : [];
-
-                  // Create a list of series based on the order of the fields,
-                  const series = results
-                    ? results.map(({seriesName, ...rest}, i: number) => ({
-                        seriesName: replaceSeriesName(seriesName) || 'Current',
+                const smoothedSeries = smoothedResults
+                  ? smoothedResults.map(({seriesName, ...rest}, i: number) => {
+                      return {
+                        seriesName: replaceSmoothedSeriesName(seriesName) || 'Current',
                         ...rest,
                         color: colors[i],
                         lineStyle: {
-                          width: 1,
-                          opacity: 0.75,
+                          opacity: 1,
+                          width: 3,
                         },
-                      }))
-                    : [];
+                      };
+                    })
+                  : [];
 
-                  const seriesMax = getMaxOfSeries(series);
-                  const yAxisMax = Math.max(seriesMax, vitalThreshold);
-                  chartOptions.yAxis.max = yAxisMax * 1.1;
+                // Create a list of series based on the order of the fields,
+                const series = results
+                  ? results.map(({seriesName, ...rest}, i: number) => ({
+                      seriesName: replaceSeriesName(seriesName) || 'Current',
+                      ...rest,
+                      color: colors[i],
+                      lineStyle: {
+                        width: 1,
+                        opacity: 0.75,
+                      },
+                    }))
+                  : [];
 
-                  // Stack the toolbox under the legend.
-                  // so all series names are clickable.
-                  zoomRenderProps.toolBox.z = -1;
+                const seriesMax = getMaxOfSeries(series);
+                const yAxisMax = Math.max(seriesMax, vitalThreshold);
+                chartOptions.yAxis.max = yAxisMax * 1.1;
 
-                  return (
-                    <ReleaseSeries
-                      start={start}
-                      end={end}
-                      period={statsPeriod}
-                      utc={utc}
-                      projects={project}
-                      environments={environment}
-                    >
-                      {({releaseSeries}) => (
-                        <TransitionChart loading={loading} reloading={reloading}>
-                          <TransparentLoadingMask visible={reloading} />
-                          {getDynamicText({
-                            value: (
-                              <LineChart
-                                {...zoomRenderProps}
-                                {...chartOptions}
-                                legend={legend}
-                                onLegendSelectChanged={this.handleLegendSelectChanged}
-                                series={[
-                                  ...markLines,
-                                  ...releaseSeries,
-                                  ...series,
-                                  ...smoothedSeries,
-                                ]}
-                              />
-                            ),
-                            fixed: 'Web Vitals Chart',
-                          })}
-                        </TransitionChart>
-                      )}
-                    </ReleaseSeries>
-                  );
-                }}
-              </EventsRequest>
-            )}
-          </ChartZoom>
-        </ChartBody>
-      </Panel>
+                // Stack the toolbox under the legend.
+                // so all series names are clickable.
+                zoomRenderProps.toolBox.z = -1;
+
+                return (
+                  <ReleaseSeries
+                    start={start}
+                    end={end}
+                    period={statsPeriod}
+                    utc={utc}
+                    projects={project}
+                    environments={environment}
+                  >
+                    {({releaseSeries}) => (
+                      <TransitionChart loading={loading} reloading={reloading}>
+                        <TransparentLoadingMask visible={reloading} />
+                        {getDynamicText({
+                          value: (
+                            <LineChart
+                              {...zoomRenderProps}
+                              {...chartOptions}
+                              legend={legend}
+                              onLegendSelectChanged={this.handleLegendSelectChanged}
+                              series={[
+                                ...markLines,
+                                ...releaseSeries,
+                                ...series,
+                                ...smoothedSeries,
+                              ]}
+                            />
+                          ),
+                          fixed: 'Web Vitals Chart',
+                        })}
+                      </TransitionChart>
+                    )}
+                  </ReleaseSeries>
+                );
+              }}
+            </EventsRequest>
+          )}
+        </ChartZoom>
+      </ChartBody>
     );
   }
 }
 
-const ChartBody = styled('div')`
-  padding: ${space(2)};
+const ChartBody = styled(Panel)`
+  padding: ${space(3)} ${space(2)};
 `;
 
 export default withApi(ReactRouter.withRouter(VitalChart));
