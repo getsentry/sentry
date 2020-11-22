@@ -84,7 +84,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       <div>
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
-        <Link to="">
+        <Link to={`/settings/${organization.slug}/performance/`}>
           <SectionValue>Max. 300ms</SectionValue>
         </Link>
       </div>
