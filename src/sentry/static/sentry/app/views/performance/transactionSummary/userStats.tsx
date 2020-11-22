@@ -85,7 +85,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
         <Link to={`/settings/${organization.slug}/performance/`}>
-          <SectionValue>Max. 300ms</SectionValue>
+          <SectionValue>Max. {threshold}ms</SectionValue>
         </Link>
       </div>
       {vitalsPassRate !== null && (
@@ -115,8 +115,8 @@ function UserStats({totals, location, organization, transactionName}: Props) {
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(4)};
-  margin-bottom: 40px;
+  grid-row-gap: ${space(2)};
+  margin-bottom: 32px;
 `;
 
 const UserMiseryContainer = styled('div')`
