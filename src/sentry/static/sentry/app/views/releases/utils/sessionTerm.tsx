@@ -1,5 +1,5 @@
-import {t} from 'app/locale';
 import {PlatformKey} from 'app/data/platformCategories';
+import {t} from 'app/locale';
 
 const commonTermsDescription = {
   crashes: t('Number of sessions with a crashed state'),
