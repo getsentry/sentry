@@ -84,6 +84,9 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       <div>
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
+        <Link to="">
+          <SectionValue>Max. 300ms</SectionValue>
+        </Link>
       </div>
       {vitalsPassRate !== null && (
         <div>
@@ -122,6 +125,7 @@ const UserMiseryContainer = styled('div')`
 
 const StatNumber = styled('div')`
   font-size: 32px;
+  margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
 
   > div {
