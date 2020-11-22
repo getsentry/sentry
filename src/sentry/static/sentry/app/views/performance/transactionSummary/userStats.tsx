@@ -116,7 +116,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-row-gap: ${space(2)};
-  margin-bottom: 32px;
+  margin-bottom: ${space(4)};
 `;
 
 const UserMiseryContainer = styled('div')`
