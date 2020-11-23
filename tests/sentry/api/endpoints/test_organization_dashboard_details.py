@@ -213,7 +213,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         last = list(widgets).pop()
         self.assert_serialized_widget(data["widgets"][4], last)
 
-        queries = last.queries.all()
+        queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 

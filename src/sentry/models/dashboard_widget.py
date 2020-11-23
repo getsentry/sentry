@@ -60,7 +60,7 @@ class DashboardWidgetQuery(Model):
 
     __core__ = True
 
-    widget = FlexibleForeignKey("sentry.DashboardWidget", related_name="queries")
+    widget = FlexibleForeignKey("sentry.DashboardWidget")
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
