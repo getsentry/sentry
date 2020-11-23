@@ -81,24 +81,6 @@ function UserStats({totals, location, organization, transactionName}: Props) {
 
   return (
     <Container>
-      {vitalsPassRate !== null && (
-        <div>
-          <SectionHeading>
-            {t('Web Vitals')}
-            <QuestionTooltip
-              position="top"
-              title={t(
-                'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
-              )}
-              size="sm"
-            />
-          </SectionHeading>
-          <StatNumber>{vitalsPassRate}</StatNumber>
-          <Link to={webVitalsTarget}>
-            <SectionValue>{t('Passed')}</SectionValue>
-          </Link>
-        </div>
-      )}
       <div>
         <SectionHeading>
           {t('Apdex Score')}
@@ -117,6 +99,24 @@ function UserStats({totals, location, organization, transactionName}: Props) {
           </SectionValue>
         </Link>
       </div>
+      {vitalsPassRate !== null && (
+        <div>
+          <SectionHeading>
+            {t('Web Vitals')}
+            <QuestionTooltip
+              position="top"
+              title={t(
+                'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
+              )}
+              size="sm"
+            />
+          </SectionHeading>
+          <StatNumber>{vitalsPassRate}</StatNumber>
+          <Link to={webVitalsTarget}>
+            <SectionValue>{t('Passed')}</SectionValue>
+          </Link>
+        </div>
+      )}
       <UserMiseryContainer>
         <SectionHeading>
           {t('User Misery')}
