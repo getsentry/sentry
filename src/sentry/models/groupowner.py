@@ -57,3 +57,18 @@ class GroupOwner(Model):
         from sentry.api.fields.actor import Actor
 
         return Actor.from_actor_identifier(self.owner_id())
+
+
+def get_owner_details(group_list):
+    group_ids = [g.id for g in group_list]
+    group_owners = GroupOwner.objects.filter(group__in=group_ids)
+    owner_details = {
+        go.group_id: {
+            "type": go.type,
+            "owner": go.owner().get_actor_id(),
+            "date_added": go.date_added,
+        }
+        for go in group_owners
+    }
+
+    return owner_details
