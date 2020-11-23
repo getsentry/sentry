@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 
 import {DashboardListItem, Widget} from './types';
 import WidgetCard from './widgetCard';
