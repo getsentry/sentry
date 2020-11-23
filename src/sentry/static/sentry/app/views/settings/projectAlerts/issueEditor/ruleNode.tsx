@@ -39,14 +39,7 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-type State = {
-  showModal: boolean;
-};
-
-class RuleNode extends React.Component<Props, State> {
-  state: State = {
-    showModal: false,
-  };
+class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -294,7 +287,7 @@ class RuleNode extends React.Component<Props, State> {
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && <TicketRuleForm showModal={this.state.showModal} />}
+            {ticketRule && <TicketRuleForm />}
           </Rule>
           <DeleteButton
             disabled={disabled}

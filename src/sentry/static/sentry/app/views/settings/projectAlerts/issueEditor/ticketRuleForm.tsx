@@ -4,12 +4,14 @@ import Modal from 'react-bootstrap/lib/Modal';
 import Button from 'app/components/button';
 import {IconSettings} from 'app/icons';
 
+type Props = {};
+
 type State = {
   showModal: boolean;
 };
 
-class TicketRuleForm extends React.Component<State> {
-  state: State = {
+class TicketRuleForm extends React.Component<Props, State> {
+  state = {
     showModal: false,
   };
 
