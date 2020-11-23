@@ -28,6 +28,7 @@ import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
 import {isReleaseArchived} from '../../utils';
 import {ReleaseContext} from '..';
+
 import ReleaseChart from './chart/';
 import {YAxis} from './chart/releaseChartControls';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
