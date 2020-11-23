@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import {IconInfo} from 'app/icons';
-import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import {IconInfo} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = {message?: React.ReactNode};
 

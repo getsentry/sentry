@@ -3,8 +3,8 @@ import identity from 'lodash/identity';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
-import {GlobalSelection} from 'app/types';
 import {DATE_TIME_KEYS, URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {GlobalSelection} from 'app/types';
 import {defined} from 'app/utils';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 

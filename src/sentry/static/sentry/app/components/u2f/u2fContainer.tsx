@@ -1,8 +1,8 @@
 import React from 'react';
 
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
 import {Authenticator} from 'app/types';
+import withApi from 'app/utils/withApi';
 
 import U2fSign from './u2fsign';
 

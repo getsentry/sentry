@@ -1,24 +1,25 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
-import FeatureBadge from 'app/components/featureBadge';
-import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import FeatureBadge from 'app/components/featureBadge';
+import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import Breadcrumb from 'app/views/performance/breadcrumb';
+
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
-import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 export enum Tab {
   TransactionSummary,

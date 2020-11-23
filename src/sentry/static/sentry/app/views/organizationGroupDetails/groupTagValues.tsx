@@ -1,25 +1,25 @@
-import sortBy from 'lodash/sortBy';
-import property from 'lodash/property';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import property from 'lodash/property';
+import sortBy from 'lodash/sortBy';
 
-import {isUrl, percent} from 'app/utils';
-import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import UserBadge from 'app/components/idBadge/userBadge';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import DataExport, {ExportQueryType} from 'app/components/dataExport';
 import DeviceName from 'app/components/deviceName';
-import ExternalLink from 'app/components/links/externalLink';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import {IconMail, IconOpen} from 'app/icons';
 import DetailedError from 'app/components/errors/detailedError';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import UserBadge from 'app/components/idBadge/userBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import DataExport, {ExportQueryType} from 'app/components/dataExport';
+import {IconMail, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Tag, TagValue, Environment} from 'app/types';
+import {Environment, Group, Tag, TagValue} from 'app/types';
+import {isUrl, percent} from 'app/utils';
 
 type RouteParams = {
   groupId: string;

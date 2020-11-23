@@ -1,26 +1,26 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
-import {t} from 'app/locale';
-import {uniqueId} from 'app/utils/guid';
+import {Client} from 'app/api';
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
-import ConfigStore from 'app/stores/configStore';
-import ErrorBoundary from 'app/components/errorBoundary';
 import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
+import {CreateError} from 'app/components/activity/note/types';
+import ErrorBoundary from 'app/components/errorBoundary';
+import {DEFAULT_ERROR_JSON} from 'app/constants';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import {Activity, Group, Organization, User} from 'app/types';
+import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {Activity, Group, Organization, User} from 'app/types';
-import {Client} from 'app/api';
-import {CreateError} from 'app/components/activity/note/types';
-import {DEFAULT_ERROR_JSON} from 'app/constants';
 
 import GroupActivityItem from './groupActivityItem';
 

@@ -2,12 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
 import {loadDocs} from 'app/actionCreators/projects';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PlatformKey} from 'app/data/platformCategories';
+import {t, tct} from 'app/locale';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;

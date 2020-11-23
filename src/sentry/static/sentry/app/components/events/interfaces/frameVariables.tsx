@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 
 type Props = {
   data: {[key: string]: string};

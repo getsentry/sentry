@@ -1,21 +1,21 @@
 import React from 'react';
-import {Location, LocationDescriptorObject} from 'history';
 import * as ReactRouter from 'react-router';
+import {Location, LocationDescriptorObject} from 'history';
 
-import {IconStar} from 'app/icons';
-import {Organization, Project} from 'app/types';
-import Pagination from 'app/components/pagination';
-import Link from 'app/components/links/link';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
-import {TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import Link from 'app/components/links/link';
+import Pagination from 'app/components/pagination';
+import {IconStar} from 'app/icons';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import HeaderCell from 'app/views/eventsV2/table/headerCell';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';

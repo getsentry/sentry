@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import PropTypes from 'prop-types';
 
-import {MEMBER_ROLES} from 'app/constants';
-import {AccessRequest, Member, Organization, Team} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {MEMBER_ROLES} from 'app/constants';
 import {t, tct} from 'app/locale';
+import {AccessRequest, Member, Organization, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationAccessRequests from './organizationAccessRequests';

@@ -1,9 +1,9 @@
-import DocumentTitle from 'react-document-title';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
 
-import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 import space from 'app/styles/space';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 
 const AdminLayout: React.FC = ({children}) => (
   <DocumentTitle title="Sentry Admin">

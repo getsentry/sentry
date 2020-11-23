@@ -1,21 +1,21 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {Project, Organization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
-import {alertHighlight, pulse} from 'app/styles/animations';
-import BookmarkStar from 'app/components/projects/bookmarkStar';
 import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
 import Highlight from 'app/components/highlight';
-import IdBadge from 'app/components/idBadge';
-import space from 'app/styles/space';
-import {IconSettings} from 'app/icons';
-import Link from 'app/components/links/link';
 import Hovercard from 'app/components/hovercard';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
+import BookmarkStar from 'app/components/projects/bookmarkStar';
+import {IconSettings} from 'app/icons';
+import {t} from 'app/locale';
+import {alertHighlight, pulse} from 'app/styles/animations';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {analytics} from 'app/utils/analytics';
 
 const defaultProps = {
   multi: false,

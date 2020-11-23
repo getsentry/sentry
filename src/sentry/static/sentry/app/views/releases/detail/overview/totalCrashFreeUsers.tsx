@@ -2,15 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import Count from 'app/components/count';
 import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {CrashFreeTimeBreakdown} from 'app/types';
 import {defined} from 'app/utils';
-import Count from 'app/components/count';
+
+import {displayCrashFreePercent} from '../../utils';
 
 import {SectionHeading, Wrapper} from './styles';
-import {displayCrashFreePercent} from '../../utils';
 
 type Props = {
   crashFreeTimeBreakdown: CrashFreeTimeBreakdown;

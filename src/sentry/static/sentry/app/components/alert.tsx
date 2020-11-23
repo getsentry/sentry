@@ -1,8 +1,8 @@
-import {css} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 

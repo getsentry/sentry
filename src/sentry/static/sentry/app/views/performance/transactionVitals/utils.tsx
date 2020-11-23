@@ -1,7 +1,7 @@
-import {Query} from 'history';
 import {ECharts} from 'echarts';
+import {Query} from 'history';
 
-import {HistogramData, Rectangle, Point} from './types';
+import {HistogramData, Point, Rectangle} from './types';
 
 export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/vitals/`;

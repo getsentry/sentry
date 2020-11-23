@@ -1,19 +1,19 @@
 import React from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AsyncView from 'app/views/asyncView';
 import ExternalLink from 'app/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PreviewFeature from 'app/components/previewFeature';
+import formGroups from 'app/data/forms/cspReports';
+import {t, tct} from 'app/locale';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PreviewFeature from 'app/components/previewFeature';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import formGroups from 'app/data/forms/cspReports';
-import routeTitleGen from 'app/utils/routeTitle';
 
 export default class ProjectCspReports extends AsyncView {
   getEndpoints() {

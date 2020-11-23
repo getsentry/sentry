@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
-import Tooltip from 'app/components/tooltip';
-import Link from 'app/components/links/link';
 import Count from 'app/components/count';
+import Link from 'app/components/links/link';
+import Tooltip from 'app/components/tooltip';
+import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 

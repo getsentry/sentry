@@ -2,27 +2,29 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 
-import {OrganizationSummary, SelectValue} from 'app/types';
-import {t} from 'app/locale';
-import {Panel} from 'app/components/panels';
-import EventView from 'app/utils/discover/eventView';
+import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
+import {Panel} from 'app/components/panels';
+import {t} from 'app/locale';
+import {OrganizationSummary, SelectValue} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import OptionSelector from 'app/components/charts/optionSelector';
+import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {ChartContainer} from '../styles';
+import {TrendFunctionField} from '../trends/types';
+import {TRENDS_FUNCTIONS} from '../trends/utils';
+
 import DurationChart from './durationChart';
+import DurationPercentileChart from './durationPercentileChart';
 import LatencyChart from './latencyChart';
 import TrendChart from './trendChart';
 import VitalsChart from './vitalsChart';
-import DurationPercentileChart from './durationPercentileChart';
-import {TrendFunctionField} from '../trends/types';
-import {TRENDS_FUNCTIONS} from '../trends/utils';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -81,6 +83,13 @@ class TransactionSummaryCharts extends React.Component<Props> {
       trendDisplay = TrendFunctionField.P50;
     }
 
+    let releaseQueryExtra = {};
+    if (organization.features.includes('release-performance-views')) {
+      releaseQueryExtra = {
+        yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_LCP : YAxis.COUNT_DURATION,
+      };
+    }
+
     return (
       <Panel>
         <ChartContainer>
@@ -100,6 +109,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <DurationChart
               organization={organization}
               query={eventView.query}
+              queryExtra={releaseQueryExtra}
               project={eventView.project}
               environment={eventView.environment}
               start={eventView.start}
@@ -124,6 +134,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
               trendDisplay={trendDisplay}
               organization={organization}
               query={eventView.query}
+              queryExtra={releaseQueryExtra}
               project={eventView.project}
               environment={eventView.environment}
               start={eventView.start}
@@ -135,6 +146,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
             <VitalsChart
               organization={organization}
               query={eventView.query}
+              queryExtra={releaseQueryExtra}
               project={eventView.project}
               environment={eventView.environment}
               start={eventView.start}

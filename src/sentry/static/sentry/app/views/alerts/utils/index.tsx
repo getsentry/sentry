@@ -1,19 +1,19 @@
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Project, NewQuery} from 'app/types';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {NewQuery, Project} from 'app/types';
+import {IssueAlertRule} from 'app/types/alerts';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
 import {
   Dataset,
   Datasource,
   EventTypes,
   SavedIncidentRule,
 } from 'app/views/settings/incidentRules/types';
-import {PRESET_AGGREGATES} from 'app/views/settings/incidentRules/presets';
-import {IssueAlertRule} from 'app/types/alerts';
 
-import {Incident, IncidentStats, IncidentStatus} from './types';
+import {Incident, IncidentStats, IncidentStatus} from '../types';
 
 export function fetchIncident(
   api: Client,

@@ -1,30 +1,30 @@
-import isNil from 'lodash/isNil';
 import React from 'react';
-import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import {
-  List,
-  ListRowProps,
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
+  List,
+  ListRowProps,
 } from 'react-virtualized';
+import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import isNil from 'lodash/isNil';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import space from 'app/styles/space';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {Panel, PanelBody} from 'app/components/panels';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import SearchBar from 'app/components/searchBar';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
-import ImageForBar from 'app/components/events/interfaces/imageForBar';
-import {t, tct} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
+import EventDataSection from 'app/components/events/eventDataSection';
+import ImageForBar from 'app/components/events/interfaces/imageForBar';
+import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
+import {Panel, PanelBody} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons';
-import {Organization, Project, Event, Frame} from 'app/types';
+import {t, tct} from 'app/locale';
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
+import space from 'app/styles/space';
+import {Event, Frame, Organization, Project} from 'app/types';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import DebugImage from './debugImage';
 import {getFileName} from './utils';

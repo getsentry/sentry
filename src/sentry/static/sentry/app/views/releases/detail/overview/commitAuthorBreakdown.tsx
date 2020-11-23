@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
-import UserAvatar from 'app/components/avatar/userAvatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import AsyncComponent from 'app/components/asyncComponent';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import Button from 'app/components/button';
+import {t, tn} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Commit, User} from 'app/types';
 import {percent} from 'app/utils';
 import {userDisplayName} from 'app/utils/formatters';
-import {Commit, User} from 'app/types';
-import Button from 'app/components/button';
 
 import {SectionHeading, Wrapper} from './styles';
 

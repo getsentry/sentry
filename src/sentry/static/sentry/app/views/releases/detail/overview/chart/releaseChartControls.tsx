@@ -1,17 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import OptionSelector from 'app/components/charts/optionSelector';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {SelectValue} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
+import {WebVital} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 export enum YAxis {
   SESSIONS = 'sessions',
@@ -20,13 +22,23 @@ export enum YAxis {
   SESSION_DURATION = 'sessionDuration',
   EVENTS = 'events',
   FAILED_TRANSACTIONS = 'failedTransactions',
+  COUNT_DURATION = 'countDuration',
+  COUNT_LCP = 'countLCP',
   ALL_TRANSACTIONS = 'allTransactions',
 }
+
+export const PERFORMANCE_AXIS = [
+  YAxis.FAILED_TRANSACTIONS,
+  YAxis.ALL_TRANSACTIONS,
+  YAxis.COUNT_DURATION,
+  YAxis.COUNT_LCP,
+];
 
 type Props = {
   summary: React.ReactNode;
   yAxis: YAxis;
   onYAxisChange: (value: YAxis) => void;
+  organization: Organization;
   hasHealthData: boolean;
   hasDiscover: boolean;
   hasPerformance: boolean;
@@ -36,6 +48,7 @@ const ReleaseChartControls = ({
   summary,
   yAxis,
   onYAxisChange,
+  organization,
   hasHealthData,
   hasDiscover,
   hasPerformance,
@@ -75,24 +88,38 @@ const ReleaseChartControls = ({
       tooltip: noHealthDataTooltip,
     },
     {
-      value: YAxis.EVENTS,
-      label: t('Event Count'),
-      disabled: !hasDiscover,
-      tooltip: noDiscoverTooltip,
+      value: YAxis.FAILED_TRANSACTIONS,
+      label: t('Failed Transaction Count'),
+      disabled: !hasPerformance,
+      hidden: !hasPerformance,
+      tooltip: noPerformanceTooltip,
     },
     {
-      value: YAxis.FAILED_TRANSACTIONS,
-      label: t('Failed Transactions'),
+      value: YAxis.COUNT_DURATION,
+      label: t('Slow Count (duration)'),
+      disabled: !hasPerformance,
+      hidden: !hasPerformance,
+      tooltip: noPerformanceTooltip,
+    },
+    {
+      value: YAxis.COUNT_LCP,
+      label: t('Slow Count (lcp)'),
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
     {
       value: YAxis.ALL_TRANSACTIONS,
-      label: t('All Transactions'),
+      label: t('Transaction Count'),
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
+    },
+    {
+      value: YAxis.EVENTS,
+      label: t('Event Count'),
+      disabled: !hasDiscover,
+      tooltip: noDiscoverTooltip,
     },
   ]
     .filter(opt => !opt.hidden)
@@ -110,6 +137,10 @@ const ReleaseChartControls = ({
         return t('Total Events');
       case YAxis.FAILED_TRANSACTIONS:
         return t('Failed Transactions');
+      case YAxis.COUNT_DURATION:
+        return t(`Count over ${organization.apdexThreshold}ms`);
+      case YAxis.COUNT_LCP:
+        return t(`Count over ${WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold}ms`);
       case YAxis.ALL_TRANSACTIONS:
         return t('Total Transactions');
       case YAxis.SESSIONS:
@@ -121,7 +152,7 @@ const ReleaseChartControls = ({
   return (
     <StyledChartControls>
       <InlineContainer>
-        {(yAxis === YAxis.FAILED_TRANSACTIONS || yAxis === YAxis.ALL_TRANSACTIONS) && (
+        {PERFORMANCE_AXIS.includes(yAxis) && (
           <StyledQuestionTooltip
             position="top"
             size="sm"

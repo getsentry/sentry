@@ -1,22 +1,22 @@
-import {withRouter} from 'react-router';
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
+import DocumentTitle from 'react-document-title';
+import {withRouter} from 'react-router';
 import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MemberListStore from 'app/stores/memberListStore';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
-import ProjectsStore from 'app/stores/projectsStore';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import withProjects from 'app/utils/withProjects';
+import MemberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',

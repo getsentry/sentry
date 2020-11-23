@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconClose} from 'app/icons';
 import {t} from 'app/locale';
-import Tag from 'app/components/tagDeprecated';
 
 const FEATURE_TOOLTIPS = {
   symtab: t(

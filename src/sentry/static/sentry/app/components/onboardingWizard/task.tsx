@@ -1,25 +1,25 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
 
-import {tct, t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withOrganization from 'app/utils/withOrganization';
-import space from 'app/styles/space';
-import {OnboardingTask, Organization, OnboardingTaskKey, AvatarUser} from 'app/types';
 import {navigateTo} from 'app/actionCreators/navigation';
-import Card from 'app/components/card';
-import Tooltip from 'app/components/tooltip';
-import Button from 'app/components/button';
-import {IconLock, IconCheckmark, IconClose, IconEvent} from 'app/icons';
 import Avatar from 'app/components/avatar';
+import Button from 'app/components/button';
+import Card from 'app/components/card';
 import LetterAvatar from 'app/components/letterAvatar';
+import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconClose, IconEvent, IconLock} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import testableTransition from 'app/utils/testableTransition';
+import withOrganization from 'app/utils/withOrganization';
 
-import {taskIsDone} from './utils';
 import SkipConfirm from './skipConfirm';
+import {taskIsDone} from './utils';
 
 const recordAnalytics = (
   task: OnboardingTask,

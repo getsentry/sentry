@@ -1,25 +1,25 @@
-import debounce from 'lodash/debounce';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {addTeamToProject} from 'app/actionCreators/projects';
-import {t} from 'app/locale';
-import {buildUserId, buildTeamId} from 'app/utils';
 import {Client} from 'app/api';
+import ActorAvatar from 'app/components/avatar/actorAvatar';
+import Button from 'app/components/button';
+import MultiSelectControl from 'app/components/forms/multiSelectControl';
+import IdBadge from 'app/components/idBadge';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import IdBadge from 'app/components/idBadge';
-import MultiSelectControl from 'app/components/forms/multiSelectControl';
-import ActorAvatar from 'app/components/avatar/actorAvatar';
-import Button from 'app/components/button';
-import {IconAdd} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
-import withProjects from 'app/utils/withProjects';
-import withApi from 'app/utils/withApi';
 import {Actor, Member, Organization, Project, Team, User} from 'app/types';
+import {buildTeamId, buildUserId} from 'app/utils';
+import withApi from 'app/utils/withApi';
+import withProjects from 'app/utils/withProjects';
 
 export type Owner = {
   value: string;

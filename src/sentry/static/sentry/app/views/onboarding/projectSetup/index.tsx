@@ -1,15 +1,16 @@
 import React from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import {analytics} from 'app/utils/analytics';
-import {t} from 'app/locale';
 import HookOrDefault from 'app/components/hookOrDefault';
-import withOrganization from 'app/utils/withOrganization';
-import testableTransition from 'app/utils/testableTransition';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import testableTransition from 'app/utils/testableTransition';
+import withOrganization from 'app/utils/withOrganization';
 
 import {StepProps} from '../types';
+
 import InviteMembers from './inviteMembers';
 import LearnMore from './learnMore';
 import ProjectDocs from './projectDocs';

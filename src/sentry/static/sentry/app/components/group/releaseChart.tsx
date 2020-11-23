@@ -2,10 +2,10 @@ import React from 'react';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
-import {formatVersion} from 'app/utils/formatters';
+import {Group, Release, TimeseriesValue} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {Group, TimeseriesValue, Release} from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
+import theme from 'app/utils/theme';
 
 import SidebarSection from './sidebarSection';
 

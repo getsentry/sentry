@@ -2,19 +2,19 @@ import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Event, Group, Organization} from 'app/types';
-import {IconChat} from 'app/icons';
-import {tct} from 'app/locale';
 import EventAnnotation from 'app/components/events/eventAnnotation';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import ShortId from 'app/components/shortId';
-import Times from 'app/components/group/times';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
-import InboxShortId from 'app/components/group/inboxBadges/shortId';
 import InboxCommentsLink from 'app/components/group/inboxBadges/commentsLink';
 import InboxEventAnnotation from 'app/components/group/inboxBadges/eventAnnotation';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
+import Times from 'app/components/group/times';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import ShortId from 'app/components/shortId';
+import {IconChat} from 'app/icons';
+import {tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Event, Group, Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;

@@ -1,14 +1,14 @@
-import {ClassNames, css} from '@emotion/core';
 import React from 'react';
-import styled from '@emotion/styled';
 import {ModalBody} from 'react-bootstrap';
+import {ClassNames, css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import Input from 'app/views/settings/components/forms/controls/input';
-import {analytics} from 'app/utils/analytics';
-import {t} from 'app/locale';
 import Search from 'app/components/search';
-import theme from 'app/utils/theme';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {analytics} from 'app/utils/analytics';
+import theme from 'app/utils/theme';
+import Input from 'app/views/settings/components/forms/controls/input';
 
 type Props = {
   Body: typeof ModalBody;

@@ -936,7 +936,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     }
                 )
             return time_range_result
-
         return None
 
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
@@ -949,7 +948,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         )
 
     def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+        if not self._collapse("base"):
+            attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+        else:
+            seen_stats = self._get_seen_stats(item_list, user)
+            if seen_stats:
+                attrs = {item: seen_stats.get(item, {}) for item in item_list}
+            else:
+                attrs = {item: {} for item in item_list}
+
         if self.stats_period and not self._collapse("stats"):
             partial_get_stats = functools.partial(
                 self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
@@ -960,20 +967,28 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if self.conditions and not self._collapse("filtered")
                 else None
             )
-            if self._expand("inbox"):
-                inbox_stats = get_inbox_details(item_list)
             for item in item_list:
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                if self._expand("inbox"):
-                    attrs[item].update({"inbox": inbox_stats.get(item.id)})
-
                 attrs[item].update({"stats": stats[item.id]})
+
+        if self._expand("inbox"):
+            inbox_stats = get_inbox_details(item_list)
+            for item in item_list:
+                attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+        if not self._collapse("base"):
+            result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+        else:
+            result = {
+                "id": six.text_type(obj.id),
+            }
+            if "times_seen" in attrs:
+                result.update(self._convert_seen_stats(attrs))
+
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
 
