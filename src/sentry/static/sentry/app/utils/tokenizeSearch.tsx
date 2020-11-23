@@ -128,6 +128,10 @@ export class QueryResults {
     return this.tagValues[tag];
   }
 
+  getTagKeys() {
+    return Object.keys(this.tagValues);
+  }
+
   hasTag(tag: string) {
     const tags = this.getTagValues(tag);
     return tags && tags.length;
