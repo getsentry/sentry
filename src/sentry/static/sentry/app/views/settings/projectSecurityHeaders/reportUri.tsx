@@ -2,7 +2,7 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {ProjectKey} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import Field from 'app/views/settings/components/forms/field';
