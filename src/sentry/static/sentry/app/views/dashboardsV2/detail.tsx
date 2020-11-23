@@ -223,11 +223,16 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   }
 
   onWidgetChange = (widgets: Widget[]) => {
+    const {changesDashboard} = this.state;
+    if (changesDashboard === undefined) {
+      return;
+    }
+
     this.setState((prevState: State) => {
       return {
         ...prevState,
         changesDashboard: {
-          ...prevState.changesDashboard,
+          ...changesDashboard,
           widgets,
         },
       };
