@@ -1,6 +1,6 @@
 import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
 import {t} from 'app/locale';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, NewQuery, Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
@@ -8,7 +8,7 @@ import {formatVersion} from 'app/utils/formatters';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
-import {YAxis} from './releaseChartControls';
+import {EventType, YAxis} from './releaseChartControls';
 
 export function getInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -24,7 +24,8 @@ export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
   yAxis?: YAxis,
-  organization?: any,
+  eventType?: EventType,
+  organization?: Organization,
   /**
    * Indicates that we're only interested in the current release.
    * This is useful for the event meta end point where we don't want
@@ -40,25 +41,31 @@ export function getReleaseEventView(
   // this orderby ensures that the order is [others, current]
   const toOtherAlias = `to_other_release_${version}_others_current`;
 
+  const baseQuery: Omit<NewQuery, 'query'> = {
+    id: undefined,
+    version: 2,
+    name: `${t('Release')} ${formatVersion(version)}`,
+    fields: [`count()`, toOther],
+    orderby: toOtherAlias,
+    range: period,
+    environment: environments,
+    projects,
+    start: start ? getUtcDateString(start) : undefined,
+    end: end ? getUtcDateString(end) : undefined,
+  };
+
   switch (yAxis) {
-    case YAxis.ALL_TRANSACTIONS:
     case YAxis.FAILED_TRANSACTIONS:
-      const statusFilter =
-        yAxis === YAxis.FAILED_TRANSACTIONS
-          ? ['ok', 'cancelled', 'unknown'].map(s => `!transaction.status:${s}`).join(' ')
-          : '';
+      const statusFilters = ['ok', 'cancelled', 'unknown'].map(
+        s => `!transaction.status:${s}`
+      );
       return EventView.fromSavedQuery({
-        id: undefined,
-        version: 2,
-        name: `${t('Release')} ${formatVersion(version)}`,
-        fields: [`count()`, toOther],
-        query: `${releaseFilter} ${statusFilter}`.trim(),
-        orderby: toOtherAlias,
-        range: period,
-        environment: environments,
-        projects,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults(
+            ['event.type:transaction', releaseFilter, ...statusFilters].filter(Boolean)
+          )
+        ),
       });
     case YAxis.COUNT_LCP:
     case YAxis.COUNT_DURATION:
@@ -66,36 +73,51 @@ export function getReleaseEventView(
         yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : 'measurements.lcp';
       const threshold =
         yAxis === YAxis.COUNT_DURATION
-          ? organization.apdexThreshold
+          ? organization?.apdexThreshold
           : WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold;
       return EventView.fromSavedQuery({
-        id: undefined,
-        version: 2,
-        name: `${t('Release')} ${formatVersion(version)}`,
-        fields: ['count()', toOther],
-        query: `event.type:transaction ${releaseFilter} ${column}:>${threshold}`,
-        orderby: toOtherAlias,
-        range: period,
-        environment: environments,
-        projects,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults(
+            [
+              'event.type:transaction',
+              releaseFilter,
+              threshold ? `${column}:>${threshold}` : '',
+            ].filter(Boolean)
+          )
+        ),
       });
+    case YAxis.EVENTS:
+      if (
+        organization?.features?.includes('performance-view') &&
+        organization?.features?.includes('release-performance-views')
+      ) {
+        const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
+        return EventView.fromSavedQuery({
+          ...baseQuery,
+          query: stringifyQueryObject(
+            new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
+          ),
+        });
+      } else {
+        // TODO(tonyx): Delete this else once the feature flags are removed
+        return EventView.fromSavedQuery({
+          ...baseQuery,
+          fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+          query: stringifyQueryObject(
+            new QueryResults([`release:${version}`, '!event.type:transaction'])
+          ),
+          orderby: '-last_seen',
+        });
+      }
     default:
       return EventView.fromSavedQuery({
-        id: undefined,
-        version: 2,
-        name: `${t('Release')} ${formatVersion(version)}`,
+        ...baseQuery,
         fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
         query: stringifyQueryObject(
           new QueryResults([`release:${version}`, '!event.type:transaction'])
         ),
         orderby: '-last_seen',
-        range: period,
-        environment: environments,
-        projects,
-        start: start ? getUtcDateString(start) : undefined,
-        end: end ? getUtcDateString(end) : undefined,
       });
   }
 }
