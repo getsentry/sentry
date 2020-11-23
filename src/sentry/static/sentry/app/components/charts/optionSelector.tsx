@@ -41,7 +41,7 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
                 blendCorner
               >
                 {options.map(opt => (
-                  <DropdownItem
+                  <StyledDropdownItem
                     key={opt.value}
                     onSelect={onChange}
                     eventKey={opt.value}
@@ -52,7 +52,7 @@ function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}
                     <Tooltip title={opt.tooltip} containerDisplayMode="inline">
                       {opt.label}
                     </Tooltip>
-                  </DropdownItem>
+                  </StyledDropdownItem>
                 ))}
               </StyledDropdownBubble>
             </React.Fragment>
@@ -83,6 +83,10 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const StyledDropdownBubble = styled(DropdownBubble)<{isOpen: boolean}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
+`;
+
+const StyledDropdownItem = styled(DropdownItem)`
+  white-space: nowrap;
 `;
 
 OptionSelector.propTypes = {
