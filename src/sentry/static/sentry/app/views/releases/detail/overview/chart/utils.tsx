@@ -88,10 +88,7 @@ export function getReleaseEventView(
         ),
       });
     case YAxis.EVENTS:
-      if (
-        organization?.features?.includes('performance-view') &&
-        organization?.features?.includes('release-performance-views')
-      ) {
+      if (organization?.features?.includes('release-performance-views')) {
         const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
         return EventView.fromSavedQuery({
           ...baseQuery,
