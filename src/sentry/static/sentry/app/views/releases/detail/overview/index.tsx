@@ -139,6 +139,11 @@ class ReleaseOverview extends AsyncView<Props> {
           ...baseQuery,
           query: `event.type:transaction release:${version} epm():>0.01`,
         });
+      case 'failure_count':
+        return EventView.fromSavedQuery({
+          ...baseQuery,
+          query: `event.type:transaction release:${version} failure_count():>0`,
+        });
       default:
         return EventView.fromSavedQuery(baseQuery);
     }
