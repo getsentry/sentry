@@ -191,7 +191,7 @@ const SettingsIconLink = styled(Link)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1)} ${space(1)} 0;
   transition: 0.5s opacity ease-out;
 
   &:hover {
@@ -200,7 +200,7 @@ const SettingsIconLink = styled(Link)`
 `;
 
 const StyledLock = styled(IconLock)`
-  margin-top: ${space(0.75)};
+  margin: ${space(0.75)} ${space(0.75)} 0 0;
   stroke-width: 1.5;
 `;
 
