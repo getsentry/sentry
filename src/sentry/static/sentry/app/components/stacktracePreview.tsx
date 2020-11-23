@@ -21,8 +21,8 @@ type Props = {
 };
 
 type State = {
-  event?: Event;
   loading: boolean;
+  event?: Event;
 };
 
 class StacktracePreview extends React.Component<Props, State> {
