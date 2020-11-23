@@ -64,7 +64,7 @@ class StacktracePreview extends React.Component<Props, State> {
       );
     }
 
-    if (event && stacktrace) {
+    if (event) {
       return (
         <div onClick={this.handleStacktracePreviewClick}>
           <StacktraceContent
