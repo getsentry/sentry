@@ -83,10 +83,6 @@ from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
-from .endpoints.organization_dashboard_widget_details import (
-    OrganizationDashboardWidgetDetailsEndpoint,
-)
-from .endpoints.organization_dashboard_widgets import OrganizationDashboardWidgetsEndpoint
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -707,11 +703,6 @@ urlpatterns = [
                     name="sentry-api-0-discover-saved-query-detail",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
-                    OrganizationDashboardDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-dashboard-details",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/key-transactions/$",
                     KeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions",
@@ -733,14 +724,9 @@ urlpatterns = [
                     name="sentry-api-0-organization-dashboards",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/widgets/$",
-                    OrganizationDashboardWidgetsEndpoint.as_view(),
-                    name="sentry-api-0-organization-dashboard-widgets",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/widgets/(?P<widget_id>[^\/]+)$",
-                    OrganizationDashboardWidgetDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-dashboard-widget-details",
+                    r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
+                    OrganizationDashboardDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-dashboard-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
