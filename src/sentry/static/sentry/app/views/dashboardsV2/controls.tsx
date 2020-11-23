@@ -89,6 +89,7 @@ class Controls extends React.Component<Props> {
               onRevert();
             }}
             size="small"
+            disabled={!isRevertable}
           >
             {t('Revert')}
           </Button>
