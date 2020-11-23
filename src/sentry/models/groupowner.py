@@ -22,7 +22,7 @@ class GroupOwner(Model):
 
     __core__ = False
 
-    group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
+    group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     type = models.PositiveSmallIntegerField(
@@ -38,6 +38,7 @@ class GroupOwner(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupowner"
+        unique_together = (("group", "type", "user", "team"),)
 
     def save(self, *args, **kwargs):
         keys = list(filter(None, [self.user_id, self.team_id]))

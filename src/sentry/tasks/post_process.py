@@ -160,6 +160,7 @@ def post_process_group(
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
+        from sentry.tasks.groupowners import process_suspect_commits
 
         # Re-bind node data to avoid renormalization. We only want to
         # renormalize when loading old data from the database.
@@ -209,6 +210,12 @@ def post_process_group(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
                     safe_execute(callback, event, futures)
+
+            if features.has("organizations:workflow-owners", project=event.project):
+                # TODO(Chris F.): Pass only the event props you need.
+                # Seems to be event.data and event.group_id, but I need to refactor downstream functions
+                # to accept direct props instead of the entire event.
+                process_suspect_commits.delay(event=event)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
