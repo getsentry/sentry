@@ -1,7 +1,9 @@
 /* eslint-env node */
 const process = require('process'); // eslint-disable-line import/no-nodejs-modules
 
+// TODO: Make this configurable
 const JsDomEnvironment = require('@visual-snapshot/jest-environment');
+
 const Sentry = require('@sentry/node');
 require('@sentry/tracing');
 
@@ -79,18 +81,8 @@ class SentryEnvironment extends JsDomEnvironment {
   }
 
   runScript(script) {
-    // XXX: This is called a lot, not sure what it does, but it is noisy
-    // const span =
-    // this.transaction &&
-    // this.transaction.startChild({
-    // op: 'runScript',
-    // description: this.testPath,
-    // });
-    const result = super.runScript(script);
-
-    // span && span.finish();
-
-    return result;
+    // We are intentionally not instrumenting this as it will produce hundreds of spans.
+    return super.runScript(script);
   }
 
   getName(parent) {
