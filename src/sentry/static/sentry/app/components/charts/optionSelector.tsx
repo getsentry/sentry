@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
+import isEqual from 'lodash/isEqual';
 
 import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
 import DropdownBubble from 'app/components/dropdownBubble';
@@ -19,48 +19,82 @@ type Props = {
   menuWidth?: string;
 };
 
-function OptionSelector({options, onChange, selected, title, menuWidth = 'auto'}: Props) {
-  const selectedOption = options.find(opt => selected === opt.value) || options[0];
+type State = {
+  menuContainerWidth?: number;
+};
 
-  return (
-    <InlineContainer>
-      <SectionHeading>{title}</SectionHeading>
-      <MenuContainer>
-        <DropdownMenu alwaysRenderMenu={false}>
-          {({isOpen, getMenuProps, getActorProps}) => (
-            <React.Fragment>
-              <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-                {selectedOption.label}
-              </StyledDropdownButton>
-              <StyledDropdownBubble
-                {...getMenuProps()}
-                alignMenu="right"
-                width={menuWidth}
-                isOpen={isOpen}
-                blendWithActor={false}
-                blendCorner
-              >
-                {options.map(opt => (
-                  <StyledDropdownItem
-                    key={opt.value}
-                    onSelect={onChange}
-                    eventKey={opt.value}
-                    disabled={opt.disabled}
-                    isActive={selected === opt.value}
-                    data-test-id={`option-${opt.value}`}
-                  >
-                    <Tooltip title={opt.tooltip} containerDisplayMode="inline">
-                      {opt.label}
-                    </Tooltip>
-                  </StyledDropdownItem>
-                ))}
-              </StyledDropdownBubble>
-            </React.Fragment>
-          )}
-        </DropdownMenu>
-      </MenuContainer>
-    </InlineContainer>
-  );
+class OptionSelector extends React.Component<Props, State> {
+  state: State = {};
+
+  componentDidMount() {
+    this.setDropdownWidths();
+  }
+
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    return !isEqual(nextProps, this.props) || !isEqual(nextState, this.state);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.selected !== this.props.selected) {
+      this.setDropdownWidths();
+    }
+  }
+
+  setDropdownWidths() {
+    const menuContainerWidth = this.menuContainerRef?.current?.offsetWidth;
+    if (menuContainerWidth) {
+      this.setState({menuContainerWidth});
+    }
+  }
+
+  menuContainerRef = React.createRef<HTMLDivElement>();
+
+  render() {
+    const {menuContainerWidth} = this.state;
+    const {options, onChange, selected, title, menuWidth = 'auto'} = this.props;
+    const selectedOption = options.find(opt => selected === opt.value) || options[0];
+
+    return (
+      <InlineContainer>
+        <SectionHeading>{title}</SectionHeading>
+        <MenuContainer ref={this.menuContainerRef}>
+          <DropdownMenu alwaysRenderMenu={false}>
+            {({isOpen, getMenuProps, getActorProps}) => (
+              <React.Fragment>
+                <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
+                  {selectedOption.label}
+                </StyledDropdownButton>
+                <StyledDropdownBubble
+                  {...getMenuProps()}
+                  alignMenu="right"
+                  width={menuWidth}
+                  minWidth={menuContainerWidth}
+                  isOpen={isOpen}
+                  blendWithActor={false}
+                  blendCorner
+                >
+                  {options.map(opt => (
+                    <StyledDropdownItem
+                      key={opt.value}
+                      onSelect={onChange}
+                      eventKey={opt.value}
+                      disabled={opt.disabled}
+                      isActive={selected === opt.value}
+                      data-test-id={`option-${opt.value}`}
+                    >
+                      <Tooltip title={opt.tooltip} containerDisplayMode="inline">
+                        {opt.label}
+                      </Tooltip>
+                    </StyledDropdownItem>
+                  ))}
+                </StyledDropdownBubble>
+              </React.Fragment>
+            )}
+          </DropdownMenu>
+        </MenuContainer>
+      </InlineContainer>
+    );
+  }
 }
 
 const MenuContainer = styled('div')`
@@ -81,19 +115,17 @@ const StyledDropdownButton = styled(DropdownButton)`
   }
 `;
 
-const StyledDropdownBubble = styled(DropdownBubble)<{isOpen: boolean}>`
+const StyledDropdownBubble = styled(DropdownBubble)<{
+  isOpen: boolean;
+  minWidth?: number;
+}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
+  ${p =>
+    p.minWidth && p.width === 'auto' && `min-width: calc(${p.minWidth}px + ${space(3)})`};
 `;
 
 const StyledDropdownItem = styled(DropdownItem)`
   white-space: nowrap;
 `;
-
-OptionSelector.propTypes = {
-  options: PropTypes.array.isRequired,
-  onChange: PropTypes.func.isRequired,
-  title: PropTypes.string.isRequired,
-  selected: PropTypes.string,
-};
 
 export default OptionSelector;
