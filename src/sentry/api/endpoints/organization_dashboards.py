@@ -60,6 +60,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     organization_id=organization.id, title=result["title"], created_by=request.user
                 )
         except IntegrityError:
-            return Response("This dashboard already exists", status=409)
+            return Response("Dashboard title already taken", status=409)
 
         return Response(serialize(dashboard, request.user), status=201)
