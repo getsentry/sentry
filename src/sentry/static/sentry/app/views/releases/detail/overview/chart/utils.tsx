@@ -36,6 +36,10 @@ export function getReleaseEventView(
   const {start, end, period} = datetime;
   const releaseFilter = currentOnly ? `release:${version}` : '';
 
+  const toOther = `to_other(release,${version},others,current)`;
+  // this orderby ensures that the order is [others, current]
+  const toOtherAlias = `to_other_release_${version}_others_current`;
+
   switch (yAxis) {
     case YAxis.ALL_TRANSACTIONS:
     case YAxis.FAILED_TRANSACTIONS:
@@ -47,10 +51,9 @@ export function getReleaseEventView(
         id: undefined,
         version: 2,
         name: `${t('Release')} ${formatVersion(version)}`,
-        fields: [`count()`, `to_other(release,${version},others,current)`],
+        fields: [`count()`, toOther],
         query: `${releaseFilter} ${statusFilter}`.trim(),
-        // this orderby ensures that the order is [others, current]
-        orderby: `to_other_release_${version}_current_others`,
+        orderby: toOtherAlias,
         range: period,
         environment: environments,
         projects,
@@ -69,10 +72,9 @@ export function getReleaseEventView(
         id: undefined,
         version: 2,
         name: `${t('Release')} ${formatVersion(version)}`,
-        fields: ['count()', `to_other(release,${version},others,current)`],
+        fields: ['count()', toOther],
         query: `event.type:transaction ${releaseFilter} ${column}:>${threshold}`,
-        // this orderby ensures that the order is [others, current]
-        orderby: `to_other_release_${version}_current_others`,
+        orderby: toOtherAlias,
         range: period,
         environment: environments,
         projects,
