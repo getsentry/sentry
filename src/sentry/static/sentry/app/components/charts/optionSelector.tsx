@@ -27,7 +27,7 @@ class OptionSelector extends React.Component<Props, State> {
   state: State = {};
 
   componentDidMount() {
-    this.setDropdownWidths();
+    this.setMenuContainerWidth();
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
@@ -36,11 +36,11 @@ class OptionSelector extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.selected !== this.props.selected) {
-      this.setDropdownWidths();
+      this.setMenuContainerWidth();
     }
   }
 
-  setDropdownWidths() {
+  setMenuContainerWidth() {
     const menuContainerWidth = this.menuContainerRef?.current?.offsetWidth;
     if (menuContainerWidth) {
       this.setState({menuContainerWidth});
