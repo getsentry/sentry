@@ -4,11 +4,17 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.event_search import (
+    resolve_field_list,
+    get_filter,
+    InvalidSearchQuery,
+)
 from sentry.models import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
 )
+from sentry.utils.dates import parse_stats_period
 
 
 def get_next_dashboard_order(dashboard_id):
@@ -45,6 +51,26 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
+
+    def validate_fields(self, fields):
+        snuba_filter = get_filter("")
+        try:
+            resolve_field_list(fields, snuba_filter)
+            return fields
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError(u"Invalid fields: {}".format(err))
+
+    def validate_conditions(self, conditions):
+        try:
+            get_filter(conditions)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError(u"Invalid conditions: {}".format(err))
+        return conditions
+
+    def validate_interval(self, interval):
+        if parse_stats_period(interval) is None:
+            raise serializers.ValidationError("Invalid interval")
+        return interval
 
     def validate(self, data):
         if not data.get("id"):

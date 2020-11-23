@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import six
-import pytest
 
 from django.core.urlresolvers import reverse
 from sentry.models import (
@@ -217,13 +216,97 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
 
-    @pytest.mark.skip(reason="will be done in a future set of changes")
     def test_add_widget_invalid_query(self):
-        pass
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {
+                    "title": "Invalid fields",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(transaction.duration)"],
+                            "conditions": "foo: bar:",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid conditions" in response.content
 
-    @pytest.mark.skip(reason="will be done in a future set of changes")
-    def test_add_widget_invalid_fields(self):
-        pass
+    def test_add_widget_unknown_aggregation(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {
+                    "title": "Invalid fields",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["wrong()"],
+                            "conditions": "",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid fields" in response.content
+
+    def test_add_widget_invalid_aggregate_parameter(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {
+                    "title": "Invalid fields",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "conditions": "",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid fields" in response.content
+
+    def test_add_widget_invalid_interval(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {
+                    "title": "Invalid interval",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Durations",
+                            "fields": ["p95(transaction.duration)"],
+                            "conditions": "",
+                            "interval": "1q",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid interval" in response.content
 
     def test_update_widget_title(self):
         data = {
@@ -363,13 +446,51 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][2], widgets[2])
         assert self.widget_4.id == widgets[3].id
 
-    @pytest.mark.skip(reason="not done yet")
-    def test_update_widget_invalid_query(self):
-        pass
+    def test_update_widget_invalid_aggregate_parameter(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "title": "Invalid fields",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "conditions": "",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid fields" in response.content
 
-    @pytest.mark.skip(reason="not done yet")
     def test_update_widget_invalid_fields(self):
-        pass
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "title": "Invalid fields",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95()"],
+                            "conditions": "foo: bar:",
+                            "interval": "5m",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Invalid conditions" in response.content
 
     def test_remove_widgets(self):
         data = {
