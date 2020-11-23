@@ -6,6 +6,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
 import {t} from 'app/locale';
 
+// TODO(matej): remove "unhandled-issue-flag" feature flag once testing is over (otherwise this won't ever be rendered in a shared event)
 const UnhandledTag = () => (
   <Feature features={['unhandled-issue-flag']}>
     <Tooltip title={t('An unhandled error was detected in this Issue.')}>
