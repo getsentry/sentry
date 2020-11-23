@@ -49,6 +49,7 @@ type Props = {
   isFrameAfterLastNonApp?: boolean;
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
+  hideStacktraceLink?: boolean;
 };
 
 type State = {
@@ -59,6 +60,7 @@ export class Line extends React.Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,
+    hideStacktraceLink: false,
   };
 
   // isExpanded can be initialized to true via parent component;
@@ -348,6 +350,7 @@ export class Line extends React.Component<Props, State> {
           hasAssembly={this.hasAssembly()}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
+          hideStacktraceLink={this.props.hideStacktraceLink}
         />
       </StyledLi>
     );
