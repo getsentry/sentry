@@ -51,6 +51,8 @@ module.exports = {
     ],
   ],
 
+  testRunner: 'jest-circus/runner',
+
   testEnvironmentOptions: {
     output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
   },
