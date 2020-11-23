@@ -86,7 +86,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
 
 const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props) => (
   <FormField help={help} {...props}>
-    {({onChange, value, model}) => {
+    {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
 
       const fieldOptionsConfig = getFieldOptionConfig(dataset);
@@ -121,6 +121,7 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
             columnWidth={columnWidth}
             gridColumns={numParameters}
             inFieldLabels={inFieldLabels}
+            disabled={disabled}
           />
         </React.Fragment>
       );

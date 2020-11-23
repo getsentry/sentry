@@ -62,6 +62,7 @@ type Props = {
    */
   inFieldLabels?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
+  disabled?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -281,7 +282,7 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {inFieldLabels} = this.props;
+    const {disabled, inFieldLabels} = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
@@ -294,6 +295,7 @@ class QueryField extends React.Component<Props> {
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
+            disabled={disabled}
           />
         );
       }
@@ -305,6 +307,7 @@ class QueryField extends React.Component<Props> {
           required: descriptor.required,
           value: descriptor.value,
           onUpdate: handler,
+          disabled,
         };
         switch (descriptor.dataType) {
           case 'number':
@@ -357,7 +360,13 @@ class QueryField extends React.Component<Props> {
   }
 
   render() {
-    const {className, takeFocus, filterPrimaryOptions, inFieldLabels} = this.props;
+    const {
+      className,
+      takeFocus,
+      filterPrimaryOptions,
+      inFieldLabels,
+      disabled,
+    } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
     const allFieldOptions = filterPrimaryOptions
@@ -371,6 +380,7 @@ class QueryField extends React.Component<Props> {
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
+      disabled,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
