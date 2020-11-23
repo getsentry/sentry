@@ -35,7 +35,7 @@
 /docker                         @getsentry/releases
 setup.py                        @getsentry/releases
 setup.cfg                       @getsentry/releases
-# TODO: owners-build (for ci)
+/.github/           @getsentry/owners-sentry-dev
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
 tsconfig.*          @getsentry/owners-js-build
