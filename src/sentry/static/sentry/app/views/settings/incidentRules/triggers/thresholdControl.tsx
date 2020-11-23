@@ -110,7 +110,7 @@ class ThresholdControl extends React.Component<Props, State> {
           ]}
           onChange={this.handleTypeChange}
         />
-        <Input
+        <StyledInput
           disabled={disabled}
           name={`${type}Threshold`}
           placeholder={placeholder}
@@ -134,9 +134,14 @@ class ThresholdControl extends React.Component<Props, State> {
   }
 }
 
+const StyledInput = styled(Input)`
+  /* Match the height of the select controls */
+  height: 40px;
+`;
+
 const DragContainer = styled('div')`
   position: absolute;
-  top: 6px;
+  top: 4px;
   right: 12px;
 `;
 
