@@ -38,7 +38,6 @@ class GroupOwner(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupowner"
-        unique_together = (("group", "type", "user", "team"),)
 
     def save(self, *args, **kwargs):
         keys = list(filter(None, [self.user_id, self.team_id]))
