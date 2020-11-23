@@ -36,8 +36,6 @@ const WaitingActivity = ({onRefresh, disabled}: Props) => (
 
 export default WaitingActivity;
 
-const StyledEmptyMessage = styled(EmptyMessage, {
-  shouldForwardProp: prop => prop !== 'disabled',
-})<{disabled: boolean}>`
+const StyledEmptyMessage = styled(EmptyMessage)<{disabled: boolean}>`
   ${p => p.disabled && `color: ${p.theme.disabled}`};
 `;

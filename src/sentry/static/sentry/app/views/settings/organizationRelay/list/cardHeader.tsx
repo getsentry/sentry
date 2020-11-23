@@ -32,6 +32,14 @@ const CardHeader = ({
       {t('Copy Key')}
     </Button>
   );
+  const deleteButton = (
+    <Button
+      size="small"
+      icon={<IconDelete />}
+      label={t('Delete Key')}
+      disabled={disabled}
+    />
+  );
   return (
     <Header disabled={disabled}>
       <MainInfo>
@@ -58,16 +66,19 @@ const CardHeader = ({
           label={t('Edit Key')}
           disabled={disabled}
         />
-        <ConfirmDelete
-          message={t(
-            'After removing this Public Key, your Relay will no longer be able to communicate with Sentry and events will be dropped.'
-          )}
-          onConfirm={onDelete(publicKey)}
-          confirmInput={name}
-          disabled={disabled}
-        >
-          <Button size="small" icon={<IconDelete />} label={t('Delete Key')} />
-        </ConfirmDelete>
+        {disabled ? (
+          deleteButton
+        ) : (
+          <ConfirmDelete
+            message={t(
+              'After removing this Public Key, your Relay will no longer be able to communicate with Sentry and events will be dropped.'
+            )}
+            onConfirm={onDelete(publicKey)}
+            confirmInput={name}
+          >
+            {deleteButton}
+          </ConfirmDelete>
+        )}
       </ButtonBar>
     </Header>
   );
