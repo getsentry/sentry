@@ -921,8 +921,6 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable functionality to specify custom inbound filters on events.
