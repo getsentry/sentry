@@ -88,7 +88,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
             <QuestionTooltip
               position="top"
               title={t(
-                'Based on Google Web Vitals, this is the number of passing web vitals that meet the requirements for "good" or "needs improvement".'
+                'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
               )}
               size="sm"
             />
