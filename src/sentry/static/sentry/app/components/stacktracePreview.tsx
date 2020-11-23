@@ -1,26 +1,33 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import {Client} from 'app/api';
 import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import Hovercard, {Body} from 'app/components/hovercard';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Event, Organization, PlatformType} from 'app/types';
+import {StacktraceType} from 'app/types/stacktrace';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 type Props = {
   issueId: string;
   organization: Organization;
   api: Client;
+  theme: Theme;
 };
 
 type State = {
-  event: Event | null;
+  loading: boolean;
+  event?: Event;
 };
 
 class StacktracePreview extends React.Component<Props, State> {
   state: State = {
-    event: null,
+    loading: true,
   };
 
   fetchData = async () => {
@@ -31,7 +38,7 @@ class StacktracePreview extends React.Component<Props, State> {
     const {api, issueId} = this.props;
     try {
       const event = await api.requestPromise(`/issues/${issueId}/events/latest/`);
-      this.setState({event});
+      this.setState({event, loading: false});
     } catch {
       // preview will not show up
     }
@@ -42,11 +49,45 @@ class StacktracePreview extends React.Component<Props, State> {
     event.preventDefault();
   };
 
+  renderHovercardBody(stacktrace: StacktraceType) {
+    const {event, loading} = this.state;
+
+    if (loading) {
+      return null;
+    }
+
+    if (!stacktrace) {
+      return (
+        <NoStacktraceMessage onClick={this.handleStacktracePreviewClick}>
+          {t('There is no stack trace.')}
+        </NoStacktraceMessage>
+      );
+    }
+
+    if (event && stacktrace) {
+      return (
+        <div onClick={this.handleStacktracePreviewClick}>
+          <StacktraceContent
+            data={stacktrace}
+            expandFirstFrame={false}
+            // includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
+            includeSystemFrames={stacktrace.frames.every(frame => !frame.inApp)}
+            platform={(event.platform ?? 'other') as PlatformType}
+            newestFirst={isStacktraceNewestFirst()}
+            event={event}
+            hideStacktraceLink
+          />
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   render() {
-    const {organization, children} = this.props;
-    const {event} = this.state;
-    const exception = event?.entries.find(e => e.type === 'exception')?.data;
-    const stacktrace = exception?.values[0]?.stacktrace;
+    const {children, organization, theme} = this.props;
+    const {stacktrace} =
+      this.state.event?.entries.find(e => e.type === 'exception')?.data?.values[0] ?? {};
 
     if (!organization.features.includes('stacktrace-hover-preview')) {
       return children;
@@ -55,22 +96,10 @@ class StacktracePreview extends React.Component<Props, State> {
     return (
       <span onMouseEnter={this.fetchData}>
         <StyledHovercard
-          body={
-            event && exception && stacktrace ? (
-              <div onClick={this.handleStacktracePreviewClick}>
-                <StacktraceContent
-                  data={stacktrace}
-                  expandFirstFrame
-                  // includeSystemFrames={!exception.hasSystemFrames} // (chainedException && stacktrace.frames.every(frame => !frame.inApp))
-                  includeSystemFrames={stacktrace.frames.every(frame => !frame.inApp)}
-                  platform={(event.platform ?? 'other') as PlatformType}
-                  newestFirst={isStacktraceNewestFirst()}
-                  event={event}
-                />
-              </div>
-            ) : null
-          }
-          position="left"
+          body={this.renderHovercardBody(stacktrace)}
+          hasStacktrace={!!stacktrace}
+          position="right"
+          tipColor={theme.background}
         >
           {children}
         </StyledHovercard>
@@ -79,9 +108,9 @@ class StacktracePreview extends React.Component<Props, State> {
   }
 }
 
-const StyledHovercard = styled(Hovercard)`
-  width: 700px;
-  border: none;
+const StyledHovercard = styled(Hovercard)<{hasStacktrace: boolean}>`
+  width: ${p => (p.hasStacktrace ? '700px' : 'auto')};
+  border-color: ${p => p.theme.background};
 
   ${Body} {
     padding: 0;
@@ -102,4 +131,15 @@ const StyledHovercard = styled(Hovercard)`
   }
 `;
 
-export default withApi(StacktracePreview);
+const NoStacktraceMessage = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray400};
+  padding: ${space(1.5)};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 250px;
+  min-height: 50px;
+`;
+
+export default withTheme(withApi(StacktracePreview));
