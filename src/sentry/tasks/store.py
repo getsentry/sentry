@@ -31,11 +31,8 @@ info_logger = logging.getLogger("sentry.store")
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
 
-SYMBOLICATE_EVENT_APM_SAMPLING = float(
-    getattr(settings, "SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING", 0.0)
-)
-
-SYMBOLICATOR_MAX_RETRY_AFTER = float(getattr(settings, "SYMBOLICATOR_MAX_RETRY_AFTER", 5))
+SYMBOLICATE_EVENT_APM_SAMPLING = settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
+SYMBOLICATOR_MAX_RETRY_AFTER = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 
 
 class RetryProcessing(Exception):
