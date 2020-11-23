@@ -57,7 +57,7 @@ def backfill_eventstream(apps, schema_editor):
             # When migrating old data from Sentry 9.0.0 to 9.1.2 to 10 in rapid succession, the event timestamp may be
             # missing. This adds it back
             if "timestamp" not in event.data.data:
-                event.data.data['timestamp'] = to_timestamp(event.datetime)
+                event.data.data["timestamp"] = to_timestamp(event.datetime)
         eventstore.bind_nodes(_events, "data")
 
     if skip_backfill:
@@ -78,9 +78,16 @@ def backfill_eventstream(apps, schema_editor):
         event = NewEvent(
             project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
         )
-        primary_hash = event.get_primary_hash()
-        if event.project is None or event.group is None or len(event.data) == 0:
-            print("Skipped {} as group, project or node data information is invalid.\n".format(event))
+
+        try:
+            group = event.group
+        except Group.DoesNotExist:
+            group = None
+
+        if event.project is None or group is None or len(event.data) == 0:
+            print(
+                "Skipped {} as group, project or node data information is invalid.\n".format(event)
+            )
             continue
 
         try:
@@ -90,7 +97,7 @@ def backfill_eventstream(apps, schema_editor):
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                primary_hash=primary_hash,
+                primary_hash=event.get_primary_hash(),
                 received_timestamp=event.data.get("received")
                 or float(event.datetime.strftime("%s")),
                 skip_consume=True,
@@ -106,7 +113,6 @@ def backfill_eventstream(apps, schema_editor):
             if old_node_id != new_node_id:
                 event.data.save()
                 nodestore.delete(old_node_id)
-
 
             processed += 1
         except Exception as error:
