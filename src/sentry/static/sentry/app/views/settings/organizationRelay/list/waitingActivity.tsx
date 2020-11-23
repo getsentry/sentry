@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import CommandLine from 'app/components/commandLine';
@@ -9,17 +10,23 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   onRefresh: () => void;
+  disabled: boolean;
 };
 
-const WaitingActivity = ({onRefresh}: Props) => (
+const WaitingActivity = ({onRefresh, disabled}: Props) => (
   <Panel>
-    <EmptyMessage
+    <StyledEmptyMessage
+      disabled={disabled}
       title={t('Waiting on Activity!')}
-      description={tct('Run relay in your terminal with [commandLine]', {
-        commandLine: <CommandLine>{'relay run'}</CommandLine>,
-      })}
+      description={
+        disabled
+          ? undefined
+          : tct('Run relay in your terminal with [commandLine]', {
+              commandLine: <CommandLine>{'relay run'}</CommandLine>,
+            })
+      }
       action={
-        <Button icon={<IconRefresh />} onClick={onRefresh}>
+        <Button icon={<IconRefresh />} onClick={onRefresh} disabled={disabled}>
           {t('Refresh')}
         </Button>
       }
@@ -28,3 +35,9 @@ const WaitingActivity = ({onRefresh}: Props) => (
 );
 
 export default WaitingActivity;
+
+const StyledEmptyMessage = styled(EmptyMessage, {
+  shouldForwardProp: prop => prop !== 'disabled',
+})<{disabled: boolean}>`
+  ${p => p.disabled && `color: ${p.theme.disabled}`};
+`;

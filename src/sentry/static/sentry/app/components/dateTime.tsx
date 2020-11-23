@@ -16,6 +16,7 @@ type Props = DefaultProps & {
   timeAndDate?: boolean;
   utc?: boolean;
   format?: string;
+  className?: string;
 };
 
 class DateTime extends React.Component<Props> {
@@ -28,6 +29,7 @@ class DateTime extends React.Component<Props> {
     timeAndDate: PropTypes.bool,
     utc: PropTypes.bool,
     format: PropTypes.string,
+    className: PropTypes.string,
   };
 
   static defaultProps: DefaultProps = {

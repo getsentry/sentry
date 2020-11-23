@@ -15,6 +15,7 @@ import {Organization, Relay, RelayActivity} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 
 import Add from './modals/add';
 import Edit from './modals/edit';
@@ -129,7 +130,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     this.fetchData();
   };
 
-  renderContent() {
+  renderContent(disabled: boolean) {
     const {relays, relayActivities, loading} = this.state;
 
     if (loading) {
@@ -147,11 +148,14 @@ class RelayWrapper extends AsyncView<Props, State> {
         onEdit={this.handleOpenEditDialog}
         onRefresh={this.handleRefresh}
         onDelete={this.handleDelete}
+        disabled={disabled}
       />
     );
   }
 
   renderBody() {
+    const {organization} = this.props;
+    const disabled = !organization.access.includes('org:write');
     return (
       <React.Fragment>
         <SettingsPageHeader
@@ -162,11 +166,13 @@ class RelayWrapper extends AsyncView<Props, State> {
               size="small"
               icon={<IconAdd size="xs" isCircled />}
               onClick={this.handleOpenAddDialog}
+              disabled={disabled}
             >
               {t('Register Key')}
             </Button>
           }
         />
+        <PermissionAlert />
         <StyledTextBlock>
           {t(
             'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io.'
@@ -177,7 +183,7 @@ class RelayWrapper extends AsyncView<Props, State> {
             link: <ExternalLink href={RELAY_DOCS_LINK} />,
           })}
         </TextBlock>
-        {this.renderContent()}
+        {this.renderContent(disabled)}
       </React.Fragment>
     );
   }

@@ -1,6 +1,5 @@
 import React from 'react';
 
-import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {PanelAlert} from 'app/components/panels';
@@ -10,21 +9,19 @@ import withOrganization from 'app/utils/withOrganization';
 import RelayWrapper from './relayWrapper';
 
 const OrganizationRelay = ({organization, ...props}: RelayWrapper['props']) => (
-  <Access access={['org:admin']} organization={organization} renderNoAccessMessage>
-    <Feature
-      features={['relay']}
-      organization={organization}
-      renderDisabled={() => (
-        <FeatureDisabled
-          alert={PanelAlert}
-          features={organization.features}
-          featureName={t('Relay')}
-        />
-      )}
-    >
-      <RelayWrapper organization={organization} {...props} />
-    </Feature>
-  </Access>
+  <Feature
+    features={['relay']}
+    organization={organization}
+    renderDisabled={() => (
+      <FeatureDisabled
+        alert={PanelAlert}
+        features={organization.features}
+        featureName={t('Relay')}
+      />
+    )}
+  >
+    <RelayWrapper organization={organization} {...props} />
+  </Feature>
 );
 
 export default withOrganization(OrganizationRelay);

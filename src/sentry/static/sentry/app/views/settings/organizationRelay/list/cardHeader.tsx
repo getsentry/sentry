@@ -15,55 +15,65 @@ import {Relay} from 'app/types';
 type Props = Relay & {
   onEdit: (publicKey: Relay['publicKey']) => () => void;
   onDelete: (publicKey: Relay['publicKey']) => () => void;
+  disabled: boolean;
 };
 
-const CardHeader = ({publicKey, name, description, created, onEdit, onDelete}: Props) => (
-  <Header>
-    <MainInfo>
-      <Name>
-        <div>{name}</div>
-        {description && <QuestionTooltip position="top" size="sm" title={description} />}
-      </Name>
-      <Date>
-        {tct('Created on [date]', {date: <DateTime date={created} timeAndDate />})}
-      </Date>
-    </MainInfo>
-    <ButtonBar gap={1}>
-      <Clipboard value={publicKey}>
-        <Button size="small" icon={<IconCopy />}>
-          {t('Copy Key')}
-        </Button>
-      </Clipboard>
-      <Button
-        size="small"
-        onClick={onEdit(publicKey)}
-        icon={<IconEdit />}
-        label={t('Edit Key')}
-      />
-      <ConfirmDelete
-        message={t(
-          'After removing this Public Key, your Relay will no longer be able to communicate with Sentry and events will be dropped.'
+const CardHeader = ({
+  publicKey,
+  name,
+  description,
+  created,
+  disabled,
+  onEdit,
+  onDelete,
+}: Props) => {
+  const copyKeyButton = (
+    <Button size="small" icon={<IconCopy />} disabled={disabled}>
+      {t('Copy Key')}
+    </Button>
+  );
+  return (
+    <Header disabled={disabled}>
+      <MainInfo>
+        <Name>
+          <div>{name}</div>
+          {description && (
+            <QuestionTooltip position="top" size="sm" title={description} />
+          )}
+        </Name>
+        <Date>
+          {tct('Created on [date]', {date: <DateTime date={created} timeAndDate />})}
+        </Date>
+      </MainInfo>
+      <ButtonBar gap={1}>
+        {disabled ? (
+          copyKeyButton
+        ) : (
+          <Clipboard value={publicKey}>{copyKeyButton}</Clipboard>
         )}
-        onConfirm={onDelete(publicKey)}
-        confirmInput={name}
-      >
-        <Button size="small" icon={<IconDelete />} label={t('Delete Key')} />
-      </ConfirmDelete>
-    </ButtonBar>
-  </Header>
-);
+        <Button
+          size="small"
+          onClick={onEdit(publicKey)}
+          icon={<IconEdit />}
+          label={t('Edit Key')}
+          disabled={disabled}
+        />
+        <ConfirmDelete
+          message={t(
+            'After removing this Public Key, your Relay will no longer be able to communicate with Sentry and events will be dropped.'
+          )}
+          onConfirm={onDelete(publicKey)}
+          confirmInput={name}
+          disabled={disabled}
+        >
+          <Button size="small" icon={<IconDelete />} label={t('Delete Key')} />
+        </ConfirmDelete>
+      </ButtonBar>
+    </Header>
+  );
+};
 
 export default CardHeader;
-
-const Header = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  align-items: flex-start;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr max-content;
-  }
-`;
 
 const Name = styled('div')`
   display: grid;
@@ -80,4 +90,22 @@ const MainInfo = styled('div')`
 const Date = styled('small')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const Header = styled('div')<{disabled: boolean}>`
+  display: grid;
+  grid-gap: ${space(1)};
+  align-items: flex-start;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
+
+  ${p =>
+    p.disabled &&
+    `
+      ${Name} {
+        color: ${p.theme.disabled}
+      }
+    `}
 `;
