@@ -1,24 +1,24 @@
 import React from 'react';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import pick from 'lodash/pick';
-import {withTheme} from 'emotion-theming';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {Organization} from 'app/types';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {SectionHeading} from 'app/components/charts/styles';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import styled from 'app/styled';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import TimeSince from 'app/components/timeSince';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Theme} from 'app/utils/theme';
+import CreateAlertButton from 'app/components/createAlertButton';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
-import ButtonBar from 'app/components/buttonBar';
-import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
+import TimeSince from 'app/components/timeSince';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
+import styled from 'app/styled';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {Theme} from 'app/utils/theme';
 
 import {Incident, IncidentStatus} from '../alerts/types';
 
