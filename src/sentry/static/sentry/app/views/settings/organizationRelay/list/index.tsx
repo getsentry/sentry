@@ -37,7 +37,7 @@ const List = ({
       return <WaitingActivity onRefresh={onRefresh} disabled={disabled} />;
     }
 
-    return <ActivityList activities={activities} disabled={disabled} />;
+    return <ActivityList activities={activities} />;
   };
 
   return (

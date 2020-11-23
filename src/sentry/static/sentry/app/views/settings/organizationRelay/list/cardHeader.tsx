@@ -41,7 +41,7 @@ const CardHeader = ({
     />
   );
   return (
-    <Header disabled={disabled}>
+    <Header>
       <MainInfo>
         <Name>
           <div>{name}</div>
@@ -103,7 +103,7 @@ const Date = styled('small')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const Header = styled('div')<{disabled: boolean}>`
+const Header = styled('div')`
   display: grid;
   grid-gap: ${space(1)};
   align-items: flex-start;
@@ -111,12 +111,4 @@ const Header = styled('div')<{disabled: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr max-content;
   }
-
-  ${p =>
-    p.disabled &&
-    `
-      ${Name} {
-        color: ${p.theme.disabled}
-      }
-    `}
 `;

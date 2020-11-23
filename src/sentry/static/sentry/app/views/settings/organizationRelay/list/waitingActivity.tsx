@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import CommandLine from 'app/components/commandLine';
@@ -15,8 +14,7 @@ type Props = {
 
 const WaitingActivity = ({onRefresh, disabled}: Props) => (
   <Panel>
-    <StyledEmptyMessage
-      disabled={disabled}
+    <EmptyMessage
       title={t('Waiting on Activity!')}
       description={
         disabled
@@ -35,7 +33,3 @@ const WaitingActivity = ({onRefresh, disabled}: Props) => (
 );
 
 export default WaitingActivity;
-
-const StyledEmptyMessage = styled(EmptyMessage)<{disabled: boolean}>`
-  ${p => p.disabled && `color: ${p.theme.disabled}`};
-`;
