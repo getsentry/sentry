@@ -1,5 +1,5 @@
+import {Repository, User} from 'app/types';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
-import {User, Repository} from 'app/types';
 
 type Data = [number, {count: number}[]][];
 

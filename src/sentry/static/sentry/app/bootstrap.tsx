@@ -2,31 +2,30 @@ import 'bootstrap/js/alert';
 import 'bootstrap/js/tab';
 import 'bootstrap/js/dropdown';
 import 'focus-visible';
-
 import 'app/utils/statics-setup';
 
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Reflux from 'reflux';
 import * as Router from 'react-router';
+import {ExtraErrorData} from '@sentry/integrations';
+import * as Sentry from '@sentry/react';
 import SentryRRWeb from '@sentry/rrweb';
+import {Integrations} from '@sentry/tracing';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
-import {Integrations} from '@sentry/tracing';
-import {ExtraErrorData} from '@sentry/integrations';
-import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {NODE_ENV, DISABLE_RR_WEB, SPA_DSN} from 'app/constants';
-import {metric} from 'app/utils/analytics';
-import {setupColorScheme} from 'app/utils/matchMedia';
-import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
-import ConfigStore from 'app/stores/configStore';
+import {DISABLE_RR_WEB, NODE_ENV, SPA_DSN} from 'app/constants';
 import Main from 'app/main';
-import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
+import ConfigStore from 'app/stores/configStore';
+import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import {metric} from 'app/utils/analytics';
+import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
+import {setupColorScheme} from 'app/utils/matchMedia';
 
 if (NODE_ENV === 'development') {
   import(

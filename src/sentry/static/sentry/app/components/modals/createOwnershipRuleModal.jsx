@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {css} from '@emotion/core';
+import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
+import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';
 
 class CreateOwnershipRuleModal extends React.Component {
   static propTypes = {

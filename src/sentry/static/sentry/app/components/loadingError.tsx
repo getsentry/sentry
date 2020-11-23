@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {IconInfo} from 'app/icons';
-import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import {Panel} from 'app/components/panels';
+import {IconInfo} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type DefaultProps = {

@@ -1,43 +1,44 @@
 import React from 'react';
-import {Location, LocationDescriptor, Query} from 'history';
+import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
-import {browserHistory} from 'react-router';
+import {Location, LocationDescriptor, Query} from 'history';
 
-import Feature from 'app/components/acl/feature';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {NewQuery, Organization, GlobalSelection, ReleaseProject} from 'app/types';
-import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
-import {getUtcDateString} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import {TrendView, TrendChangeType} from 'app/views/performance/trends/types';
-import {formatVersion} from 'app/utils/formatters';
-import routeTitleGen from 'app/utils/routeTitle';
-import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {restoreRelease} from 'app/actionCreators/release';
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
+import {Body, Main, Side} from 'app/components/layouts/thirds';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
+import EventView from 'app/utils/discover/eventView';
+import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
+import routeTitleGen from 'app/utils/routeTitle';
+import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
+import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
+import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
+
+import {isReleaseArchived} from '../../utils';
+import {ReleaseContext} from '..';
 
 import ReleaseChart from './chart/';
-import Issues from './issues';
-import CommitAuthorBreakdown from './commitAuthorBreakdown';
-import ProjectReleaseDetails from './projectReleaseDetails';
-import OtherProjects from './otherProjects';
-import TotalCrashFreeUsers from './totalCrashFreeUsers';
-import Deploys from './deploys';
-import ReleaseStatsRequest from './releaseStatsRequest';
-import ReleaseArchivedNotice from './releaseArchivedNotice';
 import {YAxis} from './chart/releaseChartControls';
-import {ReleaseContext} from '..';
-import {isReleaseArchived} from '../../utils';
+import CommitAuthorBreakdown from './commitAuthorBreakdown';
+import Deploys from './deploys';
+import Issues from './issues';
+import OtherProjects from './otherProjects';
+import ProjectReleaseDetails from './projectReleaseDetails';
+import ReleaseArchivedNotice from './releaseArchivedNotice';
+import ReleaseStatsRequest from './releaseStatsRequest';
+import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
 type RouteParams = {
   orgId: string;
@@ -231,6 +232,7 @@ class ReleaseOverview extends AsyncView<Props> {
                     {(hasDiscover || hasPerformance || hasHealthData) && (
                       <ReleaseChart
                         {...releaseStatsProps}
+                        releaseMeta={releaseMeta}
                         selection={selection}
                         yAxis={yAxis}
                         onYAxisChange={this.handleYAxisChange}
@@ -362,12 +364,12 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'p50'},
-      value: 'p50',
+      value: 'slow',
       label: t('Slow Transactions'),
     },
     {
       sort: {kind: 'desc', field: 'p75_measurements_lcp'},
-      value: 'p75_lcp',
+      value: 'slow_lcp',
       label: t('Slow LCP'),
     },
     {

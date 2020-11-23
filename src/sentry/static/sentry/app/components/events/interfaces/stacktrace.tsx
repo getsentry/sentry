@@ -1,13 +1,13 @@
 import React from 'react';
 
-import ConfigStore from 'app/stores/configStore';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
 import CrashContent from 'app/components/events/interfaces/crashContent';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {Event, Project} from 'app/types';
-import {STACK_VIEW, STACK_TYPE} from 'app/types/stacktrace';
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 export function isStacktraceNewestFirst() {
   const user = ConfigStore.get('user');

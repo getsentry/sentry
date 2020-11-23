@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import * as PopperJS from 'popper.js';
-import {Manager, Reference, Popper} from 'react-popper';
 
-import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
 import {TableColumn} from './types';

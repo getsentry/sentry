@@ -1,41 +1,41 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryTransactionEvent, Organization} from 'app/types';
 import {t, tct} from 'app/locale';
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
+import * as DividerHandlerManager from './dividerHandlerManager';
+import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
+import * as MeasurementsManager from './measurementsManager';
+import MeasurementsPanel from './measurementsPanel';
+import SpanGroup from './spanGroup';
+import {SpanRowMessage} from './styles';
+import {FilterSpans} from './traceView';
 import {
+  GapSpanType,
+  OrphanTreeDepth,
+  ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
   SpanChildrenLookupType,
-  ParsedTraceType,
-  GapSpanType,
   TreeDepthType,
-  OrphanTreeDepth,
 } from './types';
 import {
   boundsGenerator,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  pickSpanBarColour,
   generateRootSpan,
   getSpanID,
   getSpanOperation,
   getSpanTraceID,
+  isEventFromBrowserJavaScriptSDK,
   isGapSpan,
   isOrphanSpan,
-  isEventFromBrowserJavaScriptSDK,
+  pickSpanBarColour,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
   toPercent,
 } from './utils';
-import {DragManagerChildrenProps} from './dragManager';
-import SpanGroup from './spanGroup';
-import {SpanRowMessage} from './styles';
-import * as DividerHandlerManager from './dividerHandlerManager';
-import {FilterSpans} from './traceView';
-import {ActiveOperationFilter} from './filter';
-import MeasurementsPanel from './measurementsPanel';
-import * as MeasurementsManager from './measurementsManager';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;

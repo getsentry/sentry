@@ -1,7 +1,7 @@
 import React from 'react';
 
-import withApi from 'app/utils/withApi';
 import {MetaType} from 'app/utils/discover/eventView';
+import withApi from 'app/utils/withApi';
 
 import GenericDiscoverQuery, {DiscoverQueryProps} from './genericDiscoverQuery';
 

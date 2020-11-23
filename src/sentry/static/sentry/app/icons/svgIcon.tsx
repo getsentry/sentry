@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import theme, {IconSize, Color, Aliases} from 'app/utils/theme';
+import theme, {Aliases, Color, IconSize} from 'app/utils/theme';
 
 type Props = React.SVGAttributes<SVGElement> & {
   color?: Color | keyof Aliases;

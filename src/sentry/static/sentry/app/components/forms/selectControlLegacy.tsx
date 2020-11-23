@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select-legacy';
-import styled from '@emotion/styled';
+import ReactSelect, {Async, AsyncCreatable, Creatable} from 'react-select-legacy';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {IconChevron} from 'app/icons';
-import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 /**
  * The library has `value` defined as `PropTypes.object`, but this

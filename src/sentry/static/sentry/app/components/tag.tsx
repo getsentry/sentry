@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {defined} from 'app/utils';
-import theme, {Theme, Color} from 'app/utils/theme';
-import space from 'app/styles/space';
-import {IconClose, IconOpen} from 'app/icons';
 import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
+import Tooltip from 'app/components/tooltip';
+import {IconClose, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {defined} from 'app/utils';
+import theme, {Color, Theme} from 'app/utils/theme';
 
 const TAG_HEIGHT = '20px';
 

@@ -1,15 +1,15 @@
 import React from 'react';
 
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ConfigStore from 'app/stores/configStore';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import OrganizationActions from 'app/actions/organizationActions';
-import ProjectsStore from 'app/stores/projectsStore';
 import * as globalActions from 'app/actionCreators/globalSelection';
+import OrganizationActions from 'app/actions/organizationActions';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import ConfigStore from 'app/stores/configStore';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
+import ProjectsStore from 'app/stores/projectsStore';
 import {getItem} from 'app/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({

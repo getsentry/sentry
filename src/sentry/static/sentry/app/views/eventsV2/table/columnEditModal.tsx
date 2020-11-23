@@ -2,17 +2,17 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-import {Column} from 'app/utils/discover/fields';
+import {LightWeightOrganization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Column} from 'app/utils/discover/fields';
+import theme from 'app/utils/theme';
 
 import ColumnEditCollection from './columnEditCollection';
 

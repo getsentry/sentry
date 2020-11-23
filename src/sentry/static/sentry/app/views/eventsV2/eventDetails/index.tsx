@@ -1,17 +1,17 @@
-import {Params} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import PropTypes from 'prop-types';
 
-import {Organization} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {t} from 'app/locale';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import withOrganization from 'app/utils/withOrganization';
+import {PageContent} from 'app/styles/organization';
+import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import withOrganization from 'app/utils/withOrganization';
 
 import EventDetailsContent from './content';
 

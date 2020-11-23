@@ -1,27 +1,28 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {Organization, Project, GlobalSelection} from 'app/types';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import {WebVital, isAggregateField} from 'app/utils/discover/fields';
+import {isAggregateField, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
-import RumContent from './content';
 import {getTransactionName} from '../utils';
+
+import {PERCENTILE, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
+import RumContent from './content';
 
 type Props = {
   location: Location;

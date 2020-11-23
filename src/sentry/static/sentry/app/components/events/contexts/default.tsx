@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {Event} from 'app/types';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
+import {Event} from 'app/types';
 
 type Props = {
   data: Record<string, React.ReactNode | undefined>;

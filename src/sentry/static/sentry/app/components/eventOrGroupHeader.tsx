@@ -1,17 +1,17 @@
 import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Tooltip from 'app/components/tooltip';
+import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
 import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
-import {IconMute, IconStar} from 'app/icons';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import Tooltip from 'app/components/tooltip';
-import {getMessage, getLocation} from 'app/utils/events';
+import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UnhandledTag, {
   TagAndMessageWrapper,
 } from 'app/views/organizationGroupDetails/unhandledTag';

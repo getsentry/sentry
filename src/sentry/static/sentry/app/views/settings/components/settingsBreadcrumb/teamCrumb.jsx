@@ -1,12 +1,12 @@
+import React from 'react';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
-import React from 'react';
 
-import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import IdBadge from 'app/components/idBadge';
-import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 import recreateRoute from 'app/utils/recreateRoute';
 import withTeams from 'app/utils/withTeams';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 
 import {CrumbLink} from '.';
 

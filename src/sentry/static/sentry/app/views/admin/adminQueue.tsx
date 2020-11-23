@@ -1,9 +1,9 @@
 import React from 'react';
 
-import AsyncView from 'app/views/asyncView';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
-import InternalStatChart from 'app/components/internalStatChart';
 import {SelectField} from 'app/components/forms';
+import InternalStatChart from 'app/components/internalStatChart';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import AsyncView from 'app/views/asyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 

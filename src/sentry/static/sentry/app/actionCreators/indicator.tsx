@@ -1,12 +1,12 @@
-import * as Sentry from '@sentry/react';
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import IndicatorActions from 'app/actions/indicatorActions';
 import {DEFAULT_TOAST_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
-import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
-import IndicatorActions from 'app/actions/indicatorActions';
 import space from 'app/styles/space';
+import FormModel, {FieldValue} from 'app/views/settings/components/forms/model';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 

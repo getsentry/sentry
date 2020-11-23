@@ -10,7 +10,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {IntegrationProvider, Integration, Organization, ObjectStatus} from 'app/types';
+import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import theme from 'app/utils/theme';
 

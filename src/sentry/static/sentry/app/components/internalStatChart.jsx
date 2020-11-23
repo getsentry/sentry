@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';

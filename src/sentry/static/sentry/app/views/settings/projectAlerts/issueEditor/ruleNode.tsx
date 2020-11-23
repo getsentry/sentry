@@ -1,6 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
+import ExternalLink from 'app/components/links/externalLink';
+import {IconDelete} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -9,16 +17,8 @@ import {
   IssueAlertRuleConditionTemplate,
   MailActionTargetType,
 } from 'app/types/alerts';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
-import SelectControl from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
-import ExternalLink from 'app/components/links/externalLink';
-import {Organization, Project} from 'app/types';
-import {IconDelete} from 'app/icons';
 
 type FormField = {
   // Type of form fields

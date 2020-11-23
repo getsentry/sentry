@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {Organization, Project, Plugin} from 'app/types';
-import {enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
+import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
 import InactivePlugins from 'app/components/inactivePlugins';
 import PluginConfig from 'app/components/pluginConfig';
 import {t} from 'app/locale';
+import {Organization, Plugin, Project} from 'app/types';
 
 import {Panel, PanelItem} from './panels';
 

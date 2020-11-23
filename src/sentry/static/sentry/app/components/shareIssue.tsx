@@ -1,10 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {IconCopy, IconRefresh} from 'app/icons';
-import space from 'app/styles/space';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
@@ -12,7 +9,10 @@ import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Switch from 'app/components/switch';
+import {IconCopy, IconRefresh} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 type ContainerProps = {
   shareUrl: string;

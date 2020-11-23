@@ -1,27 +1,28 @@
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import {Group, Organization, Project, Event, AvatarProject} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {t} from 'app/locale';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Projects from 'app/utils/projects';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import GroupStore from 'app/stores/groupStore';
+import {PageContent} from 'app/styles/organization';
+import {AvatarProject, Event, Group, Organization, Project} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import {getMessage, getTitle} from 'app/utils/events';
+import Projects from 'app/utils/projects';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
-import {getMessage, getTitle} from 'app/utils/events';
 
 import {ERROR_TYPES} from './constants';
-import {fetchGroupEventAndMarkSeen} from './utils';
 import GroupHeader, {TAB} from './header';
+import {fetchGroupEventAndMarkSeen} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -183,6 +184,9 @@ class GroupDetails extends React.Component<Props, State> {
         case 404:
           errorType = ERROR_TYPES.GROUP_NOT_FOUND;
           break;
+        case 403:
+          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
+          break;
         default:
       }
 
@@ -234,6 +238,12 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderError() {
+    const {organization, location} = this.props;
+    const projects = organization.projects;
+    const projectId = location.query.project;
+
+    const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
+
     if (!this.state.error) {
       return null;
     }
@@ -242,6 +252,14 @@ class GroupDetails extends React.Component<Props, State> {
       case ERROR_TYPES.GROUP_NOT_FOUND:
         return (
           <LoadingError message={t('The issue you were looking for was not found.')} />
+        );
+
+      case ERROR_TYPES.MISSING_MEMBERSHIP:
+        return (
+          <MissingProjectMembership
+            organization={this.props.organization}
+            projectId={projectSlug}
+          />
         );
       default:
         return <LoadingError onRetry={this.remountComponent} />;

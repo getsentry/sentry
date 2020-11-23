@@ -1,15 +1,15 @@
-import * as ReactRouter from 'react-router';
 import React from 'react';
-import styled from '@emotion/styled';
+import * as ReactRouter from 'react-router';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
 import FeatureBadge from 'app/components/featureBadge';
 import HookOrDefault from 'app/components/hookOrDefault';
-import Tooltip from 'app/components/tooltip';
-import TextOverflow from 'app/components/textOverflow';
-import {Theme} from 'app/utils/theme';
 import Link from 'app/components/links/link';
+import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
 import localStorage from 'app/utils/localStorage';
+import {Theme} from 'app/utils/theme';
 
 import {SidebarOrientation} from './types';
 

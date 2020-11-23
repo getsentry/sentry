@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import Radio from 'app/components/radio';
 import space from 'app/styles/space';

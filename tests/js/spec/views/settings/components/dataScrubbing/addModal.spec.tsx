@@ -3,10 +3,10 @@ import sortBy from 'lodash/sortBy';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GlobalModal from 'app/components/globalModal';
 import {openModal} from 'app/actionCreators/modal';
-import Add from 'app/views/settings/components/dataScrubbing/modals/add';
+import GlobalModal from 'app/components/globalModal';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import Add from 'app/views/settings/components/dataScrubbing/modals/add';
 import {MethodType, RuleType} from 'app/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,

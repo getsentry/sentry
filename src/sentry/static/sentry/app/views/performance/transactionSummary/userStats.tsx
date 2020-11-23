@@ -1,24 +1,24 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
-import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
   WEB_VITAL_DETAILS,
 } from 'app/views/performance/transactionVitals/constants';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
 type Props = {
   totals: Record<string, number>;

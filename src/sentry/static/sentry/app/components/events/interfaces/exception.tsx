@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {t} from 'app/locale';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
-import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
-import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import CrashContent from 'app/components/events/interfaces/crashContent';
+import CrashActions from 'app/components/events/interfaces/crashHeader/crashActions';
+import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
+import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
+import {t} from 'app/locale';
 import {Event, ExceptionType} from 'app/types';
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 const defaultProps = {
   hideGuide: false,

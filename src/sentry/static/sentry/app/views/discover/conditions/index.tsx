@@ -1,12 +1,13 @@
 import React from 'react';
 
-import {t} from 'app/locale';
-import {IconClose} from 'app/icons/iconClose';
 import Link from 'app/components/links/link';
+import {IconClose} from 'app/icons/iconClose';
+import {t} from 'app/locale';
+
+import {AddText, PlaceholderText, SelectListItem, SidebarLabel} from '../styles';
+import {Condition, DiscoverBaseProps} from '../types';
 
 import ConditionRow from './condition';
-import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
-import {Condition, DiscoverBaseProps} from '../types';
 
 type ConditionsProps = DiscoverBaseProps & {
   value: Condition[];
