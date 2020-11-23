@@ -2003,10 +2003,13 @@ SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT = 600
 # Log warning when process_event is taking more than n seconds to process event
 SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT = 120
 
-# Block process_event for this many seconds to wait for a response from
-# symbolicator. If too low, too many events up in the sleep queue. If too high,
-# process_event might backlog and affect events from other platforms.
-SYMBOLICATOR_POLL_TIMEOUT = 4
+# Block symbolicate_event for this many seconds to wait for a initial response
+# from symbolicator after the task submission.
+SYMBOLICATOR_POLL_TIMEOUT = 10
+
+# When retrying symbolication requests or querying for the result this set the
+# max number of second to wait between subsequent attempts.
+SYMBOLICATOR_MAX_RETRY_AFTER = 5
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",

@@ -4,7 +4,7 @@ import random
 import logging
 from datetime import datetime
 
-from time import time
+from time import time, sleep
 from django.utils import timezone
 from django.conf import settings
 
@@ -30,6 +30,9 @@ info_logger = logging.getLogger("sentry.store")
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
+
+SYMBOLICATE_EVENT_APM_SAMPLING = settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
+SYMBOLICATOR_MAX_RETRY_AFTER = settings.SYMBOLICATOR_MAX_RETRY_AFTER
 
 
 class RetryProcessing(Exception):
@@ -79,7 +82,7 @@ def submit_process(
 
 
 def sample_symbolicate_event_apm():
-    return random.random() < getattr(settings, "SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING", 0)
+    return random.random() < SYMBOLICATE_EVENT_APM_SAMPLING
 
 
 def submit_symbolicate(project, from_reprocessing, cache_key, event_id, start_time, data):
@@ -210,79 +213,76 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
-    try:
-        with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
-            span.set_data("symbolicaton_function", symbolication_function.__name__)
+    with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
+        span.set_data("symbolicaton_function", symbolication_function.__name__)
+        with metrics.timer(
+            "tasks.store.symbolicate_event.symbolication",
+            tags={"symbolication_function": symbolication_function.__name__},
+        ):
+            while True:
+                try:
+                    with sentry_sdk.start_span(
+                        op="tasks.store.symbolicate_event.%s" % symbolication_function.__name__
+                    ) as span:
+                        symbolicated_data = symbolication_function(data)
+                        span.set_data("symbolicated_data", bool(symbolicated_data))
 
-            with metrics.timer(
-                "tasks.store.symbolicate_event.symbolication",
-                tags={"symbolication_function": symbolication_function.__name__},
-            ):
-                symbolicated_data = symbolication_function(data)
+                    if symbolicated_data:
+                        data = symbolicated_data
+                        has_changed = True
 
-            span.set_data("symbolicated_data", bool(symbolicated_data))
-            if symbolicated_data:
-                data = symbolicated_data
-                has_changed = True
-
-            if start_time:
-                metrics.timing(
-                    "tasks.store.symbolicate_event.symbolication.full_duration",
-                    time() - start_time,
-                    tags={"symbolication_function": symbolication_function.__name__},
-                )
-
-    except RetrySymbolication as e:
-        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
-            error_logger.warning(
-                "symbolicate.slow", extra={"project_id": project_id, "event_id": event_id}
-            )
-
-        if start_time and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
-            # Do not drop event but actually continue with rest of pipeline
-            # (persisting unsymbolicated event)
-            metrics.incr(
-                "tasks.store.symbolicate_event.fatal",
-                tags={
-                    "reason": "timeout",
-                    "symbolication_function": symbolication_function.__name__,
-                },
-            )
-            error_logger.exception(
-                "symbolicate.failed.infinite_retry",
-                extra={"project_id": project_id, "event_id": event_id},
-            )
-            data.setdefault("_metrics", {})["flag.processing.error"] = True
-            data.setdefault("_metrics", {})["flag.processing.fatal"] = True
-            has_changed = True
-        else:
-            # Requeue the task in the "sleep" queue
-            metrics.incr(
-                "tasks.store.symbolicate_event.retry",
-                tags={"symbolication_function": symbolication_function.__name__},
-            )
-            retry_symbolicate_event.apply_async(
-                args=(),
-                kwargs={
-                    "symbolicate_task_name": symbolicate_task.__name__,
-                    "task_kwargs": {
-                        "cache_key": cache_key,
-                        "event_id": event_id,
-                        "start_time": start_time,
-                    },
-                },
-                countdown=e.retry_after,
-            )
-            return
-    except Exception:
-        metrics.incr(
-            "tasks.store.symbolicate_event.fatal",
-            tags={"reason": "error", "symbolication_function": symbolication_function.__name__},
-        )
-        error_logger.exception("tasks.store.symbolicate_event.symbolication")
-        data.setdefault("_metrics", {})["flag.processing.error"] = True
-        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
-        has_changed = True
+                    break
+                except RetrySymbolication as e:
+                    if (
+                        start_time
+                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT
+                    ):
+                        error_logger.warning(
+                            "symbolicate.slow",
+                            extra={"project_id": project_id, "event_id": event_id},
+                        )
+                    if (
+                        start_time
+                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT
+                    ):
+                        # Do not drop event but actually continue with rest of pipeline
+                        # (persisting unsymbolicated event)
+                        metrics.incr(
+                            "tasks.store.symbolicate_event.fatal",
+                            tags={
+                                "reason": "timeout",
+                                "symbolication_function": symbolication_function.__name__,
+                            },
+                        )
+                        error_logger.exception(
+                            "symbolicate.failed.infinite_retry",
+                            extra={"project_id": project_id, "event_id": event_id},
+                        )
+                        data.setdefault("_metrics", {})["flag.processing.error"] = True
+                        data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+                        has_changed = True
+                        break
+                    else:
+                        # sleep for `retry_after` but max 5 seconds and try again
+                        metrics.incr(
+                            "tasks.store.symbolicate_event.retry",
+                            tags={"symbolication_function": symbolication_function.__name__},
+                        )
+                        sleep(min(e.retry_after, SYMBOLICATOR_MAX_RETRY_AFTER))
+                        continue
+                except Exception:
+                    metrics.incr(
+                        "tasks.store.symbolicate_event.fatal",
+                        tags={
+                            "reason": "error",
+                            "symbolication_function": symbolication_function.__name__,
+                        },
+                    )
+                    error_logger.exception("tasks.store.symbolicate_event.symbolication")
+                    data.setdefault("_metrics", {})["flag.processing.error"] = True
+                    data.setdefault("_metrics", {})["flag.processing.fatal"] = True
+                    has_changed = True
+                    break
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
@@ -307,8 +307,9 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
-    time_limit=65,
-    soft_time_limit=60,
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
 )
 def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
     """
@@ -334,8 +335,9 @@ def symbolicate_event(cache_key, start_time=None, event_id=None, **kwargs):
 @instrumented_task(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    time_limit=65,
-    soft_time_limit=60,
+    time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+    soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
+    acks_late=True,
 )
 def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
     with sentry_sdk.start_transaction(
@@ -349,32 +351,6 @@ def symbolicate_event_from_reprocessing(cache_key, start_time=None, event_id=Non
             event_id=event_id,
             symbolicate_task=symbolicate_event_from_reprocessing,
         )
-
-
-@instrumented_task(
-    name="sentry.tasks.store.retry_symbolicate_event",
-    queue="sleep",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-)
-def retry_symbolicate_event(symbolicate_task_name, task_kwargs, **kwargs):
-    """
-    The only purpose of this task is be enqueued with some ETA set. This is
-    essentially an implementation of ETAs on top of Celery's existing ETAs, but
-    with the intent of having separate workers wait for those ETAs.
-    """
-    tasks = {
-        "symbolicate_event": symbolicate_event,
-        "symbolicate_event_from_reprocessing": symbolicate_event_from_reprocessing,
-    }
-
-    symbolicate_task = tasks.get(symbolicate_task_name)
-    if not symbolicate_task:
-        raise ValueError(
-            "Invalid argument for symbolicate_task_name: %s" % (symbolicate_task_name,)
-        )
-
-    symbolicate_task.delay(**task_kwargs)
 
 
 @instrumented_task(

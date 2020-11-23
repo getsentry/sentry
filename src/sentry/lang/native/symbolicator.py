@@ -142,7 +142,7 @@ class Symbolicator(object):
                 # retrying after just a second.
                 #
                 # If there is no response attached, it's a connection error.
-                raise RetrySymbolication(retry_after=10)
+                raise RetrySymbolication(retry_after=settings.SYMBOLICATOR_MAX_RETRY_AFTER)
 
             metrics.incr(
                 "events.symbolicator.response",
