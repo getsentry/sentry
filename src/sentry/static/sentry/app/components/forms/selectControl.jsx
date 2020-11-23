@@ -54,7 +54,7 @@ const defaultStyles = {
     boxShadow: `inset ${theme.dropShadowLight}`,
     transition: 'border 0.1s linear',
     alignItems: 'center',
-    minHeight: '36px',
+    minHeight: '40px',
     '&:hover': {
       borderColor: theme.border,
     },
