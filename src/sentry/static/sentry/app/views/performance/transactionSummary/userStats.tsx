@@ -85,7 +85,9 @@ function UserStats({totals, location, organization, transactionName}: Props) {
         <SectionHeading>{t('Apdex Score')}</SectionHeading>
         <StatNumber>{apdex}</StatNumber>
         <Link to={`/settings/${organization.slug}/performance/`}>
-          <SectionValue>Max. {threshold}ms</SectionValue>
+          <SectionValue>
+            {threshold}ms {t('threshold')}
+          </SectionValue>
         </Link>
       </div>
       {vitalsPassRate !== null && (
