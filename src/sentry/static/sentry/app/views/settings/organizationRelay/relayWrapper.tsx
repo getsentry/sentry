@@ -162,6 +162,9 @@ class RelayWrapper extends AsyncView<Props, State> {
           title={t('Relay')}
           action={
             <Button
+              title={
+                disabled ? t('You do not have permission to register keys') : undefined
+              }
               priority="primary"
               size="small"
               icon={<IconAdd size="xs" isCircled />}

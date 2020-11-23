@@ -24,7 +24,7 @@ const WaitingActivity = ({onRefresh, disabled}: Props) => (
             })
       }
       action={
-        <Button icon={<IconRefresh />} onClick={onRefresh} disabled={disabled}>
+        <Button icon={<IconRefresh />} onClick={onRefresh}>
           {t('Refresh')}
         </Button>
       }

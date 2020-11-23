@@ -27,17 +27,13 @@ const CardHeader = ({
   onEdit,
   onDelete,
 }: Props) => {
-  const copyKeyButton = (
-    <Button size="small" icon={<IconCopy />} disabled={disabled}>
-      {t('Copy Key')}
-    </Button>
-  );
   const deleteButton = (
     <Button
       size="small"
       icon={<IconDelete />}
       label={t('Delete Key')}
       disabled={disabled}
+      title={disabled ? t('You do not have permission to delete keys') : undefined}
     />
   );
   return (
@@ -54,17 +50,18 @@ const CardHeader = ({
         </Date>
       </MainInfo>
       <ButtonBar gap={1}>
-        {disabled ? (
-          copyKeyButton
-        ) : (
-          <Clipboard value={publicKey}>{copyKeyButton}</Clipboard>
-        )}
+        <Clipboard value={publicKey}>
+          <Button size="small" icon={<IconCopy />}>
+            {t('Copy Key')}
+          </Button>
+        </Clipboard>
         <Button
           size="small"
           onClick={onEdit(publicKey)}
           icon={<IconEdit />}
           label={t('Edit Key')}
           disabled={disabled}
+          title={disabled ? t('You do not have permission to edit keys') : undefined}
         />
         {disabled ? (
           deleteButton
