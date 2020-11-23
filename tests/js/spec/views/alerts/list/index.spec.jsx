@@ -3,8 +3,8 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import IncidentsList from 'app/views/alerts/list';
 import ProjectsStore from 'app/stores/projectsStore';
+import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function () {
   const {routerContext, organization} = initializeOrg({

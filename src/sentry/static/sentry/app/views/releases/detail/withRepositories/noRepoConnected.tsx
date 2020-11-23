@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import {IconCommit} from 'app/icons';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel} from 'app/components/panels';
+import {IconCommit} from 'app/icons';
+import {t} from 'app/locale';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   orgId: string;

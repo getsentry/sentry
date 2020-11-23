@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
-import {Event} from 'app/types';
-import space from 'app/styles/space';
 import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Event} from 'app/types';
 
 type Props = {
   event: Event;

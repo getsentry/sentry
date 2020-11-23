@@ -1,11 +1,11 @@
 import {Route} from 'react-router';
 
-import {NavigationSection} from 'app/views/settings/types';
-import {User, Organization, Project, IntegrationProvider} from 'app/types';
-import {ExperimentKey} from 'app/types/experiments';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
+import {IntegrationProvider, Organization, Project, User} from 'app/types';
+import {ExperimentKey} from 'app/types/experiments';
 import {StepProps} from 'app/views/onboarding/types';
+import {NavigationSection} from 'app/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //

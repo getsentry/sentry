@@ -1,18 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import DateTime from 'app/components/dateTime';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SelectField from 'app/components/forms/selectField';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import SelectField from 'app/components/forms/selectField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const avatarStyle = {
   width: 36,

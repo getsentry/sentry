@@ -1,11 +1,11 @@
 /* eslint-disable react/prop-types */
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import getDisplayName from 'app/utils/getDisplayName';
 import ProjectsStore from 'app/stores/projectsStore';
 import {Project} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type Props = {
   projects?: Project[];

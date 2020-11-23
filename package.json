@@ -157,6 +157,7 @@
     "enzyme-to-json": "3.4.3",
     "eslint": "5.11.1",
     "eslint-config-sentry-app": "^1.44.0",
+    "eslint-plugin-simple-import-sort": "^6.0.0",
     "html-webpack-plugin": "^4.3.0",
     "jest": "24.9.0",
     "jest-canvas-mock": "^2.2.0",

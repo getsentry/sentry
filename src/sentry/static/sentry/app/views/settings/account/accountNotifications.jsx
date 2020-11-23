@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
-import {IconChevron, IconMail} from 'app/icons';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import Link from 'app/components/links/link';
 import {PanelFooter} from 'app/components/panels';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
+import {IconChevron, IconMail} from 'app/icons';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const FINE_TUNE_FOOTERS = {
   [t('Alerts')]: {

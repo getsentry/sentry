@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import space from 'app/styles/space';
 import {HeaderTitle} from 'app/styles/organization';
+import space from 'app/styles/space';
 
 type Props = {
   // The title

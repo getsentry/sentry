@@ -1,24 +1,24 @@
-import isString from 'lodash/isString';
-import moment from 'moment';
-import set from 'lodash/set';
 import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
+import set from 'lodash/set';
+import moment from 'moment';
 
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {SentryTransactionEvent} from 'app/types';
 import {assert} from 'app/types/utils';
-import CHART_PALETTE from 'app/constants/chartPalette';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 import {
+  GapSpanType,
+  OrphanSpanType,
+  OrphanTreeDepth,
   ParsedTraceType,
   ProcessedSpanType,
-  GapSpanType,
   RawSpanType,
-  OrphanSpanType,
-  SpanType,
   SpanEntry,
+  SpanType,
   TraceContextType,
   TreeDepthType,
-  OrphanTreeDepth,
 } from './types';
 
 type Rect = {

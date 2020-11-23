@@ -1,20 +1,20 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {t} from 'app/locale';
-import {LightWeightOrganization} from 'app/types';
 import BreakdownBars from 'app/components/charts/breakdownBars';
-import {SectionHeading} from 'app/components/charts/styles';
-import Placeholder from 'app/components/placeholder';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {IconWarning} from 'app/icons';
+import {SectionHeading} from 'app/components/charts/styles';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
-import EventView from 'app/utils/discover/eventView';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {getTermHelp} from 'app/views/performance/data';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {LightWeightOrganization} from 'app/types';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {getTermHelp} from 'app/views/performance/data';
 
 type Props = {
   organization: LightWeightOrganization;

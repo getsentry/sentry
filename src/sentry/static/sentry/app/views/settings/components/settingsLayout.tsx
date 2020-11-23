@@ -1,14 +1,14 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import Button from 'app/components/button';
-import {slideInLeft, fadeIn} from 'app/styles/animations';
 import {IconClose, IconMenu} from 'app/icons';
+import {t} from 'app/locale';
+import {fadeIn, slideInLeft} from 'app/styles/animations';
+import space from 'app/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';

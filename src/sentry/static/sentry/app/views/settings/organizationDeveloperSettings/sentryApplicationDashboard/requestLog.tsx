@@ -1,24 +1,24 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 import memoize from 'lodash/memoize';
+import moment from 'moment-timezone';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Button from 'app/components/button';
+import Checkbox from 'app/components/checkbox';
 import DateTime from 'app/components/dateTime';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
-import Tag from 'app/components/tagDeprecated';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Checkbox from 'app/components/checkbox';
-import Button from 'app/components/button';
-import space from 'app/styles/space';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Tag from 'app/components/tagDeprecated';
 import {IconChevron, IconFlag, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
-import {SentryApp, SentryAppWebhookRequest, SentryAppSchemaIssueLink} from 'app/types';
+import space from 'app/styles/space';
+import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'app/types';
 import {Theme} from 'app/utils/theme';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;

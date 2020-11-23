@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import omit from 'lodash/omit';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
+import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
 type DefaultProps = {
   index: boolean;

@@ -1,12 +1,12 @@
 import React from 'react';
 
-import {Event} from 'app/types';
-import {t} from 'app/locale';
 import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {Event} from 'app/types';
 
 type Props = {
   event: Event;

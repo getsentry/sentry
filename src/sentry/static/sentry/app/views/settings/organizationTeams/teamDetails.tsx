@@ -1,26 +1,26 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
-import styled from '@emotion/styled';
+import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {fetchTeamDetails, joinTeam} from 'app/actionCreators/teams';
-import {t, tct} from 'app/locale';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import IdBadge from 'app/components/idBadge';
 import ListLink from 'app/components/links/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t, tct} from 'app/locale';
 import TeamStore from 'app/stores/teamStore';
+import {Team} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
-import {Team} from 'app/types';
 
 type Props = {
   api: Client;

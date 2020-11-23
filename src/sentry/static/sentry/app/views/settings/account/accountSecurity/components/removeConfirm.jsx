@@ -1,8 +1,8 @@
 import React from 'react';
 
+import Confirm from 'app/components/confirm';
 import {t} from 'app/locale';
 import ConfirmHeader from 'app/views/settings/account/accountSecurity/components/confirmHeader';
-import Confirm from 'app/components/confirm';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const message = (

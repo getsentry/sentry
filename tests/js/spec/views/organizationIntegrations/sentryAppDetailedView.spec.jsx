@@ -1,8 +1,8 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mockRouterPush} from 'sentry-test/mockRouterPush';
 
 import {Client} from 'app/api';
 import SentryAppDetailedView from 'app/views/organizationIntegrations/sentryAppDetailedView';
