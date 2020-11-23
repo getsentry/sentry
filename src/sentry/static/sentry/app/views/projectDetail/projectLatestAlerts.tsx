@@ -192,7 +192,7 @@ const AlertRowLink = styled(Link)`
   display: flex;
   align-items: center;
   height: 40px;
-  margin-bottom: 20px;
+  margin-bottom: ${space(3)};
   margin-left: ${space(0.5)};
   &,
   &:hover,
