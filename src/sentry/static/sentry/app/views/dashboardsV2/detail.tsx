@@ -114,7 +114,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
     switch (dashboardState) {
       case 'create': {
-        return !isEqual(dashboard, EMPTY_DASHBOARD);
+        return !isEqual(EMPTY_DASHBOARD, changesDashboard);
       }
       case 'edit': {
         return !isEqual(dashboard, changesDashboard);
