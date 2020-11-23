@@ -177,7 +177,6 @@ class SentryEnvironment extends JsDomEnvironment {
         return null;
 
       default:
-        console.log(name, event); // eslint-disable-line
         return null;
     }
   }
