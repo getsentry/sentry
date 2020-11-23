@@ -1,10 +1,10 @@
-import {Client} from 'app/api';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import TeamActions from 'app/actions/teamActions';
+import {Client} from 'app/api';
 import {tct} from 'app/locale';
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import {uniqueId} from 'app/utils/guid';
 import {Team} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {uniqueId} from 'app/utils/guid';
 
 type CallbackOptions = {
   success?: Function;

@@ -1,26 +1,26 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import Access from 'app/components/acl/access';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import withApi from 'app/utils/withApi';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ListLink from 'app/components/links/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import recreateRoute from 'app/utils/recreateRoute';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {getUrlRoutingName, getDisplayName} from 'app/utils/environment';
 import {Environment, Project} from 'app/types';
-import {Client} from 'app/api';
+import {getDisplayName, getUrlRoutingName} from 'app/utils/environment';
+import recreateRoute from 'app/utils/recreateRoute';
+import withApi from 'app/utils/withApi';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type Props = {
   api: Client;

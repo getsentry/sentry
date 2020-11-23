@@ -1,20 +1,20 @@
 import React from 'react';
-import styled from '@emotion/styled';
-import {css} from '@emotion/core';
 import {WithRouterProps} from 'react-router';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import {addTeamToProject, removeTeamFromProject} from 'app/actionCreators/projects';
 import Link from 'app/components/links/link';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {Organization, Project, Team} from 'app/types';
-import TeamSelect from 'app/views/settings/components/teamSelect';
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, Project, Team} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TeamSelect from 'app/views/settings/components/teamSelect';
 
 type Props = {
   organization: Organization;

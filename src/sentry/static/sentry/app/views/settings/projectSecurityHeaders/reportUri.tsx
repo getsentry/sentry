@@ -1,12 +1,12 @@
 import React from 'react';
 import {Link} from 'react-router';
 
-import {tct} from 'app/locale';
-import Field from 'app/views/settings/components/forms/field';
-import getDynamicText from 'app/utils/getDynamicText';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import {tct} from 'app/locale';
 import {ProjectKey} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
+import Field from 'app/views/settings/components/forms/field';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 

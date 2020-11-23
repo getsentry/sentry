@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 import Rules from './rules';
 import {Rule} from './types';

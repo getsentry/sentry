@@ -1,36 +1,36 @@
-import $ from 'jquery';
-// eslint-disable-next-line no-restricted-imports
-import {Flex, Box} from 'reflexbox';
 import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import $ from 'jquery';
+// eslint-disable-next-line no-restricted-imports
+import {Box, Flex} from 'reflexbox';
 
-import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
-import {PanelItem} from 'app/components/panels';
-import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
+import Link from 'app/components/links/link';
+import MenuItem from 'app/components/menuItem';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
+import {PanelItem} from 'app/components/panels';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import MenuItem from 'app/components/menuItem';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
+import {valueIsEqual} from 'app/utils';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import EventView from 'app/utils/discover/eventView';
+import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import EventView from 'app/utils/discover/eventView';
-import {t} from 'app/locale';
-import Link from 'app/components/links/link';
-import {queryToObj} from 'app/utils/stream';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import TimesTag from 'app/components/group/inboxBadges/timesTag';
-import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
   'query',

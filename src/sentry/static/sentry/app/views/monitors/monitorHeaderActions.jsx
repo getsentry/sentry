@@ -1,22 +1,22 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {logException} from 'app/utils/logging';
-import {t} from 'app/locale';
-import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconEdit} from 'app/icons';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import withApi from 'app/utils/withApi';
 import space from 'app/styles/space';
+import {logException} from 'app/utils/logging';
+import withApi from 'app/utils/withApi';
 
 class MonitorHeaderActions extends React.Component {
   static propTypes = {

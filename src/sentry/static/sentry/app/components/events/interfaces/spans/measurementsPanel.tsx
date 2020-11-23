@@ -1,22 +1,22 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import {SentryTransactionEvent} from 'app/types';
 import {defined} from 'app/utils';
 import {
-  WEB_VITAL_ACRONYMS,
   LONG_WEB_VITAL_NAMES,
+  WEB_VITAL_ACRONYMS,
 } from 'app/views/performance/transactionVitals/constants';
-import Tooltip from 'app/components/tooltip';
 
+import * as MeasurementsManager from './measurementsManager';
 import {
-  getMeasurements,
-  toPercent,
   getMeasurementBounds,
+  getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  toPercent,
 } from './utils';
-import * as MeasurementsManager from './measurementsManager';
 
 type Props = {
   event: SentryTransactionEvent;

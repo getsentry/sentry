@@ -1,11 +1,11 @@
 import React from 'react';
 
 import GroupReleaseChart from 'app/components/group/releaseChart';
-import Placeholder from 'app/components/placeholder';
 import SeenInfo from 'app/components/group/seenInfo';
-import getDynamicText from 'app/utils/getDynamicText';
+import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import {Environment, Group, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import SidebarSection from './sidebarSection';
 

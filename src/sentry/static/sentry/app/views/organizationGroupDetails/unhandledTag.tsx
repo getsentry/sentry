@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import Tag from 'app/components/tagDeprecated';
 import Feature from 'app/components/acl/feature';
+import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
 import {IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 const TagWrapper = styled('div')`
   margin-right: ${space(1)};

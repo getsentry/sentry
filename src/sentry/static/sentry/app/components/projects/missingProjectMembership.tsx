@@ -3,19 +3,19 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
-import {t} from 'app/locale';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {IconFlag} from 'app/icons';
-import Well from 'app/components/well';
-import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
+import Well from 'app/components/well';
+import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project, Team} from 'app/types';
+import withApi from 'app/utils/withApi';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;
   organization: Organization;
-  projectId: string;
+  projectId?: string;
 };
 
 type State = {

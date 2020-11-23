@@ -1,8 +1,8 @@
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import SettingsHeader from 'app/views/settings/components/settingsHeader';
 import {Theme} from 'app/utils/theme';
+import SettingsHeader from 'app/views/settings/components/settingsHeader';
 
 type Params = {
   /**

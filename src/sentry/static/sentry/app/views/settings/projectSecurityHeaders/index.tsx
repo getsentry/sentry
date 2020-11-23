@@ -1,17 +1,17 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import {ProjectKey} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
-import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
+import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import {ProjectKey} from 'app/types';
+import ReportUri from 'app/views/settings/projectSecurityHeaders/reportUri';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
 

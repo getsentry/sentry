@@ -1,12 +1,12 @@
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable/utils';
 import {
   CHART_AXIS_OPTIONS,
-  DisplayModes,
   DISPLAY_MODE_OPTIONS,
+  DisplayModes,
 } from 'app/utils/discover/types';
 
 const generateFields = fields =>

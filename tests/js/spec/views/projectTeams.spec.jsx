@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import * as modals from 'app/actionCreators/modal';
 import App from 'app/views/app';
 import ProjectTeams from 'app/views/settings/project/projectTeams';
-import * as modals from 'app/actionCreators/modal';
 
 jest.unmock('app/actionCreators/modal');
 

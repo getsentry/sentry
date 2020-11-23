@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import SelectMembers from 'app/components/selectMembers';
 import SelectControl from 'app/components/forms/selectControl';
+import {PanelItem} from 'app/components/panels';
+import SelectMembers from 'app/components/selectMembers';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
-import {PanelItem} from 'app/components/panels';
-import space from 'app/styles/space';
 
 interface OptionRecord {
   value: string;

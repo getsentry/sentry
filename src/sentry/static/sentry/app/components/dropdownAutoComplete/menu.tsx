@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import List from './list';
-import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
+import List from './list';
+import {Item, ItemsBeforeFilter} from './types';
 
 export type MenuFooterChildProps = {
   actions: Actions;

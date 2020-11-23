@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import ExternalLink from 'app/components/links/externalLink';
 import {
   AWS_REGIONS,
-  DEBUG_SOURCE_LAYOUTS,
   DEBUG_SOURCE_CASINGS,
+  DEBUG_SOURCE_LAYOUTS,
   getDebugSourceName,
 } from 'app/data/debugFileSources';
-import ExternalLink from 'app/components/links/externalLink';
-import Form from 'app/views/settings/components/forms/form';
+import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import Form from 'app/views/settings/components/forms/form';
 
 function objectToChoices(obj) {
   return Object.entries(obj).map(([key, value]) => [key, t(value)]);

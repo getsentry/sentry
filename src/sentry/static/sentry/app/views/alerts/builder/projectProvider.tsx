@@ -1,12 +1,12 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Client} from 'app/api';
-import {Organization, Project} from 'app/types';
-import {t} from 'app/locale';
 import {fetchOrgMembers} from 'app/actionCreators/members';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
 

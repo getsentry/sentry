@@ -1,20 +1,21 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
-import throttle from 'lodash/throttle';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import throttle from 'lodash/throttle';
 
-import {Organization} from 'app/types';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import Tag from 'app/components/tagDeprecated';
 import DiscoverButton from 'app/components/discoverButton';
+import Tag from 'app/components/tagDeprecated';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {
@@ -23,14 +24,13 @@ import {
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
-import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
-import {HistogramData, Vital, Rectangle} from './types';
-import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils';
+import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
+import {HistogramData, Rectangle, Vital} from './types';
+import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
   location: Location;

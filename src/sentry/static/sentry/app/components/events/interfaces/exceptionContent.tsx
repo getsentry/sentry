@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import Annotated from 'app/components/events/meta/annotated';
 import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
+import Annotated from 'app/components/events/meta/annotated';
+import space from 'app/styles/space';
 import {Event, ExceptionType} from 'app/types';
 import {STACK_TYPE} from 'app/types/stacktrace';
 

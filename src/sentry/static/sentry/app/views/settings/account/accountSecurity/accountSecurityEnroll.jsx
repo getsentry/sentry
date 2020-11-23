@@ -1,7 +1,6 @@
-import {withRouter} from 'react-router';
 import React from 'react';
+import {withRouter} from 'react-router';
 
-import {PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addMessage,
@@ -9,20 +8,21 @@ import {
 } from 'app/actionCreators/indicator';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
 import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
+import {PanelItem} from 'app/components/panels';
+import Qrcode from 'app/components/qrcode';
+import U2fsign from 'app/components/u2f/u2fsign';
+import {t} from 'app/locale';
+import getPendingInvite from 'app/utils/getPendingInvite';
+import AsyncView from 'app/views/asyncView';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Qrcode from 'app/components/qrcode';
-import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import U2fsign from 'app/components/u2f/u2fsign';
-import getPendingInvite from 'app/utils/getPendingInvite';
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method

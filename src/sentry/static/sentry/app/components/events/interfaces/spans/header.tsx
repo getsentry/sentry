@@ -3,26 +3,26 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-import {
-  rectOfContent,
-  toPercent,
-  getHumanDuration,
-  pickSpanBarColour,
-  boundsGenerator,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  getSpanID,
-  getSpanOperation,
-} from './utils';
-import {DragManagerChildrenProps} from './dragManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
+import {DragManagerChildrenProps} from './dragManager';
+import {zIndex} from './styles';
 import {
   ParsedTraceType,
-  TickAlignment,
-  SpanChildrenLookupType,
   RawSpanType,
+  SpanChildrenLookupType,
+  TickAlignment,
 } from './types';
-import {zIndex} from './styles';
+import {
+  boundsGenerator,
+  getHumanDuration,
+  getSpanID,
+  getSpanOperation,
+  pickSpanBarColour,
+  rectOfContent,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  toPercent,
+} from './utils';
 
 export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;

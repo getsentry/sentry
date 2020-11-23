@@ -1,8 +1,8 @@
 import Reflux from 'reflux';
 
 import AlertActions from 'app/actions/alertActions';
-import localStorage from 'app/utils/localStorage';
 import {defined} from 'app/utils';
+import localStorage from 'app/utils/localStorage';
 
 type Alert = {
   message: string;

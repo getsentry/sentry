@@ -1,12 +1,12 @@
-import Reflux from 'reflux';
 import isEqual from 'lodash/isEqual';
+import Reflux from 'reflux';
 
-import {GlobalSelection, Organization} from 'app/types';
-import {LOCAL_STORAGE_KEY} from 'app/constants/globalSelectionHeader';
-import {getDefaultSelection} from 'app/components/organizations/globalSelectionHeader/utils';
-import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+import {getDefaultSelection} from 'app/components/organizations/globalSelectionHeader/utils';
+import {LOCAL_STORAGE_KEY} from 'app/constants/globalSelectionHeader';
 import OrganizationsStore from 'app/stores/organizationsStore';
+import {GlobalSelection, Organization} from 'app/types';
+import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import localStorage from 'app/utils/localStorage';
 
 type UpdateData = {

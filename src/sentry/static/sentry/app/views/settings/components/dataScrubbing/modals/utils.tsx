@@ -1,6 +1,7 @@
-import {fetchFromStorage, saveToStorage} from './localStorage';
-import {EventIdStatus, EventId} from '../types';
+import {EventId, EventIdStatus} from '../types';
 import {valueSuggestions} from '../utils';
+
+import {fetchFromStorage, saveToStorage} from './localStorage';
 
 function fetchSourceGroupData() {
   const fetchedSourceGroupData = fetchFromStorage();

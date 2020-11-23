@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {MemberRole} from 'app/types';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
 import Radio from 'app/components/radio';
+import {t} from 'app/locale';
+import {MemberRole} from 'app/types';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const Label = styled('label')`

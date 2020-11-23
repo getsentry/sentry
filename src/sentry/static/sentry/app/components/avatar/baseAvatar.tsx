@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
-import * as qs from 'query-string';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
+import * as qs from 'query-string';
 
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
 
-import {imageStyle} from './styles';
 import Gravatar from './gravatar';
+import {imageStyle} from './styles';
 
 const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
