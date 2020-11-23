@@ -27,7 +27,7 @@ type Props = {
 export default function ReportUri({keyList, orgId, projectId}: Props) {
   return (
     <Panel>
-      <PanelHeader>{'Report URI'}</PanelHeader>
+      <PanelHeader>{t('Report URI')}</PanelHeader>
       <PanelBody>
         <PanelAlert type="info">
           {tct(
