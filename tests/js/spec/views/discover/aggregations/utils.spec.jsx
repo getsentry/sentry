@@ -1,6 +1,6 @@
 import {
-  getInternal,
   getExternal,
+  getInternal,
   isValidAggregation,
 } from 'app/views/discover/aggregations/utils';
 import {COLUMNS} from 'app/views/discover/data';

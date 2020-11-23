@@ -1,6 +1,6 @@
-import $ from 'jquery';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import $ from 'jquery';
 import PropTypes from 'prop-types';
 
 const ASPECT_RATIO = 16 / 9;

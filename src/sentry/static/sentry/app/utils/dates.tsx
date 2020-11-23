@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import ConfigStore from 'app/stores/configStore';
 import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
+import ConfigStore from 'app/stores/configStore';
 import {DateString} from 'app/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils

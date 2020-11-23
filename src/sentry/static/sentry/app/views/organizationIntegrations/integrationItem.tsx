@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
 import space from 'app/styles/space';
 import {Integration} from 'app/types';
+import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
 
 type DefaultProps = {
   compact: boolean;

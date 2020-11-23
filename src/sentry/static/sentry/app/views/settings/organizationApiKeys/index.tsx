@@ -1,17 +1,17 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import routeTitleGen from 'app/utils/routeTitle';
+import {Organization} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
+import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
-import {DeprecatedApiKey} from './types';
 import OrganizationApiKeysList from './organizationApiKeysList';
+import {DeprecatedApiKey} from './types';
 
 type RouteParams = {
   orgId: string;

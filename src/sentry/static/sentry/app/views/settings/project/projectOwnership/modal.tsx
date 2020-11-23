@@ -1,18 +1,18 @@
 import React from 'react';
-import uniq from 'lodash/uniq';
 import {WithRouterProps} from 'react-router';
+import uniq from 'lodash/uniq';
 
-import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import {t} from 'app/locale';
 import {
+  Entry,
+  Frame,
   Organization,
   Project,
   SentryErrorEvent,
   TagWithTopValues,
-  Entry,
-  Frame,
 } from 'app/types';
+import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
   raw: string;

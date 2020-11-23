@@ -1,21 +1,21 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {
-  Panel,
-  PanelBody,
-  PanelHeader,
-  PanelItem,
-  PanelAlert,
-} from 'app/components/panels';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
 import {IconCopy, IconDownload, IconPrint} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 class RecoveryCodes extends React.Component {
   static propTypes = {

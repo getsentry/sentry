@@ -1,9 +1,9 @@
-import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import {
-  updateProjects,
   updateDateTime,
   updateEnvironments,
+  updateProjects,
 } from 'app/actionCreators/globalSelection';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 
 jest.mock('app/utils/localStorage', () => ({
   getItem: () => JSON.stringify({projects: [5], environments: ['staging']}),

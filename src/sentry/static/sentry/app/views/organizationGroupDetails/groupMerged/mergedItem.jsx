@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {IconChevron} from 'app/icons';
+import GroupingActions from 'app/actions/groupingActions';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import FlowLayout from 'app/components/flowLayout';
-import GroupingActions from 'app/actions/groupingActions';
+import {IconChevron} from 'app/icons';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 

@@ -20,4 +20,4 @@ const IconFire = React.forwardRef(function IconFire(
 
 IconFire.displayName = 'IconFire';
 
-export {IconFire, FIRE_SVG_PATH};
+export {FIRE_SVG_PATH, IconFire};

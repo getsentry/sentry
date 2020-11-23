@@ -3,8 +3,8 @@ import React from 'react';
 import BasePlugin from 'app/plugins/basePlugin';
 import DefaultIssuePlugin from 'app/plugins/defaultIssuePlugin';
 
-import Settings from './components/settings';
 import IssueActions from './components/issueActions';
+import Settings from './components/settings';
 
 class Jira extends DefaultIssuePlugin {
   displayName = 'Jira';

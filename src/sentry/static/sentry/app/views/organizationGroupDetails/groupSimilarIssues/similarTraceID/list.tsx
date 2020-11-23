@@ -1,25 +1,25 @@
 import React from 'react';
-import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
-import pick from 'lodash/pick';
-import * as Sentry from '@sentry/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import {Location, Query} from 'history';
+import pick from 'lodash/pick';
 
-import {tct} from 'app/locale';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {Client} from 'app/api';
+import DateTime from 'app/components/dateTime';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupListHeader from 'app/components/issues/groupListHeader';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import StreamGroup from 'app/components/stream/group';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
-import Pagination from 'app/components/pagination';
-import withApi from 'app/utils/withApi';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {Client} from 'app/api';
 import {Group} from 'app/types';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import LoadingError from 'app/components/loadingError';
-import DateTime from 'app/components/dateTime';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import withApi from 'app/utils/withApi';
 
 type CustomGroup = Group & {
   eventID: string;

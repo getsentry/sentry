@@ -1,26 +1,26 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
+import Alert from 'app/components/alert';
+import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
+import SelectControl from 'app/components/forms/selectControl';
+import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
+import NarrowLayout from 'app/components/narrowLayout';
+import {IconFlag} from 'app/icons';
+import {t, tct} from 'app/locale';
 import {
   LightWeightOrganization,
   Organization,
   SentryApp,
   SentryAppInstallation,
 } from 'app/types';
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import {installSentryApp} from 'app/actionCreators/sentryAppInstallations';
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
-import {IconFlag} from 'app/icons';
-import NarrowLayout from 'app/components/narrowLayout';
-import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
-import SelectControl from 'app/components/forms/selectControl';
-import SentryAppDetailsModal from 'app/components/modals/sentryAppDetailsModal';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 

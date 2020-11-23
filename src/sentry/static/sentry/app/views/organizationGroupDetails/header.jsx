@@ -1,28 +1,28 @@
+import React from 'react';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
-import React from 'react';
-import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
-import {t} from 'app/locale';
 import AssigneeSelector from 'app/components/assigneeSelector';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Badge from 'app/components/badge';
 import Count from 'app/components/count';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import EventAnnotation from 'app/components/events/eventAnnotation';
 import EventMessage from 'app/components/events/eventMessage';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SeenByList from 'app/components/seenByList';
-import SentryTypes from 'app/sentryTypes';
 import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
-import Badge from 'app/components/badge';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
 import {getMessage} from 'app/utils/events';
+import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
 import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';

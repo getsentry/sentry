@@ -1,21 +1,21 @@
+import React from 'react';
 import {PlainRoute} from 'react-router/lib/Route';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
 import styled from '@emotion/styled';
 
-import {PanelTable} from 'app/components/panels';
-import {inputStyles} from 'app/styles/input';
-import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconDelete, IconAdd} from 'app/icons';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import {PanelTable} from 'app/components/panels';
+import {IconAdd, IconDelete} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
+import recreateRoute from 'app/utils/recreateRoute';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import recreateRoute from 'app/utils/recreateRoute';
 
 import {DeprecatedApiKey} from './types';
 

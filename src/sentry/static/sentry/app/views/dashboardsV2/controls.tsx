@@ -1,13 +1,13 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
-import {IconAdd, IconEdit} from 'app/icons';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import SelectControl from 'app/components/forms/selectControl';
+import {IconAdd, IconEdit} from 'app/icons';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 
 import {DashboardListItem, DashboardState} from './types';
 

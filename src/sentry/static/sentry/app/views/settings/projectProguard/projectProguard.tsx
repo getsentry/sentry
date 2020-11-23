@@ -1,18 +1,18 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {PanelTable} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import Checkbox from 'app/components/checkbox';
 import Pagination from 'app/components/pagination';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
+import {PanelTable} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
-import Checkbox from 'app/components/checkbox';
-import SearchBar from 'app/components/searchBar';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 // TODO(android-mappings): use own components once we decide how this should look like
 import DebugFileRow from 'app/views/settings/projectDebugFiles/debugFileRow';
 import {DebugFile} from 'app/views/settings/projectDebugFiles/types';

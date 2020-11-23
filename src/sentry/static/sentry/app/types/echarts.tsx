@@ -1,4 +1,4 @@
-import {ECharts, EChartOption} from 'echarts';
+import {EChartOption, ECharts} from 'echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {

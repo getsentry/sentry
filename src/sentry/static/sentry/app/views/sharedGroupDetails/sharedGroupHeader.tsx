@@ -2,9 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import EventMessage from 'app/components/events/eventMessage';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 import UnhandledTag, {
   TagAndMessageWrapper,

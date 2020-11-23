@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import CircleIndicator from 'app/components/circleIndicator';
 import Tag from 'app/components/tagDeprecated';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import CircleIndicator from 'app/components/circleIndicator';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new';

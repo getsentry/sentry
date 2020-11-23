@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import space from 'app/styles/space';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import TextOverflow from 'app/components/textOverflow';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';

@@ -1,7 +1,7 @@
 import flatMap from 'lodash/flatMap';
 
-import type {Item, ItemsBeforeFilter, ItemsAfterFilter} from './types';
 import type Menu from './menu';
+import type {Item, ItemsAfterFilter, ItemsBeforeFilter} from './types';
 
 type MenuProps = React.ComponentProps<typeof Menu>;
 type Items = MenuProps['items'];

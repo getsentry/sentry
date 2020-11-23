@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
+import PropTypes from 'prop-types';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
-import NavTabs from 'app/components/navTabs';
-import plugins from 'app/plugins';
-import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import NavTabs from 'app/components/navTabs';
+import {t, tct} from 'app/locale';
+import plugins from 'app/plugins';
+import SentryTypes from 'app/sentryTypes';
+import {Group, Organization, Plugin, Project} from 'app/types';
+import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, Group, Project, Plugin} from 'app/types';
 
 type Props = {
   api: Client;

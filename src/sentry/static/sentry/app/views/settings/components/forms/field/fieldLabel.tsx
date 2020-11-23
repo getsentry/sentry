@@ -1,5 +1,5 @@
-import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 

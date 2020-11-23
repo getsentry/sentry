@@ -1,20 +1,20 @@
-import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment-timezone';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+import PropTypes from 'prop-types';
 
+import DateTime from 'app/components/dateTime';
+import FileSize from 'app/components/fileSize';
+import ExternalLink from 'app/components/links/externalLink';
+import NavigationButtonGroup from 'app/components/navigationButtonGroup';
+import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import DateTime from 'app/components/dateTime';
-import ExternalLink from 'app/components/links/externalLink';
-import FileSize from 'app/components/fileSize';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
-import getDynamicText from 'app/utils/getDynamicText';
-import NavigationButtonGroup from 'app/components/navigationButtonGroup';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const formatDateDelta = (reference, observed) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
