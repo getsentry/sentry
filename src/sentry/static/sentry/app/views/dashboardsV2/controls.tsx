@@ -43,19 +43,23 @@ class Controls extends React.Component<Props> {
       onDelete,
     } = this.props;
 
+    const revertButton = (
+      <Button
+        onClick={e => {
+          e.preventDefault();
+          onRevert();
+        }}
+        size="small"
+        disabled={!isRevertable}
+      >
+        {t('Revert')}
+      </Button>
+    );
+
     if (dashboardState === 'edit') {
       return (
         <ButtonBar gap={1} key="edit-controls">
-          <Button
-            onClick={e => {
-              e.preventDefault();
-              onRevert();
-            }}
-            size="small"
-            disabled={!isRevertable}
-          >
-            {t('Revert')}
-          </Button>
+          {revertButton}
           <Button
             onClick={e => {
               e.preventDefault();
@@ -83,16 +87,7 @@ class Controls extends React.Component<Props> {
     if (dashboardState === 'create') {
       return (
         <ButtonBar gap={1} key="create-controls">
-          <Button
-            onClick={e => {
-              e.preventDefault();
-              onRevert();
-            }}
-            size="small"
-            disabled={!isRevertable}
-          >
-            {t('Revert')}
-          </Button>
+          {revertButton}
           <Button
             onClick={e => {
               e.preventDefault();
