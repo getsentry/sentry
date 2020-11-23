@@ -152,7 +152,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
               {t('Create Alert Rule')}
             </CreateAlertButton>
             <Button size="small" external href={DOCS_URL}>
-              {t('View Features')}
+              {t('Learn More')}
             </Button>
           </StyledButtonBar>
         </div>
