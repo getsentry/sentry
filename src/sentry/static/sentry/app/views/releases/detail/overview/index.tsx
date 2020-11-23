@@ -28,7 +28,6 @@ import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
 import {isReleaseArchived} from '../../utils';
 import {ReleaseContext} from '..';
-
 import ReleaseChart from './chart/';
 import {YAxis} from './chart/releaseChartControls';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
@@ -138,6 +137,11 @@ class ReleaseOverview extends AsyncView<Props> {
         return EventView.fromSavedQuery({
           ...baseQuery,
           query: `event.type:transaction release:${version} epm():>0.01`,
+        });
+      case 'failure_count':
+        return EventView.fromSavedQuery({
+          ...baseQuery,
+          query: `event.type:transaction release:${version} failure_count():>0`,
         });
       default:
         return EventView.fromSavedQuery(baseQuery);
