@@ -803,7 +803,7 @@ const AssigneesLabel = styled('div')`
 `;
 
 const TimesSpacerLabel = styled('div')`
-  width: 175px;
+  width: 160px;
   margin: 0 ${space(2)};
 `;
 

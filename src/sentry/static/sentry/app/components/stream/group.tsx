@@ -253,7 +253,7 @@ class StreamGroup extends React.Component<Props, State> {
           <EventOrGroupExtraDetails data={data} />
         </GroupSummary>
         {hasInbox && (
-          <ReasonAndTimesContainer>
+          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
             {hasInboxReason && data.inbox && (
               <InboxReasonWrapper>
                 <InboxReason inbox={data.inbox} />
@@ -269,13 +269,13 @@ class StreamGroup extends React.Component<Props, State> {
         )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
-          <ChartWrapper className="hidden-xs hidden-sm">
+          <Box width={160} mx={2} className="hidden-xs hidden-sm">
             <GroupChart
               statsPeriod={statsPeriod!}
               data={data}
               showSecondaryPoints={showSecondaryPoints}
             />
-          </ChartWrapper>
+          </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           <DropdownMenu isNestedDropdown>
@@ -473,18 +473,13 @@ const MenuItemText = styled('div')`
 
 const ReasonAndTimesContainer = styled('div')`
   display: flex;
-  width: 175px;
+  width: 160px;
   flex-direction: column;
   margin: 0 ${space(2)};
 `;
 
 const InboxReasonWrapper = styled('div')`
   margin-bottom: ${space(0.75)};
-`;
-
-const ChartWrapper = styled('div')`
-  width: 160px;
-  margin: 0 ${space(2)};
 `;
 
 const AssigneeWrapper = styled('div')`
