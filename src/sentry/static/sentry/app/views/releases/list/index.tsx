@@ -25,7 +25,6 @@ import AsyncView from 'app/views/asyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 
-import IntroBanner from './introBanner';
 import ReleaseCard from './releaseCard';
 import ReleaseLanding from './releaseLanding';
 import ReleaseListDisplayOptions from './releaseListDisplayOptions';
@@ -284,8 +283,6 @@ class ReleasesList extends AsyncView<Props, State> {
                 />
               </SortAndFilterWrapper>
             </StyledPageHeader>
-
-            <IntroBanner />
 
             {this.getDisplay() === 'archived' && releases?.length > 0 && (
               <ReleaseArchivedNotice multi />
