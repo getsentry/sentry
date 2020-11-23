@@ -68,7 +68,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       [0, 0]
     );
     if (vitalsTotal > 0) {
-      vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
+      vitalsPassRate = <StatNumber>{`${vitalsPassed}/${vitalsTotal}`}</StatNumber>;
     }
   }
 
@@ -81,8 +81,35 @@ function UserStats({totals, location, organization, transactionName}: Props) {
 
   return (
     <Container>
+      {vitalsPassRate !== null && (
+        <div>
+          <SectionHeading>
+            {t('Web Vitals')}
+            <QuestionTooltip
+              position="top"
+              title={t(
+                'Based on Google Web Vitals, this is the number of passing web vitals that meet the requirements for "good" or "needs improvement".'
+              )}
+              size="sm"
+            />
+          </SectionHeading>
+          <StatNumber>{vitalsPassRate}</StatNumber>
+          <Link to={webVitalsTarget}>
+            <SectionValue>{t('Passed')}</SectionValue>
+          </Link>
+        </div>
+      )}
       <div>
-        <SectionHeading>{t('Apdex Score')}</SectionHeading>
+        <SectionHeading>
+          {t('Apdex Score')}
+          <QuestionTooltip
+            position="top"
+            title={t(
+              'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
+            )}
+            size="sm"
+          />
+        </SectionHeading>
         <StatNumber>{apdex}</StatNumber>
         <Link to={`/settings/${organization.slug}/performance/`}>
           <SectionValue>
@@ -90,15 +117,6 @@ function UserStats({totals, location, organization, transactionName}: Props) {
           </SectionValue>
         </Link>
       </div>
-      {vitalsPassRate !== null && (
-        <div>
-          <SectionHeading>{t('Web Vitals')}</SectionHeading>
-          <StatNumber>{vitalsPassRate}</StatNumber>
-          <Link to={webVitalsTarget}>
-            <SectionValue>{t('Passed')}</SectionValue>
-          </Link>
-        </div>
-      )}
       <UserMiseryContainer>
         <SectionHeading>
           {t('User Misery')}
