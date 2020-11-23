@@ -188,7 +188,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard 2"})
         assert response.status_code == 409, response.data
-        assert response.data == [u"Dashboard with that title already exists."]
+        assert list(response.data) == [u"Dashboard with that title already exists."]
 
     def test_add_widget(self):
         data = {
