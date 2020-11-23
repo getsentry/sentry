@@ -19,10 +19,7 @@ import {
 } from 'app/types/alerts';
 import Input from 'app/views/settings/components/forms/controls/input';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
-import ExternalLink from 'app/components/links/externalLink';
 import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
-import {Organization, Project} from 'app/types';
-import {IconDelete} from 'app/icons';
 
 type FormField = {
   // Type of form fields
