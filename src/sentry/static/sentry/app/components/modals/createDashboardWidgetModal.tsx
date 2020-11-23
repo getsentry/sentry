@@ -1,22 +1,22 @@
 import React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
-import set from 'lodash/set';
-import cloneDeep from 'lodash/cloneDeep';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
+import set from 'lodash/set';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {Organization, GlobalSelection} from 'app/types';
-import {t} from 'app/locale';
-import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
-import Button from 'app/components/button';
-import TextField from 'app/views/settings/components/forms/textField';
-import SelectField from 'app/views/settings/components/forms/selectField';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
+import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {Client} from 'app/api';
-import {Widget, DashboardListItem} from 'app/views/dashboardsV2/types';
+import {DashboardListItem, Widget} from 'app/views/dashboardsV2/types';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import TextField from 'app/views/settings/components/forms/textField';
 
 type Props = ModalRenderProps &
   WithRouterProps & {

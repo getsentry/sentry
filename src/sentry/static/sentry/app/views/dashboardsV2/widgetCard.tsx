@@ -5,9 +5,9 @@ import isEqual from 'lodash/isEqual';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {GlobalSelection} from 'app/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {GlobalSelection} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {Widget} from './types';
