@@ -3,22 +3,22 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {analytics} from 'app/utils/analytics';
-import {Organization, Release} from 'app/types';
-import {SectionHeading} from 'app/components/charts/styles';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import styled from 'app/styled';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import Placeholder from 'app/components/placeholder';
-import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
-import Version from 'app/components/version';
-import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 import FeatureTourModal from 'app/components/modals/featureTourModal';
+import Placeholder from 'app/components/placeholder';
 import TextOverflow from 'app/components/textOverflow';
+import Version from 'app/components/version';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {t} from 'app/locale';
+import styled from 'app/styled';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Organization, Release} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 

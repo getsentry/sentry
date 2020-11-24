@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -18,9 +19,10 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
+import ProjectLatestAlerts from './projectLatestAlerts';
+import ProjectLatestReleases from './projectLatestReleases';
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
-import ProjectLatestReleases from './projectLatestReleases';
 
 type RouteParams = {
   orgId: string;
@@ -109,6 +111,13 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
+                <Feature features={['incidents']}>
+                  <ProjectLatestAlerts
+                    organization={organization}
+                    projectSlug={params.projectId}
+                    location={location}
+                  />
+                </Feature>
                 <ProjectLatestReleases
                   organization={organization}
                   projectSlug={params.projectId}

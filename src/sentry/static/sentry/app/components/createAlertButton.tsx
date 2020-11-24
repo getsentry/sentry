@@ -306,11 +306,20 @@ type Props = {
   projectSlug?: string;
   iconProps?: React.ComponentProps<typeof IconSiren>;
   referrer?: string;
+  hideIcon?: boolean;
 } & WithRouterProps &
   React.ComponentProps<typeof Button>;
 
 const CreateAlertButton = withRouter(
-  ({organization, projectSlug, iconProps, referrer, router, ...buttonProps}: Props) => {
+  ({
+    organization,
+    projectSlug,
+    iconProps,
+    referrer,
+    router,
+    hideIcon,
+    ...buttonProps
+  }: Props) => {
     function handleClickWithoutProject(event: React.MouseEvent) {
       event.preventDefault();
 
@@ -332,7 +341,7 @@ const CreateAlertButton = withRouter(
                 ? t('Users with admin permission or higher can create alert rules.')
                 : undefined
             }
-            icon={<IconSiren {...iconProps} />}
+            icon={!hideIcon && <IconSiren {...iconProps} />}
             to={
               projectSlug
                 ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
