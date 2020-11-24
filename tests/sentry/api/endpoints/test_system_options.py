@@ -67,6 +67,13 @@ class SystemOptionsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["error"] == "unknown_option"
 
+    def test_put_hardwired_option(self):
+        with self.settings(SENTRY_OPTIONS={"system.url-prefix": "cheese"}):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {"system.url-prefix": "bread"})
+            assert response.status_code == 400
+            assert response.data["error"] == "immutable_option"
+
     def test_put_simple(self):
         self.login_as(user=self.user, superuser=True)
         assert options.get("mail.host") != "lolcalhost"
