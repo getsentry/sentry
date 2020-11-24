@@ -56,7 +56,7 @@ function getTermDescriptions(platform: PlatformKey) {
       return {
         ...commonTermsDescription,
         ...mobileTermsDescription,
-        crashed: t('An unhandled exception that result in the application crashing'),
+        crashed: t('An unhandled exception that resulted in the application crashing'),
       };
 
     case 'apple': {
