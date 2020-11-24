@@ -63,7 +63,11 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert not response.data["config"]
+        assert response.data == {
+            "config": None,
+            "sourceUrl": None,
+            "integrations": [self._serialized_integration()],
+        }
 
     def test_file_not_found_error(self):
         self.login_as(user=self.user)
@@ -94,6 +98,7 @@ class ProjectStacktraceLinkTest(APITestCase):
         }
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "file_not_found"
+        assert response.data["integrations"] == [self._serialized_integration()]
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
@@ -124,6 +129,7 @@ class ProjectStacktraceLinkTest(APITestCase):
         }
         assert not response.data["sourceUrl"]
         assert response.data["error"] == "stack_root_mismatch"
+        assert response.data["integrations"] == [self._serialized_integration()]
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
@@ -155,3 +161,23 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "defaultBranch": None,
             }
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
+            assert response.data["integrations"] == [self._serialized_integration()]
+
+    def _serialized_integration(self):
+        return {
+            "status": "active",
+            "name": "Example",
+            "domainName": None,
+            "accountType": None,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "Example",
+                "canDisable": False,
+                "key": "example",
+                "slug": "example",
+                "canAdd": True,
+            },
+            "id": six.text_type(self.integration.id),
+            "icon": None,
+        }
