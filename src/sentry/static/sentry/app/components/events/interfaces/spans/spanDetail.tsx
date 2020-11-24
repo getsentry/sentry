@@ -13,6 +13,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
+import Tooltip from 'app/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
@@ -445,7 +446,9 @@ class SpanDetail extends React.Component<Props, State> {
               {map(span?.data ?? {}, (value, key) => (
                 <Row title={key} key={key}>
                   {SIZE_DATA.has((key as unknown) as string) ? (
-                    <FileSize bytes={(value as unknown) as number} />
+                    <Tooltip title={`${value} Bytes`} position="top">
+                      <FileSize bytes={(value as unknown) as number} />
+                    </Tooltip>
                   ) : (
                     JSON.stringify(value, null, 4) || ''
                   )}
