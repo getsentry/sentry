@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations import (
     IntegrationInstallation,
     IntegrationFeatures,
@@ -28,6 +28,7 @@ from sentry.models import IntegrationExternalProject, Organization, Organization
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
+from tests.fixtures.integrations.jira.mocks.jira import MockJira
 
 from .client import JiraApiClient, JiraCloud
 from .utils import build_user_choice
@@ -319,6 +320,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return "\n".join(output)
 
     def get_client(self):
+        # Allow use of mocks in local development.
+        if options.get("mocks.jira"):
+            return MockJira()
+
         return JiraApiClient(
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
