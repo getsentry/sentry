@@ -7,7 +7,6 @@ import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
 type DefaultProps = {
@@ -81,7 +80,14 @@ class HeaderItem extends React.Component<Props> {
         {...textColorProps}
       >
         <IconContainer {...textColorProps}>{icon}</IconContainer>
-        <Content>{children}</Content>
+        <Content>
+          <div>{children}</div>
+          {settingsLink && (
+            <SettingsIconLink to={settingsLink}>
+              <IconSettings />
+            </SettingsIconLink>
+          )}
+        </Content>
         {hint && (
           <Hint>
             <Tooltip title={hint} position="bottom">
@@ -91,11 +97,6 @@ class HeaderItem extends React.Component<Props> {
         )}
         {hasSelected && !locked && allowClear && (
           <StyledClose {...textColorProps} onClick={this.handleClear} />
-        )}
-        {settingsLink && (
-          <SettingsIconLink to={settingsLink}>
-            <IconSettings />
-          </SettingsIconLink>
         )}
         {!locked && !loading && (
           <StyledChevron isOpen={isOpen}>
@@ -147,9 +148,15 @@ const StyledHeaderItem = styled('div', {
 `;
 
 const Content = styled('div')`
+  display: flex;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
   margin-right: ${space(1.5)};
-  ${overflowEllipsis};
+  div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
@@ -188,10 +195,11 @@ const StyledChevron = styled('div')<StyledChevronProps>`
 
 const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray300};
-  display: flex;
   align-items: center;
+  display: inline-flex;
   justify-content: space-between;
-  padding: ${space(1)} ${space(1)} ${space(1)} 0;
+  margin-right: ${space(1.5)};
+  margin-left: ${space(1.0)};
   transition: 0.5s opacity ease-out;
 
   &:hover {
@@ -200,7 +208,7 @@ const SettingsIconLink = styled(Link)`
 `;
 
 const StyledLock = styled(IconLock)`
-  margin: ${space(0.75)} ${space(0.75)} 0 0;
+  margin-top: ${space(0.75)};
   stroke-width: 1.5;
 `;
 
