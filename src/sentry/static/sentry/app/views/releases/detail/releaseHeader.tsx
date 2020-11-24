@@ -27,6 +27,8 @@ import {getAggregateAlias} from 'app/utils/discover/fields';
 import {formatAbbreviatedNumber, formatVersion} from 'app/utils/formatters';
 import {getTermHelp} from 'app/views/performance/data';
 
+import {getSessionTermDescription} from '../utils/sessionTerm';
+
 import ReleaseActions from './releaseActions';
 import ReleaseStat from './releaseStat';
 
@@ -118,7 +120,7 @@ const ReleaseHeader = ({
           {hasHealthData && (
             <ReleaseStat
               label={t('Crashes')}
-              help={t('Crash means that user experienced an unhandled error')}
+              help={getSessionTermDescription('crashes', project.platform)}
             >
               <Count value={sessionsCrashed} />
             </ReleaseStat>
