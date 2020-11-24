@@ -48,6 +48,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
           disabled={!hasPermission}
           title={hasPermission ? undefined : t('You do not have permission to do this')}
           priority="primary"
+          size="small"
         >
           {t('Assign Team')}
         </Button>
