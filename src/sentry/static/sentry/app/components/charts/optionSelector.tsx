@@ -11,19 +11,24 @@ import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
+const defaultProps = {
+  menuWidth: 'auto',
+};
+
 type Props = {
   options: SelectValue<string>[];
   selected: string;
   onChange: (value: string) => void;
   title: string;
-  menuWidth?: string;
-};
+} & typeof defaultProps;
 
 type State = {
   menuContainerWidth?: number;
 };
 
 class OptionSelector extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
+
   state: State = {};
 
   componentDidMount() {
@@ -51,7 +56,7 @@ class OptionSelector extends React.Component<Props, State> {
 
   render() {
     const {menuContainerWidth} = this.state;
-    const {options, onChange, selected, title, menuWidth = 'auto'} = this.props;
+    const {options, onChange, selected, title, menuWidth} = this.props;
     const selectedOption = options.find(opt => selected === opt.value) || options[0];
 
     return (
