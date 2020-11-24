@@ -182,6 +182,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             title="Dashboard Hello", organization=self.organization, id=self.dashboard.id
         ).exists()
 
+    def test_rename_dashboard_title_taken(self):
+        Dashboard.objects.create(
+            title="Dashboard 2", created_by=self.user, organization=self.organization
+        )
+        response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard 2"})
+        assert response.status_code == 409, response.data
+        assert list(response.data) == [u"Dashboard with that title already exists."]
+
     def test_add_widget(self):
         data = {
             "title": "First dashboard",
