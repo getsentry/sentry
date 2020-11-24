@@ -68,7 +68,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       [0, 0]
     );
     if (vitalsTotal > 0) {
-      vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
+      vitalsPassRate = <StatNumber>{`${vitalsPassed}/${vitalsTotal}`}</StatNumber>;
     }
   }
 
@@ -82,12 +82,35 @@ function UserStats({totals, location, organization, transactionName}: Props) {
   return (
     <Container>
       <div>
-        <SectionHeading>{t('Apdex Score')}</SectionHeading>
+        <SectionHeading>
+          {t('Apdex Score')}
+          <QuestionTooltip
+            position="top"
+            title={t(
+              'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
+            )}
+            size="sm"
+          />
+        </SectionHeading>
         <StatNumber>{apdex}</StatNumber>
+        <Link to={`/settings/${organization.slug}/performance/`}>
+          <SectionValue>
+            {threshold}ms {t('threshold')}
+          </SectionValue>
+        </Link>
       </div>
       {vitalsPassRate !== null && (
         <div>
-          <SectionHeading>{t('Web Vitals')}</SectionHeading>
+          <SectionHeading>
+            {t('Web Vitals')}
+            <QuestionTooltip
+              position="top"
+              title={t(
+                'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
+              )}
+              size="sm"
+            />
+          </SectionHeading>
           <StatNumber>{vitalsPassRate}</StatNumber>
           <Link to={webVitalsTarget}>
             <SectionValue>{t('Passed')}</SectionValue>
@@ -112,8 +135,8 @@ function UserStats({totals, location, organization, transactionName}: Props) {
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(4)};
-  margin-bottom: 40px;
+  grid-row-gap: ${space(2)};
+  margin-bottom: ${space(4)};
 `;
 
 const UserMiseryContainer = styled('div')`
@@ -122,6 +145,7 @@ const UserMiseryContainer = styled('div')`
 
 const StatNumber = styled('div')`
   font-size: 32px;
+  margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
 
   > div {

@@ -182,7 +182,6 @@ const ReleaseChartControls = ({
               selected={eventType ?? EventType.ALL}
               options={eventTypeOptions}
               onChange={onEventTypeChange as (value: string) => void}
-              menuWidth="150px"
             />
           )}
         </Feature>
@@ -191,7 +190,6 @@ const ReleaseChartControls = ({
           selected={yAxis}
           options={yAxisOptions}
           onChange={onYAxisChange as (value: string) => void}
-          menuWidth="150px"
         />
       </InlineContainer>
     </StyledChartControls>

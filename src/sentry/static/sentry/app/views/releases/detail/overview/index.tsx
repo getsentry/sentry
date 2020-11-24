@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import {restoreRelease} from 'app/actionCreators/release';
@@ -10,7 +9,6 @@ import Feature from 'app/components/acl/feature';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -164,6 +162,11 @@ class ReleaseOverview extends AsyncView<Props> {
           ...baseQuery,
           query: `event.type:transaction release:${version} epm():>0.01`,
         });
+      case 'failure_count':
+        return EventView.fromSavedQuery({
+          ...baseQuery,
+          query: `event.type:transaction release:${version} failure_count():>0`,
+        });
       default:
         return EventView.fromSavedQuery(baseQuery);
     }
@@ -248,7 +251,7 @@ class ReleaseOverview extends AsyncView<Props> {
               hasPerformance={hasPerformance}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
-                <StyledBody>
+                <Body>
                   <Main>
                     {isReleaseArchived(release) && (
                       <ReleaseArchivedNotice
@@ -337,7 +340,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       />
                     )}
                   </Side>
-                </StyledBody>
+                </Body>
               )}
             </ReleaseStatsRequest>
           );
@@ -428,7 +431,3 @@ function getTransactionsListSort(
 }
 
 export default withApi(withGlobalSelection(withOrganization(ReleaseOverview)));
-
-const StyledBody = styled(Body)`
-  margin: -${space(2)} -${space(4)};
-`;

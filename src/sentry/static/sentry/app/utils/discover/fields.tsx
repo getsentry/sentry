@@ -489,7 +489,7 @@ export const FIELD_TAGS = Object.freeze(
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-// This list should be removed with the tranaction-events feature flag.
+// This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
   'avg',
   'sum',
