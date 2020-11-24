@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Feature from 'app/components/acl/feature';
 import Badge from 'app/components/badge';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Clipboard from 'app/components/clipboard';
@@ -125,30 +124,28 @@ const ReleaseHeader = ({
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
-          <Feature features={['release-performance-views']}>
-            <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
-              <DiscoverQuery
-                eventView={releaseEventView}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {({isLoading, error, tableData}) => {
-                  if (isLoading || error || !tableData || tableData.data.length === 0) {
-                    return '\u2014';
-                  }
-                  return (
-                    <Count
-                      value={
-                        tableData.data[0][
-                          getAggregateAlias(`apdex(${organization.apdexThreshold})`)
-                        ]
-                      }
-                    />
-                  );
-                }}
-              </DiscoverQuery>
-            </ReleaseStat>
-          </Feature>
+          <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
+            <DiscoverQuery
+              eventView={releaseEventView}
+              location={location}
+              orgSlug={organization.slug}
+            >
+              {({isLoading, error, tableData}) => {
+                if (isLoading || error || !tableData || tableData.data.length === 0) {
+                  return '\u2014';
+                }
+                return (
+                  <Count
+                    value={
+                      tableData.data[0][
+                        getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                      ]
+                    }
+                  />
+                );
+              }}
+            </DiscoverQuery>
+          </ReleaseStat>
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
