@@ -1,12 +1,12 @@
 import React from 'react';
 
 import {t} from 'app/locale';
+import {Relay} from 'app/types';
 import Input from 'app/views/settings/components/forms/controls/input';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import Textarea from 'app/views/settings/components/forms/controls/textarea';
 import Field from 'app/views/settings/components/forms/field';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import {Relay} from 'app/types';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;

@@ -1,19 +1,19 @@
 import React, {Component} from 'react';
-import PropTypes from 'prop-types';
 import {Observer} from 'mobx-react';
+import PropTypes from 'prop-types';
 
 import Access from 'app/components/acl/access';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import NumberField from 'app/views/settings/components/forms/numberField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/sentryTypes';
-import {t, tct} from 'app/locale';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import withOrganization from 'app/utils/withOrganization';
 
 import MonitorModel from './monitorModel';
 

@@ -1,18 +1,26 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import PreviewFeature from 'app/components/previewFeature';
+import {t, tct} from 'app/locale';
+import {ProjectKey} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import routeTitleGen from 'app/utils/routeTitle';
 
-export default class ProjectExpectCtReports extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
+
+type State = {
+  keyList: null | ProjectKey[];
+} & AsyncView['state'];
+
+export default class ProjectExpectCtReports extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
@@ -22,18 +30,24 @@ export default class ProjectExpectCtReports extends AsyncView {
     return routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false);
   }
 
-  getInstructions() {
-    return `Expect-CT: report-uri="${getSecurityDsn(this.state.keyList)}"`;
+  getInstructions(keyList: ProjectKey[]) {
+    return `Expect-CT: report-uri="${getSecurityDsn(keyList)}"`;
   }
 
   renderBody() {
+    const {params} = this.props;
+    const {keyList} = this.state;
+    if (!keyList) {
+      return null;
+    }
+
     return (
       <div>
         <SettingsPageHeader title={t('Certificate Transparency')} />
 
         <PreviewFeature />
 
-        <ReportUri keyList={this.state.keyList} params={this.props.params} />
+        <ReportUri keyList={keyList} orgId={params.orgId} projectId={params.orgId} />
 
         <Panel>
           <PanelHeader>{'About'}</PanelHeader>
@@ -58,7 +72,7 @@ export default class ProjectExpectCtReports extends AsyncView {
               )}
             </p>
 
-            <pre>{this.getInstructions()}</pre>
+            <pre>{this.getInstructions(keyList)}</pre>
 
             <p>
               {tct('For more information, see [link:the article on MDN].', {

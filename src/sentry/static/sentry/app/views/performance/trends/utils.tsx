@@ -1,30 +1,30 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
-import moment from 'moment';
 import {ASAP} from 'downsample/methods/ASAP';
+import {Location} from 'history';
+import moment from 'moment';
 
-import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
-import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import Duration from 'app/components/duration';
-import {Sort, Field} from 'app/utils/discover/fields';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {IconArrow} from 'app/icons';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import EventView from 'app/utils/discover/eventView';
+import {Field, Sort} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
-  TrendFunction,
   ConfidenceLevel,
-  TrendChangeType,
-  TrendView,
-  TrendsTransaction,
   NormalizedTrendsTransaction,
+  TrendChangeType,
+  TrendFunction,
   TrendFunctionField,
+  TrendsTransaction,
+  TrendView,
 } from './types';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';

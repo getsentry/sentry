@@ -9,6 +9,14 @@ from six import text_type
 from sentry.utils.compat import map
 
 
+# Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
+RAW_SOCKET_HACK_PATH = os.path.expanduser(
+    "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
+)
+if os.path.exists(RAW_SOCKET_HACK_PATH):
+    os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
+
+
 def get_docker_client():
     import docker
 

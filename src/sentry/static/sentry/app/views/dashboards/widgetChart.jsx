@@ -1,17 +1,17 @@
-import {withTheme} from 'emotion-theming';
+import React from 'react';
 import {ClassNames} from '@emotion/core';
+import {withTheme} from 'emotion-theming';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import SentryTypes from 'app/sentryTypes';
 
-import {WIDGET_DISPLAY} from './constants';
 import {getChartComponent} from './utils/getChartComponent';
 import {getData} from './utils/getData';
 import {getEventsUrlFromDiscoverQueryWithConditions} from './utils/getEventsUrlFromDiscoverQueryWithConditions';
+import {WIDGET_DISPLAY} from './constants';
 
 /**
  * Component that decides what Chart to render

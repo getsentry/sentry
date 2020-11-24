@@ -1,22 +1,31 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import Access from 'app/components/acl/access';
-import AsyncView from 'app/views/asyncView';
 import ExternalLink from 'app/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PreviewFeature from 'app/components/previewFeature';
+import formGroups from 'app/data/forms/cspReports';
+import {t, tct} from 'app/locale';
+import {Project, ProjectKey} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PreviewFeature from 'app/components/previewFeature';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import formGroups from 'app/data/forms/cspReports';
-import routeTitleGen from 'app/utils/routeTitle';
 
-export default class ProjectCspReports extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
+
+type State = {
+  keyList: null | ProjectKey[];
+  project: null | Project;
+} & AsyncView['state'];
+
+export default class ProjectCspReports extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
     return [
       ['keyList', `/projects/${orgId}/${projectId}/keys/`],
@@ -29,7 +38,7 @@ export default class ProjectCspReports extends AsyncView {
     return routeTitleGen(t('Content Security Policy (CSP)'), projectId, false);
   }
 
-  getInstructions() {
+  getInstructions(keyList: ProjectKey[]) {
     return (
       'def middleware(request, response):\n' +
       "    response['Content-Security-Policy'] = \\\n" +
@@ -38,19 +47,19 @@ export default class ProjectCspReports extends AsyncView {
       "        \"style-src 'self' 'unsafe-inline' cdn.example.com; \" \\\n" +
       '        "img-src * data:; " \\\n' +
       '        "report-uri ' +
-      getSecurityDsn(this.state.keyList) +
+      getSecurityDsn(keyList) +
       '"\n' +
       '    return response\n'
     );
   }
 
-  getReportOnlyInstructions() {
+  getReportOnlyInstructions(keyList: ProjectKey[]) {
     return (
       'def middleware(request, response):\n' +
       "    response['Content-Security-Policy-Report-Only'] = \\\n" +
       '        "default-src \'self\'; " \\\n' +
       '        "report-uri ' +
-      getSecurityDsn(this.state.keyList) +
+      getSecurityDsn(keyList) +
       '"\n' +
       '    return response\n'
     );
@@ -58,6 +67,10 @@ export default class ProjectCspReports extends AsyncView {
 
   renderBody() {
     const {orgId, projectId} = this.props.params;
+    const {project, keyList} = this.state;
+    if (!keyList || !project) {
+      return null;
+    }
 
     return (
       <div>
@@ -65,12 +78,12 @@ export default class ProjectCspReports extends AsyncView {
 
         <PreviewFeature />
 
-        <ReportUri keyList={this.state.keyList} params={this.props.params} />
+        <ReportUri keyList={keyList} orgId={orgId} projectId={projectId} />
 
         <Form
           saveOnBlur
           apiMethod="PUT"
-          initialData={this.state.project.options}
+          initialData={project.options}
           apiEndpoint={`/projects/${orgId}/${projectId}/`}
         >
           <Access access={['project:write']}>
@@ -104,7 +117,7 @@ export default class ProjectCspReports extends AsyncView {
               in Sentry, you'll need to send a header from your server describing your
               policy, as well specifying the authenticated Sentry endpoint.`,
                 {
-                  csp: <acronym title="Content Security Policy" />,
+                  csp: <abbr title="Content Security Policy" />,
                 }
               )}
             </p>
@@ -114,13 +127,13 @@ export default class ProjectCspReports extends AsyncView {
                 'For example, in Python you might achieve this via a simple web middleware'
               )}
             </p>
-            <pre>{this.getInstructions()}</pre>
+            <pre>{this.getInstructions(keyList)}</pre>
 
             <p>
               {t(`Alternatively you can setup CSP reports to simply send reports rather than
               actually enforcing the policy`)}
             </p>
-            <pre>{this.getReportOnlyInstructions()}</pre>
+            <pre>{this.getReportOnlyInstructions(keyList)}</pre>
 
             <p>
               {tct(

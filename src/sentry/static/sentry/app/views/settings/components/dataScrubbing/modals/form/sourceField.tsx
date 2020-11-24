@@ -1,15 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import InputField from 'app/views/settings/components/forms/inputField';
 import TextOverflow from 'app/components/textOverflow';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {defined} from 'app/utils';
+import InputField from 'app/views/settings/components/forms/inputField';
 
-import {unarySuggestions, binarySuggestions} from '../../utils';
-import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from '../../types';
+import {binarySuggestions, unarySuggestions} from '../../utils';
+
+import SourceSuggestionExamples from './sourceSuggestionExamples';
 
 const defaultHelp = t(
   'Where to look. In the simplest case this can be an attribute name.'

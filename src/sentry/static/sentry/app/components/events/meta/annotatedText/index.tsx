@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {IconWarning} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import {Meta, MetaError} from 'app/types';
-import space from 'app/styles/space';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import Tooltip from 'app/components/tooltip';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Meta, MetaError} from 'app/types';
 
+import Chunks from './chunks';
 import {getTooltipText} from './utils';
 import ValueElement from './valueElement';
-import Chunks from './chunks';
 
 type Props = {
   value: React.ReactNode;

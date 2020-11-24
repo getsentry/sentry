@@ -1,12 +1,12 @@
+import React from 'react';
+import echarts from 'echarts';
 import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
-import React from 'react';
-import echarts from 'echarts';
 
-import BaseChart from './baseChart';
-import MapSeries from './series/mapSeries';
 import VisualMap from './components/visualMap';
+import MapSeries from './series/mapSeries';
+import BaseChart from './baseChart';
 
 class WorldMapChart extends React.Component {
   static propTypes = {

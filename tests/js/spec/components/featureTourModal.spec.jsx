@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import FeatureTourModal from 'app/components/modals/featureTourModal';
 import GlobalModal from 'app/components/globalModal';
+import FeatureTourModal from 'app/components/modals/featureTourModal';
 
 const steps = [
   {

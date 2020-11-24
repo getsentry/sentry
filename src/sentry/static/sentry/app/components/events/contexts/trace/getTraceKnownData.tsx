@@ -1,10 +1,10 @@
-import {Event, Organization} from 'app/types';
-import {defined} from 'app/utils';
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {Event, Organization} from 'app/types';
+import {defined} from 'app/utils';
 
-import {TraceKnownData, TraceKnownDataType} from './types';
 import getUserKnownDataDetails from './getTraceKnownDataDetails';
+import {TraceKnownData, TraceKnownDataType} from './types';
 
 type TraceKnownDataKeys = Extract<keyof TraceKnownData, string>;
 

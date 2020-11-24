@@ -2,9 +2,10 @@ import React from 'react';
 
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 
-import {DeviceData, DeviceKnownDataType} from './types';
-import getDeviceKnownData from './getDeviceKnownData';
 import getUnknownData from '../getUnknownData';
+
+import getDeviceKnownData from './getDeviceKnownData';
+import {DeviceData, DeviceKnownDataType} from './types';
 
 type Props = {
   data: DeviceData;

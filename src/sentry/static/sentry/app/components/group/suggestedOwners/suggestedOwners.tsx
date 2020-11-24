@@ -1,16 +1,16 @@
 import React from 'react';
 
-import {assignToUser, assignToActor} from 'app/actionCreators/group';
+import {assignToActor, assignToUser} from 'app/actionCreators/group';
+import {Client} from 'app/api';
+import Access from 'app/components/acl/access';
+import {Actor, Committer, Event, Group, Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 import withOrganization from 'app/utils/withOrganization';
-import Access from 'app/components/acl/access';
-import {Organization, Group, Event, Actor, Committer, Project} from 'app/types';
-import {Client} from 'app/api';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
-import {SuggestedAssignees} from './suggestedAssignees';
 import {OwnershipRules} from './ownershipRules';
+import {SuggestedAssignees} from './suggestedAssignees';
 
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 

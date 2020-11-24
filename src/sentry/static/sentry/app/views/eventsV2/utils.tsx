@@ -1,35 +1,35 @@
-import Papa from 'papaparse';
-import {Location, Query} from 'history';
 import {browserHistory} from 'react-router';
+import {Location, Query} from 'history';
+import Papa from 'papaparse';
 
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import {t} from 'app/locale';
-import {Event, LightWeightOrganization, SelectValue, Organization} from 'app/types';
-import {getTitle} from 'app/utils/events';
-import {getUtcDateString} from 'app/utils/dates';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {disableMacros} from 'app/views/discover/result/utils';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
-import EventView from 'app/utils/discover/eventView';
-import localStorage from 'app/utils/localStorage';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {t} from 'app/locale';
+import {Event, LightWeightOrganization, Organization, SelectValue} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
 import {
-  Field,
+  aggregateFunctionOutputType,
+  Aggregation,
+  AGGREGATIONS,
   Column,
   ColumnType,
-  AGGREGATIONS,
-  FIELDS,
-  aggregateFunctionOutputType,
   explodeFieldString,
+  Field,
+  FIELDS,
   getAggregateAlias,
-  TRACING_FIELDS,
-  Aggregation,
   isMeasurement,
   measurementType,
+  TRACING_FIELDS,
 } from 'app/utils/discover/fields';
+import {getTitle} from 'app/utils/events';
+import localStorage from 'app/utils/localStorage';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {disableMacros} from 'app/views/discover/result/utils';
 
+import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
-import {TableColumn, FieldValue, FieldValueKind} from './table/types';
 
 export type QueryWithColumnState =
   | Query

@@ -1,20 +1,20 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
+import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import Footer from 'app/components/footer';
+import Link from 'app/components/links/link';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NotFound from 'app/components/errors/notFound';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
-import Link from 'app/components/links/link';
-import SentryTypes from 'app/sentryTypes';
+import withApi from 'app/utils/withApi';
 
 import SharedGroupHeader from './sharedGroupHeader';
 

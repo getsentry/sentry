@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {Panel, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'app/actionCreators/teams';
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import {IconDelete} from 'app/icons';
 import Confirm from 'app/components/confirm';
+import {Panel, PanelHeader} from 'app/components/panels';
+import teamSettingsFields from 'app/data/forms/teamSettingsFields';
+import {IconDelete} from 'app/icons';
+import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SentryTypes from 'app/sentryTypes';
-import teamSettingsFields from 'app/data/forms/teamSettingsFields';
 
 import TeamModel from './model';
 

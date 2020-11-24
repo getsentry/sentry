@@ -1,7 +1,15 @@
-import capitalize from 'lodash/capitalize';
 import React from 'react';
+import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
+import {
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconVsts,
+} from 'app/icons';
 import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
@@ -20,14 +28,6 @@ import {
 import {Hooks} from 'app/types/hooks';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-import {
-  IconBitbucket,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconJira,
-  IconVsts,
-} from 'app/icons';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
 
@@ -111,18 +111,31 @@ type IntegrationCategorySelectEvent = {
   category: string;
 };
 
+type IntegrationStacktraceLinkEvent = {
+  eventKey:
+    | 'integrations.stacktrace_link_clicked'
+    | 'integrations.reconfigure_stacktrace_setup';
+  eventName:
+    | 'Integrations: Stacktrace Link Clicked'
+    | 'Integrations: Reconfigure Stacktrace Setup';
+  provider: string;
+  error_reason?: 'file_not_found' | 'stack_root_mismatch';
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
   | IntegrationSearchEvent
   | IntegrationCategorySelectEvent
+  | IntegrationStacktraceLinkEvent
 ) & {
   view?:
     | 'external_install'
     | 'legacy_integrations'
     | 'plugin_details'
     | 'integrations_directory'
-    | 'integrations_directory_integration_detail';
+    | 'integrations_directory_integration_detail'
+    | 'stacktrace_issue_details';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 

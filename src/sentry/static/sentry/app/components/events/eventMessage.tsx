@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Level} from 'app/types';
 import ErrorLevel from 'app/components/events/errorLevel';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {Level} from 'app/types';
 
 type Props = {
   level?: Level;

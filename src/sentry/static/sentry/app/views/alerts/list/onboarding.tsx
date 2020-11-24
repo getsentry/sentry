@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import emptyStateImg from 'app/../images/spot/alerts-empty-state.svg';
 import ButtonBar from 'app/components/buttonBar';
 import OnboardingPanel from 'app/components/onboardingPanel';
-import emptyStateImg from 'app/../images/spot/alerts-empty-state.svg';
+import {t} from 'app/locale';
 
 type Props = {
   actions: React.ReactNode;

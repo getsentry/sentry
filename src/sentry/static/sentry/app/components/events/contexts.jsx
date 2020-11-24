@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
 import EventDataSection from 'app/components/events/eventDataSection';
-import plugins from 'app/plugins';
 import {t} from 'app/locale';
+import plugins from 'app/plugins';
+import {defined, objectIsEmpty, toTitleCase} from 'app/utils';
 
 const CONTEXT_TYPES = {
   default: require('app/components/events/contexts/default').default,

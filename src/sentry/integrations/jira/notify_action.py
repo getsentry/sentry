@@ -35,8 +35,8 @@ class JiraNotifyServiceForm(forms.Form):
 
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"""Create a Jira ticket in the {jira_integration} account"""
-    prompt = "Create a Jira ticket"
+    label = u"""Create a Jira issue in {jira_integration} with these """
+    prompt = "Create a Jira issue"
     provider = "jira"
     integration_key = "jira_integration"
 
@@ -59,40 +59,6 @@ class JiraCreateTicketAction(TicketEventAction):
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
-            self.label = self.get_label_form(dynamic_fields)
-
-    @staticmethod
-    def get_label_form(data):
-        """
-        Get the rule as a string. Use human-readable values when available and
-        construct the the label by parts because there are so many optional
-        fields.
-
-        :return: String
-        """
-
-        labels = ["Create a Jira ticket in the {jira_integration} account"]
-
-        if data.get("project"):
-            labels.append("and {project} project")
-        if data.get("issuetype"):
-            labels.append("of type {issuetype}")
-        if data.get("components"):
-            labels.append("with components {components}")
-        if data.get("duedate"):
-            labels.append("and due date {duedate}")
-        if data.get("fixVersions"):
-            labels.append("with fixVersions {fixVersions}")
-        if data.get("assignee"):
-            labels.append("assigned to {assignee}")
-        if data.get("reporter"):
-            labels.append("reported by {reporter}")
-        if data.get("labels"):
-            labels.append("with the labels {labels}")
-        if data.get("priority"):
-            labels.append("priority {priority}")
-
-        return " ".join(labels)
 
     def render_label(self):
         # Make a copy of data.
@@ -102,7 +68,7 @@ class JiraCreateTicketAction(TicketEventAction):
         kwargs.update({"jira_integration": self.get_integration_name()})
 
         # Only add values when they exist.
-        return self.get_label_form(self.data).format(**kwargs)
+        return self.label.format(**kwargs)
 
     def get_dynamic_form_fields(self):
         """

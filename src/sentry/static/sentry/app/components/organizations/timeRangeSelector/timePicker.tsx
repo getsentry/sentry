@@ -1,23 +1,25 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+
+type Props = {
+  onChangeStart: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeEnd: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  // Takes string in 24 hour format
+  start?: string;
+  // Takes string in 24 hour format
+  end?: string;
+  // Should inputs be disabled
+  disabled?: boolean;
+  className?: string;
+};
+
+type State = {
+  focused: boolean;
+};
 
 const TimePicker = styled(
-  class TimePicker extends React.Component {
-    static propTypes = {
-      onChangeStart: PropTypes.func.isRequired,
-      onChangeEnd: PropTypes.func.isRequired,
-
-      // Takes string in 24 hour format
-      start: PropTypes.string,
-      // Takes string in 24 hour format
-      end: PropTypes.string,
-
-      // Should inputs be disabled
-      disabled: PropTypes.bool,
-    };
-
+  class TimePicker extends React.Component<Props, State> {
     state = {
       focused: false,
     };

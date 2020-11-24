@@ -53,7 +53,12 @@ class QuerySubscriptionConsumer(object):
     }
 
     def __init__(
-        self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
+        self,
+        group_id,
+        topic=None,
+        commit_batch_size=100,
+        initial_offset_reset="earliest",
+        force_offset_reset=None,
     ):
         self.group_id = group_id
         if not topic:
@@ -79,18 +84,40 @@ class QuerySubscriptionConsumer(object):
         self.admin_cluster_options = kafka_config.get_kafka_admin_cluster_options(
             cluster_name, {"allow.auto.create.topics": "true"}
         )
+        self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
+
+    def offset_reset_name_to_func(self, offset_reset):
+        if offset_reset in {"smallest", "earliest", "beginning"}:
+            return self.resolve_partition_offset_earliest
+        elif offset_reset in {"largest", "latest", "end"}:
+            return self.resolve_partition_offset_latest
+
+    def resolve_partition_offset_earliest(self, partition):
+        low, high = self.consumer.get_watermark_offsets(partition)
+        return TopicPartition(partition.topic, partition.partition, low)
+
+    def resolve_partition_offset_latest(self, partition):
+        low, high = self.consumer.get_watermark_offsets(partition)
+        return TopicPartition(partition.topic, partition.partition, high)
 
     def run(self):
         logger.debug("Starting snuba query subscriber")
         self.offsets.clear()
 
         def on_assign(consumer, partitions):
+            updated_partitions = []
             for partition in partitions:
+                if self.resolve_partition_force_offset:
+                    partition = self.resolve_partition_force_offset(partition)
+                    updated_partitions.append(partition)
+
                 if partition.offset == OFFSET_INVALID:
                     updated_offset = None
                 else:
                     updated_offset = partition.offset
                 self.offsets[partition.partition] = updated_offset
+            if updated_partitions:
+                self.consumer.assign(updated_partitions)
             logger.info(
                 "query-subscription-consumer.on_assign",
                 extra={

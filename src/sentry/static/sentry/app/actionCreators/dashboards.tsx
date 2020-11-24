@@ -1,10 +1,10 @@
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {
   DashboardListItem,
-  OrgDashboardResponse,
   OrgDashboard,
+  OrgDashboardResponse,
   OrgDashboardUpdate,
 } from 'app/views/dashboardsV2/types';
 
@@ -41,8 +41,7 @@ export function updateDashboard(
 ): Promise<OrgDashboardResponse> {
   const data: OrgDashboardUpdate = {
     title: dashboard.title,
-    // TODO: populate this properly
-    widgets: [],
+    widgets: dashboard.widgets,
   };
 
   const promise: Promise<OrgDashboardResponse> = api.requestPromise(

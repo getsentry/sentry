@@ -1,11 +1,11 @@
+import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
-import React from 'react';
 
-import {FormState} from 'app/components/forms';
-import {parseRepo} from 'app/utils';
-import {t, tct} from 'app/locale';
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
+import {FormState} from 'app/components/forms';
+import {t, tct} from 'app/locale';
+import {parseRepo} from 'app/utils';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown',

@@ -1,11 +1,11 @@
 import React from 'react';
 import map from 'lodash/map';
 
+import DateTime from 'app/components/dateTime';
+import {Row, SpanDetails, Tags} from 'app/components/events/interfaces/spans/spanDetail';
+import {rawSpanKeys, SpanType} from 'app/components/events/interfaces/spans/types';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
-import DateTime from 'app/components/dateTime';
-import {SpanType, rawSpanKeys} from 'app/components/events/interfaces/spans/types';
-import {SpanDetails, Row, Tags} from 'app/components/events/interfaces/spans/spanDetail';
 
 type Props = {
   span: Readonly<SpanType>;

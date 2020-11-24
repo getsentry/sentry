@@ -1,5 +1,5 @@
-import {Thread} from 'app/types/events';
 import {Event, ExceptionType} from 'app/types';
+import {Thread} from 'app/types/events';
 import {defined} from 'app/utils';
 
 function getThreadException(
