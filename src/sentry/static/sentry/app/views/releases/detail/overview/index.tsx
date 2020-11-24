@@ -61,10 +61,11 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleYAxisChange = (yAxis: YAxis) => {
     const {location, router} = this.props;
+    const {eventType: _eventType, ...query} = location.query;
 
     router.push({
       ...location,
-      query: {...location.query, yAxis},
+      query: {...query, yAxis},
     });
   };
 
