@@ -25,6 +25,13 @@ class ProjectDetailTest(AcceptanceTestCase):
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team1])
 
+        self.create_release(project=self.project, version="1.0.0")
+        self.create_release(project=self.project, version="1.1.0")
+        self.create_release(project=self.project, version="1.2.3")
+        self.create_release(project=self.project, version="2.0.5")
+        self.create_release(project=self.project, version="2.3.3")
+        self.create_release(project=self.project, version="3.3.3")
+
         self.login_as(self.user)
         self.path = u"/organizations/{}/projects/{}/".format(self.org.slug, self.project.slug)
 

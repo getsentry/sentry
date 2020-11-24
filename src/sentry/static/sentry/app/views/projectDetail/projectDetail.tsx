@@ -20,6 +20,7 @@ import AsyncView from 'app/views/asyncView';
 
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
+import ProjectLatestReleases from './projectLatestReleases';
 
 type RouteParams = {
   orgId: string;
@@ -51,7 +52,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params} = this.props;
+    const {organization, params, location} = this.props;
     const {project} = this.state;
 
     return (
@@ -108,13 +109,12 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
-                  doloremque ut perferendis harum, optio temporibus eaque officia, illo
-                  est quia animi eum sunt dolorem in eligendi quod, corrupti dolores
-                  doloribus!
-                </p>
+                <ProjectLatestReleases
+                  organization={organization}
+                  projectSlug={params.projectId}
+                  projectId={project?.id}
+                  location={location}
+                />
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>

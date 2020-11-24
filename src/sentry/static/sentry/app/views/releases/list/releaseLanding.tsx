@@ -22,7 +22,7 @@ import emailImage from '../../../../images/spot/releases-tour-email.svg';
 import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
 import statsImage from '../../../../images/spot/releases-tour-stats.svg';
 
-const TOUR_STEPS: TourStep[] = [
+export const RELEASES_TOUR_STEPS: TourStep[] = [
   {
     title: t('Suspect Commits'),
     image: <TourImage src={commitImage} />,
@@ -122,7 +122,7 @@ class Promo extends React.Component<PromoProps> {
       org_id: parseInt(organization.id, 10),
       project_id: project && parseInt(project.id, 10),
       step_id: index,
-      step_title: TOUR_STEPS[index].title,
+      step_title: RELEASES_TOUR_STEPS[index].title,
     });
   };
 
@@ -136,7 +136,7 @@ class Promo extends React.Component<PromoProps> {
           )}
         </p>
         <ButtonList gap={1}>
-          <FeatureTourModal steps={TOUR_STEPS} onAdvance={this.handleAdvance}>
+          <FeatureTourModal steps={RELEASES_TOUR_STEPS} onAdvance={this.handleAdvance}>
             {({showModal}) => (
               <Button priority="default" onClick={showModal}>
                 {t('Take a Tour')}
