@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
@@ -67,7 +68,7 @@ const ReleaseChartControls = ({
     ? t('This view is only available with release health data.')
     : undefined;
   const noDiscoverTooltip = !hasDiscover
-    ? t('This view is only available with Discover.')
+    ? t('This view is only available with Discover feature.')
     : undefined;
   const noPerformanceTooltip = !hasPerformance
     ? t('This view is only available with Performance Monitoring.')
@@ -101,18 +102,21 @@ const ReleaseChartControls = ({
       value: YAxis.FAILED_TRANSACTIONS,
       label: t('Failure Count'),
       disabled: !hasPerformance,
+      hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
     {
       value: YAxis.COUNT_DURATION,
       label: t('Slow Count (duration)'),
       disabled: !hasPerformance,
+      hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
     {
       value: YAxis.COUNT_LCP,
       label: t('Slow Count (LCP)'),
       disabled: !hasPerformance,
+      hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
     {
@@ -121,7 +125,9 @@ const ReleaseChartControls = ({
       disabled: !hasDiscover,
       tooltip: noDiscoverTooltip,
     },
-  ];
+  ]
+    .filter(opt => !opt.hidden)
+    .map(({hidden: _hidden, ...rest}) => rest);
 
   const eventTypeOptions: SelectValue<EventType>[] = [
     {value: EventType.ALL, label: t('All')},
@@ -158,23 +164,27 @@ const ReleaseChartControls = ({
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
-        {(yAxis === YAxis.EVENTS || PERFORMANCE_AXIS.includes(yAxis)) && (
-          <QuestionTooltip
-            position="top"
-            size="sm"
-            title="This count includes only the current release."
-          />
-        )}
+        <Feature features={['release-performance-views']}>
+          {(yAxis === YAxis.EVENTS || PERFORMANCE_AXIS.includes(yAxis)) && (
+            <QuestionTooltip
+              position="top"
+              size="sm"
+              title="This count includes only the current release."
+            />
+          )}
+        </Feature>
       </InlineContainer>
       <InlineContainer>
-        {yAxis === YAxis.EVENTS && (
-          <OptionSelector
-            title={t('Event Type')}
-            selected={eventType ?? EventType.ALL}
-            options={eventTypeOptions}
-            onChange={onEventTypeChange as (value: string) => void}
-          />
-        )}
+        <Feature features={['release-performance-views']}>
+          {yAxis === YAxis.EVENTS && (
+            <OptionSelector
+              title={t('Event Type')}
+              selected={eventType ?? EventType.ALL}
+              options={eventTypeOptions}
+              onChange={onEventTypeChange as (value: string) => void}
+            />
+          )}
+        </Feature>
         <OptionSelector
           title={t('Y-Axis')}
           selected={yAxis}

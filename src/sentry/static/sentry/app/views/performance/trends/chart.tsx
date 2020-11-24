@@ -236,6 +236,7 @@ class Chart extends React.Component<Props> {
       isLoading,
       location,
       projects,
+      organization,
     } = props;
     const lineColor = trendToColor[trendChangeType || ''];
 
@@ -290,10 +291,13 @@ class Chart extends React.Component<Props> {
     const yDiff = yMax - yMin;
     const yMargin = yDiff * 0.1;
 
-    const queryExtra = {
-      showTransactions: trendChangeType,
-      yAxis: YAxis.COUNT_DURATION,
-    };
+    let queryExtra = {};
+    if (organization.features.includes('release-performance-views')) {
+      queryExtra = {
+        showTransactions: trendChangeType,
+        yAxis: YAxis.COUNT_DURATION,
+      };
+    }
 
     const chartOptions = {
       tooltip: {
