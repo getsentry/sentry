@@ -111,6 +111,13 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     }
   };
 
+  onCancel = () => {
+    this.setState({
+      dashboardState: 'default',
+      changesDashboard: undefined,
+    });
+  };
+
   isRevertable(dashboard: DashboardListItem) {
     const {changesDashboard, dashboardState} = this.state;
 
@@ -319,6 +326,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 onEdit={this.onEdit(dashboard)}
                 onCreate={this.onCreate}
                 onRevert={this.onRevert(dashboard)}
+                onCancel={this.onCancel}
                 isRevertable={this.isRevertable(dashboard)}
                 onCommit={this.onCommit(dashboard)}
                 onDelete={this.onDelete(dashboard)}
