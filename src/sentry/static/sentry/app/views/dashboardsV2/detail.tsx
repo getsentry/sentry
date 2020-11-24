@@ -91,26 +91,6 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
-  onRevert = (dashboard: DashboardListItem) => () => {
-    switch (this.state.dashboardState) {
-      case 'edit': {
-        this.setState({
-          changesDashboard: cloneDashboard(dashboard),
-        });
-        break;
-      }
-      case 'create': {
-        this.setState({
-          changesDashboard: cloneDashboard(EMPTY_DASHBOARD),
-        });
-        break;
-      }
-      default: {
-        // nothing to do
-      }
-    }
-  };
-
   onCancel = () => {
     this.setState({
       dashboardState: 'default',
@@ -325,9 +305,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 dashboard={dashboard}
                 onEdit={this.onEdit(dashboard)}
                 onCreate={this.onCreate}
-                onRevert={this.onRevert(dashboard)}
                 onCancel={this.onCancel}
-                isRevertable={this.isRevertable(dashboard)}
                 onCommit={this.onCommit(dashboard)}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={this.state.dashboardState}

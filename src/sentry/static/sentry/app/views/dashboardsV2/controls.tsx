@@ -22,11 +22,9 @@ type Props = {
   dashboard: DashboardListItem;
   onEdit: () => void;
   onCreate: () => void;
-  onRevert: () => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
-  isRevertable: boolean;
   dashboardState: DashboardState;
 };
 
