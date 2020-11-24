@@ -389,9 +389,9 @@ class StreamGroup extends React.Component<Props, State> {
             }}
           </DropdownMenu>
         </Flex>
-        <AssigneeWrapper className="hidden-xs hidden-sm">
+        <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
-        </AssigneeWrapper>
+        </Box>
       </Wrapper>
     );
   }
@@ -480,11 +480,6 @@ const ReasonAndTimesContainer = styled('div')`
 
 const InboxReasonWrapper = styled('div')`
   margin-bottom: ${space(0.75)};
-`;
-
-const AssigneeWrapper = styled('div')`
-  width: 80px;
-  margin: 0 ${space(2)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
