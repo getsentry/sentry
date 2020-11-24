@@ -136,7 +136,7 @@ const valueSuggestions: Array<SourceSuggestion> = [
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: "$attachments.**",
+    value: '$attachments.**',
     description: t('all attachments'),
   },
   {
