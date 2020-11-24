@@ -85,6 +85,8 @@ jobs:
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
         uses: getsentry/action-git-diff-suggestions@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       # Otherwise if it's not main branch, only lint modified files
       # - name: Commit any eslint fixed files
