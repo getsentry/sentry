@@ -77,6 +77,9 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta = new_frame.setdefault("data", {})
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
+    # We generally do not want to retain the ingestion only "in_image" key.
+    new_frame.pop("in_image", None)
+
 
 def _handle_image_status(status, image, sdk_info, data):
     if status in ("found", "unused"):
@@ -283,6 +286,19 @@ def _handles_frame(data, frame):
     return is_native_platform(platform) and "instruction_addr" in frame
 
 
+def frame_to_symbolicator_frame(frame, modules):
+    rv = dict(frame)
+
+    in_image = rv.pop("in_image", None)
+    if in_image:
+        for idx, module in enumerate(modules):
+            if module["debug_id"] == in_image:
+                rv["in_module"] = idx
+                break
+
+    return rv
+
+
 def process_payload(data):
     project = Project.objects.get_from_cache(id=data["project"])
 
@@ -294,11 +310,15 @@ def process_payload(data):
         if any(is_native_platform(x) for x in stacktrace.platforms)
     ]
 
+    modules = native_images_from_data(data)
+
     stacktraces = [
         {
             "registers": sinfo.stacktrace.get("registers") or {},
             "frames": [
-                f for f in reversed(sinfo.stacktrace.get("frames") or ()) if _handles_frame(data, f)
+                frame_to_symbolicator_frame(f, modules)
+                for f in reversed(sinfo.stacktrace.get("frames") or ())
+                if _handles_frame(data, f)
             ],
         }
         for sinfo in stacktrace_infos
@@ -307,7 +327,6 @@ def process_payload(data):
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
         return
 
-    modules = native_images_from_data(data)
     signal = signal_from_data(data)
 
     response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
