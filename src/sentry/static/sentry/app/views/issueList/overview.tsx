@@ -694,7 +694,6 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
-      issuesLoading,
     } = this.state;
     const {
       organization,
@@ -758,7 +757,6 @@ class IssueListOverview extends React.Component<Props, State> {
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
-                    issuesLoading={issuesLoading}
                     allResultsVisible={this.allResultsVisible()}
                   />
                   <PanelBody>
