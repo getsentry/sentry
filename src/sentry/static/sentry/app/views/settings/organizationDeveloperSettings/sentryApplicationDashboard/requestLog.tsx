@@ -62,7 +62,15 @@ const getEventTypes = memoize((app: SentryApp) => {
     ...(app.events.includes('issue')
       ? ['issue.created', 'issue.resolved', 'issue.ignored', 'issue.assigned']
       : []),
-    ...(app.isAlertable ? ['event_alert.triggered'] : []),
+    ...(app.isAlertable
+      ? [
+          'event_alert.triggered',
+          'metric_alert.open',
+          'metric_alert.resolved',
+          'metric_alert.critical',
+          'metric_alert.warning',
+        ]
+      : []),
     ...issueLinkEvents,
   ];
 
