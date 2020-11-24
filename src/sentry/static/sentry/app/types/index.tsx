@@ -221,6 +221,7 @@ export type Project = {
   latestRelease?: {version: string};
   groupingEnhancementsBase: string;
   groupingConfig: string;
+  options?: Record<string, boolean | string>;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
