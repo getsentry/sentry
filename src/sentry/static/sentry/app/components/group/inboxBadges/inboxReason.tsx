@@ -4,7 +4,6 @@ import moment from 'moment';
 
 import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
-import {IconSound, IconSwitch, IconSync, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {InboxDetails} from 'app/types';
 
@@ -22,28 +21,27 @@ type Props = {
 const InboxReason = ({inbox}: Props) => {
   const {reason, reason_details, date_added: dateAdded} = inbox;
 
-  let reasonIcon: React.ReactNode;
   let reasonBadgeText: string;
   let tooltipText: string | undefined;
+  let tagType: React.ComponentProps<typeof Tag>['type'];
 
   if (reason === GroupInboxReason.UNIGNORED) {
-    reasonIcon = <IconSound />;
     reasonBadgeText = t('Unignored');
     tooltipText = t('%(count)s events within %(window)s', {
       count: reason_details?.count || 0,
       window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
     });
   } else if (reason === GroupInboxReason.REGRESSION) {
-    reasonIcon = <IconSync />;
+    tagType = 'error';
     reasonBadgeText = t('Regression');
-    tooltipText = t('Issue was previously resolved.');
+    tooltipText = t('Issue was resolved.');
   } else if (reason === GroupInboxReason.MANUAL) {
-    reasonIcon = <IconSwitch />;
+    tagType = 'highlight';
     reasonBadgeText = t('Manual');
     // TODO(scttcper): Add tooltip text for a manual move
     // Moved to inbox by {full_name}.
   } else {
-    reasonIcon = <IconWarning />;
+    tagType = 'warning';
     reasonBadgeText = t('New Issue');
   }
 
@@ -59,7 +57,7 @@ const InboxReason = ({inbox}: Props) => {
   );
 
   return (
-    <Tag icon={reasonIcon} tooltipText={tooltip}>
+    <Tag type={tagType} tooltipText={tooltip}>
       {reasonBadgeText}
     </Tag>
   );

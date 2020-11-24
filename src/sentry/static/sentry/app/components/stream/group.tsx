@@ -252,6 +252,21 @@ class StreamGroup extends React.Component<Props, State> {
           <EventOrGroupHeader includeLink data={data} query={query} size="normal" />
           <EventOrGroupExtraDetails data={data} />
         </GroupSummary>
+        {hasInbox && (
+          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
+            {hasInboxReason && data.inbox && (
+              <InboxReasonWrapper>
+                <InboxReason inbox={data.inbox} />
+              </InboxReasonWrapper>
+            )}
+            <div>
+              <TimesTag
+                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+              />
+            </div>
+          </ReasonAndTimesContainer>
+        )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
@@ -377,25 +392,6 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
-        {hasInbox && (
-          <React.Fragment>
-            {hasInboxReason && (
-              <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
-                <BadgeWrapper>
-                  {data.inbox ? <InboxReason inbox={data.inbox} /> : <div />}
-                </BadgeWrapper>
-              </ReasonBox>
-            )}
-            <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
-              <BadgeWrapper>
-                <TimesTag
-                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-                />
-              </BadgeWrapper>
-            </TimesBox>
-          </React.Fragment>
-        )}
       </Wrapper>
     );
   }
@@ -409,14 +405,6 @@ const Wrapper = styled(PanelItem)`
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
-`;
-
-const ReasonBox = styled(Box)`
-  margin: 0 ${space(0.25)} 0 ${space(1)};
-`;
-
-const TimesBox = styled(Box)`
-  margin: 0 ${space(1.5)} 0 ${space(0.5)};
 `;
 
 const GroupCheckbox = styled(Box)`
@@ -483,9 +471,15 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const BadgeWrapper = styled('div')`
+const ReasonAndTimesContainer = styled('div')`
   display: flex;
-  justify-content: center;
+  width: 160px;
+  flex-direction: column;
+  margin: 0 ${space(2)};
+`;
+
+const InboxReasonWrapper = styled('div')`
+  margin-bottom: ${space(0.75)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
