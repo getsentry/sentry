@@ -38,6 +38,41 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
+  // TODO(tonyx): Delete this else once the feature flags are removed
+  renderEventsChart() {
+    const {location, router, organization, api, yAxis, selection, version} = this.props;
+    const {projects, environments, datetime} = selection;
+    const {start, end, period, utc} = datetime;
+    const eventView = getReleaseEventView(
+      selection,
+      version,
+      yAxis,
+      undefined,
+      organization
+    );
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
+    return (
+      <EventsChart
+        router={router}
+        organization={organization}
+        showLegend
+        yAxis={eventView.getYAxis()}
+        query={apiPayload.query}
+        api={api}
+        projects={projects}
+        environments={environments}
+        start={start}
+        end={end}
+        period={period}
+        utc={utc}
+        disablePrevious
+        disableReleases
+        currentSeriesName={t('Events')}
+      />
+    );
+  }
+
   getTransactionsChartColors(): [string, string] {
     const {yAxis} = this.props;
 
@@ -143,6 +178,12 @@ class ReleaseChartContainer extends React.Component<Props> {
 
     let chart: React.ReactNode = null;
     if (
+      hasDiscover &&
+      yAxis === YAxis.EVENTS &&
+      !organization.features.includes('release-performance-views')
+    ) {
+      chart = this.renderEventsChart();
+    } else if (
       (hasDiscover && yAxis === YAxis.EVENTS) ||
       (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
     ) {
