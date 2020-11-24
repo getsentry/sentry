@@ -75,9 +75,11 @@ class JiraCreateTicketActionTest(RuleTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[2].response.text)
-        assert data["title"] == "example summary"
-        assert data["description"] == "example bug report"
+        data = json.loads(responses.calls[2].request.body)
+
+        assert data["fields"]["summary"] == event.title
+        assert event.message in data["fields"]["description"]
+        assert data["fields"]["issuetype"]["id"] == "1"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
