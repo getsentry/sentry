@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
@@ -24,12 +25,18 @@ export enum YAxis {
   FAILED_TRANSACTIONS = 'failedTransactions',
   COUNT_DURATION = 'countDuration',
   COUNT_LCP = 'countLCP',
-  ALL_TRANSACTIONS = 'allTransactions',
+}
+
+export enum EventType {
+  ALL = 'all',
+  CSP = 'csp',
+  DEFAULT = 'default',
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
 }
 
 export const PERFORMANCE_AXIS = [
   YAxis.FAILED_TRANSACTIONS,
-  YAxis.ALL_TRANSACTIONS,
   YAxis.COUNT_DURATION,
   YAxis.COUNT_LCP,
 ];
@@ -38,6 +45,8 @@ type Props = {
   summary: React.ReactNode;
   yAxis: YAxis;
   onYAxisChange: (value: YAxis) => void;
+  eventType: EventType;
+  onEventTypeChange: (value: EventType) => void;
   organization: Organization;
   hasHealthData: boolean;
   hasDiscover: boolean;
@@ -52,6 +61,8 @@ const ReleaseChartControls = ({
   hasHealthData,
   hasDiscover,
   hasPerformance,
+  eventType,
+  onEventTypeChange,
 }: Props) => {
   const noHealthDataTooltip = !hasHealthData
     ? t('This view is only available with release health data.')
@@ -89,7 +100,7 @@ const ReleaseChartControls = ({
     },
     {
       value: YAxis.FAILED_TRANSACTIONS,
-      label: t('Failed Transaction Count'),
+      label: t('Failure Count'),
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
@@ -103,14 +114,7 @@ const ReleaseChartControls = ({
     },
     {
       value: YAxis.COUNT_LCP,
-      label: t('Slow Count (lcp)'),
-      disabled: !hasPerformance,
-      hidden: !hasPerformance,
-      tooltip: noPerformanceTooltip,
-    },
-    {
-      value: YAxis.ALL_TRANSACTIONS,
-      label: t('Transaction Count'),
+      label: t('Slow Count (LCP)'),
       disabled: !hasPerformance,
       hidden: !hasPerformance,
       tooltip: noPerformanceTooltip,
@@ -124,6 +128,14 @@ const ReleaseChartControls = ({
   ]
     .filter(opt => !opt.hidden)
     .map(({hidden: _hidden, ...rest}) => rest);
+
+  const eventTypeOptions: SelectValue<EventType>[] = [
+    {value: EventType.ALL, label: t('All')},
+    {value: EventType.CSP, label: t('CSP')},
+    {value: EventType.DEFAULT, label: t('Default')},
+    {value: EventType.ERROR, label: 'Error'},
+    {value: EventType.TRANSACTION, label: t('Transaction')},
+  ];
 
   const getSummaryHeading = () => {
     switch (yAxis) {
@@ -141,8 +153,6 @@ const ReleaseChartControls = ({
         return t(`Count over ${organization.apdexThreshold}ms`);
       case YAxis.COUNT_LCP:
         return t(`Count over ${WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold}ms`);
-      case YAxis.ALL_TRANSACTIONS:
-        return t('Total Transactions');
       case YAxis.SESSIONS:
       default:
         return t('Total Sessions');
@@ -152,23 +162,36 @@ const ReleaseChartControls = ({
   return (
     <StyledChartControls>
       <InlineContainer>
-        {PERFORMANCE_AXIS.includes(yAxis) && (
-          <StyledQuestionTooltip
-            position="top"
-            size="sm"
-            title="This only shows the current release."
-          />
-        )}
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
+        <Feature features={['release-performance-views']}>
+          {(yAxis === YAxis.EVENTS || PERFORMANCE_AXIS.includes(yAxis)) && (
+            <QuestionTooltip
+              position="top"
+              size="sm"
+              title="This count includes only the current release."
+            />
+          )}
+        </Feature>
       </InlineContainer>
-
-      <OptionSelector
-        title={t('Y-Axis')}
-        selected={yAxis}
-        options={yAxisOptions}
-        onChange={onYAxisChange as (value: string) => void}
-      />
+      <InlineContainer>
+        <Feature features={['release-performance-views']}>
+          {yAxis === YAxis.EVENTS && (
+            <OptionSelector
+              title={t('Event Type')}
+              selected={eventType ?? EventType.ALL}
+              options={eventTypeOptions}
+              onChange={onEventTypeChange as (value: string) => void}
+            />
+          )}
+        </Feature>
+        <OptionSelector
+          title={t('Y-Axis')}
+          selected={yAxis}
+          options={yAxisOptions}
+          onChange={onYAxisChange as (value: string) => void}
+        />
+      </InlineContainer>
     </StyledChartControls>
   );
 };
@@ -182,10 +205,6 @@ const StyledChartControls = styled(ChartControls)`
       font-size: ${p => p.theme.fontSizeSmall};
     }
   }
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-right: ${space(1)};
 `;
 
 export default ReleaseChartControls;

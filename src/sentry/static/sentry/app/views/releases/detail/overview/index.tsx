@@ -28,7 +28,7 @@ import {isReleaseArchived} from '../../utils';
 import {ReleaseContext} from '..';
 
 import ReleaseChart from './chart/';
-import {YAxis} from './chart/releaseChartControls';
+import {EventType, YAxis} from './chart/releaseChartControls';
 import CommitAuthorBreakdown from './commitAuthorBreakdown';
 import Deploys from './deploys';
 import Issues from './issues';
@@ -61,10 +61,20 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleYAxisChange = (yAxis: YAxis) => {
     const {location, router} = this.props;
+    const {eventType: _eventType, ...query} = location.query;
 
     router.push({
       ...location,
-      query: {...location.query, yAxis},
+      query: {...query, yAxis},
+    });
+  };
+
+  handleEventTypeChange = (eventType: EventType) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, eventType},
     });
   };
 
@@ -87,7 +97,9 @@ class ReleaseOverview extends AsyncView<Props> {
     const {yAxis} = this.props.location.query;
 
     if (typeof yAxis === 'string') {
-      return yAxis as YAxis;
+      if (Object.values(YAxis).includes(yAxis as YAxis)) {
+        return yAxis as YAxis;
+      }
     }
 
     if (hasHealthData) {
@@ -99,6 +111,20 @@ class ReleaseOverview extends AsyncView<Props> {
     }
 
     return YAxis.EVENTS;
+  }
+
+  getEventType(yAxis: YAxis): EventType {
+    if (yAxis === YAxis.EVENTS) {
+      const {eventType} = this.props.location.query;
+
+      if (typeof eventType === 'string') {
+        if (Object.values(EventType).includes(eventType as EventType)) {
+          return eventType as EventType;
+        }
+      }
+    }
+
+    return EventType.ALL;
   }
 
   getReleaseEventView(
@@ -193,6 +219,7 @@ class ReleaseOverview extends AsyncView<Props> {
             organization.features.includes('performance-view') &&
             organization.features.includes('release-performance-views');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
+          const eventType = this.getEventType(yAxis);
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -219,6 +246,7 @@ class ReleaseOverview extends AsyncView<Props> {
               selection={selection}
               location={location}
               yAxis={yAxis}
+              eventType={eventType}
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
               hasPerformance={hasPerformance}
@@ -239,6 +267,8 @@ class ReleaseOverview extends AsyncView<Props> {
                         selection={selection}
                         yAxis={yAxis}
                         onYAxisChange={this.handleYAxisChange}
+                        eventType={eventType}
+                        onEventTypeChange={this.handleEventTypeChange}
                         router={router}
                         organization={organization}
                         hasHealthData={hasHealthData}
