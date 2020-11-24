@@ -98,22 +98,6 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
-  hasChanges(dashboard: DashboardListItem) {
-    const {changesDashboard, dashboardState} = this.state;
-
-    switch (dashboardState) {
-      case 'create': {
-        return !isEqual(dashboard, EMPTY_DASHBOARD);
-      }
-      case 'edit': {
-        return !isEqual(dashboard, changesDashboard);
-      }
-      default: {
-        return false;
-      }
-    }
-  }
-
   onDelete = (dashboard: DashboardListItem) => () => {
     const {api, organization} = this.props;
     if (dashboard.type === 'org') {
@@ -155,7 +139,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
         if (changesDashboard && changesDashboard.type === 'org') {
           // only update the dashboard if there are changes
 
-          if (!this.hasChanges(dashboard)) {
+          if (isEqual(dashboard, changesDashboard)) {
             this.setState({
               dashboardState: 'default',
               changesDashboard: undefined,
