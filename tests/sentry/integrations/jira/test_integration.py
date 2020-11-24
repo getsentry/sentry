@@ -51,6 +51,32 @@ SAMPLE_CREATE_META_RESPONSE = """
           "name": "Bug",
           "subtask": false,
           "fields": {
+            "summary": {
+              "hasDefaultValue": false,
+              "key": "summary",
+              "name": "Summary",
+              "operations": [
+                "set"
+              ],
+              "required": true,
+              "schema": {
+                "system": "summary",
+                "type": "string"
+              }
+            },
+            "description": {
+              "hasDefaultValue": false,
+              "key": "description",
+              "name": "Description",
+              "operations": [
+                "set"
+              ],
+              "required": false,
+              "schema": {
+                "system": "description",
+                "type": "string"
+              }
+            },
             "issuetype": {
               "required": true,
               "name": "Issue Type",
