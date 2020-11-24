@@ -98,7 +98,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   };
 
-  isRevertable(dashboard: DashboardListItem) {
+  hasChanges(dashboard: DashboardListItem) {
     const {changesDashboard, dashboardState} = this.state;
 
     switch (dashboardState) {
@@ -155,7 +155,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
         if (changesDashboard && changesDashboard.type === 'org') {
           // only update the dashboard if there are changes
 
-          if (!this.isRevertable(dashboard)) {
+          if (!this.hasChanges(dashboard)) {
             this.setState({
               dashboardState: 'default',
               changesDashboard: undefined,
