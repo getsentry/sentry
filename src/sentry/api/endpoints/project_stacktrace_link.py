@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.models import RepositoryProjectPathConfig
+from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
+from sentry.utils.compat import filter
 from sentry.web.decorators import transaction_start
 
 
@@ -39,6 +40,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         commitId = request.GET.get("commitId")
         result = {"config": None, "sourceUrl": None}
+
+        integrations = Integration.objects.filter(organizations=project.organization_id)
+        # TODO(meredith): should use get_provider.has_feature() instead once this is
+        # no longer feature gated and is added as an IntegrationFeature
+        result["integrations"] = [
+            serialize(i, request.user)
+            for i in filter(lambda i: i.get_provider().has_stacktrace_linking, integrations)
+        ]
 
         # xxx(meredith): if there are ever any changes to this query, make
         # sure that we are still ordering by `id` because we want to make sure
