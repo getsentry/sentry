@@ -168,7 +168,6 @@ const ReleaseChartControls = ({
         selected={yAxis}
         options={yAxisOptions}
         onChange={onYAxisChange as (value: string) => void}
-        menuWidth="150px"
       />
     </StyledChartControls>
   );
