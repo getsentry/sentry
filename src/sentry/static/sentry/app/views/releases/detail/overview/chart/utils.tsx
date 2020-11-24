@@ -88,25 +88,13 @@ export function getReleaseEventView(
         ),
       });
     case YAxis.EVENTS:
-      if (organization?.features?.includes('release-performance-views')) {
-        const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          query: stringifyQueryObject(
-            new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
-          ),
-        });
-      } else {
-        // TODO(tonyx): Delete this else once the feature flags are removed
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-          query: stringifyQueryObject(
-            new QueryResults([`release:${version}`, '!event.type:transaction'])
-          ),
-          orderby: '-last_seen',
-        });
-      }
+      const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
+      return EventView.fromSavedQuery({
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
+        ),
+      });
     default:
       return EventView.fromSavedQuery({
         ...baseQuery,
