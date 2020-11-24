@@ -125,6 +125,11 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
               // redirect to new dashboard
 
+              this.setState({
+                dashboardState: 'default',
+                changesDashboard: undefined,
+              });
+
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
                 query: {},
