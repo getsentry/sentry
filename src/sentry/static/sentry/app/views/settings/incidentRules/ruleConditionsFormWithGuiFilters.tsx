@@ -280,9 +280,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
               />
               <FormRowText>{t('over a')}</FormRowText>
               <Tooltip
-                title={t(
-                  'Note: Triggers are evaluated every minute regardless of this value.'
-                )}
+                title={t('Triggers are evaluated every minute regardless of this value.')}
               >
                 <SelectField
                   name="timeWindow"
