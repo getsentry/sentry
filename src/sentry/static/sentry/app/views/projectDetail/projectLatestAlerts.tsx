@@ -34,7 +34,7 @@ type Props = AsyncComponent['props'] & {
 type State = {
   unresolvedAlerts: Incident[] | null;
   resolvedAlerts: Incident[] | null;
-  hasAlertRule: boolean;
+  hasAlertRule?: boolean;
 } & AsyncComponent['state'];
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
@@ -127,9 +127,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
       ...(resolvedAlerts ?? []),
     ];
     const checkingForAlertRules =
-      alertsUnresolvedAndResolved.length === 0 && hasAlertRule === undefined
-        ? true
-        : false;
+      alertsUnresolvedAndResolved.length === 0 && hasAlertRule === undefined;
     const showLoadingIndicator = loading || checkingForAlertRules;
 
     if (showLoadingIndicator) {
