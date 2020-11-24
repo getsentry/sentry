@@ -312,5 +312,5 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   }
 `;
 
-export {Body, Hovercard};
+export {Body, Header, Hovercard, HovercardArrow};
 export default Hovercard;

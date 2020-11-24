@@ -1,9 +1,13 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import GroupReleaseChart from 'app/components/group/releaseChart';
 import SeenInfo from 'app/components/group/seenInfo';
 import Placeholder from 'app/components/placeholder';
+import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Environment, Group, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 
@@ -40,6 +44,7 @@ const GroupReleaseStats = ({
   const projectSlug = project.slug;
   const orgSlug = organization.slug;
   const hasRelease = new Set(project.features).has('releases');
+  const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
     <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
@@ -75,8 +80,17 @@ const GroupReleaseStats = ({
             secondary
             title={
               <React.Fragment>
-                <span>{t('Last seen')}</span>
-                {environments.length > 0 && <small>({environmentLabel})</small>}
+                <span>
+                  {t('Last seen')}
+                  <TooltipWrapper>
+                    <Tooltip
+                      title={t('When the most recent event in this issue was captured.')}
+                      disableForVisualTest
+                    >
+                      <IconQuestion size="xs" color="gray300" />
+                    </Tooltip>
+                  </TooltipWrapper>
+                </span>
               </React.Fragment>
             }
           >
@@ -100,8 +114,17 @@ const GroupReleaseStats = ({
             secondary
             title={
               <React.Fragment>
-                <span>{t('First seen')}</span>
-                {environments.length > 0 && <small>({environmentLabel})</small>}
+                <span>
+                  {t('First seen')}
+                  <TooltipWrapper>
+                    <Tooltip
+                      title={t('When the first event in this issue was captured.')}
+                      disableForVisualTest
+                    >
+                      <IconQuestion size="xs" color="gray300" />
+                    </Tooltip>
+                  </TooltipWrapper>
+                </span>
               </React.Fragment>
             }
           >
@@ -120,6 +143,23 @@ const GroupReleaseStats = ({
               title={t('First seen')}
             />
           </SidebarSection>
+          {!hasRelease ? (
+            <SidebarSection
+              secondary
+              title={
+                <React.Fragment>
+                  <span>{t('Releases not configured')}</span>
+                </React.Fragment>
+              }
+            >
+              <React.Fragment>
+                <NotConfigured>
+                  <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
+                  {t(' to make issues easier to fix.')}
+                </NotConfigured>
+              </React.Fragment>
+            </SidebarSection>
+          ) : null}
         </React.Fragment>
       )}
     </SidebarSection>
@@ -127,3 +167,17 @@ const GroupReleaseStats = ({
 };
 
 export default React.memo(GroupReleaseStats);
+
+const NotConfigured = styled('span')``;
+
+const TooltipWrapper = styled('span')`
+  svg {
+    margin-left: ${space(0.5)};
+    position: relative;
+    top: 1px;
+  }
+
+  a {
+    display: inline;
+  }
+`;
