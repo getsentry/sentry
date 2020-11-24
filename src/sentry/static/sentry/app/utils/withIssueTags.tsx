@@ -87,7 +87,9 @@ const withIssueTags = <P extends InjectedTagsProps>(
         .filter(team => team.isMember)
         .map(team => `#${team.name}`);
       const allAssigned = usernames.concat(teamnames);
-      allAssigned.unshift('me') && usernames.unshift('me');
+      allAssigned.unshift('me');
+      usernames.unshift('me');
+
       this.setState({
         tags: {
           ...tags,
