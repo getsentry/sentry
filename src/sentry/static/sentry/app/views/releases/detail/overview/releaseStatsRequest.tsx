@@ -20,7 +20,7 @@ import {getExactDuration} from 'app/utils/formatters';
 
 import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
 
-import {YAxis} from './chart/releaseChartControls';
+import {EventType, YAxis} from './chart/releaseChartControls';
 import {getInterval, getReleaseEventView} from './chart/utils';
 
 const omitIgnoredProps = (props: Props) =>
@@ -52,6 +52,7 @@ type Props = {
   selection: GlobalSelection;
   location: Location;
   yAxis: YAxis;
+  eventType: EventType;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
   hasHealthData: boolean;
   hasDiscover: boolean;
@@ -107,8 +108,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         yAxis === YAxis.EVENTS ||
         yAxis === YAxis.FAILED_TRANSACTIONS ||
         yAxis === YAxis.COUNT_DURATION ||
-        yAxis === YAxis.COUNT_LCP ||
-        yAxis === YAxis.ALL_TRANSACTIONS
+        yAxis === YAxis.COUNT_LCP
       ) {
         data = await this.fetchEventData();
       } else {
@@ -185,12 +185,20 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       organization,
       location,
       yAxis,
+      eventType,
       selection,
       version,
       hasHealthData,
     } = this.props;
     const {crashFreeTimeBreakdown} = this.state.data || {};
-    const eventView = getReleaseEventView(selection, version, yAxis, organization, true);
+    const eventView = getReleaseEventView(
+      selection,
+      version,
+      yAxis,
+      eventType,
+      organization,
+      true
+    );
     const payload = eventView.getEventsAPIPayload(location);
     let userResponse, eventsCountResponse;
 
