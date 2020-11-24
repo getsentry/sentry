@@ -67,10 +67,10 @@ class GroupHeader extends React.Component<Props, State> {
 
   componentDidMount() {
     const {organization} = this.context;
-    const {group} = this.props;
+    const {group, api} = this.props;
     const {project} = group;
 
-    fetchOrgMembers(this.props.api, organization.slug, [project.id]).then(memberList => {
+    fetchOrgMembers(api, organization.slug, [project.id]).then(memberList => {
       const users = memberList.map(member => member.user);
       this.setState({memberList: users});
     });
