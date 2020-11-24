@@ -58,6 +58,13 @@ class ProjectDetailTest(AcceptanceTestCase):
             status=IncidentStatus.CLOSED.value,
         )
 
+        self.create_release(project=self.project, version="1.0.0")
+        self.create_release(project=self.project, version="1.1.0")
+        self.create_release(project=self.project, version="1.2.3")
+        self.create_release(project=self.project, version="2.0.5")
+        self.create_release(project=self.project, version="2.3.3")
+        self.create_release(project=self.project, version="3.3.3")
+
         self.login_as(self.user)
         self.path = u"/organizations/{}/projects/{}/".format(self.org.slug, self.project.slug)
 

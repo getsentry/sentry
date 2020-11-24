@@ -36,6 +36,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
     const {project, organization} = this.props;
 
     if (!project) {
+      // TODO(project-detail): check the most common number of teams and set height accordingly
       return <Placeholder />;
     }
 

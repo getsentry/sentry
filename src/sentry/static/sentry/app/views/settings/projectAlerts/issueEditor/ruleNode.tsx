@@ -19,6 +19,7 @@ import {
 } from 'app/types/alerts';
 import Input from 'app/views/settings/components/forms/controls/input';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
+import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
 
 type FormField = {
   // Type of form fields
@@ -212,7 +213,6 @@ class RuleNode extends React.Component<Props> {
       if (key === 'value' && data && (data.match === 'is' || data.match === 'ns')) {
         return null;
       }
-
       return (
         <Separator key={key}>
           {formFields && formFields.hasOwnProperty(key)
@@ -226,10 +226,10 @@ class RuleNode extends React.Component<Props> {
 
     // We return this so that it can be a grid
     return (
-      <Rule>
+      <React.Fragment>
         {title}
         {inputs}
-      </Rule>
+      </React.Fragment>
     );
   }
 
@@ -278,13 +278,17 @@ class RuleNode extends React.Component<Props> {
   }
 
   render() {
-    const {data, disabled} = this.props;
+    const {data, disabled, node} = this.props;
+    const ticketRule = node?.hasOwnProperty('actionType');
 
     return (
       <RuleRowContainer>
         <RuleRow>
-          {data && <input type="hidden" name="id" value={data.id} />}
-          {this.renderRow()}
+          <Rule>
+            {data && <input type="hidden" name="id" value={data.id} />}
+            {this.renderRow()}
+            {ticketRule && <TicketRuleForm />}
+          </Rule>
           <DeleteButton
             disabled={disabled}
             label={t('Delete Node')}
