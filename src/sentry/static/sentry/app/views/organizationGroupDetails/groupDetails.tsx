@@ -300,7 +300,7 @@ class GroupDetails extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <GroupHeader
-          project={project}
+          project={project as Project}
           group={group}
           currentTab={currentTab}
           baseUrl={baseUrl}

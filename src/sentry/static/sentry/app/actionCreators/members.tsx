@@ -15,7 +15,7 @@ function getMemberUser(member: Member) {
 export async function fetchOrgMembers(
   api: Client,
   orgId: string,
-  projectIds: number[] | null = null
+  projectIds: string[] | null = null
 ) {
   const endpoint = `/organizations/${orgId}/users/`;
   const query = projectIds ? {project: projectIds} : {};

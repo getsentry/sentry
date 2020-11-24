@@ -121,7 +121,8 @@ const styles = (theme: Theme, isDark: boolean) => css`
           box-shadow: 0 0 0 5px ${theme.background};
           background: ${theme.background};
         }
-        .nav-header a.help-link {
+        .nav-header a.help-link,
+        .nav-header span.help-link a {
           color: ${theme.subText};
         }
         pre,
