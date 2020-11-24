@@ -925,6 +925,8 @@ SENTRY_FEATURES = {
     "organizations:workflow-owners": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
+    # Adds additional filters and a new section to issue alert rules.
+    "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.

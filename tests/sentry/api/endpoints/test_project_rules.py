@@ -220,9 +220,9 @@ class CreateProjectRuleTest(APITestCase):
 
         project = self.create_project()
 
-        conditions = [
+        filters = [
             {
-                "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "foo",
                 "match": "is",
             }
@@ -241,7 +241,7 @@ class CreateProjectRuleTest(APITestCase):
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
-                "conditions": conditions,
+                "filters": filters,
                 "frequency": 30,
             },
             format="json",
@@ -250,9 +250,9 @@ class CreateProjectRuleTest(APITestCase):
         assert response.status_code == 200, response.content
 
         # should fail if using another match type
-        conditions = [
+        filters = [
             {
-                "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "key": "foo",
                 "match": "eq",
             }
@@ -265,7 +265,7 @@ class CreateProjectRuleTest(APITestCase):
                 "actionMatch": "any",
                 "filterMatch": "any",
                 "actions": actions,
-                "conditions": conditions,
+                "filters": filters,
                 "frequency": 30,
             },
             format="json",
