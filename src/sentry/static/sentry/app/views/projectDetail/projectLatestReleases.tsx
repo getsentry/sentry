@@ -18,19 +18,20 @@ import DateTime from 'app/components/dateTime';
 import Version from 'app/components/version';
 import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 import FeatureTourModal from 'app/components/modals/featureTourModal';
+import TextOverflow from 'app/components/textOverflow';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
-  projectId: string | undefined;
   location: Location;
+  projectId?: string;
 };
 
 type State = {
   releases: Release[] | null;
-  hasOlderReleases: boolean;
+  hasOlderReleases?: boolean;
 } & AsyncComponent['state'];
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
@@ -94,14 +95,13 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     return (
       <React.Fragment>
         <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
-        <VersionWrapper>
-          <Version
+        <TextOverflow>
+          <StyledVersion
             version={release.version}
             tooltipRawVersion
             projectId={projectId}
-            truncate
           />
-        </VersionWrapper>
+        </TextOverflow>
       </React.Fragment>
     );
   };
@@ -109,7 +109,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
   renderInnerBody() {
     const {loading, releases, hasOlderReleases} = this.state;
     const checkingForOlderReleases =
-      (releases ?? []).length === 0 && hasOlderReleases === undefined ? true : false;
+      !(releases ?? []).length && hasOlderReleases === undefined;
     const showLoadingIndicator = loading || checkingForOlderReleases;
 
     if (showLoadingIndicator) {
@@ -118,31 +118,29 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
 
     if (!hasOlderReleases) {
       return (
-        <div>
-          <StyledButtonBar gap={1}>
-            <Button size="small" priority="primary" external href={DOCS_URL}>
-              {t('Start Setup')}
-            </Button>
-            <FeatureTourModal
-              steps={RELEASES_TOUR_STEPS}
-              onAdvance={this.handleTourAdvance}
-            >
-              {({showModal}) => (
-                <Button size="small" onClick={showModal}>
-                  {t('Get a tour')}
-                </Button>
-              )}
-            </FeatureTourModal>
-          </StyledButtonBar>
-        </div>
+        <StyledButtonBar gap={1}>
+          <Button size="small" priority="primary" external href={DOCS_URL}>
+            {t('Start Setup')}
+          </Button>
+          <FeatureTourModal
+            steps={RELEASES_TOUR_STEPS}
+            onAdvance={this.handleTourAdvance}
+          >
+            {({showModal}) => (
+              <Button size="small" onClick={showModal}>
+                {t('Get a tour')}
+              </Button>
+            )}
+          </FeatureTourModal>
+        </StyledButtonBar>
       );
     }
 
-    if ((releases ?? []).length === 0) {
+    if (!releases || releases.length === 0) {
       return t('No releases match the filter.');
     }
 
-    return <ReleasesTable>{(releases ?? []).map(this.renderReleaseRow)}</ReleasesTable>;
+    return <ReleasesTable>{releases.map(this.renderReleaseRow)}</ReleasesTable>;
   }
 
   renderLoading() {
@@ -176,6 +174,7 @@ const ReleasesTable = styled('div')`
 
   & > * {
     padding: ${space(0.5)} ${space(1)};
+    height: 32px;
   }
 
   & > *:nth-child(2n + 2) {
@@ -188,7 +187,7 @@ const ReleasesTable = styled('div')`
   }
 `;
 
-const VersionWrapper = styled('div')`
+const StyledVersion = styled(Version)`
   ${overflowEllipsis}
 `;
 
