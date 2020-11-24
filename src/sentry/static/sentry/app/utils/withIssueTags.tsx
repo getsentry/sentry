@@ -30,14 +30,6 @@ const getUsername = ({isManaged, username, email}: User) => {
   }
 };
 
-const getTeamName = ({name, isMember}: Team) => {
-  if (isMember) {
-    return name;
-  } else {
-    return null;
-  }
-};
-
 /**
  * HOC for getting tags and many useful issue attributes as 'tags' for use
  * in autocomplete selectors or condition builders.
@@ -89,28 +81,26 @@ const withIssueTags = <P extends InjectedTagsProps>(
     },
 
     setAssigned() {
-      if (this.state.tags.assigned) {
-        const {tags, users, teams} = this.state;
-        const usernames: string[] = users.map(getUsername);
-        const teamnames: string[] = teams
-          .filter(getTeamName)
-          .map(team => `#${team.name}`);
-        const allAssigned = usernames.concat(teamnames);
-        allAssigned.unshift('me') && usernames.unshift('me');
-        this.setState({
-          tags: {
-            ...tags,
-            assigned: {
-              ...tags.assigned,
-              values: allAssigned,
-            },
-            bookmarks: {
-              ...tags.bookmarks,
-              values: usernames,
-            },
+      const {tags, users, teams} = this.state;
+      const usernames: string[] = users.map(getUsername);
+      const teamnames: string[] = teams
+        .filter(team => team.isMember)
+        .map(team => `#${team.name}`);
+      const allAssigned = usernames.concat(teamnames);
+      allAssigned.unshift('me') && usernames.unshift('me');
+      this.setState({
+        tags: {
+          ...tags,
+          assigned: {
+            ...tags.assigned,
+            values: allAssigned,
           },
-        });
-      }
+          bookmarks: {
+            ...tags.bookmarks,
+            values: usernames,
+          },
+        },
+      });
     },
 
     render() {
