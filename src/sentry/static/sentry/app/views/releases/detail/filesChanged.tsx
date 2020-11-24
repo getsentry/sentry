@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
 import FileChange from 'app/components/fileChange';
-import {Main} from 'app/components/layouts/thirds';
+import {Body, Main} from 'app/components/layouts/thirds';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tn} from 'app/locale';
@@ -133,7 +133,11 @@ class FilesChanged extends AsyncView<Props, State> {
   }
 
   renderComponent() {
-    return <Main fullWidth>{super.renderComponent()}</Main>;
+    return (
+      <Body>
+        <Main fullWidth>{super.renderComponent()}</Main>
+      </Body>
+    );
   }
 }
 

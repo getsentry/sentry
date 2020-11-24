@@ -14,7 +14,7 @@ const ReleaseStat = ({label, children, help}: Props) => (
   <Wrapper>
     <Label hasHelp={!!help}>
       {label}
-      {help && <StyledQuestionTooltip title={help} size="xs" position="top" />}
+      {help && <StyledQuestionTooltip title={help} size="xs" position="bottom" />}
     </Label>
     <Value>{children}</Value>
   </Wrapper>

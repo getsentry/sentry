@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import CommitRow from 'app/components/commitRow';
+import {Body, Main} from 'app/components/layouts/thirds';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -115,6 +116,14 @@ class Commits extends AsyncView<Props, State> {
         )}
         {this.renderContent()}
       </React.Fragment>
+    );
+  }
+
+  renderComponent() {
+    return (
+      <Body>
+        <Main fullWidth>{super.renderComponent()}</Main>
+      </Body>
     );
   }
 }
