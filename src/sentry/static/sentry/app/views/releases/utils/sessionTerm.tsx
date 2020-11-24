@@ -30,8 +30,8 @@ const desktopTermDescriptions = {
   unhandled: t('The application crashed with a hard crashed'),
 };
 
-function getTermDescriptions(platform: PlatformKey) {
-  const technology = platform.includes('javascript') ? platform.split('-')[0] : platform;
+function getTermDescriptions(platform: PlatformKey | null) {
+  const technology = platform?.includes('javascript') ? platform.split('-')[0] : platform;
 
   switch (technology) {
     case 'dotnet':
