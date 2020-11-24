@@ -242,18 +242,16 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
       );
     }
 
-    let defaultSelection = {};
-    if (organization.features.includes('release-performance-views')) {
-      const releaseDate = new Date(releaseMeta.released);
-      // Center the release in a 24h time period
-      defaultSelection = {
-        datetime: {
-          start: new Date(releaseDate.getTime() - 12 * 3600 * 1000),
-          end: new Date(releaseDate.getTime() + 12 * 3600 * 1000),
-          utc: false,
-        },
-      };
-    }
+    const releaseDate = new Date(releaseMeta.released);
+    // Center the release in a 24h time period
+    const defaultSelection = {
+      datetime: {
+        start: new Date(releaseDate.getTime() - 12 * 3600 * 1000),
+        end: new Date(releaseDate.getTime() + 12 * 3600 * 1000),
+        period: '',
+        utc: false,
+      },
+    };
 
     return (
       <GlobalSelectionHeader
