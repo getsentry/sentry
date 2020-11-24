@@ -1418,6 +1418,7 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+NESTED_FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>.*)\)$")
 ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
 
 
@@ -2318,6 +2319,12 @@ FUNCTIONS = {
                 ],
             ],
         ),
+        Function(
+            "divide",
+            required_args=[FunctionArg("numerator"), FunctionArg("denominator")],
+            aggregate=["divide", [ArgValue("numerator"), ArgValue("denominator")], None],
+            default_result_type="percentage",
+        ),
     ]
 }
 # In Performance TPM is used as an alias to EPM
@@ -2334,6 +2341,14 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 
 def is_function(field):
     function_match = FUNCTION_PATTERN.search(field)
+    if function_match:
+        return function_match
+
+    return None
+
+
+def is_nested_function(field):
+    function_match = NESTED_FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
 
@@ -2363,6 +2378,47 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
+def parse_nested_function(field, match=None):
+    if not match:
+        match = NESTED_FUNCTION_PATTERN.search(field)
+
+    if not match or match.group("function") not in FUNCTIONS:
+        raise InvalidSearchQuery(u"{} is not a valid function".format(field))
+
+    function_args = []
+    columns = match.group("columns")
+
+    i = 0
+    while i < len(columns):
+        if columns[i] != " ":
+            break
+        i += 1
+
+    level = 0
+    j = i
+    while j < len(columns):
+        if columns[j] == "," and level == 0:
+            function_args.append(columns[i:j])
+            i = j + 1
+            while i < len(columns):
+                if columns[i] != " ":
+                    break
+                i += 1
+            j = i
+        elif columns[j] == "(":
+            level += 1
+            j += 1
+        elif columns[j] == ")":
+            level -= 1
+            j += 1
+        else:
+            j += 1
+
+    function_args.append(columns[i:j])
+
+    return match.group("function"), [arg for arg in function_args if arg]
+
+
 def parse_function(field, match=None):
     if not match:
         match = FUNCTION_PATTERN.search(field)
@@ -2378,6 +2434,47 @@ def parse_function(field, match=None):
 
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
+
+
+def resolve_nested_function(field, match=None, params=None, functions_acl=False):
+    function_name, raw_columns = parse_nested_function(field, match)
+
+    function = FUNCTIONS[function_name]
+    if not function.is_accessible(functions_acl):
+        raise InvalidSearchQuery(u"{}: no access to private function".format(function.name))
+
+    columns = [
+        resolve_function(column, params=params, functions_acl=functions_acl)
+        for column in raw_columns
+    ]
+    for column in columns:
+        if column.aggregate is None:
+            raise InvalidSearchQuery(u"{}: only aggregates arguments are permitted").format(
+                function.name
+            )
+
+    formatted_columns = []
+    for column in columns:
+        agg_func = column.aggregate[0]
+        agg_arg = column.aggregate[1]
+        if agg_arg is not None and not isinstance(agg_arg, (list, tuple)):
+            agg_arg = [agg_arg]
+        formatted_columns.append([agg_func, agg_arg])
+
+    arguments = function.format_as_arguments(field, formatted_columns, params)
+    details = FunctionDetails(field, function, arguments)
+
+    if function.aggregate is None:
+        raise InvalidSearchQuery(u"{}: must be an aggregate").format(function.name)
+
+    aggregate = deepcopy(function.aggregate)
+    aggregate[0] = aggregate[0].format(**arguments)
+    format_column_arguments(aggregate[1], arguments)
+
+    column_aliases = [get_function_alias(raw_column) for raw_column in raw_columns]
+    aggregate[2] = get_function_alias_with_columns(function.name, column_aliases)
+
+    return ResolvedFunction(details, None, aggregate)
 
 
 def resolve_function(field, match=None, params=None, functions_acl=False):
@@ -2502,6 +2599,10 @@ def resolve_field(field, params=None, functions_acl=None):
     match = is_function(field)
     if match:
         return resolve_function(field, match, params, functions_acl)
+
+    match = is_nested_function(field)
+    if match:
+        return resolve_nested_function(field, match, params, functions_acl)
 
     if field in FIELD_ALIASES:
         special_field = FIELD_ALIASES[field]

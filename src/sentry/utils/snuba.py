@@ -1004,6 +1004,26 @@ def resolve_complex_column(col, resolve_func):
             args[i] = resolve_func(args[i])
 
 
+def resolve_aggregation(aggregation, resolve_func, derived_columns):
+    if isinstance(aggregation[1], six.string_types):
+        aggregation[1] = resolve_func(aggregation[1])
+    elif isinstance(aggregation[1], (set, tuple, list)):
+        formatted = []
+        for argument in aggregation[1]:
+            func_index = get_function_index(argument)
+            if func_index is not None:
+                resolve_aggregation(argument, resolve_func, derived_columns)
+                formatted.append([argument[0], argument[1]])
+            else:
+                formatted.append(
+                    resolve_func(argument)
+                    if not isinstance(argument, (set, tuple, list))
+                    and argument not in derived_columns
+                    else argument
+                )
+        aggregation[1] = formatted
+
+
 def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
     resolved = snuba_filter.clone()
     translated_columns = {}
@@ -1045,26 +1065,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     # need to get derived_columns first, so that they don't get resolved as functions
     derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:
-        if isinstance(aggregation[1], six.string_types):
-            aggregation[1] = resolve_func(aggregation[1])
-        elif isinstance(aggregation[1], (set, tuple, list)):
-            formatted = []
-            for argument in aggregation[1]:
-                # The aggregation has another function call as its parameter
-                func_index = get_function_index(argument)
-                if func_index is not None:
-                    # Resolve the columns on the nested function, and add a wrapping
-                    # list to become a valid query expression.
-                    formatted.append([argument[0], [resolve_func(col) for col in argument[1]]])
-                else:
-                    # Parameter is a list of fields.
-                    formatted.append(
-                        resolve_func(argument)
-                        if not isinstance(argument, (set, tuple, list))
-                        and argument not in derived_columns
-                        else argument
-                    )
-            aggregation[1] = formatted
+        resolve_aggregation(aggregation, resolve_func, derived_columns)
     resolved.aggregations = aggregations
 
     conditions = resolved.conditions

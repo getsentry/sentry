@@ -636,7 +636,10 @@ export function getAggregateAlias(field: string): string {
     .replace(AGGREGATE_PATTERN, '$1_$2_$3')
     .replace(/\./g, '_')
     .replace(/\,/g, '_')
-    .replace(/_+$/, '');
+    .replace(/\(/g, '_')
+    .replace(/\)/g, '_')
+    .replace(/_+$/, '')
+    .replace(/_+/g, '_');
 }
 
 /**
