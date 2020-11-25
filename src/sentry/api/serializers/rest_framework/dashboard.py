@@ -38,7 +38,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
-    name = serializers.CharField(required=False)
+    name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False)
     interval = serializers.CharField(required=False)
 

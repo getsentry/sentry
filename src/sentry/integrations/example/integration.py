@@ -157,6 +157,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
     metadata = metadata
 
     integration_cls = ExampleIntegration
+    has_stacktrace_linking = True
 
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.ISSUE_BASIC])
 

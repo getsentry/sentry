@@ -1,15 +1,14 @@
-import {Field} from 'app/utils/discover/fields';
-
 type DisplayType = 'line' | 'area' | 'stacked_area' | 'bar' | 'table';
 
 type WidgetQuery = {
   name: string;
-  fields: Field[];
+  fields: string[];
   conditions: string;
   interval?: string; // not required
 };
 
-type Widget = {
+export type Widget = {
+  id: string;
   title: string;
   displayType: DisplayType;
   queries: WidgetQuery[];

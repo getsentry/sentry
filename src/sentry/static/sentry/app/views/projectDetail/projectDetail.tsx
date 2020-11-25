@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -18,6 +19,8 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
+import ProjectLatestAlerts from './projectLatestAlerts';
+import ProjectLatestReleases from './projectLatestReleases';
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
 
@@ -51,7 +54,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params} = this.props;
+    const {organization, params, location} = this.props;
     const {project} = this.state;
 
     return (
@@ -108,13 +111,19 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
-                  doloremque ut perferendis harum, optio temporibus eaque officia, illo
-                  est quia animi eum sunt dolorem in eligendi quod, corrupti dolores
-                  doloribus!
-                </p>
+                <Feature features={['incidents']}>
+                  <ProjectLatestAlerts
+                    organization={organization}
+                    projectSlug={params.projectId}
+                    location={location}
+                  />
+                </Feature>
+                <ProjectLatestReleases
+                  organization={organization}
+                  projectSlug={params.projectId}
+                  projectId={project?.id}
+                  location={location}
+                />
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>

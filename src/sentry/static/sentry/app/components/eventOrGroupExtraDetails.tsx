@@ -3,8 +3,6 @@ import {Link, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
-import InboxCommentsLink from 'app/components/group/inboxBadges/commentsLink';
-import InboxEventAnnotation from 'app/components/group/inboxBadges/eventAnnotation';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
@@ -43,7 +41,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   const hasInbox = orgFeatures.has('inbox');
 
   return (
-    <GroupExtra>
+    <GroupExtra hasInbox={hasInbox}>
       {isUnhandled && hasInbox && <UnhandledTag />}
       {shortId &&
         (hasInbox ? (
@@ -51,7 +49,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             shortId={shortId}
             avatar={
               project && (
-                <ShadowlessProjectBadge project={project} avatarSize={14} hideName />
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
               )
             }
           />
@@ -73,60 +71,37 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
-      {numComments > 0 &&
-        (hasInbox ? (
-          <InboxCommentsLink
-            to={`${issuesPath}${id}/activity/`}
-            subscriptionDetails={subscriptionDetails}
-            numComments={numComments}
+      {numComments > 0 && (
+        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+          <IconChat
+            size="xs"
+            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
           />
-        ) : (
-          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-            <IconChat
-              size="xs"
-              color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
-            />
-            <span>{numComments}</span>
-          </CommentsLink>
-        ))}
-      {logger &&
-        (hasInbox ? (
-          <InboxEventAnnotation
+          <span>{numComments}</span>
+        </CommentsLink>
+      )}
+      {logger && (
+        <LoggerAnnotation>
+          <Link
             to={{
               pathname: issuesPath,
               query: {
                 query: `logger:${logger}`,
               },
             }}
-            annotation={logger}
-          />
-        ) : (
-          <LoggerAnnotation>
-            <Link
-              to={{
-                pathname: issuesPath,
-                query: {
-                  query: `logger:${logger}`,
-                },
-              }}
-            >
-              {logger}
-            </Link>
-          </LoggerAnnotation>
-        ))}
-      {annotations &&
-        annotations.map((annotation, key) =>
-          hasInbox ? (
-            <InboxEventAnnotation key={key} htmlAnnotation={annotation} />
-          ) : (
-            <AnnotationNoMargin
-              dangerouslySetInnerHTML={{
-                __html: annotation,
-              }}
-              key={key}
-            />
-          )
-        )}
+          >
+            {logger}
+          </Link>
+        </LoggerAnnotation>
+      )}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={{
+            __html: annotation,
+          }}
+          key={key}
+        />
+      ))}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
@@ -135,13 +110,13 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   );
 }
 
-const GroupExtra = styled('div')`
+const GroupExtra = styled('div')<{hasInbox: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  grid-gap: ${space(2)};
+  grid-gap: ${p => (p.hasInbox ? space(1) : space(2))};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.hasInbox ? p.theme.gray500 : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeSmall};
   position: relative;
   min-width: 500px;

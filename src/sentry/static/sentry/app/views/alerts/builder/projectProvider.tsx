@@ -41,7 +41,7 @@ function AlertBuilderProjectProvider(props: Props) {
         const project = projects[0] as Project;
 
         // fetch members list for mail action fields
-        fetchOrgMembers(api, organization.slug, [Number(project.id)]);
+        fetchOrgMembers(api, organization.slug, [project.id]);
 
         return (
           <React.Fragment>
