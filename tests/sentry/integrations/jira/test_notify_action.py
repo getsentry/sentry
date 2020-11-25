@@ -33,10 +33,10 @@ class JiraCreateTicketActionTest(RuleTestCase):
         jira_rule = self.get_rule(
             data={
                 "issuetype": "1",
-                "project": "10000",
+                "labels": "bunnies",
                 "customfield_10200": "sad",
                 "customfield_10300": ["Feature 1", "Feature 2"],
-                "labels": "bunnies",
+                "project": "10000",
                 "jira_integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
