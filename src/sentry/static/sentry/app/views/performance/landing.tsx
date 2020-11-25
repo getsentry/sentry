@@ -43,11 +43,11 @@ import {
   DEFAULT_TRENDS_STATS_PERIOD,
   modifyTrendsViewDefaultPeriod,
 } from './trends/utils';
-import VitalsCards from './vitals-cards';
 import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
 import Table from './table';
 import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
+import VitalsCards from './vitalsCards';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',

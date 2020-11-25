@@ -1,37 +1,38 @@
 import React from 'react';
-import {Location, LocationDescriptorObject} from 'history';
 import * as ReactRouter from 'react-router';
+import {Location, LocationDescriptorObject} from 'history';
 
-import {IconStar, IconUser} from 'app/icons';
-import {Organization, Project} from 'app/types';
-import Pagination from 'app/components/pagination';
-import Link from 'app/components/links/link';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
-import {TableColumn} from 'app/views/eventsV2/table/types';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import Link from 'app/components/links/link';
+import Pagination from 'app/components/pagination';
+import Tag from 'app/components/tag';
+import {IconStar, IconUser} from 'app/icons';
+import {t} from 'app/locale';
 import styled from 'app/styled';
 import space from 'app/styles/space';
-import Tag from 'app/components/tagDeprecated';
-import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
+import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, Sort, WebVital} from 'app/utils/discover/fields';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import HeaderCell from 'app/views/eventsV2/table/headerCell';
+import {TableColumn} from 'app/views/eventsV2/table/types';
+
+import {DisplayModes} from '../transactionSummary/charts';
+import {
+  TransactionFilterOptions,
+  transactionSummaryRouteWithQuery,
+} from '../transactionSummary/utils';
 
 import {
   getVitalDetailTableStatusFunction,
   vitalAbbreviations,
   vitalNameFromLocation,
 } from './utils';
-import {
-  TransactionFilterOptions,
-  transactionSummaryRouteWithQuery,
-} from '../transactionSummary/utils';
-import {DisplayModes} from '../transactionSummary/charts';
 
 const COLUMN_TITLES = ['Transaction', 'Project', 'Unique Users', 'Count'];
 
@@ -149,9 +150,17 @@ class Table extends React.Component<Props, State> {
 
     if (field === getVitalDetailTableStatusFunction(vitalName)) {
       if (dataRow[getAggregateAlias(field)]) {
-        return <FailTag>{t('FAIL')}</FailTag>;
+        return (
+          <UniqueTagCell>
+            <StyledTag>{t('Fail')}</StyledTag>
+          </UniqueTagCell>
+        );
       } else {
-        return <PassTag>{t('PASS')}</PassTag>;
+        return (
+          <UniqueTagCell>
+            <Tag>{t('Pass')}</Tag>
+          </UniqueTagCell>
+        );
       }
     }
 
@@ -393,29 +402,22 @@ const UniqueUserCell = styled('span')`
   align-items: center;
 `;
 
+const UniqueTagCell = styled('div')`
+  text-align: right;
+`;
+
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.red300};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
+`;
+
 const StyledUserIcon = styled(IconUser)`
   margin-left: ${space(1)};
   color: ${p => p.theme.gray400};
-`;
-
-const FailTag = styled(Tag)`
-  position: absolute;
-  right: ${space(3)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  background-color: ${p => p.theme.red300};
-  color: ${p => p.theme.white};
-  text-transform: uppercase;
-`;
-
-const PassTag = styled(Tag)`
-  position: absolute;
-  right: ${space(3)};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  background-color: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray400};
-  text-transform: uppercase;
 `;
 
 export default Table;
