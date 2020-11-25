@@ -133,14 +133,16 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     from_reprocessing = process_task is process_event_from_reprocessing
 
     if should_process_with_symbolicator(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+        # Temporary fix
+        # reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_symbolicate(
             project, from_reprocessing, cache_key, event_id, start_time, original_data
         )
         return
 
     if should_process(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
+        # Temporary fix
+        # reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
             project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=False,
         )
