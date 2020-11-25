@@ -72,10 +72,13 @@ class SystemOptionsEndpoint(Endpoint):
                     options.delete(k)
                 else:
                     options.set(k, v)
-            except TypeError as e:
+            except (TypeError, AssertionError) as e:
+                # TODO(chadwhitacre): Use a custom exception for the
+                # immutability case, especially since asserts disappear with
+                # `python -O`.
                 return Response(
                     {
-                        "error": "invalid_type",
+                        "error": "invalid_type" if type(e) is TypeError else "immutable_option",
                         "errorDetail": {"option": k, "message": six.text_type(e)},
                     },
                     status=400,

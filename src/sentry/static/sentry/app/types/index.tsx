@@ -221,6 +221,7 @@ export type Project = {
   latestRelease?: {version: string};
   groupingEnhancementsBase: string;
   groupingConfig: string;
+  options?: Record<string, boolean | string>;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
@@ -1640,6 +1641,7 @@ export type Artifact = {
   headers: {'Content-Type': string};
 };
 
+// TODO(mark) remove when dashboards 1 is removed.
 export type Widget = {
   queries: {
     discover: DiscoverQuery[];

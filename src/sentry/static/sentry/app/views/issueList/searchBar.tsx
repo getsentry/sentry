@@ -35,7 +35,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   },
   {
     title: t('Assigned'),
-    desc: 'assigned:[me|user@example.com]',
+    desc: 'assigned:[me|user@example.com|#team-example]',
     value: 'assigned:',
     type: 'default',
   },

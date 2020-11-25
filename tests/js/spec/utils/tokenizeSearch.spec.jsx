@@ -308,6 +308,12 @@ describe('utils/tokenizeSearch', function () {
       results.removeTag('b');
       expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
     });
+
+    it('can return the tag keys', function () {
+      const results = new QueryResults(['tag:value', 'other:value', 'additional text']);
+
+      expect(results.getTagKeys()).toEqual(['tag', 'other']);
+    });
   });
 
   describe('stringifyQueryObject()', function () {

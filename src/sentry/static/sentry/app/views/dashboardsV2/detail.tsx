@@ -33,6 +33,7 @@ import {
   DashboardState,
   OrgDashboard,
   OrgDashboardResponse,
+  Widget,
 } from './types';
 import {cloneDashboard} from './utils';
 
@@ -51,6 +52,7 @@ type State = {
   // endpoint response
   orgDashboards: OrgDashboardResponse[] | null;
 } & AsyncComponent['state'];
+
 class DashboardDetail extends AsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
@@ -220,6 +222,23 @@ class DashboardDetail extends AsyncComponent<Props, State> {
     });
   }
 
+  onWidgetChange = (widgets: Widget[]) => {
+    const {changesDashboard} = this.state;
+    if (changesDashboard === undefined) {
+      return;
+    }
+
+    this.setState((prevState: State) => {
+      return {
+        ...prevState,
+        changesDashboard: {
+          ...changesDashboard,
+          widgets,
+        },
+      };
+    });
+  };
+
   getDashboardsList(): DashboardListItem[] {
     const {orgDashboards} = this.state;
 
@@ -306,7 +325,21 @@ class DashboardDetail extends AsyncComponent<Props, State> {
                 dashboardState={this.state.dashboardState}
               />
             </StyledPageHeader>
-            <Dashboard />
+            {this.state.changesDashboard ? (
+              <Dashboard
+                dashboard={this.state.changesDashboard}
+                organization={organization}
+                isEditing={this.state.dashboardState === 'edit'}
+                onUpdate={this.onWidgetChange}
+              />
+            ) : (
+              <Dashboard
+                dashboard={dashboard}
+                organization={organization}
+                isEditing={this.state.dashboardState === 'edit'}
+                onUpdate={this.onWidgetChange}
+              />
+            )}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
