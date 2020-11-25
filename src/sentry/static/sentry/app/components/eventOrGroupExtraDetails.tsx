@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
@@ -150,9 +151,13 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
   padding-left: ${p => (p.hasInbox ? 0 : space(2))};
   ${p => p.hasInbox && `border-left: none;`};
 
-  & > a {
-    color: ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
-  }
+  ${p =>
+    p.hasInbox &&
+    css`
+      & > a {
+        color: ${p.theme.textColor};
+      }
+    `}
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
