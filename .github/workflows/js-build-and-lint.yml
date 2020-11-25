@@ -69,91 +69,76 @@ jobs:
           yarn lint -c .eslintrc.relax.js
           yarn lint:css
 
-      - name: eslint (forks)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          yarn eslint ${{ steps.changes.outputs.frontend_modified_lintable_files }}
-
       # Otherwise if it's not main branch, only lint modified files
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
-      # Otherwise if it's not main branch, only lint modified files
-      - name: Commit any eslint fixed files
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+      # Apply fixed files via pull request review comments
+      - name: Apply any eslint fixed files as Pull Request review comments
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         continue-on-error: true
         uses: getsentry/action-git-diff-suggestions@main
         with:
+          message: eslint made this change
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Otherwise if it's not main branch, only lint modified files
-      # - name: Commit any eslint fixed files
-        # if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
-        # continue-on-error: true
-        # run: |
-          # git config --global user.name "github-actions[bot]"
-          # git config --global user.email "github-actions@sentry.io"
-          # git add -A
-          # git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
-          # git push origin
+      - name: tsc
+        if: always() && steps.changes.outputs.frontend == 'true'
+        run: |
+          yarn tsc -p config/tsconfig.build.json
 
-      # - name: tsc
-        # if: always() && steps.changes.outputs.frontend == 'true'
-        # run: |
-          # yarn tsc -p config/tsconfig.build.json
+      - name: storybook
+        if: steps.changes.outputs.frontend == 'true'
+        env:
+          STORYBOOK_BUILD: 1
+        run: |
+          yarn storybook-build
 
-      # - name: storybook
-        # if: steps.changes.outputs.frontend == 'true'
-        # env:
-          # STORYBOOK_BUILD: 1
-        # run: |
-          # yarn storybook-build
+  webpack:
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
 
-  # webpack:
-    # runs-on: ubuntu-16.04
-    # steps:
-      # - uses: actions/checkout@v2
+      - name: Check for frontend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
 
-      # - name: Check for frontend file changes
-        # uses: getsentry/paths-filter@v2
-        # id: changes
-        # with:
-          # token: ${{ github.token }}
-          # filters: .github/file-filters.yml
+      - uses: volta-cli/action@v1
+        if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
 
-      # - uses: volta-cli/action@v1
-        # if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
+      # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
+        run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      # # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      # - name: Get yarn cache directory path
-        # id: yarn-cache-dir-path
-        # if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        # run: echo "::set-output name=dir::$(yarn cache dir)"
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
-      # - uses: actions/cache@v2
-        # id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        # if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        # with:
-          # path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          # key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          # restore-keys: |
-            # ${{ runner.os }}-yarn-
+      - name: Install dependencies
+        if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
+        run: yarn install --frozen-lockfile
 
-      # - name: Install dependencies
-        # if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        # run: yarn install --frozen-lockfile
-
-      # - uses: getsentry/size-limit-action@v3
-        # if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        # env:
-          # SENTRY_INSTRUMENTATION: 1
-          # SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-        # with:
-          # main_branch: master
-          # workflow_name: 'js-build-and-lint'
-          # skip_step: install
-          # build_script: build
-          # windows_verbatim_arguments: false
-          # github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: getsentry/size-limit-action@v3
+        if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
+        with:
+          main_branch: master
+          workflow_name: 'js-build-and-lint'
+          skip_step: install
+          build_script: build
+          windows_verbatim_arguments: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
