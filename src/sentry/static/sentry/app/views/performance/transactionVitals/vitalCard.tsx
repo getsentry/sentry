@@ -165,7 +165,7 @@ class VitalCard extends React.Component<Props, State> {
           {summary === null ? null : summary < failureThreshold ? (
             <Tag>{t('Pass')}</Tag>
           ) : (
-            <Tag type="error">{t('Fail')}</Tag>
+            <StyledTag>{t('Fail')}</StyledTag>
           )}
         </SummaryHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
@@ -561,6 +561,15 @@ const SummaryHeading = styled('div')`
 
 const Container = styled('div')`
   position: relative;
+`;
+
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.red300};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
 `;
 
 function formatDuration(duration: number) {
