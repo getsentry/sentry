@@ -113,7 +113,7 @@ class DashboardDetail extends AsyncComponent<Props, State> {
   };
 
   onCommit = dashboard => () => {
-    const {api, organization} = this.props;
+    const {api, organization, location} = this.props;
     const {dashboardState, changesDashboard} = this.state;
 
     switch (dashboardState) {
@@ -132,7 +132,9 @@ class DashboardDetail extends AsyncComponent<Props, State> {
 
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
-                query: {},
+                query: {
+                  ...location.query,
+                },
               });
             }
           );
