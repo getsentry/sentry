@@ -2,11 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
-import {tct} from 'app/locale';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import Button from 'app/components/button';
+import {tct} from 'app/locale';
 import {Organization, Team} from 'app/types';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import AllTeamsRow from './allTeamsRow';
 
@@ -28,7 +28,6 @@ function AllTeamsList({
   const teamNodes = teamList.map(team => (
     <AllTeamsRow
       urlPrefix={urlPrefix}
-      access={access}
       team={team}
       organization={organization}
       openMembership={openMembership}

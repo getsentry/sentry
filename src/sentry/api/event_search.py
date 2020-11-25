@@ -1418,6 +1418,7 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
 
 
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
 
 
 class InvalidFunctionArgument(Exception):
@@ -1442,6 +1443,13 @@ class FunctionArg(object):
 
     def get_type(self, value):
         raise InvalidFunctionArgument(u"{} has no type defined".format(self.name))
+
+
+class FunctionAliasArg(FunctionArg):
+    def normalize(self, value, params):
+        if not ALIAS_PATTERN.match(value):
+            raise InvalidFunctionArgument(u"{} is not a valid function alias".format(value))
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -1489,6 +1497,11 @@ class CountColumn(FunctionArg):
         return value
 
 
+class StringArg(FunctionArg):
+    def normalize(self, value, params):
+        return u"'{}'".format(value)
+
+
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
@@ -1500,6 +1513,52 @@ class DateArg(FunctionArg):
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
         return u"'{}'".format(value)
+
+
+class ConditionArg(FunctionArg):
+    # List and not a set so the error message is consistent
+    VALID_CONDITIONS = [
+        "equals",
+        "notEquals",
+        "lessOrEquals",
+        "greaterOrEquals",
+        "less",
+        "greater",
+    ]
+
+    def normalize(self, value, params):
+        if value not in self.VALID_CONDITIONS:
+            raise InvalidFunctionArgument(
+                u"{} is not a valid condition, the only supported conditions are: {}".format(
+                    value, ",".join(self.VALID_CONDITIONS),
+                )
+            )
+
+        return value
+
+
+class Column(FunctionArg):
+    def __init__(self, name, allowed_columns=None):
+        super(Column, self).__init__(name)
+        # make sure to map the allowed columns to their snuba names
+        self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
+
+    def normalize(self, value, params):
+        snuba_column = SEARCH_MAP.get(value)
+        if not snuba_column:
+            raise InvalidFunctionArgument(u"{} is not a valid column".format(value))
+        elif self.allowed_columns is not None and snuba_column not in self.allowed_columns:
+            raise InvalidFunctionArgument(u"{} is not an allowed column".format(value))
+        return snuba_column
+
+
+class ColumnNoLookup(Column):
+    def __init__(self, name, allowed_columns=None):
+        super(ColumnNoLookup, self).__init__(name, allowed_columns=allowed_columns)
+
+    def normalize(self, value, params):
+        super(ColumnNoLookup, self).normalize(value, params)
+        return value
 
 
 class NumericColumn(FunctionArg):
@@ -1894,6 +1953,34 @@ FUNCTIONS = {
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
         Function(
+            "failure_count",
+            aggregate=[
+                "countIf",
+                [
+                    [
+                        "not",
+                        [
+                            [
+                                "has",
+                                [
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                None,
+            ],
+            default_result_type="integer",
+        ),
+        Function(
             "array_join",
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
@@ -2038,7 +2125,7 @@ FUNCTIONS = {
                 NumberRange("percentile", 0, 1),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"quantileIf({percentile:.2f})",
@@ -2080,7 +2167,7 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"avgIf",
@@ -2105,7 +2192,7 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"varSampIf",
@@ -2126,7 +2213,7 @@ FUNCTIONS = {
         ),
         Function(
             "count_range",
-            required_args=[DateArg("start"), DateArg("end"), FunctionArg("query_alias")],
+            required_args=[DateArg("start"), DateArg("end"), FunctionAliasArg("query_alias")],
             aggregate=[
                 u"countIf",
                 [
@@ -2146,9 +2233,9 @@ FUNCTIONS = {
         Function(
             "percentage",
             required_args=[
-                FunctionArg("numerator"),
-                FunctionArg("denominator"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("numerator"),
+                FunctionAliasArg("denominator"),
+                FunctionAliasArg("query_alias"),
             ],
             # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
             # This is because as a column it will be added to the `WHERE` clause instead of the `HAVING` clause
@@ -2163,12 +2250,12 @@ FUNCTIONS = {
         Function(
             "t_test",
             required_args=[
-                FunctionArg("avg_1"),
-                FunctionArg("avg_2"),
-                FunctionArg("variance_1"),
-                FunctionArg("variance_2"),
-                FunctionArg("count_1"),
-                FunctionArg("count_2"),
+                FunctionAliasArg("avg_1"),
+                FunctionAliasArg("avg_2"),
+                FunctionAliasArg("variance_1"),
+                FunctionAliasArg("variance_2"),
+                FunctionAliasArg("count_1"),
+                FunctionAliasArg("count_2"),
             ],
             aggregate=[
                 u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
@@ -2180,9 +2267,9 @@ FUNCTIONS = {
         Function(
             "minus",
             required_args=[
-                FunctionArg("minuend"),
-                FunctionArg("subtrahend"),
-                FunctionArg("query_alias"),
+                FunctionAliasArg("minuend"),
+                FunctionAliasArg("subtrahend"),
+                FunctionAliasArg("query_alias"),
             ],
             aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], "{query_alias}"],
             default_result_type="duration",
@@ -2195,6 +2282,41 @@ FUNCTIONS = {
                 None,
             ],
             default_result_type="number",
+        ),
+        Function(
+            "compare_numeric_aggregate",
+            required_args=[
+                FunctionAliasArg("aggregate_alias"),
+                ConditionArg("condition"),
+                NumberRange("value", 0, None),
+            ],
+            aggregate=[
+                # snuba json syntax isn't compatible with this query here
+                # this function can't be a column, since we want to use this with aggregates
+                "{condition}({aggregate_alias},{value})",
+                None,
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
+            "to_other",
+            required_args=[
+                ColumnNoLookup("column", allowed_columns=["release"]),
+                StringArg("value"),
+            ],
+            optional_args=[
+                with_default("that", StringArg("that")),
+                with_default("this", StringArg("this")),
+            ],
+            column=[
+                "if",
+                [
+                    ["equals", [ArgValue("column"), ArgValue("value")]],
+                    ArgValue("this"),
+                    ArgValue("that"),
+                ],
+            ],
         ),
     ]
 }

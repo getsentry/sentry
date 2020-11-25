@@ -1,17 +1,17 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {t} from 'app/locale';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Form from 'app/views/settings/components/forms/form';
-import AsyncView from 'app/views/asyncView';
-import {Organization} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {updateOrganization} from 'app/actionCreators/organizations';
-import organizationSecurityAndPrivacyGroups from 'app/data/forms/organizationSecurityAndPrivacyGroups';
-import withOrganization from 'app/utils/withOrganization';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import organizationSecurityAndPrivacyGroups from 'app/data/forms/organizationSecurityAndPrivacyGroups';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import DataScrubbing from '../components/dataScrubbing';
 

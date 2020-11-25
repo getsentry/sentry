@@ -2,16 +2,16 @@ import React from 'react';
 import * as ReactRouter from 'react-router';
 import isEqual from 'lodash/isEqual';
 
-import {DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 import {
   initializeUrlState,
-  updateProjects,
-  updateEnvironments,
   updateDateTime,
+  updateEnvironments,
+  updateProjects,
 } from 'app/actionCreators/globalSelection';
+import {DATE_TIME_KEYS} from 'app/constants/globalSelectionHeader';
 
-import {getStateFromQuery} from './utils';
 import GlobalSelectionHeader from './globalSelectionHeader';
+import {getStateFromQuery} from './utils';
 
 const getDateObjectFromQuery = query =>
   Object.fromEntries(

@@ -20,6 +20,10 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "installation.created",
     "installation.deleted",
     "select_options.requested",
+    "metric_alert.open",
+    "metric_alert.resolved",
+    "metric_alert.critical",
+    "metric_alert.warning",
 )
 
 

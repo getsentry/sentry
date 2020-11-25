@@ -1,26 +1,26 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import DocumentTitle from 'react-document-title';
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
+import DocumentTitle from 'react-document-title';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
+import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/links/externalLink';
-import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import SettingsLayout from 'app/views/settings/components/settingsLayout';
-import withLatestContext from 'app/utils/withLatestContext';
+import ConfigStore from 'app/stores/configStore';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization} from 'app/types';
+import withLatestContext from 'app/utils/withLatestContext';
+import SettingsLayout from 'app/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',

@@ -1,33 +1,34 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {GlobalSelection, Organization} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import SearchBar from 'app/views/events/searchBar';
 import space from 'app/styles/space';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {GlobalSelection, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import SearchBar from 'app/views/events/searchBar';
 
-import {getTransactionSearchQuery} from '../utils';
-import {TrendChangeType, TrendView, TrendFunctionField} from './types';
-import {
-  DEFAULT_MAX_DURATION,
-  TRENDS_FUNCTIONS,
-  CONFIDENCE_LEVELS,
-  resetCursors,
-  getCurrentTrendFunction,
-  getCurrentConfidenceLevel,
-  getSelectedQueryKey,
-} from './utils';
-import ChangedTransactions from './changedTransactions';
 import {FilterViews} from '../landing';
+import {getTransactionSearchQuery} from '../utils';
+
+import ChangedTransactions from './changedTransactions';
+import {TrendChangeType, TrendFunctionField, TrendView} from './types';
+import {
+  CONFIDENCE_LEVELS,
+  DEFAULT_MAX_DURATION,
+  getCurrentConfidenceLevel,
+  getCurrentTrendFunction,
+  getSelectedQueryKey,
+  resetCursors,
+  TRENDS_FUNCTIONS,
+} from './utils';
 
 type Props = {
   organization: Organization;

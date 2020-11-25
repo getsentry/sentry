@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
+import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import {Project, AvatarProject} from 'app/types';
-import {defined} from 'app/utils';
 import ProjectActions from 'app/actions/projectActions';
-import ProjectsStore from 'app/stores/projectsStore';
-import RequestError from 'app/utils/requestError/requestError';
+import {Client} from 'app/api';
 import SentryTypes from 'app/sentryTypes';
+import ProjectsStore from 'app/stores/projectsStore';
+import {AvatarProject, Project} from 'app/types';
+import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import RequestError from 'app/utils/requestError/requestError';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 
@@ -411,7 +411,11 @@ async function fetchProjects(
     cursor?: typeof cursor;
     per_page?: number;
     all_projects?: number;
-  } = {};
+    collapse: string[];
+  } = {
+    // Never return latestDeploys project property from api
+    collapse: ['latestDeploys'],
+  };
 
   if (slugs && slugs.length) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');

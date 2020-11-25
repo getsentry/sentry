@@ -1,40 +1,41 @@
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import {t} from 'app/locale';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Organization, Project, GlobalSelection} from 'app/types';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {Client} from 'app/api';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
+import {GlobalSelection, Organization, Project} from 'app/types';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   Column,
-  WebVital,
   getAggregateAlias,
   isAggregateField,
+  WebVital,
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import SummaryContent from './content';
-import {addRoutePerformanceContext, getTransactionName} from '../utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
 } from '../transactionVitals/constants';
+import {addRoutePerformanceContext, getTransactionName} from '../utils';
+
+import SummaryContent from './content';
 
 type Props = {
   api: Client;
@@ -153,7 +154,7 @@ class TransactionSummary extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location} = this.props;
+    const {organization, projects, location} = this.props;
     const {eventView} = this.state;
     const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
@@ -169,9 +170,25 @@ class TransactionSummary extends React.Component<Props, State> {
     }
     const [totalsView, emptyValues] = this.getTotalsEventView(organization, eventView);
 
+    const shouldForceProject = eventView.project.length === 1;
+    const forceProject = shouldForceProject
+      ? projects.find(p => parseInt(p.id, 10) === eventView.project[0])
+      : undefined;
+    const projectSlugs = eventView.project
+      .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
+      .filter((p: Project | undefined): p is Project => p !== undefined)
+      .map(p => p.slug);
+
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} objSlug={organization.slug}>
-        <GlobalSelectionHeader>
+        <GlobalSelectionHeader
+          lockedMessageSubject={t('transaction')}
+          shouldForceProject={shouldForceProject}
+          forceProject={forceProject}
+          specificProjectSlugs={projectSlugs}
+          disableMultipleProjectSelection
+          showProjectSettingsLink
+        >
           <StyledPageContent>
             <LightWeightNoProjectMessage organization={organization}>
               <DiscoverQuery

@@ -1,18 +1,18 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Organization} from 'app/types';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
-import getDynamicText from 'app/utils/getDynamicText';
+import {Organization} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {TOP_N, DisplayModes} from 'app/utils/discover/types';
+import {DisplayModes, TOP_N} from 'app/utils/discover/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 

@@ -2,16 +2,17 @@ import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Event, Group, Organization} from 'app/types';
-import {IconChat} from 'app/icons';
-import {tct} from 'app/locale';
 import EventAnnotation from 'app/components/events/eventAnnotation';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
+import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ShortId from 'app/components/shortId';
-import Times from 'app/components/group/times';
+import {IconChat} from 'app/icons';
+import {tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Event, Group, Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag from 'app/views/organizationGroupDetails/unhandledTag';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
@@ -40,22 +41,30 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   const hasInbox = orgFeatures.has('inbox');
 
   return (
-    <GroupExtra>
-      {isUnhandled && hasInbox && (
-        <TagWrapper>
-          <UnhandledTag />
-        </TagWrapper>
-      )}
-      {shortId && (
-        <GroupShortId
-          shortId={shortId}
-          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
-          onClick={e => {
-            // prevent the clicks from propagating so that the short id can be selected
-            e.stopPropagation();
-          }}
-        />
-      )}
+    <GroupExtra hasInbox={hasInbox}>
+      {isUnhandled && hasInbox && <UnhandledTag />}
+      {shortId &&
+        (hasInbox ? (
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+              )
+            }
+          />
+        ) : (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && <ProjectBadge project={project} avatarSize={14} hideName />
+            }
+            onClick={e => {
+              // prevent the clicks from propagating so that the short id can be selected
+              e.stopPropagation();
+            }}
+          />
+        ))}
       {!hasInbox && (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
@@ -85,15 +94,14 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
           </Link>
         </LoggerAnnotation>
       )}
-      {annotations &&
-        annotations.map((annotation, key) => (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
-            }}
-            key={key}
-          />
-        ))}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin
+          dangerouslySetInnerHTML={{
+            __html: annotation,
+          }}
+          key={key}
+        />
+      ))}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
@@ -102,13 +110,13 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   );
 }
 
-const GroupExtra = styled('div')`
+const GroupExtra = styled('div')<{hasInbox: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  grid-gap: ${space(2)};
+  grid-gap: ${p => (p.hasInbox ? space(1) : space(2))};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.hasInbox ? p.theme.gray500 : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeSmall};
   position: relative;
   min-width: 500px;
@@ -116,12 +124,6 @@ const GroupExtra = styled('div')`
 
   a {
     color: inherit;
-  }
-`;
-
-const TagWrapper = styled('div')`
-  & > div {
-    margin-right: 0;
   }
 `;
 
@@ -150,6 +152,12 @@ const AnnotationNoMargin = styled(EventAnnotation)`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));

@@ -1,5 +1,5 @@
-import createResultManager from 'app/views/discover/resultManager';
 import createQueryBuilder from 'app/views/discover/queryBuilder';
+import createResultManager from 'app/views/discover/resultManager';
 
 describe('Result manager', function () {
   let resultManager, queryBuilder, discoverMock, discoverByDayMock;

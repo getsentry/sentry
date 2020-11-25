@@ -67,4 +67,4 @@ class OrganizationDashboardsTest(APITestCase):
     def test_integrity_error(self):
         response = self.client.post(self.url, data={"title": self.dashboard_1.title})
         assert response.status_code == 409
-        assert response.data == "This dashboard already exists"
+        assert response.data == "Dashboard title already taken"

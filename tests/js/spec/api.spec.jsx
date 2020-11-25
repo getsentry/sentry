@@ -1,7 +1,7 @@
 import $ from 'jquery';
 
-import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
+import {Client, paramsToQueryArgs, Request} from 'app/api';
 import {PROJECT_MOVED} from 'app/constants/apiErrorCodes';
 
 jest.unmock('app/api');

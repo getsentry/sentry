@@ -2,16 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import EventDataSection from 'app/components/events/eventDataSection';
-import {t} from 'app/locale';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, Event, EventGroupInfo} from 'app/types';
-import space from 'app/styles/space';
 import Button from 'app/components/button';
+import EventDataSection from 'app/components/events/eventDataSection';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Event, EventGroupInfo, Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
-import GroupVariant from './groupingVariant';
 import GroupingConfigSelect from './groupingConfigSelect';
+import GroupVariant from './groupingVariant';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;

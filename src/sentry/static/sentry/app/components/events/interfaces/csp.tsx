@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';

@@ -1,5 +1,5 @@
 ---
-created: '2020-08-31T07:54:37.058991Z'
+created: '2020-11-17T17:07:25.663438Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -83,7 +83,7 @@ debug_meta:
     image_addr: '0x70b70000'
     image_size: 151552
     type: pe
-    unwind_status: missing
+    unwind_status: unused
   - code_file: C:\Windows\System32\VCRUNTIME140.dll
     code_id: 589abc7714000
     debug_file: vcruntime140.i386.pdb
@@ -181,7 +181,7 @@ debug_meta:
     image_addr: '0x75050000'
     image_size: 917504
     type: pe
-    unwind_status: missing
+    unwind_status: unused
   - code_file: C:\Windows\System32\bcryptPrimitives.dll
     code_id: 59b0df8f5a000
     debug_file: bcryptprimitives.pdb
@@ -209,7 +209,7 @@ debug_meta:
     image_addr: '0x75810000'
     image_size: 790528
     type: pe
-    unwind_status: missing
+    unwind_status: unused
   - code_file: C:\Windows\System32\ucrtbase.dll
     code_id: 59bf2b5ae0000
     debug_file: ucrtbase.pdb
@@ -251,7 +251,7 @@ debug_meta:
     image_addr: '0x77170000'
     image_size: 1585152
     type: pe
-    unwind_status: missing
+    unwind_status: unused
 errors: []
 exception:
   values:

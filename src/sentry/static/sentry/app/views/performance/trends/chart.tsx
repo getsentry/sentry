@@ -1,31 +1,32 @@
 import React from 'react';
-import {withRouter, browserHistory} from 'react-router';
+import {browserHistory, withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import TransitionChart from 'app/components/charts/transitionChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import getDynamicText from 'app/utils/getDynamicText';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import {decodeList, decodeScalar} from 'app/utils/queryString';
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
-import EventView from 'app/utils/discover/eventView';
-import {OrganizationSummary, EventsStatsData, Project} from 'app/types';
-import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import LineChart from 'app/components/charts/lineChart';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {EventsStatsData, OrganizationSummary, Project} from 'app/types';
 import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
+import EventView from 'app/utils/discover/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
+import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
+import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
   getCurrentTrendFunction,
   getIntervalRatio,
-  transformEventStatsSmoothed,
   getUnselectedSeries,
+  transformEventStatsSmoothed,
   trendToColor,
 } from './utils';
-import {TrendChangeType, TrendsStats, NormalizedTrendsTransaction} from './types';
 
 const QUERY_KEYS = [
   'environment',
@@ -235,6 +236,7 @@ class Chart extends React.Component<Props> {
       isLoading,
       location,
       projects,
+      organization,
     } = props;
     const lineColor = trendToColor[trendChangeType || ''];
 
@@ -289,6 +291,14 @@ class Chart extends React.Component<Props> {
     const yDiff = yMax - yMin;
     const yMargin = yDiff * 0.1;
 
+    let queryExtra = {};
+    if (organization.features.includes('release-performance-views')) {
+      queryExtra = {
+        showTransactions: trendChangeType,
+        yAxis: YAxis.COUNT_DURATION,
+      };
+    }
+
     const chartOptions = {
       tooltip: {
         valueFormatter: (value, seriesName) => {
@@ -337,6 +347,7 @@ class Chart extends React.Component<Props> {
               <ReleaseSeries
                 start={start}
                 end={end}
+                queryExtra={queryExtra}
                 period={statsPeriod}
                 utc={utc}
                 projects={isNaN(transactionProject) ? project : [transactionProject]}

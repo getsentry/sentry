@@ -1,10 +1,10 @@
-import Modal from 'react-bootstrap/lib/Modal';
 import React from 'react';
+import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 type Props = {
   examples: Array<string>;

@@ -27,6 +27,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupShare,
     models.GroupSnooze,
     models.GroupInbox,
+    models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
 )

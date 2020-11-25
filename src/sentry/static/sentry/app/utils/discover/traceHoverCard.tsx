@@ -1,20 +1,20 @@
 import React from 'react';
-import {Location, LocationDescriptor} from 'history';
 import styled from '@emotion/styled';
+import {Location, LocationDescriptor} from 'history';
 
-import {t} from 'app/locale';
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
-import Hovercard from 'app/components/hovercard';
-import Version from 'app/components/version';
-import space from 'app/styles/space';
 import Clipboard from 'app/components/clipboard';
-import {IconCopy} from 'app/icons';
-import LoadingIndicator from 'app/components/loadingIndicator';
+import Hovercard from 'app/components/hovercard';
 import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Version from 'app/components/version';
+import {IconCopy} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
-import EventView from './eventView';
 import DiscoverQuery, {TableData} from './discoverQuery';
+import EventView from './eventView';
 
 type ChildrenProps = {to: LocationDescriptor};
 

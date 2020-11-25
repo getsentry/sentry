@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import QuestionTooltip from 'app/components/questionTooltip';
+import space from 'app/styles/space';
 
 type Props = {
   label: string;
@@ -14,7 +14,7 @@ const ReleaseStat = ({label, children, help}: Props) => (
   <Wrapper>
     <Label hasHelp={!!help}>
       {label}
-      {help && <StyledQuestionTooltip title={help} size="xs" position="top" />}
+      {help && <StyledQuestionTooltip title={help} size="xs" position="bottom" />}
     </Label>
     <Value>{children}</Value>
   </Wrapper>

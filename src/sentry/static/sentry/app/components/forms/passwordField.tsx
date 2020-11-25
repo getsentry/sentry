@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
+import {Context} from 'app/components/forms/form';
 import InputField from 'app/components/forms/inputField';
 import FormState from 'app/components/forms/state';
-import {Context} from 'app/components/forms/form';
 
 type Props = InputField['props'] & {
   hasSavedValue?: boolean;

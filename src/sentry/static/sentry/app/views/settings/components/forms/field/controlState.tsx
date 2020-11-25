@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {fadeOut, pulse} from 'app/styles/animations';
 import {IconCheckmark, IconWarning} from 'app/icons';
+import {fadeOut, pulse} from 'app/styles/animations';
 import Spinner from 'app/views/settings/components/forms/spinner';
 
 type Props = {

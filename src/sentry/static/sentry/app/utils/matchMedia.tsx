@@ -1,4 +1,5 @@
 import {NODE_ENV} from 'app/constants';
+import ConfigStore from 'app/stores/configStore';
 
 function changeFavicon(theme: 'dark' | 'light'): void {
   // only on prod because we have a development favicon
@@ -19,8 +20,7 @@ function handleColorSchemeChange(e: MediaQueryListEvent): void {
   const isDark = e.media === '(prefers-color-scheme: dark)' && e.matches;
   const type = isDark ? 'dark' : 'light';
   changeFavicon(type);
-  // TODO(dark): For now, you must opt into dark mode using command palette
-  // ConfigStore.set('theme', type);
+  ConfigStore.updateTheme(type);
 }
 
 export function prefersDark(): boolean {
@@ -31,7 +31,7 @@ export function setupColorScheme(): void {
   // Set favicon to dark on load if necessary)
   if (prefersDark()) {
     changeFavicon('dark');
-    // TODO(dark): (currently manual opt in only): ConfigStore.set('theme', 'dark');
+    ConfigStore.updateTheme('dark');
   }
 
   // Watch for changes in preferred color scheme

@@ -1,28 +1,36 @@
 import React from 'react';
-import {Location, LocationDescriptor, Query} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location, LocationDescriptor, Query} from 'history';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
 import DiscoverButton from 'app/components/discoverButton';
+import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PanelTable from 'app/components/panels/panelTable';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
-import {Sort, getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
+import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
+import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
+import {
+  TrendChangeType,
+  TrendsDataEvents,
+  TrendView,
+} from 'app/views/performance/trends/types';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
@@ -39,17 +47,22 @@ export type DropdownOption = {
    * The label to display in the dropdown
    */
   label: string;
+  /**
+   * Included if the option is for a trend
+   */
+  trendType?: TrendChangeType;
+  /**
+   * overide the eventView query
+   */
+  query?: string;
 };
 
 type Props = {
   api: Client;
   location: Location;
   eventView: EventView;
+  trendView: TrendView;
   organization: Organization;
-  /**
-   * The prefix to use on the dropdown button.
-   */
-  dropdownTitle: string;
   /**
    * The currently selected option on the dropdown.
    */
@@ -103,22 +116,22 @@ class TransactionsList extends React.Component<Props> {
   };
 
   renderHeader(): React.ReactNode {
-    const {
-      eventView,
-      organization,
-      dropdownTitle,
-      selected,
-      options,
-      handleDropdownChange,
-    } = this.props;
-    const sortedEventView = eventView.withSorts([selected.sort]);
+    const {eventView, organization, selected, options, handleDropdownChange} = this.props;
 
     return (
       <Header>
         <DropdownControl
           data-test-id="filter-transactions"
-          label={selected.label}
-          buttonProps={{prefix: dropdownTitle, size: 'small'}}
+          button={({isOpen, getActorProps}) => (
+            <StyledDropdownButton
+              {...getActorProps()}
+              isOpen={isOpen}
+              prefix={t('Filter')}
+              size="small"
+            >
+              {selected.label}
+            </StyledDropdownButton>
+          )}
         >
           {options.map(({value, label}) => (
             <DropdownItem
@@ -132,20 +145,24 @@ class TransactionsList extends React.Component<Props> {
             </DropdownItem>
           ))}
         </DropdownControl>
-        <HeaderButtonContainer>
-          <DiscoverButton
-            to={sortedEventView.getResultsViewUrlTarget(organization.slug)}
-            size="small"
-            data-test-id="discover-open"
-          >
-            {t('Open in Discover')}
-          </DiscoverButton>
-        </HeaderButtonContainer>
+        {!this.isTrend() && (
+          <HeaderButtonContainer>
+            <DiscoverButton
+              to={eventView
+                .withSorts([selected.sort])
+                .getResultsViewUrlTarget(organization.slug)}
+              size="small"
+              data-test-id="discover-open"
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          </HeaderButtonContainer>
+        )}
       </Header>
     );
   }
 
-  renderTable(): React.ReactNode {
+  renderTransactionTable(): React.ReactNode {
     const {
       eventView,
       location,
@@ -158,6 +175,7 @@ class TransactionsList extends React.Component<Props> {
       generateFirstLink,
     } = this.props;
     const sortedEventView = eventView.withSorts([selected.sort]);
+    const columnOrder = sortedEventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     return (
@@ -176,6 +194,7 @@ class TransactionsList extends React.Component<Props> {
               location={location}
               isLoading={isLoading}
               tableData={tableData}
+              columnOrder={columnOrder}
               titles={titles}
               linkDataTestId={linkDataTestId}
               generateFirstLink={generateFirstLink}
@@ -191,11 +210,67 @@ class TransactionsList extends React.Component<Props> {
     );
   }
 
+  renderTrendsTable(): React.ReactNode {
+    const {
+      trendView,
+      location,
+      selected,
+      organization,
+      cursorName,
+      linkDataTestId,
+      generateFirstLink,
+    } = this.props;
+    trendView.sorts = [selected.sort];
+    trendView.trendType = selected.trendType;
+    trendView.query = selected.query || '';
+    const cursor = decodeScalar(location.query?.[cursorName]);
+
+    return (
+      <TrendsEventsDiscoverQuery
+        eventView={trendView}
+        orgSlug={organization.slug}
+        location={location}
+        cursor={cursor}
+        limit={5}
+      >
+        {({isLoading, trendsData, pageLinks}) => (
+          <React.Fragment>
+            <TransactionsTable
+              eventView={trendView}
+              organization={organization}
+              location={location}
+              isLoading={isLoading}
+              tableData={trendsData}
+              titles={['transaction', 'percentage', 'difference']}
+              columnOrder={decodeColumnOrder([
+                {field: 'transaction'},
+                {field: 'trend_percentage()'},
+                {field: 'trend_difference()'},
+              ])}
+              linkDataTestId={linkDataTestId}
+              generateFirstLink={generateFirstLink}
+            />
+            <StyledPagination
+              pageLinks={pageLinks}
+              onCursor={this.handleCursor}
+              size="small"
+            />
+          </React.Fragment>
+        )}
+      </TrendsEventsDiscoverQuery>
+    );
+  }
+
+  isTrend(): boolean {
+    const {selected} = this.props;
+    return selected.trendType !== undefined;
+  }
+
   render() {
     return (
       <React.Fragment>
         {this.renderHeader()}
-        {this.renderTable()}
+        {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
       </React.Fragment>
     );
   }
@@ -206,7 +281,8 @@ type TableProps = {
   organization: Organization;
   location: Location;
   isLoading: boolean;
-  tableData: TableData | null | undefined;
+  tableData: TableData | TrendsDataEvents | null | undefined;
+  columnOrder: TableColumn<React.ReactText>[];
   titles?: string[];
   linkDataTestId?: string;
   generateFirstLink?: (
@@ -218,10 +294,9 @@ type TableProps = {
 
 class TransactionsTable extends React.PureComponent<TableProps> {
   renderHeader() {
-    const {eventView, tableData, titles} = this.props;
+    const {eventView, tableData, titles, columnOrder} = this.props;
 
     const tableMeta = tableData?.meta;
-    const columnOrder = eventView.getColumns();
     const generateSortLink = () => undefined;
     const tableTitles = titles ?? eventView.getFields().map(field => t(field));
 
@@ -292,7 +367,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
   }
 
   renderResults() {
-    const {isLoading, tableData} = this.props;
+    const {isLoading, tableData, columnOrder} = this.props;
     let cells: React.ReactNode[] = [];
 
     if (isLoading) {
@@ -301,8 +376,6 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     if (!tableData || !tableData.meta || !tableData.data) {
       return cells;
     }
-
-    const columnOrder = this.props.eventView.getColumns();
 
     tableData.data.forEach((row, i: number) => {
       // Another check to appease tsc
@@ -348,6 +421,10 @@ const Header = styled('div')`
 const HeaderButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  min-width: 145px;
 `;
 
 const StyledPanelTable = styled(PanelTable)`

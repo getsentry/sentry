@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import UserFeedback from 'app/views/userFeedback';

@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 const getChoices = props => {
   let choices = props.choices || [];

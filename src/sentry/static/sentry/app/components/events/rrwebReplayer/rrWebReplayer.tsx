@@ -1,6 +1,6 @@
 import React from 'react';
-import rrwebPlayer from 'rrweb-player';
 import * as Sentry from '@sentry/react';
+import rrwebPlayer from 'rrweb-player';
 
 import {Panel} from 'app/components/panels';
 

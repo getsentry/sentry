@@ -5,7 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -2644,6 +2644,44 @@ class ResolveFieldListTest(unittest.TestCase):
                 ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
             ]
 
+    def test_compare_numeric_aggregate(self):
+        fields = [
+            "compare_numeric_aggregate(p50_transaction_duration,greater,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,notEquals,50)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "greater(p50_transaction_duration,50.0)",
+                None,
+                "compare_numeric_aggregate_p50_transaction_duration_greater_50",
+            ],
+            [
+                "notEquals(p50_transaction_duration,50.0)",
+                None,
+                "compare_numeric_aggregate_p50_transaction_duration_notEquals_50",
+            ],
+        ]
+
+    def test_invalid_compare_numeric_aggregate(self):
+        fields = [
+            "compare_numeric_aggregate(p50_transaction_duration,>+,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,=,50)",
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([field], eventstore.Filter())
+            assert "is not a valid condition" in six.text_type(err), field
+
+        fields = [
+            "compare_numeric_aggregate(p50_tr(where,=,50)",
+            "compare_numeric_aggregate(a.b.c.d,=,50)",
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([field], eventstore.Filter())
+            assert "is not a valid function alias" in six.text_type(err), field
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
@@ -2784,6 +2822,69 @@ class ResolveFieldListTest(unittest.TestCase):
             "column": "measurements.fcp",
             "percentile": 0.5,
         }
+
+    def test_to_other_function(self):
+        fields = [
+            "to_other(release,r)",
+            "to_other(release,r,a)",
+            "to_other(release,r,a,b)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["to_other_release_r"].instance.name == "to_other"
+        assert functions["to_other_release_r"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release_r_a"].instance.name == "to_other"
+        assert functions["to_other_release_r_a"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'a'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release_r_a_b"].instance.name == "to_other"
+        assert functions["to_other_release_r_a_b"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'a'",
+            "this": "'b'",
+        }
+
+    def test_failure_count_function(self):
+        fields = ["failure_count()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "not",
+                        [
+                            [
+                                "has",
+                                [
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                "failure_count",
+            ],
+        ]
 
 
 def with_type(type, argument):

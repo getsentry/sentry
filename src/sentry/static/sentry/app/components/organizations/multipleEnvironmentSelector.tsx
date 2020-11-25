@@ -1,25 +1,26 @@
-import {ClassNames} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
+import PropTypes from 'prop-types';
 
-import {analytics} from 'app/utils/analytics';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {t} from 'app/locale';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
-import HeaderItem from 'app/components/organizations/headerItem';
-import Highlight from 'app/components/highlight';
-import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
-import {IconWindow} from 'app/icons';
-import {Organization, Project} from 'app/types';
 import {Client} from 'app/api';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import {MenuFooterChildProps} from 'app/components/dropdownAutoComplete/menu';
 import {Item} from 'app/components/dropdownAutoComplete/types';
+import GlobalSelectionHeaderRow from 'app/components/globalSelectionHeaderRow';
+import Highlight from 'app/components/highlight';
+import HeaderItem from 'app/components/organizations/headerItem';
+import MultipleSelectorSubmitRow from 'app/components/organizations/multipleSelectorSubmitRow';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {IconWindow} from 'app/icons';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import {Organization, Project} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
 type DefaultProps = {
   /**
@@ -193,11 +194,12 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
   getEnvironments() {
     const {projects, selectedProjects} = this.props;
+    const config = ConfigStore.getConfig();
     let environments: Project['environments'] = [];
     projects.forEach(function (project) {
       const projectId = parseInt(project.id, 10);
-
       // Include environments from:
+      // - all projects if the user is a superuser
       // - the requested projects
       // - all member projects if 'my projects' (empty list) is selected.
       // - all projects if -1 is the only selected project.
@@ -205,7 +207,8 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
         (selectedProjects.length === 1 &&
           selectedProjects[0] === ALL_ACCESS_PROJECTS &&
           project.hasAccess) ||
-        (selectedProjects.length === 0 && project.isMember) ||
+        (selectedProjects.length === 0 &&
+          (project.isMember || config.user.isSuperuser)) ||
         selectedProjects.includes(projectId)
       ) {
         environments = environments.concat(project.environments);

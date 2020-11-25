@@ -1,19 +1,19 @@
 import React from 'react';
 
-import {defined} from 'app/utils';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
+import {Event, ExceptionValue, PlatformType} from 'app/types';
+import {STACK_VIEW} from 'app/types/stacktrace';
+import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import {StacktraceType, STACK_VIEW} from 'app/types/stacktrace';
-import {PlatformType, Event} from 'app/types';
 
 type Props = {
   stackView: STACK_VIEW;
-  data: StacktraceType | null;
+  data: ExceptionValue['stacktrace'];
   event: Event;
   platform: PlatformType;
-  stacktrace: StacktraceType;
+  stacktrace: ExceptionValue['stacktrace'];
   chainedException: boolean;
   expandFirstFrame?: boolean;
   newestFirst?: boolean;

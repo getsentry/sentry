@@ -1,25 +1,25 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {PanelItem} from 'app/components/panels';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import DropdownLink from 'app/components/dropdownLink';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import ErrorLevel from 'app/components/events/errorLevel';
+import SnoozeAction from 'app/components/issues/snoozeAction';
+import Link from 'app/components/links/link';
+import {PanelItem} from 'app/components/panels';
+import GroupChart from 'app/components/stream/groupChart';
 import {IconChat, IconCheckmark, IconEllipsis, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
-import DropdownLink from 'app/components/dropdownLink';
-import ErrorLevel from 'app/components/events/errorLevel';
-import GroupChart from 'app/components/stream/groupChart';
-import GroupStore from 'app/stores/groupStore';
-import Link from 'app/components/links/link';
 import SentryTypes from 'app/sentryTypes';
-import SnoozeAction from 'app/components/issues/snoozeAction';
+import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
+import {getMessage} from 'app/utils/events';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {getMessage} from 'app/utils/events';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 
 class CompactIssueHeader extends React.Component {
   static propTypes = {

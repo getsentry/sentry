@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import {formatBytes} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';

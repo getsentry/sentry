@@ -1,17 +1,19 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import {t} from 'app/locale';
+import {
+  Event,
+  Frame,
+  Organization,
+  Project,
+  RepositoryProjectPathConfig,
+} from 'app/types';
+import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {
-  Frame,
-  RepositoryProjectPathConfig,
-  Organization,
-  Event,
-  Project,
-} from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
 
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 
@@ -27,6 +29,7 @@ type Props = AsyncComponent['props'] & {
 type StacktraceResultItem = {
   config?: RepositoryProjectPathConfig;
   sourceUrl?: string;
+  error?: 'file_not_found' | 'stack_root_mismatch';
 };
 
 type State = AsyncComponent['state'] & {
@@ -48,6 +51,21 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return this.match.config;
   }
 
+  get errorText() {
+    const error = this.match.error;
+
+    switch (error) {
+      case 'stack_root_mismatch':
+        return t('Error matching your configuration, check your stack trace root.');
+      case 'file_not_found':
+        return t(
+          'Could not find source file, check your repository and source code root.'
+        );
+      default:
+        return t('There was an error encountered with the code mapping for this project');
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, frame, event} = this.props;
     const project = this.project;
@@ -63,6 +81,44 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       ],
     ];
   }
+  onOpenLink() {
+    const provider = this.config?.provider;
+    if (provider) {
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.stacktrace_link_clicked',
+          eventName: 'Integrations: Stacktrace Link Clicked',
+          view: 'stacktrace_issue_details',
+          provider: provider.key,
+        },
+        this.props.organization,
+        {startSession: true}
+      );
+    }
+  }
+  onReconfigureMapping() {
+    const provider = this.config?.provider;
+    const error = this.match.error;
+    if (provider) {
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.reconfigure_stacktrace_setup',
+          eventName: 'Integrations: Reconfigure Stacktrace Setup',
+          view: 'stacktrace_issue_details',
+          provider: provider.key,
+          error_reason: error,
+        },
+        this.props.organization,
+        {startSession: true}
+      );
+    }
+  }
+
+  // let the ErrorBoundary handle errors by raising it
+  renderError(): React.ReactNode {
+    throw new Error('Error loading endpoints');
+  }
+
   renderLoading() {
     //TODO: Add loading
     return null;
@@ -72,15 +128,25 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return null;
   }
   renderMatchNoUrl() {
-    //TODO: Improve UI
-    return <OpenInContainer columnQuantity={2}>No Match</OpenInContainer>;
+    const {config} = this.match;
+    const {organization} = this.props;
+    const text = this.errorText;
+    const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
+    return (
+      <CodeMappingButtonContainer columnQuantity={2}>
+        {text}
+        <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
+          {t('Configure Code Mapping')}
+        </Button>
+      </CodeMappingButtonContainer>
+    );
   }
   renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
-        <OpenInLink href={url} openInNewTab>
+        <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
           {getIntegrationIcon(config.provider.key)}
           <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
@@ -100,3 +166,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 }
 
 export default withProjects(withOrganization(StacktraceLink));
+export {StacktraceLink};
+
+export const CodeMappingButtonContainer = styled(OpenInContainer)`
+  justify-content: space-between;
+`;

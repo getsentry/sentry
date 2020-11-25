@@ -12,6 +12,7 @@ from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
+    calculate_stats_period,
     delete_groups,
     get_by_short_id,
     rate_limit_endpoint,
@@ -42,6 +43,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         "bookmarked_by",
         "assigned_to",
         "unassigned",
+        "linked",
         "subscribed_by",
         "active_at",
         "first_release",
@@ -101,7 +103,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :auth: required
-        TODO(Chris F.): Add details on expand/collapse.
+        :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
+        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
@@ -112,22 +115,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
-
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
-        elif stats_period is None:
-            # default
-            stats_period = "24h"
-        elif stats_period == "":
-            # disable stats
-            stats_period = None
-
-        if stats_period == "auto":
-            stats_period_start = start
-            stats_period_end = end
-        else:
-            stats_period_start = None
-            stats_period_end = None
+        stats_period, stats_period_start, stats_period_end = calculate_stats_period(
+            stats_period, start, end
+        )
 
         environments = self.get_environments(request, organization)
 
@@ -234,7 +226,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             if search_filter.key.name == "status"
         ]
         if status and status[0].value.raw_value == GroupStatus.UNRESOLVED:
-            context = [r for r in context if r["status"] == "unresolved"]
+            context = [r for r in context if "status" not in r or r["status"] == "unresolved"]
 
         response = Response(context)
 
@@ -306,6 +298,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         :auth: required
         """
         projects = self.get_projects(request, organization)
+        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
         if len(projects) > 1 and not features.has(
             "organizations:global-views", organization, actor=request.user
         ):
@@ -320,7 +313,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             projects,
             self.get_environments(request, organization),
         )
-        return update_groups(request, projects, organization.id, search_fn)
+        return update_groups(request, projects, organization.id, search_fn, has_inbox)
 
     @rate_limit_endpoint(limit=10, window=1)
     def delete(self, request, organization):

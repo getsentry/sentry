@@ -3,8 +3,8 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import IncidentsList from 'app/views/alerts/list';
 import ProjectsStore from 'app/stores/projectsStore';
+import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function () {
   const {routerContext, organization} = initializeOrg({
@@ -108,7 +108,7 @@ describe('IncidentsList', function () {
     expect(projectMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {query: 'slug:a slug:b slug:c'},
+        query: expect.objectContaining({query: 'slug:a slug:b slug:c'}),
       })
     );
     expect(items.at(0).find('IdBadge').prop('project')).toMatchObject({
@@ -253,8 +253,7 @@ describe('IncidentsList', function () {
     // Enabled with access
     wrapper = await createWrapper();
 
-    // NOTE: A link when not disabled
-    const addLink = wrapper.find('a[aria-label="Create Alert Rule"]');
+    const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
   });
 });

@@ -10,11 +10,11 @@ from sentry.integrations.jira.utils import (
     transform_jira_fields_to_form_fields,
     transform_jira_choices_to_strings,
 )
-from sentry.models import ExternalIssue
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -35,8 +35,8 @@ class JiraNotifyServiceForm(forms.Form):
 
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"""Create a Jira ticket in the {jira_integration} account"""
-    prompt = "Create a Jira ticket"
+    label = u"""Create a Jira issue in {jira_integration} with these """
+    prompt = "Create a Jira issue"
     provider = "jira"
     integration_key = "jira_integration"
 
@@ -59,40 +59,6 @@ class JiraCreateTicketAction(TicketEventAction):
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
-            self.label = self.get_label_form(dynamic_fields)
-
-    @staticmethod
-    def get_label_form(data):
-        """
-        Get the rule as a string. Use human-readable values when available and
-        construct the the label by parts because there are so many optional
-        fields.
-
-        :return: String
-        """
-
-        labels = ["Create a Jira ticket in the {jira_integration} account"]
-
-        if data.get("project"):
-            labels.append("and {project} project")
-        if data.get("issuetype"):
-            labels.append("of type {issuetype}")
-        if data.get("components"):
-            labels.append("with components {components}")
-        if data.get("duedate"):
-            labels.append("and due date {duedate}")
-        if data.get("fixVersions"):
-            labels.append("with fixVersions {fixVersions}")
-        if data.get("assignee"):
-            labels.append("assigned to {assignee}")
-        if data.get("reporter"):
-            labels.append("reported by {reporter}")
-        if data.get("labels"):
-            labels.append("with the labels {labels}")
-        if data.get("priority"):
-            labels.append("priority {priority}")
-
-        return " ".join(labels)
 
     def render_label(self):
         # Make a copy of data.
@@ -102,7 +68,7 @@ class JiraCreateTicketAction(TicketEventAction):
         kwargs.update({"jira_integration": self.get_integration_name()})
 
         # Only add values when they exist.
-        return self.get_label_form(self.data).format(**kwargs)
+        return self.label.format(**kwargs)
 
     def get_dynamic_form_fields(self):
         """
@@ -149,6 +115,7 @@ class JiraCreateTicketAction(TicketEventAction):
             self.rule.label, absolute_uri(rule_url),
         )
 
+    @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()
@@ -160,15 +127,26 @@ class JiraCreateTicketAction(TicketEventAction):
         def create_issue(event, futures):
             """Create the Jira ticket for a given event"""
 
-            # TODO check if a Jira ticket already exists for the given event's issue. if it does, skip creating it
-            resp = installation.create_issue(self.data)
-            ExternalIssue.objects.create(
-                organization_id=organization.id,
-                integration_id=integration.id,
-                key=resp["key"],
-                title=event.title,
-                description=installation.get_group_description(event.group, event),
-            )
+            # HACK to get fixVersion in the correct format
+            if self.data.get("fixVersions"):
+                if not isinstance(self.data["fixVersions"], list):
+                    self.data["fixVersions"] = [self.data["fixVersions"]]
+
+            if self.data.get("dynamic_form_fields"):
+                del self.data["dynamic_form_fields"]
+
+            if not self.has_linked_issue(event, integration):
+                resp = installation.create_issue(self.data)
+                self.create_link(resp["key"], integration, installation, event)
+            else:
+                logger.info(
+                    "jira.rule_trigger.link_already_exists",
+                    extra={
+                        "rule_id": self.rule.id,
+                        "project_id": self.project.id,
+                        "group_id": event.group.id,
+                    },
+                )
             return
 
         key = u"jira:{}".format(integration.id)

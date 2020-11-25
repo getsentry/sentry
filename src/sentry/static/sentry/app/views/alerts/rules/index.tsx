@@ -1,29 +1,28 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import AsyncComponent from 'app/components/asyncComponent';
+import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import Pagination from 'app/components/pagination';
+import {PanelTable, PanelTableHeader} from 'app/components/panels';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconArrow, IconCheckmark} from 'app/icons';
 import {t, tct} from 'app/locale';
-import {IconCheckmark, IconArrow} from 'app/icons';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import AsyncComponent from 'app/components/asyncComponent';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/links/externalLink';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Link from 'app/components/links/link';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import * as Layout from 'app/components/layouts/thirds';
-import Pagination from 'app/components/pagination';
 import Projects from 'app/utils/projects';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 
 import AlertHeader from '../list/header';
 import {isIssueAlert} from '../utils';
-import {TableLayout} from './styles';
+
 import RuleListRow from './row';
 
 const DEFAULT_SORT: {asc: boolean; field: 'date_added'} = {
@@ -64,14 +63,21 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     }
 
     return (
-      <EmptyMessage
-        size="medium"
-        icon={<IconCheckmark isCircled size="48" />}
-        title={t('No alert rules exist for these projects.')}
-        description={tct('Learn more about [link:Alerts]', {
-          link: <ExternalLink href={DOCS_URL} />,
-        })}
-      />
+      <React.Fragment>
+        {
+          <IconWrapper>
+            <IconCheckmark isCircled size="48" />
+          </IconWrapper>
+        }
+        {<Title>{t('No alert rules exist for these projects.')}</Title>}
+        {
+          <Description>
+            {tct('Learn more about [link:Alerts]', {
+              link: <ExternalLink href={DOCS_URL} />,
+            })}
+          </Description>
+        }
+      </React.Fragment>
     );
   }
 
@@ -115,60 +121,51 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Panel>
-            <PanelHeader>
-              <TableLayout>
-                <div>{t('Type')}</div>
-                <div>{t('Alert Name')}</div>
-                <div>{t('Project')}</div>
-                <div>{t('Created By')}</div>
-                <div>
-                  <StyledSortLink
-                    to={{
-                      pathname: `/organizations/${orgId}/alerts/rules/`,
-                      query: {
-                        ...query,
-                        asc: sort.asc ? undefined : '1',
-                      },
-                    }}
-                  >
-                    {t('Created')}{' '}
-                    <IconArrow
-                      color="gray300"
-                      size="xs"
-                      direction={sort.asc ? 'up' : 'down'}
-                    />
-                  </StyledSortLink>
-                </div>
-                <div>{t('Actions')}</div>
-              </TableLayout>
-            </PanelHeader>
-
-            {loading ? (
-              <LoadingIndicator />
-            ) : (
-              this.tryRenderEmpty() ?? (
-                <PanelBody>
-                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                    {({initiallyLoaded, projects}) =>
-                      ruleList.map(rule => (
-                        <RuleListRow
-                          // Metric and issue alerts can have the same id
-                          key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
-                          projectsLoaded={initiallyLoaded}
-                          projects={projects as Project[]}
-                          rule={rule}
-                          orgId={orgId}
-                          onDelete={this.handleDeleteRule}
-                        />
-                      ))
-                    }
-                  </Projects>
-                </PanelBody>
-              )
-            )}
-          </Panel>
-
+          <StyledPanelTable
+            headers={[
+              t('Type'),
+              t('Alert Name'),
+              t('Project'),
+              t('Created By'),
+              // eslint-disable-next-line react/jsx-key
+              <StyledSortLink
+                to={{
+                  pathname: `/organizations/${orgId}/alerts/rules/`,
+                  query: {
+                    ...query,
+                    asc: sort.asc ? undefined : '1',
+                  },
+                }}
+              >
+                {t('Created')}{' '}
+                <IconArrow
+                  color="gray300"
+                  size="xs"
+                  direction={sort.asc ? 'up' : 'down'}
+                />
+              </StyledSortLink>,
+              t('Actions'),
+            ]}
+            isLoading={loading}
+            isEmpty={ruleList?.length === 0}
+            emptyMessage={this.tryRenderEmpty()}
+          >
+            <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+              {({initiallyLoaded, projects}) =>
+                ruleList.map(rule => (
+                  <RuleListRow
+                    // Metric and issue alerts can have the same id
+                    key={`${isIssueAlert(rule) ? 'metric' : 'issue'}-${rule.id}`}
+                    projectsLoaded={initiallyLoaded}
+                    projects={projects as Project[]}
+                    rule={rule}
+                    orgId={orgId}
+                    onDelete={this.handleDeleteRule}
+                  />
+                ))
+              }
+            </Projects>
+          </StyledPanelTable>
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </Layout.Body>
@@ -225,4 +222,34 @@ const StyledSortLink = styled(Link)`
   :hover {
     color: inherit;
   }
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  ${PanelTableHeader} {
+    line-height: normal;
+  }
+  font-size: ${p => p.theme.fontSizeMedium};
+  grid-template-columns: auto 1.5fr 1fr 1fr 1fr auto;
+  margin-bottom: 0;
+  white-space: nowrap;
+  ${p =>
+    p.emptyMessage &&
+    `svg:not([data-test-id='icon-check-mark']) {
+    display: none;`}
+`;
+
+const IconWrapper = styled('span')`
+  color: ${p => p.theme.gray200};
+  display: block;
+`;
+
+const Title = styled('strong')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+`;
+
+const Description = styled('span')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: block;
+  margin: 0;
 `;
