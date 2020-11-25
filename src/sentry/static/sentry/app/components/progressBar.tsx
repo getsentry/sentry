@@ -9,7 +9,6 @@ type Props = {
    * The value of the progress indicator for the determinate variant. Value between 0 and 100
    */
   value: number;
-
   /**
    * The color of the component.
    */
@@ -18,6 +17,9 @@ type Props = {
    * Text to show up on a hover.
    */
   tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
+  /**
+   * Styles applied to the component's root
+   */
   className?: string;
 };
 
