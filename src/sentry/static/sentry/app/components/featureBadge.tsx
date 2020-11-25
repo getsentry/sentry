@@ -17,12 +17,6 @@ type BadgeProps = {
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 
-const defaultTitles = {
-  alpha: t('This feature is in alpha and may be unstable'),
-  beta: t('This feature is in beta and may change in the future'),
-  new: t('This is a new feature'),
-};
-
 const labels = {
   alpha: t('alpha'),
   beta: t('beta'),
@@ -31,7 +25,7 @@ const labels = {
 
 const FeaturedBadge = ({type, variant = 'badge', title, noTooltip, ...p}: Props) => (
   <div {...p}>
-    <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
+    <Tooltip title={title} disabled={noTooltip} position="right">
       <React.Fragment>
         {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
         {variant === 'indicator' && (
