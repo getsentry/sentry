@@ -108,8 +108,7 @@ class EventOrGroupHeader extends React.Component<Props> {
     const location = getLocation(data);
     const message = getMessage(data);
     const {isUnhandled} = data as Group;
-    const orgFeatures = new Set(organization.features);
-    const showUnhandled = isUnhandled && !orgFeatures.has('inbox');
+    const showUnhandled = isUnhandled && !organization.features.includes('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
