@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {number, text} from '@storybook/addon-knobs';
 
 import ProgressBar from 'app/components/progressBar';
 import space from 'app/styles/space';
-import {number, text} from '@storybook/addon-knobs';
 
 export default {
   title: 'DataVisualization/Charts/ProgressBar',

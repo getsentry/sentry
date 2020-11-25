@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Color} from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
+import {Color} from 'app/utils/theme';
 
 type Props = {
   /**
