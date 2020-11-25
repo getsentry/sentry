@@ -156,7 +156,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             with BurstTaskRunner() as burst:
                 reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
 
-            burst()
+            burst(max_jobs=100)
 
             new_event = eventstore.get_event_by_id(self.project.id, event.event_id)
             assert new_event is not None
