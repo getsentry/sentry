@@ -212,7 +212,7 @@ def post_process_group(
                     safe_execute(callback, event, futures)
 
             has_workflow_owners = features.has(
-                "projects:workflow-owners",
+                "projects:workflow-owners-ingestion",
                 organization=event.project.organization,
                 project=event.project,
             )
