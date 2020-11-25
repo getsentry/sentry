@@ -6,8 +6,8 @@ import InputField, {onEvent} from 'app/views/settings/components/forms/inputFiel
 
 type Props = {
   confirm?: {
-    true: React.ReactNode;
-    false: React.ReactNode;
+    true?: React.ReactNode;
+    false?: React.ReactNode;
   };
 } & InputField['props'];
 
