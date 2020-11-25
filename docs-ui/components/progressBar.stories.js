@@ -9,7 +9,7 @@ export default {
   title: 'DataVisualization/Charts/ProgressBar',
 };
 
-export const Basic = () => {
+export function Basic() {
   const progressBars = [];
 
   for (let i = 100; i > 0; i -= 10) {
@@ -17,18 +17,20 @@ export const Basic = () => {
   }
 
   return <Wrapper>{progressBars}</Wrapper>;
-};
+}
 
 Basic.story = {name: 'basic'};
 
-export const WithTooltip = () => (
-  <Wrapper>
-    <ProgressBar
-      value={number('value', 50)}
-      tooltipText={text('tooltipText', 'lorem ipsum')}
-    />
-  </Wrapper>
-);
+export function WithTooltip() {
+  return (
+    <Wrapper>
+      <ProgressBar
+        value={number('value', 50)}
+        tooltipText={text('tooltipText', 'lorem ipsum')}
+      />
+    </Wrapper>
+  );
+}
 
 WithTooltip.story = {name: 'with tooltip'};
 
