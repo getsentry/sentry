@@ -1,7 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import {browserHistory, Route, Router} from 'react-router';
 import {withInfo} from '@storybook/addon-info';
-import {Router, browserHistory, Route} from 'react-router';
+import PropTypes from 'prop-types';
 
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
@@ -194,6 +194,141 @@ export const Default = withInfo('default')(() => {
         withChart={null}
         memberList={[]}
         organization={organization}
+        selection={selection}
+        query=""
+        isGlobalSelectionReady
+      />
+    </LocationContext>
+  );
+});
+
+export const WithInbox = withInfo('withInbox')(() => {
+  const inboxOrganization = {...organization, features: ['inbox']};
+  const unhandledGroup = {
+    ...group,
+    id: '2',
+    culprit: 'sentry.tasks.email.send_email',
+    isUnhandled: true,
+    level: 'error',
+    count: '12',
+    userCount: 1337,
+    metadata: {
+      function: 'send_messages',
+      type: 'SMTPServerDisconnected',
+      value: 'Connection unexpectedly closed',
+      filename: 'sentry/utils/email.py',
+    },
+    annotations: ['<a href="https://sentry.io">PROD-72</a>'],
+    title: 'UnhandledError: GET /issues/ 404',
+    inbox: {
+      date_added: '2020-11-25T07:10:24.890286Z',
+      reason: 0,
+      reason_details: null,
+    },
+  };
+
+  const resolvedGroup = {
+    ...group,
+    id: '3',
+    status: 'resolved',
+    isUnhandled: true,
+    metadata: {function: 'fetchData', type: 'ResolvedError'},
+    numComments: 2,
+  };
+
+  const ignoredGroup = {
+    ...group,
+    id: '4',
+    status: 'ignored',
+    culprit: 'culprit',
+    metadata: {function: 'fetchData', type: 'IgnoredErrorType'},
+    inbox: {
+      date_added: '2020-11-25T07:10:24.890286Z',
+      reason: 1,
+      reason_details: null,
+    },
+  };
+
+  const bookmarkedGroup = {
+    ...group,
+    id: '5',
+    metadata: {
+      function: 'send_messages',
+      type: 'BookmarkedError',
+      value: 'Connection unexpectedly closed',
+      filename: 'sentry/utils/email.py',
+    },
+    culprit: '',
+    isBookmarked: true,
+    logger: 'sentry.incidents.tasks',
+    annotations: ['<a href="https://sentry.io">PROD-72</a>'],
+    numComments: 10,
+    inbox: {
+      date_added: '2020-11-25T07:10:24.890286Z',
+      reason: 2,
+      reason_details: null,
+    },
+  };
+
+  GroupStore.loadInitialData([
+    group,
+    unhandledGroup,
+    resolvedGroup,
+    ignoredGroup,
+    bookmarkedGroup,
+  ]);
+  return (
+    <LocationContext>
+      <StreamGroup
+        id={group.id}
+        canSelect
+        withChart={null}
+        memberList={[]}
+        organization={inboxOrganization}
+        selection={selection}
+        query=""
+        isGlobalSelectionReady
+      />
+
+      <StreamGroup
+        id={unhandledGroup.id}
+        canSelect
+        withChart={null}
+        memberList={[]}
+        organization={inboxOrganization}
+        selection={selection}
+        query=""
+        isGlobalSelectionReady
+      />
+
+      <StreamGroup
+        id={resolvedGroup.id}
+        canSelect
+        withChart={null}
+        memberList={[]}
+        organization={inboxOrganization}
+        selection={selection}
+        query=""
+        isGlobalSelectionReady
+      />
+
+      <StreamGroup
+        id={ignoredGroup.id}
+        canSelect
+        withChart={null}
+        memberList={[]}
+        organization={inboxOrganization}
+        selection={selection}
+        query=""
+        isGlobalSelectionReady
+      />
+
+      <StreamGroup
+        id={bookmarkedGroup.id}
+        canSelect
+        withChart={null}
+        memberList={[]}
+        organization={inboxOrganization}
         selection={selection}
         query=""
         isGlobalSelectionReady

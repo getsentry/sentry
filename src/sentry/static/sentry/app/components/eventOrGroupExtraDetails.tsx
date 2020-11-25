@@ -37,8 +37,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
-  const orgFeatures = new Set(organization.features);
-  const hasInbox = orgFeatures.has('inbox');
+  const hasInbox = organization.features.includes('inbox');
 
   return (
     <GroupExtra hasInbox={hasInbox}>
@@ -113,7 +112,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 const GroupExtra = styled('div')<{hasInbox: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  grid-gap: ${p => (p.hasInbox ? space(1) : space(2))};
+  grid-gap: ${p => (p.hasInbox ? space(1.5) : space(2))};
   justify-content: start;
   align-items: center;
   color: ${p => (p.hasInbox ? p.theme.gray500 : p.theme.subText)};
