@@ -442,20 +442,24 @@ class SpanDetail extends React.Component<Props, State> {
                   : null}
               </Row>
               <Tags span={span} />
-              {map(span?.data ?? {}, (value, key) => (
-                <Row title={key} key={key}>
-                  {SIZE_DATA.has((key as unknown) as string) ? (
-                    <React.Fragment>
-                      <FileSize bytes={(value as unknown) as number} />
-                      {((value as unknown) as number) >= 1024 && (
-                        <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
-                      )}
-                    </React.Fragment>
-                  ) : (
-                    JSON.stringify(value, null, 4) || ''
-                  )}
-                </Row>
-              ))}
+              {map(span?.data ?? {}, (v, k) => {
+                const key = (k as unknown) as string;
+                const value = (v as unknown) as number;
+                return (
+                  <Row title={key} key={key}>
+                    {SIZE_DATA.has(key) ? (
+                      <React.Fragment>
+                        <FileSize bytes={value} />
+                        {value >= 1024 && (
+                          <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
+                        )}
+                      </React.Fragment>
+                    ) : (
+                      JSON.stringify(value, null, 4) || ''
+                    )}
+                  </Row>
+                );
+              })}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
                   {JSON.stringify(span[key], null, 4) || ''}
