@@ -152,7 +152,7 @@ class Table extends React.Component<Props, State> {
       if (dataRow[getAggregateAlias(field)]) {
         return (
           <UniqueTagCell>
-            <Tag type="error">{t('Fail')}</Tag>
+            <StyledTag>{t('Fail')}</StyledTag>
           </UniqueTagCell>
         );
       } else {
@@ -404,6 +404,15 @@ const UniqueUserCell = styled('span')`
 
 const UniqueTagCell = styled('div')`
   text-align: right;
+`;
+
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.red300};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
 `;
 
 const StyledUserIcon = styled(IconUser)`
