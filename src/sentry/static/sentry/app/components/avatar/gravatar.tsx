@@ -96,6 +96,6 @@ class Gravatar extends React.Component<Props, State> {
 
 export default Gravatar;
 
-const Image = styled('img')<{round?: boolean; suggested?: boolean; grayscale?: boolean}>`
+const Image = styled('img')<ImageStyleProps>`
   ${imageStyle};
 `;
