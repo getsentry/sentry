@@ -5,7 +5,7 @@ import Switch from 'app/components/switch';
 import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
 
 type Props = {
-  confirm: {
+  confirm?: {
     true: React.ReactNode;
     false: React.ReactNode;
   };
