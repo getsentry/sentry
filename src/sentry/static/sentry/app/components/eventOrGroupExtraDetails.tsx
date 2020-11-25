@@ -80,7 +80,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
         </CommentsLink>
       )}
       {logger && (
-        <LoggerAnnotation>
+        <LoggerAnnotation hasInbox={hasInbox}>
           <Link
             to={{
               pathname: issuesPath,
@@ -95,6 +95,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
       )}
       {annotations?.map((annotation, key) => (
         <AnnotationNoMargin
+          hasInbox={hasInbox}
           dangerouslySetInnerHTML={{
             __html: annotation,
           }}
@@ -115,7 +116,7 @@ const GroupExtra = styled('div')<{hasInbox: boolean}>`
   grid-gap: ${p => (p.hasInbox ? space(1.5) : space(2))};
   justify-content: start;
   align-items: center;
-  color: ${p => (p.hasInbox ? p.theme.gray500 : p.theme.subText)};
+  color: ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeSmall};
   position: relative;
   min-width: 500px;
@@ -144,9 +145,14 @@ const GroupShortId = styled(ShortId)`
   color: ${p => p.theme.subText};
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)`
+const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
   margin-left: 0;
-  padding-left: ${space(2)};
+  padding-left: ${p => (p.hasInbox ? 0 : space(2))};
+  ${p => p.hasInbox && `border-left: none;`};
+
+  & > a {
+    color: ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
+  }
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
