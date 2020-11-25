@@ -70,7 +70,12 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=None,
+    project,
+    from_reprocessing,
+    cache_key,
+    event_id,
+    start_time,
+    data_has_changed=None,
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -132,6 +137,11 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
 
     from_reprocessing = process_task is process_event_from_reprocessing
 
+    with metrics.timer("tasks.store.preprocess_event.organization.get_from_cache"):
+        project._organization_cache = Organization.objects.get_from_cache(
+            id=project.organization_id
+        )
+
     if should_process_with_symbolicator(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_symbolicate(
@@ -142,7 +152,12 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
     if should_process(data):
         reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
-            project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=False,
+            project,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            data_has_changed=False,
         )
         return
 
@@ -547,7 +562,9 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
     with sentry_sdk.start_transaction(
-        op="tasks.store.process_event", name="TaskProcessEvent", sampled=sample_process_event_apm(),
+        op="tasks.store.process_event",
+        name="TaskProcessEvent",
+        sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
