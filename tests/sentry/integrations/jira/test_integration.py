@@ -77,7 +77,7 @@ SAMPLE_CREATE_META_RESPONSE = """
                 "type": "string"
               }
             },
-            "issuetype": {
+           "issuetype": {
               "required": true,
               "name": "Issue Type",
               "key": "issuetype",
@@ -523,21 +523,23 @@ class JiraIntegrationTest(APITestCase):
         with mock.patch.object(installation, "get_client", get_client):
             assert installation.get_create_issue_config(group, self.user) == [
                 {
-                    "default": "10000",
-                    "choices": [("10000", "EX"), ("10001", "ABC")],
-                    "type": "select",
                     "name": "project",
-                    "label": "Jira Project",
+                    "default": "10000",
                     "updatesForm": True,
+                    "choices": [("10000", "EX"), ("10001", "ABC")],
+                    "label": "Jira Project",
+                    "type": "select",
                 },
                 {
                     "default": "message",
+                    "required": True,
                     "type": "string",
                     "name": "title",
                     "label": "Title",
-                    "required": True,
                 },
                 {
+                    "autosize": True,
+                    "name": "description",
                     "default": (
                         "Sentry Issue: [%s|%s]\n\n{code}\n"
                         "Stacktrace (most recent call first):\n\n  "
@@ -550,53 +552,51 @@ class JiraIntegrationTest(APITestCase):
                             group.get_absolute_url(params={"referrer": "jira_integration"})
                         ),
                     ),
-                    "type": "textarea",
-                    "name": "description",
                     "label": "Description",
-                    "autosize": True,
                     "maxRows": 10,
+                    "type": "textarea",
                 },
                 {
-                    "default": "1",
-                    "choices": [("1", "Bug")],
-                    "type": "select",
-                    "name": "issuetype",
-                    "label": "Issue Type",
-                    "updatesForm": True,
                     "required": True,
+                    "name": "issuetype",
+                    "default": "1",
+                    "updatesForm": True,
+                    "choices": [("1", "Bug")],
+                    "label": "Issue Type",
+                    "type": "select",
                 },
                 {
+                    "multiple": True,
+                    "name": "customfield_10300",
+                    "default": "",
+                    "required": False,
+                    "choices": [("Feature 1", "Feature 1"), ("Feature 2", "Feature 2")],
+                    "label": "Feature",
+                    "type": "select",
+                },
+                {
+                    "name": "reporter",
+                    "url": reverse(
+                        "sentry-extensions-jira-search", args=[org.slug, self.integration.id]
+                    ),
+                    "required": True,
+                    "choices": [],
+                    "label": "Reporter",
+                    "type": "select",
+                },
+                {
+                    "default": "",
                     "required": False,
                     "type": "text",
                     "name": "labels",
                     "label": "Labels",
-                    "default": "",
                 },
                 {
-                    "required": False,
-                    "type": "select",
                     "name": "customfield_10200",
-                    "label": "Mood",
                     "default": "",
-                    "choices": [("sad", "sad"), ("happy", "happy")],
-                },
-                {
-                    "multiple": True,
                     "required": False,
-                    "type": "select",
-                    "name": "customfield_10300",
-                    "label": "Feature",
-                    "default": "",
-                    "choices": [("Feature 1", "Feature 1"), ("Feature 2", "Feature 2")],
-                },
-                {
-                    "choices": [],
-                    "label": "Reporter",
-                    "name": "reporter",
-                    "required": True,
-                    "url": reverse(
-                        "sentry-extensions-jira-search", args=[org.slug, self.integration.id]
-                    ),
+                    "choices": [("sad", "sad"), ("happy", "happy")],
+                    "label": "Mood",
                     "type": "select",
                 },
             ]
@@ -680,10 +680,10 @@ class JiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
-                "labels",
-                "customfield_10200",
                 "customfield_10300",
                 "reporter",
+                "labels",
+                "customfield_10200",
             ]
 
             installation.org_integration.config = {"issues_ignored_fields": ["customfield_10200"]}
@@ -696,9 +696,9 @@ class JiraIntegrationTest(APITestCase):
                 "title",
                 "description",
                 "issuetype",
-                "labels",
                 "customfield_10300",
                 "reporter",
+                "labels",
             ]
 
     def test_get_create_issue_config_with_default_and_param(self):
