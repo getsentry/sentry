@@ -130,7 +130,7 @@ class VitalDetailContent extends React.Component<Props, State> {
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query) || '';
 
-    const vital = vitalName || WebVital.FID;
+    const vital = vitalName || WebVital.LCP;
 
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
