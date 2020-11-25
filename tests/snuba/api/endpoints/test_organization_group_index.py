@@ -742,7 +742,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = u" status:unresolved"
+            query = u"status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
