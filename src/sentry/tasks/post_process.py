@@ -213,7 +213,7 @@ def post_process_group(
 
             has_workflow_owners = features.has(
                 "projects:workflow-owners-ingestion",
-                organization=event.project.organization,
+                event.project.organization,
                 project=event.project,
             )
             if has_workflow_owners:
