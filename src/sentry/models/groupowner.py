@@ -15,6 +15,12 @@ class GroupOwnerType(Enum):
     OWNERSHIP_RULE = 1
 
 
+GROUP_OWNER_TYPE = {
+    GroupOwnerType.SUSPECT_COMMIT: "Suspect Commit",
+    GroupOwnerType.OWNERSHIP_RULE: "Ownership Rule",
+}
+
+
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
@@ -64,7 +70,7 @@ def get_owner_details(group_list):
     group_owners = GroupOwner.objects.filter(group__in=group_ids)
     owner_details = {
         go.group_id: {
-            "type": go.type,
+            "type": GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
             "owner": go.owner().get_actor_id(),
             "date_added": go.date_added,
         }
