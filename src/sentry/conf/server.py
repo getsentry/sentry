@@ -921,8 +921,10 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
-    # Enable "owner"/"suggested assignee" features.
+    # Enable "owner"/"suggested assignee" features in the frontend/issue stream using flagr.
     "organizations:workflow-owners": False,
+    # Enable "owner"/"suggested assignee" features in ingestion - does not use flagr.
+    "organizations:workflow-owners-ingestion": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Adds additional filters and a new section to issue alert rules.

@@ -211,11 +211,11 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            if features.has("organizations:workflow-owners", project=event.project):
-                # TODO(Chris F.): Pass only the event props you need.
-                # Seems to be event.data and event.group_id, but I need to refactor downstream functions
-                # to accept direct props instead of the entire event.
-                process_suspect_commits.delay(event=event)
+            has_workflow_owners_ingestion = features.has(
+                "organizations:workflow-owners-ingestion", project=event.project
+            )
+            if has_workflow_owners_ingestion:
+                process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
@@ -256,8 +256,10 @@ def post_process_group(
             event=event,
             primary_hash=kwargs.get("primary_hash"),
         )
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
+
+        if not has_workflow_owners_ingestion:
+            with metrics.timer("tasks.post_process.delete_event_cache"):
+                event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):
