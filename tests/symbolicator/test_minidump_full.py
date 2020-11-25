@@ -136,6 +136,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
     def test_reprocessing(self):
+        pytest.skip("Temporarily disabled due to prod problem")
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
         with self.feature(

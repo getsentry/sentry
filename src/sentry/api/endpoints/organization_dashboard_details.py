@@ -62,9 +62,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         try:
             with transaction.atomic():
                 serializer.save()
-        except IntegrityError as err:
-            return self.respond(
-                {"Dashboard with that title already exists. {}".format(err)}, status=409
-            )
+        except IntegrityError:
+            return self.respond({"Dashboard with that title already exists."}, status=409)
 
         return self.respond(serialize(dashboard, request.user), status=200)
