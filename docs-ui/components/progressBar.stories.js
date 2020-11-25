@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {number, text, select} from '@storybook/addon-knobs';
+import {number, select, text} from '@storybook/addon-knobs';
 
 import ProgressBar from 'app/components/progressBar';
 import space from 'app/styles/space';
