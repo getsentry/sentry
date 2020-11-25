@@ -66,6 +66,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
           apiMethod="PUT"
           apiEndpoint={this.endpoint}
           initialData={initialData}
+          omitDisabled
           requireChanges
         >
           <h4>General</h4>

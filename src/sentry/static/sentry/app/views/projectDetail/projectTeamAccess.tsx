@@ -36,6 +36,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
     const {project, organization} = this.props;
 
     if (!project) {
+      // TODO(project-detail): check the most common number of teams and set height accordingly
       return <Placeholder />;
     }
 
@@ -47,6 +48,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
           disabled={!hasPermission}
           title={hasPermission ? undefined : t('You do not have permission to do this')}
           priority="primary"
+          size="small"
         >
           {t('Assign Team')}
         </Button>
@@ -101,8 +103,8 @@ class ProjectTeamAccess extends React.Component<Props, State> {
   }
 }
 
-const Section = styled('div')`
-  margin-bottom: ${space(4)};
+const Section = styled('section')`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledLink = styled(Link)`

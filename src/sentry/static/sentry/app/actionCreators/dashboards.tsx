@@ -41,8 +41,7 @@ export function updateDashboard(
 ): Promise<OrgDashboardResponse> {
   const data: OrgDashboardUpdate = {
     title: dashboard.title,
-    // TODO: populate this properly
-    widgets: [],
+    widgets: dashboard.widgets,
   };
 
   const promise: Promise<OrgDashboardResponse> = api.requestPromise(

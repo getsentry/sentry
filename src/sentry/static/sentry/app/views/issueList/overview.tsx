@@ -316,7 +316,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchMemberList() {
-    const projectIds = this.getGlobalSearchProjectIds();
+    const projectIds = this.getGlobalSearchProjectIds()?.map(projectId =>
+      String(projectId)
+    );
 
     fetchOrgMembers(this.props.api, this.props.organization.slug, projectIds).then(
       members => {
@@ -692,7 +694,6 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
-      issuesLoading,
     } = this.state;
     const {
       organization,
@@ -756,7 +757,6 @@ class IssueListOverview extends React.Component<Props, State> {
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
-                    issuesLoading={issuesLoading}
                     allResultsVisible={this.allResultsVisible()}
                   />
                   <PanelBody>

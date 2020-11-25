@@ -3,12 +3,16 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {NewQuery, SavedQuery} from 'app/types';
 
-export function fetchSavedQueries(api: Client, orgId: string): Promise<SavedQuery[]> {
+export function fetchSavedQueries(
+  api: Client,
+  orgId: string,
+  query: string = ''
+): Promise<SavedQuery[]> {
   const promise: Promise<SavedQuery[]> = api.requestPromise(
     `/organizations/${orgId}/discover/saved/`,
     {
       method: 'GET',
-      query: {query: 'version:2'},
+      query: {query: `version:2 ${query}`.trim()},
     }
   );
 
