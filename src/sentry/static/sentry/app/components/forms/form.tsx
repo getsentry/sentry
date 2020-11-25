@@ -112,24 +112,10 @@ class Form<
   };
 
   onSubmitSuccess = (data: object) => {
-    const curData = this.state.data;
-    let newData = {};
-    if (data) {
-      Object.keys(curData).forEach(k => {
-        if (data.hasOwnProperty(k)) {
-          newData[k] = data[k];
-        } else {
-          newData[k] = curData[k];
-        }
-      });
-    } else {
-      newData = curData;
-    }
-
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: newData,
+      initialData: {...this.state.data, ...(data || {})},
     });
     this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
   };
