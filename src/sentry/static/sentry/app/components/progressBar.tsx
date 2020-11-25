@@ -25,11 +25,7 @@ const ProgressBar = styled(({className, tooltipText}: Props) => {
   const content = <div className={className} />;
 
   if (tooltipText) {
-    return (
-      <Tooltip title={tooltipText} containerDisplayMode="inline">
-        {content}
-      </Tooltip>
-    );
+    return <Tooltip title={tooltipText}>{content}</Tooltip>;
   }
 
   return content;
@@ -37,10 +33,11 @@ const ProgressBar = styled(({className, tooltipText}: Props) => {
   background: ${p => p.theme.gray100};
   border-radius: 100px;
   height: 6px;
+  width: 100%;
   overflow: hidden;
   position: relative;
   :before {
-    content: "''";
+    content: ' ';
     width: ${p => p.value ?? 0}%;
     height: 100%;
     background-color: ${p => p.progressColor ?? p.theme.purple300};
