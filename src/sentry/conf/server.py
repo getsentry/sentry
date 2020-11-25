@@ -921,8 +921,6 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -952,6 +950,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable "owner"/"suggested assignee" features.
+    "projects:workflow-owners": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

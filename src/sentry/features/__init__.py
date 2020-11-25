@@ -104,7 +104,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature)  # NOQA
-default_manager.add("organizations:workflow-owners", OrganizationFeature)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
@@ -129,6 +128,7 @@ default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:reprocessing-v2", ProjectFeature)  # NOQA
+default_manager.add("projects:workflow-owners", ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
