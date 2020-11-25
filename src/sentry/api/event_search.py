@@ -2416,7 +2416,7 @@ def parse_arguments(columns):
         # add in the last argument if any
         args.append(columns[i:])
 
-    return args
+    return [arg.strip() for arg in args]
 
 
 def parse_function(field, match=None, err_msg=None):

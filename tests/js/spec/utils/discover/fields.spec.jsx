@@ -40,6 +40,12 @@ describe('getAggregateAlias', function () {
       'percentile_transaction_duration_0_11'
     );
   });
+
+  it('handles to_other with symbols', function () {
+    expect(
+      getAggregateAlias('to_other(release,"release:beta@1.1.1 (2)",others,current)')
+    ).toEqual('to_other_release_release_beta_1_1_1_2_others_current');
+  });
 });
 
 describe('isAggregateField', function () {

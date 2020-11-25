@@ -2873,8 +2873,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "this": "'this'",
         }
 
-        assert functions["to_other_release_release_-_spaces_symbols"].instance.name == "to_other"
-        assert functions["to_other_release_release_-_spaces_symbols"].arguments == {
+        assert functions["to_other_release_release_spaces_symbols"].instance.name == "to_other"
+        assert functions["to_other_release_release_spaces_symbols"].arguments == {
             "column": "release",
             "value": "'release +-  spaces   &    symbols :'",
             "that": "'that'",
