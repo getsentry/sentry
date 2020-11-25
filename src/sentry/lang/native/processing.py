@@ -77,7 +77,10 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta = new_frame.setdefault("data", {})
         frame_meta["symbolicator_status"] = symbolicated["status"]
 
-    # We generally do not want to retain the ingestion only "in_image" key.
+    # We generally do not want to retain the ingestion only "in_image" key.  This
+    # means we also throw away the information if an address is relative or absolute
+    # even though symbolicator could tell us about this.  This is acceptable for us
+    # at the moment.
     new_frame.pop("in_image", None)
 
 
@@ -293,7 +296,7 @@ def frame_to_symbolicator_frame(frame, modules):
     if in_image:
         for idx, module in enumerate(modules):
             if module["debug_id"] == in_image:
-                rv["in_module"] = idx
+                rv["addr_base_module"] = idx
                 break
 
     return rv
