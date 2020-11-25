@@ -64,7 +64,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
         collapse = request.GET.getlist("collapse", ["base"])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
         has_workflow_owners = features.has(
-            "organizations:workflow-owners", organization, actor=request.user
+            "organizations:workflow-owners", organization=organization, actor=request.user
         )
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
