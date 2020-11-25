@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import Input from 'app/views/settings/components/forms/controls/input';
 import FormField from 'app/views/settings/components/forms/formField';
 
-export type InputFieldProps = {
+type Props = {
   field?: (props) => React.ReactNode;
   value?: any;
 } & Omit<FormField['props'], 'children'> &
@@ -16,9 +16,7 @@ export type InputFieldProps = {
 
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
-export default class InputField<Props extends InputFieldProps> extends React.Component<
-  Props
-> {
+export default class InputField extends React.Component<Props> {
   static propTypes = {
     ...FormField.propTypes,
     field: PropTypes.func,

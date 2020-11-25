@@ -2,19 +2,16 @@ import React from 'react';
 
 import Confirm from 'app/components/confirm';
 import Switch from 'app/components/switch';
-import InputField, {
-  InputFieldProps,
-  onEvent,
-} from 'app/views/settings/components/forms/inputField';
+import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
 
 type Props = {
   confirm: {
     true: React.ReactNode;
     false: React.ReactNode;
   };
-} & InputFieldProps;
+} & InputField['props'];
 
-export default class BooleanField extends InputField<Props> {
+export default class BooleanField extends React.Component<Props> {
   coerceValue(value: any) {
     return !!value;
   }
