@@ -160,7 +160,7 @@ def post_process_group(
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
-        from sentry.tasks.groupowners import process_suspect_commits
+        from sentry.tasks.groupowner import process_suspect_commits
 
         # Re-bind node data to avoid renormalization. We only want to
         # renormalize when loading old data from the database.
