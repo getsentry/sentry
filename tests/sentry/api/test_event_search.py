@@ -2823,11 +2823,11 @@ class ResolveFieldListTest(unittest.TestCase):
             "percentile": 0.5,
         }
 
-    def test_to_other_function(self):
+    def test_to_other_function_basic(self):
         fields = [
-            "to_other(release,r)",
-            "to_other(release,r,a)",
-            "to_other(release,r,a,b)",
+            'to_other(release,"r")',
+            'to_other(release,"r",a)',
+            'to_other(release,"r",a,b)',
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
@@ -2854,6 +2854,39 @@ class ResolveFieldListTest(unittest.TestCase):
             "value": "'r'",
             "that": "'a'",
             "this": "'b'",
+        }
+
+    def test_to_other_function_complex(self):
+        fields = [
+            'to_other(release,"release.version@1.2.3+4")',
+            'to_other(release,"release +-  spaces   &    symbols :")',
+            'to_other(release,"release\\"using\'quotes")',
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["to_other_release_release_version_1_2_3_4"].instance.name == "to_other"
+        assert functions["to_other_release_release_version_1_2_3_4"].arguments == {
+            "column": "release",
+            "value": "'release.version@1.2.3+4'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release_release_-_spaces_symbols"].instance.name == "to_other"
+        assert functions["to_other_release_release_-_spaces_symbols"].arguments == {
+            "column": "release",
+            "value": "'release +-  spaces   &    symbols :'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release_release_using_quotes"].instance.name == "to_other"
+        assert functions["to_other_release_release_using_quotes"].arguments == {
+            "column": "release",
+            "value": "'release\"using'quotes'",
+            "that": "'that'",
+            "this": "'this'",
         }
 
     def test_failure_count_function(self):

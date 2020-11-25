@@ -1,9 +1,10 @@
 import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, Organization} from 'app/types';
+import {escapeDoubleQuotes} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {WebVital} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
@@ -36,17 +37,15 @@ export function getReleaseEventView(
   const {projects, environments, datetime} = selection;
   const {start, end, period} = datetime;
   const releaseFilter = currentOnly ? `release:${version}` : '';
-
-  const toOther = `to_other(release,${version},others,current)`;
-  // this orderby ensures that the order is [others, current]
-  const toOtherAlias = `to_other_release_${version}_others_current`;
+  const toOther = `to_other(release,"${escapeDoubleQuotes(version)}",others,current)`;
 
   const baseQuery: Omit<NewQuery, 'query'> = {
     id: undefined,
     version: 2,
     name: `${t('Release')} ${formatVersion(version)}`,
     fields: [`count()`, toOther],
-    orderby: toOtherAlias,
+    // this orderby ensures that the order is [others, current]
+    orderby: getAggregateAlias(toOther),
     range: period,
     environment: environments,
     projects,

@@ -28,7 +28,7 @@ describe('getAggregateAlias', function () {
     expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
     expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
     expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
-      'count_foo_bar_is-Enterprise_42'
+      'count_foo_bar_is_Enterprise_42'
     );
   });
 
