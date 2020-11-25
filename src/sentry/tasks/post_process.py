@@ -211,10 +211,10 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            has_workflow_owners_ingestion = features.has(
+            has_workflow_owners = features.has(
                 "organizations:workflow-owners", project=event.project
             )
-            if has_workflow_owners_ingestion:
+            if has_workflow_owners:
                 process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
 
             if features.has("projects:servicehooks", project=event.project):
@@ -257,7 +257,7 @@ def post_process_group(
             primary_hash=kwargs.get("primary_hash"),
         )
 
-        if not has_workflow_owners_ingestion:
+        if not has_workflow_owners:
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 event_processing_store.delete_by_key(cache_key)
 
