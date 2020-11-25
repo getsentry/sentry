@@ -4,11 +4,8 @@ from __future__ import absolute_import
 import os
 import sys
 
-if os.environ.get("SENTRY_PYTHON3") == "1" and sys.version_info[:2] != (3, 6):
-    sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
-
-if os.environ.get("SENTRY_PYTHON3") != "1" and sys.version_info[:2] != (2, 7):
-    sys.exit("Error: Sentry requires Python 2.7.")
+if os.environ.get("SENTRY_PYTHON2") != "1" and sys.version_info[:2] != (3, 6):
+    sys.exit("Error: Sentry requires Python 3.6.")
 
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages

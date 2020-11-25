@@ -7,11 +7,11 @@ if [ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]; then
 fi
 
 venv_name=".venv"
-python_bin="python2.7"
+python_bin="python3.6"
 
-if [ "$SENTRY_PYTHON3" = "1" ]; then
-    venv_name=".venv3"
-    python_bin="python3.6"
+if [ "$SENTRY_PYTHON2" = "1" ]; then
+    venv_name=".venv2"
+    python_bin="python2.7"
 fi
 
 die() {
@@ -26,12 +26,12 @@ if [ -n "$VIRTUAL_ENV" ]; then
     fi
 
     # TODO: Update this to strictly check .python-version
-    if [ "$SENTRY_PYTHON3" = "1" ]; then
-        python -c "import sys; sys.exit(sys.version_info[:2] != (3, 6))" ||
-            die "For some reason, the virtualenv isn't Python 3.6."
-    else
+    if [ "$SENTRY_PYTHON2" = "1" ]; then
         python -c "import sys; sys.exit(sys.version_info[:2] != (2, 7))" ||
             die "For some reason, the virtualenv isn't Python 2.7."
+    else
+        python -c "import sys; sys.exit(sys.version_info[:2] != (3, 6))" ||
+            die "Remove $VIRTUAL_ENV and try again since the Python version installed should be 3.6."
     fi
 else
     if [ ! -f "${venv_name}/bin/activate" ]; then
