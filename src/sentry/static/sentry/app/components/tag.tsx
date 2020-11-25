@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
-import Tooltip from 'app/components/tooltip';
 import {IconClose, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -22,10 +21,6 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    * Icon on the left side.
    */
   icon?: React.ReactNode;
-  /**
-   * Text to show up on a hover.
-   */
-  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
   /**
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -49,7 +44,6 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
 function Tag({
   type = 'default',
   icon,
-  tooltipText,
   to,
   href,
   onDismiss,
@@ -63,7 +57,6 @@ function Tag({
   };
 
   const tag = (
-    <Tooltip title={tooltipText} containerDisplayMode="inline">
       <Background type={type}>
         {tagIcon()}
 
@@ -80,7 +73,6 @@ function Tag({
           </DismissButton>
         )}
       </Background>
-    </Tooltip>
   );
 
   function handleDismiss(event: React.MouseEvent) {

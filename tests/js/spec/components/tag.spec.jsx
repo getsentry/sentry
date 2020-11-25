@@ -22,16 +22,6 @@ describe('Tag', function () {
     expect(wrapper.find('IconFire').exists()).toBeTruthy();
   });
 
-  it('with tooltip', function () {
-    const wrapper = mountWithTheme(
-      <Tag type="highlight" tooltipText="lorem ipsum">
-        Tooltip
-      </Tag>
-    );
-    expect(wrapper.text()).toEqual('Tooltip');
-    expect(wrapper.find('Tooltip').prop('title')).toEqual('lorem ipsum');
-  });
-
   it('with dismiss', function () {
     const mockCallback = jest.fn();
 

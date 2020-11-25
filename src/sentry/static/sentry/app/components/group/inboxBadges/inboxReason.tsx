@@ -4,6 +4,7 @@ import moment from 'moment';
 
 import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import {InboxDetails} from 'app/types';
 
@@ -57,9 +58,9 @@ const InboxReason = ({inbox}: Props) => {
   );
 
   return (
-    <Tag type={tagType} tooltipText={tooltip}>
-      {reasonBadgeText}
-    </Tag>
+    <Tooltip title={tooltip}>
+      <Tag type={tagType}>{reasonBadgeText}</Tag>
+    </Tooltip>
   );
 };
 

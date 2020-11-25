@@ -2,10 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {select, text} from '@storybook/addon-knobs';
 
-import theme from 'app/utils/theme';
 import Tag from 'app/components/tag';
-import {IconFire, IconWarning, IconClock, IconDelete, IconIssues} from 'app/icons';
+import Tooltip from 'app/components/tooltip';
+import {IconClock, IconDelete, IconFire, IconIssues, IconWarning} from 'app/icons';
 import {toTitleCase} from 'app/utils';
+import theme from 'app/utils/theme';
 
 export default {
   title: 'Core/Badges+Tags/Tag',
@@ -46,9 +47,9 @@ export const WithIcon = () => (
 WithIcon.story = {name: 'with icon'};
 
 export const WithTooltip = () => (
-  <Tag type={select('type', types, 'highlight')} tooltipText="lorem ipsum">
-    {text('children', 'Tooltip')}
-  </Tag>
+  <Tooltip title="This is some tooltip text" containerDisplayMode="inline">
+    <Tag type={select('type', types, 'highlight')}>{text('children', 'Tooltip')}</Tag>
+  </Tooltip>
 );
 WithTooltip.story = {name: 'with tooltip'};
 

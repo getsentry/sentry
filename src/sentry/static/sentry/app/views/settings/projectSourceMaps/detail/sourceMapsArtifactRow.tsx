@@ -43,12 +43,9 @@ const SourceMapsArtifactRow = ({
             <IconClock size="sm" />
             <TimeSince date={dateCreated} />
           </TimeWrapper>
-          <StyledTag
-            type={dist ? 'info' : undefined}
-            tooltipText={dist ? undefined : t('No distribution set')}
-          >
-            {dist ?? t('none')}
-          </StyledTag>
+          <Tooltip title={dist ? undefined : t('No distribution set')}>
+            <StyledTag type={dist ? 'info' : undefined}>{dist ?? t('none')}</StyledTag>
+          </Tooltip>
         </TimeAndDistWrapper>
       </NameColumn>
       <SizeColumn>
