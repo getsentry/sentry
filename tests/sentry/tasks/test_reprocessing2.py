@@ -229,7 +229,7 @@ def test_max_events(
     }
 
     with burst_task_runner() as burst:
-        reprocess_group(default_project.id, group_id, max_events=len(event_ids) / 2)
+        reprocess_group(default_project.id, group_id, max_events=len(event_ids) // 2)
 
     burst(max_jobs=100)
 
