@@ -15,7 +15,7 @@ type Props = {
 } & InputFieldProps;
 
 export default class BooleanField extends InputField<Props> {
-  coerceValue(value) {
+  coerceValue(value: any) {
     return !!value;
   }
 
