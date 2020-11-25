@@ -163,9 +163,9 @@ class VitalCard extends React.Component<Props, State> {
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
           {summary === null ? null : summary < failureThreshold ? (
-            <Tag>{t('Pass')}</Tag>
+            <StyledTag type="default">{t('Pass')}</StyledTag>
           ) : (
-            <StyledTag>{t('Fail')}</StyledTag>
+            <StyledTag type="critical">{t('Fail')}</StyledTag>
           )}
         </SummaryHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
@@ -554,22 +554,13 @@ const Indicator = styled('div')<IndicatorProps>`
   background-color: ${p => p.color};
 `;
 
-const SummaryHeading = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const StyledTag = styled(Tag)`
+  position: absolute;
+  right: ${space(3)};
 `;
 
 const Container = styled('div')`
   position: relative;
-`;
-
-const StyledTag = styled(Tag)`
-  div {
-    background-color: ${p => p.theme.red300};
-  }
-  span {
-    color: ${p => p.theme.white};
-  }
 `;
 
 function formatDuration(duration: number) {

@@ -219,34 +219,47 @@ const tag = {
   default: {
     background: colors.gray100,
     iconColor: colors.purple300,
+    textColor: colors.gray500,
   },
   promotion: {
     background: colors.orange100,
     iconColor: colors.orange400,
+    textColor: colors.gray500,
   },
   highlight: {
     background: colors.purple100,
     iconColor: colors.purple300,
+    textColor: colors.gray500,
   },
   warning: {
     background: colors.yellow100,
     iconColor: colors.yellow300,
+    textColor: colors.gray500,
   },
   success: {
     background: colors.green100,
     iconColor: colors.green300,
+    textColor: colors.gray500,
   },
   error: {
     background: colors.red100,
     iconColor: colors.red300,
+    textColor: colors.gray500,
+  },
+  critical: {
+    background: colors.red300,
+    iconColor: colors.white,
+    textColor: colors.white,
   },
   info: {
     background: colors.blue100,
     iconColor: colors.blue300,
+    textColor: colors.gray500,
   },
   white: {
     background: colors.white,
     iconColor: colors.gray500,
+    textColor: colors.gray500,
   },
 };
 
