@@ -134,7 +134,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
 
     // TODO(mark) Expand query inputs to be more complete.
-    // Currently missing is multiple fields and multiple queries.
+    // Currently missing is multiple queries and interval input.
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
