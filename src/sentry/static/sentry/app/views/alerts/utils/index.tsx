@@ -120,13 +120,18 @@ export function getIncidentDiscoverUrl(opts: {
   if (!projects || !projects.length || !incident || !stats) {
     return '';
   }
-const timeWindowString = `${incident.alertRule.timeWindow}m`;
+
+  const timeWindowString = `${incident.alertRule.timeWindow}m`;
   const {start, end} = getStartEndFromStats(stats);
 
   const discoverQuery: NewQuery = {
     id: undefined,
     name: (incident && incident.title) || '',
-    orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`, yAxis: incident.alertRule.aggregate, query: incident?.discoverQuery ?? '', projects: projects .filter(({slug}) => incident.projects.includes(slug))
+    orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
+    yAxis: incident.alertRule.aggregate,
+    query: incident?.discoverQuery ?? '',
+    projects: projects
+      .filter(({slug}) => incident.projects.includes(slug))
       .map(({id}) => Number(id)),
     version: 2,
     fields:
@@ -164,7 +169,11 @@ export const DATA_SOURCE_LABELS = {
 
 // Maps a datasource to the relevant dataset and event_types for the backend to use
 export const DATA_SOURCE_TO_SET_AND_EVENT_TYPES = {
-  [Datasource.ERROR_DEFAULT]: { dataset: Dataset.ERRORS, eventTypes: [EventTypes.ERROR, EventTypes.DEFAULT], }, [Datasource.ERROR]: {
+  [Datasource.ERROR_DEFAULT]: {
+    dataset: Dataset.ERRORS,
+    eventTypes: [EventTypes.ERROR, EventTypes.DEFAULT],
+  },
+  [Datasource.ERROR]: {
     dataset: Dataset.ERRORS,
     eventTypes: [EventTypes.ERROR],
   },
