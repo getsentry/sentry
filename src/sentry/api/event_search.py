@@ -2352,11 +2352,12 @@ def is_function(field):
 
 
 def get_function_alias(field):
-    try:
-        function, columns = parse_function(field)
-        return get_function_alias_with_columns(function, columns)
-    except InvalidSearchQuery:
+    match = FUNCTION_PATTERN.search(field)
+    if match is None:
         return field
+    function = match.group("function")
+    columns = parse_arguments(match.group("columns"))
+    return get_function_alias_with_columns(function, columns)
 
 
 def get_function_alias_with_columns(function_name, columns):
@@ -2408,15 +2409,15 @@ def parse_arguments(columns):
         elif columns[j] == ",":
             # when we see a comma outside of a quoted string
             # it is an argument separator
-            args.append(columns[i:j])
+            args.append(columns[i:j].strip())
             i = j + 1
         j += 1
 
     if i != j:
         # add in the last argument if any
-        args.append(columns[i:])
+        args.append(columns[i:].strip())
 
-    return [arg.strip() for arg in args]
+    return [arg for arg in args if arg]
 
 
 def parse_function(field, match=None, err_msg=None):

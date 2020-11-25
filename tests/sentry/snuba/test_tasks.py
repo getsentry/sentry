@@ -207,7 +207,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.conditions == [["release", "=", "latest"]]
         assert snuba_filter.aggregations == [
-            [u"quantile(0.95)", "duration", u"percentile_transaction_duration__95"]
+            [u"quantile(0.95)", "duration", u"percentile_transaction_duration_95"]
         ]
 
     def test_user_query(self):
