@@ -82,8 +82,7 @@ class IssueListFilters extends React.Component<Props> {
           <PageHeader>
             {!hasFeature && (
               <PageHeading>
-                {t('Issues')}
-                <QueryCount count={queryCount} max={queryMaxCount} />
+                {t('Issues')} <QueryCount count={queryCount} max={queryMaxCount} />
               </PageHeading>
             )}
 

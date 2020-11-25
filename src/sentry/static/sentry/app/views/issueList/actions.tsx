@@ -5,7 +5,6 @@ import uniq from 'lodash/uniq';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import ActionLink from 'app/components/actions/actionLink';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
@@ -13,6 +12,7 @@ import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
 import MenuItem from 'app/components/menuItem';
+import QueryCount from 'app/components/queryCount';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues, IconPause, IconPlay} from 'app/icons';
@@ -20,12 +20,11 @@ import {t, tct, tn} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
-import {GlobalSelection, Group, Organization, Project, ResolutionStatus} from 'app/types';
+import {GlobalSelection, Group, Project, ResolutionStatus} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
 
 const BULK_LIMIT = 1000;
 const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -143,11 +142,14 @@ const ExtraDescription = ({all, query, queryCount}: ExtraDescriptionProps) => {
   );
 };
 
-type Props = {
+const defaultProps = {
+  hasInbox: false,
+};
+
+type Props = typeof defaultProps & {
   api: Client;
   allResultsVisible: boolean;
   orgId: string;
-  organization: Organization;
   selection: GlobalSelection;
   groupIds: string[];
   onRealtimeChange: (realtime: boolean) => void;
@@ -156,6 +158,8 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
+  queryMaxCount: number;
+  pageCount: number;
 };
 
 type State = {
@@ -169,6 +173,7 @@ type State = {
 };
 
 class IssueListActions extends React.Component<Props, State> {
+  static defaultProps = defaultProps;
   state: State = {
     datePickerActive: false,
     anySelected: false,
@@ -397,24 +402,14 @@ class IssueListActions extends React.Component<Props, State> {
     );
   }
 
-  render() {
-    const {
-      allResultsVisible,
-      orgId,
-      queryCount,
-      query,
-      realtimeActive,
-      selection,
-      statsPeriod,
-      organization,
-    } = this.props;
+  renderActionSet() {
+    const {orgId, queryCount, query, realtimeActive, hasInbox} = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
     const {
       allInQuerySelected,
       anySelected,
       multiSelected,
-      pageSelected,
       selectedProjectSlug,
     } = this.state;
     const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
@@ -425,67 +420,86 @@ class IssueListActions extends React.Component<Props, State> {
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
 
     return (
-      <Sticky>
-        <StyledFlex>
-          <ActionsCheckbox>
-            <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
-          </ActionsCheckbox>
-          <ActionSet>
-            <Feature organization={organization} features={['organizations:inbox']}>
-              <div className="btn-group hidden-sm hidden-xs">
-                <StyledActionLink
-                  className="btn btn-default btn-sm action-merge"
-                  data-test-id="button-backlog"
-                  disabled={!anySelected}
-                  onAction={() => this.handleUpdate({inbox: false})}
-                  shouldConfirm={this.shouldConfirm('backlog')}
-                  message={confirm('move', false, ' to the backlog')}
-                  confirmLabel={label('backlog')}
-                  title={t('Move to backlog')}
-                >
-                  <StyledIconIssues size="xs" />
-                  {t('Backlog')}
-                </StyledActionLink>
-              </div>
-            </Feature>
-            {selectedProjectSlug ? (
-              <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
-                {({projects, initiallyLoaded, fetchError}) => {
-                  const selectedProject = projects[0];
-                  return this.renderResolveActions({
-                    hasReleases: selectedProject.hasOwnProperty('features')
-                      ? (selectedProject as Project).features.includes('releases')
-                      : false,
-                    latestRelease: selectedProject.hasOwnProperty('latestRelease')
-                      ? (selectedProject as Project).latestRelease
-                      : undefined,
-                    projectId: selectedProject.slug,
-                    confirm,
-                    label,
-                    loadingProjects: !initiallyLoaded,
-                    projectFetchError: !!fetchError,
-                  });
-                }}
-              </Projects>
-            ) : (
-              this.renderResolveActions({
-                hasReleases: false,
-                latestRelease: null,
-                projectId: null,
+      <ActionSet>
+        {hasInbox && (
+          <div className="btn-group hidden-sm hidden-xs">
+            <StyledActionLink
+              className="btn btn-default btn-sm action-backlog"
+              data-test-id="button-backlog"
+              disabled={!anySelected}
+              onAction={() => this.handleUpdate({inbox: false})}
+              shouldConfirm={this.shouldConfirm('backlog')}
+              message={confirm('move', false, ' to the backlog')}
+              confirmLabel={label('backlog')}
+              title={t('Move to backlog')}
+            >
+              <StyledIconIssues size="xs" />
+              {t('Backlog')}
+            </StyledActionLink>
+          </div>
+        )}
+        {selectedProjectSlug ? (
+          <Projects orgId={orgId} slugs={[selectedProjectSlug]}>
+            {({projects, initiallyLoaded, fetchError}) => {
+              const selectedProject = projects[0];
+              return this.renderResolveActions({
+                hasReleases: selectedProject.hasOwnProperty('features')
+                  ? (selectedProject as Project).features.includes('releases')
+                  : false,
+                latestRelease: selectedProject.hasOwnProperty('latestRelease')
+                  ? (selectedProject as Project).latestRelease
+                  : undefined,
+                projectId: selectedProject.slug,
                 confirm,
                 label,
-              })
-            )}
-            <IgnoreActions
-              onUpdate={this.handleUpdate}
-              shouldConfirm={this.shouldConfirm('ignore')}
-              confirmMessage={confirm('ignore', true)}
-              confirmLabel={label('ignore')}
-              disabled={!anySelected}
-            />
-            <div className="btn-group hidden-md hidden-sm hidden-xs">
+                loadingProjects: !initiallyLoaded,
+                projectFetchError: !!fetchError,
+              });
+            }}
+          </Projects>
+        ) : (
+          this.renderResolveActions({
+            hasReleases: false,
+            latestRelease: null,
+            projectId: null,
+            confirm,
+            label,
+          })
+        )}
+        <IgnoreActions
+          onUpdate={this.handleUpdate}
+          shouldConfirm={this.shouldConfirm('ignore')}
+          confirmMessage={confirm('ignore', true)}
+          confirmLabel={label('ignore')}
+          disabled={!anySelected}
+        />
+        <div className="btn-group hidden-md hidden-sm hidden-xs">
+          <ActionLink
+            className="btn btn-default btn-sm action-merge"
+            disabled={mergeDisabled}
+            onAction={this.handleMerge}
+            shouldConfirm={this.shouldConfirm('merge')}
+            message={confirm('merge', false)}
+            confirmLabel={label('merge')}
+            title={t('Merge Selected Issues')}
+          >
+            {t('Merge')}
+          </ActionLink>
+        </div>
+        <div className="btn-group">
+          <DropdownLink
+            key="actions"
+            caret={false}
+            className="btn btn-sm btn-default action-more"
+            title={
+              <IconPad>
+                <IconEllipsis size="xs" />
+              </IconPad>
+            }
+          >
+            <MenuItem noAnchor>
               <ActionLink
-                className="btn btn-default btn-sm action-merge"
+                className="action-merge hidden-lg hidden-xl"
                 disabled={mergeDisabled}
                 onAction={this.handleMerge}
                 shouldConfirm={this.shouldConfirm('merge')}
@@ -495,157 +509,174 @@ class IssueListActions extends React.Component<Props, State> {
               >
                 {t('Merge')}
               </ActionLink>
-            </div>
-            <div className="btn-group">
-              <DropdownLink
-                key="actions"
-                caret={false}
-                className="btn btn-sm btn-default action-more"
-                title={
-                  <IconPad>
-                    <IconEllipsis size="xs" />
-                  </IconPad>
-                }
+            </MenuItem>
+            {hasInbox && (
+              <React.Fragment>
+                <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+                <MenuItem noAnchor>
+                  <ActionLink
+                    className="action-backlog hidden-md hidden-lg hidden-xl"
+                    disabled={!anySelected}
+                    onAction={() => this.handleUpdate({inbox: false})}
+                    shouldConfirm={this.shouldConfirm('backlog')}
+                    message={confirm('move', false, ' to the backlog')}
+                    confirmLabel={label('backlog')}
+                    title={t('Move to backlog')}
+                  >
+                    {t('Move to backlog')}
+                  </ActionLink>
+                </MenuItem>
+              </React.Fragment>
+            )}
+            <MenuItem divider className="hidden-lg hidden-xl" />
+            <MenuItem noAnchor>
+              <ActionLink
+                className="action-bookmark"
+                disabled={!anySelected}
+                onAction={() => this.handleUpdate({isBookmarked: true})}
+                shouldConfirm={this.shouldConfirm('bookmark')}
+                message={confirm('bookmark', false)}
+                confirmLabel={label('bookmark')}
+                title={t('Add to Bookmarks')}
               >
-                <MenuItem noAnchor>
-                  <ActionLink
-                    className="action-merge hidden-lg hidden-xl"
-                    disabled={mergeDisabled}
-                    onAction={this.handleMerge}
-                    shouldConfirm={this.shouldConfirm('merge')}
-                    message={confirm('merge', false)}
-                    confirmLabel={label('merge')}
-                    title={t('Merge Selected Issues')}
-                  >
-                    {t('Merge')}
-                  </ActionLink>
-                </MenuItem>
-                <Feature organization={organization} features={['organizations:inbox']}>
-                  <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
-                  <MenuItem noAnchor>
-                    <ActionLink
-                      className="action-backlog hidden-md hidden-lg hidden-xl"
-                      disabled={!anySelected}
-                      onAction={() => this.handleUpdate({inbox: false})}
-                      shouldConfirm={this.shouldConfirm('backlog')}
-                      message={confirm('move', false, ' to the backlog')}
-                      confirmLabel={label('backlog')}
-                      title={t('Move to backlog')}
-                    >
-                      {t('Move to backlog')}
-                    </ActionLink>
-                  </MenuItem>
-                </Feature>
-                <MenuItem divider className="hidden-lg hidden-xl" />
-                <MenuItem noAnchor>
-                  <ActionLink
-                    className="action-bookmark"
-                    disabled={!anySelected}
-                    onAction={() => this.handleUpdate({isBookmarked: true})}
-                    shouldConfirm={this.shouldConfirm('bookmark')}
-                    message={confirm('bookmark', false)}
-                    confirmLabel={label('bookmark')}
-                    title={t('Add to Bookmarks')}
-                  >
-                    {t('Add to Bookmarks')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <ActionLink
-                    className="action-remove-bookmark"
-                    disabled={!anySelected}
-                    onAction={() => this.handleUpdate({isBookmarked: false})}
-                    shouldConfirm={this.shouldConfirm('unbookmark')}
-                    message={confirm('remove', false, ' from your bookmarks')}
-                    confirmLabel={label('remove', ' from your bookmarks')}
-                    title={t('Remove from Bookmarks')}
-                  >
-                    {t('Remove from Bookmarks')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <ActionLink
-                    className="action-unresolve"
-                    disabled={!anySelected}
-                    onAction={() =>
-                      this.handleUpdate({status: ResolutionStatus.UNRESOLVED})
-                    }
-                    shouldConfirm={this.shouldConfirm('unresolve')}
-                    message={confirm('unresolve', true)}
-                    confirmLabel={label('unresolve')}
-                    title={t('Set status to: Unresolved')}
-                  >
-                    {t('Set status to: Unresolved')}
-                  </ActionLink>
-                </MenuItem>
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <ActionLink
-                    className="action-delete"
-                    disabled={!anySelected}
-                    onAction={this.handleDelete}
-                    shouldConfirm={this.shouldConfirm('delete')}
-                    message={confirm('delete', false)}
-                    confirmLabel={label('delete')}
-                    title={t('Delete Issues')}
-                  >
-                    {t('Delete Issues')}
-                  </ActionLink>
-                </MenuItem>
-              </DropdownLink>
-            </div>
-            <div className="btn-group">
-              <Tooltip
-                title={t(
-                  '%s real-time updates',
-                  realtimeActive ? t('Pause') : t('Enable')
-                )}
+                {t('Add to Bookmarks')}
+              </ActionLink>
+            </MenuItem>
+            <MenuItem divider />
+            <MenuItem noAnchor>
+              <ActionLink
+                className="action-remove-bookmark"
+                disabled={!anySelected}
+                onAction={() => this.handleUpdate({isBookmarked: false})}
+                shouldConfirm={this.shouldConfirm('unbookmark')}
+                message={confirm('remove', false, ' from your bookmarks')}
+                confirmLabel={label('remove', ' from your bookmarks')}
+                title={t('Remove from Bookmarks')}
               >
-                <a
-                  data-test-id="realtime-control"
-                  className="btn btn-default btn-sm hidden-xs"
-                  onClick={this.handleRealtimeChange}
-                >
-                  <IconPad>
-                    {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-                  </IconPad>
-                </a>
-              </Tooltip>
-            </div>
-          </ActionSet>
-          <Feature organization={organization} features={['organizations:inbox']}>
+                {t('Remove from Bookmarks')}
+              </ActionLink>
+            </MenuItem>
+            <MenuItem divider />
+            <MenuItem noAnchor>
+              <ActionLink
+                className="action-unresolve"
+                disabled={!anySelected}
+                onAction={() => this.handleUpdate({status: ResolutionStatus.UNRESOLVED})}
+                shouldConfirm={this.shouldConfirm('unresolve')}
+                message={confirm('unresolve', true)}
+                confirmLabel={label('unresolve')}
+                title={t('Set status to: Unresolved')}
+              >
+                {t('Set status to: Unresolved')}
+              </ActionLink>
+            </MenuItem>
+            <MenuItem divider />
+            <MenuItem noAnchor>
+              <ActionLink
+                className="action-delete"
+                disabled={!anySelected}
+                onAction={this.handleDelete}
+                shouldConfirm={this.shouldConfirm('delete')}
+                message={confirm('delete', false)}
+                confirmLabel={label('delete')}
+                title={t('Delete Issues')}
+              >
+                {t('Delete Issues')}
+              </ActionLink>
+            </MenuItem>
+          </DropdownLink>
+        </div>
+        <div className="btn-group">
+          <Tooltip
+            title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
+          >
+            <a
+              data-test-id="realtime-control"
+              className="btn btn-default btn-sm hidden-xs"
+              onClick={this.handleRealtimeChange}
+            >
+              <IconPad>
+                {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+              </IconPad>
+            </a>
+          </Tooltip>
+        </div>
+      </ActionSet>
+    );
+  }
+
+  renderHeaders() {
+    const {
+      selection,
+      statsPeriod,
+      pageCount,
+      queryCount,
+      queryMaxCount,
+      hasInbox,
+    } = this.props;
+
+    return (
+      <React.Fragment>
+        {hasInbox && (
+          <React.Fragment>
+            <ActionSetPlaceholder>
+              <StyledToolbarHeader>
+                {/* total includes its own space */}
+                {tct('Select [count] of [total] issues', {
+                  count: <React.Fragment>{pageCount}</React.Fragment>,
+                  total: <QueryCount hideParens count={queryCount} max={queryMaxCount} />,
+                })}
+              </StyledToolbarHeader>
+            </ActionSetPlaceholder>
             <TimesSpacerLabel className="hidden-xs hidden-sm">
               <FirstSeenLastSeenHeader>
                 {t('Last Seen')} &nbsp;|&nbsp; {t('First Seen')}
               </FirstSeenLastSeenHeader>
             </TimesSpacerLabel>
-          </Feature>
-          <GraphHeaderWrapper className="hidden-xs hidden-sm">
-            <GraphHeader>
-              <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
-              <GraphToggle
-                active={statsPeriod === '24h'}
-                onClick={this.handleSelectStatsPeriod.bind(this, '24h')}
-              >
-                {t('24h')}
-              </GraphToggle>
-              <GraphToggle
-                active={statsPeriod === 'auto'}
-                onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
-              >
-                {selection.datetime.period || t('Custom')}
-              </GraphToggle>
-            </GraphHeader>
-          </GraphHeaderWrapper>
-          <React.Fragment>
-            <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
-            <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
           </React.Fragment>
-          <AssigneesLabel className="align-right hidden-xs hidden-sm">
-            <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-          </AssigneesLabel>
+        )}
+        <GraphHeaderWrapper className="hidden-xs hidden-sm">
+          <GraphHeader>
+            <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+            <GraphToggle
+              active={statsPeriod === '24h'}
+              onClick={this.handleSelectStatsPeriod.bind(this, '24h')}
+            >
+              {t('24h')}
+            </GraphToggle>
+            <GraphToggle
+              active={statsPeriod === 'auto'}
+              onClick={this.handleSelectStatsPeriod.bind(this, 'auto')}
+            >
+              {selection.datetime.period || t('Custom')}
+            </GraphToggle>
+          </GraphHeader>
+        </GraphHeaderWrapper>
+        <React.Fragment>
+          <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
+          <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
+        </React.Fragment>
+        <AssigneesLabel className="align-right hidden-xs hidden-sm">
+          <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
+        </AssigneesLabel>
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const {allInQuerySelected, anySelected, pageSelected} = this.state;
+    const {allResultsVisible, queryCount, hasInbox} = this.props;
+    const issues = this.state.selectedIds;
+    const numIssues = issues.size;
+
+    return (
+      <Sticky>
+        <StyledFlex>
+          <ActionsCheckbox>
+            <Checkbox onChange={this.handleSelectAll} checked={pageSelected} />
+          </ActionsCheckbox>
+          {(anySelected || !hasInbox) && this.renderActionSet()}
+          {(!anySelected || !hasInbox) && this.renderHeaders()}
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -699,6 +730,8 @@ const Sticky = styled('div')`
 
 const StyledFlex = styled('div')`
   display: flex;
+  box-sizing: border-box;
+  min-height: 45px;
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
   align-items: center;
@@ -710,10 +743,26 @@ const StyledFlex = styled('div')`
 
 const ActionsCheckbox = styled('div')`
   padding-left: ${space(2)};
+  margin-bottom: 1px;
   & input[type='checkbox'] {
     margin: 0;
     display: block;
   }
+`;
+
+const ActionSetPlaceholder = styled('div')`
+  @media (min-width: 800px) {
+    width: 66.66666666666666%;
+  }
+  @media (min-width: 992px) {
+    width: 50%;
+  }
+
+  flex: 1;
+  margin-left: ${space(1)};
+  margin-right: ${space(1)};
+  overflow: hidden;
+  min-width: 0;
 `;
 
 const ActionSet = styled('div')`
@@ -773,8 +822,6 @@ const GraphToggle = styled('a')<{active: boolean}>`
 
 const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
-  grid-auto-flow: column;
-  grid-gap: ${space(0.5)};
   align-items: center;
 
   margin-left: ${space(1.5)};
@@ -830,4 +877,4 @@ const SelectAllLink = styled('a')`
 
 export {IssueListActions};
 
-export default withApi(withOrganization(IssueListActions));
+export default withApi(IssueListActions);

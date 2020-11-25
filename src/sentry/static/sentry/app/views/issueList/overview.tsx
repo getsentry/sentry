@@ -748,16 +748,18 @@ class IssueListOverview extends React.Component<Props, State> {
                 <Panel>
                   <IssueListActions
                     orgId={organization.slug}
-                    organization={organization}
                     selection={selection}
                     query={query}
                     queryCount={queryCount}
+                    queryMaxCount={queryMaxCount}
+                    pageCount={pageCount}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
                     allResultsVisible={this.allResultsVisible()}
+                    hasInbox={hasFeature}
                   />
                   <PanelBody>
                     <ProcessingIssueList
@@ -772,10 +774,14 @@ class IssueListOverview extends React.Component<Props, State> {
                   {hasFeature && groupIds?.length > 0 && (
                     <div>
                       {/* total includes its own space */}
-                      {tct('Showing [count] of[total] issues', {
+                      {tct('Showing [count] of [total] issues', {
                         count: <React.Fragment>{pageCount}</React.Fragment>,
                         total: (
-                          <QueryCount hideParens count={queryCount} max={queryMaxCount} />
+                          <StyledQueryCount
+                            hideParens
+                            count={queryCount}
+                            max={queryMaxCount}
+                          />
                         ),
                       })}
                     </div>
@@ -864,4 +870,8 @@ const PaginationWrapper = styled('div')`
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
   margin-left: ${space(2)};
+`;
+
+const StyledQueryCount = styled(QueryCount)`
+  margin-left: 0;
 `;
