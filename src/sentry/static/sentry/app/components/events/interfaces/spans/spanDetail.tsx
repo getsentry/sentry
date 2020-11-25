@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import DateTime from 'app/components/dateTime';
 import DiscoverButton from 'app/components/discoverButton';
+import FileSize from 'app/components/fileSize';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -28,6 +29,8 @@ import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {getTraceDateTimeRange, isGapSpan, isOrphanSpan} from './utils';
+
+const SIZE_DATA = new Set(['Encoded Body Size', 'Decoded Body Size', 'Transfer Size']);
 
 type TransactionResult = {
   'project.name': string;
@@ -439,11 +442,24 @@ class SpanDetail extends React.Component<Props, State> {
                   : null}
               </Row>
               <Tags span={span} />
-              {map(span?.data ?? {}, (value, key) => (
-                <Row title={key} key={key}>
-                  {JSON.stringify(value, null, 4) || ''}
-                </Row>
-              ))}
+              {map(span?.data ?? {}, (v, k) => {
+                const key = (k as unknown) as string;
+                const value = (v as unknown) as number;
+                return (
+                  <Row title={key} key={key}>
+                    {SIZE_DATA.has(key) ? (
+                      <React.Fragment>
+                        <FileSize bytes={value} />
+                        {value >= 1024 && (
+                          <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
+                        )}
+                      </React.Fragment>
+                    ) : (
+                      JSON.stringify(value, null, 4) || ''
+                    )}
+                  </Row>
+                );
+              })}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
                   {JSON.stringify(span[key], null, 4) || ''}
