@@ -1,9 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {number, text} from '@storybook/addon-knobs';
+import {number, text, select} from '@storybook/addon-knobs';
 
 import ProgressBar from 'app/components/progressBar';
 import space from 'app/styles/space';
+import {colors} from 'app/utils/theme';
 
 export default {
   title: 'DataVisualization/Charts/ProgressBar',
@@ -27,6 +28,7 @@ export function WithTooltip() {
       <ProgressBar
         value={number('value', 50)}
         tooltipText={text('tooltipText', 'lorem ipsum')}
+        progressColor={select('progressColor', colors, colors.purple300)}
       />
     </Wrapper>
   );

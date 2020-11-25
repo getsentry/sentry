@@ -506,4 +506,4 @@ export type Aliases = typeof aliases;
 export default theme;
 
 // This should never be used directly (except in storybook)
-export {aliases};
+export {aliases, colors};
