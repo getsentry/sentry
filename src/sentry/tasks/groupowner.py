@@ -10,7 +10,7 @@ from sentry.utils.committers import get_serialized_event_file_committers
 
 
 PREFERRED_GROUP_OWNERS = 3
-PREFERRED_GROUP_OWNER_AGE = timedelta(days=10)
+PREFERRED_GROUP_OWNER_AGE = timedelta(days=1)
 
 
 @instrumented_task(
