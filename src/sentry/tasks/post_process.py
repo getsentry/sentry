@@ -211,11 +211,7 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            has_workflow_owners = features.has(
-                "projects:workflow-owners-ingestion",
-                event.project.organization,
-                project=event.project,
-            )
+            has_workflow_owners = features.has("projects:workflow-owners-ingestion", event.project,)
             if has_workflow_owners:
                 process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
 
