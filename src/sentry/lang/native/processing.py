@@ -73,15 +73,11 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
+    if symbolicated.get("addr_mode"):
+        new_frame["addr_mode"] = symbolicated["addr_mode"]
     if symbolicated.get("status"):
         frame_meta = new_frame.setdefault("data", {})
         frame_meta["symbolicator_status"] = symbolicated["status"]
-
-    # We generally do not want to retain the ingestion only "in_image" key.  This
-    # means we also throw away the information if an address is relative or absolute
-    # even though symbolicator could tell us about this.  This is acceptable for us
-    # at the moment.
-    new_frame.pop("in_image", None)
 
 
 def _handle_image_status(status, image, sdk_info, data):
@@ -289,15 +285,28 @@ def _handles_frame(data, frame):
     return is_native_platform(platform) and "instruction_addr" in frame
 
 
+def _expand_addr_mode(addr_mode, modules):
+    if addr_mode in (None, "abs"):
+        return "abs"
+    if addr_mode.startswith("rel:"):
+        arg = addr_mode[4:]
+
+        for idx, module in enumerate(modules):
+            if module.get("debug_id") == arg:
+                return "rel:%d" % idx
+
+        if arg.isdigit():
+            return addr_mode
+
+    # This is wrong but we want to set the addr mode to abs if somone
+    # sends a bad mode.
+    return "abs"
+
+
 def frame_to_symbolicator_frame(frame, modules):
     rv = dict(frame)
 
-    in_image = rv.pop("in_image", None)
-    if in_image:
-        for idx, module in enumerate(modules):
-            if module["debug_id"] == in_image:
-                rv["addr_base_module"] = idx
-                break
+    rv["addr_mode"] = _expand_addr_mode(rv.get("addr_mode"), modules)
 
     return rv
 
