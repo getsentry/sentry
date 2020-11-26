@@ -17,7 +17,7 @@ jobs:
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.6.10
+          python-version: 2.7.17
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
@@ -34,6 +34,8 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
+        with:
+          python: 2
 
       - name: Check if a migration is required
         env:
