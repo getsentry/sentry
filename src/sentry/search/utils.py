@@ -449,6 +449,8 @@ def parse_query(projects, query, user, environments):
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == "assigned":
                 results["assigned_to"] = parse_actor_value(projects, value, user)
+            elif key == "owner":
+                results["owner"] = parse_actor_value(projects, value, user)
             elif key == "bookmarks":
                 results["bookmarked_by"] = parse_user_value(value, user)
             elif key == "subscribed":
