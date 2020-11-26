@@ -66,8 +66,6 @@ type ResponseProcessors = {
 
 type DataKey = keyof ResponseProcessors;
 
-type Version = '1' | '2';
-
 type ResultsAsArrayDataMerged = Array<Parameters<ResponseProcessors['merged']>[0]>;
 
 type ResultsAsArrayDataSimilar = Array<Parameters<ResponseProcessors['similar']>[0]>;
