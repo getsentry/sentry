@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
-from sentry.models import Project
+from sentry.models import Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task
 from sentry.utils.committers import get_serialized_event_file_committers
@@ -60,27 +60,33 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
             can_process = False
 
     if can_process:
-        committers = get_serialized_event_file_committers(project, event)
-        # TODO(Chris F.) We would like to store this commit information so that we can get perf gains
-        # and synced information on the Issue details page.
-        # There are issues with this...like mutable commits and commits coming in after events.
-        for committer in committers:
-            if "id" in committer["author"]:
-                owner_id = committer["author"]["id"]
-                go, created = GroupOwner.objects.update_or_create(
-                    group_id=event.group_id,
-                    type=GroupOwnerType.SUSPECT_COMMIT.value,
-                    user_id=owner_id,
-                    project=project,
-                    organization_id=project.organization_id,
-                    defaults={
-                        "date_added": timezone.now()
-                    },  # Updates date of an existing owner, since we just matched them with this new event,
-                )
-                if created and oldest_owner is not None:
-                    oldest_owner.delete()
-            else:
-                # TODO(Chris F.) We actually need to store and display these too, somehow. In the future.
-                pass
+        try:
+            committers = get_serialized_event_file_committers(project, event)
+            # TODO(Chris F.) We would like to store this commit information so that we can get perf gains
+            # and synced information on the Issue details page.
+            # There are issues with this...like mutable commits and commits coming in after events.
+            for committer in committers:
+                if "id" in committer["author"]:
+                    owner_id = committer["author"]["id"]
+                    go, created = GroupOwner.objects.update_or_create(
+                        group_id=event.group_id,
+                        type=GroupOwnerType.SUSPECT_COMMIT.value,
+                        user_id=owner_id,
+                        project=project,
+                        organization_id=project.organization_id,
+                        defaults={
+                            "date_added": timezone.now()
+                        },  # Updates date of an existing owner, since we just matched them with this new event,
+                    )
+                    if created and oldest_owner is not None:
+                        oldest_owner.delete()
+                else:
+                    # TODO(Chris F.) We actually need to store and display these too, somehow. In the future.
+                    pass
+        except Release.DoesNotExist:
+            logger.info(
+                "process_suspect_commits.skipped",
+                extra={"cache_key": cache_key, "reason": "no_release"},
+            )
 
     event_processing_store.delete_by_key(cache_key)
