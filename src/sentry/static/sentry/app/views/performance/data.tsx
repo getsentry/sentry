@@ -158,7 +158,7 @@ export function generatePerformanceVitalDetailView(
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
-    name: t('Performance'),
+    name: t('Vitals Performance Details'),
     query: 'event.type:transaction',
     projects: [],
     fields: [

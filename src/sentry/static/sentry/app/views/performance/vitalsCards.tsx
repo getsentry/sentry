@@ -44,19 +44,17 @@ export default function VitalsCards(props: Props) {
       location={location}
     >
       {({isLoading, tableData}) => (
-        <React.Fragment>
-          <VitalsContainer>
-            {shownVitals.map(vitalName => (
-              <LinkedVitalsCard
-                key={vitalName}
-                vitalName={vitalName}
-                tableData={tableData}
-                isLoading={isLoading}
-                {...props}
-              />
-            ))}
-          </VitalsContainer>
-        </React.Fragment>
+        <VitalsContainer>
+          {shownVitals.map(vitalName => (
+            <LinkedVitalsCard
+              key={vitalName}
+              vitalName={vitalName}
+              tableData={tableData}
+              isLoading={isLoading}
+              {...props}
+            />
+          ))}
+        </VitalsContainer>
       )}
     </VitalsCardsDiscoverQuery>
   );
