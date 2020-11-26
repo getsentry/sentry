@@ -40,7 +40,7 @@ type State = {
 };
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
-    dashboardState: 'default',
+    dashboardState: 'view',
     changesDashboard: undefined,
   };
 
@@ -77,7 +77,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
   onCancel = () => {
     this.setState({
-      dashboardState: 'default',
+      dashboardState: 'view',
       changesDashboard: undefined,
     });
   };
@@ -116,7 +116,7 @@ class DashboardDetail extends React.Component<Props, State> {
               // redirect to new dashboard
 
               this.setState({
-                dashboardState: 'default',
+                dashboardState: 'view',
                 changesDashboard: undefined,
               });
 
@@ -138,7 +138,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
           if (isEqual(dashboard, changesDashboard)) {
             this.setState({
-              dashboardState: 'default',
+              dashboardState: 'view',
               changesDashboard: undefined,
             });
             return;
@@ -148,7 +148,7 @@ class DashboardDetail extends React.Component<Props, State> {
             addSuccessMessage(t('Dashboard updated'));
 
             this.setState({
-              dashboardState: 'default',
+              dashboardState: 'view',
               changesDashboard: undefined,
             });
 
@@ -159,15 +159,15 @@ class DashboardDetail extends React.Component<Props, State> {
         }
 
         this.setState({
-          dashboardState: 'default',
+          dashboardState: 'view',
           changesDashboard: undefined,
         });
         break;
       }
-      case 'default':
+      case 'view':
       default: {
         this.setState({
-          dashboardState: 'default',
+          dashboardState: 'view',
           changesDashboard: undefined,
         });
         break;
