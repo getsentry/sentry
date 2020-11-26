@@ -61,8 +61,6 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
-  /** >=1 group is in the inbox and should display the reason or a placeholder */
-  hasInboxReason?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -153,7 +151,7 @@ class StreamGroup extends React.Component<Props, State> {
 
     const queryTerms: string[] = [];
 
-    if (isFiltered && query) {
+    if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj)
         if (!DiscoveryExclusionFields.includes(queryTag)) {
@@ -216,7 +214,6 @@ class StreamGroup extends React.Component<Props, State> {
       statsPeriod,
       selection,
       organization,
-      hasInboxReason,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -249,12 +246,18 @@ class StreamGroup extends React.Component<Props, State> {
           mr={1}
           flex="1"
         >
-          <EventOrGroupHeader includeLink data={data} query={query} size="normal" />
-          <EventOrGroupExtraDetails data={data} />
+          <EventOrGroupHeader
+            organization={organization}
+            includeLink
+            data={data}
+            query={query}
+            size="normal"
+          />
+          <EventOrGroupExtraDetails organization={organization} data={data} />
         </GroupSummary>
         {hasInbox && (
           <ReasonAndTimesContainer className="hidden-xs hidden-sm">
-            {hasInboxReason && data.inbox && (
+            {data.inbox && (
               <InboxReasonWrapper>
                 <InboxReason inbox={data.inbox} />
               </InboxReasonWrapper>

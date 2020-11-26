@@ -586,7 +586,6 @@ class IssueListOverview extends React.Component<Props, State> {
   renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
     const topIssue = ids[0];
     const {memberList} = this.state;
-    const hasInboxReason = ids.some(id => !!GroupStore.get(id)?.inbox);
 
     const groupNodes = ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -604,7 +603,6 @@ class IssueListOverview extends React.Component<Props, State> {
           query={this.getQuery()}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
-          hasInboxReason={hasInboxReason}
           useFilteredStats
         />
       );

@@ -23,9 +23,10 @@ from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 # `~/.sentry/config.yml` and run `sentry devservices up`
 
 
+@pytest.mark.snuba
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
+    def initialize(self, live_server, reset_snuba):
         self.project.update_option("sentry:builtin_symbol_sources", [])
         new_prefix = live_server.url
 
@@ -136,7 +137,6 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
     def test_reprocessing(self):
-        pytest.skip("Temporarily disabled due to prod problem")
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
         with self.feature(
@@ -156,16 +156,11 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             with BurstTaskRunner() as burst:
                 reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
 
-            burst()
+            burst(max_jobs=100)
 
-            (new_event,) = eventstore.get_events(
-                eventstore.Filter(
-                    project_ids=[self.project.id],
-                    conditions=[["tags[original_event_id]", "=", event.event_id]],
-                )
-            )
+            new_event = eventstore.get_event_by_id(self.project.id, event.event_id)
             assert new_event is not None
-            assert new_event.event_id != event.event_id
+            assert new_event.event_id == event.event_id
 
         insta_snapshot_stacktrace_data(self, new_event.data, subname="reprocessed")
 

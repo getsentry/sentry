@@ -8,7 +8,7 @@ import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
 import {PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import {IconLock} from 'app/icons';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -153,7 +153,7 @@ const LockedFeature = ({provider, features, className}) => (
       />
     }
   >
-    <Tag icon={<IconLock size="xs" />}>disabled</Tag>
+    <Tag icon={<IconLock />}>{t('disabled')}</Tag>
   </DisabledHovercard>
 );
 
