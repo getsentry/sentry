@@ -874,8 +874,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0]["count_sub_customer_is-Enterprise-42"] == 1
-        assert data[1]["count_sub_customer_is-Enterprise-42"] == 3
+        assert data[0]["count_sub_customer_is_Enterprise_42"] == 1
+        assert data[1]["count_sub_customer_is_Enterprise_42"] == 3
 
     def test_aggregation_comparison(self):
         project = self.create_project()

@@ -1417,7 +1417,7 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
     return snuba_json
 
 
-FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
+FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>.*)\)$")
 ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
 
 
@@ -1498,7 +1498,18 @@ class CountColumn(FunctionArg):
 
 
 class StringArg(FunctionArg):
+    def __init__(self, name, unquote=False, unescape_quotes=False):
+        super(StringArg, self).__init__(name)
+        self.unquote = unquote
+        self.unescape_quotes = unescape_quotes
+
     def normalize(self, value, params):
+        if self.unquote:
+            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
+                raise InvalidFunctionArgument("string should be quoted")
+            value = value[1:-1]
+        if self.unescape_quotes:
+            value = re.sub(r'\\"', '"', value)
         return u"'{}'".format(value)
 
 
@@ -2303,7 +2314,7 @@ FUNCTIONS = {
             "to_other",
             required_args=[
                 ColumnNoLookup("column", allowed_columns=["release"]),
-                StringArg("value"),
+                StringArg("value", unquote=True, unescape_quotes=True),
             ],
             optional_args=[
                 with_default("that", StringArg("that")),
@@ -2344,12 +2355,13 @@ def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
-    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
-    return get_function_alias_with_columns(match.group("function"), columns)
+    function = match.group("function")
+    columns = parse_arguments(function, match.group("columns"))
+    return get_function_alias_with_columns(function, columns)
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = "_".join(columns).replace(".", "_")
+    columns = re.sub("[^\w]", "_", "_".join(columns))
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
@@ -2363,17 +2375,68 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_function(field, match=None):
+def parse_arguments(function, columns):
+    """
+    The to_other function takes a quoted string for one of its arguments
+    that may contain commas, so it requires special handling.
+    """
+    if function != "to_other":
+        return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
+
+    args = []
+
+    quoted = False
+    escaped = False
+
+    i, j = 0, 0
+
+    while j < len(columns):
+        if i == j and columns[j] == '"':
+            # when we see a quote at the beginning of
+            # an argument, then this is a quoted string
+            quoted = True
+        elif quoted and not escaped and columns[j] == "\\":
+            # when we see a slash inside a quoted string,
+            # the next character is an escape character
+            escaped = True
+        elif quoted and not escaped and columns[j] == '"':
+            # when we see a non-escaped quote while inside
+            # of a quoted string, we should end it
+            quoted = False
+        elif quoted and escaped:
+            # when we are inside a quoted string and have
+            # begun an escape character, we should end it
+            escaped = False
+        elif quoted and columns[j] == ",":
+            # when we are inside a quoted string and see
+            # a comma, it should not be considered an
+            # argument separator
+            pass
+        elif columns[j] == ",":
+            # when we see a comma outside of a quoted string
+            # it is an argument separator
+            args.append(columns[i:j].strip())
+            i = j + 1
+        j += 1
+
+    if i != j:
+        # add in the last argument if any
+        args.append(columns[i:].strip())
+
+    return [arg for arg in args if arg]
+
+
+def parse_function(field, match=None, err_msg=None):
     if not match:
-        match = FUNCTION_PATTERN.search(field)
+        match = is_function(field)
 
     if not match or match.group("function") not in FUNCTIONS:
-        raise InvalidSearchQuery(u"{} is not a valid function".format(field))
+        if err_msg is None:
+            err_msg = u"{} is not a valid function".format(field)
+        raise InvalidSearchQuery(err_msg)
 
-    return (
-        match.group("function"),
-        [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0],
-    )
+    function = match.group("function")
+    return function, parse_arguments(function, match.group("columns"))
 
 
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")

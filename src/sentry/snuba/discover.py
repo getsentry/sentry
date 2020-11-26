@@ -17,6 +17,7 @@ from sentry.api.event_search import (
     get_json_meta_type,
     is_function,
     InvalidSearchQuery,
+    parse_function,
     resolve_field_list,
 )
 
@@ -76,11 +77,9 @@ def is_real_column(col):
 # calculate the entire bucket width. If we could do that in a smarter way,
 # we could avoid this whole calculation.
 def find_histogram_buckets(field, params, conditions):
-    match = is_function(field)
-    if not match:
-        raise InvalidSearchQuery(u"received {}, expected histogram function".format(field))
-
-    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
+    _, columns = parse_function(
+        field, err_msg=u"received {}, expected histogram function".format(field)
+    )
 
     if len(columns) != 2:
         raise InvalidSearchQuery(
