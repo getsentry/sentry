@@ -351,8 +351,6 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView(vitalName);
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = [];
-
     return (
       <div>
         <DiscoverQuery
@@ -382,7 +380,6 @@ class Table extends React.Component<Props, State> {
                     tableData,
                     vitalName
                   ) as any,
-                  prependColumnWidths,
                 }}
                 location={location}
               />

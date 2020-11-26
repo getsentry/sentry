@@ -148,15 +148,12 @@ export function generatePerformanceEventView(
 }
 
 export function generatePerformanceVitalDetailView(
-  organization: LightWeightOrganization,
+  _organization: LightWeightOrganization,
   location: Location
 ): EventView {
   const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
-
-  const keyTransactionsFeature = organization.features.includes('key-transactions');
-  const keyTransactionFields = keyTransactionsFeature ? ['key_transaction'] : [];
 
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
@@ -165,7 +162,6 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      ...keyTransactionFields,
       'transaction',
       'project',
       'count_unique(user)',
