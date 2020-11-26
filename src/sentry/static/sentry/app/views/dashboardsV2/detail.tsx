@@ -44,7 +44,7 @@ class DashboardDetail extends React.Component<Props, State> {
     changesDashboard: undefined,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State) {
+  static getDerivedStateFromProps(props: Props, state: State): State {
     if (state.changesDashboard && state.changesDashboard.type === 'org') {
       const {params} = props;
       const dashboardId = params.dashboardId as string | undefined;
@@ -52,7 +52,7 @@ class DashboardDetail extends React.Component<Props, State> {
       if (typeof dashboardId === 'string' && state.changesDashboard.id !== dashboardId) {
         return {
           ...state,
-          dashboardState: 'default',
+          dashboardState: 'view',
           changesDashboard: undefined,
         };
       }

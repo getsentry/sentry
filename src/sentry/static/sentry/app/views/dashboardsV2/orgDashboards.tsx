@@ -31,7 +31,7 @@ type Props = {
 
 type State = {
   // endpoint response
-  orgDashboards: OrgDashboardResponse[] | null;
+  dashboards: OrgDashboardResponse[] | null;
 } & AsyncComponent['state'];
 
 class OrgDashboards extends AsyncComponent<Props, State> {
@@ -43,7 +43,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     errors: [],
 
     // endpoint response
-    orgDashboards: [],
+    dashboards: [],
   };
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -51,17 +51,17 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     const url = `/organizations/${organization.slug}/dashboards/`;
 
-    return [['orgDashboards', url]];
+    return [['dashboards', url]];
   }
 
   getOrgDashboards(): OrgDashboard[] {
-    const {orgDashboards} = this.state;
+    const {dashboards} = this.state;
 
-    if (!Array.isArray(orgDashboards)) {
+    if (!Array.isArray(dashboards)) {
       return [];
     }
 
-    return orgDashboards.map(dashboard => {
+    return dashboards.map(dashboard => {
       return {
         type: 'org',
         ...dashboard,
@@ -84,13 +84,13 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   getDashboardsList(): DashboardListItem[] {
-    const {orgDashboards} = this.state;
+    const {dashboards} = this.state;
 
-    if (!Array.isArray(orgDashboards)) {
+    if (!Array.isArray(dashboards)) {
       return PREBUILT_DASHBOARDS;
     }
 
-    const normalizedOrgDashboards: OrgDashboard[] = orgDashboards.map(dashboard => {
+    const normalizedOrgDashboards: OrgDashboard[] = dashboards.map(dashboard => {
       return {
         type: 'org',
         ...dashboard,
