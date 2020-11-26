@@ -1,11 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
-import Tag from 'app/components/tagDeprecated';
-import Tooltip from 'app/components/tooltip';
+import Tag from 'app/components/tag';
 import {IconCheckmark, IconClose} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 const FEATURE_TOOLTIPS = {
   symtab: t(
@@ -27,48 +26,24 @@ type Props = {
   available?: boolean;
 };
 
-const DebugFileFeature = ({available, feature}: Props) => {
-  let icon: React.ReactNode = null;
-
+const DebugFileFeature = ({available = true, feature}: Props) => {
+  const tooltipText = FEATURE_TOOLTIPS[feature];
   if (available === true) {
-    icon = (
-      <IconWrapper>
-        <IconCheckmark size="sm" color="green300" />
-      </IconWrapper>
-    );
-  } else if (available === false) {
-    icon = (
-      <IconWrapper>
-        <IconClose size="sm" color="red300" />
-      </IconWrapper>
+    return (
+      <StyledTag type="success" tooltipText={tooltipText} icon={<IconCheckmark />}>
+        {feature}
+      </StyledTag>
     );
   }
 
   return (
-    <Tooltip title={FEATURE_TOOLTIPS[feature]}>
-      <Tag inline>
-        {icon}
-        {feature}
-      </Tag>
-    </Tooltip>
+    <StyledTag type="error" tooltipText={tooltipText} icon={<IconClose />}>
+      {feature}
+    </StyledTag>
   );
 };
-
-DebugFileFeature.defaultProps = {
-  available: true,
-};
-
-DebugFileFeature.propTypes = {
-  available: PropTypes.bool,
-  feature: PropTypes.oneOf(Object.keys(FEATURE_TOOLTIPS)).isRequired,
-};
-
-DebugFileFeature.defaultProps = {
-  available: true,
-};
-
-const IconWrapper = styled('span')`
-  margin-right: 1ex;
-`;
-
 export default DebugFileFeature;
+
+const StyledTag = styled(Tag)`
+  margin-left: ${space(1)};
+`;
