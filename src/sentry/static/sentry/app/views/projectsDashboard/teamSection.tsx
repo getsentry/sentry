@@ -72,7 +72,7 @@ const ProjectCards = styled('div')`
 
 const TeamSectionWrapper = styled('div')<{showBorder: boolean}>`
   border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.border : 0)};
-  padding: 0 ${space(4)} ${space(4)};
+  padding: 0 ${space(4)};
 `;
 
 const TeamTitleBar = styled('div')`
