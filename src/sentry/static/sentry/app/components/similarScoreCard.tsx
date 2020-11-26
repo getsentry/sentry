@@ -35,7 +35,8 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
   return (
     <React.Fragment>
       {scoreList.map(([key, score]) => {
-        const title = scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
+        const title =
+          scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
 
         if (!title) {
           if (score !== null) {
@@ -55,8 +56,8 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
 
       {numOtherScores > 0 && sumOtherScores > 0 && (
         <Wrapper key="other">
-          <div>{t("Other")}</div>
-          <Score score={Math.round(sumOtherScores * 4 / numOtherScores)} />
+          <div>{t('Other')}</div>
+          <Score score={Math.round((sumOtherScores * 4) / numOtherScores)} />
         </Wrapper>
       )}
     </React.Fragment>
