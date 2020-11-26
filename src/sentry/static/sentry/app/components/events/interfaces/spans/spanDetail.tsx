@@ -472,7 +472,7 @@ class SpanDetail extends React.Component<Props, State> {
                   The following sizes were not collected for security reasons. Check if
                   the host serves the appropriate
                   <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
-                    <span className="val-string">Timine-Allow-Origin</span>
+                    <span className="val-string">Timing-Allow-Origin</span>
                   </ExternalLink>
                   header. You may have to enable this collection manually.
                 </TextTr>
