@@ -2356,7 +2356,7 @@ def get_function_alias(field):
     if match is None:
         return field
     function = match.group("function")
-    columns = parse_arguments(match.group("columns"))
+    columns = parse_arguments(function, match.group("columns"))
     return get_function_alias_with_columns(function, columns)
 
 
@@ -2376,7 +2376,14 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(columns):
+def parse_arguments(function, columns):
+    """
+    The to_other function takes a quoted string for one of its arguments
+    that may contain commas, so it requires special handling.
+    """
+    if function != "to_other":
+        return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
+
     args = []
 
     quoted = False
@@ -2429,7 +2436,8 @@ def parse_function(field, match=None, err_msg=None):
             err_msg = u"{} is not a valid function".format(field)
         raise InvalidSearchQuery(err_msg)
 
-    return match.group("function"), parse_arguments(match.group("columns"))
+    function = match.group("function")
+    return function, parse_arguments(function, match.group("columns"))
 
 
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")

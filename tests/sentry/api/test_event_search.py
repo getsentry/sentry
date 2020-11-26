@@ -2938,6 +2938,16 @@ class ResolveFieldListTest(unittest.TestCase):
             "this": "'this'",
         }
 
+    def test_to_other_validation(self):
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(["to_other(release,a)"], eventstore.Filter())
+
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(['to_other(release,"a)'], eventstore.Filter())
+
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(['to_other(release,a")'], eventstore.Filter())
+
     def test_failure_count_function(self):
         fields = ["failure_count()"]
         result = resolve_field_list(fields, eventstore.Filter())
