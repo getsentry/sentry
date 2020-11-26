@@ -26,7 +26,7 @@ export type OrgDashboard = {
 
 export type DashboardListItem = PrebuiltDashboard | OrgDashboard;
 
-export type DashboardState = 'default' | 'edit' | 'create';
+export type DashboardState = 'view' | 'edit' | 'create';
 
 // POST response when creating a new dashboard
 export type OrgDashboardResponse = {
