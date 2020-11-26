@@ -2881,24 +2881,24 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
 
-        assert functions["to_other_release_r"].instance.name == "to_other"
-        assert functions["to_other_release_r"].arguments == {
+        assert functions["to_other_release__r"].instance.name == "to_other"
+        assert functions["to_other_release__r"].arguments == {
             "column": "release",
             "value": "'r'",
             "that": "'that'",
             "this": "'this'",
         }
 
-        assert functions["to_other_release_r_a"].instance.name == "to_other"
-        assert functions["to_other_release_r_a"].arguments == {
+        assert functions["to_other_release__r__a"].instance.name == "to_other"
+        assert functions["to_other_release__r__a"].arguments == {
             "column": "release",
             "value": "'r'",
             "that": "'a'",
             "this": "'this'",
         }
 
-        assert functions["to_other_release_r_a_b"].instance.name == "to_other"
-        assert functions["to_other_release_r_a_b"].arguments == {
+        assert functions["to_other_release__r__a_b"].instance.name == "to_other"
+        assert functions["to_other_release__r__a_b"].arguments == {
             "column": "release",
             "value": "'r'",
             "that": "'a'",
@@ -2914,24 +2914,27 @@ class ResolveFieldListTest(unittest.TestCase):
         result = resolve_field_list(fields, eventstore.Filter())
         functions = result["functions"]
 
-        assert functions["to_other_release_release_version_1_2_3_4"].instance.name == "to_other"
-        assert functions["to_other_release_release_version_1_2_3_4"].arguments == {
+        assert functions["to_other_release__release_version_1_2_3_4"].instance.name == "to_other"
+        assert functions["to_other_release__release_version_1_2_3_4"].arguments == {
             "column": "release",
             "value": "'release.version@1.2.3+4'",
             "that": "'that'",
             "this": "'this'",
         }
 
-        assert functions["to_other_release_release_spaces_symbols"].instance.name == "to_other"
-        assert functions["to_other_release_release_spaces_symbols"].arguments == {
+        assert (
+            functions["to_other_release__release_____spaces________symbols"].instance.name
+            == "to_other"
+        )
+        assert functions["to_other_release__release_____spaces________symbols"].arguments == {
             "column": "release",
             "value": "'release +-  spaces   &    symbols :'",
             "that": "'that'",
             "this": "'this'",
         }
 
-        assert functions["to_other_release_release_using_quotes"].instance.name == "to_other"
-        assert functions["to_other_release_release_using_quotes"].arguments == {
+        assert functions["to_other_release__release__using_quotes"].instance.name == "to_other"
+        assert functions["to_other_release__release__using_quotes"].arguments == {
             "column": "release",
             "value": "'release\"using'quotes'",
             "that": "'that'",

@@ -1324,7 +1324,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def test_top_events_with_to_other(self):
         version = "version -@'\" 1.2,3+(4)"
         version_escaped = "version -@'\\\" 1.2,3+(4)"
-        version_alias = "version_1_2_3_4"
+        # every symbol is replaced with a underscore to make the alias
+        version_alias = "version_______1_2_3__4_"
 
         # add an event in the current release
         event = self.event_data[0]
@@ -1341,7 +1342,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
                     "yAxis": "count()",
-                    "orderby": ["-to_other_release_{}_others_current".format(version_alias)],
+                    # the double underscores around the version alias is because of a comma and quote
+                    "orderby": ["-to_other_release__{}__others_current".format(version_alias)],
                     "field": [
                         "count()",
                         'to_other(release,"{}",others,current)'.format(version_escaped),

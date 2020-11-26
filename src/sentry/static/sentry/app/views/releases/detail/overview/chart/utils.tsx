@@ -38,14 +38,15 @@ export function getReleaseEventView(
   const {start, end, period} = datetime;
   const releaseFilter = currentOnly ? `release:${version}` : '';
   const toOther = `to_other(release,"${escapeDoubleQuotes(version)}",others,current)`;
+  // this orderby ensures that the order is [others, current]
+  const toOtherAlias = getAggregateAlias(toOther);
 
   const baseQuery: Omit<NewQuery, 'query'> = {
     id: undefined,
     version: 2,
     name: `${t('Release')} ${formatVersion(version)}`,
     fields: [`count()`, toOther],
-    // this orderby ensures that the order is [others, current]
-    orderby: getAggregateAlias(toOther),
+    orderby: toOtherAlias,
     range: period,
     environment: environments,
     projects,
