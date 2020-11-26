@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import classNames from 'classnames';
-import {Manager, Reference, Popper, PopperProps} from 'react-popper';
-import styled from '@emotion/styled';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {keyframes} from '@emotion/core';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -312,5 +312,5 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   }
 `;
 
-export {Hovercard, Body};
+export {Body, Hovercard};
 export default Hovercard;

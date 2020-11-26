@@ -827,7 +827,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
-            sort_by="date", limit=10, query="is:unresolved", collapse="stats"
+            sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
         )
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -899,10 +899,33 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
+    def test_collapse_base(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", collapse=["base"]
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "title" not in response.data[0]
+        assert "hasSeen" not in response.data[0]
+        assert "stats" in response.data[0]
+        assert "firstSeen" in response.data[0]
+        assert "lastSeen" in response.data[0]
+        assert "count" in response.data[0]
+        assert "lifetime" in response.data[0]
+        assert "filtered" in response.data[0]
+
     def test_has_unhandled_flag_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
-        with self.feature("organizations:unhandled-issue-flag"):
+        with self.feature(["organizations:unhandled-issue-flag", "organizations:inbox"]):
             self.test_collapse_stats()
 
 

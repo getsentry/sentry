@@ -1,18 +1,18 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
-import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
-import SentryTypes from 'app/sentryTypes';
+import {PanelItem} from 'app/components/panels';
+import Tag from 'app/components/tag';
 import {IconLock} from 'app/icons';
-import Tag from 'app/components/tagDeprecated';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import {descopeFeatureName} from 'app/utils';
 
 export default class ProviderItem extends React.PureComponent {
@@ -153,7 +153,7 @@ const LockedFeature = ({provider, features, className}) => (
       />
     }
   >
-    <Tag icon={<IconLock size="xs" />}>disabled</Tag>
+    <Tag icon={<IconLock />}>{t('disabled')}</Tag>
   </DisabledHovercard>
 );
 

@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingMask from 'app/components/loadingMask';
+import {Panel, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';

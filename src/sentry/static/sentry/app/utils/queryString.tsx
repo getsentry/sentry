@@ -1,6 +1,6 @@
-import * as queryString from 'query-string';
-import parseurl from 'parseurl';
 import isString from 'lodash/isString';
+import parseurl from 'parseurl';
+import * as queryString from 'query-string';
 
 import {escapeDoubleQuotes} from 'app/utils';
 

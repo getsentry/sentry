@@ -361,6 +361,12 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
+@click.option(
+    "--force-offset-reset",
+    default=None,
+    type=click.Choice(["earliest", "latest"]),
+    help="Force subscriptions to start from a particular offset",
+)
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
@@ -371,6 +377,7 @@ def query_subscription_consumer(**options):
         topic=options["topic"],
         commit_batch_size=options["commit_batch_size"],
         initial_offset_reset=options["initial_offset_reset"],
+        force_offset_reset=options["force_offset_reset"],
     )
 
     def handler(signum, frame):

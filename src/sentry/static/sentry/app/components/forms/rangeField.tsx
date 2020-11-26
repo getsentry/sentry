@@ -1,6 +1,6 @@
+import ReactDOM from 'react-dom';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
-import ReactDOM from 'react-dom';
 
 import InputField from 'app/components/forms/inputField';
 

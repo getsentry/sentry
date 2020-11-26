@@ -1,13 +1,13 @@
-import debounce from 'lodash/debounce';
 import React from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
-import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
+import {Client} from 'app/api';
 import SelectControl from 'app/components/forms/selectControl';
-import {Tag, TagValue} from 'app/types';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Tag, TagValue} from 'app/types';
 
 import {TagValueLoader} from './types';
 

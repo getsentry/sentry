@@ -1,16 +1,16 @@
 import {
-  IconInfo,
-  IconWarning,
-  IconLocation,
-  IconUser,
-  IconRefresh,
-  IconFix,
   IconFire,
-  IconTerminal,
-  IconStack,
+  IconFix,
+  IconInfo,
+  IconLocation,
   IconMobile,
-  IconSwitch,
+  IconRefresh,
   IconSpan,
+  IconStack,
+  IconSwitch,
+  IconTerminal,
+  IconUser,
+  IconWarning,
 } from 'app/icons';
 import {t} from 'app/locale';
 

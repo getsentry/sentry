@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
+import {Panel} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 
 import MergedItem from './mergedItem';

@@ -1,10 +1,10 @@
 import React from 'react';
 
 import {Client} from 'app/api';
+import ConfigStore from 'app/stores/configStore';
 import {Organization, Project, Team, TeamWithProjects} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 import getProjectsByTeams from 'app/utils/getProjectsByTeams';
-import ConfigStore from 'app/stores/configStore';
 
 import {metric} from './analytics';
 

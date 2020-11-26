@@ -5,23 +5,23 @@
  * Also displays 2fa method specific details.
  */
 import React from 'react';
-import styled from '@emotion/styled';
 import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import DateTime from 'app/components/dateTime';
-import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';
-import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
-import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Authenticator} from 'app/types';
+import AsyncView from 'app/views/asyncView';
+import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';
+import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import U2fEnrolledDetails from 'app/views/settings/account/accountSecurity/components/u2fEnrolledDetails';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/authenticators/';
 

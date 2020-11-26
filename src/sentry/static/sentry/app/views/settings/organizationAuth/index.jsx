@@ -2,9 +2,9 @@ import React from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import SentryTypes from 'app/sentryTypes';
 import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 

@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Card from 'app/components/card';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import {User} from 'app/types';
-import Card from 'app/components/card';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   title?: string;

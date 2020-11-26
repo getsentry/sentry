@@ -1,6 +1,6 @@
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import GuideStore from 'app/stores/guideStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 jest.mock('app/utils/analytics');
 

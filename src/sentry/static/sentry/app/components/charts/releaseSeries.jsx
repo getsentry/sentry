@@ -1,20 +1,21 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
+import partition from 'lodash/partition';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
-import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {escape} from 'app/utils';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
+import {formatVersion} from 'app/utils/formatters';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {escape} from 'app/utils';
-import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
@@ -55,6 +56,7 @@ class ReleaseSeries extends React.Component {
     queryExtra: PropTypes.object,
 
     memoized: PropTypes.bool,
+    emphasizeReleases: PropTypes.arrayOf(PropTypes.string),
   };
 
   state = {
@@ -145,13 +147,26 @@ class ReleaseSeries extends React.Component {
   }
 
   setReleasesWithSeries(releases) {
+    const {emphasizeReleases = []} = this.props;
+    const [unemphasizedReleases, emphasizedReleases] = partition(
+      releases,
+      release => !emphasizeReleases.includes(release.version)
+    );
+    const releaseSeries = [];
+    if (unemphasizedReleases.length) {
+      releaseSeries.push(this.getReleaseSeries(unemphasizedReleases));
+    }
+    if (emphasizedReleases.length) {
+      releaseSeries.push(this.getReleaseSeries(emphasizedReleases, 0.8));
+    }
+
     this.setState({
       releases,
-      releaseSeries: [this.getReleaseSeries(releases)],
+      releaseSeries,
     });
   }
 
-  getReleaseSeries = releases => {
+  getReleaseSeries = (releases, opacity = 0.3) => {
     const {organization, router, tooltip, queryExtra} = this.props;
 
     const query = {...queryExtra};
@@ -167,7 +182,7 @@ class ReleaseSeries extends React.Component {
         lineStyle: {
           normal: {
             color: theme.purple300,
-            opacity: 0.3,
+            opacity,
             type: 'solid',
           },
         },

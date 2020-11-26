@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import congratsRobotsPlaceholder from 'app/../images/spot/congrats-robots-placeholder.jpg';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 const Placeholder = () => (

@@ -98,8 +98,10 @@ def handle_owner_assignment(project, group, event):
 
 def update_existing_attachments(event):
     """
-    Attaches the group_id to all event attachments that were ingested prior to
-    the event via the standalone attachment endpoint.
+    Attaches the group_id to all event attachments that were either:
+
+    1) ingested prior to the event via the standalone attachment endpoint.
+    2) part of a different group before reprocessing started.
     """
     from sentry.models import EventAttachment
 
@@ -134,18 +136,9 @@ def post_process_group(
             project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
         )
 
-        if is_reprocessed_event(event.data):
-            logger.info(
-                "post_process.skipped",
-                extra={
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                    "reason": "reprocessed",
-                },
-            )
-            return
-
         set_current_project(event.project_id)
+
+        is_reprocessed = is_reprocessed_event(event.data)
 
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
@@ -165,23 +158,27 @@ def post_process_group(
         # renormalize when loading old data from the database.
         event.data = EventDict(event.data, skip_renormalization=True)
 
-        if event.group_id:
-            # Re-bind Group since we're reading the Event object
-            # from cache, which may contain a stale group and project
-            event.group, _ = get_group_with_redirect(event.group_id)
-            event.group_id = event.group.id
-
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         event.project = Project.objects.get_from_cache(id=event.project_id)
         event.project._organization_cache = Organization.objects.get_from_cache(
             id=event.project.organization_id
         )
+
+        if event.group_id:
+            # Re-bind Group since we're reading the Event object
+            # from cache, which may contain a stale group and project
+            event.group, _ = get_group_with_redirect(event.group_id)
+            event.group_id = event.group.id
+
+            event.group.project = event.project
+            event.group.project._organization_cache = event.project._organization_cache
+
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
 
-        if event.group_id:
+        if event.group_id and not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
             has_reappeared = False if is_new else process_snoozes(event.group)
@@ -229,9 +226,6 @@ def post_process_group(
                     action="created", sender="Group", instance_id=event.group_id
                 )
 
-            # Patch attachments that were ingested on the standalone path.
-            update_existing_attachments(event)
-
             from sentry.plugins.base import plugins
 
             for plugin in plugins.for_project(event.project):
@@ -239,12 +233,22 @@ def post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
 
-        event_processed.send_robust(
-            sender=post_process_group,
-            project=event.project,
-            event=event,
-            primary_hash=kwargs.get("primary_hash"),
-        )
+            from sentry import similarity
+
+            safe_execute(similarity.record, event.project, [event])
+
+        if event.group_id:
+            # Patch attachments that were ingested on the standalone path.
+            update_existing_attachments(event)
+
+        if not is_reprocessed:
+            event_processed.send_robust(
+                sender=post_process_group,
+                project=event.project,
+                event=event,
+                primary_hash=kwargs.get("primary_hash"),
+            )
+
         with metrics.timer("tasks.post_process.delete_event_cache"):
             event_processing_store.delete_by_key(cache_key)
 

@@ -1,23 +1,23 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {withRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import Button from 'app/components/button';
+import TextField from 'app/components/forms/textField';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {MEMBER_ROLES} from 'app/constants';
 import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import SentryTypes from 'app/sentryTypes';
-import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import TextField from 'app/components/forms/textField';
 import TeamSelect from 'app/views/settings/components/teamSelect';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import RoleSelect from './roleSelect';
 

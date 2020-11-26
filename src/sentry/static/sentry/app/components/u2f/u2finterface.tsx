@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import u2f from 'u2f-api';
 import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
+import u2f from 'u2f-api';
 
-import ConfigStore from 'app/stores/configStore';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 
 type ChallengeData = {
   authenticateRequests: u2f.SignRequest;

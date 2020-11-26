@@ -1,33 +1,33 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
+import {browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
   removeProject,
   transferProject,
 } from 'app/actionCreators/projects';
-import {fields} from 'app/data/forms/projectGeneralSettings';
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
+import ProjectActions from 'app/actions/projectActions';
+import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import Field from 'app/views/settings/components/forms/field';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import ProjectActions from 'app/actions/projectActions';
+import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
+import {fields} from 'app/data/forms/projectGeneralSettings';
+import {t, tct} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import TextField from 'app/views/settings/components/forms/textField';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
-import AlertLink from 'app/components/alertLink';
+import AsyncView from 'app/views/asyncView';
+import Field from 'app/views/settings/components/forms/field';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import TextField from 'app/views/settings/components/forms/textField';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 class ProjectGeneralSettings extends AsyncView {
   static propTypes = {

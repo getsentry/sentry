@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {IconInfo} from 'app/icons';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import {IconInfo} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = {
   multi?: boolean;
