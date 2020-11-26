@@ -8,6 +8,7 @@ import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
+import Panel from 'app/components/panels/panel';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tn} from 'app/locale';
@@ -209,17 +210,14 @@ const HeaderRow = styled('div')`
   align-items: center;
 `;
 
-const StyledProjectCard = styled('div')`
-  background-color: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
+const StyledProjectCard = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  line-height: 1.5;
 `;
 
 const LoadingCard = styled('div')`
-  border: 1px solid transparent;
-  background-color: ${p => p.theme.backgroundSecondary};
-  height: 334px;
+  min-height: 344px;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
