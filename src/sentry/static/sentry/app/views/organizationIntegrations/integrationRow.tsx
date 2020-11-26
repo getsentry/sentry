@@ -183,6 +183,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   }
 `;
 
+// TODO(Priscila): Replace this component with the Tag component
 const CategoryTag = styled(
   ({
     priority: _priority,

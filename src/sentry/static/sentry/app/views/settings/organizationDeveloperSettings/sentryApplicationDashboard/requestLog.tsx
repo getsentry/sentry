@@ -12,12 +12,11 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'app/types';
-import {Theme} from 'app/utils/theme';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
@@ -78,17 +77,17 @@ const getEventTypes = memoize((app: SentryApp) => {
 });
 
 const ResponseCode = ({code}: {code: number}) => {
-  let priority: keyof Theme['alert'] = 'error';
+  let type: React.ComponentProps<typeof Tag>['type'] = 'error';
   if (code <= 399 && code >= 300) {
-    priority = 'warning';
+    type = 'warning';
   } else if (code <= 299 && code >= 100) {
-    priority = 'success';
+    type = 'success';
   }
 
   return (
-    <div>
-      <Tag priority={priority}>{code === 0 ? 'timeout' : code}</Tag>
-    </div>
+    <Tags>
+      <StyledTag type={type}>{code === 0 ? 'timeout' : code}</StyledTag>
+    </Tags>
   );
 };
 
@@ -357,4 +356,13 @@ const StyledErrorsOnlyButton = styled(Button)`
 const StyledIconOpen = styled(IconOpen)`
   margin-left: 6px;
   color: ${p => p.theme.subText};
+`;
+
+const Tags = styled('div')`
+  margin: -${space(0.5)};
+`;
+
+const StyledTag = styled(Tag)`
+  padding: ${space(0.5)};
+  display: inline-flex;
 `;

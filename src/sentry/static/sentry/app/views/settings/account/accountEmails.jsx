@@ -7,7 +7,7 @@ import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import accountEmailsFields from 'app/data/forms/accountEmails';
 import {IconDelete, IconStack} from 'app/icons';
 import {t} from 'app/locale';
@@ -51,8 +51,8 @@ class EmailRow extends React.Component {
       <EmailItem>
         <EmailTags>
           {email}
-          {!isVerified && <Tag priority="warning">{t('Unverified')}</Tag>}
-          {isPrimary && <Tag priority="success">{t('Primary')}</Tag>}
+          {!isVerified && <Tag type="warning">{t('Unverified')}</Tag>}
+          {isPrimary && <Tag type="success">{t('Primary')}</Tag>}
         </EmailTags>
         <ButtonBar gap={1}>
           {!isPrimary && isVerified && (

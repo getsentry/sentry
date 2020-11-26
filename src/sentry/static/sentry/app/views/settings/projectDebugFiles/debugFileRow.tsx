@@ -7,7 +7,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import FileSize from 'app/components/fileSize';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'app/icons';
@@ -69,25 +69,30 @@ const DebugFileRow = ({
             : objectName}
         </Name>
         <Description>
-          {symbolType === 'proguard' && cpuName === 'any'
-            ? t('proguard mapping')
-            : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
+          <DescriptionText>
+            {symbolType === 'proguard' && cpuName === 'any'
+              ? t('proguard mapping')
+              : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
+          </DescriptionText>
 
-          {features &&
-            features.map(feature => (
-              <Tooltip key={feature} title={getFeatureTooltip(feature)}>
-                <Tag inline>{feature}</Tag>
-              </Tooltip>
-            ))}
+          {features && (
+            <FeatureTags>
+              {features.map(feature => (
+                <StyledTag key={feature} tooltipText={getFeatureTooltip(feature)}>
+                  {feature}
+                </StyledTag>
+              ))}
+            </FeatureTags>
+          )}
           {showDetails && (
-            <Details>
+            <div>
               {/* there will be more stuff here in the future */}
               {codeId && (
                 <DetailsItem>
                   {t('Code ID')}: {codeId}
                 </DetailsItem>
               )}
-            </Details>
+            </div>
           )}
         </Description>
       </Column>
@@ -138,6 +143,21 @@ const DebugFileRow = ({
     </React.Fragment>
   );
 };
+
+const DescriptionText = styled('span')`
+  display: inline-flex;
+  margin: 0 ${space(1)} ${space(1)} 0;
+`;
+
+const FeatureTags = styled('div')`
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin: -${space(0.5)};
+`;
+
+const StyledTag = styled(Tag)`
+  padding: ${space(0.5)};
+`;
 
 const Column = styled('div')`
   display: flex;
@@ -191,8 +211,6 @@ const Description = styled('div')`
     line-height: 1.7;
   }
 `;
-
-const Details = styled('div')``;
 
 const DetailsItem = styled('div')`
   ${overflowEllipsis}
