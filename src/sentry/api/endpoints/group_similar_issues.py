@@ -47,7 +47,7 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
                 group_scores.append(scores)
 
         serialized_groups = {
-            g["id"]: g
+            int(g["id"]): g
             for g in serialize(
                 list(Group.objects.get_many_from_cache(group_ids)), user=request.user
             )
@@ -65,6 +65,6 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
                 # unexpected behavior, but still possible.)
                 continue
 
-            results.append((group, scores))
+            results.append((group, {_fix_label(k): v for k, v in scores.items()}))
 
         return Response(results)
