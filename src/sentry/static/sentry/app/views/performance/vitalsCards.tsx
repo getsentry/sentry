@@ -2,15 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import space from 'app/styles/space';
-import EventView from 'app/utils/discover/eventView';
-import {Organization} from 'app/types';
 import Card from 'app/components/card';
-import {formatPercentage} from 'app/utils/formatters';
-import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
-import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {formatPercentage} from 'app/utils/formatters';
+import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {
   vitalAbbreviations,

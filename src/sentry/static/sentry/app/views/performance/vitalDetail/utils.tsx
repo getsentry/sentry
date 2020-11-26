@@ -1,8 +1,8 @@
-import {Query, Location} from 'history';
+import {Location, Query} from 'history';
 
+import {Series} from 'app/types/echarts';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {Series} from 'app/types/echarts';
 
 import {WEB_VITAL_DETAILS} from '../transactionVitals/constants';
 

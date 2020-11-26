@@ -3,32 +3,31 @@ import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
 import {Location} from 'history';
 
-import {OrganizationSummary} from 'app/types';
 import {Client} from 'app/api';
-import {t} from 'app/locale';
-import LineChart from 'app/components/charts/lineChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import MarkLine from 'app/components/charts/components/markLine';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import TransitionChart from 'app/components/charts/transitionChart';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
-import QuestionTooltip from 'app/components/questionTooltip';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
-import {IconWarning} from 'app/icons';
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import EventView from 'app/utils/discover/eventView';
-import withApi from 'app/utils/withApi';
-import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
-import getDynamicText from 'app/utils/getDynamicText';
 import {Panel} from 'app/components/panels';
+import QuestionTooltip from 'app/components/questionTooltip';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import styled from 'app/styled';
 import space from 'app/styles/space';
-import MarkLine from 'app/components/charts/components/markLine';
+import {OrganizationSummary} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
+import EventView from 'app/utils/discover/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
+import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
-import {getMaxOfSeries, vitalChartTitleMap, vitalNameFromLocation} from './utils';
 import {HeaderTitleLegend} from '../styles';
 import {WEB_VITAL_DETAILS} from '../transactionVitals/constants';
 import {
@@ -36,6 +35,8 @@ import {
   replaceSmoothedSeriesName,
   transformEventStatsSmoothed,
 } from '../trends/utils';
+
+import {getMaxOfSeries, vitalChartTitleMap, vitalNameFromLocation} from './utils';
 
 const QUERY_KEYS = [
   'environment',
