@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
 import PageHeading from 'app/components/pageHeading';
@@ -19,47 +19,70 @@ type RouteParams = {
 };
 
 type Props = RouteComponentProps<RouteParams, {}> & {
-  api: Client;
   organization: Organization;
   project: Project;
   hasMetricAlerts: boolean;
-} & AsyncView['props'];
+};
 
 type State = {
-  alertType: string;
-} & AsyncView['state'];
+  alertName: string;
+};
 
-class ProjectAlertsEditor extends AsyncView<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      alertType: '',
-    };
+class ProjectAlertsEditor extends React.Component<Props, State> {
+  state = {
+    alertName: '',
+  };
+
+  componentDidMount() {
+    this.waitForInput();
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {location, params, organization, project} = this.props;
-    if (location.pathname.includes('/alerts/metric-rules/')) {
-      return [
-        ['endpoint', `/organizations/${organization.slug}/alert-rules/${params.ruleId}/`],
-      ];
+  getAlertName() {
+    const alertName = document
+      .querySelector<HTMLInputElement>('input[name="name"]')!
+      .getAttribute('value');
+    if (alertName) {
+      this.setState({
+        alertName,
+      });
     } else {
-      return [
-        [
-          'endpoint',
-          `/projects/${organization.slug}/${project.slug}/rules/${params.ruleId}/`,
-        ],
-      ];
+      setTimeout(this.getAlertName.bind(this), 0);
+    }
+    return null;
+  }
+
+  getMetricName() {
+    const alertName = document.body.querySelector<HTMLInputElement>(
+      'input[label="Rule Name"]'
+    );
+    if (alertName) {
+      this.setState({
+        alertName: alertName.value,
+      });
+    } else {
+      setTimeout(this.getMetricName.bind(this), 0);
+    }
+    return null;
+  }
+
+  waitForInput() {
+    const alertType = location.pathname.includes('/alerts/metric-rules/')
+      ? 'metric'
+      : 'issue';
+    if (alertType === 'metric') {
+      this.getMetricName();
+    } else {
+      this.getAlertName();
     }
   }
 
   render() {
-    const {hasMetricAlerts, location, params, organization, project} = this.props;
-    const name = this.state.remainingRequests === 0 ? this.state.endpoint.name : '';
-    const {projectId} = params;
+    const {hasMetricAlerts, params, location, organization, project} = this.props;
     const alertType = location.pathname.includes('/alerts/metric-rules/')
       ? 'metric'
       : 'issue';
+    const name = this.state ? this.state.alertName : '';
+    const {projectId} = params;
 
     const title = t(`Edit Alert Rule: ${name}`);
 
@@ -91,4 +114,4 @@ const StyledPageHeader = styled(PageHeader)`
   margin-bottom: ${space(4)};
 `;
 
-export default withApi(ProjectAlertsEditor);
+export default ProjectAlertsEditor;
