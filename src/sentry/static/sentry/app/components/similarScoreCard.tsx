@@ -11,7 +11,7 @@ const scoreComponents = {
   'message:message:character-shingles': t('Log Message'),
 
   // v2
-  'similarity:*:value:character-5-shingle': t('Exception Type'),
+  'similarity:*:type:character-5-shingle': t('Exception Type'),
   'similarity:*:value:character-5-shingle': t('Exception Message'),
   'similarity:*:stacktrace:frames-pairs': t('Stack Trace Frames'),
   'similarity:*:message:character-5-shingle': t('Log Message'),

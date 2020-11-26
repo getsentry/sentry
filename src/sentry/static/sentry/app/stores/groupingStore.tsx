@@ -97,7 +97,6 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     toFetchArray?: Array<{
       dataKey: DataKey;
       endpoint: string;
-      version?: Version;
       queryParams?: Record<string, any>;
     }>
   ) => Promise<any>;
@@ -213,7 +212,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   // Fetches data
   onFetch(toFetchArray) {
     const requests = toFetchArray || this.toFetchArray;
-    const version = toFetchArray?.[0]?.version;
 
     // Reset state and trigger update
     this.init();
