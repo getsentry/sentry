@@ -185,7 +185,6 @@ def post_process_group(
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
-
         if event.group_id:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
@@ -211,7 +210,7 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            has_workflow_owners = features.has("projects:workflow-owners-ingestion", event.project,)
+            has_workflow_owners = features.has("projects:workflow-owners-ingestion", event.project)
             if has_workflow_owners:
                 process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
 
@@ -255,7 +254,7 @@ def post_process_group(
             primary_hash=kwargs.get("primary_hash"),
         )
 
-        if not has_workflow_owners or not group_id:
+        if not group_id or not has_workflow_owners:
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 event_processing_store.delete_by_key(cache_key)
 
