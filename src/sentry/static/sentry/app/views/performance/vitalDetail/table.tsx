@@ -129,6 +129,23 @@ class Table extends React.Component<Props, State> {
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
+
+    if (field === getVitalDetailTableStatusFunction(vitalName)) {
+      if (dataRow[getAggregateAlias(field)]) {
+        return (
+          <UniqueTagCell>
+            <StyledTag>{t('Fail')}</StyledTag>
+          </UniqueTagCell>
+        );
+      } else {
+        return (
+          <UniqueTagCell>
+            <Tag>{t('Pass')}</Tag>
+          </UniqueTagCell>
+        );
+      }
+    }
+
     const fieldRenderer = getFieldRenderer(field, tableMeta);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
@@ -146,22 +163,6 @@ class Table extends React.Component<Props, State> {
           <StyledUserIcon size="20" />
         </UniqueUserCell>
       );
-    }
-
-    if (field === getVitalDetailTableStatusFunction(vitalName)) {
-      if (dataRow[getAggregateAlias(field)]) {
-        return (
-          <UniqueTagCell>
-            <StyledTag>{t('Fail')}</StyledTag>
-          </UniqueTagCell>
-        );
-      } else {
-        return (
-          <UniqueTagCell>
-            <Tag>{t('Pass')}</Tag>
-          </UniqueTagCell>
-        );
-      }
     }
 
     if (field === 'transaction') {
