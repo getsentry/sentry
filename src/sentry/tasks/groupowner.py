@@ -13,7 +13,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task
 from sentry.utils.committers import get_serialized_event_file_committers
 
-PREFERRED_GROUP_OWNERS = 2  # Setting it to 2 to limit data stored while testing.
+PREFERRED_GROUP_OWNERS = 3
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=1)
 
 logger = logging.getLogger("tasks.groupowner")
@@ -27,7 +27,6 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
         return
 
     can_process = True
-
     data = event_processing_store.get(cache_key)
     if not data:
         logger.info(
@@ -39,7 +38,6 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
     )
-
     project = Project.objects.get_from_cache(id=event.project_id)
     owners = GroupOwner.objects.filter(
         group_id=event.group_id,
