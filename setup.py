@@ -4,6 +4,9 @@ from __future__ import absolute_import
 import os
 import sys
 
+if os.environ.get("SENTRY_PYTHON2") == "1" and sys.version_info[:2] != (2, 7):
+    sys.exit("Error: Sentry [In DEPRECATED Python 2 mode] requires Python 2.7.")
+
 if os.environ.get("SENTRY_PYTHON2") != "1" and sys.version_info[:2] != (3, 6):
     sys.exit("Error: Sentry requires Python 3.6.")
 
