@@ -27,7 +27,6 @@ import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from '../transactionSummary/utils';
-
 import {
   getVitalDetailTableStatusFunction,
   vitalAbbreviations,
@@ -352,7 +351,7 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView(vitalName);
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = ['max-content'];
+    const prependColumnWidths = [];
 
     return (
       <div>
