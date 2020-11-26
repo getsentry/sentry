@@ -8,6 +8,7 @@ import Alert from 'app/components/alert';
 import DateTime from 'app/components/dateTime';
 import DiscoverButton from 'app/components/discoverButton';
 import FileSize from 'app/components/fileSize';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -469,8 +470,11 @@ class SpanDetail extends React.Component<Props, State> {
               {allZeroSizes && (
                 <TextTr>
                   The following sizes were not collected for security reasons. Check if
-                  this host serves <span className="val-string">timing-allow-origin</span>
-                  for your domain. You may have to enable this collection manually.
+                  the host serves the appropriate
+                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
+                    <span className="val-string">Timine-Allow-Origin</span>
+                  </ExternalLink>
+                  header. You may have to enable this collection manually.
                 </TextTr>
               )}
               {map(sizeKeys, (value, key) => (
