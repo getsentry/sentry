@@ -106,7 +106,7 @@ export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
 };
 
 export function getMaxOfSeries(series: Series[]) {
-  let max = Number.MIN_VALUE;
+  let max = -Infinity;
   for (const {data} of series) {
     for (const point of data) {
       max = Math.max(max, point.value);
