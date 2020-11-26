@@ -36,6 +36,8 @@ class DashboardWidgetSerializer(Serializer):
             "id": six.text_type(obj.id),
             "title": obj.title,
             "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
+            # Default value until a backfill can be done.
+            "interval": six.text_type(obj.interval or "5m"),
             "dateCreated": obj.date_added,
             "dashboardId": six.text_type(obj.dashboard_id),
             "queries": attrs["queries"],
@@ -50,7 +52,6 @@ class DashboardWidgetQuerySerializer(Serializer):
             "name": obj.name,
             "fields": obj.fields,
             "conditions": six.text_type(obj.conditions),
-            "interval": six.text_type(obj.interval),
             "widgetId": six.text_type(obj.widget_id),
         }
 
@@ -80,7 +81,6 @@ class DashboardWithWidgetsSerializer(Serializer):
         data = {
             "id": six.text_type(obj.id),
             "title": obj.title,
-            "organization": six.text_type(obj.organization.id),
             "dateCreated": obj.date_added,
             "createdBy": six.text_type(obj.created_by.id),
             "widgets": attrs["widgets"],
