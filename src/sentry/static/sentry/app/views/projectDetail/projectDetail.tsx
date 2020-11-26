@@ -21,6 +21,7 @@ import AsyncView from 'app/views/asyncView';
 
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
+import ProjectQuickLinks from './projectQuickLinks';
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
 
@@ -122,6 +123,11 @@ class ProjectDetail extends AsyncView<Props, State> {
                   organization={organization}
                   projectSlug={params.projectId}
                   projectId={project?.id}
+                  location={location}
+                />
+                <ProjectQuickLinks
+                  organization={organization}
+                  project={project}
                   location={location}
                 />
               </Layout.Side>

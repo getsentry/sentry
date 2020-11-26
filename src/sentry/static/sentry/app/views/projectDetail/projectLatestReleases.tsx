@@ -93,7 +93,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     const {lastDeploy, dateCreated} = release;
 
     return (
-      <React.Fragment>
+      <React.Fragment key={release.version}>
         <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
         <TextOverflow>
           <StyledVersion

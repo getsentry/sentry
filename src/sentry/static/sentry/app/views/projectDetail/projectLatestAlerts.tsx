@@ -136,24 +136,22 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
     if (!hasAlertRule) {
       return (
-        <div>
-          <StyledButtonBar gap={1}>
-            <CreateAlertButton
-              organization={organization}
-              iconProps={{size: 'xs'}}
-              size="small"
-              priority="primary"
-              referrer="project_detail"
-              projectSlug={projectSlug}
-              hideIcon
-            >
-              {t('Create Alert Rule')}
-            </CreateAlertButton>
-            <Button size="small" external href={DOCS_URL}>
-              {t('Learn More')}
-            </Button>
-          </StyledButtonBar>
-        </div>
+        <StyledButtonBar gap={1}>
+          <CreateAlertButton
+            organization={organization}
+            iconProps={{size: 'xs'}}
+            size="small"
+            priority="primary"
+            referrer="project_detail"
+            projectSlug={projectSlug}
+            hideIcon
+          >
+            {t('Create Alert Rule')}
+          </CreateAlertButton>
+          <Button size="small" external href={DOCS_URL}>
+            {t('Learn More')}
+          </Button>
+        </StyledButtonBar>
       );
     }
 
