@@ -66,6 +66,33 @@ h6 {
   font-size: 1.4rem;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+table,
+dl,
+blockquote,
+form,
+pre,
+.auto-select-text,
+.section,
+[class^='highlight-'] {
+  margin-bottom: 20px;
+}
+
+p,
+ul,
+ol,
+blockquote {
+  line-height: 1.5;
+}
+
 dl {
   margin-top: 0; // Remove browser default
   margin-bottom: @line-height-computed;
@@ -86,8 +113,7 @@ dd {
 
 ul,
 ol {
-  margin-top: 0;
-  margin-bottom: (@line-height-computed / 2);
+  margin: 0 0 20px;
   padding: 0 0 0 20px;
 
   ul,
@@ -97,22 +123,11 @@ ol {
 }
 
 p,
-pre {
-  margin: 0 0 20px;
-}
-
-ul,
-ol {
-  margin: 0 0 20px;
-}
-
-p,
 ul,
 ol,
 blockquote {
   padding-top: 0;
   margin-top: 0;
-  line-height: 1.5;
 }
 
 input,

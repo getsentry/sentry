@@ -9,7 +9,6 @@ import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -179,7 +178,6 @@ const TypeCard = styled(Card)`
   cursor: pointer;
   padding: ${space(4)};
   margin-bottom: ${space(3)};
-  ${textStyles};
 `;
 
 export default TypeChooser;

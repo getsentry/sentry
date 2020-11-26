@@ -6,7 +6,6 @@ import PropTypes from 'prop-types';
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
-import textStyles from 'app/styles/text';
 import {AvatarUser} from 'app/types';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
@@ -181,7 +180,6 @@ const ActivityFooter = styled(HeaderAndFooter)`
 
 const ActivityBody = styled('div')`
   padding: ${space(2)} ${space(2)};
-  ${textStyles}
 `;
 
 const StyledActivityAvatar = styled(ActivityAvatar)`
