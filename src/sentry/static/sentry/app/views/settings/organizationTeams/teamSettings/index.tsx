@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -10,32 +11,29 @@ import teamSettingsFields from 'app/data/forms/teamSettingsFields';
 import {IconDelete} from 'app/icons';
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {Scope, Team} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import FormModel from 'app/views/settings/components/forms/model';
 
 import TeamModel from './model';
 
-export default class TeamSettings extends AsyncView {
-  static propTypes = {
-    ...AsyncView.propTypes,
-    team: PropTypes.object.isRequired,
-    onTeamChange: PropTypes.func.isRequired,
-  };
+type Props = {
+  team: Team;
+} & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
+type State = AsyncView['state'];
+
+export default class TeamSettings extends AsyncView<Props, State> {
   static contextTypes = {
+    router: PropTypes.object,
     location: PropTypes.object,
     organization: SentryTypes.Organization,
   };
 
-  constructor(props, context) {
-    super(props, context);
-
-    this.model = new TeamModel();
-    this.model.teamId = props.params.teamId;
-    this.model.orgId = props.params.orgId;
-  }
+  model = new TeamModel(this.props.params.orgId, this.props.params.teamId);
 
   getTitle() {
     return 'Team Settings';
@@ -45,7 +43,7 @@ export default class TeamSettings extends AsyncView {
     return [];
   }
 
-  handleSubmitSuccess = (resp, model, id) => {
+  handleSubmitSuccess = (resp: any, model: FormModel, id?: string) => {
     updateTeamSuccess(resp.slug, resp);
     if (id === 'slug') {
       addSuccessMessage(t('Team name changed'));
@@ -65,7 +63,7 @@ export default class TeamSettings extends AsyncView {
     const {location, organization} = this.context;
     const {team} = this.props;
 
-    const access = new Set(organization.access);
+    const access = new Set<Scope>(organization.access);
 
     return (
       <React.Fragment>
