@@ -113,7 +113,7 @@ def create_incident(
                 )
 
         create_incident_activity(
-            incident, IncidentActivityType.DETECTED, user=user, date_added=date_detected
+            incident, IncidentActivityType.DETECTED, user=user, date_added=date_started
         )
         create_incident_activity(incident, IncidentActivityType.CREATED, user=user)
         analytics.record(

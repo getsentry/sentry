@@ -123,7 +123,7 @@ class CreateIncidentTest(TestCase):
             IncidentActivity.objects.filter(
                 incident=incident,
                 type=IncidentActivityType.DETECTED.value,
-                date_added=date_detected,
+                date_added=date_started,
             ).count()
             == 1
         )
