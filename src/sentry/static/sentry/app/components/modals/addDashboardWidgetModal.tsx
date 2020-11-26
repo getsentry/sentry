@@ -40,6 +40,7 @@ type Props = ModalRenderProps & {
 type State = {
   title: string;
   displayType: Widget['displayType'];
+  interval: Widget['interval'];
   queries: Widget['queries'];
 };
 
