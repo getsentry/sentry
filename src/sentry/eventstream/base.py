@@ -28,6 +28,8 @@ class EventStream(Service):
         "end_unmerge",
         "start_delete_tag",
         "end_delete_tag",
+        "tombstone_events",
+        "exclude_groups",
         "requires_post_process_forwarder",
         "run_post_process_forwarder",
     )
@@ -93,6 +95,12 @@ class EventStream(Service):
         pass
 
     def end_delete_tag(self, state):
+        pass
+
+    def tombstone_events(self, project_id, event_ids):
+        pass
+
+    def exclude_groups(self, project_id, group_ids):
         pass
 
     def requires_post_process_forwarder(self):
