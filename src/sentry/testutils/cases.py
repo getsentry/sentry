@@ -959,19 +959,16 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "name": "Anonymous Users",
             "fields": ["count()"],
             "conditions": "!has:user.email",
-            "interval": "1d",
         }
         self.known_users_query = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
             "conditions": "has:user.email",
-            "interval": "1d",
         }
         self.geo_errors_query = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
             "conditions": "has:geo.country_code",
-            "interval": "1d",
         }
 
     def assert_widget_queries(self, widget_id, data):

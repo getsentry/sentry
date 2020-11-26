@@ -40,6 +40,7 @@ type Props = ModalRenderProps & {
 type State = {
   title: string;
   displayType: Widget['displayType'];
+  interval: Widget['interval'];
   queries: Widget['queries'];
 };
 
@@ -53,13 +54,13 @@ const newQuery = {
   name: '',
   fields: ['count()'],
   conditions: '',
-  interval: '5m',
 };
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   state: State = {
     title: '',
     displayType: 'line',
+    interval: '5m',
     queries: [{...newQuery}],
   };
 

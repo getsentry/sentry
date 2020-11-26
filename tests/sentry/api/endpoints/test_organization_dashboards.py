@@ -25,7 +25,6 @@ class OrganizationDashboardsTest(APITestCase):
 
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == six.text_type(dashboard.id)
-        assert data["organization"] == six.text_type(dashboard.organization.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"] == six.text_type(dashboard.created_by.id)
 
