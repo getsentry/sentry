@@ -136,8 +136,13 @@ const valueSuggestions: Array<SourceSuggestion> = [
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$attachments',
+    value: '$attachments.**',
     description: t('all attachments'),
+  },
+  {
+    type: SourceSuggestionType.VALUE,
+    value: "$attachments.'logfile.txt'",
+    description: t('all attachments named "logfile.txt"'),
   },
   {
     type: SourceSuggestionType.VALUE,
@@ -146,22 +151,17 @@ const valueSuggestions: Array<SourceSuggestion> = [
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$heap_memory',
+    value: '$minidump.heap_memory',
     description: t('the heap memory region in a native crash report'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$stack_memory',
-    description: t('the stack memory region in a native crash report'),
-  },
-  {
-    type: SourceSuggestionType.VALUE,
-    value: 'code_module',
+    value: 'code_file',
     description: t('the pathname of a code module in a native crash report'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'debug_module',
+    value: 'debug_file',
     description: t('the pathname of a debug module in a native crash report'),
   },
 ];
