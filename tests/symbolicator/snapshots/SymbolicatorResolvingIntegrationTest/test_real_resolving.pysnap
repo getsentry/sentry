@@ -1,5 +1,5 @@
 ---
-created: '2020-07-23T19:33:42.975020Z'
+created: '2020-11-25T16:18:47.387213Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -19,6 +19,7 @@ debug_meta:
     image_size: 4096
     image_vmaddr: '0x100000000'
     type: macho
+    unwind_status: unused
   sdk_info:
     sdk_name: macOS
     version_major: 10

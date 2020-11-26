@@ -1,5 +1,5 @@
 ---
-created: '2020-07-23T19:33:18.859595Z'
+created: '2020-11-25T16:18:30.887175Z'
 creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
@@ -26,6 +26,7 @@ debug_meta:
     image_addr: '0x2a0000'
     image_size: 36864
     type: symbolic
+    unwind_status: unused
 errors: []
 exception:
   values:

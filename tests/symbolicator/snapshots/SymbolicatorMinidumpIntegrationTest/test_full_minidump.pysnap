@@ -1,5 +1,5 @@
 ---
-created: '2020-11-17T16:59:10.116713Z'
+created: '2020-11-26T10:30:55.150297Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -13,7 +13,7 @@ contexts:
     version: 10.0.14393
 debug_meta:
   images:
-  - arch: x86
+  - arch: x86_64
     code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
     code_id: 5ab380779000
     debug_file: C:\projects\breakpad-tools\windows\Release\crash.pdb
@@ -23,16 +23,16 @@ debug_meta:
       has_debug_info: true
       has_sources: false
       has_symbols: true
-      has_unwind_info: true
+      has_unwind_info: false
     image_addr: '0x2a0000'
     image_size: 36864
     type: pe
-    unwind_status: found
+    unwind_status: missing
   - code_file: C:\Windows\System32\dbghelp.dll
     code_id: 57898e12145000
     debug_file: dbghelp.pdb
     debug_id: 9c2a902b-6fdf-40ad-8308-588a41d572a0-1
-    debug_status: unused
+    debug_status: missing
     features:
       has_debug_info: false
       has_sources: false
@@ -74,7 +74,7 @@ debug_meta:
     code_id: 57898dab25000
     debug_file: dbgcore.pdb
     debug_id: aec7ef2f-df4b-4642-a471-4c3e5fe8760a-1
-    debug_status: unused
+    debug_status: missing
     features:
       has_debug_info: false
       has_sources: false
@@ -83,7 +83,7 @@ debug_meta:
     image_addr: '0x70b70000'
     image_size: 151552
     type: pe
-    unwind_status: unused
+    unwind_status: missing
   - code_file: C:\Windows\System32\VCRUNTIME140.dll
     code_id: 589abc7714000
     debug_file: vcruntime140.i386.pdb
@@ -200,7 +200,7 @@ debug_meta:
     code_id: 5a49bb75c1000
     debug_file: wrpcrt4.pdb
     debug_id: ae131c67-27a7-4fa1-9916-b5a4aef41190-1
-    debug_status: unused
+    debug_status: missing
     features:
       has_debug_info: false
       has_sources: false
@@ -209,7 +209,7 @@ debug_meta:
     image_addr: '0x75810000'
     image_size: 790528
     type: pe
-    unwind_status: unused
+    unwind_status: missing
   - code_file: C:\Windows\System32\ucrtbase.dll
     code_id: 59bf2b5ae0000
     debug_file: ucrtbase.pdb
@@ -252,7 +252,12 @@ debug_meta:
     image_size: 1585152
     type: pe
     unwind_status: unused
-errors: []
+errors:
+- image_arch: x86_64
+  image_path: C:\projects\breakpad-tools\windows\Release\crash.exe
+  image_uuid: 3249d99d-0c40-4931-8610-f4e4fb0b6936-1
+  message: None
+  type: native_missing_dsym
 exception:
   values:
   - mechanism:
@@ -291,26 +296,76 @@ exception:
         lineno: null
         package: C:\Windows\System32\kernel32.dll
         symbol: null
-        trust: cfi
+        trust: fp
       - data:
           orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: __scrt_common_main_seh
+          symbolicator_status: missing
+        function: null
         in_app: false
-        instruction_addr: '0x2a2d96'
-        lineno: 283
-        package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: __scrt_common_main_seh
-        trust: cfi
+        instruction_addr: '0x7584e9c0'
+        lineno: null
+        package: C:\Windows\System32\rpcrt4.dll
+        symbol: null
+        trust: scan
       - data:
           orig_in_app: -1
-          symbolicator_status: symbolicated
-        function: main
+          symbolicator_status: missing
+        function: null
+        in_app: false
+        instruction_addr: '0x75810000'
+        lineno: null
+        package: C:\Windows\System32\rpcrt4.dll
+        symbol: null
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        function: null
+        in_app: false
+        instruction_addr: '0x70b7ae40'
+        lineno: null
+        package: C:\Windows\System32\dbgcore.dll
+        symbol: null
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        function: null
+        in_app: false
+        instruction_addr: '0x70850000'
+        lineno: null
+        package: C:\Windows\System32\dbghelp.dll
+        symbol: null
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing
+        function: null
+        in_app: false
+        instruction_addr: '0x7584e9c0'
+        lineno: null
+        package: C:\Windows\System32\rpcrt4.dll
+        symbol: null
+        trust: scan
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing_symbol
+        function: null
+        in_app: false
+        instruction_addr: '0x2a28d0'
+        lineno: null
+        package: C:\projects\breakpad-tools\windows\Release\crash.exe
+        symbol: null
+        trust: fp
+      - data:
+          orig_in_app: -1
+          symbolicator_status: missing_symbol
+        function: null
         in_app: false
         instruction_addr: '0x2a2a3d'
-        lineno: 35
+        lineno: null
         package: C:\projects\breakpad-tools\windows\Release\crash.exe
-        symbol: main
+        symbol: null
         trust: context
       registers:
         eax: '0x0'
