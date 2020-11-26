@@ -234,7 +234,10 @@ class DashboardDetail extends React.Component<Props, State> {
                 <Dashboard
                   dashboard={this.state.changesDashboard || dashboard}
                   organization={organization}
-                  isEditing={this.state.dashboardState === 'edit'}
+                  isEditing={
+                    this.state.dashboardState === 'edit' ||
+                    this.state.dashboardState === 'create'
+                  }
                   onUpdate={this.onWidgetChange}
                 />
               </React.Fragment>
