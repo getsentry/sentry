@@ -1498,17 +1498,17 @@ class CountColumn(FunctionArg):
 
 
 class StringArg(FunctionArg):
-    def __init__(self, name, unquote=False, unescapeQuotes=False):
+    def __init__(self, name, unquote=False, unescape_quotes=False):
         super(StringArg, self).__init__(name)
         self.unquote = unquote
-        self.unescapeQuotes = unescapeQuotes
+        self.unescape_quotes = unescape_quotes
 
     def normalize(self, value, params):
         if self.unquote:
             if len(value) < 2 or value[0] != '"' or value[-1] != '"':
                 raise InvalidFunctionArgument("string should be quoted")
             value = value[1:-1]
-        if self.unescapeQuotes:
+        if self.unescape_quotes:
             value = re.sub(r'\\"', '"', value)
         return u"'{}'".format(value)
 
@@ -2314,7 +2314,7 @@ FUNCTIONS = {
             "to_other",
             required_args=[
                 ColumnNoLookup("column", allowed_columns=["release"]),
-                StringArg("value", unquote=True, unescapeQuotes=True),
+                StringArg("value", unquote=True, unescape_quotes=True),
             ],
             optional_args=[
                 with_default("that", StringArg("that")),
