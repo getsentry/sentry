@@ -27,7 +27,7 @@ export SENTRY_PYTHON2=1
 gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
 # Be careful changing this as there's a rm -rf later in the script
-export VENV=`pwd`/.venv2
+export VENV="$PWD/.venv2"
 
 if [[ -f ${VENV}/bin/activate ]]; then
     echo "You seem to have a virtualenv already. This script is meant to start one from scratch. Continue (y/N)?"
