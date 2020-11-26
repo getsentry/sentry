@@ -10,9 +10,9 @@ import {ChallengeData} from 'app/types';
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
-  style?: React.CSSProperties;
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}) => Promise<void>;
+  style?: React.CSSProperties;
 };
 
 type State = {

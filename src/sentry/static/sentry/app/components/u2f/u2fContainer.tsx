@@ -8,8 +8,8 @@ import U2fSign from './u2fsign';
 
 type Props = {
   api: Client;
-  displayMode?: U2fSign['props']['displayMode'];
   onTap: U2fSign['props']['onTap'];
+  displayMode?: U2fSign['props']['displayMode'];
   className?: string;
 };
 type State = {
