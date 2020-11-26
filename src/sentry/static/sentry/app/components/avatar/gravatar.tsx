@@ -6,19 +6,15 @@ import * as qs from 'query-string';
 import ConfigStore from 'app/stores/configStore';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
-import {imageStyle} from './styles';
+import {imageStyle, ImageStyleProps} from './styles';
 
 type Props = {
   remoteSize: number;
   gravatarId?: string;
   placeholder?: string;
-  /**
-   * Should avatar be round instead of a square
-   */
-  round?: boolean;
   onLoad?: () => void;
   onError?: () => void;
-};
+} & ImageStyleProps;
 
 type State = {
   MD5?: any;
@@ -83,7 +79,7 @@ class Gravatar extends React.Component<Props, State> {
       return null;
     }
 
-    const {round, onError, onLoad} = this.props;
+    const {round, onError, onLoad, suggested, grayscale} = this.props;
 
     return (
       <Image
@@ -91,6 +87,8 @@ class Gravatar extends React.Component<Props, State> {
         src={this.buildGravatarUrl()}
         onLoad={onLoad}
         onError={onError}
+        suggested={suggested}
+        grayscale={grayscale}
       />
     );
   }
@@ -98,6 +96,6 @@ class Gravatar extends React.Component<Props, State> {
 
 export default Gravatar;
 
-const Image = styled('img')<{round?: boolean}>`
+const Image = styled('img')<ImageStyleProps>`
   ${imageStyle};
 `;
