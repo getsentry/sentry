@@ -156,6 +156,11 @@ const aliases = {
    * Color for chart label text
    */
   chartLabel: colors.gray200,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBar: colors.purple300,
 } as const;
 
 const warning = {
@@ -484,6 +489,7 @@ const darkAliases = {
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
+  progressBar: colors.purple200,
 } as const;
 
 const theme = {
@@ -506,4 +512,4 @@ export type Aliases = typeof aliases;
 export default theme;
 
 // This should never be used directly (except in storybook)
-export {aliases, colors};
+export {aliases};
