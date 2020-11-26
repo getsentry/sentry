@@ -87,7 +87,7 @@ const GroupReleaseStats = ({
                       title={t('When the most recent event in this issue was captured.')}
                       disableForVisualTest
                     >
-                      <IconQuestion size="xs" color="gray300" />
+                      <IconQuestion size="xs" color="gray200" />
                     </Tooltip>
                   </TooltipWrapper>
                 </span>
@@ -121,7 +121,7 @@ const GroupReleaseStats = ({
                       title={t('When the first event in this issue was captured.')}
                       disableForVisualTest
                     >
-                      <IconQuestion size="xs" color="gray300" />
+                      <IconQuestion size="xs" color="gray200" />
                     </Tooltip>
                   </TooltipWrapper>
                 </span>

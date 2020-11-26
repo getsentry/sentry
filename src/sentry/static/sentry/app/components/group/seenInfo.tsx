@@ -70,21 +70,21 @@ class SeenInfo extends React.Component<Props> {
     return (
       <HovercardWrapper>
         <StyledHovercard
-          header={<DateTime date={date} />}
-          body={
+          header={
             <div>
+              <TimeSinceWrapper>
+                {t('Any Environment')}
+                <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
+              </TimeSinceWrapper>
               {environment && (
                 <TimeSinceWrapper>
                   {toTitleCase(environment)}
                   <TimeSince date={date} disabledAbsoluteTooltip />
                 </TimeSinceWrapper>
               )}
-              <TimeSinceWrapper>
-                {t('Any Environment')}
-                <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
-              </TimeSinceWrapper>
             </div>
           }
+          body={<StyledDateTime date={date} />}
           position="top"
           tipColor={theme.gray500}
         >
@@ -133,6 +133,13 @@ const DateWrapper = styled('div')`
   ${overflowEllipsis};
 `;
 
+const StyledDateTime = styled(DateTime)`
+  color: ${theme.gray300};
+  font-size: ${theme.fontSizeMedium};
+  display: flex;
+  justify-content: center;
+`;
+
 const TooltipWrapper = styled('span')`
   margin-right: ${space(0.25)};
   svg {
@@ -158,15 +165,18 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const StyledHovercard = styled(Hovercard)`
-  background: ${theme.gray500};
+  width: 250px;
+  font-weight: normal;
   border: 1px solid ${theme.gray500};
+  background: ${theme.gray500};
   ${Header} {
+    font-weight: normal;
+    color: ${theme.white};
     background: ${theme.gray500};
-    color: ${theme.gray300};
     border-bottom: 1px solid ${theme.gray400};
   }
   ${Body} {
-    color: ${theme.white};
+    padding: ${space(1.5)};
   }
 `;
 
