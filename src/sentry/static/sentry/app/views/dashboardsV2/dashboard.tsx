@@ -2,16 +2,22 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {Client} from 'app/api';
 import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
+import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import {DashboardListItem, Widget} from './types';
 import WidgetCard from './widgetCard';
 
 type Props = {
+  api: Client;
   organization: Organization;
   dashboard: DashboardListItem;
+  selection: GlobalSelection;
   isEditing: boolean;
   /**
    * Fired when widgets are added/removed/sorted.
@@ -22,6 +28,28 @@ type Props = {
 type State = {};
 
 class Dashboard extends React.Component<Props, State> {
+  componentDidMount() {
+    const {isEditing} = this.props;
+    // Load organization tags when in edit mode.
+    if (isEditing) {
+      this.fetchTags();
+    }
+  }
+  componentDidUpdate(prevProps: Props) {
+    const {isEditing} = this.props;
+
+    // Load organization tags when going into edit mode.
+    // We use tags on the add widget modal.
+    if (prevProps.isEditing !== isEditing && isEditing) {
+      this.fetchTags();
+    }
+  }
+
+  fetchTags() {
+    const {api, organization, selection} = this.props;
+    loadOrganizationTags(api, organization.slug, selection);
+  }
+
   handleStartAdd = () => {
     const {organization, dashboard} = this.props;
     openAddDashboardWidgetModal({
@@ -62,7 +90,7 @@ class Dashboard extends React.Component<Props, State> {
   }
 }
 
-export default Dashboard;
+export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
