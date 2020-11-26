@@ -1,23 +1,27 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import Confirm from 'app/components/confirm';
 import Switch from 'app/components/switch';
-import InputField from 'app/views/settings/components/forms/inputField';
+import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
 
-export default class BooleanField extends InputField {
-  static propTypes = {
-    ...InputField.propTypes,
-    confirm: PropTypes.shape({
-      true: PropTypes.node,
-      false: PropTypes.node,
-    }),
+type Props = {
+  confirm?: {
+    true?: React.ReactNode;
+    false?: React.ReactNode;
   };
-  coerceValue(value) {
-    return value ? true : false;
+} & InputField['props'];
+
+export default class BooleanField extends React.Component<Props> {
+  coerceValue(value: any) {
+    return !!value;
   }
 
-  handleChange = (value, onChange, onBlur, e) => {
+  handleChange = (
+    value: any,
+    onChange: onEvent,
+    onBlur: onEvent,
+    e: React.FormEvent<HTMLInputElement>
+  ) => {
     // We need to toggle current value because Switch is not an input
     const newValue = this.coerceValue(!value);
     onChange(newValue, e);
@@ -31,12 +35,22 @@ export default class BooleanField extends InputField {
       <InputField
         {...fieldProps}
         resetOnError
-        field={({onChange, onBlur, value, disabled, ...props}) => {
+        field={({
+          onChange,
+          onBlur,
+          value,
+          disabled,
+          ...props
+        }: {
+          onChange: onEvent;
+          onBlur: onEvent;
+          value: any;
+          disabled: boolean;
+        }) => {
           // Create a function with required args bound
           const handleChange = this.handleChange.bind(this, value, onChange, onBlur);
 
           const switchProps = {
-            size: 'lg',
             ...props,
             isActive: !!value,
             isDisabled: disabled,
@@ -46,16 +60,17 @@ export default class BooleanField extends InputField {
           if (confirm) {
             return (
               <Confirm
-                renderMessage={() => confirm[!value]}
+                renderMessage={() => confirm[(!value).toString()]}
                 onConfirm={() => handleChange({})}
               >
                 {({open}) => (
                   <Switch
                     {...switchProps}
-                    toggle={e => {
+                    size="lg"
+                    toggle={(e: React.MouseEvent) => {
                       // If we have a `confirm` prop and enabling switch
                       // Then show confirm dialog, otherwise propagate change as normal
-                      if (confirm[!value]) {
+                      if (confirm[(!value).toString()]) {
                         // Open confirm modal
                         open();
                         return;
