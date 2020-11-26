@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProgressBar from 'app/components/progressBar';
 
-describe('Tag', function () {
+describe('ProgressBar', function () {
   const progressBarValue = 50;
 
   it('basic', function () {
