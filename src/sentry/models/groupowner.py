@@ -16,8 +16,8 @@ class GroupOwnerType(Enum):
 
 
 GROUP_OWNER_TYPE = {
-    GroupOwnerType.SUSPECT_COMMIT: "Suspect Commit",
-    GroupOwnerType.OWNERSHIP_RULE: "Ownership Rule",
+    GroupOwnerType.SUSPECT_COMMIT: "suspectCommit",
+    GroupOwnerType.OWNERSHIP_RULE: "ownershipRule",
 }
 
 
