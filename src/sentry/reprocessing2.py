@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import uuid
 import hashlib
 import logging
 import sentry_sdk
@@ -15,14 +14,15 @@ from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
-from sentry.deletions.defaults.group import GROUP_RELATED_MODELS
+from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 
 logger = logging.getLogger("sentry.reprocessing")
 
 _REDIS_SYNC_TTL = 3600
 
 
-GROUP_MODELS_TO_MIGRATE = GROUP_RELATED_MODELS + (models.Activity,)
+# Note: Event attachments and group reports are migrated in save_event.
+GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
@@ -65,20 +65,12 @@ def backup_unprocessed_event(project, data):
     event_processing_store.store(data, unprocessed=True)
 
 
-def delete_unprocessed_events(events):
-    node_ids = [
-        _generate_unprocessed_event_node_id(event.project_id, event.event_id) for event in events
-    ]
+def delete_unprocessed_events(project_id, event_ids):
+    node_ids = [_generate_unprocessed_event_node_id(project_id, event_id) for event_id in event_ids]
     nodestore.delete_multi(node_ids)
 
 
 def reprocess_event(project_id, event_id, start_time):
-    node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-
-    with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
-        data = nodestore.get(node_id)
-    if data is None:
-        return
 
     from sentry.event_manager import set_tag
     from sentry.tasks.store import preprocess_event_from_reprocessing
@@ -88,26 +80,41 @@ def reprocess_event(project_id, event_id, start_time):
     # under a new event ID. The second step happens in pre-process. We could
     # save the "original event ID" instead and get away with writing less to
     # nodestore, but doing it this way makes the logic slightly simpler.
+    node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
+
+    with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
+        data = nodestore.get(node_id)
+
+    with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
+        event = eventstore.get_event_by_id(project_id, event_id)
+
+    if event is None:
+        logger.error(
+            "reprocessing2.event.not_found", extra={"project_id": project_id, "event_id": event_id}
+        )
+        return
+
+    if data is None:
+        logger.error(
+            "reprocessing2.reprocessing_nodestore.not_found",
+            extra={"project_id": project_id, "event_id": event_id},
+        )
+        # We have no real data for reprocessing. We assume this event goes
+        # straight to save_event, and hope that the event data can be
+        # reingested like that. It's better than data loss.
+        #
+        # XXX: Ideally we would run a "save-lite" for this that only updates
+        # the group ID in-place. Like a snuba merge message.
+        data = dict(event.data)
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
-    orig_event_id = data["event_id"]
-    set_tag(data, "original_event_id", orig_event_id)
-
-    event = eventstore.get_event_by_id(project_id, orig_event_id)
-    if event is None:
-        return
-
     set_tag(data, "original_group_id", event.group_id)
-
-    # XXX: reuse event IDs
-    event_id = data["event_id"] = uuid.uuid4().hex
-
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
     queryset = models.EventAttachment.objects.filter(
-        project_id=project_id, event_id=orig_event_id
+        project_id=project_id, event_id=event_id
     ).select_related("file")
 
     attachment_objects = []
@@ -170,14 +177,9 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
 
 
 def is_reprocessed_event(data):
-    return bool(_get_original_event_id(data))
-
-
-def _get_original_event_id(data):
     from sentry.event_manager import get_tag
 
-    # XXX: Get rid of this tag once we reuse event IDs
-    return get_tag(data, "original_event_id")
+    return bool(get_tag(data, "original_group_id"))
 
 
 def _get_original_group_id(data):
@@ -232,6 +234,10 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         new_group.times_seen = 0
         new_group.save()
 
+        # This migrates all models that are associated with a group but not
+        # directly with an event, i.e. everything but event attachments and user
+        # reports. Those other updates are run per-event (in
+        # post-process-forwarder) to not cause too much load on pg.
         for model in GROUP_MODELS_TO_MIGRATE:
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 

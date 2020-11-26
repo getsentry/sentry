@@ -1,13 +1,13 @@
 import React from 'react';
 
-import AttachmentUrl from 'app/utils/attachmentUrl';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import {AvatarUser, Event, Organization, Tag} from 'app/types';
+import AttachmentUrl from 'app/utils/attachmentUrl';
 import withOrganization from 'app/utils/withOrganization';
-import {Tag, Event, Organization, AvatarUser} from 'app/types';
 
 type Props = {
   hasUser?: boolean;

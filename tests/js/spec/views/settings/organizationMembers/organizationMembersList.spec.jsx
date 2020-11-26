@@ -3,11 +3,11 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
-import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import OrganizationMembersList from 'app/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('app/api');
 jest.mock('app/actionCreators/indicator');

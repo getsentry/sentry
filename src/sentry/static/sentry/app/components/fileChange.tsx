@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {ListGroupItem} from 'app/components/listGroup';
-import space from 'app/styles/space';
-import {CommitAuthor, AvatarUser} from 'app/types';
 import AvatarList from 'app/components/avatar/avatarList';
 import FileIcon from 'app/components/fileIcon';
+import {ListGroupItem} from 'app/components/listGroup';
 import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
+import {AvatarUser, CommitAuthor} from 'app/types';
 
 type Props = {
   filename: string;

@@ -8,11 +8,11 @@
  * This component handles logic like when the dropdown menu should be displayed, as well as handling keyboard input, how
  * it is rendered should be left to the child.
  */
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {callIfFunction} from 'app/utils/callIfFunction';
 import DropdownMenu from 'app/components/dropdownMenu';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 class AutoComplete extends React.Component {
   static propTypes = {

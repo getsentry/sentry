@@ -1,4 +1,4 @@
-import {Column, Aggregation} from '../types';
+import {Aggregation, Column} from '../types';
 
 /**
  * Returns true if an aggregation is valid and false if not

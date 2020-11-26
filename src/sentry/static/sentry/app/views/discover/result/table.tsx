@@ -1,17 +1,18 @@
 import React from 'react';
-import {MultiGrid, AutoSizer} from 'react-virtualized';
+import {AutoSizer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
-import ExternalLink from 'app/components/links/externalLink';
-import Tooltip from 'app/components/tooltip';
-import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ExternalLink from 'app/components/links/externalLink';
+import Panel from 'app/components/panels/panel';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import {getDisplayValue, getDisplayText} from './utils';
 import {Query, SnubaResult} from '../types';
+
+import {getDisplayText, getDisplayValue} from './utils';
 
 const TABLE_ROW_HEIGHT = 30;
 const TABLE_ROW_BORDER = 1;

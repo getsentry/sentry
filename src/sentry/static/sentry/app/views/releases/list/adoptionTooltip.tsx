@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Count from 'app/components/count';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Count from 'app/components/count';
 
 type Props = {
   totalUsers: number;

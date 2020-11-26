@@ -1,17 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {cancelDeleteRepository, deleteRepository} from 'app/actionCreators/integrations';
 import {Client} from 'app/api';
-import {PanelItem} from 'app/components/panels';
-import {Repository, RepositoryStatus} from 'app/types';
-import {deleteRepository, cancelDeleteRepository} from 'app/actionCreators/integrations';
-import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconDelete} from 'app/icons';
-import space from 'app/styles/space';
+import {PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Repository, RepositoryStatus} from 'app/types';
 
 type DefaultProps = {
   showProvider?: boolean;

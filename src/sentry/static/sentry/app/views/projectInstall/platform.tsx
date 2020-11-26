@@ -1,31 +1,32 @@
-import {browserHistory, WithRouterProps} from 'react-router';
-import React from 'react';
-import styled from '@emotion/styled';
 import 'prism-sentry/index.css';
 
+import React from 'react';
+import {browserHistory, WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
+
+import {loadDocs} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import NotFound from 'app/components/errors/notFound';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {
   performance as performancePlatforms,
   PlatformKey,
 } from 'app/data/platformCategories';
-import {loadDocs} from 'app/actionCreators/projects';
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Feature from 'app/components/acl/feature';
-import {IconInfo} from 'app/icons';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import NotFound from 'app/components/errors/notFound';
-import {PageHeader} from 'app/styles/organization';
-import Projects from 'app/utils/projects';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import platforms from 'app/data/platforms';
+import {IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization, Project} from 'app/types';
 
 type Props = {
   api: Client;

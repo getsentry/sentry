@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
+import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {Event, Frame, PlatformType} from 'app/types';
 import {StacktraceType} from 'app/types/stacktrace';
-import {PlatformType, Event, Frame} from 'app/types';
 
 const defaultProps = {
   includeSystemFrames: true,
@@ -19,6 +19,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
+  hideStacktraceLink?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -122,6 +123,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       expandFirstFrame,
       platform,
       includeSystemFrames,
+      hideStacktraceLink,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -209,6 +211,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
+            hideStacktraceLink={hideStacktraceLink}
           />
         );
       }

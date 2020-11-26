@@ -1,9 +1,9 @@
 import React from 'react';
 import {createFilter} from 'react-select';
 
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Alert from 'app/components/alert';
 import {AvatarProject, Project} from 'app/types';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 export const FieldType = [
   'array',

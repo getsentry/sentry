@@ -3,10 +3,10 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ContextSummary from 'app/components/events/contextSummary/contextSummary';
-import {FILTER_MASK} from 'app/constants';
-import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';
 import ContextSummaryGPU from 'app/components/events/contextSummary/contextSummaryGPU';
 import ContextSummaryOS from 'app/components/events/contextSummary/contextSummaryOS';
+import ContextSummaryUser from 'app/components/events/contextSummary/contextSummaryUser';
+import {FILTER_MASK} from 'app/constants';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',

@@ -1,8 +1,8 @@
-import mapKeys from 'lodash/mapKeys';
-import moment from 'moment';
-import startCase from 'lodash/startCase';
-import isEmpty from 'lodash/isEmpty';
 import React from 'react';
+import isEmpty from 'lodash/isEmpty';
+import mapKeys from 'lodash/mapKeys';
+import startCase from 'lodash/startCase';
+import moment from 'moment';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';

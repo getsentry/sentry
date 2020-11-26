@@ -3,19 +3,20 @@ import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import CommitRow from 'app/components/commitRow';
+import {Body, Main} from 'app/components/layouts/thirds';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Commit, Repository} from 'app/types';
-import routeTitleGen from 'app/utils/routeTitle';
 import {formatVersion} from 'app/utils/formatters';
+import routeTitleGen from 'app/utils/routeTitle';
 import withApi from 'app/utils/withApi';
-import Pagination from 'app/components/pagination';
 import AsyncView from 'app/views/asyncView';
-import {PanelHeader, Panel, PanelBody} from 'app/components/panels';
 
+import EmptyState from './emptyState';
+import RepositorySwitcher from './repositorySwitcher';
 import {getCommitsByRepository, getQuery, getReposToRender} from './utils';
 import withRepositories from './withRepositories';
-import RepositorySwitcher from './repositorySwitcher';
-import EmptyState from './emptyState';
 
 type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
   api: Client;
@@ -115,6 +116,14 @@ class Commits extends AsyncView<Props, State> {
         )}
         {this.renderContent()}
       </React.Fragment>
+    );
+  }
+
+  renderComponent() {
+    return (
+      <Body>
+        <Main fullWidth>{super.renderComponent()}</Main>
+      </Body>
     );
   }
 }

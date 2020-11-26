@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = Omit<React.ComponentProps<typeof Button>, 'onClick'> & {
   index: number;

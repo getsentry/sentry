@@ -1,25 +1,25 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
-import DocumentTitle from 'react-document-title';
 import React from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
-import scrollToElement from 'scroll-to-element';
+import DocumentTitle from 'react-document-title';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
+import scrollToElement from 'scroll-to-element';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import {analytics} from 'app/utils/analytics';
-import {t} from 'app/locale';
 import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import testableTransition from 'app/utils/testableTransition';
-import {Organization, Project} from 'app/types';
 
-import {StepDescriptor, StepData} from './types';
 import OnboardingPlatform from './platform';
 import OnboardingProjectSetup from './projectSetup';
+import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
 
 type AnalyticsOpts = {

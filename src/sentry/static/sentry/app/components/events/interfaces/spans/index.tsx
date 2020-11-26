@@ -1,31 +1,31 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {IconWarning} from 'app/icons';
-import {Panel} from 'app/components/panels';
-import {SentryTransactionEvent, Organization} from 'app/types';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
-import {t, tn} from 'app/locale';
 import Alert from 'app/components/alert';
-import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
-import EventView from 'app/utils/discover/eventView';
+import {Panel} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {IconWarning} from 'app/icons';
+import {t, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Organization, SentryTransactionEvent} from 'app/types';
+import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import withOrganization from 'app/utils/withOrganization';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 
-import {ParsedTraceType} from './types';
-import {parseTrace, getTraceDateTimeRange} from './utils';
-import TraceView from './traceView';
 import Filter, {
   ActiveOperationFilter,
   noFilter,
-  toggleFilter,
   toggleAllFilters,
+  toggleFilter,
 } from './filter';
+import TraceView from './traceView';
+import {ParsedTraceType} from './types';
+import {getTraceDateTimeRange, parseTrace} from './utils';
 
 type Props = {
   orgId: string;

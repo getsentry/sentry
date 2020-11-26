@@ -2,15 +2,15 @@ import React from 'react';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
-import EventView from 'app/utils/discover/eventView';
-import {t} from 'app/locale';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {Organization, Event} from 'app/types';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
-import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody} from 'app/components/panels';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {t} from 'app/locale';
+import {Event, Organization} from 'app/types';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
 
 import List from './list';
 

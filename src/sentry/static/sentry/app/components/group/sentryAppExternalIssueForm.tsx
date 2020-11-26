@@ -1,22 +1,22 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import debounce from 'lodash/debounce';
 import {createFilter} from 'react-select';
+import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ExternalIssueStore from 'app/stores/externalIssueStore';
+import {Event, Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
+import getStacktraceBody from 'app/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
+import withApi from 'app/utils/withApi';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
-import SentryTypes from 'app/sentryTypes';
-import {t} from 'app/locale';
-import ExternalIssueStore from 'app/stores/externalIssueStore';
-import getStacktraceBody from 'app/utils/getStacktraceBody';
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import {Group, PlatformExternalIssue, Event, SentryAppInstallation} from 'app/types';
-import {Field, FieldValue} from 'app/views/settings/components/forms/type';
 import FormModel from 'app/views/settings/components/forms/model';
-import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
+import {Field, FieldValue} from 'app/views/settings/components/forms/type';
 
 //0 is a valid choice but empty string, undefined, and null are not
 const hasValue = value => !!value || value === 0;

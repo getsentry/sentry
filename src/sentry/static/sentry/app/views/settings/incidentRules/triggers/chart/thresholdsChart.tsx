@@ -1,17 +1,18 @@
-import {ECharts} from 'echarts';
 import React from 'react';
 import color from 'color';
+import {ECharts} from 'echarts';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
+import Graphic from 'app/components/charts/components/graphic';
+import Legend from 'app/components/charts/components/legend';
+import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
-import Graphic from 'app/components/charts/components/graphic';
-import LineChart from 'app/components/charts/lineChart';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
-import {Trigger, AlertRuleThresholdType, IncidentRule} from '../../types';
+import {AlertRuleThresholdType, IncidentRule, Trigger} from '../../types';
 
 type DefaultProps = {
   data: Series[];
@@ -165,6 +166,9 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     // Handle case where the graph max is 1 and includes decimals
     const yAxisMax = Math.max(maxValue ?? 1, this.state.yAxisMax ?? 1);
     const yAxisSize = 15 + (yAxisMax <= 1 ? 15 : `${yAxisMax ?? ''}`.length * 8);
+    // Shave off the right margin and yAxisSize from the width to get the actual area we want to render content in
+    const graphAreaWidth =
+      this.state.width - parseInt(CHART_GRID.right.slice(0, -2), 10) - yAxisSize;
     // Distance from the top of the chart to save for the legend
     const legendPadding = 20;
 
@@ -183,7 +187,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         invisible: position === null,
         draggable: false,
         position: [yAxisSize, position],
-        shape: {y1: 1, y2: 1, x1: 0, x2: this.state.width},
+        shape: {y1: 1, y2: 1, x1: 0, x2: graphAreaWidth},
         style: LINE_STYLE,
       },
 
@@ -201,7 +205,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
               ? [yAxisSize, position + 1]
               : [yAxisSize, legendPadding],
           shape: {
-            width: this.state.width,
+            width: graphAreaWidth,
             height:
               isResolution !== isInverted
                 ? yAxisPosition - position
@@ -230,10 +234,12 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
 
   render() {
     const {data, triggers, period} = this.props;
-    const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => ({
-      ...restOfData,
-      data: eventData.slice(0, -1),
-    }));
+    const dataWithoutRecentBucket: LineChartSeries[] = data?.map(
+      ({data: eventData, ...restOfData}) => ({
+        ...restOfData,
+        data: eventData.slice(0, -1),
+      })
+    );
 
     // Disable all lines by default but the 1st one
     const selected: Record<string, boolean> = dataWithoutRecentBucket.reduce(
@@ -243,7 +249,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       },
       {}
     );
-    const legend = {
+    const legend = Legend({
       right: 10,
       top: 0,
       icon: 'circle',
@@ -257,7 +263,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         fontFamily: 'Rubik',
       },
       selected,
-    };
+    });
 
     return (
       <LineChart
@@ -267,7 +273,7 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
         forwardedRef={this.handleRef}
         grid={CHART_GRID}
         yAxis={{
-          max: this.state.yAxisMax,
+          max: this.state.yAxisMax ?? undefined,
         }}
         legend={legend}
         graphic={Graphic({

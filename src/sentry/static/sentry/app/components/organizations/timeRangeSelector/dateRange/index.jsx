@@ -1,12 +1,18 @@
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
-import {DateRangePicker} from 'react-date-range';
-import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
+import {DateRangePicker} from 'react-date-range';
 import styled from '@emotion/styled';
+import moment from 'moment';
+import PropTypes from 'prop-types';
 
+import Checkbox from 'app/components/checkbox';
+import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
+import {MAX_PICKABLE_DAYS} from 'app/constants';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import {analytics} from 'app/utils/analytics';
 import {
   getEndOfDay,
@@ -14,13 +20,7 @@ import {
   isValidTime,
   setDateToTime,
 } from 'app/utils/dates';
-import {MAX_PICKABLE_DAYS} from 'app/constants';
-import {t} from 'app/locale';
-import Checkbox from 'app/components/checkbox';
-import SentryTypes from 'app/sentryTypes';
-import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 class DateRange extends React.Component {

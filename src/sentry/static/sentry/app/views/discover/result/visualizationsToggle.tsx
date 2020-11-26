@@ -6,10 +6,10 @@ import {IconDownload} from 'app/icons';
 import {t} from 'app/locale';
 
 import {
+  DownloadCsvButton,
   ResultViewActions,
   ResultViewButtons,
   ResultViewDropdownButtons,
-  DownloadCsvButton,
 } from '../styles';
 
 type Option = {

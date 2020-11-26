@@ -1,8 +1,8 @@
-import flatten from 'lodash/flatten';
 import flatMap from 'lodash/flatMap';
+import flatten from 'lodash/flatten';
 
-import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 import FormSearchActions from 'app/actions/formSearchActions';
+import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 
 type Params = {
   route: string;

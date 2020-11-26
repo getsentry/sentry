@@ -136,11 +136,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 },
             }
         )
-
-        assert (
-            rule.render_label()
-            == """Create a Jira ticket in the Jira Cloud account and Example project of type Bug"""
-        )
+        assert rule.render_label() == """Create a Jira issue in Jira Cloud with these """
 
     def test_render_label_without_integration(self):
         deleted_id = self.integration.id
@@ -148,7 +144,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
 
         rule = self.get_rule(data={"jira_integration": deleted_id})
 
-        assert rule.render_label() == "Create a Jira ticket in the [removed] account"
+        assert rule.render_label() == "Create a Jira issue in [removed] with these "
 
     @responses.activate
     def test_invalid_integration(self):
