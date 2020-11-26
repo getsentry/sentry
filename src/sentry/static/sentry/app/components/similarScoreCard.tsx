@@ -7,7 +7,14 @@ import space from 'app/styles/space';
 const scoreComponents = {
   'exception:message:character-shingles': t('Exception Message'),
   'exception:stacktrace:pairs': t('Stack Trace Frames'),
+  'exception:stacktrace:application-chunks': t('In-App Frames'),
   'message:message:character-shingles': t('Log Message'),
+
+  // v2
+  'similarity:*:value:character-5-shingle': t('Exception Type'),
+  'similarity:*:value:character-5-shingle': t('Exception Message'),
+  'similarity:*:stacktrace:frames-pairs': t('Stack Trace Frames'),
+  'similarity:*:message:character-5-shingle': t('Log Message'),
 };
 
 type Key = keyof typeof scoreComponents;
@@ -22,15 +29,36 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
     return null;
   }
 
+  let sumOtherScores = 0;
+  let numOtherScores = 0;
+
   return (
     <React.Fragment>
-      {scoreList.map(([key, score]) => (
-        <Wrapper key={key}>
-          <div>{scoreComponents[key]}</div>
+      {scoreList.map(([key, score]) => {
+        const title = scoreComponents[key.replace(/similarity:\d\d\d\d-\d\d-\d\d/, 'similarity:*')];
 
-          <Score score={score === null ? score : Math.round(score * 5)} />
+        if (!title) {
+          if (score !== null) {
+            sumOtherScores += score;
+            numOtherScores += 1;
+          }
+          return null;
+        }
+
+        return (
+          <Wrapper key={key}>
+            <div>{title}</div>
+            <Score score={score === null ? score : Math.round(score * 4)} />
+          </Wrapper>
+        );
+      })}
+
+      {numOtherScores > 0 && sumOtherScores > 0 && (
+        <Wrapper key="other">
+          <div>{t("Other")}</div>
+          <Score score={Math.round(sumOtherScores * 4 / numOtherScores)} />
         </Wrapper>
-      ))}
+      )}
     </React.Fragment>
   );
 };

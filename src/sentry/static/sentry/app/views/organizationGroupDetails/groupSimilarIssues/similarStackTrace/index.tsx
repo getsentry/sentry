@@ -224,6 +224,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
             project={project}
             groupId={groupId}
             pageLinks={similarLinks}
+            v2={v2}
           />
         )}
       </React.Fragment>

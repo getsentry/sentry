@@ -93,7 +93,6 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
     newState: IdState
   ) => Array<IdState>;
   isAllUnmergedSelected: () => boolean;
-  convertScoreStructure: (scoreMap: ScoreMap, version?: Version) => ScoreMap;
   onFetch: (
     toFetchArray?: Array<{
       dataKey: DataKey;
@@ -211,38 +210,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
     );
   },
 
-  convertScoreStructure(scoreMap, version) {
-    if (scoreMap.hasOwnProperty('exception:stacktrace:application-chunks')) {
-      delete scoreMap['exception:stacktrace:application-chunks'];
-    }
-
-    if (!version || version === '1') {
-      return scoreMap;
-    }
-
-    const newScoreMap = {};
-
-    const scoreMapKeys = Object.keys(scoreMap);
-
-    for (const key in scoreMapKeys) {
-      const scoreMapKey = scoreMapKeys[key];
-      if (scoreMapKey.includes('message:character-5-shingle')) {
-        newScoreMap['message:message:character-shingles'] = scoreMap[scoreMapKey];
-        continue;
-      }
-      if (scoreMapKey.includes('value:character-5-shingle')) {
-        newScoreMap['exception:message:character-shingles'] = scoreMap[scoreMapKey];
-        continue;
-      }
-      if (scoreMapKey.includes('stacktrace:frames-pairs')) {
-        newScoreMap['exception:stacktrace:pairs'] = scoreMap[scoreMapKey];
-        continue;
-      }
-    }
-
-    return newScoreMap;
-  },
-
   // Fetches data
   onFetch(toFetchArray) {
     const requests = toFetchArray || this.toFetchArray;
@@ -282,15 +249,16 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         return item;
       },
       similar: ([issue, scoreMap]) => {
-        const convertedScore = this.convertScoreStructure(scoreMap, version);
         // Hide items with a low scores
-        const isBelowThreshold = checkBelowThreshold(convertedScore);
+        const isBelowThreshold = checkBelowThreshold(scoreMap);
 
         // List of scores indexed by interface (i.e., exception and message)
-        const scoresByInterface = Object.keys(convertedScore)
-          .map(scoreKey => [scoreKey, convertedScore[scoreKey]])
+        // Note: for v2, the interface is always "similarity". When v2 is
+        // rolled out we can get rid of this grouping entirely.
+        const scoresByInterface = Object.keys(scoreMap)
+          .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
-            // tokenize scorekey, first token is the interface name
+            // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':');
 
             if (!acc[interfaceName]) {
@@ -317,7 +285,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
 
         return {
           issue,
-          score: convertedScore,
+          score: scoreMap,
           scoresByInterface,
           aggregate,
           isBelowThreshold,
