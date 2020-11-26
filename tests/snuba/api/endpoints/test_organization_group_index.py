@@ -27,6 +27,7 @@ from sentry.models import (
     GroupStatus,
     GroupOwner,
     GroupOwnerType,
+    GROUP_OWNER_TYPE,
     GroupResolution,
     GroupSubscription,
     GroupTombstone,
@@ -816,7 +817,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is not None
             assert response.data[0]["owners"]["owner"] == "user:{}".format(self.user.id)
-            assert response.data[0]["owners"]["type"] == GroupOwnerType.SUSPECT_COMMIT.value
+            assert (
+                response.data[0]["owners"]["type"]
+                == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+            )
 
     @patch(
         "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
