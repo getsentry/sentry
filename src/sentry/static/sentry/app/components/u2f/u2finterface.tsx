@@ -5,18 +5,14 @@ import u2f from 'u2f-api';
 
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-
-type ChallengeData = {
-  authenticateRequests: u2f.SignRequest;
-  registerRequests: u2f.RegisterRequest;
-};
+import {ChallengeData} from 'app/types';
 
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
   style?: React.CSSProperties;
   silentIfUnsupported: boolean;
-  onTap: ({response, challenge}) => Promise<any>;
+  onTap: ({response, challenge}) => Promise<void>;
 };
 
 type State = {
