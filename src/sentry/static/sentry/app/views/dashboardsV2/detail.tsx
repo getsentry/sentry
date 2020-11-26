@@ -211,7 +211,7 @@ class DashboardDetail extends React.Component<Props, State> {
           params={params}
           organization={organization}
         >
-          {({dashboard, orgDashboards, reloadData}) => {
+          {({dashboard, dashboards, reloadData}) => {
             return (
               <React.Fragment>
                 <StyledPageHeader>
@@ -221,7 +221,7 @@ class DashboardDetail extends React.Component<Props, State> {
                   />
                   <Controls
                     organization={organization}
-                    dashboards={orgDashboards}
+                    dashboards={dashboards}
                     dashboard={dashboard}
                     onEdit={this.onEdit(dashboard)}
                     onCreate={this.onCreate}

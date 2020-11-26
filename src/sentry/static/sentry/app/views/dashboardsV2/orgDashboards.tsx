@@ -17,7 +17,7 @@ import {DashboardListItem, OrgDashboard, OrgDashboardResponse} from './types';
 
 type OrgDashboardsChildrenProps = {
   dashboard: DashboardListItem;
-  orgDashboards: DashboardListItem[];
+  dashboards: DashboardListItem[];
   reloadData: () => void;
 };
 
@@ -130,7 +130,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
         <LightWeightNoProjectMessage organization={organization}>
           {children({
             dashboard,
-            orgDashboards: this.getDashboardsList(),
+            dashboards: this.getDashboardsList(),
             reloadData: this.reloadData.bind(this),
           })}
         </LightWeightNoProjectMessage>
