@@ -16,12 +16,14 @@ export default {
 
 export const Letters = withInfo('This is the default avatar')(() => {
   const hasTooltip = boolean('Display a tooltip', false);
+  const showAsSuggested = boolean('Show as suggested avatar', false);
   const user = Object.assign({}, USER);
-  return <Avatar user={user} hasTooltip={hasTooltip} />;
+  return <Avatar user={user} hasTooltip={hasTooltip} suggested={showAsSuggested} />;
 });
 
 export const Gravatar = withInfo('Avatar source from gravatar')(() => {
   const hasTooltip = boolean('Display a tooltip', false);
+  const showAsSuggested = boolean('Show as suggested avatar', false);
   const user = {
     id: 2,
     name: 'Ben Vinegar',
@@ -31,25 +33,27 @@ export const Gravatar = withInfo('Avatar source from gravatar')(() => {
       avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
     },
   };
-  return <Avatar user={user} hasTooltip={hasTooltip} />;
+  return <Avatar user={user} hasTooltip={hasTooltip} suggested={showAsSuggested} />;
 });
 
 export const UploadedImage = withInfo('Uploaded image')(() => {
   const hasTooltip = boolean('Display a tooltip', false);
+  const showAsSuggested = boolean('Show as suggested avatar', false);
   const user = Object.assign({}, USER, {
     avatar: {
       avatarType: 'upload',
       avatarUuid: '51e63edabf31412aa2a955e9cf2c1ca0',
     },
   });
-  return <Avatar user={user} hasTooltip={hasTooltip} />;
+  return <Avatar user={user} hasTooltip={hasTooltip} suggested={showAsSuggested} />;
 });
 
 export const TeamAvatar = withInfo('Avatar for teams')(() => {
   const hasTooltip = boolean('Display a tooltip', false);
+  const showAsSuggested = boolean('Display as suggested avatar', false);
   const team = {
     name: 'Captain Planet',
     slug: 'captain-planet',
   };
-  return <Avatar team={team} hasTooltip={hasTooltip} />;
+  return <Avatar team={team} hasTooltip={hasTooltip} suggested={showAsSuggested} />;
 });
