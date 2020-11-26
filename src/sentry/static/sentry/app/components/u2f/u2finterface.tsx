@@ -14,9 +14,9 @@ type ChallengeData = {
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
-  style?: React.CSSProperties;
   silentIfUnsupported: boolean;
   onTap: ({response, challenge}) => Promise<any>;
+   style?: React.CSSProperties;
 };
 
 type State = {
