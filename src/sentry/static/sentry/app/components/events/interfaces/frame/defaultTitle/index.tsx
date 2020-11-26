@@ -1,19 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Frame, PlatformType, Meta} from 'app/types';
-import {defined, isUrl} from 'app/utils';
+import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import ExternalLink from 'app/components/links/externalLink';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
-import {IconQuestion, IconOpen} from 'app/icons';
-import ExternalLink from 'app/components/links/externalLink';
-import AnnotatedText from 'app/components/events/meta/annotatedText';
+import {IconOpen, IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import space from 'app/styles/space';
+import {Frame, Meta, PlatformType} from 'app/types';
+import {defined, isUrl} from 'app/utils';
 
 import FunctionName from '../functionName';
 import {getPlatform, trimPackage} from '../utils';
+
 import OriginalSourceInfo from './originalSourceInfo';
 
 type Props = {

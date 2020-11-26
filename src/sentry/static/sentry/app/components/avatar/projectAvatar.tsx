@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 import PlatformList from 'app/components/platformList';

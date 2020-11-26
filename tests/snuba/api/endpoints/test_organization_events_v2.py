@@ -2484,6 +2484,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert datum["histogram_transaction_duration_10"] == expected[idx][0]
             assert datum["count"] == expected[idx][1]
 
+    def test_failure_count_alias_field(self):
+        project = self.create_project()
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/failure_count/success"
+        self.store_event(data, project_id=project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        data["transaction"] = "/failure_count/unknown"
+        data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(data, project_id=project.id)
+
+        for i in range(6):
+            data = load_data("transaction", timestamp=before_now(minutes=1))
+            data["transaction"] = "/failure_count/{}".format(i)
+            data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(data, project_id=project.id)
+
+        query = {"field": ["count()", "failure_count()"], "query": "event.type:transaction"}
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["count"] == 8
+        assert data[0]["failure_count"] == 6
+
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
         self.create_project()
@@ -2732,6 +2759,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.assert_measurement_condition_without_results(
             "{}:0".format(count_unique), field=[count_unique]
         )
+
+    def test_compare_numeric_aggregate(self):
+        self.store_event(self.transaction_data, self.project.id)
+
+        query = {
+            "field": [
+                "p75(measurements.fcp)",
+                "compare_numeric_aggregate(p75_measurements_fcp,greater,0)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["compare_numeric_aggregate_p75_measurements_fcp_greater_0"]
+            == 1
+        )
+
+        query = {
+            "field": ["p75()", "compare_numeric_aggregate(p75,equals,0)"],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["compare_numeric_aggregate_p75_equals_0"] == 0
 
     def test_no_key_transactions(self):
         transactions = [

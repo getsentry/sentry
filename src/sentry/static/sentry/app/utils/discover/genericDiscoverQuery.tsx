@@ -1,12 +1,12 @@
 import React from 'react';
 import {Location} from 'history';
 
+import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
-import {EventQuery} from 'app/actionCreators/events';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;

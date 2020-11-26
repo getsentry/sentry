@@ -1,17 +1,17 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import DocumentTitle from 'react-document-title';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import {Organization, Project, TimeseriesValue} from 'app/types';
+import {Series} from 'app/types/echarts';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import {Series} from 'app/types/echarts';
-import {Organization, Project, TimeseriesValue} from 'app/types';
-import theme from 'app/utils/theme';
 
 import OrganizationStatsDetails from './organizationStatsDetails';
-import {ProjectTotal, OrgTotal} from './types';
+import {OrgTotal, ProjectTotal} from './types';
 
 type Props = {
   api: Client;

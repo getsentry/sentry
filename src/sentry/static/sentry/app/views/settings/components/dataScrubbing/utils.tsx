@@ -1,6 +1,6 @@
 import {t} from 'app/locale';
 
-import {RuleType, MethodType, SourceSuggestionType, SourceSuggestion} from './types';
+import {MethodType, RuleType, SourceSuggestion, SourceSuggestionType} from './types';
 
 function getRuleLabel(type: RuleType) {
   switch (type) {
@@ -167,9 +167,9 @@ const valueSuggestions: Array<SourceSuggestion> = [
 ];
 
 export {
-  getRuleLabel,
-  getMethodLabel,
-  unarySuggestions,
   binarySuggestions,
+  getMethodLabel,
+  getRuleLabel,
+  unarySuggestions,
   valueSuggestions,
 };

@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {GenericField, FormState} from 'app/components/forms';
+import {FormState, GenericField} from 'app/components/forms';
 
 describe('GenericField', function () {
   it('renders text as TextInput', function () {

@@ -1,8 +1,8 @@
 import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
-import getDisplayName from 'app/utils/getDisplayName';
 import {Project} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedProjectProps = {
   project: Project;

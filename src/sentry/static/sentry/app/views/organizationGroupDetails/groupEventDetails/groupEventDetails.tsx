@@ -1,27 +1,27 @@
+import React from 'react';
 import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
-import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
-import * as Sentry from '@sentry/react';
-import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import {metric} from 'app/utils/analytics';
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
-import {withMeta} from 'app/components/events/meta/metaProxy';
-import EventEntries from 'app/components/events/eventEntries';
+import {Client} from 'app/api';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
+import EventEntries from 'app/components/events/eventEntries';
+import {withMeta} from 'app/components/events/meta/metaProxy';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
+import {Environment, Event, Group, Organization, Project} from 'app/types';
+import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
-import {Group, Project, Organization, Environment, Event} from 'app/types';
 
-import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 import GroupEventToolbar from '../eventToolbar';
+import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
 
 type Props = RouteComponentProps<
   {orgId: string; groupId: string; eventId?: string},

@@ -1,13 +1,16 @@
-import {css} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
 import React from 'react';
-import Reflux from 'reflux';
+import {browserHistory} from 'react-router';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as queryString from 'query-string';
-import styled from '@emotion/styled';
+import Reflux from 'reflux';
 
+import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
+import Feature from 'app/components/acl/feature';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
   IconActivity,
   IconChevron,
@@ -24,27 +27,24 @@ import {
   IconSupport,
   IconTelescope,
 } from 'app/icons';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import Feature from 'app/components/acl/feature';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
-import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
 
-import {getSidebarPanelContainer} from './sidebarPanel';
 import Broadcasts from './broadcasts';
+import SidebarHelp from './help';
 import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
-import SidebarHelp from './help';
 import SidebarItem from './sidebarItem';
-import {SidebarPanelKey, SidebarOrientation} from './types';
+import {getSidebarPanelContainer} from './sidebarPanel';
+import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
   location: Location;

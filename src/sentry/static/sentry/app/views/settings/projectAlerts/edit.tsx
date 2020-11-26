@@ -1,16 +1,16 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {Organization, Project} from 'app/types';
-import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
-import PageHeading from 'app/components/pageHeading';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 type RouteParams = {
   orgId: string;

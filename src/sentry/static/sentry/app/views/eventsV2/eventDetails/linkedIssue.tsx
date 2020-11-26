@@ -2,18 +2,18 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
-import {IconWarning} from 'app/icons';
-import GroupChart from 'app/components/stream/groupChart';
+import Times from 'app/components/group/times';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import SeenByList from 'app/components/seenByList';
 import ShortId from 'app/components/shortId';
-import Times from 'app/components/group/times';
+import GroupChart from 'app/components/stream/groupChart';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Group} from 'app/types';
 

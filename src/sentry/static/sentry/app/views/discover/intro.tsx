@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {tct, t} from 'app/locale';
-import ExternalLink from 'app/components/links/externalLink';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 
 type IntroProps = {

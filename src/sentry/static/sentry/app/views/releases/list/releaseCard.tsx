@@ -2,25 +2,26 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import space from 'app/styles/space';
-import Count from 'app/components/count';
-import Version from 'app/components/version';
-import {Panel, PanelBody, PanelItem} from 'app/components/panels';
-import ReleaseStats from 'app/components/releaseStats';
-import {Release, GlobalSelection} from 'app/types';
-import TimeSince from 'app/components/timeSince';
-import {t, tn} from 'app/locale';
+import Feature from 'app/components/acl/feature';
 import {AvatarListWrapper} from 'app/components/avatar/avatarList';
-import TextOverflow from 'app/components/textOverflow';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
 import Link from 'app/components/links/link';
-import Feature from 'app/components/acl/feature';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import ReleaseStats from 'app/components/releaseStats';
+import TextOverflow from 'app/components/textOverflow';
+import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
+import Version from 'app/components/version';
+import {t, tn} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {GlobalSelection, Release} from 'app/types';
 
-import ReleaseHealth from './releaseHealth';
-import NotAvailable from './notAvailable';
 import {getReleaseNewIssuesUrl} from '../utils';
+
+import NotAvailable from './notAvailable';
+import ReleaseHealth from './releaseHealth';
 
 type Props = {
   release: Release;

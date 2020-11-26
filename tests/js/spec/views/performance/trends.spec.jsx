@@ -1,15 +1,15 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import PerformanceLanding from 'app/views/performance/landing';
 import ProjectsStore from 'app/stores/projectsStore';
+import PerformanceLanding from 'app/views/performance/landing';
 import {
+  CONFIDENCE_LEVELS,
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
-  CONFIDENCE_LEVELS,
 } from 'app/views/performance/trends/utils';
 
 const trendsViewQuery = {

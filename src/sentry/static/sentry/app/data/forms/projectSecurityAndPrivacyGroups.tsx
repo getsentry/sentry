@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
-import {
-  getStoreCrashReportsValues,
-  formatStoreCrashReports,
-  SettingScope,
-} from 'app/utils/crashReports';
 import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
+import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
+import {
+  formatStoreCrashReports,
+  getStoreCrashReportsValues,
+  SettingScope,
+} from 'app/utils/crashReports';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help

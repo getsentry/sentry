@@ -2,11 +2,13 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {t} from 'app/locale';
+import {Organization, Release} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
-import {Release} from 'app/types';
+import DashboardDetail from 'app/views/dashboardsV2/detail';
 
-import Dashboard from './dashboard';
 import overviewDashboard from './data/dashboards/overviewDashboard';
+import Dashboard from './dashboard';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -56,4 +58,20 @@ class OverviewDashboard extends AsyncView<Props, State> {
   }
 }
 
-export default OverviewDashboard;
+type DashboardLandingProps = {
+  organization: Organization;
+} & RouteComponentProps<{orgId: string}, {}>;
+
+function DashboardLanding(props: DashboardLandingProps) {
+  const {organization, ...restProps} = props;
+
+  const showDashboardV2 = organization.features.includes('dashboards-v2');
+
+  if (showDashboardV2) {
+    return <DashboardDetail {...restProps} />;
+  }
+
+  return <OverviewDashboard {...restProps} />;
+}
+
+export default withOrganization(DashboardLanding);

@@ -1,17 +1,17 @@
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
+import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
-import {t} from 'app/locale';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
-import {createSavedSearch} from 'app/actionCreators/savedSearches';
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {TextField} from 'app/components/forms';
-import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
 import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;

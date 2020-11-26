@@ -30,3 +30,7 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+
+api_docs:
+  - *backend
+  - 'api-docs/**'

@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {tct} from 'app/locale';
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
+import {tct} from 'app/locale';
 import theme from 'app/utils/theme';
 
 type Props = {
