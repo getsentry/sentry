@@ -50,10 +50,4 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
 
         results = list(zip(serialized_groups, group_scores))
 
-        if raw_results:
-            # Similarity has returned non-existent group IDs. This can indicate
-            # that group deletion is not triggering deletion in similarity, and
-            # that we are leaking resources
-            logger.error("similarity.api.unknown_group", extra={"group_ids": list(raw_results)})
-
         return Response(results)
