@@ -266,7 +266,7 @@ def test_attachments_and_userfeedback(
 
         return data
 
-    event_id_to_delete = process_and_save({"message": "hello world"})
+    event_id_to_delete = process_and_save({"message": "hello world"}, seconds_ago=5)
     event_to_delete = eventstore.get_event_by_id(default_project.id, event_id_to_delete)
 
     event_id = process_and_save({"message": "hello world"})
