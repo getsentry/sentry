@@ -81,7 +81,7 @@ class HeaderItem extends React.Component<Props> {
       >
         <IconContainer {...textColorProps}>{icon}</IconContainer>
         <Content>
-          <div>{children}</div>
+          <StyledContent>{children}</StyledContent>
           {settingsLink && (
             <SettingsIconLink to={settingsLink}>
               <IconSettings />
@@ -153,10 +153,11 @@ const Content = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   margin-right: ${space(1.5)};
-  div {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+`;
+
+const StyledContent = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
