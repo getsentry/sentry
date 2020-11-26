@@ -280,14 +280,15 @@ class RuleNode extends React.Component<Props> {
   render() {
     const {data, disabled, node} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
-
+    console.log({node});
+    console.log({data})
     return (
       <RuleRowContainer>
         <RuleRow>
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && <TicketRuleForm />}
+            {ticketRule && <TicketRuleForm data={node}/>} 
           </Rule>
           <DeleteButton
             disabled={disabled}
