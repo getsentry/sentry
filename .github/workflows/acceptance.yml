@@ -199,8 +199,10 @@ jobs:
       - name: Get merge base
         if: github.event.pull_request.head.ref != ''
         id: merge-base
+        env:
+          REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          echo "::set-output name=sha::$(git merge-base origin/master ${{ github.event.pull_request.head.ref }})"
+          echo "::set-output name=sha::$(git merge-base origin/master $REF)"
 
       - name: Diff snapshots
         id: visual-snapshots-diff

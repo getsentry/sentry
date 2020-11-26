@@ -1,16 +1,16 @@
 type DisplayType = 'line' | 'area' | 'stacked_area' | 'bar' | 'table';
 
-type WidgetQuery = {
+export type WidgetQuery = {
   name: string;
   fields: string[];
   conditions: string;
-  interval?: string; // not required
 };
 
 export type Widget = {
   id: string;
   title: string;
   displayType: DisplayType;
+  interval: string;
   queries: WidgetQuery[];
 };
 

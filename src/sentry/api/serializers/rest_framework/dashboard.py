@@ -4,11 +4,17 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.event_search import (
+    resolve_field_list,
+    get_filter,
+    InvalidSearchQuery,
+)
 from sentry.models import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
 )
+from sentry.utils.dates import parse_stats_period
 
 
 def get_next_dashboard_order(dashboard_id):
@@ -40,11 +46,25 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False)
-    interval = serializers.CharField(required=False)
 
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
+
+    def validate_fields(self, fields):
+        snuba_filter = get_filter("")
+        try:
+            resolve_field_list(fields, snuba_filter)
+            return fields
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError(u"Invalid fields: {}".format(err))
+
+    def validate_conditions(self, conditions):
+        try:
+            get_filter(conditions)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError(u"Invalid conditions: {}".format(err))
+        return conditions
 
     def validate(self, data):
         if not data.get("id"):
@@ -61,12 +81,18 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
+    interval = serializers.CharField(required=False)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
 
     def validate_display_type(self, display_type):
         return DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
     validate_id = validate_id
+
+    def validate_interval(self, interval):
+        if parse_stats_period(interval) is None:
+            raise serializers.ValidationError("Invalid interval")
+        return interval
 
     def validate(self, data):
         if not data.get("id") and not data.get("queries"):
@@ -138,6 +164,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             dashboard=dashboard,
             display_type=widget_data["display_type"],
             title=widget_data["title"],
+            interval=widget_data.get("interval", "5m"),
             order=order,
         )
         new_queries = []
@@ -157,6 +184,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     def update_widget(self, widget, data, order):
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
+        widget.interval = data.get("interval", widget.interval)
         widget.order = order
         widget.save()
 
@@ -185,7 +213,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                         fields=query_data["fields"],
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
-                        interval=query_data.get("interval", "5m"),
                         order=next_order + i,
                     )
                 )
@@ -195,7 +222,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.name = data.get("name", query.name)
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
-        query.interval = data.get("interval", query.interval)
         query.order = order
         query.save()
 
