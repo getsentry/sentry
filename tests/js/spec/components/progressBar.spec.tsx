@@ -5,21 +5,20 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProgressBar from 'app/components/progressBar';
 
 describe('ProgressBar', function () {
-  const progressBarValue = 50;
-
   it('basic', function () {
+    const progressBarValue = 50;
     const wrapper = mountWithTheme(<ProgressBar value={progressBarValue} />);
-    expect(wrapper.find('Tooltip').length).toEqual(0);
-  });
 
-  it('with tooltip', function () {
-    const tooltipText = 'lorem ipsum';
-    const wrapper = mountWithTheme(
-      <ProgressBar value={progressBarValue} tooltipText={tooltipText} />
-    );
+    // element exists
+    expect(wrapper.length).toEqual(1);
 
-    const tooltipElement = wrapper.find('Tooltip');
-    expect(tooltipElement.length).toEqual(1);
-    expect(tooltipElement.prop('title')).toEqual(tooltipText);
+    const elementProperties = wrapper.find('div').props();
+
+    expect(elementProperties).toHaveProperty('role', 'progressbar');
+
+    // check aria attributes
+    expect(elementProperties).toHaveProperty('aria-valuenow', progressBarValue);
+    expect(elementProperties).toHaveProperty('aria-valuemin', 0);
+    expect(elementProperties).toHaveProperty('aria-valuemax', 100);
   });
 });

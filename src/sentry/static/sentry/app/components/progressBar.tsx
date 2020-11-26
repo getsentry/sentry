@@ -12,7 +12,15 @@ type Props = {
   className?: string;
 };
 
-const ProgressBar = styled(({className}: Props) => <div className={className} />)`
+const ProgressBar = styled(({className, value}: Props) => (
+  <div
+    role="progressbar"
+    aria-valuenow={value}
+    aria-valuemin={0}
+    aria-valuemax={100}
+    className={className}
+  />
+))`
   background: ${p => p.theme.gray100};
   border-radius: 100px;
   height: 6px;
@@ -21,7 +29,7 @@ const ProgressBar = styled(({className}: Props) => <div className={className} />
   position: relative;
   :before {
     content: ' ';
-    width: ${p => p.value ?? 0}%;
+    width: ${p => p.value}%;
     height: 100%;
     background-color: ${p => p.theme.purple300};
     position: absolute;
