@@ -1,29 +1,30 @@
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
 import {browserHistory, InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import {t} from 'app/locale';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {Organization, Project, GlobalSelection} from 'app/types';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {Client} from 'app/api';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {addRoutePerformanceContext, getTransactionName} from '../utils';
-import VitalDetailContent from './vitalDetailContent';
 import {generatePerformanceVitalDetailView} from '../data';
+import {addRoutePerformanceContext, getTransactionName} from '../utils';
+
+import VitalDetailContent from './vitalDetailContent';
 
 type Props = {
   api: Client;

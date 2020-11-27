@@ -1,10 +1,10 @@
 import React from 'react';
 
-import withApi from 'app/utils/withApi';
 import {MetaType} from 'app/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
 } from 'app/utils/discover/genericDiscoverQuery';
+import withApi from 'app/utils/withApi';
 
 import {vitalsBaseFields, vitalsThresholdFields} from './utils';
 

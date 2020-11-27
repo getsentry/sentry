@@ -1,32 +1,33 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Organization, Project} from 'app/types';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import space from 'app/styles/space';
-import {generateQueryWithTag} from 'app/utils';
-import EventView from 'app/utils/discover/eventView';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
-import SearchBar from 'app/views/events/searchBar';
-import {decodeScalar} from 'app/utils/queryString';
-import withProjects from 'app/utils/withProjects';
-import ButtonBar from 'app/components/buttonBar';
-import {WebVital} from 'app/utils/discover/fields';
-import Feature from 'app/components/acl/feature';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {IconFlag} from 'app/icons/iconFlag';
-import Alert from 'app/components/alert';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {generateQueryWithTag} from 'app/utils';
+import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import withProjects from 'app/utils/withProjects';
+import SearchBar from 'app/views/events/searchBar';
 
 import Breadcrumb from '../breadcrumb';
-import VitalInfo from './vitalInfo';
+import {getTransactionSearchQuery} from '../utils';
+
+import Table from './table';
 import {vitalMap} from './utils';
 import VitalChart from './vitalChart';
-import Table from './table';
-import {getTransactionSearchQuery} from '../utils';
+import VitalInfo from './vitalInfo';
 
 type Props = {
   location: Location;

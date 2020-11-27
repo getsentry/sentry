@@ -2,13 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import EventView from 'app/utils/discover/eventView';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import VitalsCardDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
-import space from 'app/styles/space';
 
 import {VitalsCard} from '../vitalsCards';
+
 import {vitalDescription} from './utils';
 
 type Props = {
