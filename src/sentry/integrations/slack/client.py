@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import time
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
@@ -46,7 +47,18 @@ class SlackClient(ApiClient):
     def request(self, method, path, headers=None, data=None, params=None, json=False, timeout=None):
         # TODO(meredith): Slack actually supports json now for the chat.postMessage so we
         # can update that so we don't have to pass json=False here
-        response = self._request(method, path, headers=headers, data=data, params=params, json=json)
-        if not response.json.get("ok"):
-            raise ApiError(response.get("error", ""))
+        while True:
+            response = self._request(method, path, headers=headers, data=data, params=params, json=json)
+            if response.json.get("ok"):
+                break
+
+            if not response.json.get("ok"):
+                # Check if we were rate limited
+                retry_after = response.headers.get('retry-after')
+                if retry_after:
+                    self.logger.info('rule.slack.rate_limited', extra={'retry_after': retry_after})
+                    time.sleep(float(retry_after))
+                    continue
+                # Just a failure
+                raise ApiError(response.get("error", ""))
         return response
