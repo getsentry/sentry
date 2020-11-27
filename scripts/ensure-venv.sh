@@ -25,13 +25,15 @@ if [ -n "$VIRTUAL_ENV" ]; then
         die "You're in a virtualenv, but it's not in the expected location (${PWD}/${venv_name})"
     fi
 
+    major=`python -c "import sys; print(sys.version_info[0])"`
+    minor=`python -c "import sys; print(sys.version_info[1])"`
     # TODO: Update this to strictly check .python-version
     if [ "$SENTRY_PYTHON2" = "1" ]; then
-        python -c "import sys; sys.exit(sys.version_info[:2] != (2, 7))" ||
+        [[ major -eq 2 && minor -eq 7 ]] ||
             die "For some reason, the virtualenv isn't Python 2.7."
     else
-        python -c "import sys; sys.exit(sys.version_info[:2] != (3, 6))" ||
-            die "Remove $VIRTUAL_ENV and try again since the Python version installed should be 3.6."
+        [[ major -eq 3 && minor -ge 6 ]] ||
+            die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
     fi
 else
     if [ ! -f "${venv_name}/bin/activate" ]; then
