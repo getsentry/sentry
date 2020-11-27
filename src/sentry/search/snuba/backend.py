@@ -137,14 +137,13 @@ def owner_filter(owner, projects):
             .distinct()
         )
 
-    else:
-        return Q(
-            id__in=GroupOwner.objects.filter(
-                user=owner, project_id__in=project_ids, organization_id=organization_id
-            )
-            .values_list("group_id", flat=True)
-            .distinct()
+    return Q(
+        id__in=GroupOwner.objects.filter(
+            user=owner, project_id__in=project_ids, organization_id=organization_id
         )
+        .values_list("group_id", flat=True)
+        .distinct()
+    )
 
 
 class Condition(object):
