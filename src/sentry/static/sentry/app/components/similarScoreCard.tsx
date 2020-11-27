@@ -55,7 +55,7 @@ const SimilarScoreCard = ({scoreList = []}: Props) => {
       })}
 
       {numOtherScores > 0 && sumOtherScores > 0 && (
-        <Wrapper key="other">
+        <Wrapper>
           <div>{t('Other')}</div>
           <Score score={Math.round((sumOtherScores * 4) / numOtherScores)} />
         </Wrapper>
