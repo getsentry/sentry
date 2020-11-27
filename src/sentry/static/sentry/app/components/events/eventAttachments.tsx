@@ -4,21 +4,20 @@ import {Location} from 'history';
 import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import {Event, EventAttachment} from 'app/types';
-import {t} from 'app/locale';
-import {PanelTable} from 'app/components/panels';
-import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
-import LogFileViewer from 'app/components/events/attachmentViewers/logFileViewer';
-import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
-import RRWebJsonViewer from 'app/components/events/attachmentViewers/rrwebJsonViewer';
+import Feature from 'app/components/acl/feature';
 import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
+import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
+import LogFileViewer from 'app/components/events/attachmentViewers/logFileViewer';
+import RRWebJsonViewer from 'app/components/events/attachmentViewers/rrwebJsonViewer';
+import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 import EventDataSection from 'app/components/events/eventDataSection';
 import FileSize from 'app/components/fileSize';
+import {PanelTable} from 'app/components/panels';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import {Event, EventAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
-import Feature from 'app/components/acl/feature';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 

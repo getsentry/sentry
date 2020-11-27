@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconDownload, IconShow} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
