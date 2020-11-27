@@ -198,7 +198,6 @@ class Frame(Interface):
             "package": self.package,
             "platform": self.platform,
             "instructionAddr": pad_hex_addr(self.instruction_addr, pad_addr),
-            "addrMode": self.addr_mode or "abs",
             "symbolAddr": pad_hex_addr(self.symbol_addr, pad_addr),
             "function": function,
             "rawFunction": self.raw_function,
@@ -217,6 +216,10 @@ class Frame(Interface):
         }
         if not is_public:
             data["vars"] = self.vars
+
+        if self.addr_mode and self.addr_mode != "abs":
+            data["addrMode"] = self.addr_mode
+
         # TODO(dcramer): abstract out this API
         if self.data and "sourcemap" in data:
             data.update(
