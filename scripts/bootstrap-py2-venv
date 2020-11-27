@@ -41,7 +41,7 @@ fi
 deactivate 2>/dev/null || true
 rm -rf ${VENV}/
 
-if ! [[ "$(python2.7 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 1' .python-version)" ]]; then
+if ! [[ "$(python2.7 -V 2>&1)" = "Python $(grep "2.7" .python-version)" ]]; then
     abort "Your python2.7 version isn't as expected. Please run: make setup-pyenv"
 fi
 

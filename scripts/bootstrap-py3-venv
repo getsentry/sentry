@@ -39,7 +39,9 @@ fi
 deactivate 2>/dev/null || true
 rm -rf ${VENV}
 
-if ! [[ "$(python3 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 2' .python-version)" ]]; then
+major=`python -c "import sys; print(sys.version_info[0])"`
+minor=`python -c "import sys; print(sys.version_info[1])"`
+if ! [[ major -eq 3 && minor -ge 6 ]]; then
     abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
