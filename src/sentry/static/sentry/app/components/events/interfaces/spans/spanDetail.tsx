@@ -374,7 +374,7 @@ class SpanDetail extends React.Component<Props, State> {
 
   partitionSizes(data) {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-      if (data[key]) {
+      if (data.hasOwnProperty(key)) {
         keys[key] = data[key];
       }
       return keys;
