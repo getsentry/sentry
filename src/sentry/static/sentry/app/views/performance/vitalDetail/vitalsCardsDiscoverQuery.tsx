@@ -28,7 +28,6 @@ function getRequestPayload(props: Props) {
     ? [vitalsThresholdFields[onlyVital], vitalsBaseFields[onlyVital]]
     : [...Object.values(vitalsThresholdFields), ...Object.values(vitalsBaseFields)];
   apiPayload.field = ['count()', ...vitalFields];
-  apiPayload.query = 'event.type:transaction';
   delete apiPayload.sort;
   return apiPayload;
 }
