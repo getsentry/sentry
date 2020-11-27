@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {Organization, EventAttachment} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
 import Role from 'app/components/acl/role';
+import {EventAttachment, Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   organization: Organization;

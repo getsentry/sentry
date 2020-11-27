@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import {Event, EventAttachment} from 'app/types';
@@ -15,6 +15,7 @@ import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
 import EventDataSection from 'app/components/events/eventDataSection';
 import FileSize from 'app/components/fileSize';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
 import Feature from 'app/components/acl/feature';

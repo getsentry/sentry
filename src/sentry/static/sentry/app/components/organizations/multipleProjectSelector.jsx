@@ -1,21 +1,21 @@
-import {ClassNames} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import {Link} from 'react-router';
+import {ClassNames} from '@emotion/core';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
-import {analytics} from 'app/utils/analytics';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
 import HeaderItem from 'app/components/organizations/headerItem';
+import PlatformList from 'app/components/platformList';
+import Tooltip from 'app/components/tooltip';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {IconProject} from 'app/icons';
+import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
-import PlatformList from 'app/components/platformList';
-import {IconProject} from 'app/icons';
+import {analytics} from 'app/utils/analytics';
+import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 
@@ -388,6 +388,7 @@ const FooterMessage = styled('div')`
 
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
   margin: 1px 0 0 -1px;
   border-radius: ${p => p.theme.borderRadiusBottom};
   width: 100%;
@@ -400,9 +401,9 @@ const StyledHeaderItem = styled(HeaderItem)`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;

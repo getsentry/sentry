@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {t} from 'app/locale';
+import ClippedBox from 'app/components/clippedBox';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
-import ClippedBox from 'app/components/clippedBox';
+import {t} from 'app/locale';
 
 type Props = {
   alias: string;

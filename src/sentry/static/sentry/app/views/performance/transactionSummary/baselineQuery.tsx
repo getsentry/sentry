@@ -2,8 +2,8 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
-import withApi from 'app/utils/withApi';
 import EventView from 'app/utils/discover/eventView';
+import withApi from 'app/utils/withApi';
 
 export type BaselineQueryResults = {
   'transaction.duration': number;

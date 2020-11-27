@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import classNames from 'classnames';
-import {Manager, Reference, Popper, PopperProps} from 'react-popper';
-import styled from '@emotion/styled';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {keyframes} from '@emotion/core';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -108,12 +108,8 @@ class Hovercard extends React.Component<Props, State> {
   handleToggleOff = () => this.toggleHovercard(false);
 
   toggleHovercard = (visible: boolean) => {
-    const {header, body, displayTimeout} = this.props;
+    const {displayTimeout} = this.props;
 
-    // Don't toggle hovercard if both of these are null
-    if (!header && !body) {
-      return;
-    }
     if (this.hoverWait) {
       clearTimeout(this.hoverWait);
     }
@@ -168,6 +164,7 @@ class Hovercard extends React.Component<Props, State> {
           )}
         </Reference>
         {visible &&
+          (header || body) &&
           ReactDOM.createPortal(
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
@@ -315,5 +312,5 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   }
 `;
 
-export {Hovercard, Body};
+export {Body, Hovercard};
 export default Hovercard;

@@ -1,13 +1,13 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {Meta} from 'app/types';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import space from 'app/styles/space';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import TextOverflow from 'app/components/textOverflow';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Meta} from 'app/types';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import generateClassName from './generateClassName';

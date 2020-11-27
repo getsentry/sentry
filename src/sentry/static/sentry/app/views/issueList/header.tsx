@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import * as Layout from 'app/components/layouts/thirds';
+import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import QueryCount from 'app/components/queryCount';
-import * as Layout from 'app/components/layouts/thirds';
 
 type Props = {
   query: string;
@@ -14,10 +14,9 @@ type Props = {
 };
 
 const queries = [
-  ['is:inbox', t('Inbox')],
-  ['is:unresolved', t('Backlog')],
+  ['is:inbox is:unresolved', t('Inbox')],
+  ['is:unresolved', t('Unresolved')],
   ['is:ignored', t('Ignored')],
-  ['is:resolved', t('Resolved')],
 ];
 
 function IssueListHeader({query, queryCount, queryMaxCount, onTabChange}: Props) {

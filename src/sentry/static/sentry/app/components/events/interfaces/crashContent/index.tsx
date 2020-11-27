@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {PlatformType, ExceptionType} from 'app/types';
+import {ExceptionType, ExceptionValue, PlatformType} from 'app/types';
 
 import Exception from './exception';
 import Stacktrace from './stacktrace';
@@ -11,7 +11,7 @@ type Props = Pick<
   'stackType' | 'stackView' | 'projectId' | 'event' | 'newestFirst'
 > & {
   exception?: ExceptionType;
-  stacktrace?: React.ComponentProps<typeof Stacktrace>['stacktrace'];
+  stacktrace?: ExceptionValue['stacktrace'];
 };
 
 const CrashContent = ({

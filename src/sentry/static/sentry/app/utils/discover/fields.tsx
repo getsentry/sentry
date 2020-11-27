@@ -81,6 +81,12 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  failure_count: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   min: {
     parameters: [
       {
@@ -483,7 +489,7 @@ export const FIELD_TAGS = Object.freeze(
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-// This list should be removed with the tranaction-events feature flag.
+// This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
   'avg',
   'sum',
@@ -628,8 +634,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2_$3')
-    .replace(/\./g, '_')
-    .replace(/\,/g, '_')
+    .replace(/[^\w]/g, '_')
+    .replace(/^_+/g, '')
     .replace(/_+$/, '');
 }
 

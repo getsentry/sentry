@@ -1,14 +1,14 @@
-import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
-import {ThemeProvider} from 'emotion-theming';
-import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
 import React from 'react';
-import {Router, browserHistory} from 'react-router';
+import {browserHistory, Router} from 'react-router';
+import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
+import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
+import {ThemeProvider} from 'emotion-theming';
 
-import {Config} from 'app/types';
 import {loadPreferencesState} from 'app/actionCreators/preferences';
+import routes from 'app/routes';
 import ConfigStore from 'app/stores/configStore';
 import GlobalStyles from 'app/styles/global';
-import routes from 'app/routes';
+import {Config} from 'app/types';
 import theme, {darkTheme, Theme} from 'app/utils/theme';
 import withConfig from 'app/utils/withConfig';
 
@@ -42,7 +42,10 @@ class Main extends React.Component<Props, State> {
   render() {
     return (
       <ThemeProvider<Theme> theme={this.state.theme}>
-        <GlobalStyles theme={this.state.theme} />
+        <GlobalStyles
+          isDark={this.props.config.theme === 'dark'}
+          theme={this.state.theme}
+        />
         <CacheProvider value={cache}>
           <Router history={browserHistory}>{routes()}</Router>
         </CacheProvider>

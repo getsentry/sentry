@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import theme, {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
+import theme, {Color} from 'app/utils/theme';
 
 const IconWrapper = styled('div', {
   shouldForwardProp: prop => prop !== 'color',
@@ -46,7 +46,6 @@ const GridCell = styled('div')<{
   ${p =>
     p.hasError &&
     `
-      background: #fffcfb;
       border-bottom: 1px solid ${p.theme.red300};
       :after {
         content: '';
@@ -87,4 +86,4 @@ const aroundContentStyle = css`
   z-index: 1;
 `;
 
-export {GridCell, GridCellLeft, IconWrapper, aroundContentStyle};
+export {aroundContentStyle, GridCell, GridCellLeft, IconWrapper};

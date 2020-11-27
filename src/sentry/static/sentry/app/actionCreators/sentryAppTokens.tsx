@@ -3,9 +3,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {SentryApp, InternalAppApiToken} from 'app/types';
 import {Client} from 'app/api';
+import {t} from 'app/locale';
+import {InternalAppApiToken, SentryApp} from 'app/types';
 
 /**
  * Install a sentry application

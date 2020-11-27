@@ -1,13 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import EventDataSection from 'app/components/events/eventDataSection';
-import {Panel} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
+import EventDataSection from 'app/components/events/eventDataSection';
 import LazyLoad from 'app/components/lazyLoad';
-import space from 'app/styles/space';
-import {Event, Organization, Project, EventAttachment} from 'app/types';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Event, EventAttachment, Organization, Project} from 'app/types';
 
 type Props = {
   event: Event;
@@ -47,23 +46,21 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     const {orgId, projectId, event} = this.props;
 
     return (
-      <EventDataSection type="context-replay" title={t('Replay')}>
-        <StyledPanel>
-          <LazyLoad
-            component={() =>
-              import(/* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer').then(
-                mod => mod.default
-              )
-            }
-            url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
-          />
-        </StyledPanel>
-      </EventDataSection>
+      <StyledEventDataSection type="context-replay" title={t('Replay')}>
+        <LazyLoad
+          component={() =>
+            import(/* webpackChunkName: "rrwebReplayer" */ './rrwebReplayer').then(
+              mod => mod.default
+            )
+          }
+          url={`/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`}
+        />
+      </StyledEventDataSection>
     );
   }
 }
 
-const StyledPanel = styled(Panel)`
+const StyledEventDataSection = styled(EventDataSection)`
   overflow: hidden;
   margin-bottom: ${space(3)};
 `;

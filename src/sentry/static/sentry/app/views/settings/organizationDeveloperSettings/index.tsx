@@ -1,20 +1,20 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
+import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import AlertLink from 'app/components/alertLink';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
-import {removeSentryApp} from 'app/actionCreators/sentryApps';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {Organization, SentryApp} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
-import withOrganization from 'app/utils/withOrganization';
-import {t} from 'app/locale';
-import routeTitleGen from 'app/utils/routeTitle';
-import {Organization, SentryApp} from 'app/types';
 
 type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
@@ -34,7 +34,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Developer Settings'), orgId, false);
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];

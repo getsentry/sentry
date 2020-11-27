@@ -1,6 +1,6 @@
-import Reflux from 'reflux';
-import isArray from 'lodash/isArray';
 import extend from 'lodash/extend';
+import isArray from 'lodash/isArray';
+import Reflux from 'reflux';
 
 import {Event} from 'app/types';
 

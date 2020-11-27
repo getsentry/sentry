@@ -27,6 +27,8 @@ _DEFAULT_DAEMONS = {
         "query-subscription-consumer",
         "--commit-batch-size",
         "1",
+        "--force-offset-reset",
+        "latest",
     ],
 }
 

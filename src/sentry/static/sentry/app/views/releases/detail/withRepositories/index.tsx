@@ -2,14 +2,16 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'app/locale';
-import {Client} from 'app/api';
-import getDisplayName from 'app/utils/getDisplayName';
-import {Repository} from 'app/types';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import {Body, Main} from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import {Repository} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 import {ReleaseContext} from '..';
+
 import NoRepoConnected from './noRepoConnected';
 
 // We require these props when using this HOC
@@ -114,7 +116,13 @@ const withRepositories = <P extends Props>(WrappedComponent: React.ComponentType
       }
 
       if (!repositories.length) {
-        return <NoRepoConnected orgId={this.props.params.orgId} />;
+        return (
+          <Body>
+            <Main fullWidth>
+              <NoRepoConnected orgId={this.props.params.orgId} />
+            </Main>
+          </Body>
+        );
       }
 
       if (activeRepository === undefined) {

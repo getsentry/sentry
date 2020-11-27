@@ -2,19 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {t} from 'app/locale';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
-import {EventGroupVariant, EventGroupVariantType, EventGroupComponent} from 'app/types';
-import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
-import {IconCheckmark, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
+import ButtonBar from 'app/components/buttonBar';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import QuestionTooltip from 'app/components/questionTooltip';
+import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {EventGroupComponent, EventGroupVariant, EventGroupVariantType} from 'app/types';
 
-import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
+import {hasNonContributingComponent} from './utils';
 
 type Props = {
   variant: EventGroupVariant;

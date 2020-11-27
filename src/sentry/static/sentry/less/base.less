@@ -1,3 +1,6 @@
+@font-family-base: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+@font-family-code: 'IBM Plex', Consolas, 'Courier New', monospace;
+
 * {
   box-sizing: border-box;
 }
@@ -56,22 +59,51 @@ h4 {
 }
 
 h5 {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
 }
 
 h6 {
   font-size: 1.4rem;
 }
 
+dl {
+  margin-top: 0; // Remove browser default
+  margin-bottom: @line-height-computed;
+}
+
+dt,
+dd {
+  line-height: @line-height-base;
+}
+
+dt {
+  font-weight: 700;
+}
+
+dd {
+  margin-left: 0; // Undo browser default
+}
+
 ul,
 ol {
   margin-top: 0;
+  margin-bottom: (@line-height-computed / 2);
   padding: 0 0 0 20px;
 
   ul,
   ol {
     margin-bottom: 0;
   }
+}
+
+p,
+pre {
+  margin: 0 0 20px;
+}
+
+ul,
+ol {
+  margin: 0 0 20px;
 }
 
 p,
@@ -112,20 +144,21 @@ textarea {
   line-height: inherit;
 }
 
-// Links
-
 a {
+  cursor: pointer;
+  .transition(color linear 0.2s);
   color: @link-color;
   text-decoration: none;
 
   &:hover,
   &:focus {
     color: @link-hover-color;
-    text-decoration: @link-hover-decoration;
+    text-decoration: none;
   }
 
   &:focus {
     .tab-focus();
+    text-decoration: none;
   }
 }
 
@@ -137,8 +170,6 @@ a {
 figure {
   margin: 0;
 }
-
-// Images
 
 img {
   vertical-align: middle;
@@ -251,48 +282,22 @@ abbr[title] {
   text-decoration: underline dotted; // 2
 }
 
-//
-// Address style set to `bolder` in Firefox 4+, Safari, and Chrome.
-//
-
 b,
 strong {
   font-weight: bold;
 }
 
-//
-// Address styling not present in Safari and Chrome.
-//
-
 dfn {
   font-style: italic;
 }
-
-//
-// Address variable `h1` font-size and margin within `section` and `article`
-// contexts in Firefox 4+, Safari, and Chrome.
-//
-
-h1 {
-  font-size: 2em;
-  margin: 0.67em 0;
-}
-
-//
-// Address styling not present in IE 8/9.
-//
 
 mark {
   background: #ff0;
   color: #000;
 }
 
-//
-// Address inconsistent and variable font size in all browsers.
-//
-
 small {
-  font-size: 80%;
+  font-size: 14px;
 }
 
 //
@@ -337,25 +342,9 @@ svg:not(:root) {
 // Grouping content
 // ==========================================================================
 
-//
-// Address differences between Firefox and other browsers.
-//
-
 hr {
   box-sizing: content-box;
   height: 0;
-}
-
-//
-// Contain overflow in all browsers.
-//
-
-code,
-kbd,
-pre,
-samp {
-  font-family: monospace, monospace;
-  font-size: 1em;
 }
 
 //
@@ -368,6 +357,7 @@ kbd,
 pre,
 samp {
   font-family: @font-family-monospace;
+  font-size: 1em;
 }
 
 // Inline code
@@ -396,18 +386,24 @@ kbd {
   }
 }
 
-// Blocks of code
+pre,
+code {
+  border: 0;
+  background-color: @white-darker;
+  color: @gray-darker;
+  border-radius: 3px;
+}
+
 pre {
   display: block;
   padding: ((@line-height-computed - 1) / 2);
-  margin: 0 0 (@line-height-computed / 2);
   font-size: (@font-size-base - 1); // 14px to 13px
   line-height: @line-height-base;
   color: @pre-color;
   word-break: break-all;
+  white-space: pre-wrap;
   word-wrap: break-word;
   background-color: @pre-bg;
-  border: 1px solid @pre-border-color;
   border-radius: @border-radius-base;
   overflow: auto;
 
@@ -424,13 +420,6 @@ pre {
 
 // Forms
 // ==========================================================================
-
-//
-// Known limitation: by default, Chrome and Safari on OS X allow very limited
-// styling of `select`, unless a `border` property is set.
-//
-
-//
 // 1. Correct color not being inherited.
 //    Known issue: affects color of disabled elements.
 // 2. Correct font properties not being inherited.
@@ -448,19 +437,15 @@ textarea {
 }
 
 //
-// Address `overflow` set to `hidden` in IE 8/9/10/11.
-//
-
-button {
-  overflow: visible;
-}
-
-//
 // Address inconsistent `text-transform` inheritance for `button` and `select`.
 // All other form control elements do not inherit `text-transform` values.
 // Correct `button` style inheritance in Firefox, IE 8/9/10/11, and Opera.
 // Correct `select` style inheritance in Firefox.
 //
+
+button {
+  overflow: visible;
+}
 
 button,
 select {
@@ -476,9 +461,9 @@ select {
 //
 
 button,
-  html input[type="button"], // 1
-  input[type="reset"],
-  input[type="submit"] {
+html input[type="button"], // 1
+input[type="reset"],
+input[type="submit"] {
   -webkit-appearance: button; // 2
   cursor: pointer; // 3
 }
@@ -587,14 +572,10 @@ optgroup {
 
 // Tables
 // ==========================================================================
-
-//
-// Remove most spacing between table cells.
-//
-
 table {
   border-collapse: collapse;
   border-spacing: 0;
+  margin: 0 0 20px;
 }
 
 td,

@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {defined} from 'app/utils';
-import theme, {Theme, Color} from 'app/utils/theme';
-import space from 'app/styles/space';
-import {IconClose, IconOpen} from 'app/icons';
 import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
+import Tooltip from 'app/components/tooltip';
+import {IconClose, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {defined} from 'app/utils';
+import theme, {Color, Theme} from 'app/utils/theme';
 
 const TAG_HEIGHT = '20px';
 
@@ -53,7 +53,7 @@ function Tag({
   ...props
 }: Props) {
   const iconsProps = {
-    size: '12px',
+    size: '11px',
     color: theme.tag[type].iconColor as Color,
   };
 
@@ -120,28 +120,29 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${space(1)};
 `;
 
 const IconWrapper = styled('span')`
-  margin-right: 3px;
+  margin-right: ${space(0.5)};
+  display: inline-flex;
 `;
 
 const Text = styled('span')`
-  color: ${p => p.theme.textColor};
-  font-size: 13px;
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeSmall};
   max-width: 150px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: ${TAG_HEIGHT};
   a:hover & {
-    color: ${p => p.theme.textColor};
+    color: ${p => p.theme.gray500};
   }
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: 3px;
+  margin-left: ${space(0.5)};
   border: none;
 `;
 

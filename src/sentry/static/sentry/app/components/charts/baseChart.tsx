@@ -1,26 +1,28 @@
-import {withTheme} from 'emotion-theming';
-import React from 'react';
 import 'zrender/lib/svg/svg';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+
+import React from 'react';
 import styled from '@emotion/styled';
+import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {withTheme} from 'emotion-theming';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import space from 'app/styles/space';
 import {
-  Series,
-  EChartEventHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
+  EChartEventHandler,
+  ReactEchartsRef,
+  Series,
 } from 'app/types/echarts';
 import {Theme} from 'app/utils/theme';
-import space from 'app/styles/space';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
+import LineSeries from './series/lineSeries';
 
 // If dimension is a number convert it to pixels, otherwise use dimension without transform
 const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
@@ -487,11 +489,37 @@ const ChartContainer = styled('div')`
   .echarts-for-react div:first-of-type {
     width: 100% !important;
   }
+
+  /* Tooltip description styling */
+  .tooltip-description {
+    color: ${p => p.theme.white};
+    border-radius: ${p => p.theme.borderRadius};
+    background: #000;
+    opacity: 0.9;
+    padding: 5px 10px;
+    position: relative;
+    font-weight: bold;
+    font-size: ${p => p.theme.fontSizeSmall};
+    line-height: 1.4;
+    font-family: ${p => p.theme.text.family};
+    :after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #000;
+      transform: translateX(-50%);
+    }
+  }
 `;
 
 const BaseChartWithTheme = withTheme(BaseChart);
 
-const BaseChartRef = React.forwardRef<ReactEchartsCore, Omit<Props, 'theme'>>(
+const BaseChartRef = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
   (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
 );
 BaseChartRef.displayName = 'forwardRef(BaseChart)';

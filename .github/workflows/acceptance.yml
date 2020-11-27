@@ -151,6 +151,9 @@ jobs:
           yarn install --frozen-lockfile
 
       - name: webpack
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn webpack --display errors-only
 
@@ -181,10 +184,31 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      # We need to checkout the repository so that we can fetch the merge base from git
+      - uses: actions/checkout@v2
+        name: Checkout sentry
+        if: github.event.pull_request.head.ref != ''
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # fetch all history so we can use `git merge-base`
+          fetch-depth: 0
+
+      # Because of pull_request_target event, `github.event.pull_request.base` will refer to latest
+      # commit on main branch when opening the PR
+      - name: Get merge base
+        if: github.event.pull_request.head.ref != ''
+        id: merge-base
+        env:
+          REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          echo "::set-output name=sha::$(git merge-base origin/master $REF)"
+
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@v2
         with:
+          merge-base: ${{ steps.merge-base.outputs.sha }}
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gcs-bucket: 'sentry-visual-snapshots'

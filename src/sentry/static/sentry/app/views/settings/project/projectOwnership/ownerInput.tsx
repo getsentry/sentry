@@ -1,15 +1,15 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import TextareaAutosize from 'react-autosize-textarea';
+import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import memberListStore from 'app/stores/memberListStore';
-import ProjectsStore from 'app/stores/projectsStore';
-import Button from 'app/components/button';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
+import MemberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
 import {inputStyles} from 'app/styles/input';
-import {Project, Organization, Team} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import theme from 'app/utils/theme';
 
 import RuleBuilder from './ruleBuilder';
@@ -105,7 +105,7 @@ class OwnerInput extends React.Component<Props, State> {
   };
 
   mentionableUsers() {
-    return memberListStore.getAll().map(member => ({
+    return MemberListStore.getAll().map(member => ({
       id: member.id,
       display: member.email,
       email: member.email,
@@ -133,9 +133,10 @@ class OwnerInput extends React.Component<Props, State> {
   };
 
   handleAddRule = (rule: string) => {
+    const {initialText} = this.props;
     this.setState(
       ({text}) => ({
-        text: text + '\n' + rule,
+        text: (text || initialText) + '\n' + rule,
       }),
       this.handleUpdateOwnership
     );

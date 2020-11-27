@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DateTime from 'app/components/dateTime';
+import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
+import FileSize from 'app/components/fileSize';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
-import DateTime from 'app/components/dateTime';
-import FileSize from 'app/components/fileSize';
 import {EventAttachment} from 'app/types';
 import AttachmentUrl from 'app/utils/attachmentUrl';
-import EventAttachmentActions from 'app/components/events/eventAttachmentActions';
 import {types} from 'app/views/organizationGroupDetails/groupEventAttachments/types';
 
 type Props = {

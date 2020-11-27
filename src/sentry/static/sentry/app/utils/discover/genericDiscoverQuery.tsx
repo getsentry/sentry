@@ -1,12 +1,12 @@
 import React from 'react';
 import {Location} from 'history';
 
+import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'app/utils/discover/eventView';
-import {EventQuery} from 'app/actionCreators/events';
 
 export type GenericChildrenProps<T> = {
   isLoading: boolean;
@@ -180,7 +180,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
           isLoading: false,
           tableFetchID: undefined,
           error: null,
-          pageLinks: jqXHR ? jqXHR.getResponseHeader('Link') : prevState.pageLinks,
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
           tableData,
         }));
       })

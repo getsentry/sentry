@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import {SidebarLabel} from '../styles';

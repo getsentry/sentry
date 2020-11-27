@@ -4,6 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import ConfigStore from 'app/stores/configStore';
 
 describe('MultipleEnvironmentSelector', function () {
   let wrapper;
@@ -123,6 +124,151 @@ describe('MultipleEnvironmentSelector', function () {
 
   it('shows member project environments when there are no projects selected', async function () {
     wrapper.setProps({selectedProjects: []});
+    wrapper.update();
+
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+
+    expect(items.length).toEqual(3);
+    expect(items.at(0).text()).toBe('production');
+    expect(items.at(1).text()).toBe('staging');
+    expect(items.at(2).text()).toBe('dev');
+  });
+
+  it('shows My Projects/all environments (superuser - no team belonging)', async function () {
+    ConfigStore.config = {
+      user: {
+        isSuperuser: true,
+      },
+    };
+    // "My Projects" view
+    wrapper.setProps({selectedProjects: []});
+    // This user is member of no project
+    wrapper.setProps({
+      projects: [
+        TestStubs.Project({
+          id: '1',
+          slug: 'first',
+          environments: ['production', 'staging'],
+          isMember: false,
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'second',
+          environments: ['dev'],
+          isMember: false,
+        }),
+      ],
+    });
+    wrapper.update();
+
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+
+    expect(items.length).toEqual(3);
+    expect(items.at(0).text()).toBe('production');
+    expect(items.at(1).text()).toBe('staging');
+    expect(items.at(2).text()).toBe('dev');
+  });
+
+  it('shows My Projects/all environments (superuser - belongs one team)', async function () {
+    // XXX: Ideally, "My Projects" and "All Projects" should be different if a superuser
+    // was to belong to at least one project
+    ConfigStore.config = {
+      user: {
+        isSuperuser: true,
+      },
+    };
+    // "My Projects" view
+    wrapper.setProps({selectedProjects: []});
+    // This user is member of one project
+    wrapper.setProps({
+      projects: [
+        TestStubs.Project({
+          id: '1',
+          slug: 'first',
+          environments: ['production', 'staging'],
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'second',
+          environments: ['dev'],
+          isMember: false,
+        }),
+      ],
+    });
+    wrapper.update();
+
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+
+    expect(items.length).toEqual(3);
+    expect(items.at(0).text()).toBe('production');
+    expect(items.at(1).text()).toBe('staging');
+    expect(items.at(2).text()).toBe('dev');
+  });
+
+  it('shows All Projects/all environments (superuser - no team belonging)', async function () {
+    ConfigStore.config = {
+      user: {
+        isSuperuser: true,
+      },
+    };
+    // "All Projects" view
+    wrapper.setProps({selectedProjects: [-1]});
+    // This user is member of one project
+    wrapper.setProps({
+      projects: [
+        TestStubs.Project({
+          id: '1',
+          slug: 'first',
+          environments: ['production', 'staging'],
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'second',
+          environments: ['dev'],
+          isMember: false,
+        }),
+      ],
+    });
+    wrapper.update();
+
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    const items = wrapper.find('MultipleEnvironmentSelector GlobalSelectionHeaderRow');
+
+    expect(items.length).toEqual(3);
+    expect(items.at(0).text()).toBe('production');
+    expect(items.at(1).text()).toBe('staging');
+    expect(items.at(2).text()).toBe('dev');
+  });
+
+  it('shows All Projects/all environments (superuser - belongs one team)', async function () {
+    // XXX: Ideally, "My Projects" and "All Projects" should be different if a superuser
+    // was to belong to at least one project
+    ConfigStore.config = {
+      user: {
+        isSuperuser: true,
+      },
+    };
+    // "All Projects" view
+    wrapper.setProps({selectedProjects: [-1]});
+    // This user is member of one project
+    wrapper.setProps({
+      projects: [
+        TestStubs.Project({
+          id: '1',
+          slug: 'first',
+          environments: ['production', 'staging'],
+        }),
+        TestStubs.Project({
+          id: '2',
+          slug: 'second',
+          environments: ['dev'],
+          isMember: false,
+        }),
+      ],
+    });
     wrapper.update();
 
     await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');

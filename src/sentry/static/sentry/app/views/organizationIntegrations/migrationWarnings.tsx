@@ -1,11 +1,11 @@
 import React from 'react';
 import groupBy from 'lodash/groupBy';
 
-import {tct} from 'app/locale';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import AlertLink from 'app/components/alertLink';
 import AsyncComponent from 'app/components/asyncComponent';
-import {IntegrationProvider, Integration, Repository} from 'app/types';
+import {tct} from 'app/locale';
+import {Integration, IntegrationProvider, Repository} from 'app/types';
+import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 
 type Props = {
   orgId: string;
@@ -18,7 +18,7 @@ type State = {
 } & AsyncComponent['state'];
 
 export default class MigrationWarnings extends AsyncComponent<Props, State> {
-  getEndpoints(): ([string, string] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId} = this.props;
 
     return [['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`]];

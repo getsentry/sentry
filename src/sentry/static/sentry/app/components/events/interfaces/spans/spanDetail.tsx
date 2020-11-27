@@ -1,33 +1,38 @@
 import React from 'react';
-import map from 'lodash/map';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import map from 'lodash/map';
 
-import {Organization, SentryTransactionEvent} from 'app/types';
 import {Client} from 'app/api';
-import {IconWarning} from 'app/icons';
-import {assert} from 'app/types/utils';
-import {generateEventSlug, eventDetailsRoute} from 'app/utils/discover/urls';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
-import DiscoverButton from 'app/components/discoverButton';
 import DateTime from 'app/components/dateTime';
-import EventView from 'app/utils/discover/eventView';
+import DiscoverButton from 'app/components/discoverButton';
+import FileSize from 'app/components/fileSize';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
-import space from 'app/styles/space';
-import getDynamicText from 'app/utils/getDynamicText';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import withApi from 'app/utils/withApi';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, SentryTransactionEvent} from 'app/types';
+import {assert} from 'app/types/utils';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
+import getDynamicText from 'app/utils/getDynamicText';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
-import {ProcessedSpanType, RawSpanType, ParsedTraceType, rawSpanKeys} from './types';
-import {isGapSpan, isOrphanSpan, getTraceDateTimeRange} from './utils';
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
+import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
+import {getTraceDateTimeRange, isGapSpan, isOrphanSpan} from './utils';
+
+const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
 type TransactionResult = {
   'project.name': string;
@@ -367,6 +372,23 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  partitionSizes(data) {
+    const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
+      if (data[key]) {
+        keys[key] = data[key];
+      }
+      return keys;
+    }, {});
+
+    const nonSizeKeys = {...data};
+    SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
+
+    return {
+      sizeKeys,
+      nonSizeKeys,
+    };
+  }
+
   renderSpanDetails() {
     const {span, event, organization} = this.props;
 
@@ -391,6 +413,12 @@ class SpanDetail extends React.Component<Props, State> {
     const unknownKeys = Object.keys(span).filter(key => {
       return !rawSpanKeys.has(key as any);
     });
+
+    const {sizeKeys, nonSizeKeys} = this.partitionSizes(span?.data ?? {});
+
+    const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
+      value => value === 0
+    );
 
     return (
       <React.Fragment>
@@ -439,7 +467,27 @@ class SpanDetail extends React.Component<Props, State> {
                   : null}
               </Row>
               <Tags span={span} />
-              {map(span?.data ?? {}, (value, key) => (
+              {allZeroSizes && (
+                <TextTr>
+                  The following sizes were not collected for security reasons. Check if
+                  the host serves the appropriate
+                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
+                    <span className="val-string">Timing-Allow-Origin</span>
+                  </ExternalLink>
+                  header. You may have to enable this collection manually.
+                </TextTr>
+              )}
+              {map(sizeKeys, (value, key) => (
+                <Row title={key} key={key}>
+                  <React.Fragment>
+                    <FileSize bytes={value} />
+                    {value >= 1024 && (
+                      <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
+                    )}
+                  </React.Fragment>
+                </Row>
+              ))}
+              {map(nonSizeKeys, (value, key) => (
                 <Row title={key} key={key}>
                   {JSON.stringify(value, null, 4) || ''}
                 </Row>
@@ -496,6 +544,20 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   height: ${space(2)};
   margin: 0;
 `;
+
+const StyledText = styled('p')`
+  font-size: ${theme.fontSizeMedium};
+  margin: ${space(2)} ${space(0)};
+`;
+
+const TextTr = ({children}) => (
+  <tr>
+    <td className="key" />
+    <ValueTd className="value">
+      <StyledText>{children}</StyledText>
+    </ValueTd>
+  </tr>
+);
 
 export const Row = ({
   title,

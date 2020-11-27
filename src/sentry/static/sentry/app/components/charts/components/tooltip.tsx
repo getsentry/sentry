@@ -1,9 +1,10 @@
-import {EChartOption} from 'echarts';
 import 'echarts/lib/component/tooltip';
+
+import {EChartOption} from 'echarts';
 import moment from 'moment';
 
-import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 import BaseChart from 'app/components/charts/baseChart';
+import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
 
 import {truncationFormatter} from '../utils';
 

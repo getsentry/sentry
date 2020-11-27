@@ -1,19 +1,21 @@
 import React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Project, Organization} from 'app/types';
-import {t, tct} from 'app/locale';
-import {IconInfo, IconClose, IconSiren} from 'app/icons';
-import Button from 'app/components/button';
-import EventView from 'app/utils/discover/eventView';
-import Alert from 'app/components/alert';
+import {navigateTo} from 'app/actionCreators/navigation';
 import Access from 'app/components/acl/access';
-import {explodeFieldString, AGGREGATIONS, Aggregation} from 'app/utils/discover/fields';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Link from 'app/components/links/link';
+import {IconClose, IconInfo, IconSiren} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
+import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
 import {
   errorFieldConfig,
   transactionFieldConfig,
 } from 'app/views/settings/incidentRules/constants';
-import Link from 'app/components/links/link';
 
 /**
  * Discover query supports more features than alert rules
@@ -167,7 +169,7 @@ function IncompatibleQueryAlert({
   );
 }
 
-type Props = React.ComponentProps<typeof Button> & {
+type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
   className?: string;
   projects: Project[];
   /**
@@ -231,7 +233,7 @@ function incompatibleYAxis(eventView: EventView): boolean {
  * Provide a button that can create an alert from an event view.
  * Emits incompatible query issues on click
  */
-function CreateAlertButton({
+function CreateAlertFromViewButton({
   projects,
   eventView,
   organization,
@@ -239,7 +241,7 @@ function CreateAlertButton({
   onIncompatibleQuery,
   onSuccess,
   ...buttonProps
-}: Props) {
+}: CreateAlertFromViewButtonProps) {
   // Must have exactly one project selected and not -1 (all projects)
   const hasProjectError = eventView.project.length !== 1 || eventView.project[0] === -1;
   // Must have one or zero environments
@@ -290,28 +292,73 @@ function CreateAlertButton({
   };
 
   return (
-    <Access organization={organization} access={['project:write']}>
-      {({hasAccess}) => (
-        <Button
-          type="button"
-          disabled={!hasAccess}
-          title={
-            !hasAccess
-              ? t('Users with admin permission or higher can create alert rules.')
-              : undefined
-          }
-          icon={<IconSiren />}
-          to={to}
-          onClick={handleClick}
-          {...buttonProps}
-        >
-          {t('Create alert')}
-        </Button>
-      )}
-    </Access>
+    <CreateAlertButton
+      organization={organization}
+      onClick={handleClick}
+      to={to}
+      {...buttonProps}
+    />
   );
 }
 
+type Props = {
+  organization: Organization;
+  projectSlug?: string;
+  iconProps?: React.ComponentProps<typeof IconSiren>;
+  referrer?: string;
+  hideIcon?: boolean;
+} & WithRouterProps &
+  React.ComponentProps<typeof Button>;
+
+const CreateAlertButton = withRouter(
+  ({
+    organization,
+    projectSlug,
+    iconProps,
+    referrer,
+    router,
+    hideIcon,
+    ...buttonProps
+  }: Props) => {
+    function handleClickWithoutProject(event: React.MouseEvent) {
+      event.preventDefault();
+
+      navigateTo(
+        `/organizations/${organization.slug}/alerts/:projectId/new/${
+          referrer ? `?referrer=${referrer}` : ''
+        }`,
+        router
+      );
+    }
+
+    return (
+      <Access organization={organization} access={['project:write']}>
+        {({hasAccess}) => (
+          <Button
+            disabled={!hasAccess}
+            title={
+              !hasAccess
+                ? t('Users with admin permission or higher can create alert rules.')
+                : undefined
+            }
+            icon={!hideIcon && <IconSiren {...iconProps} />}
+            to={
+              projectSlug
+                ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
+                : undefined
+            }
+            onClick={projectSlug ? undefined : handleClickWithoutProject}
+            {...buttonProps}
+          >
+            {buttonProps.children ?? t('Create Alert')}
+          </Button>
+        )}
+      </Access>
+    );
+  }
+);
+
+export {CreateAlertFromViewButton};
 export default CreateAlertButton;
 
 const StyledAlert = styled(Alert)`

@@ -1,10 +1,10 @@
 import React from 'react';
 import {Location} from 'history';
 
+import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {t} from 'app/locale';
 import {Event, Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 
 type DefaultProps = {

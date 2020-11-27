@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import Highlight from 'app/components/highlight';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {defined} from 'app/utils';
 import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 type Props = {
   searchTerm: string;

@@ -1,9 +1,9 @@
-import * as ReactRouter from 'react-router';
 import React from 'react';
+import * as ReactRouter from 'react-router';
 import partition from 'lodash/partition';
 
-import {Organization, Project} from 'app/types';
 import ConfigStore from 'app/stores/configStore';
+import {Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import withProjectsSpecified from 'app/utils/withProjectsSpecified';
 

@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {
-  Project,
-  Organization,
   Integration,
+  Organization,
+  Project,
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 type Props = {
@@ -75,7 +75,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           name: 'stackRoot',
           type: 'string',
           required: false,
-          label: t('Input Path'),
+          label: t('Stack Trace Root'),
           placeholder: t('Type root path of your stack traces'),
           inline: false,
           showHelpInTooltip: true,
@@ -87,12 +87,12 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
           name: 'sourceRoot',
           type: 'string',
           required: false,
-          label: t('Output Path'),
+          label: t('Source Code Root'),
           placeholder: t('Type root path of your source code'),
           inline: false,
           showHelpInTooltip: true,
           help: t(
-            'When a rule matches, the input path is replaced with this path to get the path in your repository. Leaving this empty means replacing the input path with an empty string.'
+            'When a rule matches, the stack trace root is replaced with this path to get the path in your repository. Leaving this empty means replacing the stack trace root with an empty string.'
           ),
         },
       ],

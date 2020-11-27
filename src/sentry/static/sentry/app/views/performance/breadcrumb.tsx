@@ -1,14 +1,14 @@
 import React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
+import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {getPerformanceLandingUrl} from './utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
+import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
   organization: Organization;

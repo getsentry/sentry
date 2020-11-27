@@ -5,8 +5,8 @@ import logging
 from django import forms
 
 from sentry.rules.actions.base import TicketEventAction
-from sentry.models import ExternalIssue
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
@@ -22,7 +22,7 @@ class AzureDevopsNotifyServiceForm(forms.Form):
 
 class AzureDevopsCreateTicketAction(TicketEventAction):
     form_cls = AzureDevopsNotifyServiceForm
-    label = u"TODO Create a {name} AzureDevops workitem"
+    label = u"TODO Create an Azure DevOps work item in {name} with these "
     prompt = "Create an Azure DevOps work item"
     provider = "vsts"
     integration_key = "vsts_integration"
@@ -36,10 +36,11 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
         return self.label.format(name=self.get_integration_name())
 
     def generate_footer(self, rule_url):
-        return u"\nThis ticket was automatically created by Sentry via [{}]({})".format(
+        return u"\nThis work item was automatically created by Sentry via [{}]({})".format(
             self.rule.label, absolute_uri(rule_url),
         )
 
+    @transaction_start("AzureDevopsCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
         integration = self.get_integration()
@@ -49,15 +50,18 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
         def create_issue(event, futures):
             """Create an Azure DevOps work item for a given event"""
 
-            # TODO check if an Azure DevOps work item already exists for the given event's issue. if it does, skip creating it
-            resp = installation.create_issue(self.data)
-            ExternalIssue.objects.create(
-                organization_id=organization.id,
-                integration_id=integration.id,
-                key=resp["metadata"]["display_name"],
-                title=event.title,
-                description=installation.get_group_description(event.group, event),
-            )
+            if not self.has_linked_issue(event, integration):
+                resp = installation.create_issue(self.data)
+                self.create_link(resp["metadata"]["display_name"], integration, installation, event)
+            else:
+                logger.info(
+                    "vsts.rule_trigger.link_already_exists",
+                    extra={
+                        "rule_id": self.rule.id,
+                        "project_id": self.project.id,
+                        "group_id": event.group.id,
+                    },
+                )
             return
 
         key = u"vsts:{}".format(integration.id)

@@ -2,40 +2,41 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import throttle from 'lodash/throttle';
 
-import {t} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import PageHeading from 'app/components/pageHeading';
 import {IconEdit} from 'app/icons';
+import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 
+import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 import {
+  ChartNote,
+  ChartWrapper,
+  HeadingContainer,
+  ResultContainer,
+  ResultInnerContainer,
+  ResultSummary,
+  ResultSummaryAndButtons,
+  SavedQueryAction,
+} from '../styles';
+import {SavedQuery} from '../types';
+import {
+  getQueryFromQueryString,
+  getQueryStringFromQuery,
+  queryHasChanged,
+} from '../utils';
+
+import Pagination from './pagination';
+import Table from './table';
+import {
+  downloadAsCsv,
   getChartData,
   getChartDataByDay,
   getRowsPageRange,
-  downloadAsCsv,
   getVisualization,
 } from './utils';
-import Table from './table';
-import Pagination from './pagination';
 import VisualizationsToggle from './visualizationsToggle';
-import {
-  HeadingContainer,
-  ResultSummary,
-  ResultContainer,
-  ResultInnerContainer,
-  ChartWrapper,
-  ChartNote,
-  SavedQueryAction,
-  ResultSummaryAndButtons,
-} from '../styles';
-import {NUMBER_OF_SERIES_BY_DAY} from '../data';
-import {
-  queryHasChanged,
-  getQueryFromQueryString,
-  getQueryStringFromQuery,
-} from '../utils';
-import {SavedQuery} from '../types';
 
 type ResultProps = {
   data: any;
@@ -273,7 +274,7 @@ class Result extends React.Component<ResultProps, ResultState> {
                 legend={legendData}
                 renderer="canvas"
                 isGroupedByDate
-                utc={utc}
+                utc={utc ?? undefined}
               />
               {this.renderNote()}
             </ChartWrapper>

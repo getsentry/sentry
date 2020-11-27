@@ -1,20 +1,20 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {ApiApplication} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Row from 'app/views/settings/account/apiApplications/row';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
+import {t} from 'app/locale';
+import {ApiApplication} from 'app/types';
+import AsyncView from 'app/views/asyncView';
+import Row from 'app/views/settings/account/apiApplications/row';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -24,7 +24,7 @@ type State = {
 } & AsyncView['state'];
 
 class ApiApplications extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['appList', '/api-applications/']];
   }
 

@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 
+import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import EventView from 'app/utils/discover/eventView';
 import {
   decodeColumnOrder,
-  pushEventViewToLocation,
-  getExpandedResults,
   downloadAsCsv,
+  getExpandedResults,
+  pushEventViewToLocation,
 } from 'app/views/eventsV2/utils';
-import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 
 describe('decodeColumnOrder', function () {
   it('can decode 0 elements', function () {

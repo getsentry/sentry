@@ -1,12 +1,12 @@
 import React from 'react';
 import {Location} from 'history';
-import partition from 'lodash/partition';
 import flatten from 'lodash/flatten';
+import partition from 'lodash/partition';
 
-import {Release, GlobalSelection} from 'app/types';
+import {GlobalSelection, Release} from 'app/types';
 
-import Content from './content';
 import CompactContent from './compactContent';
+import Content from './content';
 
 type Props = {
   release: Release;

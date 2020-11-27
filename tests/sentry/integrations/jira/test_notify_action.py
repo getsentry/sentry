@@ -2,11 +2,10 @@ from __future__ import absolute_import
 
 import responses
 
-from sentry.utils import json
-from sentry.models import Integration
-from sentry.testutils.cases import RuleTestCase
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
-from sentry.models import ExternalIssue, Rule
+from sentry.models import Integration, ExternalIssue, GroupLink, Rule
+from sentry.testutils.cases import RuleTestCase
+from sentry.utils import json
 
 from .test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
 
@@ -43,6 +42,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "jira_integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
+                "fixVersions": "[10000]",
             }
         )
         jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
@@ -76,8 +76,86 @@ class JiraCreateTicketActionTest(RuleTestCase):
         # Trigger rule callback
         results[0].callback(event, futures=[])
         data = json.loads(responses.calls[2].response.text)
-        assert data["fields"]["summary"] == "example summary"
-        assert data["fields"]["description"] == "example bug report"
+        assert data["title"] == "example summary"
+        assert data["description"] == "example bug report"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
+
+    @responses.activate
+    def test_doesnt_create_issue(self):
+        """Don't create an issue if one already exists on the event for the given integration"""
+
+        event = self.get_event()
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            key="APP-123",
+            title=event.title,
+            description="Fix this.",
+        )
+        GroupLink.objects.create(
+            group_id=event.group.id,
+            project_id=self.project.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+            data={"provider": self.integration.provider},
+        )
+        jira_rule = self.get_rule(
+            data={
+                "title": "example summary",
+                "description": "example bug report",
+                "issuetype": "1",
+                "project": "10000",
+                "customfield_10200": "sad",
+                "customfield_10300": ["Feature 1", "Feature 2"],
+                "labels": "bunnies",
+                "jira_integration": self.integration.id,
+                "jira_project": "10000",
+                "issue_type": "Bug",
+                "fixVersions": "[10000]",
+            }
+        )
+        jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
+
+        results = list(jira_rule.after(event=event, state=self.get_state()))
+        assert len(results) == 1
+        results[0].callback(event, futures=[])
+        assert len(responses.calls) == 1
+
+    def test_render_label(self):
+        rule = self.get_rule(
+            data={
+                "jira_integration": self.integration.id,
+                "issuetype": 1,
+                "project": 10000,
+                "dynamic_form_fields": {
+                    "issuetype": {"type": "choice", "choices": [(1, "Bug")]},
+                    "project": {"type": "choice", "choices": [(10000, "Example")]},
+                },
+            }
+        )
+        assert rule.render_label() == """Create a Jira issue in Jira Cloud with these """
+
+    def test_render_label_without_integration(self):
+        deleted_id = self.integration.id
+        self.integration.delete()
+
+        rule = self.get_rule(data={"jira_integration": deleted_id})
+
+        assert rule.render_label() == "Create a Jira issue in [removed] with these "
+
+    @responses.activate
+    def test_invalid_integration(self):
+        rule = self.get_rule(data={"jira_integration": self.integration.id})
+
+        form = rule.get_form_instance()
+        assert form.is_valid()
+
+    @responses.activate
+    def test_invalid_project(self):
+        rule = self.get_rule(data={"jira_integration": self.integration.id})
+
+        form = rule.get_form_instance()
+        assert form.is_valid()

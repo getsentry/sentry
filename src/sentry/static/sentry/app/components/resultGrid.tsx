@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import PropTypes from 'prop-types';
 
-import withApi from 'app/utils/withApi';
+import {Client, RequestOptions} from 'app/api';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import {IconSearch} from 'app/icons';
-import {Client, RequestOptions} from 'app/api';
+import withApi from 'app/utils/withApi';
 
 type Option = [value: string, label: string];
 
@@ -270,7 +270,7 @@ class ResultGrid extends React.Component<Props, State> {
     });
   }
 
-  onSearch(e: React.FormEvent<HTMLFormElement>) {
+  onSearch = (e: React.FormEvent<HTMLFormElement>) => {
     const location = this.props.location ?? {};
     const {query} = this.state;
     const targetQueryParams = {...(location.query ?? {}), query, cursor: ''};
@@ -281,11 +281,11 @@ class ResultGrid extends React.Component<Props, State> {
       pathname: this.props.path,
       query: targetQueryParams,
     });
-  }
+  };
 
-  onQueryChange(evt: React.ChangeEvent<HTMLInputElement>) {
+  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({query: evt.target.value});
-  }
+  };
 
   renderLoading() {
     return (

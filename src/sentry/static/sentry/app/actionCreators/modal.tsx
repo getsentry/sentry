@@ -1,9 +1,10 @@
 import React from 'react';
+import {ModalBody, ModalFooter, ModalHeader} from 'react-bootstrap';
 import {css} from '@emotion/core';
-import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Organization, SentryApp, Project, Team, Group, Event} from 'app/types';
+import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {DashboardListItem, Widget} from 'app/views/dashboardsV2/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -199,4 +200,19 @@ export async function openInviteMembersModal(options = {}) {
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+type DashboardWidgetModalOptions = {
+  organization: Organization;
+  dashboard: DashboardListItem;
+  onAddWidget: (data: Widget) => void;
+};
+
+export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "AddDashboardWidgetModal" */ 'app/components/modals/addDashboardWidgetModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {});
 }

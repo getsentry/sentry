@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import Pagination from 'app/components/pagination';
 import Button from 'app/components/button';
-import SimilarSpectrum from 'app/components/similarSpectrum';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
+import SimilarSpectrum from 'app/components/similarSpectrum';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, Group} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 
 import Item from './item';
 import Toolbar from './toolbar';

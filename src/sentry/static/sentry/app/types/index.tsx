@@ -1,19 +1,19 @@
+import {Props as AlertProps} from 'app/components/alert';
 import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
-import {Field} from 'app/views/settings/components/forms/type';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
+import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
+import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
-import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
-import {Props as AlertProps} from 'app/components/alert';
-import {Query as DiscoverQuery} from 'app/views/discover/types';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {Field} from 'app/views/settings/components/forms/type';
 
-import {StacktraceType, RawStacktrace, Mechanism} from './stacktrace';
+import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {
   interface Window {
@@ -214,14 +214,46 @@ export type Project = {
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
-  latestDeploys: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
+  latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: {version: string};
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
+  options?: Record<string, boolean | string>;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+
+// Response from project_keys endpoints.
+export type ProjectKey = {
+  id: string;
+  name: string;
+  label: string;
+  public: string;
+  secret: string;
+  projectId: string;
+  isActive: boolean;
+  rateLimit: {
+    window: string;
+    count: number;
+  } | null;
+  dsn: {
+    secret: string;
+    public: string;
+    csp: string;
+    security: string;
+    minidump: string;
+    unreal: string;
+    cdn: string;
+  };
+  browserSdkVersion: string;
+  browserSdk: {
+    choices: [key: string, value: string][];
+  };
+  dateCreated: string;
+};
 
 export type Health = {
   totalUsers: number;
@@ -243,6 +275,7 @@ export type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export type Team = {
   id: string;
+  name: string;
   slug: string;
   isMember: boolean;
   hasAccess: boolean;
@@ -606,6 +639,12 @@ export type GlobalSelection = {
   };
 };
 
+type AuthenticatorDevice = {
+  key_handle: string;
+  authId: string;
+  name: string;
+};
+
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
@@ -653,6 +692,16 @@ export type Authenticator = {
    * Description of the authenticator
    */
   description: string;
+
+  createdAt: string | null;
+
+  lastUsedAt: string | null;
+
+  codes: string[];
+
+  devices: AuthenticatorDevice[];
+
+  phone?: string;
 
   challenge?: Record<string, any>;
 } & Partial<EnrolledAuthenticator>;
@@ -717,7 +766,7 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
-type InboxDetails = {
+export type InboxDetails = {
   date_added?: string;
   reason?: number;
   reason_details?: {
@@ -729,25 +778,30 @@ type InboxDetails = {
   };
 };
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
 // TODO(ts): incomplete
-export type Group = {
+export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
   activity: any[]; // TODO(ts)
   annotations: string[];
   assignedTo: User;
-  count: string;
   culprit: string;
   currentRelease: any; // TODO(ts)
   firstRelease: any; // TODO(ts)
-  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
   lastRelease: any; // TODO(ts)
-  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -762,18 +816,16 @@ export type Group = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  stats: Record<string, TimeseriesValue[]>;
   status: string;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
-  userCount: number;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered?: any; // TODO(ts)
+  filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
-  inbox?: InboxDetails;
+  inbox?: InboxDetails | null;
 };
 
 export type GroupTombstone = {
@@ -1187,6 +1239,7 @@ export type ReleaseMeta = {
   version: string;
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
+  released: string;
 };
 
 export type VersionInfo = {
@@ -1472,6 +1525,8 @@ export type UpdateResolutionStatus = {
   statusDetails?: ResolutionStatusDetails;
 };
 
+export type SubscriptionDetails = {disabled?: boolean; reason?: string};
+
 export type Broadcast = {
   id: string;
   message: string;
@@ -1542,6 +1597,13 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
+export type GroupingEnhancementBase = {
+  latest: boolean;
+  id: string;
+  changelog: string;
+  bases: any[]; // TODO(ts): not sure what this is
+};
+
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
@@ -1579,6 +1641,7 @@ export type Artifact = {
   headers: {'Content-Type': string};
 };
 
+// TODO(mark) remove when dashboards 1 is removed.
 export type Widget = {
   queries: {
     discover: DiscoverQuery[];
@@ -1593,14 +1656,8 @@ export type Widget = {
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
-export type PlatformType =
-  | 'java'
-  | 'csharp'
-  | 'objc'
-  | 'cocoa'
-  | 'native'
-  | 'javascript'
-  | 'other';
+// TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
+export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
 export type Frame = {
   absPath: string | null;
@@ -1652,7 +1709,7 @@ export type ExceptionValue = {
   type: string;
   value: string;
   threadId: number | null;
-  stacktrace: StacktraceType;
+  stacktrace: StacktraceType | null;
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
@@ -1676,3 +1733,12 @@ export type Identity = {
 
 //taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
+
+export type InternetProtocol = {
+  id: string;
+  ipAddress: string;
+  lastSeen: string;
+  firstSeen: string;
+  countryCode: string | null;
+  regionCode: string | null;
+};

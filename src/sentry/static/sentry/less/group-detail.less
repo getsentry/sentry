@@ -9,7 +9,6 @@
   clear: both;
 
   h3 {
-    color: @gray-darkest;
     font-size: 22px;
     margin: 0 0 8px;
     text-overflow: ellipsis;
@@ -29,7 +28,7 @@
     &.short-id-box {
       min-width: 0;
 
-      span {
+      span:not(.help-link) {
         font-size: 18px;
         line-height: 1.45;
         display: block;
@@ -40,7 +39,7 @@
       }
     }
 
-    span {
+    span:not(.help-link) {
       font-size: 22px;
       display: inline-block;
       line-height: 1.2;

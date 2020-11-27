@@ -1,20 +1,21 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
-import throttle from 'lodash/throttle';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import throttle from 'lodash/throttle';
 
-import {Organization} from 'app/types';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import Tag from 'app/components/tagDeprecated';
 import DiscoverButton from 'app/components/discoverButton';
+import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {
@@ -23,14 +24,13 @@ import {
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
-import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
-import {HistogramData, Vital, Rectangle} from './types';
-import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils';
+import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
+import {HistogramData, Rectangle, Vital} from './types';
+import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
   location: Location;
@@ -160,14 +160,14 @@ class VitalCard extends React.Component<Props, State> {
     return (
       <CardSummary>
         <Indicator color={colors[0]} />
-        <CardSectionHeading>
-          {`${name} (${slug.toUpperCase()})`}
+        <SummaryHeading>
+          <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
           {summary === null ? null : summary < failureThreshold ? (
-            <StyledTag color={theme.purple300}>{t('pass')}</StyledTag>
+            <Tag>{t('Pass')}</Tag>
           ) : (
-            <StyledTag color={theme.red300}>{t('fail')}</StyledTag>
+            <StyledTag>{t('Fail')}</StyledTag>
           )}
-        </CardSectionHeading>
+        </SummaryHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
         <div>
@@ -549,24 +549,27 @@ const Indicator = styled('div')<IndicatorProps>`
   top: 20px;
   left: 0px;
   width: 6px;
-  height: 18px;
+  height: 20px;
   border-radius: 0 3px 3px 0;
   background-color: ${p => p.color};
 `;
 
-type TagProps = {
-  color: string;
-};
-
-const StyledTag = styled(Tag)<TagProps>`
-  position: absolute;
-  right: ${space(3)};
-  background-color: ${p => p.color};
-  color: ${p => p.theme.white};
+const SummaryHeading = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const Container = styled('div')`
   position: relative;
+`;
+
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.red300};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
 `;
 
 function formatDuration(duration: number) {

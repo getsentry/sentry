@@ -1,36 +1,37 @@
-import {browserHistory} from 'react-router';
 import React, {MouseEvent} from 'react';
-import classNames from 'classnames';
-import moment from 'moment';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import {Location, Query} from 'history';
+import moment from 'moment';
 
-import {Client} from 'app/api';
-import {IconEllipsis} from 'app/icons';
-import {Organization, SavedQuery} from 'app/types';
 import {resetGlobalSelection} from 'app/actionCreators/globalSelection';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {Client} from 'app/api';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import EventView from 'app/utils/discover/eventView';
 import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
+import {IconEllipsis} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, SavedQuery} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 
-import {getPrebuiltQueries} from './utils';
-import {handleDeleteQuery, handleCreateQuery} from './savedQuery/utils';
+import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
+import {getPrebuiltQueries} from './utils';
 
 type Props = {
   api: Client;
   organization: Organization;
   location: Location;
   savedQueries: SavedQuery[];
+  renderPrebuilt: boolean;
   pageLinks: string;
   onQueryChange: () => void;
   savedQuerySearchQuery: string;
@@ -82,13 +83,13 @@ class QueryList extends React.Component<Props> {
   };
 
   renderQueries() {
-    const {pageLinks} = this.props;
+    const {pageLinks, renderPrebuilt} = this.props;
     const links = parseLinkHeader(pageLinks || '');
     let cards: React.ReactNode[] = [];
 
     // If we're on the first page (no-previous page exists)
     // include the pre-built queries.
-    if (!links.previous || links.previous.results === false) {
+    if (renderPrebuilt && (!links.previous || links.previous.results === false)) {
       cards = cards.concat(this.renderPrebuiltQueries());
     }
     cards = cards.concat(this.renderSavedQueries());

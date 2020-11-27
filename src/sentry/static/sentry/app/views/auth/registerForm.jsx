@@ -1,18 +1,18 @@
-import {ClassNames} from '@emotion/core';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {formFooterClass} from 'app/views/auth/login';
-import {t, tct} from 'app/locale';
-import ConfigStore from 'app/stores/configStore';
-import ExternalLink from 'app/components/links/externalLink';
 import Form from 'app/components/forms/form';
 import PasswordField from 'app/components/forms/passwordField';
 import RadioBooleanField from 'app/components/forms/radioBooleanField';
-import SentryTypes from 'app/sentryTypes';
 import TextField from 'app/components/forms/textField';
+import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
+import {formFooterClass} from 'app/views/auth/login';
 
 const SubscribeField = () => (
   <RadioBooleanField

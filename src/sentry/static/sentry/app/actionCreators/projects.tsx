@@ -1,18 +1,18 @@
+import {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
-import {Query} from 'history';
 
-import {Client} from 'app/api';
-import {PlatformKey} from 'app/data/platformCategories';
-import {Project, Team} from 'app/types';
 import {
-  addLoadingMessage,
   addErrorMessage,
+  addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
+import {Client} from 'app/api';
+import {PlatformKey} from 'app/data/platformCategories';
+import {t, tct} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
+import {Project, Team} from 'app/types';
 
 type UpdateParams = {
   orgId: string;
@@ -42,7 +42,9 @@ export function update(api: Client, params: UpdateParams) {
     );
 }
 
-export function loadStats(api: Client, params: UpdateParams) {
+type StatsParams = Pick<UpdateParams, 'orgId' | 'data' | 'query'>;
+
+export function loadStats(api: Client, params: StatsParams) {
   ProjectActions.loadStats(params.orgId, params.data);
 
   const endpoint = `/organizations/${params.orgId}/stats/`;

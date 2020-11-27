@@ -1,9 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {Organization, SavedSearch} from 'app/types';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -11,9 +9,11 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Organization, SavedSearch} from 'app/types';
 
 type Props = {
   organization: Organization;
@@ -120,6 +120,8 @@ export default class SavedSearchSelector extends React.Component<Props> {
 }
 
 const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.background};
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
@@ -176,6 +178,7 @@ const DeleteButton = styled(Button)`
 
 const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
+  background-color: ${p => p.theme.background};
 
   position: relative;
   border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};

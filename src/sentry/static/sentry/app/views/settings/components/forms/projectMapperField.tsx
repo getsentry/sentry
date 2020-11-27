@@ -1,29 +1,29 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {components} from 'react-select';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import InputField from 'app/views/settings/components/forms/inputField';
-import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
-import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
-import FormModel from 'app/views/settings/components/forms/model';
-import {ProjectMapperType} from 'app/views/settings/components/forms/type';
+import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
-import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
+import {PanelAlert} from 'app/components/panels';
 import {
-  IconVercel,
-  IconGeneric,
-  IconDelete,
-  IconOpen,
   IconAdd,
   IconArrow,
+  IconDelete,
+  IconGeneric,
+  IconOpen,
+  IconVercel,
 } from 'app/icons';
-import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
-import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
+import space from 'app/styles/space';
 import {safeGetQsParam} from 'app/utils/integrationUtil';
-import {PanelAlert} from 'app/components/panels';
+import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
+import InputField from 'app/views/settings/components/forms/inputField';
+import FormModel from 'app/views/settings/components/forms/model';
+import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 
 type MappedValue = string | number;
 

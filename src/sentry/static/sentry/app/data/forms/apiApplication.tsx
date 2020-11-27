@@ -1,4 +1,4 @@
-import {extractMultilineFields, convertMultilineFieldValue} from 'app/utils';
+import {convertMultilineFieldValue, extractMultilineFields} from 'app/utils';
 import getDynamicText from 'app/utils/getDynamicText';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 

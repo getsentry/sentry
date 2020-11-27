@@ -1,5 +1,5 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
