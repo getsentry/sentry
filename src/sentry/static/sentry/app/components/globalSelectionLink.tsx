@@ -37,7 +37,7 @@ export default class GlobalSelectionLink extends React.Component<Props> {
     const {location} = this.context;
     const {to} = this.props;
 
-    const globalQuery = extractSelectionParameters(location.query);
+    const globalQuery = extractSelectionParameters(location?.query);
     const hasGlobalQuery = Object.keys(globalQuery).length > 0;
     const query =
       typeof to === 'object' && to.query ? {...globalQuery, ...to.query} : globalQuery;
