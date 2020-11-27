@@ -18,6 +18,8 @@ import {WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
+import Input from 'app/views/settings/components/forms/controls/input';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 
 type Props = {
   widgetQuery: WidgetQuery;
@@ -74,11 +76,11 @@ function WidgetQueryForm({
   }
 
   return (
-    <PanelBody>
-      <VerticalPanelItem>
-        <Heading>
-          {t('Conditions')}
-          {canRemove && (
+    <StyledPanelBody>
+      {canRemove && (
+        <VerticalPanelItem>
+          <Heading>
+            {t('Name')}
             <Button
               data-test-id="remove-query"
               priority="default"
@@ -88,8 +90,19 @@ function WidgetQueryForm({
               icon={<IconDelete />}
               title={t('Remove this query')}
             />
-          )}
-        </Heading>
+          </Heading>
+          <Input
+            type="text"
+            name="name"
+            required
+            value={widgetQuery.name}
+            onChange={event => handleFieldChange('name')(event.target.value)}
+          />
+          <FieldHelp>{t('Used to disambiguate results from multiple queries')}</FieldHelp>
+        </VerticalPanelItem>
+      )}
+      <VerticalPanelItem>
+        <Heading>{t('Conditions')}</Heading>
         <SearchBar
           organization={organization}
           projectIds={selection.projects}
@@ -133,9 +146,14 @@ function WidgetQueryForm({
           />
         </div>
       </VerticalPanelItem>
-    </PanelBody>
+    </StyledPanelBody>
   );
 }
+
+const StyledPanelBody = styled(PanelBody)`
+  position: relative;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
 
 const Heading = styled('h3')`
   display: flex;
@@ -149,6 +167,7 @@ const Heading = styled('h3')`
 
 const VerticalPanelItem = styled(PanelItem)`
   flex-direction: column;
+  border: none;
 `;
 
 const QueryFieldWrapper = styled('div')`
