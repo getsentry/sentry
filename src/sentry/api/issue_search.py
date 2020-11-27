@@ -24,10 +24,10 @@ from sentry.utils.compat import map
 
 class IssueSearchVisitor(SearchVisitor):
     key_mappings = {
-        "owner": ["owner"],
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
         "subscribed_by": ["subscribed"],
+        "owner": ["owner"],
         "first_release": ["first-release", "firstRelease"],
         "first_seen": ["age", "firstSeen"],
         "last_seen": ["lastSeen"],
