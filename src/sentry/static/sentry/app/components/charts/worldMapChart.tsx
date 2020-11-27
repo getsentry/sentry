@@ -67,7 +67,9 @@ class WorldMapChart extends React.Component<Props, State> {
   }
 
   render() {
-    if (this.state.countryToCodeMap === null || this.state.map === null) {
+    const {countryToCodeMap, map } = this.state;
+    
+    if (countryToCodeMap === null || map === null) {
       return null;
     }
 
