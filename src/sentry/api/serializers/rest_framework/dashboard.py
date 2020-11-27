@@ -175,7 +175,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     fields=query["fields"],
                     conditions=query["conditions"],
                     name=query.get("name", ""),
-                    interval=query.get("interval", "5m"),
                     order=i,
                 )
             )
