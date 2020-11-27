@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {
-  ViewerProps,
-  getAttachmentUrl,
-} from 'app/components/events/attachmentViewers/utils';
-import PreviewPanelItem from 'app/components/events/attachmentViewers/previewPanelItem';
 import AsyncComponent from 'app/components/asyncComponent';
 import ContextData from 'app/components/contextData';
+import PreviewPanelItem from 'app/components/events/attachmentViewers/previewPanelItem';
+import {
+  getAttachmentUrl,
+  ViewerProps,
+} from 'app/components/events/attachmentViewers/utils';
 
 type Props = ViewerProps & AsyncComponent['props'];
 

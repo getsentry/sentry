@@ -1,8 +1,8 @@
 import React from 'react';
 
 import {
-  ViewerProps,
   getAttachmentUrl,
+  ViewerProps,
 } from 'app/components/events/attachmentViewers/utils';
 import {PanelItem} from 'app/components/panels';
 
