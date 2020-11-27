@@ -1,26 +1,26 @@
-import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import React from 'react';
+import {IndexRedirect, IndexRoute, Redirect, Route} from 'react-router';
 
-import {t} from 'app/locale';
+import LazyLoad from 'app/components/lazyLoad';
 import {EXPERIMENTAL_SPA} from 'app/constants';
+import {t} from 'app/locale';
+import HookStore from 'app/stores/hookStore';
+import errorHandler from 'app/utils/errorHandler';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
-import HookStore from 'app/stores/hookStore';
 import IssueListContainer from 'app/views/issueList/container';
 import IssueListOverview from 'app/views/issueList/overview';
-import LazyLoad from 'app/components/lazyLoad';
 import OrganizationContext from 'app/views/organizationContext';
 import OrganizationDetails, {
   LightWeightOrganizationDetails,
 } from 'app/views/organizationDetails';
+import {TAB} from 'app/views/organizationGroupDetails/header';
 import OrganizationRoot from 'app/views/organizationRoot';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
+import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
-import errorHandler from 'app/utils/errorHandler';
-import redirectDeprecatedProjectRoute from 'app/views/projects/redirectDeprecatedProjectRoute';
-import {TAB} from 'app/views/organizationGroupDetails/header';
 
 function appendTrailingSlash(nextState, replace) {
   const lastChar = nextState.location.pathname.slice(-1);
@@ -981,10 +981,10 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
         <Route
-          path="/extensions/external-install/:providerId/:installationId"
+          path="/extensions/external-install/:integrationSlug/:installationId"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ExtensionsIntegrationInstallation" */ 'app/views/integrationInstallation'
+              /* webpackChunkName: "IntegrationOrganizationLink" */ 'app/views/integrationOrganizationLink'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -1146,7 +1146,9 @@ function routes() {
           <Route
             path="/organizations/:orgId/dashboards/"
             componentPromise={() =>
-              import(/* webpackChunkName: "DashboardsContainer" */ 'app/views/dashboards')
+              import(
+                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+              )
             }
             component={errorHandler(LazyLoad)}
           >
@@ -1801,6 +1803,24 @@ function routes() {
               componentPromise={() =>
                 import(
                   /* webpackChunkName: "PerformanceCompareTransactions" */ 'app/views/performance/compare'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
+            path="/organizations/:orgId/dashboards/:dashboardId/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "DashboardsV2Container" */ 'app/views/dashboardsV2'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "DashboardDetail" */ 'app/views/dashboardsV2/detail'
                 )
               }
               component={errorHandler(LazyLoad)}

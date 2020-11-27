@@ -1,7 +1,7 @@
-import timezones from 'app/data/timezones';
 import languages from 'app/data/languages';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import timezones from 'app/data/timezones';
 import {t} from 'app/locale';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';

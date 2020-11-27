@@ -2,8 +2,8 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {Form, FormState} from 'app/components/forms';
-import DefaultSettings from 'app/plugins/components/settings';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import DefaultSettings from 'app/plugins/components/settings';
 
 type Props = DefaultSettings['props'];
 

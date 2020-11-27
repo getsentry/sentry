@@ -1,24 +1,25 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import Feature from 'app/components/acl/feature';
-import FeatureBadge from 'app/components/featureBadge';
-import CreateAlertButton from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
 import ButtonBar from 'app/components/buttonBar';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import FeatureBadge from 'app/components/featureBadge';
+import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import Breadcrumb from 'app/views/performance/breadcrumb';
+
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
-import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -34,7 +35,7 @@ type Props = {
   currentTab: Tab;
   hasWebVitals: boolean;
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
 };
 
@@ -61,7 +62,7 @@ class TransactionHeader extends React.Component<Props> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     this.trackAlertClick(errors);
     this.props.handleIncompatibleQuery?.(incompatibleAlertNoticeFn, errors);
@@ -75,7 +76,7 @@ class TransactionHeader extends React.Component<Props> {
     const {eventView, organization, projects} = this.props;
 
     return (
-      <CreateAlertButton
+      <CreateAlertFromViewButton
         eventView={eventView}
         organization={organization}
         projects={projects}

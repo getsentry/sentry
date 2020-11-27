@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
+import {t} from 'app/locale';
 import {growIn} from 'app/styles/animations';
 import space from 'app/styles/space';
-import {t} from 'app/locale';
 
 type Props = {
   onSubmit: () => void;

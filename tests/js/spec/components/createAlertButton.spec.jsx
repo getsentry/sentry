@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {DEFAULT_EVENT_VIEW, ALL_VIEWS} from 'app/views/eventsV2/data';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import EventView from 'app/utils/discover/eventView';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 
 const onIncompatibleQueryMock = jest.fn();
 const onCloseMock = jest.fn();
@@ -12,7 +12,7 @@ const onSuccessMock = jest.fn();
 
 function generateWrappedComponent(organization, eventView) {
   return mountWithTheme(
-    <CreateAlertButton
+    <CreateAlertFromViewButton
       location={location}
       organization={organization}
       eventView={eventView}
@@ -24,7 +24,7 @@ function generateWrappedComponent(organization, eventView) {
   );
 }
 
-describe('CreateAlertButton', () => {
+describe('CreateAlertFromViewButton', () => {
   const organization = TestStubs.Organization();
 
   afterEach(() => {
@@ -34,7 +34,7 @@ describe('CreateAlertButton', () => {
   it('renders', () => {
     const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
     const wrapper = generateWrappedComponent(organization, eventView);
-    expect(wrapper.text()).toBe('Create alert');
+    expect(wrapper.text()).toBe('Create Alert');
   });
 
   it('should warn when project is not selected', () => {
@@ -187,7 +187,7 @@ describe('CreateAlertButton', () => {
 
     const wrapper = generateWrappedComponent(noAccessOrg, eventView);
 
-    const button = wrapper.find('button[aria-label="Create alert"]');
+    const button = wrapper.find('button[aria-label="Create Alert"]');
     expect(button.props()['aria-disabled']).toBe(true);
   });
 });

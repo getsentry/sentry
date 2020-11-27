@@ -5,7 +5,7 @@ import pytest
 import six
 import unittest
 from datetime import timedelta
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -19,6 +19,7 @@ from sentry.api.event_search import (
     with_default,
     get_filter,
     resolve_field_list,
+    parse_function,
     parse_search_query,
     get_json_meta_type,
     InvalidSearchQuery,
@@ -60,6 +61,54 @@ def test_get_json_meta_type():
     assert get_json_meta_type("count_thing", "Nullable(String)") == "string"
     assert get_json_meta_type("measurements.size", "Float64") == "number"
     assert get_json_meta_type("measurements.fp", "Float64") == "duration"
+
+
+def test_parse_function():
+    assert parse_function("percentile(transaction.duration, 0.5)") == (
+        "percentile",
+        ["transaction.duration", "0.5"],
+    )
+    assert parse_function("p50()") == ("p50", [])
+    assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"])
+    assert parse_function("apdex(300)") == ("apdex", ["300"])
+    assert parse_function("failure_rate()") == ("failure_rate", [])
+    assert parse_function("measurements_histogram(1,0,1)") == (
+        "measurements_histogram",
+        ["1", "0", "1"],
+    )
+    assert parse_function("count_unique(transaction.status)") == (
+        "count_unique",
+        ["transaction.status"],
+    )
+    assert parse_function("count_unique(some.tag-name)") == ("count_unique", ["some.tag-name"])
+    assert parse_function("count()") == ("count", [])
+    assert parse_function("count_at_least(transaction.duration ,200)") == (
+        "count_at_least",
+        ["transaction.duration", "200"],
+    )
+    assert parse_function("min(measurements.foo)") == ("min", ["measurements.foo"])
+    assert parse_function("absolute_delta(transaction.duration, 400)") == (
+        "absolute_delta",
+        ["transaction.duration", "400"],
+    )
+    assert parse_function(
+        "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15, p)"
+    ) == (
+        "avg_range",
+        ["transaction.duration", "0.5", "2020-03-13T15:14:15", "2020-03-14T15:14:15", "p"],
+    )
+    assert parse_function("t_test(avg_1, avg_2,var_1, var_2, count_1, count_2)") == (
+        "t_test",
+        ["avg_1", "avg_2", "var_1", "var_2", "count_1", "count_2"],
+    )
+    assert parse_function("compare_numeric_aggregate(alias, greater,1234)") == (
+        "compare_numeric_aggregate",
+        ["alias", "greater", "1234"],
+    )
+    assert parse_function(r'to_other(release,"asdf @ \"qwer: (3,2)")') == (
+        "to_other",
+        ["release", r'"asdf @ \"qwer: (3,2)"'],
+    )
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -1380,7 +1429,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 },
             )
             assert test[1] == result.conditions, test[0]
-            assert test[2] == result.project_ids, test[0]
+            assert set(test[2]) == set(result.project_ids), test[0]
 
     def test_project_in_condition_filters_not_in_project_filter(self):
         project1 = self.create_project()
@@ -2644,6 +2693,44 @@ class ResolveFieldListTest(unittest.TestCase):
                 ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
             ]
 
+    def test_compare_numeric_aggregate(self):
+        fields = [
+            "compare_numeric_aggregate(p50_transaction_duration,greater,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,notEquals,50)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "greater(p50_transaction_duration,50.0)",
+                None,
+                "compare_numeric_aggregate_p50_transaction_duration_greater_50",
+            ],
+            [
+                "notEquals(p50_transaction_duration,50.0)",
+                None,
+                "compare_numeric_aggregate_p50_transaction_duration_notEquals_50",
+            ],
+        ]
+
+    def test_invalid_compare_numeric_aggregate(self):
+        fields = [
+            "compare_numeric_aggregate(p50_transaction_duration,>+,50)",
+            "compare_numeric_aggregate(p50_transaction_duration,=,50)",
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([field], eventstore.Filter())
+            assert "is not a valid condition" in six.text_type(err), field
+
+        fields = [
+            "compare_numeric_aggregate(p50_tr(where,=,50)",
+            "compare_numeric_aggregate(a.b.c.d,=,50)",
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([field], eventstore.Filter())
+            assert "is not a valid function alias" in six.text_type(err), field
+
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
@@ -2784,6 +2871,115 @@ class ResolveFieldListTest(unittest.TestCase):
             "column": "measurements.fcp",
             "percentile": 0.5,
         }
+
+    def test_to_other_function_basic(self):
+        fields = [
+            'to_other(release,"r")',
+            'to_other(release,"r",a)',
+            'to_other(release,"r",a,b)',
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["to_other_release__r"].instance.name == "to_other"
+        assert functions["to_other_release__r"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release__r__a"].instance.name == "to_other"
+        assert functions["to_other_release__r__a"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'a'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release__r__a_b"].instance.name == "to_other"
+        assert functions["to_other_release__r__a_b"].arguments == {
+            "column": "release",
+            "value": "'r'",
+            "that": "'a'",
+            "this": "'b'",
+        }
+
+    def test_to_other_function_complex(self):
+        fields = [
+            'to_other(release,"release.version@1.2.3+4")',
+            'to_other(release,"release +-  spaces   &    symbols :")',
+            'to_other(release,"release\\"using\'quotes")',
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        functions = result["functions"]
+
+        assert functions["to_other_release__release_version_1_2_3_4"].instance.name == "to_other"
+        assert functions["to_other_release__release_version_1_2_3_4"].arguments == {
+            "column": "release",
+            "value": "'release.version@1.2.3+4'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert (
+            functions["to_other_release__release_____spaces________symbols"].instance.name
+            == "to_other"
+        )
+        assert functions["to_other_release__release_____spaces________symbols"].arguments == {
+            "column": "release",
+            "value": "'release +-  spaces   &    symbols :'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+        assert functions["to_other_release__release__using_quotes"].instance.name == "to_other"
+        assert functions["to_other_release__release__using_quotes"].arguments == {
+            "column": "release",
+            "value": "'release\"using'quotes'",
+            "that": "'that'",
+            "this": "'this'",
+        }
+
+    def test_to_other_validation(self):
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(["to_other(release,a)"], eventstore.Filter())
+
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(['to_other(release,"a)'], eventstore.Filter())
+
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(['to_other(release,a")'], eventstore.Filter())
+
+    def test_failure_count_function(self):
+        fields = ["failure_count()"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "not",
+                        [
+                            [
+                                "has",
+                                [
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                "failure_count",
+            ],
+        ]
 
 
 def with_type(type, argument):

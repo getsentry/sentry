@@ -1,15 +1,15 @@
+import React from 'react';
+import echarts, {EChartOption} from 'echarts';
 import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 import PropTypes from 'prop-types';
-import React from 'react';
-import echarts, {EChartOption} from 'echarts';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
-import BaseChart from './baseChart';
-import MapSeries from './series/mapSeries';
 import VisualMap from './components/visualMap';
+import MapSeries from './series/mapSeries';
+import BaseChart from './baseChart';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -67,8 +67,8 @@ class WorldMapChart extends React.Component<Props, State> {
   }
 
   render() {
-    const {countryToCodeMap, map } = this.state;
-    
+    const {countryToCodeMap, map} = this.state;
+
     if (countryToCodeMap === null || map === null) {
       return null;
     }

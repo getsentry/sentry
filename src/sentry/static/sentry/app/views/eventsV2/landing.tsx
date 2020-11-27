@@ -1,44 +1,44 @@
-import {Params} from 'react-router/lib/Router';
-import PropTypes from 'prop-types';
 import React from 'react';
 import * as ReactRouter from 'react-router';
-import {stringify} from 'query-string';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
+import PropTypes from 'prop-types';
+import {stringify} from 'query-string';
 
-import {Organization, SavedQuery, SelectValue} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import ConfigStore from 'app/stores/configStore';
-import Feature from 'app/components/acl/feature';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
-import Switch from 'app/components/switch';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import Switch from 'app/components/switch';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
+import {Organization, SavedQuery, SelectValue} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
+import withOrganization from 'app/utils/withOrganization';
 
+import Banner from './banner';
 import {DEFAULT_EVENT_VIEW} from './data';
+import QueryList from './queryList';
 import {
   getPrebuiltQueries,
   isBannerHidden,
   setBannerHidden,
-  shouldRenderPrebuilt,
   setRenderPrebuilt,
+  shouldRenderPrebuilt,
 } from './utils';
-import QueryList from './queryList';
-import Banner from './banner';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -128,7 +128,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
     const cursor = decodeScalar(location.query.cursor);
     let perPage = 9;
-    if (!cursor && shouldRenderPrebuilt()) {
+
+    const canRenderPrebuilt = this.state
+      ? this.state.renderPrebuilt
+      : shouldRenderPrebuilt();
+
+    if (!cursor && canRenderPrebuilt) {
       // invariant: we're on the first page
 
       if (searchQuery && searchQuery.length > 0) {
@@ -295,10 +300,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   togglePrebuilt = () => {
     const {renderPrebuilt} = this.state;
 
-    this.setState({renderPrebuilt: !renderPrebuilt}, function () {
+    this.setState({renderPrebuilt: !renderPrebuilt}, () => {
       setRenderPrebuilt(!renderPrebuilt);
+      this.fetchData({reloading: true});
     });
-    this.fetchData();
   };
 
   onGoLegacyDiscover = () => {

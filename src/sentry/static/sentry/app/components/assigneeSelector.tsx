@@ -1,30 +1,30 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import SentryTypes from 'app/sentryTypes';
-import {User} from 'app/types';
-import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
-import UserAvatar from 'app/components/avatar/userAvatar';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
-import ConfigStore from 'app/stores/configStore';
+import UserAvatar from 'app/components/avatar/userAvatar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import GroupStore from 'app/stores/groupStore';
 import Highlight from 'app/components/highlight';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import TextOverflow from 'app/components/textOverflow';
+import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import ConfigStore from 'app/stores/configStore';
+import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
-import TextOverflow from 'app/components/textOverflow';
 import space from 'app/styles/space';
-import {IconAdd, IconClose, IconChevron, IconUser} from 'app/icons';
+import {User} from 'app/types';
+import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
 
 type Props = {
   id: string | null;

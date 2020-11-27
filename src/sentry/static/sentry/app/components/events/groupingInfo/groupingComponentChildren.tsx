@@ -4,8 +4,8 @@ import isObject from 'lodash/isObject';
 import {EventGroupComponent} from 'app/types';
 
 import GroupingComponent, {
-  GroupingValue,
   GroupingComponentListItem,
+  GroupingValue,
 } from './groupingComponent';
 import {groupingComponentFilter} from './utils';
 

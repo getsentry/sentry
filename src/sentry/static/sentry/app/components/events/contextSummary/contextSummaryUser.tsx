@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Meta, EventUser} from 'app/types';
-import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import {getMeta} from 'app/components/events/meta/metaProxy';
+import {removeFilterMaskedEntries} from 'app/components/events/interfaces/utils';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import space from 'app/styles/space';
+import {getMeta} from 'app/components/events/meta/metaProxy';
 import TextOverflow from 'app/components/textOverflow';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {EventUser, Meta} from 'app/types';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';

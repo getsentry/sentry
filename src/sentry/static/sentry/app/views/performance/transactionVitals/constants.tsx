@@ -1,6 +1,6 @@
 import {t} from 'app/locale';
-import {WebVital, measurementType} from 'app/utils/discover/fields';
 import {SelectValue} from 'app/types';
+import {measurementType, WebVital} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 
 import {Vital, VitalGroup} from './types';

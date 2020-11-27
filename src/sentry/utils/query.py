@@ -5,6 +5,7 @@ import re
 import six
 
 from django.db import connections, router
+from sentry import eventstore
 
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
@@ -12,6 +13,55 @@ _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 class InvalidQuerySetError(ValueError):
     pass
+
+
+def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_events=True):  # noqa
+    """
+    A tool for batched queries similar in purpose to RangeQuerySetWrapper that
+    is used for celery tasks in issue merge/unmerge/reprocessing.
+    """
+
+    # We process events sorted in descending order by -timestamp, -event_id. We need
+    # to include event_id as well as timestamp in the ordering criteria since:
+    #
+    # - Event timestamps are rounded to the second so multiple events are likely
+    # to have the same timestamp.
+    #
+    # - When sorting by timestamp alone, Snuba may not give us a deterministic
+    # order for events with the same timestamp.
+    #
+    # - We need to ensure that we do not skip any events between batches. If we
+    # only sorted by timestamp < last_event.timestamp it would be possible to
+    # have missed an event with the same timestamp as the last item in the
+    # previous batch.
+    #
+    # state contains data about the last event ID and timestamp. Changing
+    # the keys in here needs to be done carefully as the state object is
+    # semi-persisted in celery queues.
+    if state is not None:
+        filter.conditions = filter.conditions or []
+        filter.conditions.append(["timestamp", "<=", state["timestamp"]])
+        filter.conditions.append(
+            [["timestamp", "<", state["timestamp"]], ["event_id", "<", state["event_id"]]]
+        )
+
+    method = eventstore.get_events if fetch_events else eventstore.get_unfetched_events
+
+    events = list(
+        method(
+            filter=filter,  # noqa
+            limit=batch_size,
+            referrer=referrer,
+            orderby=["-timestamp", "-event_id"],
+        )
+    )
+
+    if events:
+        state = {"timestamp": events[-1].timestamp, "event_id": events[-1].event_id}
+    else:
+        state = None
+
+    return state, events
 
 
 class RangeQuerySetWrapper(object):

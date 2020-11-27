@@ -2,13 +2,13 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
 import NarrowLayout from 'app/components/narrowLayout';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
+import AsyncView from 'app/views/asyncView';
+import Form from 'app/views/settings/components/forms/form';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{}, {}>;
 

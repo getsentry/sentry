@@ -1,13 +1,13 @@
-import {Manager, Reference, Popper} from 'react-popper';
-import * as PopperJS from 'popper.js';
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled, {SerializedStyles} from '@emotion/styled';
 import memoize from 'lodash/memoize';
+import * as PopperJS from 'popper.js';
+import PropTypes from 'prop-types';
 
-import {domId} from 'app/utils/domId';
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {domId} from 'app/utils/domId';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 

@@ -1,36 +1,36 @@
 import React from 'react';
-import {Location, LocationDescriptor, Query} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location, LocationDescriptor, Query} from 'history';
 
 import {Client} from 'app/api';
-import {t} from 'app/locale';
 import DiscoverButton from 'app/components/discoverButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import DropdownButton from 'app/components/dropdownButton';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PanelTable from 'app/components/panels/panelTable';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
-import {
-  TrendView,
-  TrendsDataEvents,
-  TrendChangeType,
-} from 'app/views/performance/trends/types';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
-import {Sort, getAggregateAlias} from 'app/utils/discover/fields';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
+import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
+import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
+import {
+  TrendChangeType,
+  TrendsDataEvents,
+  TrendView,
+} from 'app/views/performance/trends/types';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
@@ -63,10 +63,6 @@ type Props = {
   eventView: EventView;
   trendView: TrendView;
   organization: Organization;
-  /**
-   * The prefix to use on the dropdown button.
-   */
-  dropdownTitle: string;
   /**
    * The currently selected option on the dropdown.
    */
@@ -120,14 +116,7 @@ class TransactionsList extends React.Component<Props> {
   };
 
   renderHeader(): React.ReactNode {
-    const {
-      eventView,
-      organization,
-      dropdownTitle,
-      selected,
-      options,
-      handleDropdownChange,
-    } = this.props;
+    const {eventView, organization, selected, options, handleDropdownChange} = this.props;
 
     return (
       <Header>
@@ -137,7 +126,7 @@ class TransactionsList extends React.Component<Props> {
             <StyledDropdownButton
               {...getActorProps()}
               isOpen={isOpen}
-              prefix={dropdownTitle}
+              prefix={t('Filter')}
               size="small"
             >
               {selected.label}

@@ -6,7 +6,7 @@ import DropdownControl from 'app/components/dropdownControl';
 
 import DropDownButton from './dropdownButton';
 import OptionsGroup from './optionsGroup';
-import {OptionType, OptionLevel, Option} from './types';
+import {Option, OptionLevel, OptionType} from './types';
 
 type OnClick = React.ComponentProps<typeof OptionsGroup>['onClick'];
 type Options = [Array<OptionType>, Array<OptionLevel>];

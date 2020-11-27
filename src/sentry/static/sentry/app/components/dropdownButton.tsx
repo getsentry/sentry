@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import space from 'app/styles/space';
 import {IconChevron} from 'app/icons';
+import space from 'app/styles/space';
 
 type Props = React.ComponentProps<typeof Button> & {
   /**

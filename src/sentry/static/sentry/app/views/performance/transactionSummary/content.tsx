@@ -1,33 +1,33 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Organization, Project} from 'app/types';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import CreateAlertButton from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
-import Tags from 'app/views/eventsV2/tags';
-import SearchBar from 'app/views/events/searchBar';
 import {decodeScalar} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
+import SearchBar from 'app/views/events/searchBar';
+import Tags from 'app/views/eventsV2/tags';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
 } from 'app/views/performance/transactionVitals/constants';
 
-import TransactionHeader, {Tab} from './header';
-import TransactionList from './transactionList';
-import UserStats from './userStats';
 import TransactionSummaryCharts from './charts';
+import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
+import TransactionList from './transactionList';
+import UserStats from './userStats';
 
 type Props = {
   location: Location;
@@ -75,7 +75,7 @@ class SummaryContent extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})

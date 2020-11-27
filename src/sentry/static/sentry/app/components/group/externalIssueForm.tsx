@@ -1,16 +1,13 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import * as queryString from 'query-string';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
+import * as queryString from 'query-string';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
-import {FieldValue} from 'app/views/settings/components/forms/model';
-import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import {
   Group,
   Integration,
@@ -18,6 +15,9 @@ import {
   IntegrationIssueConfig,
   IssueConfigField,
 } from 'app/types';
+import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import Form from 'app/views/settings/components/forms/form';
+import {FieldValue} from 'app/views/settings/components/forms/model';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),

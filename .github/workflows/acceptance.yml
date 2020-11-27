@@ -151,6 +151,9 @@ jobs:
           yarn install --frozen-lockfile
 
       - name: webpack
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn webpack --display errors-only
 
@@ -196,8 +199,10 @@ jobs:
       - name: Get merge base
         if: github.event.pull_request.head.ref != ''
         id: merge-base
+        env:
+          REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          echo "::set-output name=sha::$(git merge-base origin/master ${{ github.event.pull_request.head.ref }})"
+          echo "::set-output name=sha::$(git merge-base origin/master $REF)"
 
       - name: Diff snapshots
         id: visual-snapshots-diff

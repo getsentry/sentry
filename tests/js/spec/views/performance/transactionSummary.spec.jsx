@@ -1,13 +1,13 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionSummary from 'app/views/performance/transactionSummary';
 
-function initializeData({features: additionalFeatures = []} = {}) {
+function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = TestStubs.Organization({
     features,
@@ -22,6 +22,7 @@ function initializeData({features: additionalFeatures = []} = {}) {
           transaction: '/performance',
           project: 1,
           transactionCursor: '1:0:0',
+          ...query,
         },
       },
     },
@@ -218,7 +219,7 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('[data-test-id="filter-transactions"]')).toHaveLength(1);
 
     // Ensure create alert from discover is hidden without metric alert
-    expect(wrapper.find('CreateAlertButton')).toHaveLength(0);
+    expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(0);
   });
 
   it('renders feature flagged UI elements', async function () {
@@ -235,7 +236,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     // Ensure create alert from discover is shown with metric alerts
-    expect(wrapper.find('CreateAlertButton')).toHaveLength(1);
+    expect(wrapper.find('CreateAlertFromViewButton')).toHaveLength(1);
   });
 
   it('triggers a navigation on search', async function () {
@@ -354,5 +355,26 @@ describe('Performance > TransactionSummary', function () {
         transactionCursor: '2:0:0',
       },
     });
+  });
+
+  it('forwards conditions to related issues', async function () {
+    const issueGet = MockApiClient.addMockResponse({
+      url:
+        '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      body: [],
+    });
+
+    const initialData = initializeData({query: {query: 'tag:value'}});
+    const wrapper = mountWithTheme(
+      <TransactionSummary
+        organization={initialData.organization}
+        location={initialData.router.location}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(issueGet).toHaveBeenCalled();
   });
 });

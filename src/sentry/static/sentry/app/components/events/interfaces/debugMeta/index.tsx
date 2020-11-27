@@ -1,37 +1,35 @@
-import isNil from 'lodash/isNil';
 import React from 'react';
-import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 import {
-  List,
-  ListRowProps,
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
+  List,
+  ListRowProps,
 } from 'react-virtualized';
+import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
+import isNil from 'lodash/isNil';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import space from 'app/styles/space';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {Panel, PanelBody} from 'app/components/panels';
-import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
-import SearchBar from 'app/components/searchBar';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
-import {t, tct} from 'app/locale';
-import ClippedBox from 'app/components/clippedBox';
+import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
+import {Panel, PanelBody} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons';
-import {Organization, Project, Event, Frame} from 'app/types';
+import {t, tct} from 'app/locale';
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
+import space from 'app/styles/space';
+import {Event, Frame, Organization, Project} from 'app/types';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import DebugImage from './debugImage';
 import {getFileName} from './utils';
 
 const MIN_FILTER_LEN = 3;
-const DEFAULT_CLIP_HEIGHT = 560;
-const PANEL_MAX_HEIGHT = 600;
+const PANEL_MAX_HEIGHT = 400;
 
 type Image = React.ComponentProps<typeof DebugImage>['image'];
 
@@ -53,7 +51,6 @@ type State = {
   filteredImages: Array<Image>;
   showUnused: boolean;
   showDetails: boolean;
-  clipHeight: number;
   foundFrame?: Frame;
   panelBodyHeight?: number;
 };
@@ -74,7 +71,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
     filteredImages: [],
     showUnused: false,
     showDetails: false,
-    clipHeight: DEFAULT_CLIP_HEIGHT,
   };
 
   componentDidMount() {
@@ -327,7 +323,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   renderImageList() {
-    const {filteredImages, showDetails, panelBodyHeight, clipHeight} = this.state;
+    const {filteredImages, showDetails, panelBodyHeight} = this.state;
     const {orgId, projectId} = this.props;
 
     if (!panelBodyHeight) {
@@ -357,24 +353,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
             rowRenderer={this.renderRow}
             width={width}
             isScrolling={false}
-            overflowHidden={panelBodyHeight > clipHeight}
           />
         )}
       </AutoSizer>
     );
   }
-
-  handleOnReveal = () => {
-    const {panelBodyHeight} = this.state;
-
-    if (!panelBodyHeight) {
-      return;
-    }
-
-    this.setState({
-      clipHeight: panelBodyHeight,
-    });
-  };
 
   handleChangeShowUnused = (event: React.ChangeEvent<HTMLInputElement>) => {
     const showUnused = event.target.checked;
@@ -395,7 +378,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {filteredImages, foundFrame, panelBodyHeight, clipHeight} = this.state;
+    const {filteredImages, foundFrame} = this.state;
 
     return (
       <StyledEventDataSection
@@ -411,11 +394,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       >
         <DebugImagesPanel>
           {filteredImages.length > 0 ? (
-            <ClippedBox
-              clipHeight={clipHeight}
-              renderedHeight={panelBodyHeight}
-              onReveal={this.handleOnReveal}
-            >
+            <React.Fragment>
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
@@ -425,7 +404,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
               <PanelBody forwardRef={this.panelBodyRef}>
                 {this.renderImageList()}
               </PanelBody>
-            </ClippedBox>
+            </React.Fragment>
           ) : (
             <EmptyMessage icon={<IconWarning size="xl" />}>
               {this.getNoImagesMessage()}
@@ -439,8 +418,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
 export default DebugMeta;
 
-const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
-  ${p => p.overflowHidden && 'overflow: hidden !important;'}
+const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;

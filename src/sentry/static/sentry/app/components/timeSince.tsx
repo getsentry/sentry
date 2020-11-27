@@ -1,13 +1,13 @@
+import React from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import PropTypes from 'prop-types';
-import React from 'react';
 import moment from 'moment-timezone';
+import PropTypes from 'prop-types';
 
-import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
+import ConfigStore from 'app/stores/configStore';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import Tooltip from './tooltip';
 

@@ -1,12 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {IconReturn} from 'app/icons/iconReturn';
-import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 interface Props {
   name: string;

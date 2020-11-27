@@ -1,29 +1,30 @@
 import React from 'react';
-import maxBy from 'lodash/maxBy';
-import chunk from 'lodash/chunk';
 import styled from '@emotion/styled';
+import chunk from 'lodash/chunk';
+import maxBy from 'lodash/maxBy';
 
-import {Client} from 'app/api';
 import {fetchTotalCount} from 'app/actionCreators/events';
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
+import SelectControl from 'app/components/forms/selectControl';
+import LoadingMask from 'app/components/loadingMask';
+import {Panel, PanelBody} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
-import {Panel, PanelBody} from 'app/components/panels';
-import Feature from 'app/components/acl/feature';
-import EventsRequest from 'app/components/charts/eventsRequest';
-import LoadingMask from 'app/components/loadingMask';
-import Placeholder from 'app/components/placeholder';
-import SelectControl from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 
-import {IncidentRule, TimeWindow, TimePeriod, Trigger} from '../../types';
+import {IncidentRule, TimePeriod, TimeWindow, Trigger} from '../../types';
+
 import ThresholdsChart from './thresholdsChart';
 
 type Props = {
@@ -137,11 +138,12 @@ class TriggersChart extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {query, environment} = this.props;
+    const {query, environment, timeWindow} = this.props;
     const {statsPeriod} = this.state;
     if (
       prevProps.environment !== environment ||
       prevProps.query !== query ||
+      prevProps.timeWindow !== timeWindow ||
       prevState.statsPeriod !== statsPeriod
     ) {
       this.fetchTotalCount();

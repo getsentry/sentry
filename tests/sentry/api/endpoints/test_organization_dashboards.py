@@ -25,7 +25,6 @@ class OrganizationDashboardsTest(APITestCase):
 
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == six.text_type(dashboard.id)
-        assert data["organization"] == six.text_type(dashboard.organization.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"] == six.text_type(dashboard.created_by.id)
 
@@ -67,4 +66,4 @@ class OrganizationDashboardsTest(APITestCase):
     def test_integrity_error(self):
         response = self.client.post(self.url, data={"title": self.dashboard_1.title})
         assert response.status_code == 409
-        assert response.data == "This dashboard already exists"
+        assert response.data == "Dashboard title already taken"

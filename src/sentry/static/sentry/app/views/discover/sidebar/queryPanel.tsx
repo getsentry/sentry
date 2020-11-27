@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {IconClose} from 'app/icons/iconClose';
 import PageHeading from 'app/components/pageHeading';
+import {IconClose} from 'app/icons/iconClose';
 
-import {QueryPanelContainer, QueryPanelTitle, QueryPanelCloseLink} from '../styles';
+import {QueryPanelCloseLink, QueryPanelContainer, QueryPanelTitle} from '../styles';
 
 type QueryPanelProps = {
   title: any;

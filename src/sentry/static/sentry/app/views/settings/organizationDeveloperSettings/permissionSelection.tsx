@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import {SENTRY_APP_PERMISSIONS} from 'app/constants';
-import SelectField from 'app/views/settings/components/forms/selectField';
+import {t} from 'app/locale';
 import {Permissions} from 'app/types/index';
+import SelectField from 'app/views/settings/components/forms/selectField';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning

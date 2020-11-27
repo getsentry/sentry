@@ -1,20 +1,22 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {t, tct} from 'app/locale';
+import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import GroupList from 'app/components/issues/groupList';
+import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {SectionHeading} from 'app/components/charts/styles';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel, PanelBody} from 'app/components/panels';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import GroupList from 'app/components/issues/groupList';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
+import {TRACING_FIELDS} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 type Props = {
   organization: OrganizationSummary;
@@ -36,13 +38,20 @@ class RelatedIssues extends React.Component<Props> {
       sort: 'new',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
+    const currentFilter = tokenizeSearch(decodeScalar(location.query.query) || '');
+    currentFilter.getTagKeys().forEach(tagKey => {
+      // Remove aggregates and transaction event fields..
+      if (tagKey.match(/\w+\(.*\)/) || TRACING_FIELDS.includes(tagKey)) {
+        currentFilter.removeTag(tagKey);
+      }
+    });
+    currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
+
     return {
       path: `/organizations/${organization.slug}/issues/`,
       queryParams: {
         ...queryParams,
-        query: stringifyQueryObject(
-          new QueryResults(['is:unresolved', `transaction:${transaction}`])
-        ),
+        query: stringifyQueryObject(currentFilter),
       },
     };
   }
