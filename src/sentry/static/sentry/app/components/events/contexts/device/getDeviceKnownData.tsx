@@ -3,7 +3,7 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import {defined} from 'app/utils';
 
 import getDeviceKnownDataDetails from './getDeviceKnownDataDetails';
-import {DeviceKnownDataType, DeviceData} from './types';
+import {DeviceData, DeviceKnownDataType} from './types';
 
 function getOperatingSystemKnownData(
   data: DeviceData,

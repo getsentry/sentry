@@ -1,20 +1,20 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {IconMail} from 'app/icons';
-import {PanelAlert} from 'app/components/panels';
-import {fields} from 'app/data/forms/projectAlerts';
-import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
+import {PanelAlert} from 'app/components/panels';
+import PluginList from 'app/components/pluginList';
+import {fields} from 'app/data/forms/projectAlerts';
+import {IconMail} from 'app/icons';
+import {t} from 'app/locale';
+import {Organization, Plugin, Project} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import PluginList from 'app/components/pluginList';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import routeTitleGen from 'app/utils/routeTitle';
-import {Organization, Project, Plugin} from 'app/types';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type RouteParams = {orgId: string; projectId: string};
 type Props = RouteComponentProps<RouteParams, {}> &

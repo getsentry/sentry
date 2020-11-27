@@ -1,32 +1,32 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
-import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExternalIssueList from 'app/components/group/externalIssuesList';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
+import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
 import GroupTagDistributionMeter from 'app/components/group/tagDistributionMeter';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import Placeholder from 'app/components/placeholder';
-import SuggestedOwners from 'app/components/group/suggestedOwners/suggestedOwners';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import withApi from 'app/utils/withApi';
 import {
-  Event,
   Environment,
+  Event,
   Group,
   Organization,
   Project,
   TagWithTopValues,
 } from 'app/types';
+import withApi from 'app/utils/withApi';
 
 import SidebarSection from './sidebarSection';
 

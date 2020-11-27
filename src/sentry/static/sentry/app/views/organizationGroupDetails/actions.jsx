@@ -1,38 +1,38 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import {uniqueId} from 'app/utils/guid';
-import Button from 'app/components/button';
-import DropdownLink from 'app/components/dropdownLink';
-import EventView from 'app/utils/discover/eventView';
+import GroupActions from 'app/actions/groupActions';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import GroupActions from 'app/actions/groupActions';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
-import {IconDelete, IconStar, IconRefresh} from 'app/icons';
+import ResolveActions from 'app/components/actions/resolve';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
+import DropdownLink from 'app/components/dropdownLink';
 import Link from 'app/components/links/link';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
-import ReprocessingForm from 'app/views/organizationGroupDetails/reprocessingForm';
-import ResolveActions from 'app/components/actions/resolve';
-import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import Tooltip from 'app/components/tooltip';
+import {IconDelete, IconRefresh, IconStar} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {analytics} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import ReprocessingForm from 'app/views/organizationGroupDetails/reprocessingForm';
 
 import SubscribeAction from './subscribeAction';
 

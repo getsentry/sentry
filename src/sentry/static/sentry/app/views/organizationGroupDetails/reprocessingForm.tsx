@@ -1,18 +1,18 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
-import {t, tct} from 'app/locale';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import Alert from 'app/components/alert';
 import FeatureBadge from 'app/components/featureBadge';
+import ApiForm from 'app/components/forms/apiForm';
 import NumberField from 'app/components/forms/numberField';
+import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import Alert from 'app/components/alert';
-import ApiForm from 'app/components/forms/apiForm';
-import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Group, Organization} from 'app/types';
 
 type Props = ModalRenderProps & {
   group: Group;

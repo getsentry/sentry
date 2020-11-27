@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {CSRF_COOKIE_NAME} from 'app/constants';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import {descopeFeatureName} from 'app/utils';
-import {t, tct} from 'app/locale';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
-import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {CSRF_COOKIE_NAME} from 'app/constants';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {descopeFeatureName} from 'app/utils';
 import getCookie from 'app/utils/getCookie';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 
 import ProviderItem from './providerItem';
 

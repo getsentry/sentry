@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Organization, SavedSearch} from 'app/types';
-import {PageHeader} from 'app/styles/organization';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {t} from 'app/locale';
+import Feature from 'app/components/acl/feature';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
-import Feature from 'app/components/acl/feature';
+import {t} from 'app/locale';
+import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization, SavedSearch} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
+import SavedSearchSelector from './savedSearchSelector';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
-import SavedSearchSelector from './savedSearchSelector';
 import {TagValueLoader} from './types';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;

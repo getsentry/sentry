@@ -1,22 +1,22 @@
-import debounce from 'lodash/debounce';
 import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import PlatformIcon from 'platformicons';
 
-import {analytics} from 'app/utils/analytics';
-import {inputStyles} from 'app/styles/input';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/links/externalLink';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import categoryList, {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
+import {IconClose, IconProject, IconSearch} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
-import {IconClose, IconSearch, IconProject} from 'app/icons';
 import {PlatformIntegration} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 

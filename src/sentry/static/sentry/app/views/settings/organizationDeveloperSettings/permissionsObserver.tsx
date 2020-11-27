@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {toResourcePermissions} from 'app/utils/consolidatedScopes';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
+import {Permissions, Scope, WebhookEvent} from 'app/types';
+import {toResourcePermissions} from 'app/utils/consolidatedScopes';
 import PermissionSelection from 'app/views/settings/organizationDeveloperSettings/permissionSelection';
 import Subscriptions from 'app/views/settings/organizationDeveloperSettings/resourceSubscriptions';
-import {WebhookEvent, Permissions, Scope} from 'app/types';
 
 type DefaultProps = {
   webhookDisabled: boolean;

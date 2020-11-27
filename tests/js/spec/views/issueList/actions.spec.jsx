@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {selectByLabel} from 'sentry-test/select';
 
-import {IssueListActions} from 'app/views/issueList/actions';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import {IssueListActions} from 'app/views/issueList/actions';
 
 describe('IssueListActions', function () {
   let actions;

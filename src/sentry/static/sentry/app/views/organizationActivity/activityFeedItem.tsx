@@ -1,22 +1,22 @@
-import {Link} from 'react-router';
 import React from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Activity, Organization} from 'app/types';
-import {t, tn, tct} from 'app/locale';
+import ActivityAvatar from 'app/components/activity/item/avatar';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
-import ExternalLink from 'app/components/links/externalLink';
 import IssueLink from 'app/components/issueLink';
-import MemberListStore from 'app/stores/memberListStore';
+import ExternalLink from 'app/components/links/externalLink';
 import PullRequestLink from 'app/components/pullRequestLink';
-import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
-import marked from 'app/utils/marked';
+import {t, tct, tn} from 'app/locale';
+import MemberListStore from 'app/stores/memberListStore';
+import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
-import ActivityAvatar from 'app/components/activity/item/avatar';
+import {Activity, Organization} from 'app/types';
+import marked from 'app/utils/marked';
 
 const defaultProps = {
   defaultClipped: false,

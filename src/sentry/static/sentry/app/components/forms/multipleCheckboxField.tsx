@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import FormField from 'app/components/forms/formField';
 import Tooltip from 'app/components/tooltip';

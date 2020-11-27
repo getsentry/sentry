@@ -2,21 +2,28 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import {PageContent} from 'app/styles/organization';
-import routeTitleGen from 'app/utils/routeTitle';
-import {IconSettings, IconSiren} from 'app/icons';
-import * as Layout from 'app/components/layouts/thirds';
+import Feature from 'app/components/acl/feature';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
-import Access from 'app/components/acl/access';
 import ButtonBar from 'app/components/buttonBar';
+import CreateAlertButton from 'app/components/createAlertButton';
 import IdBadge from 'app/components/idBadge';
+import * as Layout from 'app/components/layouts/thirds';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import TextOverflow from 'app/components/textOverflow';
+import {IconSettings} from 'app/icons';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import {Organization, Project} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
+
+import ProjectLatestAlerts from './projectLatestAlerts';
+import ProjectLatestReleases from './projectLatestReleases';
+import ProjectQuickLinks from './projectQuickLinks';
+import ProjectScoreCards from './projectScoreCards';
+import ProjectTeamAccess from './projectTeamAccess';
 
 type RouteParams = {
   orgId: string;
@@ -28,7 +35,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  project?: Project | null;
+  project: Project | null;
 } & AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
@@ -48,7 +55,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params} = this.props;
+    const {organization, params, location} = this.props;
     const {project} = this.state;
 
     return (
@@ -86,24 +93,10 @@ class ProjectDetail extends AsyncView<Props, State> {
                   >
                     {t('View All Issues')}
                   </Button>
-                  <Access organization={organization} access={['project:write']}>
-                    {({hasAccess}) => (
-                      <Button
-                        disabled={!hasAccess}
-                        title={
-                          !hasAccess
-                            ? t(
-                                'Users with admin permission or higher can create alert rules.'
-                              )
-                            : undefined
-                        }
-                        icon={<IconSiren />}
-                        to={`/organizations/${params.orgId}/alerts/${params.projectId}/new/`}
-                      >
-                        {t('Create Alert')}
-                      </Button>
-                    )}
-                  </Access>
+                  <CreateAlertButton
+                    organization={organization}
+                    projectSlug={params.projectId}
+                  />
                   <Button
                     icon={<IconSettings />}
                     label={t('Settings')}
@@ -115,22 +108,28 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               <Layout.Main>
-                <h4>main</h4>
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Aut eius
-                  mollitia maiores dolorum possimus animi, quasi sapiente facilis, eum
-                  necessitatibus dicta corporis eaque excepturi. Molestiae, ipsa? At,
-                  laborum possimus. Reiciendis?
-                </p>
+                <ProjectScoreCards />
               </Layout.Main>
               <Layout.Side>
-                <h4>sidebar</h4>
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
-                  doloremque ut perferendis harum, optio temporibus eaque officia, illo
-                  est quia animi eum sunt dolorem in eligendi quod, corrupti dolores
-                  doloribus!
-                </p>
+                <ProjectTeamAccess organization={organization} project={project} />
+                <Feature features={['incidents']}>
+                  <ProjectLatestAlerts
+                    organization={organization}
+                    projectSlug={params.projectId}
+                    location={location}
+                  />
+                </Feature>
+                <ProjectLatestReleases
+                  organization={organization}
+                  projectSlug={params.projectId}
+                  projectId={project?.id}
+                  location={location}
+                />
+                <ProjectQuickLinks
+                  organization={organization}
+                  project={project}
+                  location={location}
+                />
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>

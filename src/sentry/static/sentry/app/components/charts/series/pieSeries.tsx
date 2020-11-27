@@ -1,7 +1,8 @@
+import 'echarts/lib/chart/pie';
+
 import {EChartOption} from 'echarts';
 
 import {SeriesDataUnit} from 'app/types/echarts';
-import 'echarts/lib/chart/pie';
 
 export default function PieSeries(
   props: Omit<EChartOption.SeriesPie, 'data'> & {

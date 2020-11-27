@@ -1,14 +1,14 @@
-import Reflux from 'reflux';
 import pick from 'lodash/pick';
+import Reflux from 'reflux';
 
-import {Group, Project, Organization, Event} from 'app/types';
-import {Client} from 'app/api';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
+import {Client} from 'app/api';
+import {Event, Group, Organization, Project} from 'app/types';
 
 // Between 0-100
 const MIN_SCORE = 0.6;

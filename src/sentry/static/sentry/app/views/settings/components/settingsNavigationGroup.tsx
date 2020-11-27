@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import {NavigationGroupProps} from 'app/views/settings/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
+import {NavigationGroupProps} from 'app/views/settings/types';
 
 const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   const {organization, project, name, items} = props;

@@ -1,13 +1,13 @@
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'app/api';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
 import OrganizationActions from 'app/actions/organizationActions';
 import ProjectActions from 'app/actions/projectActions';
-import ProjectsStore from 'app/stores/projectsStore';
 import TeamActions from 'app/actions/teamActions';
+import {Client} from 'app/api';
+import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 
 /**

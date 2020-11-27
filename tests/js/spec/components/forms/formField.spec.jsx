@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import TextField from 'app/views/settings/components/forms/textField';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
+import TextField from 'app/views/settings/components/forms/textField';
 
 describe('FormField + model', function () {
   let model;

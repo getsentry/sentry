@@ -1,20 +1,20 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
-import styled from '@emotion/styled';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
+import {Location} from 'history';
 import * as queryString from 'query-string';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import GroupingActions from 'app/actions/groupingActions';
-import GroupingStore from 'app/stores/groupingStore';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ButtonBar from 'app/components/buttonBar';
-import Button from 'app/components/button';
+import {t} from 'app/locale';
+import GroupingStore from 'app/stores/groupingStore';
+import space from 'app/styles/space';
 import {Project} from 'app/types';
-import Alert from 'app/components/alert';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 import List from './list';

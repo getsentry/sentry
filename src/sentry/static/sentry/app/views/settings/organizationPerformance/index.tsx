@@ -2,16 +2,16 @@ import React from 'react';
 import {Location} from 'history';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {updateOrganization} from 'app/actionCreators/organizations';
+import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
-import ExternalLink from 'app/components/links/externalLink';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'app/views/settings/organization/permissionAlert';
-import {updateOrganization} from 'app/actionCreators/organizations';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization} from 'app/types';
 
 const fields: JsonFormObject[] = [
   {

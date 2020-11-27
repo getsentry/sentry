@@ -1,8 +1,8 @@
 import React from 'react';
-import {Flex, Box} from 'reflexbox';
+import {Box, Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
-import {t} from 'app/locale';
 import {PanelHeader} from 'app/components/panels';
+import {t} from 'app/locale';
 
 type Props = {
   withChart: boolean;

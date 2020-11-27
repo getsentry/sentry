@@ -1,13 +1,13 @@
 import React from 'react';
 import isNil from 'lodash/isNil';
 
+import CrashContent from 'app/components/events/interfaces/crashContent';
+import Pill from 'app/components/pill';
+import Pills from 'app/components/pills';
 import {t} from 'app/locale';
 import {Event, Project} from 'app/types';
-import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
-import CrashContent from 'app/components/events/interfaces/crashContent';
-import Pills from 'app/components/pills';
-import Pill from 'app/components/pill';
 import {Thread} from 'app/types/events';
+import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 

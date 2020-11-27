@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'app/components/circleIndicator';
-import theme from 'app/utils/theme';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationInstallationStatus} from 'app/types';
+import theme from 'app/utils/theme';
 
 import {COLORS} from './constants';
 

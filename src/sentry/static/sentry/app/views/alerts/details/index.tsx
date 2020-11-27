@@ -1,12 +1,12 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 
-import {Client} from 'app/api';
-import {Organization} from 'app/types';
+import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
-import {markIncidentAsSeen} from 'app/actionCreators/incident';
+import {Client} from 'app/api';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 
@@ -14,10 +14,11 @@ import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {
   fetchIncident,
   fetchIncidentStats,
-  updateSubscription,
-  updateStatus,
   isOpen,
+  updateStatus,
+  updateSubscription,
 } from '../utils';
+
 import DetailsBody from './body';
 import DetailsHeader from './header';
 

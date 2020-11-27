@@ -1,9 +1,9 @@
-import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
 import {
   getCurlCommand,
   objectToSortedTupleArray,
   removeFilterMaskedEntries,
 } from 'app/components/events/interfaces/utils';
+import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
 import {FILTER_MASK} from 'app/constants';
 
 describe('components/interfaces/utils', function () {

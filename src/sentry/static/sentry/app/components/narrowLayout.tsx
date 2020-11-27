@@ -1,11 +1,11 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
 import {logout} from 'app/actionCreators/account';
 import {Client} from 'app/api';
 import {IconSentry} from 'app/icons';
+import {t} from 'app/locale';
 
 type Props = {
   showLogout?: boolean;

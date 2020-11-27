@@ -1,12 +1,13 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import assign from 'lodash/assign';
+import Reflux from 'reflux';
 
-import getDisplayName from 'app/utils/getDisplayName';
 import MemberListStore from 'app/stores/memberListStore';
 import TagStore from 'app/stores/tagStore';
-import {User, TagCollection} from 'app/types';
+import TeamStore from 'app/stores/teamStore';
+import {TagCollection, Team, User} from 'app/types';
+import getDisplayName from 'app/utils/getDisplayName';
 
 type InjectedTagsProps = {
   tags: TagCollection;
@@ -15,6 +16,7 @@ type InjectedTagsProps = {
 type State = {
   tags: TagCollection;
   users: User[];
+  teams: Team[];
 };
 
 const uuidPattern = /[0-9a-f]{32}$/;
@@ -40,6 +42,7 @@ const withIssueTags = <P extends InjectedTagsProps>(
 
     mixins: [
       Reflux.listenTo(MemberListStore, 'onMemberListStoreChange') as any,
+      Reflux.listenTo(TeamStore, 'onTeamStoreChange') as any,
       Reflux.listenTo(TagStore, 'onTagsUpdate') as any,
     ],
 
@@ -51,12 +54,18 @@ const withIssueTags = <P extends InjectedTagsProps>(
         TagStore.getBuiltInTags()
       );
       const users = MemberListStore.getAll();
+      const teams = TeamStore.getAll();
 
-      return {tags, users};
+      return {tags, users, teams};
     },
 
     onMemberListStoreChange(users: User[]) {
       this.setState({users});
+      this.setAssigned();
+    },
+
+    onTeamStoreChange() {
+      this.setState({teams: TeamStore.getAll()});
       this.setAssigned();
     },
 
@@ -72,25 +81,28 @@ const withIssueTags = <P extends InjectedTagsProps>(
     },
 
     setAssigned() {
-      if (this.state.users && this.state.tags.assigned) {
-        const {tags, users} = this.state;
-        const usernames: string[] = users.map(getUsername);
-        usernames.unshift('me');
+      const {tags, users, teams} = this.state;
+      const usernames: string[] = users.map(getUsername);
+      const teamnames: string[] = teams
+        .filter(team => team.isMember)
+        .map(team => `#${team.name}`);
+      const allAssigned = usernames.concat(teamnames);
+      allAssigned.unshift('me');
+      usernames.unshift('me');
 
-        this.setState({
-          tags: {
-            ...tags,
-            assigned: {
-              ...tags.assigned,
-              values: usernames,
-            },
-            bookmarks: {
-              ...tags.bookmarks,
-              values: usernames,
-            },
+      this.setState({
+        tags: {
+          ...tags,
+          assigned: {
+            ...tags.assigned,
+            values: allAssigned,
           },
-        });
-      }
+          bookmarks: {
+            ...tags.bookmarks,
+            values: usernames,
+          },
+        },
+      });
     },
 
     render() {

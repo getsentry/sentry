@@ -1,18 +1,18 @@
 import React from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/core';
+import {Location, Query} from 'history';
 import * as queryString from 'query-string';
-import {Query, Location} from 'history';
 
-import {EventTag} from 'app/types';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
-import {isUrl} from 'app/utils';
+import {getMeta} from 'app/components/events/meta/metaProxy';
+import ExternalLink from 'app/components/links/externalLink';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
+import {IconInfo, IconOpen} from 'app/icons';
+import {EventTag} from 'app/types';
+import {isUrl} from 'app/utils';
 import TraceHoverCard from 'app/utils/discover/traceHoverCard';
-import {IconOpen, IconInfo} from 'app/icons';
-import ExternalLink from 'app/components/links/externalLink';
-import {getMeta} from 'app/components/events/meta/metaProxy';
 
 import EventTagsPillValue from './eventTagsPillValue';
 

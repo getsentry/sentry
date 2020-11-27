@@ -1,8 +1,8 @@
-import {mount, shallow, render} from 'enzyme'; // eslint-disable-line no-restricted-imports
-import {CacheProvider} from '@emotion/core';
-import {ThemeProvider} from 'emotion-theming';
-import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
 import React from 'react';
+import {CacheProvider} from '@emotion/core';
+import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
+import {ThemeProvider} from 'emotion-theming';
+import {mount, render, shallow} from 'enzyme'; // eslint-disable-line no-restricted-imports
 
 import theme from 'app/utils/theme';
 
@@ -16,4 +16,4 @@ const mountWithTheme = (tree, opts) => {
   return mount(tree, {wrappingComponent: WrappingThemeProvider, ...opts});
 };
 
-export {mountWithTheme, mount, shallow, render};
+export {mount, mountWithTheme, render, shallow};

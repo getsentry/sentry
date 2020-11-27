@@ -1,46 +1,47 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
-import {Location} from 'history';
-import omit from 'lodash/omit';
-import isEqual from 'lodash/isEqual';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
-import {Organization, GlobalSelection} from 'app/types';
+import {fetchTotalCount} from 'app/actionCreators/events';
+import {fetchProjectsCount} from 'app/actionCreators/projects';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {Client} from 'app/api';
+import Alert from 'app/components/alert';
+import Confirm from 'app/components/confirm';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import * as Layout from 'app/components/layouts/thirds';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
-import {Client} from 'app/api';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {fetchTotalCount} from 'app/actionCreators/events';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
-import {fetchProjectsCount} from 'app/actionCreators/projects';
-import Alert from 'app/components/alert';
-import CreateAlertButton from 'app/components/createAlertButton';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {IconFlag} from 'app/icons';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Confirm from 'app/components/confirm';
 import space from 'app/styles/space';
-import SearchBar from 'app/views/events/searchBar';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import withApi from 'app/utils/withApi';
-import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
-import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {GlobalSelection, Organization} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
 import localStorage from 'app/utils/localStorage';
 import {decodeScalar} from 'app/utils/queryString';
-import * as Layout from 'app/components/layouts/thirds';
+import withApi from 'app/utils/withApi';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
+import SearchBar from 'app/views/events/searchBar';
+
+import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
+import ResultsChart from './resultsChart';
+import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
-import ResultsHeader from './resultsHeader';
-import ResultsChart from './resultsChart';
 import {generateTitle} from './utils';
-import {addRoutePerformanceContext} from '../performance/utils';
 
 type Props = {
   api: Client;
@@ -332,7 +333,7 @@ class Results extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     const {organization} = this.props;
     trackAnalyticsEvent({
