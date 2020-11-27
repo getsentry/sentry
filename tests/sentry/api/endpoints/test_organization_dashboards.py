@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Dashboard
+from sentry.models import Dashboard, DashboardWidget, DashboardWidgetDisplayTypes
 from sentry.testutils import APITestCase
 
 
@@ -22,6 +22,21 @@ class OrganizationDashboardsTest(APITestCase):
         self.dashboard_2 = Dashboard.objects.create(
             title="Dashboard 2", created_by=self.user, organization=self.organization
         )
+
+    def get_widgets(self, dashboard_id):
+        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
+
+    def assert_serialized_widget(self, data, expected_widget):
+        if "id" in data:
+            assert data["id"] == six.text_type(expected_widget.id)
+        if "title" in data:
+            assert data["title"] == expected_widget.title
+        if "interval" in data:
+            assert data["interval"] == expected_widget.interval
+        if "displayType" in data:
+            assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
+                expected_widget.display_type
+            )
 
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == six.text_type(dashboard.id)
@@ -43,6 +58,56 @@ class OrganizationDashboardsTest(APITestCase):
             organization=self.organization, title="Dashboard from Post"
         )
         assert dashboard.created_by == self.user
+
+    def test_post_with_widgets(self):
+        data = {
+            "title": "Dashboard from Post",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": "Transaction count()",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+                {
+                    "displayType": "bar",
+                    "interval": "5m",
+                    "title": "Error count()",
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "conditions": "event.type:error",
+                        }
+                    ],
+                },
+            ],
+        }
+
+        response = self.client.post(self.url, data=data)
+        assert response.status_code == 201
+        dashboard = Dashboard.objects.get(
+            organization=self.organization, title="Dashboard from Post"
+        )
+        assert dashboard.created_by == self.user
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 2
+
+        for expected_widget in data["widgets"]:
+            for actual_widget in widgets:
+                self.assert_serialized_widget(expected_widget, actual_widget)
+
+                queries = actual_widget.dashboardwidgetquery_set.all()
+                for expected_query in expected_widget["queries"]:
+                    for actual_query in queries:
+                        self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_query(self):
         dashboard = Dashboard.objects.create(
