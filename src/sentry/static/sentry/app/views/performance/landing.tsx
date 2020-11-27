@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import Feature from 'app/components/acl/feature';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
