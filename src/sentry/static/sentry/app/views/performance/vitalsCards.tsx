@@ -106,31 +106,44 @@ export function VitalsCard(props: CardProps) {
   const Container = noBorder ? NonPanel : StyledVitalCard;
 
   if (isLoading || !tableData || !tableData.data || !tableData.data[0]) {
-    return (
-      <Container interactive>
-        <CardTitle>{t(`${measurement} Passing`)}</CardTitle>
-        <CardValue>-</CardValue>
-      </Container>
-    );
+    return <BlankCard noBorder={noBorder} measurement={measurement} />;
   }
 
   const result = tableData.data[0];
+  const base = result[getAggregateAlias(vitalsBaseFields[vitalName])];
+
+  if (!base) {
+    return <BlankCard noBorder={noBorder} measurement={measurement} />;
+  }
 
   const thresholdCount: number =
     parseFloat(result[getAggregateAlias(vitalsThresholdFields[vitalName])]) || 0;
-  const baseCount: number =
-    parseFloat(result[getAggregateAlias(vitalsBaseFields[vitalName])]) ||
-    Number.MIN_VALUE;
+  const baseCount: number = parseFloat(base) || Number.MIN_VALUE;
 
   const value = formatPercentage(1 - thresholdCount / baseCount);
 
   return (
     <Container interactive>
-      <CardTitle>Total Passing {measurement}</CardTitle>
+      <CardTitle>{t(`${measurement} Passing`)}</CardTitle>
       <CardValue>{value}</CardValue>
     </Container>
   );
 }
+
+type BlankCardProps = {
+  noBorder?: boolean;
+  measurement?: string;
+};
+
+const BlankCard = (props: BlankCardProps) => {
+  const Container = props.noBorder ? NonPanel : StyledVitalCard;
+  return (
+    <Container interactive>
+      <CardTitle>{t(`${props.measurement} Passing`)}</CardTitle>
+      <CardValue>{'\u2014'}</CardValue>
+    </Container>
+  );
+};
 
 type VitalLinkProps = Props & {
   vitalName: WebVital;
