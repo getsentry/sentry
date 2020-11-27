@@ -1,7 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 
-import {GlobalSelection, Organization} from 'app/types';
+import {Event, GlobalSelection, Organization} from 'app/types';
 import {analytics, metric} from 'app/utils/analytics';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
@@ -13,10 +13,11 @@ type Props = {
   isGlobalSelectionReady: boolean;
   organization: Organization;
   children: React.ReactNode;
+  eventPromise: Promise<Event>;
 } & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
 class OrganizationGroupDetails extends React.Component<Props> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Setup in the constructor as render() may be expensive

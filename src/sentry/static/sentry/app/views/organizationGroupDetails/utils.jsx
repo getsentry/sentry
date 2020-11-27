@@ -45,6 +45,26 @@ export async function fetchGroupEventAndMarkSeen(
   }
 }
 
+/**
+ * Fetches group data and mark as seen
+ * Only fetches latest or oldest event, do not pass an actual event id
+ *
+ * @param {String} groupId groupId
+ * @param {String} eventId "latest" or "oldest"
+ * @returns {Promise<Object>}
+ */
+export async function fetchLatestGroupEventAndMarkSeen(api, groupId, eventId, envNames) {
+  const query = {};
+  if (envNames.length !== 0) {
+    query.environment = envNames;
+  }
+
+  const data = await api.requestPromise(`/issues/${groupId}/events/${eventId}/`, {
+    query,
+  });
+  return data;
+}
+
 export function fetchGroupUserReports(groupId, query) {
   const api = new Client();
 

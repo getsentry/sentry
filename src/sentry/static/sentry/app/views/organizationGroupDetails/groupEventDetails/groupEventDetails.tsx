@@ -32,6 +32,7 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
+  eventPromise?: Promise<Event>;
   className?: string;
 };
 
@@ -127,7 +128,15 @@ class GroupEventDetails extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, group, project, organization, params, environments} = this.props;
+    const {
+      api,
+      group,
+      project,
+      organization,
+      params,
+      environments,
+      eventPromise,
+    } = this.props;
     const eventId = params.eventId || 'latest';
     const groupId = group.id;
     const orgSlug = organization.slug;
@@ -147,14 +156,9 @@ class GroupEventDetails extends React.Component<Props, State> {
     const releasesCompletionPromise = api.requestPromise(
       `/projects/${orgSlug}/${projSlug}/releases/completion/`
     );
-    const fetchGroupEventPromise = fetchGroupEventAndMarkSeen(
-      api,
-      orgSlug,
-      projSlug,
-      groupId,
-      eventId,
-      envNames
-    );
+    const fetchGroupEventPromise = eventPromise
+      ? eventPromise
+      : fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames);
 
     fetchSentryAppInstallations(api, orgSlug);
     fetchSentryAppComponents(api, orgSlug, projectId);

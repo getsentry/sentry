@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader, {TAB} from './header';
-import {fetchGroupEventAndMarkSeen} from './utils';
+import {fetchGroupEventAndMarkSeen, fetchLatestGroupEventAndMarkSeen} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -44,6 +44,7 @@ type State = {
   errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
   event?: Event;
+  eventPromise?: Promise<Event>;
 };
 
 class GroupDetails extends React.Component<Props, State> {
@@ -127,7 +128,8 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   async fetchData() {
-    const {environments, api, isGlobalSelectionReady} = this.props;
+    const {environments, api, isGlobalSelectionReady, params} = this.props;
+    const eventId = params.eventId || 'latest';
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -135,6 +137,15 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     try {
+      let eventPromise: Promise<Event> | undefined;
+      if (['latest', 'oldest'].includes(eventId)) {
+        eventPromise = fetchLatestGroupEventAndMarkSeen(
+          api,
+          params.groupId,
+          eventId,
+          environments
+        );
+      }
       const data = await api.requestPromise(this.groupDetailsEndpoint, {
         query: {
           // Note, we do not want to include the environment key at all if there are no environments
@@ -144,7 +155,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       // TODO(billy): See if this is even in use and if not, can we just rip this out?
       if (this.props.params.groupId !== data.id) {
-        const {routes, params, location} = this.props;
+        const {routes, location} = this.props;
         ReactRouter.browserHistory.push(
           recreateRoute('', {
             routes,
@@ -175,7 +186,7 @@ class GroupDetails extends React.Component<Props, State> {
         ReactRouter.browserHistory.replace(locationWithProject);
       }
 
-      this.setState({project});
+      this.setState({project, eventPromise});
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
@@ -268,6 +279,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderContent(project: AvatarProject) {
     const {children, environments, organization, routes} = this.props;
+    const {eventPromise} = this.state;
 
     // all the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
@@ -287,6 +299,7 @@ class GroupDetails extends React.Component<Props, State> {
       environments,
       group,
       project,
+      eventPromise,
     };
 
     if (currentTab === TAB.DETAILS) {

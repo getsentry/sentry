@@ -125,7 +125,7 @@ describe('groupDetails', function () {
     await tick();
 
     expect(MockComponent).toHaveBeenLastCalledWith(
-      {
+      expect.objectContaining({
         environments: [],
         group,
         project: expect.objectContaining({
@@ -133,7 +133,7 @@ describe('groupDetails', function () {
           slug: project.slug,
         }),
         event,
-      },
+      }),
       {}
     );
 
@@ -215,7 +215,7 @@ describe('groupDetails', function () {
       })
     );
     expect(MockComponent).toHaveBeenLastCalledWith(
-      {
+      expect.objectContaining({
         environments: ['staging'],
         group,
         project: expect.objectContaining({
@@ -223,7 +223,7 @@ describe('groupDetails', function () {
           slug: project.slug,
         }),
         event,
-      },
+      }),
       {}
     );
   });
