@@ -488,7 +488,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(crashedSessionTerm).toEqual(
-      "During session an error with mechanism.handled===false occurred which is 'onerror' on 'unhandledrejection' handler"
+      "During the session an error with mechanism.handled===false occurred calling the 'onerror' on 'unhandledrejection' handler"
     );
 
     // Crash Free Users
@@ -536,7 +536,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(unhandledSessionTerm).toEqual(
-      "An error bubbled up to the global 'onerror' or 'onunhandledrejection' handler"
+      "An error was captured by the global 'onerror' or 'onunhandledrejection' handler"
     );
   });
 
@@ -554,7 +554,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(crashedSessionTerm).toEqual(
-      "During session an error with mechanism.handled===false occurred which is 'onerror' on 'unhandledrejection' handler"
+      "During the session an error with mechanism.handled===false occurred calling the 'onerror' on 'unhandledrejection' handler"
     );
 
     // Crash Free Users
@@ -602,7 +602,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(unhandledSessionTerm).toEqual(
-      "An error bubbled up to the global 'onerror' or 'onunhandledrejection' handler"
+      "An error was captured by the global 'onerror' or 'onunhandledrejection' handler"
     );
   });
 
