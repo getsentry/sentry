@@ -923,6 +923,8 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
+    # Enable "owner"/"suggested assignee" features.
+    "organizations:workflow-owners": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -950,7 +952,7 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable "owner"/"suggested assignee" features.
+    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
     "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
