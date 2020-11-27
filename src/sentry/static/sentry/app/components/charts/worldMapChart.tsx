@@ -28,7 +28,7 @@ type Props = Omit<ChartProps, 'series'> & {
   seriesOptions?: EChartOption.SeriesMap;
 };
 
-type JSONResult = {[key: string]: any};
+type JSONResult = Record<string, any>;
 
 type State = {
   countryToCodeMap: JSONResult | null;
