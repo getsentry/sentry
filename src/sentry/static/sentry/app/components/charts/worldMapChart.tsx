@@ -42,7 +42,7 @@ class WorldMapChart extends React.Component<Props, State> {
     seriesOptions: PropTypes.object,
   };
 
-  state = {
+  state: State = {
     countryToCodeMap: null,
     map: null,
     codeToCountryMap: null,
