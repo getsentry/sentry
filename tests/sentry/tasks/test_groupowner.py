@@ -6,7 +6,8 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.tasks.groupowner import process_suspect_commits, PREFERRED_GROUP_OWNER_AGE
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.models import Repository, GroupOwner
+from sentry.models import Repository
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
@@ -68,14 +69,6 @@ class TestGroupOwners(TestCase):
 
     def test_simple(self):
         self.set_release_commits(self.user.email)
-
-        result = get_serialized_event_file_committers(self.project, self.event_1)
-
-        assert len(result) == 1
-        assert "commits" in result[0]
-        assert len(result[0]["commits"]) == 1
-        assert result[0]["commits"][0]["id"] == "a" * 40
-
         data = self.event_1.data
         data["event_id"] = self.event_1.event_id
         data["project"] = self.event_1.project_id
@@ -83,7 +76,12 @@ class TestGroupOwners(TestCase):
 
         assert not GroupOwner.objects.filter(group=self.event_1.group).exists()
         process_suspect_commits(self.event_1.group_id, cache_key)
-        assert GroupOwner.objects.filter(group=self.event_1.group).exists()
+        assert GroupOwner.objects.get(
+            group=self.event_1.group,
+            project=self.event_1.project,
+            organization=self.event_1.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
 
     def test_no_matching_user(self):
         self.set_release_commits("not@real.user")
@@ -261,4 +259,30 @@ class TestGroupOwners(TestCase):
 
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
-        pass
+        self.set_release_commits(self.user.email)
+        gid = self.event_1.group_id
+        data = self.event_1.data
+        data["event_id"] = self.event_1.event_id
+        data["project"] = self.event_1.project_id
+
+        cache_key = event_processing_store.store(data)
+        process_suspect_commits(gid, cache_key)
+        go = GroupOwner.objects.get(
+            group=self.event_1.group,
+            project=self.event_1.project,
+            organization=self.event_1.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+
+        date_added_before_update = go.date_added
+        cache_key = event_processing_store.store(data)
+        process_suspect_commits(gid, cache_key)
+        go.refresh_from_db()
+        assert go.date_added > date_added_before_update
+        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 1
+        assert GroupOwner.objects.get(
+            group=self.event_1.group,
+            project=self.event_1.project,
+            organization=self.event_1.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
