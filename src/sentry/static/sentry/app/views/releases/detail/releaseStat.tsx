@@ -12,7 +12,7 @@ type Props = {
 
 const ReleaseStat = ({label, children, help}: Props) => (
   <Wrapper>
-    <Label hasHelp={!!help}>
+    <Label>
       {label}
       {help && <StyledQuestionTooltip title={help} size="xs" position="bottom" />}
     </Label>
@@ -26,7 +26,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const Label = styled('div')<{hasHelp: boolean}>`
+const Label = styled('div')`
   font-weight: 600;
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;

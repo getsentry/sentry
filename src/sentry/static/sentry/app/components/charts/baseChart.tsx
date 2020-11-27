@@ -489,6 +489,32 @@ const ChartContainer = styled('div')`
   .echarts-for-react div:first-of-type {
     width: 100% !important;
   }
+
+  /* Tooltip description styling */
+  .tooltip-description {
+    color: ${p => p.theme.white};
+    border-radius: ${p => p.theme.borderRadius};
+    background: #000;
+    opacity: 0.9;
+    padding: 5px 10px;
+    position: relative;
+    font-weight: bold;
+    font-size: ${p => p.theme.fontSizeSmall};
+    line-height: 1.4;
+    font-family: ${p => p.theme.text.family};
+    :after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #000;
+      transform: translateX(-50%);
+    }
+  }
 `;
 
 const BaseChartWithTheme = withTheme(BaseChart);
