@@ -64,8 +64,6 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
-    # This field is being removed soon.
-    interval = models.CharField(max_length=10, null=True)
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

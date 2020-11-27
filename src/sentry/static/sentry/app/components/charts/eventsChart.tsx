@@ -1,5 +1,6 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
+import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -304,6 +305,8 @@ type Props = {
    * Override the default color palette.
    */
   colors?: string[];
+  releaseQueryExtra?: Query;
+  preserveReleaseQueryParams?: boolean;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -350,6 +353,8 @@ class EventsChart extends React.Component<Props> {
     orderby: PropTypes.string,
     confirmedQuery: PropTypes.bool,
     colors: PropTypes.array,
+    preserveReleaseQueryParams: PropTypes.bool,
+    releaseQueryExtras: PropTypes.object,
     disableableSeries: PropTypes.array,
   };
 
@@ -379,6 +384,8 @@ class EventsChart extends React.Component<Props> {
       orderby,
       confirmedQuery,
       colors,
+      preserveReleaseQueryParams,
+      releaseQueryExtra,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -444,6 +451,8 @@ class EventsChart extends React.Component<Props> {
           projects={projects}
           environments={environments}
           emphasizeReleases={emphasizeReleases}
+          preserveQueryParams={preserveReleaseQueryParams}
+          queryExtra={releaseQueryExtra}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>

@@ -1429,7 +1429,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 },
             )
             assert test[1] == result.conditions, test[0]
-            assert test[2] == result.project_ids, test[0]
+            assert set(test[2]) == set(result.project_ids), test[0]
 
     def test_project_in_condition_filters_not_in_project_filter(self):
         project1 = self.create_project()
