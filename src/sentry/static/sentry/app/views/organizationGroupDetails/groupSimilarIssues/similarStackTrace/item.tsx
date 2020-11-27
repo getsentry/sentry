@@ -26,8 +26,8 @@ type Props = {
   project: Project;
   orgId: Organization['id'];
   groupId: Group['id'];
-  score?: Record<string, any>;
   v2: boolean;
+  score?: Record<string, any>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, any | null]>;
