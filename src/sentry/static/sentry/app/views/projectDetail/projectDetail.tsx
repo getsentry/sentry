@@ -2,6 +2,7 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
@@ -19,6 +20,7 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
+import ProjectCharts from './projectCharts';
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
 import ProjectQuickLinks from './projectQuickLinks';
@@ -39,6 +41,10 @@ type State = {
 } & AsyncView['state'];
 
 class ProjectDetail extends AsyncView<Props, State> {
+  // We want charts to use different instance of client than this component, because EventsRequest is calling api.clear()
+  // which could lead to race conditions (sometimes cancelling what this component is still loading)
+  chartsApi = new Client();
+
   getTitle() {
     const {params} = this.props;
 
@@ -47,6 +53,11 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
+
+    if (this.state?.project) {
+      return [];
+    }
+
     return [['project', `/projects/${params.orgId}/${params.projectId}/`]];
   }
 
@@ -55,7 +66,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params, location} = this.props;
+    const {organization, params, location, router} = this.props;
     const {project} = this.state;
 
     return (
@@ -109,6 +120,12 @@ class ProjectDetail extends AsyncView<Props, State> {
             <Layout.Body>
               <Layout.Main>
                 <ProjectScoreCards />
+                <ProjectCharts
+                  api={this.chartsApi}
+                  location={location}
+                  organization={organization}
+                  router={router}
+                />
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />

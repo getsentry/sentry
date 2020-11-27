@@ -1,5 +1,6 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
+import {EChartOption} from 'echarts/lib/echarts';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -30,6 +31,8 @@ type ChartProps = {
   zoomRenderProps: any;
   timeseriesData: Series[];
   showLegend?: boolean;
+  legendOptions?: EChartOption.Legend;
+  chartOptions?: EChartOption;
   currentSeriesName?: string;
   releaseSeries?: Series | null;
   previousTimeseriesData?: Series | null;
@@ -71,6 +74,8 @@ class Chart extends React.Component<ChartProps, State> {
     yAxis: PropTypes.string,
     colors: PropTypes.array,
     disableableSeries: PropTypes.array,
+    legendOptions: PropTypes.object,
+    chartOptions: PropTypes.object,
   };
 
   state: State = {
@@ -151,6 +156,8 @@ class Chart extends React.Component<ChartProps, State> {
       timeseriesData,
       previousTimeseriesData,
       showLegend,
+      legendOptions,
+      chartOptions: chartOptionsProp,
       currentSeriesName,
       previousSeriesName,
       seriesNameTransformer,
@@ -179,6 +186,7 @@ class Chart extends React.Component<ChartProps, State> {
       },
       data,
       selected: seriesSelection,
+      ...(legendOptions ?? {}),
     };
 
     const chartOptions = {
@@ -203,6 +211,7 @@ class Chart extends React.Component<ChartProps, State> {
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
+      ...(chartOptionsProp ?? {}),
     };
 
     const Component = this.getChartComponent();
@@ -304,6 +313,10 @@ type Props = {
    * Override the default color palette.
    */
   colors?: string[];
+  /**
+   * Markup for optional chart header
+   */
+  chartHeader?: React.ReactNode;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -311,6 +324,8 @@ type Props = {
   | 'seriesNameTransformer'
   | 'showLegend'
   | 'disableableSeries'
+  | 'legendOptions'
+  | 'chartOptions'
 >;
 
 type ChartDataProps = {
@@ -351,6 +366,9 @@ class EventsChart extends React.Component<Props> {
     confirmedQuery: PropTypes.bool,
     colors: PropTypes.array,
     disableableSeries: PropTypes.array,
+    chartHeader: PropTypes.object,
+    legendOptions: PropTypes.object,
+    chartOptions: PropTypes.object,
   };
 
   render() {
@@ -379,6 +397,9 @@ class EventsChart extends React.Component<Props> {
       orderby,
       confirmedQuery,
       colors,
+      chartHeader,
+      legendOptions,
+      chartOptions,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -412,6 +433,9 @@ class EventsChart extends React.Component<Props> {
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />
+
+          {React.isValidElement(chartHeader) && chartHeader}
+
           <Chart
             {...zoomRenderProps}
             loading={loading}
@@ -428,6 +452,8 @@ class EventsChart extends React.Component<Props> {
             yAxis={yAxis}
             showDaily={showDaily}
             colors={colors}
+            legendOptions={legendOptions}
+            chartOptions={chartOptions}
           />
         </TransitionChart>
       );
