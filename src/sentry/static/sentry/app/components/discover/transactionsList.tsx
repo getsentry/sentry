@@ -311,7 +311,7 @@ type TableProps = {
 class TransactionsTable extends React.PureComponent<TableProps> {
   getTitles() {
     const {eventView, titles} = this.props;
-    return titles ?? eventView.getFields().map(field => t(field));
+    return titles ?? eventView.getFields();
   }
 
   renderHeader() {
