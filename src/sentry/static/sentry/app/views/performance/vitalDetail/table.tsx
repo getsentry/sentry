@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
@@ -9,7 +10,6 @@ import Pagination from 'app/components/pagination';
 import Tag from 'app/components/tag';
 import {IconStar, IconUser} from 'app/icons';
 import {t} from 'app/locale';
-import styled from 'app/styled';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';

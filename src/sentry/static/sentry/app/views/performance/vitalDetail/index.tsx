@@ -118,7 +118,7 @@ class VitalDetail extends React.Component<Props, State> {
                 organization={organization}
                 eventView={eventView}
                 router={router}
-                vitalName={vitalName || WebVital.FID}
+                vitalName={vitalName || WebVital.LCP}
               />
             </LightWeightNoProjectMessage>
           </StyledPageContent>
