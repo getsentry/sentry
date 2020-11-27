@@ -17,11 +17,13 @@ const scoreComponents = {
   'similarity:*:message:character-5-shingle': t('Log Message'),
 };
 
-type Key = keyof typeof scoreComponents;
 type Score = number | null;
 
 type Props = {
-  scoreList?: [Key, Score][];
+  // we treat the score list keys as opaque as we wish to be able to extend the
+  // backend without having to fix UI. Keys not in scoreComponents are grouped
+  // into Other anyway
+  scoreList?: [string, Score][];
 };
 
 const SimilarScoreCard = ({scoreList = []}: Props) => {
