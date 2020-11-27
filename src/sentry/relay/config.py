@@ -36,6 +36,7 @@ def get_public_key_configs(project, full_config, project_keys=None):
     for project_key in project_keys or ():
         key = {
             "publicKey": project_key.public_key,
+            "numericId": project_key.id,
             "isEnabled": project_key.status == ProjectKeyStatus.ACTIVE,
         }
 
@@ -43,7 +44,6 @@ def get_public_key_configs(project, full_config, project_keys=None):
             key["quotas"] = [
                 q.to_json_legacy() for q in quotas.get_quotas(project, key=project_key)
             ]
-            key["numericId"] = project_key.id
 
         public_keys.append(key)
 

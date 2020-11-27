@@ -137,6 +137,7 @@ def test_internal_relays_should_receive_full_configs(
 
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
+    assert public_key["numericId"] == default_projectkey.id
     assert public_key["isEnabled"]
     assert "quotas" in public_key
 
@@ -221,6 +222,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "disabled") is False
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
+    assert public_key["numericId"] == default_projectkey.id
     assert public_key["isEnabled"]
     assert "quotas" not in public_key
 
