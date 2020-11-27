@@ -11,10 +11,6 @@ from sentry.models import Dashboard
 from rest_framework.response import Response
 
 
-class DashboardSerializer(serializers.Serializer):
-    title = serializers.CharField(required=True)
-
-
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         """
