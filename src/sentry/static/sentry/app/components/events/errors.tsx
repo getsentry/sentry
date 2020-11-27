@@ -1,44 +1,120 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import uniqWith from 'lodash/uniqWith';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import EventErrorItem from 'app/components/events/errorItem';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Artifact, Event, Organization, Project} from 'app/types';
 import {Theme} from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
 import {BannerContainer, BannerSummary} from './styles';
 
 const MAX_ERRORS = 100;
 
 type Props = {
+  api: Client;
+  orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
   event: Event;
 };
 
 type State = {
   isOpen: boolean;
+  releaseArtifacts?: Array<Artifact>;
 };
 
 class EventErrors extends React.Component<Props, State> {
-  static propTypes: any = {
-    event: PropTypes.object.isRequired,
-  };
-
   state: State = {
     isOpen: false,
   };
+
+  componentDidMount() {
+    this.checkSourceCodeErrors();
+  }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     if (this.state.isOpen !== nextState.isOpen) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.event.id !== prevProps.event.id) {
+      this.checkSourceCodeErrors();
+    }
+  }
+
+  checkSourceCodeErrors() {
+    const {event} = this.props;
+    const {errors} = event;
+
+    const sourceCodeErrors = errors.filter(
+      error => error.type === 'js_no_source' && error.data.url
+    );
+
+    if (!sourceCodeErrors.length) {
+      return;
+    }
+
+    const pathNames: Array<string> = [];
+
+    for (const sourceCodeError of sourceCodeErrors) {
+      const url = sourceCodeError.data.url;
+      if (url) {
+        const pathName = this.getURLPathname(url);
+
+        if (pathName) {
+          pathNames.push(encodeURIComponent(pathName));
+        }
+      }
+    }
+
+    this.fetchReleaseArtifacts(pathNames.join('&'));
+  }
+
+  getURLPathname(url: string) {
+    try {
+      return new URL(url).pathname;
+    } catch (error) {
+      Sentry.captureException(error);
+      return undefined;
+    }
+  }
+
+  async fetchReleaseArtifacts(query: string) {
+    const {api, orgSlug, event, projectSlug} = this.props;
+    const {release} = event;
+    const releaseVersion = release?.version;
+
+    if (!releaseVersion || !query) {
+      return;
+    }
+
+    try {
+      const releaseArtifacts = await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
+          releaseVersion
+        )}/files/`,
+        {
+          method: 'GET',
+          query: {query},
+        }
+      );
+
+      this.setState({releaseArtifacts});
+    } catch (error) {
+      Sentry.captureException(error);
+      // do nothing, the UI will not display extra error details
+    }
   }
 
   toggle = () => {
@@ -49,12 +125,13 @@ class EventErrors extends React.Component<Props, State> {
 
   render() {
     const {event} = this.props;
+    const {isOpen, releaseArtifacts} = this.state;
+    const {dist} = event;
+
     // XXX: uniqueErrors is not performant with large datasets
     const errors =
       event.errors.length > MAX_ERRORS ? event.errors : this.uniqueErrors(event.errors);
 
-    const numErrors = errors.length;
-    const isOpen = this.state.isOpen;
     return (
       <StyledBanner priority="danger">
         <BannerSummary>
@@ -63,7 +140,7 @@ class EventErrors extends React.Component<Props, State> {
             {tn(
               'There was %s error encountered while processing this event',
               'There were %s errors encountered while processing this event',
-              numErrors
+              errors.length
             )}
           </span>
           <StyledButton
@@ -74,14 +151,34 @@ class EventErrors extends React.Component<Props, State> {
             {isOpen ? t('Hide') : t('Show')}
           </StyledButton>
         </BannerSummary>
-        <ErrorList
-          data-test-id="event-error-details"
-          style={{display: isOpen ? 'block' : 'none'}}
-        >
-          {errors.map((error, errorIdx) => (
-            <EventErrorItem key={errorIdx} error={error} />
-          ))}
-        </ErrorList>
+        {isOpen && (
+          <ErrorList data-test-id="event-error-details">
+            {errors.map((error, errorIdx) => {
+              if (
+                error.type === 'js_no_source' &&
+                error.data.url &&
+                !!releaseArtifacts?.length
+              ) {
+                const releaseArtifact = releaseArtifacts.find(releaseArt => {
+                  const pathname = this.getURLPathname(error.data.url);
+                  if (pathname) {
+                    return releaseArt.name.includes(pathname);
+                  }
+                  return false;
+                });
+
+                if (releaseArtifact && !releaseArtifact.dist) {
+                  error.message = t(
+                    'Source code was not found because the distribution did not match'
+                  );
+                  error.data['expected-dist'] = dist;
+                  error.data['current-dist'] = t('none');
+                }
+              }
+              return <EventErrorItem key={errorIdx} error={error} />;
+            })}
+          </ErrorList>
+        )}
       </StyledBanner>
     );
   }
@@ -130,4 +227,4 @@ const ErrorList = styled('ul')`
   }
 `;
 
-export default EventErrors;
+export default withApi(EventErrors);
