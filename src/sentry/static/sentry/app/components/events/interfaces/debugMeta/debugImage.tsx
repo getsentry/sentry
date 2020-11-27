@@ -176,9 +176,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
 
       <ImageInfoGroup>
-        <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
-        <AddressDivider />
-        <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+        {startAddress && endAddress ? (
+          <React.Fragment>
+            <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+            <AddressDivider />
+            <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+          </React.Fragment>
+        ) : null}
       </ImageInfoGroup>
 
       <ImageInfoGroup fullWidth>

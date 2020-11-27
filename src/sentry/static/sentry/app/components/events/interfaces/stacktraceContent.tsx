@@ -78,14 +78,18 @@ export default class StacktraceContent extends React.Component<Props, State> {
     );
   };
 
-  findImageForAddress(address: Frame['instructionAddr']) {
+  findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
     const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
       ?.data?.images;
 
     return images && address
-      ? images.find(img => {
-          const [startAddress, endAddress] = getImageRange(img);
-          return address >= startAddress && address < endAddress;
+      ? images.find((img, idx) => {
+          if (!addrMode || addrMode === 'abs') {
+            const [startAddress, endAddress] = getImageRange(img);
+            return address >= startAddress && address < endAddress;
+          } else {
+            return addrMode === `rel:${idx}`;
+          }
         })
       : null;
   }
@@ -152,7 +156,10 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     const maxLengthOfAllRelativeAddresses = data.frames.reduce(
       (maxLengthUntilThisPoint, frame) => {
-        const correspondingImage = this.findImageForAddress(frame.instructionAddr);
+        const correspondingImage = this.findImageForAddress(
+          frame.instructionAddr,
+          frame.addrMode
+        );
 
         try {
           const relativeAddress = (
@@ -188,7 +195,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
-        const image = this.findImageForAddress(frame.instructionAddr);
+        const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
 
         frames.push(
           <Line

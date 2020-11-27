@@ -11,7 +11,7 @@ python_bin="python2.7"
 
 if [ "$SENTRY_PYTHON3" = "1" ]; then
     venv_name=".venv3"
-    python_bin="python3.6"
+    python_bin="python3.8"
 fi
 
 die() {
@@ -27,7 +27,7 @@ if [ -n "$VIRTUAL_ENV" ]; then
 
     # TODO: Update this to strictly check .python-version
     if [ "$SENTRY_PYTHON3" = "1" ]; then
-        python -c "import sys; sys.exit(sys.version_info[:2] != (3, 6))" ||
+        python -c "import sys; sys.exit(sys.version_info[:2] != (3, 8))" ||
             die "For some reason, the virtualenv isn't Python 3.6."
     else
         python -c "import sys; sys.exit(sys.version_info[:2] != (2, 7))" ||
