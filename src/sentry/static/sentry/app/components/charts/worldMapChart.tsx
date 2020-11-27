@@ -2,7 +2,6 @@ import React from 'react';
 import echarts, {EChartOption} from 'echarts';
 import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
-import PropTypes from 'prop-types';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 import theme from 'app/utils/theme';
@@ -37,11 +36,6 @@ type State = {
 };
 
 class WorldMapChart extends React.Component<Props, State> {
-  static propTypes = {
-    ...BaseChart.propTypes,
-    seriesOptions: PropTypes.object,
-  };
-
   state: State = {
     countryToCodeMap: null,
     map: null,
