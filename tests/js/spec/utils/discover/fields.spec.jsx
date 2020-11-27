@@ -28,7 +28,7 @@ describe('getAggregateAlias', function () {
     expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
     expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
     expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
-      'count_foo_bar_is-Enterprise_42'
+      'count_foo_bar_is_Enterprise_42'
     );
   });
 
@@ -39,6 +39,12 @@ describe('getAggregateAlias', function () {
     expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toEqual(
       'percentile_transaction_duration_0_11'
     );
+  });
+
+  it('handles to_other with symbols', function () {
+    expect(
+      getAggregateAlias('to_other(release,"release:beta@1.1.1 (2)",others,current)')
+    ).toEqual('to_other_release__release_beta_1_1_1__2___others_current');
   });
 });
 
