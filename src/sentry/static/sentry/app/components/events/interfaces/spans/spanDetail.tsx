@@ -8,6 +8,7 @@ import Alert from 'app/components/alert';
 import DateTime from 'app/components/dateTime';
 import DiscoverButton from 'app/components/discoverButton';
 import FileSize from 'app/components/fileSize';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -23,6 +24,7 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import * as SpanEntryContext from './context';
@@ -30,7 +32,7 @@ import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {getTraceDateTimeRange, isGapSpan, isOrphanSpan} from './utils';
 
-const SIZE_DATA = new Set(['Encoded Body Size', 'Decoded Body Size', 'Transfer Size']);
+const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
 type TransactionResult = {
   'project.name': string;
@@ -370,6 +372,23 @@ class SpanDetail extends React.Component<Props, State> {
     );
   }
 
+  partitionSizes(data) {
+    const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
+      if (data[key]) {
+        keys[key] = data[key];
+      }
+      return keys;
+    }, {});
+
+    const nonSizeKeys = {...data};
+    SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
+
+    return {
+      sizeKeys,
+      nonSizeKeys,
+    };
+  }
+
   renderSpanDetails() {
     const {span, event, organization} = this.props;
 
@@ -394,6 +413,12 @@ class SpanDetail extends React.Component<Props, State> {
     const unknownKeys = Object.keys(span).filter(key => {
       return !rawSpanKeys.has(key as any);
     });
+
+    const {sizeKeys, nonSizeKeys} = this.partitionSizes(span?.data ?? {});
+
+    const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
+      value => value === 0
+    );
 
     return (
       <React.Fragment>
@@ -442,24 +467,31 @@ class SpanDetail extends React.Component<Props, State> {
                   : null}
               </Row>
               <Tags span={span} />
-              {map(span?.data ?? {}, (v, k) => {
-                const key = (k as unknown) as string;
-                const value = (v as unknown) as number;
-                return (
-                  <Row title={key} key={key}>
-                    {SIZE_DATA.has(key) ? (
-                      <React.Fragment>
-                        <FileSize bytes={value} />
-                        {value >= 1024 && (
-                          <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
-                        )}
-                      </React.Fragment>
-                    ) : (
-                      JSON.stringify(value, null, 4) || ''
+              {allZeroSizes && (
+                <TextTr>
+                  The following sizes were not collected for security reasons. Check if
+                  the host serves the appropriate
+                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin">
+                    <span className="val-string">Timing-Allow-Origin</span>
+                  </ExternalLink>
+                  header. You may have to enable this collection manually.
+                </TextTr>
+              )}
+              {map(sizeKeys, (value, key) => (
+                <Row title={key} key={key}>
+                  <React.Fragment>
+                    <FileSize bytes={value} />
+                    {value >= 1024 && (
+                      <span>{` (${JSON.stringify(value, null, 4) || ''} B)`}</span>
                     )}
-                  </Row>
-                );
-              })}
+                  </React.Fragment>
+                </Row>
+              ))}
+              {map(nonSizeKeys, (value, key) => (
+                <Row title={key} key={key}>
+                  {JSON.stringify(value, null, 4) || ''}
+                </Row>
+              ))}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
                   {JSON.stringify(span[key], null, 4) || ''}
@@ -512,6 +544,20 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   height: ${space(2)};
   margin: 0;
 `;
+
+const StyledText = styled('p')`
+  font-size: ${theme.fontSizeMedium};
+  margin: ${space(2)} ${space(0)};
+`;
+
+const TextTr = ({children}) => (
+  <tr>
+    <td className="key" />
+    <ValueTd className="value">
+      <StyledText>{children}</StyledText>
+    </ValueTd>
+  </tr>
+);
 
 export const Row = ({
   title,

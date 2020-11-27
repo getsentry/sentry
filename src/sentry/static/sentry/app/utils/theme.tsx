@@ -156,6 +156,11 @@ const aliases = {
    * Color for chart label text
    */
   chartLabel: colors.gray200,
+
+  /**
+   * Default Progressbar color
+   */
+  progressBar: colors.purple300,
 } as const;
 
 const warning = {
@@ -484,6 +489,7 @@ const darkAliases = {
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
+  progressBar: colors.purple200,
 } as const;
 
 const theme = {
