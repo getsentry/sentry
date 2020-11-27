@@ -14,9 +14,9 @@ import VisualMap from './components/visualMap';
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 type MapChartSeriesDataUnit = Omit<SeriesDataUnit, 'name' | 'itemStyle'> & {
-  name: string | undefined;
   // Docs for map itemStyle differ from Series data unit. See https://echarts.apache.org/en/option.html#series-map.data.itemStyle
   itemStyle: EChartOption.SeriesMap.DataObject['itemStyle'];
+  name?: string;
 };
 
 type MapChartSeries = Omit<Series, 'data'> & {
