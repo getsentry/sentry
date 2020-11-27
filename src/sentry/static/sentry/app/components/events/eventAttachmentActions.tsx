@@ -2,15 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-
-import {IconDelete, IconDownload, IconShow} from 'app/icons';
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
+import {IconDelete, IconDownload, IconShow} from 'app/icons';
 import space from 'app/styles/space';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;
