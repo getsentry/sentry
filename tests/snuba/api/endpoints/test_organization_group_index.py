@@ -25,6 +25,9 @@ from sentry.models import (
     GroupShare,
     GroupSnooze,
     GroupStatus,
+    GroupOwner,
+    GroupOwnerType,
+    GROUP_OWNER_TYPE,
     GroupResolution,
     GroupSubscription,
     GroupTombstone,
@@ -739,21 +742,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
                 project_id=self.project.id,
             )
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-
-            query = u"server:example.com"
-            query += u" status:unresolved"
-            query += u" active_at:" + iso_format(before_now(seconds=350))
-            query += u" first_seen:" + iso_format(before_now(seconds=500))
-
+            query = u"status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
@@ -787,30 +777,50 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
                 project_id=self.project.id,
             )
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-
-            query = u"server:example.com"
-            query += u" status:unresolved"
-            query += u" active_at:" + iso_format(before_now(seconds=350))
-            query += u" first_seen:" + iso_format(before_now(seconds=500))
-
+            query = u"status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
-
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["inbox"] is not None
             assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
             assert response.data[0]["inbox"]["reason_details"] is None
+
+    def test_expand_owners(self):
+        with self.feature("organizations:workflow-owners"):
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+                project_id=self.project.id,
+            )
+            query = u"status:unresolved"
+            self.login_as(user=self.user)
+            # Test with no owner
+            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["owners"] is None
+
+            # Test with owner
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.project,
+                organization=event.project.organization,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                user=self.user,
+            )
+            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+            assert response.data[0]["owners"] is not None
+            assert response.data[0]["owners"]["owner"] == "user:{}".format(self.user.id)
+            assert (
+                response.data[0]["owners"]["type"]
+                == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+            )
 
     @patch(
         "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True

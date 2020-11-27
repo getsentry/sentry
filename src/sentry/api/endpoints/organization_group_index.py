@@ -115,6 +115,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
+        has_workflow_owners = features.has(
+            "organizations:workflow-owners", organization, actor=request.user
+        )
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         stats_period, stats_period_start, stats_period_end = calculate_stats_period(
@@ -132,6 +135,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             expand=expand,
             collapse=collapse,
             has_inbox=has_inbox,
+            has_workflow_owners=has_workflow_owners,
         )
 
         projects = self.get_projects(request, organization)
