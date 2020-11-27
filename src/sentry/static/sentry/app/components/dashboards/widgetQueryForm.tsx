@@ -9,7 +9,6 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-/* import {SavedQuery} from 'app/types';*/
 import {
   explodeField,
   generateFieldAsString,
