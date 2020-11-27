@@ -119,6 +119,11 @@ class ReleaseChartContainer extends React.Component<Props> {
     const apiPayload = eventView.getEventsAPIPayload(location);
     const colors = this.getTransactionsChartColors();
 
+    const releaseQueryExtra = {
+      showTransactions: location.query.showTransactions,
+      yAxis,
+    };
+
     return (
       <EventsChart
         router={router}
@@ -145,6 +150,8 @@ class ReleaseChartContainer extends React.Component<Props> {
         seriesNameTransformer={this.seriesNameTransformer}
         disableableSeries={[t('This Release'), t('Other Releases')]}
         colors={colors}
+        preserveReleaseQueryParams
+        releaseQueryExtra={releaseQueryExtra}
       />
     );
   }

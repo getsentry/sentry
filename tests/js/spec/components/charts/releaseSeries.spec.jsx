@@ -8,15 +8,16 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
   const {routerContext, organization} = initializeOrg();
-  const releases = [
-    {
-      version: 'sentry-android-shop@1.2.0',
-      date: '2020-03-23T00:00:00Z',
-    },
-  ];
+  let releases;
   let releasesMock;
 
   beforeEach(function () {
+    releases = [
+      {
+        version: 'sentry-android-shop@1.2.0',
+        date: '2020-03-23T00:00:00Z',
+      },
+    ];
     MockApiClient.clearMockResponses();
     releasesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
@@ -165,7 +166,7 @@ describe('ReleaseSeries', function () {
     }
   });
 
-  it('doest not refetch releases with memoize enabled', async function () {
+  it('doesnt not refetch releases with memoize enabled', async function () {
     const originalPeriod = '14d';
     const updatedPeriod = '7d';
     const wrapper = mount(
@@ -205,6 +206,106 @@ describe('ReleaseSeries', function () {
           expect.objectContaining({
             // we don't care about the other properties for now
             markLine: expect.objectContaining({
+              data: [
+                expect.objectContaining({
+                  name: '1.2.0, sentry-android-shop',
+                  value: '1.2.0, sentry-android-shop',
+                  xAxis: 1584921600000,
+                }),
+              ],
+            }),
+          }),
+        ],
+      })
+    );
+  });
+
+  it('allows updating the emphasized release', async function () {
+    releases.push({
+      version: 'sentry-android-shop@1.2.1',
+      date: '2020-03-24T00:00:00Z',
+    });
+    const wrapper = mount(
+      <ReleaseSeries emphasizeReleases={['sentry-android-shop@1.2.0']}>
+        {renderFunc}
+      </ReleaseSeries>,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(renderFunc).toHaveBeenCalledWith(
+      expect.objectContaining({
+        releaseSeries: [
+          expect.objectContaining({
+            // we don't care about the other properties for now
+            markLine: expect.objectContaining({
+              // the unemphasized releases have opacity 0.3
+              lineStyle: {
+                normal: expect.objectContaining({opacity: 0.3}),
+              },
+              data: [
+                expect.objectContaining({
+                  name: '1.2.1, sentry-android-shop',
+                  value: '1.2.1, sentry-android-shop',
+                  xAxis: 1585008000000,
+                }),
+              ],
+            }),
+          }),
+          expect.objectContaining({
+            // we don't care about the other properties for now
+            markLine: expect.objectContaining({
+              // the emphasized releases have opacity 0.8
+              lineStyle: {
+                normal: expect.objectContaining({opacity: 0.8}),
+              },
+              data: [
+                expect.objectContaining({
+                  name: '1.2.0, sentry-android-shop',
+                  value: '1.2.0, sentry-android-shop',
+                  xAxis: 1584921600000,
+                }),
+              ],
+            }),
+          }),
+        ],
+      })
+    );
+
+    wrapper.setProps({
+      emphasizedReleases: ['sentry-android-shop@1.2.1'],
+    });
+    await tick();
+    wrapper.update();
+
+    expect(renderFunc).toHaveBeenCalledWith(
+      expect.objectContaining({
+        releaseSeries: [
+          expect.objectContaining({
+            // we don't care about the other properties for now
+            markLine: expect.objectContaining({
+              // the unemphasized releases have opacity 0.3
+              lineStyle: {
+                normal: expect.objectContaining({opacity: 0.3}),
+              },
+              data: [
+                expect.objectContaining({
+                  name: '1.2.1, sentry-android-shop',
+                  value: '1.2.1, sentry-android-shop',
+                  xAxis: 1585008000000,
+                }),
+              ],
+            }),
+          }),
+          expect.objectContaining({
+            // we don't care about the other properties for now
+            markLine: expect.objectContaining({
+              // the emphasized releases have opacity 0.8
+              lineStyle: {
+                normal: expect.objectContaining({opacity: 0.8}),
+              },
               data: [
                 expect.objectContaining({
                   name: '1.2.0, sentry-android-shop',
