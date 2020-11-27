@@ -187,6 +187,7 @@ class ReleaseOverview extends AsyncView<Props> {
       version: 2,
       name: `Release ${formatVersion(version)}`,
       fields: ['transaction'],
+      query: 'tpm():>0.01 trend_percentage():>0%',
       range: period,
       environment: environments,
       projects: [projectId],
@@ -236,6 +237,15 @@ class ReleaseOverview extends AsyncView<Props> {
             project.id,
             releaseMeta.released
           );
+
+          const generateLink = {
+            transaction: generateTransactionLink(
+              version,
+              project.id,
+              selection,
+              location.query.showTransactions
+            ),
+          };
 
           return (
             <ReleaseStatsRequest
@@ -288,7 +298,6 @@ class ReleaseOverview extends AsyncView<Props> {
                     />
                     <Feature features={['release-performance-views']}>
                       <TransactionsList
-                        api={api}
                         location={location}
                         organization={organization}
                         eventView={releaseEventView}
@@ -297,12 +306,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         options={sortOptions}
                         handleDropdownChange={this.handleTransactionsListSortChange}
                         titles={titles}
-                        generateFirstLink={generateTransactionLinkFn(
-                          version,
-                          project.id,
-                          selection,
-                          location.query.showTransactions
-                        )}
+                        generateLink={generateLink}
                       />
                     </Feature>
                   </Main>
@@ -352,7 +356,7 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 }
 
-function generateTransactionLinkFn(
+function generateTransactionLink(
   version: string,
   projectId: number,
   selection: GlobalSelection,
@@ -408,14 +412,14 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
+      query: [['t_test()', '<-6']],
       trendType: TrendChangeType.REGRESSION,
       value: 'regression',
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: 'tpm():>0.01 trend_percentage():>0% t_test():>6',
+      query: [['t_test()', '>6']],
       trendType: TrendChangeType.IMPROVED,
       value: 'improved',
       label: t('Trending Improvements'),
