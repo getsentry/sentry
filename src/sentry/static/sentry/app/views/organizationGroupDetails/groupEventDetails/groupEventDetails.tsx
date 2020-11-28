@@ -21,7 +21,7 @@ import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
-import {fetchGroupEventAndMarkSeen, getEventEnvironment} from '../utils';
+import {fetchGroupEventAndMarkSeen, getEventEnvironment, markEventSeen} from '../utils';
 
 type Props = RouteComponentProps<
   {orgId: string; groupId: string; eventId?: string},
@@ -159,6 +159,11 @@ class GroupEventDetails extends React.Component<Props, State> {
     const fetchGroupEventPromise = eventPromise
       ? eventPromise
       : fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames);
+
+    // Eventpromise early fetch
+    if (eventPromise) {
+      markEventSeen(api, orgSlug, projSlug, groupId);
+    }
 
     fetchSentryAppInstallations(api, orgSlug);
     fetchSentryAppComponents(api, orgSlug, projectId);

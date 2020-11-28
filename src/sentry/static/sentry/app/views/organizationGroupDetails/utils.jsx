@@ -32,13 +32,7 @@ export async function fetchGroupEventAndMarkSeen(
 
   try {
     const data = await api.requestPromise(url, {query});
-    api.bulkUpdate({
-      orgId,
-      projectId,
-      itemIds: [groupId],
-      failSilently: true,
-      data: {hasSeen: true},
-    });
+    markEventSeen(api, orgId, projectId, groupId);
     return data;
   } catch (err) {
     throw err;
@@ -53,7 +47,7 @@ export async function fetchGroupEventAndMarkSeen(
  * @param {String} eventId "latest" or "oldest"
  * @returns {Promise<Object>}
  */
-export async function fetchLatestGroupEventAndMarkSeen(api, groupId, eventId, envNames) {
+export async function fetchGroupEvent(api, groupId, eventId, envNames) {
   const query = {};
   if (envNames.length !== 0) {
     query.environment = envNames;
@@ -63,6 +57,16 @@ export async function fetchLatestGroupEventAndMarkSeen(api, groupId, eventId, en
     query,
   });
   return data;
+}
+
+export function markEventSeen(api, orgId, projectId, groupId) {
+  api.bulkUpdate({
+    orgId,
+    projectId,
+    itemIds: [groupId],
+    failSilently: true,
+    data: {hasSeen: true},
+  });
 }
 
 export function fetchGroupUserReports(groupId, query) {

@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader, {TAB} from './header';
-import {fetchGroupEventAndMarkSeen, fetchLatestGroupEventAndMarkSeen} from './utils';
+import {fetchGroupEvent, fetchGroupEventAndMarkSeen} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -105,20 +105,23 @@ class GroupDetails extends React.Component<Props, State> {
 
   async getEvent(group: Group) {
     const {params, environments, api, organization} = this.props;
+    const {eventPromise} = this.state;
     const orgSlug = organization.slug;
     const groupId = group.id;
     const projSlug = group.project.slug;
     const eventId = params?.eventId || 'latest';
 
     try {
-      const event = await fetchGroupEventAndMarkSeen(
-        api,
-        orgSlug,
-        projSlug,
-        groupId,
-        eventId,
-        environments
-      );
+      const event = await (eventPromise
+        ? eventPromise
+        : fetchGroupEventAndMarkSeen(
+            api,
+            orgSlug,
+            projSlug,
+            groupId,
+            eventId,
+            environments
+          ));
       this.setState({event, loading: false, error: false, errorType: null});
     } catch (err) {
       // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
@@ -128,8 +131,16 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   async fetchData() {
-    const {environments, api, isGlobalSelectionReady, params} = this.props;
+    const {
+      environments,
+      api,
+      isGlobalSelectionReady,
+      params,
+      routes,
+      location,
+    } = this.props;
     const eventId = params.eventId || 'latest';
+    const currentTab = routes[routes.length - 1].props.currentTab as keyof typeof TAB;
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -138,13 +149,8 @@ class GroupDetails extends React.Component<Props, State> {
 
     try {
       let eventPromise: Promise<Event> | undefined;
-      if (['latest', 'oldest'].includes(eventId)) {
-        eventPromise = fetchLatestGroupEventAndMarkSeen(
-          api,
-          params.groupId,
-          eventId,
-          environments
-        );
+      if (currentTab === TAB.DETAILS && ['latest', 'oldest'].includes(eventId)) {
+        eventPromise = fetchGroupEvent(api, params.groupId, eventId, environments);
       }
       const data = await api.requestPromise(this.groupDetailsEndpoint, {
         query: {
@@ -155,7 +161,6 @@ class GroupDetails extends React.Component<Props, State> {
 
       // TODO(billy): See if this is even in use and if not, can we just rip this out?
       if (this.props.params.groupId !== data.id) {
-        const {routes, location} = this.props;
         ReactRouter.browserHistory.push(
           recreateRoute('', {
             routes,
@@ -299,11 +304,10 @@ class GroupDetails extends React.Component<Props, State> {
       environments,
       group,
       project,
-      eventPromise,
     };
 
     if (currentTab === TAB.DETAILS) {
-      childProps = {...childProps, event};
+      childProps = {...childProps, event, eventPromise};
     }
 
     if (currentTab === TAB.TAGS) {
