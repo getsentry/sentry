@@ -48,15 +48,17 @@ class SlackClient(ApiClient):
         # TODO(meredith): Slack actually supports json now for the chat.postMessage so we
         # can update that so we don't have to pass json=False here
         while True:
-            response = self._request(method, path, headers=headers, data=data, params=params, json=json)
+            response = self._request(
+                method, path, headers=headers, data=data, params=params, json=json
+            )
             if response.json.get("ok"):
                 break
 
             if not response.json.get("ok"):
                 # Check if we were rate limited
-                retry_after = response.headers.get('retry-after')
+                retry_after = response.headers.get("retry-after")
                 if retry_after:
-                    self.logger.info('rule.slack.rate_limited', extra={'retry_after': retry_after})
+                    self.logger.info("rule.slack.rate_limited", extra={"retry_after": retry_after})
                     time.sleep(float(retry_after))
                     continue
                 # Just a failure
