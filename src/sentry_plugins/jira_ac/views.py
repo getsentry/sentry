@@ -18,6 +18,8 @@ from sentry_plugins.jira_ac.forms import JiraConfigForm
 from sentry_plugins.jira_ac.models import JiraTenant
 from sentry_plugins.jira_ac.utils import get_jira_auth_from_request, ApiError
 from jwt.exceptions import ExpiredSignatureError
+from sentry.utils.sdk import bind_organization_context
+from sentry.web.decorators import transaction_start
 
 JIRA_KEY = "%s.jira_ac" % (urlparse(absolute_uri()).hostname,)
 
@@ -45,6 +47,7 @@ class BaseJiraWidgetView(View):
 
 
 class JiraUIWidgetView(BaseJiraWidgetView):
+    @transaction_start("JiraUIWidgetView.get")
     def get(self, request, *args, **kwargs):
         try:
             # make sure this exists and is valid
@@ -67,7 +70,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
                 }
             )
             return self.get_response("error.html", context)
-
+        bind_organization_context(org)
         context.update(
             {
                 "sentry_api_url": absolute_uri(
@@ -86,6 +89,7 @@ class JiraConfigView(BaseJiraWidgetView):
         context["body_class"] = "aui-page-focused aui-page-size-medium"
         return context
 
+    @transaction_start("JiraConfigView.get")
     def get(self, request, *args, **kwargs):
         try:
             jira_auth = self.get_jira_auth()
@@ -99,6 +103,7 @@ class JiraConfigView(BaseJiraWidgetView):
         form_context = None
         if org:
             form_context = {"organization": org.id}
+            bind_organization_context(org)
 
         form = JiraConfigForm([(o.id, o.name) for o in request.user.get_orgs()], form_context)
         context = self.get_context()
@@ -106,6 +111,7 @@ class JiraConfigView(BaseJiraWidgetView):
 
         return self.get_response("config.html", context)
 
+    @transaction_start("JiraConfigView.post")
     def post(self, request, *args, **kwargs):
         try:
             jira_auth = get_jira_auth_from_request(request)
@@ -127,6 +133,7 @@ class JiraConfigView(BaseJiraWidgetView):
                 errors.append("Invalid organization")
             else:
                 jira_auth.update(organization=org)
+                bind_organization_context(org)
 
         context = self.get_context()
         context.update({"is_configured": jira_auth.is_configured(), "form": form})
@@ -135,6 +142,7 @@ class JiraConfigView(BaseJiraWidgetView):
 
 
 class JiraDescriptorView(View):
+    @transaction_start("JiraDescriptorView.get")
     def get(self, request, *args, **kwargs):
         return HttpResponse(
             json.dumps(
@@ -175,6 +183,7 @@ class JiraInstalledCallback(View):
         return super(JiraInstalledCallback, self).dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
+    @transaction_start("JiraInstalledCallback.post")
     def post(self, request, *args, **kwargs):
         registration_info = json.loads(request.body)
         JiraTenant.objects.create_or_update(
