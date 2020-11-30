@@ -40,11 +40,11 @@ type Props = {
 type State = {
   group: Group | null;
   loading: boolean;
+  loadingEvent: boolean;
   error: boolean;
   errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
   event?: Event;
-  eventPromise?: Promise<Event>;
 };
 
 class GroupDetails extends React.Component<Props, State> {
@@ -72,7 +72,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     if (
-      (!prevState?.group && this.state.group) ||
+      (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
       this.getEvent(this.state.group);
@@ -88,6 +88,7 @@ class GroupDetails extends React.Component<Props, State> {
     return {
       group: null,
       loading: true,
+      loadingEvent: true,
       error: false,
       errorType: null,
       project: null,
@@ -99,34 +100,55 @@ class GroupDetails extends React.Component<Props, State> {
     this.fetchData();
   };
 
+  canLoadEventEarly(props: Props) {
+    return !props.params.eventId || ['oldest', 'latest'].includes(props.params.eventId);
+  }
+
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
   }
 
-  async getEvent(group: Group) {
-    const {params, environments, api, organization} = this.props;
-    const {eventPromise} = this.state;
-    const orgSlug = organization.slug;
-    const groupId = group.id;
-    const projSlug = group.project.slug;
-    const eventId = params?.eventId || 'latest';
+  async getEvent(group?: Group) {
+    if (group) {
+      this.setState({loadingEvent: true});
+    }
 
+    const {params, environments, api} = this.props;
+    const orgSlug = params.orgId;
+    const groupId = params.groupId;
+    const eventId = params?.eventId || 'latest';
     try {
-      const event = await (eventPromise
-        ? eventPromise
-        : fetchGroupEventAndMarkSeen(
+      const event = await (group
+        ? fetchGroupEventAndMarkSeen(
             api,
             orgSlug,
-            projSlug,
+            group.project.slug,
             groupId,
             eventId,
             environments
-          ));
-      this.setState({event, loading: false, error: false, errorType: null});
+          )
+        : fetchGroupEvent(api, groupId, eventId, environments));
+      this.setState({
+        event,
+        loading: false,
+        loadingEvent: false,
+        error: false,
+        errorType: null,
+      });
     } catch (err) {
       // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
       Sentry.captureException(err);
-      this.setState({error: true, errorType: null, loading: false});
+      let errorType: Error = null;
+      switch (err?.status) {
+        case 404:
+          errorType = ERROR_TYPES.GROUP_NOT_FOUND;
+          break;
+        case 403:
+          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
+          break;
+        default:
+      }
+      this.setState({error: true, errorType, loading: false});
     }
   }
 
@@ -139,8 +161,6 @@ class GroupDetails extends React.Component<Props, State> {
       routes,
       location,
     } = this.props;
-    const eventId = params.eventId || 'latest';
-    const currentTab = routes[routes.length - 1].props.currentTab as keyof typeof TAB;
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -148,16 +168,17 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     try {
-      let eventPromise: Promise<Event> | undefined;
-      if (currentTab === TAB.DETAILS && ['latest', 'oldest'].includes(eventId)) {
-        eventPromise = fetchGroupEvent(api, params.groupId, eventId, environments);
+      let eventPromise: Promise<any> | undefined;
+      if (this.canLoadEventEarly(this.props)) {
+        eventPromise = this.getEvent();
       }
-      const data = await api.requestPromise(this.groupDetailsEndpoint, {
+      const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
         query: {
           // Note, we do not want to include the environment key at all if there are no environments
           ...(environments ? {environment: environments} : {}),
         },
       });
+      const [data] = await Promise.all([groupPromise, eventPromise]);
 
       // TODO(billy): See if this is even in use and if not, can we just rip this out?
       if (this.props.params.groupId !== data.id) {
@@ -191,7 +212,7 @@ class GroupDetails extends React.Component<Props, State> {
         ReactRouter.browserHistory.replace(locationWithProject);
       }
 
-      this.setState({project, eventPromise});
+      this.setState({project});
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
@@ -284,7 +305,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderContent(project: AvatarProject) {
     const {children, environments, organization, routes} = this.props;
-    const {eventPromise} = this.state;
+    const {loadingEvent} = this.state;
 
     // all the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
@@ -307,7 +328,7 @@ class GroupDetails extends React.Component<Props, State> {
     };
 
     if (currentTab === TAB.DETAILS) {
-      childProps = {...childProps, event, eventPromise};
+      childProps = {...childProps, event, loadingEvent};
     }
 
     if (currentTab === TAB.TAGS) {

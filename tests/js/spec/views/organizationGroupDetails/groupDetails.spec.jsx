@@ -145,6 +145,10 @@ describe('groupDetails', function () {
       url: `/issues/${group.id}/`,
       statusCode: 404,
     });
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
+      statusCode: 404,
+    });
 
     wrapper = createWrapper();
 
@@ -162,6 +166,10 @@ describe('groupDetails', function () {
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
+      statusCode: 403,
+    });
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
       statusCode: 403,
     });
     wrapper = createWrapper();
