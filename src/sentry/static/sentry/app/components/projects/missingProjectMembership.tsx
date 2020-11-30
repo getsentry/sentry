@@ -6,7 +6,6 @@ import {joinTeam} from 'app/actionCreators/teams';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {Panel} from 'app/components/panels';
-import Tooltip from 'app/components/tooltip';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import TeamStore from 'app/stores/teamStore';
@@ -14,7 +13,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Form from 'app/views/settings/components/forms/form';
 import SelectField from 'app/views/settings/components/forms/selectField';
 
 type Props = {
@@ -46,7 +44,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
     };
   }
 
-  joinTeam(team) {
+  joinTeam(team: string) {
     this.setState({
       loading: true,
     });
@@ -76,7 +74,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
     );
   }
 
-  renderJoinTeam(team, features: Set<string>) {
+  renderJoinTeam(team: string, features: Set<string>) {
     const teamStatus = TeamStore.getBySlug(team);
 
     if (!team) {
@@ -91,19 +89,27 @@ class MissingProjectMembership extends React.Component<Props, State> {
       return <StyledButton disabled>Request Pending</StyledButton>;
     } else if (features.has('open-membership')) {
       return (
-        <StyledButton priority="primary" onClick={this.joinTeam.bind(this, team)}>
-          Join Team
+        <StyledButton
+          priority="primary"
+          type="button"
+          onClick={this.joinTeam.bind(this, team)}
+        >
+          {t('Join Team')}
         </StyledButton>
       );
     }
     return (
-      <StyledButton priority="primary" onClick={this.joinTeam.bind(this, team)}>
-        Request Access
+      <StyledButton
+        priority="primary"
+        type="button"
+        onClick={this.joinTeam.bind(this, team)}
+      >
+        {t('Request Access')}
       </StyledButton>
     );
   }
 
-  requestAccess() {
+  getTeamsForAccess() {
     const request: string[] = [];
     const pending: string[] = [];
     const teams = this.state.project?.teams ?? [];
@@ -112,21 +118,15 @@ class MissingProjectMembership extends React.Component<Props, State> {
     return [request, pending];
   }
 
-  handleChange = evt => {
+  handleChange = (evt: string) => {
     const input = evt;
     this.setState({team: input});
   };
 
-  requestPendingTeam = team => {
+  renderPendingTeam = (team: string) => {
     return {
       value: team,
-      label: (
-        <StyledTooltip position="left" title={t(`Request pending for #${team}`)}>
-          <UnmentionableTeam>
-            <DisabledLabel>{`#${team}`}</DisabledLabel>
-          </UnmentionableTeam>
-        </StyledTooltip>
-      ),
+      label: <DisabledLabel>{`#${team}`}</DisabledLabel>,
     };
   };
 
@@ -136,45 +136,40 @@ class MissingProjectMembership extends React.Component<Props, State> {
     const teams = this.state.project?.teams ?? [];
     const features = new Set(organization.features);
 
-    const endpoint = `/organizations/${organization.slug}/members/me/`;
-
     const teamAccess = [
       {
-        label: 'Request Access',
-        options: this.requestAccess()[0].map(request => ({
+        label: t('Request Access'),
+        options: this.getTeamsForAccess()[0].map(request => ({
           value: request,
           label: `#${request}`,
         })),
       },
       {
-        label: 'Pending Requests',
-        options: this.requestAccess()[1].map(pending => this.requestPendingTeam(pending)),
+        label: t('Pending Requests'),
+        options: this.getTeamsForAccess()[1].map(pending =>
+          this.renderPendingTeam(pending)
+        ),
       },
     ];
 
     return (
       <div className="container">
         <Panel>
-          <StyledIconFlag size="xxl" color="gray300" />
           {!teams.length ? (
-            <EmptyMessage>
+            <EmptyMessage icon={<StyledIconFlag size="xl" color="gray300" />}>
               {t(
                 'No teams have access to this project yet. Ask an admin to add your team to this project.'
               )}
             </EmptyMessage>
           ) : (
             <EmptyMessage
+              icon={<StyledIconFlag size="xl" color="gray300" />}
               title={t("You're not a member of this project.")}
               description={t(
                 `You'll need to join a team with access to Issue ID ${groupId} before you can view it.`
               )}
               action={
-                <StyledForm
-                  apiEndpoint={endpoint}
-                  apiMethod="GET"
-                  submitLabel={t('Request Access')}
-                  hideFooter
-                >
+                <StyledField>
                   <StyledSelectField
                     name="select"
                     placeholder={t('Select a Team')}
@@ -185,9 +180,9 @@ class MissingProjectMembership extends React.Component<Props, State> {
                   {team ? (
                     this.renderJoinTeam(team, features)
                   ) : (
-                    <StyledButton disabled>Select a Team</StyledButton>
+                    <StyledButton disabled>{t('Select a Team')}</StyledButton>
                   )}
-                </StyledForm>
+                </StyledField>
               }
             />
           )}
@@ -197,7 +192,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
   }
 }
 
-const StyledForm = styled(Form)`
+const StyledField = styled('div')`
   display: inline-block;
   text-align: left;
 `;
@@ -216,7 +211,6 @@ const StyledIconFlag = styled(IconFlag)`
   display: flex;
   justify-content: center;
   margin: auto;
-  padding-top: 30px;
 `;
 
 const StyledButton = styled(Button)`
@@ -229,16 +223,6 @@ const DisabledLabel = styled('div')`
   display: flex;
   opacity: 0.5;
   overflow: hidden;
-`;
-
-const UnmentionableTeam = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-`;
-
-const StyledTooltip = styled(Tooltip)`
-  display: flex;
 `;
 
 export {MissingProjectMembership};
