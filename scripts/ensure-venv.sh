@@ -25,8 +25,8 @@ if [ -n "$VIRTUAL_ENV" ]; then
         die "You're in a virtualenv, but it's not in the expected location (${PWD}/${venv_name})"
     fi
 
-    major=`python -c "import sys; print(sys.version_info[0])"`
-    minor=`python -c "import sys; print(sys.version_info[1])"`
+    major=$(python -c "import sys; print(sys.version_info[0])")
+    minor=$(python -c "import sys; print(sys.version_info[1])")
     # TODO: Update this to strictly check .python-version
     if [ "$SENTRY_PYTHON2" = "1" ]; then
         [[ major -eq 2 && minor -eq 7 ]] ||

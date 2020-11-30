@@ -37,18 +37,18 @@ if [[ -f ${VENV}/bin/activate ]]; then
 fi
 
 deactivate 2>/dev/null || true
-rm -rf ${VENV}
+rm -rf "$VENV"
 
-major=`python -c "import sys; print(sys.version_info[0])"`
-minor=`python -c "import sys; print(sys.version_info[1])"`
+major=$(python -c "import sys; print(sys.version_info[0])")
+minor=$(python -c "import sys; print(sys.version_info[1])")
 if ! [[ major -eq 3 && minor -ge 6 ]]; then
     abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
 python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
 python3 -m pip install -U virtualenv    || { echo "bootstrap failed!"; return 1; }
-python3 -m virtualenv ${VENV}           || { echo "bootstrap failed!"; return 1; }
-source ${VENV}/bin/activate             || { echo "bootstrap failed!"; return 1; }
+python3 -m virtualenv "${VENV}"           || { echo "bootstrap failed!"; return 1; }
+source "${VENV}"/bin/activate             || { echo "bootstrap failed!"; return 1; }
 make setup-git                          || { echo "bootstrap failed!"; return 1; }
 make install-py-dev                     || { echo "bootstrap failed!"; return 1; }
 deactivate                              || { echo "bootstrap failed!"; return 1; }
