@@ -15,7 +15,13 @@ const MESSAGES = {
   ),
 };
 
-class U2fSign extends React.Component {
+type InterfaceProps = U2fInterface['props'];
+
+type Props = Omit<InterfaceProps, 'silentIfUnsupported' | 'flowMode'> & {
+  displayMode: 'signin' | 'enroll' | 'sudo';
+};
+
+class U2fSign extends React.Component<Props> {
   static propTypes = {
     challengeData: PropTypes.object,
     displayMode: PropTypes.string,
