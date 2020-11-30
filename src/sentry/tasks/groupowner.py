@@ -68,7 +68,6 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
         }
         cache.set(cache_key, owner_data, 60)
     else:
-        can_process = True
         owner_count = owner_data["owner_count"]
         oldest_owner = owner_data["oldest_owner"]
         if owner_count >= PREFERRED_GROUP_OWNERS and not oldest_owner:
