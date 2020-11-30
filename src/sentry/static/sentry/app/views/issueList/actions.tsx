@@ -620,13 +620,11 @@ class IssueListActions extends React.Component<Props, State> {
         {hasInbox && (
           <React.Fragment>
             <ActionSetPlaceholder>
-              <StyledToolbarHeader>
-                {/* total includes its own space */}
-                {tct('Select [count] of [total] issues', {
-                  count: <React.Fragment>{pageCount}</React.Fragment>,
-                  total: <QueryCount hideParens count={queryCount} max={queryMaxCount} />,
-                })}
-              </StyledToolbarHeader>
+              {/* total includes its own space */}
+              {tct('Select [count] of [total] issues', {
+                count: <React.Fragment>{pageCount}</React.Fragment>,
+                total: <QueryCount hideParens count={queryCount} max={queryMaxCount} />,
+              })}
             </ActionSetPlaceholder>
             <TimesSpacerLabel className="hidden-xs hidden-sm">
               <FirstSeenLastSeenHeader>
@@ -750,7 +748,7 @@ const ActionsCheckbox = styled('div')`
   }
 `;
 
-const ActionSetPlaceholder = styled('div')`
+const ActionSetPlaceholder = styled(ToolbarHeader)`
   @media (min-width: 800px) {
     width: 66.66666666666666%;
   }
@@ -763,6 +761,7 @@ const ActionSetPlaceholder = styled('div')`
   margin-right: ${space(1)};
   overflow: hidden;
   min-width: 0;
+  white-space: nowrap;
 `;
 
 const ActionSet = styled('div')`
