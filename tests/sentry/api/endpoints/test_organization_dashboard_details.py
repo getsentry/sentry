@@ -75,16 +75,6 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["title"] == dashboard.title
         assert data["createdBy"] == six.text_type(dashboard.created_by.id)
 
-    def assert_serialized_widget_query(self, data, widget_data_source):
-        if "id" in data:
-            assert data["id"] == six.text_type(widget_data_source.id)
-        if "name" in data:
-            assert data["name"] == widget_data_source.name
-        if "fields" in data:
-            assert data["fields"] == widget_data_source.fields
-        if "conditions" in data:
-            assert data["conditions"] == widget_data_source.conditions
-
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_get(self):
