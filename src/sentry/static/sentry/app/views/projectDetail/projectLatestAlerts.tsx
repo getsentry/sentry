@@ -51,12 +51,12 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
       [
         'unresolvedAlerts',
         `/organizations/${organization.slug}/incidents/`,
-        {query: {...query, status: IncidentStatus.OPENED}},
+        {query: {...query, status: 'open'}},
       ],
       [
         'resolvedAlerts',
         `/organizations/${organization.slug}/incidents/`,
-        {query: {...query, status: IncidentStatus.CLOSED}},
+        {query: {...query, status: 'closed'}},
       ],
     ];
   }
