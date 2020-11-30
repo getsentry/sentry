@@ -12,6 +12,8 @@
 
 # So just going to sprinkle returns everywhere.
 
+unset SENTRY_PYTHON2
+
 command -v pyenv >/dev/null || {
     echo "You need to install pyenv. https://develop.sentry.dev/environment/#python"
     return 1
