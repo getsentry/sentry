@@ -90,7 +90,7 @@ class RuleNodeList extends React.Component<Props> {
       );
 
       options = Object.entries(grouped).map(([key, values]) => {
-        let label = key === 'ticket' ? 'Create new...' : 'Send notifcation to...';
+        let label = key === 'ticket' ? t('Create new...') : t('Send notifcation to...');
         let options = createSelectOptions(values);
         return {label, options};
       });
