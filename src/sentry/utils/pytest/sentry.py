@@ -94,8 +94,6 @@ def pytest_configure(config):
 
     settings.SENTRY_ENCRYPTION_SCHEMES = ()
 
-    settings.DISABLE_RAVEN = True
-
     settings.CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
         "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
@@ -117,6 +115,7 @@ def pytest_configure(config):
             "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
+            "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
@@ -135,6 +134,16 @@ def pytest_configure(config):
         }
     )
 
+    # Plugin-related settings
+    settings.ASANA_CLIENT_ID = "abc"
+    settings.ASANA_CLIENT_SECRET = "123"
+    settings.BITBUCKET_CONSUMER_KEY = "abc"
+    settings.BITBUCKET_CONSUMER_SECRET = "123"
+    settings.GITHUB_APP_ID = "abc"
+    settings.GITHUB_API_SECRET = "123"
+    # this isn't the real secret
+    settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
@@ -145,31 +154,13 @@ def pytest_configure(config):
         # This is a hack to force django to sync the database state from the models rather than use migrations.
         settings.MIGRATION_MODULES["sentry"] = None
 
-    from sentry.runner.initializer import (
-        bind_cache_to_option_store,
-        bootstrap_options,
-        configure_structlog,
-        initialize_receivers,
-        monkeypatch_model_unpickle,
-        monkeypatch_django_migrations,
-        setup_services,
+    asset_version_patcher = mock.patch(
+        "sentry.runner.initializer.get_asset_version", return_value="{version}"
     )
+    asset_version_patcher.start()
+    from sentry.runner.initializer import initialize_app
 
-    bootstrap_options(settings)
-    configure_structlog()
-
-    monkeypatch_model_unpickle()
-
-    import django
-
-    django.setup()
-
-    monkeypatch_django_migrations()
-
-    bind_cache_to_option_store()
-
-    initialize_receivers()
-    setup_services()
+    initialize_app({"settings": settings, "options": None})
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -193,8 +184,6 @@ def register_extensions():
     plugins.register(TestIssuePlugin2)
 
     from sentry import integrations
-    from sentry.integrations.bitbucket import BitbucketIntegrationProvider
-    from sentry.integrations.bitbucket_server import BitbucketServerIntegrationProvider
     from sentry.integrations.example import (
         ExampleIntegrationProvider,
         AliasedIntegrationProvider,
@@ -202,31 +191,11 @@ def register_extensions():
         ServerExampleProvider,
         FeatureFlagIntegration,
     )
-    from sentry.integrations.github import GitHubIntegrationProvider
-    from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
-    from sentry.integrations.gitlab import GitlabIntegrationProvider
-    from sentry.integrations.jira import JiraIntegrationProvider
-    from sentry.integrations.jira_server import JiraServerIntegrationProvider
-    from sentry.integrations.slack import SlackIntegrationProvider
-    from sentry.integrations.vsts import VstsIntegrationProvider
-    from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
-    from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 
-    integrations.register(BitbucketIntegrationProvider)
-    integrations.register(BitbucketServerIntegrationProvider)
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
     integrations.register(ServerExampleProvider)
     integrations.register(FeatureFlagIntegration)
-    integrations.register(GitHubIntegrationProvider)
-    integrations.register(GitHubEnterpriseIntegrationProvider)
-    integrations.register(GitlabIntegrationProvider)
-    integrations.register(JiraIntegrationProvider)
-    integrations.register(JiraServerIntegrationProvider)
-    integrations.register(SlackIntegrationProvider)
-    integrations.register(VstsIntegrationProvider)
-    integrations.register(VstsExtensionIntegrationProvider)
-    integrations.register(PagerDutyIntegrationProvider)
 
     from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
