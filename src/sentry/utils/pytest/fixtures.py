@@ -216,6 +216,7 @@ def default_environment(factories, default_project):
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_group(factories, default_project):
+    # こんにちは konichiwa
     return factories.create_group(project=default_project, message="\u3053\u3093\u306b\u3061\u306f")
 
 

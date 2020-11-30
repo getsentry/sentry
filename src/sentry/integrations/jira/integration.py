@@ -629,7 +629,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
         dynamic_fields = list(issue_type_meta["fields"].keys())
-        dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
+        dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or f)
 
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:

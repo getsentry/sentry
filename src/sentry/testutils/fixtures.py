@@ -1,3 +1,4 @@
+# coding=utf-8
 from __future__ import absolute_import, print_function, unicode_literals
 
 import six
@@ -58,6 +59,7 @@ class Fixtures(object):
 
     @cached_property
     def group(self):
+        # こんにちは konichiwa
         return self.create_group(message="\u3053\u3093\u306b\u3061\u306f")
 
     @cached_property

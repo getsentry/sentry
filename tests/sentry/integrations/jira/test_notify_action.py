@@ -32,13 +32,11 @@ class JiraCreateTicketActionTest(RuleTestCase):
         event = self.get_event()
         jira_rule = self.get_rule(
             data={
-                "title": "example summary",
-                "description": "example bug report",
                 "issuetype": "1",
-                "project": "10000",
+                "labels": "bunnies",
                 "customfield_10200": "sad",
                 "customfield_10300": ["Feature 1", "Feature 2"],
-                "labels": "bunnies",
+                "project": "10000",
                 "jira_integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
@@ -75,9 +73,12 @@ class JiraCreateTicketActionTest(RuleTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[2].response.text)
-        assert data["title"] == "example summary"
-        assert data["description"] == "example bug report"
+
+        # Make assertions about what would be sent.
+        data = json.loads(responses.calls[2].request.body)
+        assert data["fields"]["summary"] == event.title
+        assert event.message in data["fields"]["description"]
+        assert data["fields"]["issuetype"]["id"] == "1"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
