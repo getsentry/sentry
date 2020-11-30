@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
-import {Event, SentryTransactionEvent} from 'app/types';
+import {SectionHeading} from 'app/components/charts/styles';
 import {
-  SpanEntry,
   RawSpanType,
+  SpanEntry,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading} from 'app/components/charts/styles';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Event, SentryTransactionEvent} from 'app/types';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -258,7 +258,6 @@ class OpsBreakdown extends React.Component<Props> {
 }
 
 const StyledBreakdown = styled('div')`
-  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
 `;

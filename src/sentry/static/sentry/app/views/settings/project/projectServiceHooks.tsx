@@ -1,23 +1,23 @@
-import {Link, WithRouterProps} from 'react-router';
 import React from 'react';
+import {Link, WithRouterProps} from 'react-router';
 import PropTypes from 'prop-types';
 
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Field from 'app/views/settings/components/forms/field';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import Switch from 'app/components/switch';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
+import {t} from 'app/locale';
 import {ServiceHook} from 'app/types';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type RowProps = {
   orgId: string;
@@ -30,7 +30,10 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
     <Field
       label={
-        <Link to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}>
+        <Link
+          data-test-id="project-service-hook"
+          to={`/settings/${orgId}/projects/${projectId}/hooks/${hook.id}/`}
+        >
           <Truncate value={hook.url} />
         </Link>
       }
@@ -143,7 +146,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
     const access = new Set(this.context.organization.access);
 
     return (
-      <div className="ref-project-service-hooks">
+      <React.Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
@@ -161,7 +164,7 @@ export default class ProjectServiceHooks extends AsyncView<Props, State> {
           }
         />
         <Panel>{body}</Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }

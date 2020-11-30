@@ -1,5 +1,6 @@
-import {EChartOption} from 'echarts';
 import 'echarts/lib/chart/bar';
+
+import {EChartOption} from 'echarts';
 
 /**
  * TODO(ts): Bar chart can accept multiple values with an object, currently defined types are incorrect

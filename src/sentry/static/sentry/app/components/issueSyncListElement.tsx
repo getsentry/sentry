@@ -1,12 +1,12 @@
-import {ClassNames} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
+import PropTypes from 'prop-types';
 
+import Hovercard from 'app/components/hovercard';
 import {IconAdd, IconClose} from 'app/icons';
 import space from 'app/styles/space';
-import Hovercard from 'app/components/hovercard';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getIntegrationIcon} from 'app/utils/integrationUtil';
 
@@ -20,6 +20,7 @@ type Props = {
   integrationType?: string;
   hoverCardHeader?: React.ReactNode;
   hoverCardBody?: React.ReactNode;
+  showHoverCard?: boolean;
 };
 
 class IssueSyncListElement extends React.Component<Props> {
@@ -34,6 +35,17 @@ class IssueSyncListElement extends React.Component<Props> {
     hoverCardHeader: PropTypes.node,
     hoverCardBody: PropTypes.node,
   };
+
+  hoverCardRef = React.createRef<Hovercard>();
+
+  componentDidUpdate(nextProps) {
+    if (
+      this.props.showHoverCard !== nextProps.showHoverCard &&
+      nextProps.showHoverCard === undefined
+    ) {
+      this.hoverCardRef.current && this.hoverCardRef.current.handleToggleOff();
+    }
+  }
 
   isLinked(): boolean {
     return !!(this.props.externalIssueLink && this.props.externalIssueId);
@@ -104,6 +116,7 @@ class IssueSyncListElement extends React.Component<Props> {
         <ClassNames>
           {({css}) => (
             <Hovercard
+              ref={this.hoverCardRef}
               containerClassName={css`
                 display: flex;
                 align-items: center;
@@ -111,6 +124,8 @@ class IssueSyncListElement extends React.Component<Props> {
               `}
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}
+              bodyClassName="issue-list-body"
+              show={this.props.showHoverCard}
             >
               {this.getIcon()}
               {this.getLink()}
@@ -142,8 +157,8 @@ export const IntegrationLink = styled('a')`
   text-decoration: none;
   padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray500};
-  border-bottom: 1px solid ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
+  border-bottom: 1px solid ${p => p.theme.textColor};
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
@@ -157,7 +172,7 @@ export const IntegrationLink = styled('a')`
 `;
 
 const StyledIcon = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   cursor: pointer;
 `;
 

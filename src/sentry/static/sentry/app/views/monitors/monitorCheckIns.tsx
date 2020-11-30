@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Monitor} from 'app/views/monitors/types';
-import {PanelBody, PanelItem} from 'app/components/panels';
 import AsyncComponent from 'app/components/asyncComponent';
 import Duration from 'app/components/duration';
+import {PanelBody, PanelItem} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
+import {Monitor} from 'app/views/monitors/types';
 
 import CheckInIcon from './checkInIcon';
 
@@ -31,7 +31,7 @@ export default class MonitorCheckIns extends AsyncComponent<Props, State> {
     monitor: PropTypes.object.isRequired,
   };
 
-  getEndpoints(): [string, string, {query: {per_page: number}}][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {monitor} = this.props;
     return [
       ['checkInList', `/monitors/${monitor.id}/checkins/`, {query: {per_page: 10}}],

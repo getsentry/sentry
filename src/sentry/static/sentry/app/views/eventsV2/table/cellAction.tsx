@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import * as PopperJS from 'popper.js';
-import {Manager, Reference, Popper} from 'react-popper';
 
-import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
 import {TableColumn} from './types';
@@ -402,7 +402,7 @@ const Menu = styled('div')`
 `;
 
 const MenuButtons = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
@@ -425,7 +425,7 @@ const MenuArrow = styled('span')`
       top: 1px;
       left: 1px;
       border-width: 0 8px 8px 8px;
-      border-color: transparent transparent #fff transparent;
+      border-color: transparent transparent ${p => p.theme.background} transparent;
     }
   }
   &[data-placement*='top'] {
@@ -439,7 +439,7 @@ const MenuArrow = styled('span')`
       bottom: 1px;
       left: 1px;
       border-width: 8px 8px 0 8px;
-      border-color: #fff transparent transparent transparent;
+      border-color: ${p => p.theme.background} transparent transparent transparent;
     }
   }
 

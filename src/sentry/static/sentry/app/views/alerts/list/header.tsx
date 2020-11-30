@@ -1,20 +1,19 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {InjectedRouter} from 'react-router/lib/Router';
+import styled from '@emotion/styled';
 
-import {IconSettings} from 'app/icons';
-import {Organization} from 'app/types';
 import {navigateTo} from 'app/actionCreators/navigation';
-import {t} from 'app/locale';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import NavTabs from 'app/components/navTabs';
+import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
-import space from 'app/styles/space';
 import Link from 'app/components/links/link';
-
-import CreateRuleButton from './createRuleButton';
+import NavTabs from 'app/components/navTabs';
+import {IconSettings} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
 
 type Props = {
   router: InjectedRouter;
@@ -62,12 +61,15 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
             {t('Settings')}
           </Button>
 
-          <CreateRuleButton
+          <CreateAlertButton
             organization={organization}
-            router={router}
             iconProps={{size: 'xs'}}
-            buttonProps={{size: 'small'}}
-          />
+            size="small"
+            priority="primary"
+            referrer="alert_stream"
+          >
+            {t('Create Alert Rule')}
+          </CreateAlertButton>
         </Actions>
       </Layout.HeaderActions>
     </Layout.Header>

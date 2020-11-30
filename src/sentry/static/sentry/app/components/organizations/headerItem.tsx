@@ -1,14 +1,14 @@
-import {Link} from 'react-router';
 import React from 'react';
-import PropTypes from 'prop-types';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
-import {IconClose, IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
+import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -121,7 +121,7 @@ const getColor = p => {
   if (p.locked) {
     return p.theme.gray300;
   }
-  return p.isOpen || p.hasSelected ? p.theme.gray500 : p.theme.gray300;
+  return p.isOpen || p.hasSelected ? p.theme.textColor : p.theme.gray300;
 };
 
 type ColorProps = {
@@ -195,7 +195,7 @@ const SettingsIconLink = styled(Link)`
   transition: 0.5s opacity ease-out;
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
 `;
 

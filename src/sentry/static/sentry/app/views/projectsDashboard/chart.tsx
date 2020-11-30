@@ -1,10 +1,10 @@
 import React from 'react';
 
-import {Project} from 'app/types';
-import {t} from 'app/locale';
 import BaseChart from 'app/components/charts/baseChart';
-import theme from 'app/utils/theme';
+import {t} from 'app/locale';
+import {Project} from 'app/types';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
+import theme from 'app/utils/theme';
 
 import NoEvents from './noEvents';
 
@@ -132,13 +132,16 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
         margin: 2,
         showMaxLabel: true,
         showMinLabel: false,
-        color: theme.gray200,
+        color: theme.chartLabel,
         fontFamily: theme.text.family,
         inside: true,
         lineHeight: 12,
         formatter: (value: number) => axisLabelFormatter(value, 'count()', true),
         textBorderColor: theme.backgroundSecondary,
         textBorderWidth: 1,
+      },
+      splitLine: {
+        show: false,
       },
       zlevel: theme.zIndex.header,
     })),

@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tn} from 'app/locale';
 import Search from 'app/components/search';
-import HelpSource from 'app/components/search/sources/helpSource';
 import SearchResult from 'app/components/search/searchResult';
 import SearchResultWrapper from 'app/components/search/searchResultWrapper';
-import space from 'app/styles/space';
+import HelpSource from 'app/components/search/sources/helpSource';
 import {IconWindow} from 'app/icons';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
 
 type HelpResult = Parameters<
   React.ComponentProps<typeof HelpSource>['children']
@@ -81,7 +81,7 @@ const Empty = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;

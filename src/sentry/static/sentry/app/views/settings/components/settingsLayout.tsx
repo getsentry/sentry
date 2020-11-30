@@ -1,14 +1,14 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import Button from 'app/components/button';
-import {slideInLeft, fadeIn} from 'app/styles/animations';
 import {IconClose, IconMenu} from 'app/icons';
+import {t} from 'app/locale';
+import {fadeIn, slideInLeft} from 'app/styles/animations';
+import space from 'app/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
 import SettingsHeader from './settingsHeader';
@@ -142,11 +142,11 @@ const NavMenuToggle = styled(Button)`
   display: none;
   margin: -${space(1)} ${space(1)} -${space(1)} -${space(1)};
   padding: ${space(1)};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
   }
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
@@ -166,7 +166,7 @@ const MaxWidthContainer = styled('div')`
 const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   border-right: 1px solid ${p => p.theme.border};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {

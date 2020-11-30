@@ -2,13 +2,13 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 
-import {Series} from 'app/types/echarts';
-import {t} from 'app/locale';
 import MiniBarChart from 'app/components/charts/miniBarChart';
+import {t} from 'app/locale';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
-import {StatsSubject} from './healthStatsSubject';
 import {StatsPeriod} from './healthStatsPeriod';
+import {StatsSubject} from './healthStatsSubject';
 
 type DefaultProps = {
   height: number;

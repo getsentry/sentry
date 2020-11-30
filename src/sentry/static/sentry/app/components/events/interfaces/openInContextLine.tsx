@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryAppIcon} from 'app/components/sentryAppIcon';
-import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import ExternalLink from 'app/components/links/externalLink';
+import {SentryAppIcon} from 'app/components/sentryAppIcon';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {SentryAppComponent} from 'app/types';
+import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
+import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 
 type Props = {
   lineNo: number;
@@ -61,8 +61,8 @@ export const OpenInContainer = styled('div')<{columnQuantity: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columnQuantity}, max-content);
   grid-gap: ${space(1)};
-  color: ${p => p.theme.gray400};
-  background-color: ${p => p.theme.white};
+  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.background};
   font-family: ${p => p.theme.text.family};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(0.25)} ${space(3)};
@@ -81,6 +81,6 @@ export const OpenInLink = styled(ExternalLink)`
 `;
 
 export const OpenInName = styled('strong')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-weight: 700;
 `;

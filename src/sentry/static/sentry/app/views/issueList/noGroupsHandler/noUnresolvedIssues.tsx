@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import congratsRobotsPlaceholder from 'app/../images/spot/congrats-robots-placeholder.jpg';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 const Placeholder = () => (
@@ -72,7 +72,7 @@ const Wrapper = styled('div')`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.fontSizeMedium};

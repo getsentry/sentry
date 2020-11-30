@@ -1,13 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {InternalAppApiToken} from 'app/types';
-import {IconSubtract} from 'app/icons';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import {PanelItem} from 'app/components/panels';
+import {IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {InternalAppApiToken} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
@@ -94,7 +94,7 @@ const Time = styled('time')`
 const Heading = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: uppercase;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;
 

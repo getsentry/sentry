@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupSidebar from 'app/components/group/sidebar';
 
@@ -74,18 +74,18 @@ describe('GroupSidebar', function () {
   });
 
   describe('renders with tags', function () {
-    it('renders', function () {
+    it('renders', async function () {
       expect(wrapper.find('SuggestedOwners')).toHaveLength(1);
       expect(wrapper.find('Memo(GroupReleaseStats)')).toHaveLength(1);
       expect(wrapper.find('ExternalIssueList')).toHaveLength(1);
-      expect(
-        wrapper.find('GroupTagDistributionMeter[data-test-id="group-tag"]')
-      ).toHaveLength(5);
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(5);
     });
   });
 
   describe('renders without tags', function () {
-    beforeEach(function () {
+    beforeEach(async function () {
       group = TestStubs.Group();
 
       MockApiClient.addMockResponse({
@@ -108,10 +108,12 @@ describe('GroupSidebar', function () {
         />,
         routerContext
       );
+      await tick();
+      wrapper.update();
     });
 
     it('renders no tags', function () {
-      expect(wrapper.find('[data-test-id="group-tag"]')).toHaveLength(0);
+      expect(wrapper.find('GroupTagDistributionMeter')).toHaveLength(0);
     });
 
     it('renders empty text', function () {

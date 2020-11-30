@@ -1,17 +1,19 @@
 import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {Event, Group, Organization} from 'app/types';
-import {IconChat} from 'app/icons';
-import {tct} from 'app/locale';
 import EventAnnotation from 'app/components/events/eventAnnotation';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
+import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ShortId from 'app/components/shortId';
-import Times from 'app/components/group/times';
+import {IconChat} from 'app/icons';
+import {tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Event, Group, Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag from 'app/views/organizationGroupDetails/unhandledTag';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
@@ -36,22 +38,33 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
-  const orgFeatures = new Set(organization.features);
-  const hasInbox = orgFeatures.has('inbox');
+  const hasInbox = organization.features.includes('inbox');
 
   return (
-    <GroupExtra>
+    <GroupExtra hasInbox={hasInbox}>
       {isUnhandled && hasInbox && <UnhandledTag />}
-      {shortId && (
-        <GroupShortId
-          shortId={shortId}
-          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
-          onClick={e => {
-            // prevent the clicks from propagating so that the short id can be selected
-            e.stopPropagation();
-          }}
-        />
-      )}
+      {shortId &&
+        (hasInbox ? (
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+              )
+            }
+          />
+        ) : (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && <ProjectBadge project={project} avatarSize={14} hideName />
+            }
+            onClick={e => {
+              // prevent the clicks from propagating so that the short id can be selected
+              e.stopPropagation();
+            }}
+          />
+        ))}
       {!hasInbox && (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
@@ -68,7 +81,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
         </CommentsLink>
       )}
       {logger && (
-        <LoggerAnnotation>
+        <LoggerAnnotation hasInbox={hasInbox}>
           <Link
             to={{
               pathname: issuesPath,
@@ -81,15 +94,15 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
           </Link>
         </LoggerAnnotation>
       )}
-      {annotations &&
-        annotations.map((annotation, key) => (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
-            }}
-            key={key}
-          />
-        ))}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin
+          hasInbox={hasInbox}
+          dangerouslySetInnerHTML={{
+            __html: annotation,
+          }}
+          key={key}
+        />
+      ))}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
@@ -98,13 +111,13 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   );
 }
 
-const GroupExtra = styled('div')`
+const GroupExtra = styled('div')<{hasInbox: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  grid-gap: ${space(2)};
+  grid-gap: ${p => (p.hasInbox ? space(1.5) : space(2))};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.gray400};
+  color: ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeSmall};
   position: relative;
   min-width: 500px;
@@ -124,22 +137,37 @@ const CommentsLink = styled(Link)`
   grid-gap: ${space(0.5)};
   align-items: center;
   grid-auto-flow: column;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 const GroupShortId = styled(ShortId)`
   flex-shrink: 0;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)`
+const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
   margin-left: 0;
-  padding-left: ${space(2)};
+  padding-left: ${p => (p.hasInbox ? 0 : space(2))};
+  ${p => p.hasInbox && `border-left: none;`};
+
+  ${p =>
+    p.hasInbox &&
+    css`
+      & > a {
+        color: ${p.theme.textColor};
+      }
+    `}
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));

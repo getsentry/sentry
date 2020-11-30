@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import Button from 'app/components/button';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import Button from 'app/components/button';
 import theme from 'app/utils/theme';
-import {IconAdd} from 'app/icons';
 
 import SelectorItem from './selectorItem';
 
@@ -229,7 +229,7 @@ const AddButton = styled(Button)`
   margin: 0 ${space(1)};
   color: ${p => p.theme.gray300};
   :hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.subText};
   }
 `;
 

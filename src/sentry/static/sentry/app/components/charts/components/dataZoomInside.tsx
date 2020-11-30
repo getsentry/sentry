@@ -1,5 +1,6 @@
-import {EChartOption} from 'echarts';
 import 'echarts/lib/component/dataZoomInside';
+
+import {EChartOption} from 'echarts';
 
 const DEFAULT = {
   type: 'inside',

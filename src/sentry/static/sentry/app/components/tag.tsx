@@ -1,17 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {defined} from 'app/utils';
-import theme, {Theme, Color} from 'app/utils/theme';
-import space from 'app/styles/space';
-import {IconClose, IconOpen} from 'app/icons';
 import Button from 'app/components/button';
-import Tooltip from 'app/components/tooltip';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
+import Tooltip from 'app/components/tooltip';
+import {IconClose, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {defined} from 'app/utils';
+import theme, {Color, Theme} from 'app/utils/theme';
 
-const TAG_HEIGHT = '17px';
+const TAG_HEIGHT = '20px';
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
@@ -21,11 +21,11 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
   /**
    * Icon on the left side.
    */
-  icon?: React.ReactElement;
+  icon?: React.ReactNode;
   /**
    * Text to show up on a hover.
    */
-  tooltipText?: React.ReactElement | string;
+  tooltipText?: React.ComponentProps<typeof Tooltip>['title'];
   /**
    * Makes the tag clickable. Use for internal links handled by react router.
    * If no icon is passed, it defaults to IconOpen (can be removed by passing icon={null})
@@ -53,7 +53,7 @@ function Tag({
   ...props
 }: Props) {
   const iconsProps = {
-    size: '10px',
+    size: '11px',
     color: theme.tag[type].iconColor as Color,
   };
 
@@ -71,7 +71,7 @@ function Tag({
             priority="link"
             label={t('Dismiss')}
           >
-            <IconClose {...iconsProps} />
+            <IconClose isCircled {...iconsProps} />
           </DismissButton>
         )}
       </Background>
@@ -120,16 +120,17 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${space(1)};
 `;
 
 const IconWrapper = styled('span')`
   margin-right: ${space(0.5)};
+  display: inline-flex;
 `;
 
 const Text = styled('span')`
   color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSizeSmall};
   max-width: 150px;
   overflow: hidden;
   white-space: nowrap;
@@ -142,6 +143,7 @@ const Text = styled('span')`
 
 const DismissButton = styled(Button)`
   margin-left: ${space(0.5)};
+  border: none;
 `;
 
 export default Tag;

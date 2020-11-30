@@ -205,7 +205,6 @@ class BaseApiClient(object):
             timeout = 30
 
         full_url = self.build_url(path)
-        session = build_session()
 
         metrics.incr(
             u"%s.http_request" % self.datadog_prefix,
@@ -229,18 +228,19 @@ class BaseApiClient(object):
             sampled=True,
         ) as span:
             try:
-                resp = getattr(session, method.lower())(
-                    url=full_url,
-                    headers=headers,
-                    json=data if json else None,
-                    data=data if not json else None,
-                    params=params,
-                    auth=auth,
-                    verify=self.verify_ssl,
-                    allow_redirects=allow_redirects,
-                    timeout=timeout,
-                )
-                resp.raise_for_status()
+                with build_session() as session:
+                    resp = getattr(session, method.lower())(
+                        url=full_url,
+                        headers=headers,
+                        json=data if json else None,
+                        data=data if not json else None,
+                        params=params,
+                        auth=auth,
+                        verify=self.verify_ssl,
+                        allow_redirects=allow_redirects,
+                        timeout=timeout,
+                    )
+                    resp.raise_for_status()
             except ConnectionError as e:
                 self.track_response_data("connection_error", span, e)
                 raise ApiHostError.from_exception(e)
@@ -300,7 +300,10 @@ class BaseApiClient(object):
         return self.request("HEAD", *args, **kwargs)
 
     def head_cached(self, path, *args, **kwargs):
-        key = self.get_cache_prefix() + md5_text(self.build_url(path)).hexdigest()
+        query = ""
+        if kwargs.get("params", None):
+            query = json.dumps(kwargs.get("params"), sort_keys=True)
+        key = self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
 
         result = cache.get(key)
         if result is None:

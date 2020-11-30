@@ -49,7 +49,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox
+from sentry.models.groupinbox import add_group_to_inbox, get_inbox_details
 from sentry.models.group import looks_like_short_id
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -498,7 +498,7 @@ def rate_limit_endpoint(limit=1, window=1):
 
 
 @track_update_groups
-def update_groups(request, projects, organization_id, search_fn):
+def update_groups(request, projects, organization_id, search_fn, has_inbox=False):
     group_ids = request.GET.getlist("id")
     if group_ids:
         group_list = Group.objects.filter(
@@ -689,6 +689,8 @@ def update_groups(request, projects, organization_id, search_fn):
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
                 remove_group_from_inbox(group)
+                if has_inbox:
+                    result["inbox"] = None
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
@@ -730,11 +732,18 @@ def update_groups(request, projects, organization_id, search_fn):
             happened = queryset.exclude(status=new_status).update(status=new_status)
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
-
-            if new_status == GroupStatus.IGNORED:
+            if new_status == GroupStatus.UNRESOLVED:
+                for group in group_list:
+                    add_group_to_inbox(group, GroupInboxReason.MANUAL)
+                if has_inbox:
+                    result["inbox"] = get_inbox_details([group_list[0]])[group_list[0].id]
+                result["statusDetails"] = {}
+            elif new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
                     remove_group_from_inbox(group)
+                if has_inbox:
+                    result["inbox"] = None
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)
@@ -1001,3 +1010,20 @@ def update_groups(request, projects, organization_id, search_fn):
         result["inbox"] = inbox
 
     return Response(result)
+
+
+def calculate_stats_period(stats_period, start, end):
+    if stats_period is None:
+        # default
+        stats_period = "24h"
+    elif stats_period == "":
+        # disable stats
+        stats_period = None
+
+    if stats_period == "auto":
+        stats_period_start = start
+        stats_period_end = end
+    else:
+        stats_period_start = None
+        stats_period_end = None
+    return stats_period, stats_period_start, stats_period_end

@@ -2,9 +2,9 @@ import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {IconSearch} from 'app/icons';
 import Search from 'app/components/search';
+import {IconSearch} from 'app/icons';
+import {t} from 'app/locale';
 
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
@@ -86,6 +86,6 @@ const SearchInput = styled('input')`
   }
 
   &::placeholder {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.formPlaceholder};
   }
 `;

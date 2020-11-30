@@ -1,9 +1,9 @@
-import styled from '@emotion/styled';
 import React from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link from 'app/components/links/link';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import {IconChevron} from 'app/icons';
 import space from 'app/styles/space';
 
@@ -87,7 +87,7 @@ const StyledLink = styled(({openInNewTab, to, href, ...props}: StyledLinkProps) 
 })`
   display: flex;
   background-color: ${p => p.theme.alert[p.priority].backgroundLight};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   border: 1px dashed ${p => p.theme.alert[p.priority].border};
   padding: ${p => (p.size === 'small' ? `${space(1)} ${space(1.5)}` : space(2))};
   margin-bottom: ${p => (p.withoutMarginBottom ? 0 : space(3))};

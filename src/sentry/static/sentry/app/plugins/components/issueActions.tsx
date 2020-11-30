@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {Form, FormState} from 'app/components/forms';
 import GroupActions from 'app/actions/groupActions';
+import PluginComponentBase from 'app/components/bases/pluginComponentBase';
+import {Form, FormState} from 'app/components/forms';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 import {t} from 'app/locale';
-import {Organization, Project, Plugin, Group} from 'app/types';
+import {Group, Organization, Plugin, Project} from 'app/types';
 
 type Field = {
   has_autocomplete?: boolean;
@@ -378,7 +378,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
     this.setState(prevState => ({...prevState, [formDataKey]: formData}), callback);
   }
 
-  renderForm() {
+  renderForm(): React.ReactNode {
     switch (this.props.actionType) {
       case 'create':
         if (this.state.createFieldList) {

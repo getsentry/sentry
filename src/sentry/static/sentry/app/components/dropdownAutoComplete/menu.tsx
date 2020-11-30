@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import List from './list';
-import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
+import List from './list';
+import {Item, ItemsBeforeFilter} from './types';
 
 export type MenuFooterChildProps = {
   actions: Actions;
@@ -387,7 +387,7 @@ const StyledInput = styled(Input)`
 
 const InputLoadingWrapper = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   align-items: center;
   flex-shrink: 0;
   width: 30px;
@@ -426,7 +426,7 @@ const LabelWithPadding = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   &:first-child {
     border-top: none;

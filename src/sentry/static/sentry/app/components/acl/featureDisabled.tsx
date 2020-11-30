@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {selectText} from 'app/utils/selectText';
-import {IconInfo, IconChevron, IconLock, IconCopy} from 'app/icons';
-import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import ExternalLink from 'app/components/links/externalLink';
-import space from 'app/styles/space';
 import {CONFIG_DOCS_URL} from 'app/constants';
+import {IconChevron, IconCopy, IconInfo, IconLock} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {selectText} from 'app/utils/selectText';
 
 const installText = (features: string[], featureName: string): string =>
   `# ${t('Enables the %s feature', featureName)}\n${features

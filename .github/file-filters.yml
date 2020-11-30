@@ -4,13 +4,13 @@
 # as well as some configuration files that should trigger both
 frontend_lintable: &frontend_lintable
   - '**/*.[tj]{s,sx}'
-  - '**/*.less'
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
   - '.github/workflows/js-*.yml'
 
 frontend: &frontend
   - *frontend_lintable
+  - '**/*.less'
   - 'yarn.lock'
   - '.eslint*'
   - 'docs-ui/**'
@@ -30,3 +30,7 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+
+api_docs:
+  - *backend
+  - 'api-docs/**'

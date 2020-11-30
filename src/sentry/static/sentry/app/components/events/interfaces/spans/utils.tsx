@@ -1,23 +1,24 @@
-import isString from 'lodash/isString';
-import moment from 'moment';
-import set from 'lodash/set';
 import isNumber from 'lodash/isNumber';
+import isString from 'lodash/isString';
+import set from 'lodash/set';
+import moment from 'moment';
 
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {SentryTransactionEvent} from 'app/types';
 import {assert} from 'app/types/utils';
-import CHART_PALETTE from 'app/constants/chartPalette';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
 import {
+  GapSpanType,
+  OrphanSpanType,
+  OrphanTreeDepth,
   ParsedTraceType,
   ProcessedSpanType,
-  GapSpanType,
   RawSpanType,
-  OrphanSpanType,
-  SpanType,
   SpanEntry,
+  SpanType,
   TraceContextType,
   TreeDepthType,
-  OrphanTreeDepth,
 } from './types';
 
 type Rect = {
@@ -609,6 +610,8 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
     'sentry.javascript.react',
     'sentry.javascript.gatsby',
     'sentry.javascript.ember',
+    'sentry.javascript.vue',
+    'sentry.javascript.angular',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -617,7 +620,33 @@ export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): 
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-export function getMeasurements(event: SentryTransactionEvent): Map<number, string[]> {
+type Measurements = {
+  [name: string]: number | undefined;
+};
+
+type VerticalMark = {
+  marks: Measurements;
+  failedThreshold: boolean;
+};
+
+function hasFailedThreshold(marks: Measurements): boolean {
+  const names = Object.keys(marks);
+  const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+    names.includes(vital.slug)
+  );
+
+  return records.some(record => {
+    const value = marks[record.slug];
+    if (typeof value === 'number') {
+      return value >= record.failureThreshold;
+    }
+    return false;
+  });
+}
+
+export function getMeasurements(
+  event: SentryTransactionEvent
+): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }
@@ -625,25 +654,45 @@ export function getMeasurements(event: SentryTransactionEvent): Map<number, stri
   const measurements = Object.keys(event.measurements)
     .filter(name => name.startsWith('mark.'))
     .map(name => {
+      const slug = name.slice('mark.'.length);
+      const associatedMeasurement = event.measurements![slug];
       return {
         name,
         timestamp: event.measurements![name].value,
+        value: associatedMeasurement ? associatedMeasurement.value : undefined,
       };
     });
 
-  const mergedMeasurements = new Map<number, string[]>();
+  const mergedMeasurements = new Map<number, VerticalMark>();
 
   measurements.forEach(measurement => {
     const name = measurement.name.slice('mark.'.length);
+    const value = measurement.value;
 
     if (mergedMeasurements.has(measurement.timestamp)) {
-      const names = mergedMeasurements.get(measurement.timestamp) as string[];
-      names.push(name);
-      mergedMeasurements.set(measurement.timestamp, names);
+      const verticalMark = mergedMeasurements.get(measurement.timestamp) as VerticalMark;
+
+      verticalMark.marks = {
+        ...verticalMark.marks,
+        [name]: value,
+      };
+
+      if (!verticalMark.failedThreshold) {
+        verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
+      }
+
+      mergedMeasurements.set(measurement.timestamp, verticalMark);
       return;
     }
 
-    mergedMeasurements.set(measurement.timestamp, [name]);
+    const marks = {
+      [name]: value,
+    };
+
+    mergedMeasurements.set(measurement.timestamp, {
+      marks,
+      failedThreshold: hasFailedThreshold(marks),
+    });
   });
 
   return mergedMeasurements;

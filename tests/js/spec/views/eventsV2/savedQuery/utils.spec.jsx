@@ -1,10 +1,10 @@
-import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import EventView from 'app/utils/discover/eventView';
+import {ALL_VIEWS} from 'app/views/eventsV2/data';
 import {
   handleCreateQuery,
+  handleDeleteQuery,
   handleUpdateQuery,
   handleUpdateQueryName,
-  handleDeleteQuery,
 } from 'app/views/eventsV2/savedQuery/utils';
 
 describe('SavedQueries API helpers', () => {

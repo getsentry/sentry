@@ -81,6 +81,12 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  failure_count: {
+    parameters: [],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   min: {
     parameters: [
       {
@@ -483,7 +489,7 @@ export const FIELD_TAGS = Object.freeze(
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-// This list should be removed with the tranaction-events feature flag.
+// This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
   'avg',
   'sum',
@@ -523,7 +529,7 @@ const MEASUREMENTS: Readonly<Record<WebVital, ColumnType>> = {
   [WebVital.RequestTime]: 'duration',
 };
 
-const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   const results = field.match(MEASUREMENT_PATTERN);
@@ -537,7 +543,23 @@ export function measurementType(field: string) {
   return 'number';
 }
 
+export function getMeasurementSlug(field: string): string | null {
+  const results = field.match(MEASUREMENT_PATTERN);
+  if (results && results.length >= 2) {
+    return results[1];
+  }
+  return null;
+}
+
 const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
+
+export function getAggregateArg(field: string): string | null {
+  const results = field.match(AGGREGATE_PATTERN);
+  if (results && results.length >= 3) {
+    return results[2];
+  }
+  return null;
+}
 
 export function generateAggregateFields(
   organization: LightWeightOrganization,
@@ -612,8 +634,8 @@ export function getAggregateAlias(field: string): string {
   }
   return field
     .replace(AGGREGATE_PATTERN, '$1_$2_$3')
-    .replace(/\./g, '_')
-    .replace(/\,/g, '_')
+    .replace(/[^\w]/g, '_')
+    .replace(/^_+/g, '')
     .replace(/_+$/, '');
 }
 

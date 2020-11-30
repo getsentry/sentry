@@ -1,14 +1,15 @@
 import React from 'react';
-import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import * as queryString from 'query-string';
+import Reflux from 'reflux';
 
-import {t} from 'app/locale';
 import GroupingActions from 'app/actions/groupingActions';
-import GroupingStore from 'app/stores/groupingStore';
+import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import GroupingStore from 'app/stores/groupingStore';
 
 import MergedList from './mergedList';
 
@@ -100,12 +101,11 @@ const GroupMergedView = createReactClass({
 
     return (
       <div>
-        <div className="alert alert-block alert-warning">
-          <strong>{t('Warning')}:</strong>{' '}
+        <Alert type="warning">
           {t(
             'This is an experimental feature. Data may not be immediately available while we process unmerges.'
           )}
-        </div>
+        </Alert>
 
         {isLoading && <LoadingIndicator />}
         {isError && (

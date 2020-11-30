@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
@@ -23,6 +23,10 @@ describe('Incident Rules Details', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',

@@ -1,10 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {ExceptionValue} from 'app/types';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 type NotifyOptions = {
@@ -16,8 +17,7 @@ type Props = {
   stackView: STACK_VIEW;
   stackType?: STACK_TYPE;
   platform?: string;
-  // TODO(ts): create types for the following Record props:
-  stacktrace?: Record<string, any>;
+  stacktrace?: ExceptionValue['stacktrace'];
   thread?: Record<string, any>;
   exception?: Record<string, any>;
   onChange?: (notifyOptions: NotifyOptions) => void;

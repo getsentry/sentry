@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 type Props = {
   title: string;
@@ -33,7 +33,7 @@ const CrashTitle = ({
         <GuideAnchor target="exception" disabled={hideGuide} position="bottom">
           {title}
         </GuideAnchor>
-        <Tooltip title={t('Toggle stacktrace order')}>
+        <Tooltip title={t('Toggle stack trace order')}>
           <small>
             (
             <span onClick={handleToggleOrder}>

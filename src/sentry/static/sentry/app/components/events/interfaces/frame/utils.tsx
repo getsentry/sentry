@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {PlatformType, Frame} from 'app/types';
-import {t} from 'app/locale';
-import {IconQuestion, IconWarning} from 'app/icons';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {IconQuestion, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {Frame, PlatformType} from 'app/types';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -13,7 +13,7 @@ export function trimPackage(pkg: string) {
 
 export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
-  // of the stacktrace / exception
+  // of the stack trace / exception
   return dataPlatform || platform;
 }
 

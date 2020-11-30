@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import Well from 'app/components/well';
 import {AVATAR_URL_MAP} from 'app/constants';
 import {t, tct} from 'app/locale';
-import Well from 'app/components/well';
 import {AvatarUser} from 'app/types';
 
 const resizerPositions = {
@@ -428,7 +428,7 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   margin-bottom: 20px;
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  background-color: #fff;
+  background-color: ${p => p.theme.background};
   background-image: linear-gradient(45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(-45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
     linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, #eee 75%),

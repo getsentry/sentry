@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {IconFilter} from 'app/icons';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import Tooltip from 'app/components/tooltip';
+import {IconFilter} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
@@ -66,7 +66,7 @@ const TogglableAddress = ({
     <Wrapper>
       {canBeConverted && (
         <AddressIconTooltip
-          title={isAbsolute ? t('Switch to absolute') : t('Switch to relative')}
+          title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
           containerDisplayMode="inline-flex"
         >
           <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
@@ -123,7 +123,7 @@ const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
 const Wrapper = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   letter-spacing: -0.25px;
   width: 100%;
   flex-grow: 0;

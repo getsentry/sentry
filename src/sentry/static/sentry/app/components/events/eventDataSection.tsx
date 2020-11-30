@@ -1,15 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {DataSection} from 'app/components/events/styles';
-import {IconAnchor} from 'app/icons/iconAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {DataSection} from 'app/components/events/styles';
+import {IconAnchor} from 'app/icons/iconAnchor';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 const defaultProps = {
   wrapTitle: true,
@@ -163,7 +163,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   }
 
   & small {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
     font-size: ${p => p.theme.fontSizeMedium};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
@@ -171,7 +171,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     text-transform: none;
   }
   & small > span {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.textColor};
     border-bottom: 1px dotted ${p => p.theme.border};
     font-weight: normal;
   }

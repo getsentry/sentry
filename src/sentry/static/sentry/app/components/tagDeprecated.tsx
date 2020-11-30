@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
 import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   priority?: keyof Theme['badge'] | keyof Theme['alert'];
@@ -56,7 +56,7 @@ const Tag = styled(
   padding: ${p => (p.size === 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   line-height: 1;
-  color: ${p => (p.priority ? p.theme.white : p.theme.gray500)};
+  color: ${p => (p.priority ? p.theme.background : p.theme.textColor)};
   text-align: center;
   white-space: nowrap;
   vertical-align: middle;
@@ -64,7 +64,7 @@ const Tag = styled(
   border-radius: ${p => (p.size === 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   font-weight: ${p => (p.size === 'small' ? 'bold' : 'normal')};
-  background: ${p => getPriority(p)?.background ?? p.theme.gray200};
+  background: ${p => getPriority(p)?.background ?? p.theme.gray100};
   ${p => getBorder(p)};
   ${p => getMarginLeft(p)};
 `;

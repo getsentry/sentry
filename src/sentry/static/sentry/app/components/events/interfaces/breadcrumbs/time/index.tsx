@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
-import {defined} from 'app/utils';
-import Tooltip from 'app/components/tooltip';
-import getDynamicText from 'app/utils/getDynamicText';
 import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
+import {defined} from 'app/utils';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import {getFormattedTimestamp} from './utils';
 
@@ -56,5 +56,5 @@ export default Time;
 
 const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;

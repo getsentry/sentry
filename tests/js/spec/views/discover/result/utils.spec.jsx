@@ -1,12 +1,12 @@
 import {mount} from 'sentry-test/enzyme';
 
 import {
-  getChartData,
-  getChartDataForWidget,
-  getChartDataByDay,
-  getDisplayValue,
-  getDisplayText,
   downloadAsCsv,
+  getChartData,
+  getChartDataByDay,
+  getChartDataForWidget,
+  getDisplayText,
+  getDisplayValue,
 } from 'app/views/discover/result/utils';
 
 describe('Utils', function () {

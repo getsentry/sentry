@@ -1,61 +1,64 @@
-import DocumentTitle from 'react-document-title';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import ListLink from 'app/components/links/listLink';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 
 const AdminLayout: React.FC = ({children}) => (
   <DocumentTitle title="Sentry Admin">
     <Page>
-      <div>
-        <h6 className="nav-header">System</h6>
-        <ul className="nav nav-stacked">
-          <ListLink index to="/manage/">
-            Overview
-          </ListLink>
-          <ListLink index to="/manage/buffer/">
-            Buffer
-          </ListLink>
-          <ListLink index to="/manage/queue/">
-            Queue
-          </ListLink>
-          <ListLink index to="/manage/quotas/">
-            Quotas
-          </ListLink>
-          <ListLink index to="/manage/status/environment/">
-            Environment
-          </ListLink>
-          <ListLink index to="/manage/status/packages/">
-            Packages
-          </ListLink>
-          <ListLink index to="/manage/status/mail/">
-            Mail
-          </ListLink>
-          <ListLink index to="/manage/status/warnings/">
-            Warnings
-          </ListLink>
-          <ListLink index to="/manage/settings/">
-            Settings
-          </ListLink>
-        </ul>
-        <h6 className="nav-header">Manage</h6>
-        <ul className="nav nav-stacked">
-          <ListLink to="/manage/organizations/">Organizations</ListLink>
-          <ListLink to="/manage/projects/">Projects</ListLink>
-          <ListLink to="/manage/users/">Users</ListLink>
-        </ul>
-      </div>
-      <div>{children}</div>
+      <NavWrapper>
+        <SettingsNavigation
+          stickyTop="0"
+          navigationObjects={[
+            {
+              name: 'System Status',
+              items: [
+                {path: '/manage/', index: true, title: 'Overview'},
+                {path: '/manage/buffer/', title: 'Buffer'},
+                {path: '/manage/queue/', title: 'Queue'},
+                {path: '/manage/quotas/', title: 'Quotas'},
+                {path: '/manage/status/environment/', title: 'Environment'},
+                {path: '/manage/status/packages/', title: 'Packages'},
+                {path: '/manage/status/mail/', title: 'Mail'},
+                {path: '/manage/status/warnings/', title: 'Warnings'},
+                {path: '/manage/settings/', title: 'Settings'},
+              ],
+            },
+            {
+              name: 'Manage',
+              items: [
+                {path: '/manage/organizations/', title: 'Organizations'},
+                {path: '/manage/projects/', title: 'Projects'},
+                {path: '/manage/users/', title: 'Users'},
+              ],
+            },
+          ]}
+        />
+      </NavWrapper>
+      <Content>{children}</Content>
     </Page>
   </DocumentTitle>
 );
 
+const NavWrapper = styled('div')`
+  flex-shrink: 0;
+  flex-grow: 0;
+  width: ${p => p.theme.settings.sidebarWidth};
+  background: ${p => p.theme.white};
+  border-right: 1px solid ${p => p.theme.border};
+`;
+
 const Page = styled('div')`
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  margin: ${space(4)};
+  display: flex;
   flex-grow: 1;
+  margin-bottom: -20px;
+`;
+
+const Content = styled('div')`
+  flex-grow: 1;
+  padding: ${space(4)};
 `;
 
 export default AdminLayout;

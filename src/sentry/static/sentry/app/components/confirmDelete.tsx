@@ -1,11 +1,11 @@
 import React from 'react';
 
-import Confirm from 'app/components/confirm';
 import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import {t} from 'app/locale';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
 
 const defaultProps = {
   priority: 'primary' as React.ComponentProps<typeof Button>['priority'],

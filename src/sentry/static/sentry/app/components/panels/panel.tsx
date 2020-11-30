@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import PanelBody from 'app/components/panels/panelBody';
 import PanelHeader from 'app/components/panels/panelHeader';
@@ -28,7 +28,7 @@ const Panel = styled(
     );
   }
 )<PanelProps>`
-  background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : '#fff')};
+  background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px
     ${p => (p.dashedBorder ? 'dashed' + p.theme.gray300 : 'solid ' + p.theme.border)};

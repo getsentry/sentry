@@ -1,15 +1,15 @@
+import React from 'react';
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
-import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ErrorRobot from 'app/components/errorRobot';
-import GroupStore from 'app/stores/groupStore';
-import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
+import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
+import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
 // Mock <IssueListSidebar> and <IssueListActions>
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));

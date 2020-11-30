@@ -1,15 +1,15 @@
-import {Observer} from 'mobx-react';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
+import PropTypes from 'prop-types';
 
 import {APIRequestMethod} from 'app/api';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
-import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 import Panel from 'app/components/panels/panel';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
+import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 
 type Data = Record<string, any>;
 

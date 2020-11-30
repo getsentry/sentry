@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactSelect, {components as selectComponents} from 'react-select';
 import Async from 'react-select/async';
-import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
+import Creatable from 'react-select/creatable';
 
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
 import {IconChevron, IconClose} from 'app/icons';
+import space from 'app/styles/space';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import theme from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
 
@@ -46,15 +46,15 @@ const defaultStyles = {
   control: (_, state) => ({
     height: '100%',
     fontSize: '15px',
-    color: theme.gray500,
+    color: theme.formText,
     display: 'flex',
-    background: '#fff',
+    background: theme.background,
     border: `1px solid ${theme.border}`,
     borderRadius: theme.borderRadius,
     boxShadow: `inset ${theme.dropShadowLight}`,
     transition: 'border 0.1s linear',
     alignItems: 'center',
-    minHeight: '36px',
+    minHeight: '40px',
     '&:hover': {
       borderColor: theme.border,
     },
@@ -70,7 +70,7 @@ const defaultStyles = {
     ...(state.isDisabled && {
       borderColor: theme.border,
       background: theme.backgroundSecondary,
-      color: theme.gray300,
+      color: theme.disabled,
       cursor: 'not-allowed',
     }),
     ...(!state.isSearchable && {
@@ -82,7 +82,7 @@ const defaultStyles = {
     ...provided,
     zIndex: theme.zIndex.dropdown,
     marginTop: '-1px',
-    background: '#fff',
+    background: theme.background,
     border: `1px solid ${theme.border}`,
     borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
     borderTop: `1px solid ${theme.border}`,
@@ -96,7 +96,7 @@ const defaultStyles = {
     color: state.isFocused
       ? theme.textColor
       : state.isSelected
-      ? theme.white
+      ? theme.background
       : theme.textColor,
     backgroundColor: state.isFocused
       ? theme.backgroundSecondary
@@ -154,7 +154,7 @@ const defaultStyles = {
     lineHeight: '1.5',
     fontWeight: '600',
     backgroundColor: theme.backgroundSecondary,
-    color: theme.gray500,
+    color: theme.textColor,
     marginBottom: 0,
     padding: `${space(1)} ${space(1.5)}`,
   }),
@@ -162,6 +162,33 @@ const defaultStyles = {
     ...provided,
     padding: 0,
   }),
+};
+
+const getFieldLabelStyle = label => ({
+  ':before': {
+    content: `"${label}"`,
+    color: theme.gray300,
+    fontWeight: 600,
+  },
+});
+
+/**
+ * Applies one set of styles onto the other while maintaining the same function
+ * interface that is used by react-styled.
+ * @param {*} newStyles the styles to apply on top of base
+ * @param {*} baseStyles the style to override
+ */
+const combineStyles = (newStyles, baseStyles) => {
+  return Object.keys(newStyles || {}).reduce((computedStyles, key) => {
+    const styleFunc = (provided, state) =>
+      newStyles[key](
+        computedStyles[key] === undefined
+          ? provided
+          : computedStyles[key](provided, state),
+        state
+      );
+    return {...computedStyles, [key]: styleFunc};
+  }, baseStyles);
 };
 
 const SelectControl = props => {
@@ -182,6 +209,7 @@ const SelectControl = props => {
     components,
     styles,
     value,
+    inFieldLabel,
     ...rest
   } = props;
 
@@ -207,19 +235,24 @@ const SelectControl = props => {
         : flatOptions.find(opt => opt.value === value) || value;
   }
 
+  // Override the default style with in-field labels if they are provided
+  const inFieldLabelStyles = {
+    singleValue: base => ({
+      ...base,
+      ...getFieldLabelStyle(inFieldLabel),
+    }),
+    placeholder: base => ({
+      ...base,
+      ...getFieldLabelStyle(inFieldLabel),
+    }),
+  };
+  const labelOrDefaultStyles = inFieldLabel
+    ? combineStyles(inFieldLabelStyles, defaultStyles)
+    : defaultStyles;
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = Object.keys(styles || {}).reduce((computedStyles, key) => {
-    const styleFunc = (provided, state) =>
-      styles[key](
-        computedStyles[key] === undefined
-          ? provided
-          : computedStyles[key](provided, state),
-        state
-      );
-    return {...computedStyles, [key]: styleFunc};
-  }, defaultStyles);
+  const mappedStyles = combineStyles(styles, labelOrDefaultStyles);
 
   const replacedComponents = {
     ClearIndicator,

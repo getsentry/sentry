@@ -1,33 +1,41 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import ListLink from 'app/components/links/listLink';
-import ExternalLink from 'app/components/links/externalLink';
-import NavTabs from 'app/components/navTabs';
-import {Release, ReleaseProject, ReleaseMeta} from 'app/types';
-import Version from 'app/components/version';
-import Clipboard from 'app/components/clipboard';
-import {IconCopy, IconOpen} from 'app/icons';
-import Tooltip from 'app/components/tooltip';
-import Count from 'app/components/count';
-import TimeSince from 'app/components/timeSince';
-import {formatVersion, formatAbbreviatedNumber} from 'app/utils/formatters';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import DeployBadge from 'app/components/deployBadge';
+import Feature from 'app/components/acl/feature';
 import Badge from 'app/components/badge';
+import Breadcrumbs from 'app/components/breadcrumbs';
+import Clipboard from 'app/components/clipboard';
+import Count from 'app/components/count';
+import DeployBadge from 'app/components/deployBadge';
 import * as Layout from 'app/components/layouts/thirds';
+import ExternalLink from 'app/components/links/externalLink';
+import ListLink from 'app/components/links/listLink';
+import NavTabs from 'app/components/navTabs';
+import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
+import Version from 'app/components/version';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconCopy, IconOpen} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Release, ReleaseMeta, ReleaseProject} from 'app/types';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias} from 'app/utils/discover/fields';
+import {formatAbbreviatedNumber, formatVersion} from 'app/utils/formatters';
+import {getTermHelp} from 'app/views/performance/data';
 
-import ReleaseStat from './releaseStat';
+import {getSessionTermDescription, SessionTerm, sessionTerm} from '../utils/sessionTerm';
+
 import ReleaseActions from './releaseActions';
+import ReleaseStat from './releaseStat';
 
 type Props = {
   location: Location;
-  orgId: string;
+  organization: Organization;
+  releaseEventView: EventView;
   release: Release;
   project: Required<ReleaseProject>;
   releaseMeta: ReleaseMeta;
@@ -36,7 +44,8 @@ type Props = {
 
 const ReleaseHeader = ({
   location,
-  orgId,
+  organization,
+  releaseEventView,
   release,
   project,
   releaseMeta,
@@ -44,9 +53,12 @@ const ReleaseHeader = ({
 }: Props) => {
   const {version, newGroups, url, lastDeploy, dateCreated} = release;
   const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
-  const {hasHealthData, sessionsCrashed} = project.healthData;
+  const {hasHealthData} = project;
+  const {sessionsCrashed} = project.healthData;
 
-  const releasePath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
+  const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
+    version
+  )}/`;
 
   const tabs = [
     {title: t('Overview'), to: releasePath},
@@ -89,7 +101,7 @@ const ReleaseHeader = ({
         <Breadcrumbs
           crumbs={[
             {
-              to: `/organizations/${orgId}/releases/`,
+              to: `/organizations/${organization.slug}/releases/`,
               label: t('Releases'),
               preserveGlobalSelection: true,
             },
@@ -108,17 +120,41 @@ const ReleaseHeader = ({
           </ReleaseStat>
           {hasHealthData && (
             <ReleaseStat
-              label={t('Crashes')}
-              help={t('Crash means that user experienced an unhandled error')}
+              label={sessionTerm.crashes}
+              help={getSessionTermDescription(SessionTerm.CRASHES, project.platform)}
             >
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
+          <Feature features={['release-performance-views']}>
+            <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
+              <DiscoverQuery
+                eventView={releaseEventView}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {({isLoading, error, tableData}) => {
+                  if (isLoading || error || !tableData || tableData.data.length === 0) {
+                    return '\u2014';
+                  }
+                  return (
+                    <Count
+                      value={
+                        tableData.data[0][
+                          getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                        ]
+                      }
+                    />
+                  );
+                }}
+              </DiscoverQuery>
+            </ReleaseStat>
+          </Feature>
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>
           <ReleaseActions
-            orgSlug={orgId}
+            orgSlug={organization.slug}
             projectSlug={project.slug}
             release={release}
             releaseMeta={releaseMeta}
@@ -207,7 +243,7 @@ const StyledDeployBadge = styled(DeployBadge)`
 
 const ReleaseName = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
 `;
@@ -222,7 +258,7 @@ const IconWrapper = styled('span')`
     display: flex;
     &:hover {
       cursor: pointer;
-      color: ${p => p.theme.gray500};
+      color: ${p => p.theme.textColor};
     }
   }
 `;

@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 type Props = {
   backgroundColor?: string;
@@ -12,7 +12,7 @@ type Props = {
  */
 const ActivityBubble = styled('div')<Props>`
   flex: 1;
-  background-color: ${p => p.backgroundColor};
+  background-color: ${p => p.backgroundColor || p.theme.background};
   border: 1px solid ${p => p.borderColor || p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;

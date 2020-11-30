@@ -1,13 +1,13 @@
+import React from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/core';
-import PropTypes from 'prop-types';
-import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Theme} from 'app/utils/theme';
 import ExternalLink from 'app/components/links/externalLink';
 import Tooltip from 'app/components/tooltip';
+import {Theme} from 'app/utils/theme';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems

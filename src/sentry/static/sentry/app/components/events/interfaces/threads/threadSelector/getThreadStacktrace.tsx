@@ -1,24 +1,22 @@
+import {Event, ExceptionValue} from 'app/types';
 import {Thread} from 'app/types/events';
-import {Event} from 'app/types';
-import {StacktraceType} from 'app/types/stacktrace';
 
 import getThreadException from './getThreadException';
 
-// TODO(ts): define raw type
-function getThreadStacktrace(thread: Thread, event: Event, raw?: any) {
+function getThreadStacktrace(thread: Thread, event: Event, raw: boolean) {
   const exc = getThreadException(thread, event);
   if (exc) {
-    let rv: StacktraceType | undefined = undefined;
-
-    if (!exc.values) {
-      return rv;
-    }
+    let rv: ExceptionValue['stacktrace'] | undefined = undefined;
 
     for (const singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
-        rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
+        rv = singleExc.stacktrace;
+        if (raw && singleExc.rawStacktrace) {
+          rv = singleExc.rawStacktrace;
+        }
       }
     }
+
     return rv;
   }
 

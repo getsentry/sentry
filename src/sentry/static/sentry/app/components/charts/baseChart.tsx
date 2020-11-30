@@ -1,25 +1,28 @@
-import React from 'react';
 import 'zrender/lib/svg/svg';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
-import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+
+import React from 'react';
 import styled from '@emotion/styled';
+import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {withTheme} from 'emotion-theming';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import space from 'app/styles/space';
 import {
-  Series,
-  EChartEventHandler,
   EChartChartReadyHandler,
   EChartDataZoomHandler,
+  EChartEventHandler,
+  ReactEchartsRef,
+  Series,
 } from 'app/types/echarts';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
+import LineSeries from './series/lineSeries';
 
 // If dimension is a number convert it to pixels, otherwise use dimension without transform
 const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
@@ -49,6 +52,8 @@ type Truncateable = {
 };
 
 type Props = {
+  theme: Theme;
+
   options?: EChartOption;
   /**
    * Chart Series
@@ -137,7 +142,7 @@ type Props = {
    * theme name
    * example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
    */
-  theme?: ReactEchartProps['theme'];
+  echartsTheme?: ReactEchartProps['theme'];
   /**
    * states whether or not to merge with previous `option`
    */
@@ -260,7 +265,7 @@ class BaseChart extends React.Component<Props> {
   };
 
   getColorPalette() {
-    const {series} = this.props;
+    const {theme, series} = this.props;
 
     const palette = series?.length
       ? theme.charts.getColorPalette(series.length)
@@ -270,7 +275,7 @@ class BaseChart extends React.Component<Props> {
   }
 
   getSeries() {
-    const {previousPeriod, series, transformSinglePointToBar} = this.props;
+    const {previousPeriod, series, theme, transformSinglePointToBar} = this.props;
 
     const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
       s => Array.isArray(s.data) && s.data.length === 1
@@ -310,6 +315,8 @@ class BaseChart extends React.Component<Props> {
 
   render() {
     const {
+      theme,
+
       options,
       colors,
       grid,
@@ -344,17 +351,19 @@ class BaseChart extends React.Component<Props> {
       onChartReady,
     } = this.props;
 
+    const defaultAxesProps = {theme};
     const yAxisOrCustom = !yAxes
       ? yAxis !== null
-        ? YAxis(yAxis)
+        ? YAxis({theme, ...yAxis})
         : undefined
       : Array.isArray(yAxes)
-      ? yAxes.map(YAxis)
-      : [YAxis(), YAxis()];
+      ? yAxes.map(axis => YAxis({...axis, theme}))
+      : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
     const xAxisOrCustom = !xAxes
       ? xAxis !== null
         ? XAxis({
             ...xAxis,
+            theme,
             useShortDate,
             start,
             end,
@@ -365,9 +374,9 @@ class BaseChart extends React.Component<Props> {
         : undefined
       : Array.isArray(xAxes)
       ? xAxes.map(axis =>
-          XAxis({...axis, useShortDate, start, end, period, isGroupedByDate, utc})
+          XAxis({...axis, theme, useShortDate, start, end, period, isGroupedByDate, utc})
         )
-      : [XAxis(), XAxis()];
+      : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
     // Maybe changing the series type to types/echarts Series[] would be a better solution
     // and can't use ignore for multiline blocks
@@ -384,7 +393,7 @@ class BaseChart extends React.Component<Props> {
           echarts={echarts}
           notMerge={notMerge}
           lazyUpdate={lazyUpdate}
-          theme={this.props.theme}
+          theme={this.props.echartsTheme}
           onChartReady={onChartReady}
           onEvents={this.getEventsMap}
           opts={{
@@ -449,7 +458,7 @@ const ChartContainer = styled('div')`
   }
   .tooltip-label strong {
     font-weight: normal;
-    color: #fff;
+    color: ${p => p.theme.white};
   }
   .tooltip-series > div {
     display: flex;
@@ -480,11 +489,39 @@ const ChartContainer = styled('div')`
   .echarts-for-react div:first-of-type {
     width: 100% !important;
   }
+
+  /* Tooltip description styling */
+  .tooltip-description {
+    color: ${p => p.theme.white};
+    border-radius: ${p => p.theme.borderRadius};
+    background: #000;
+    opacity: 0.9;
+    padding: 5px 10px;
+    position: relative;
+    font-weight: bold;
+    font-size: ${p => p.theme.fontSizeSmall};
+    line-height: 1.4;
+    font-family: ${p => p.theme.text.family};
+    :after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #000;
+      transform: translateX(-50%);
+    }
+  }
 `;
 
-const BaseChartRef = React.forwardRef<ReactEchartsCore, Props>((props, ref) => (
-  <BaseChart forwardedRef={ref} {...props} />
-));
+const BaseChartWithTheme = withTheme(BaseChart);
+
+const BaseChartRef = React.forwardRef<ReactEchartsRef, Omit<Props, 'theme'>>(
+  (props, ref) => <BaseChartWithTheme forwardedRef={ref} {...props} />
+);
 BaseChartRef.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChartRef;

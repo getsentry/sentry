@@ -5,19 +5,20 @@ import styled from '@emotion/styled';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import {
-  UserSelectValues,
   setBodyUserSelect,
+  UserSelectValues,
 } from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
-import {SelectValue, LightWeightOrganization} from 'app/types';
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import {LightWeightOrganization, SelectValue} from 'app/types';
 import {Column} from 'app/utils/discover/fields';
+import theme from 'app/utils/theme';
 
-import {FieldValue} from './types';
-import {QueryField} from './queryField';
 import {generateFieldOptions} from '../utils';
+
+import {QueryField} from './queryField';
+import {FieldValue} from './types';
 
 type Props = {
   // Input columns
@@ -378,7 +379,7 @@ const RowContainer = styled('div')`
 `;
 
 const Ghost = styled('div')`
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   display: block;
   position: absolute;
   padding: ${space(0.5)};

@@ -1,13 +1,13 @@
-import {browserHistory} from 'react-router';
-import DocumentTitle from 'react-document-title';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
+import {browserHistory} from 'react-router';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'app/constants';
 import {t, tct} from 'app/locale';
 import ApiForm from 'app/views/settings/components/forms/apiForm';
-import FormField from 'app/views/settings/components/forms/formField';
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import FormField from 'app/views/settings/components/forms/formField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 

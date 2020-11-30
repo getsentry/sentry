@@ -5,8 +5,8 @@
  * This is unconnected to any Form state
  */
 
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
@@ -32,6 +32,7 @@ type Props = {
   disabledReason?: string;
   flexibleControlStateSize?: boolean;
   label?: React.ReactNode;
+  hideLabel?: boolean;
   help?: React.ReactNode | React.ReactElement | Function;
   showHelpInTooltip?: boolean;
   id?: string;
@@ -171,6 +172,7 @@ class Field extends React.Component<Props> {
       isSaving,
       isSaved,
       label,
+      hideLabel,
       stacked,
       children,
       style,
@@ -218,9 +220,9 @@ class Field extends React.Component<Props> {
         hasControlState={!flexibleControlStateSize}
         style={style}
       >
-        {(label || helpElement) && (
+        {((label && !hideLabel) || helpElement) && (
           <FieldDescription inline={inline} htmlFor={id}>
-            {label && (
+            {label && !hideLabel && (
               <FieldLabel disabled={isDisabled}>
                 <span>
                   {label}

@@ -35,7 +35,6 @@
 /docker                         @getsentry/releases
 setup.py                        @getsentry/releases
 setup.cfg                       @getsentry/releases
-# TODO: owners-build (for travis / gha)
 requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
 tsconfig.*          @getsentry/owners-js-build
@@ -45,6 +44,7 @@ babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
 # Dev
+/.github/                   @getsentry/owners-sentry-dev
 /config/hooks/              @getsentry/owners-sentry-dev
 /scripts/                   @getsentry/owners-sentry-dev
 Makefile                    @getsentry/owners-sentry-dev

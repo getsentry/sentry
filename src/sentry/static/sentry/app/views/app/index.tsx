@@ -1,36 +1,33 @@
-import $ from 'jquery';
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {ThemeProvider} from 'emotion-theming';
-import {browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import keydown from 'react-keydown';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import $ from 'jquery';
+import Cookies from 'js-cookie';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
-import {Client} from 'app/api';
-import {Config} from 'app/types';
-import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
 import {
   displayDeployPreviewAlert,
   displayExperimentalSpaAlert,
 } from 'app/actionCreators/deployPreview';
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
 import AlertActions from 'app/actions/alertActions';
-import ConfigStore from 'app/stores/configStore';
+import {Client} from 'app/api';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
-import GlobalStyles from 'app/styles/global';
-import HookStore from 'app/stores/hookStore';
 import Indicators from 'app/components/indicators';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import NewsletterConsent from 'app/views/newsletterConsent';
+import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'app/constants';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
-import theme, {darkTheme, Theme} from 'app/utils/theme';
+import {Config} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import NewsletterConsent from 'app/views/newsletterConsent';
 
 import SystemAlerts from './systemAlerts';
 
@@ -61,7 +58,6 @@ type State = {
   error: boolean;
   needsUpgrade: boolean;
   newsletterConsentPrompt: boolean;
-  theme: Theme;
   user?: Config['user'];
 };
 
@@ -75,7 +71,6 @@ class App extends React.Component<Props, State> {
     error: false,
     needsUpgrade: ConfigStore.get('user')?.isSuperuser && ConfigStore.get('needsUpgrade'),
     newsletterConsentPrompt: ConfigStore.get('user')?.flags?.newsletter_consent_prompt,
-    theme: ConfigStore.get('theme') === 'dark' ? darkTheme : theme,
   };
 
   getChildContext() {
@@ -199,10 +194,6 @@ class App extends React.Component<Props, State> {
       newState.user = config.user;
     }
 
-    if (config.theme !== undefined) {
-      newState.theme = config.theme === 'dark' ? darkTheme : theme;
-    }
-
     if (Object.keys(newState).length > 0) {
       this.setState(newState);
     }
@@ -263,15 +254,12 @@ class App extends React.Component<Props, State> {
     }
 
     return (
-      <ThemeProvider<Theme> theme={this.state.theme}>
-        <GlobalStyles theme={this.state.theme} />
-        <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
-          <GlobalModal onClose={this.handleGlobalModalClose} />
-          <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
-          <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
-        </div>
-      </ThemeProvider>
+      <div className="main-container" tabIndex={-1} ref={this.mainContainerRef}>
+        <GlobalModal onClose={this.handleGlobalModalClose} />
+        <SystemAlerts className="messages-container" />
+        <Indicators className="indicators-container" />
+        <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
+      </div>
     );
   }
 }

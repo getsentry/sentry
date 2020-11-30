@@ -1,33 +1,32 @@
 import React from 'react';
-import classNames from 'classnames';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
-import {t} from 'app/locale';
 import {openDiffModal} from 'app/actionCreators/modal';
+import GroupingActions from 'app/actions/groupingActions';
+import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import Count from 'app/components/count';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import FlowLayout from 'app/components/flowLayout';
-import GroupingActions from 'app/actions/groupingActions';
-import GroupingStore from 'app/stores/groupingStore';
 import Hovercard from 'app/components/hovercard';
 import ScoreBar from 'app/components/scoreBar';
 import SimilarScoreCard from 'app/components/similarScoreCard';
-import Button from 'app/components/button';
 import SpreadLayout from 'app/components/spreadLayout';
-import {Organization, Group, Project} from 'app/types';
+import {t} from 'app/locale';
+import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
+import {Group, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
-
-const similarInterfaces = ['exception', 'message'];
 
 type Props = {
   issue: Group;
   project: Project;
   orgId: Organization['id'];
   groupId: Group['id'];
+  v2: boolean;
   score?: Record<string, any>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
@@ -99,8 +98,9 @@ class Item extends React.Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue} = this.props;
+    const {aggregate, scoresByInterface, issue, v2} = this.props;
     const {visible, busy} = this.state;
+    const similarInterfaces = v2 ? ['similarity'] : ['exception', 'message'];
 
     if (!visible) {
       return null;

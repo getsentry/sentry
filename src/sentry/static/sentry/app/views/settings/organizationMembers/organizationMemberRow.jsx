@@ -1,15 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import {IconClose, IconCheckmark, IconFlag, IconMail, IconSubtract} from 'app/icons';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {PanelItem} from 'app/components/panels';
+import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'app/icons';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -255,7 +255,7 @@ const UserName = styled('div')`
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   overflow: hidden;
   text-overflow: ellipsis;

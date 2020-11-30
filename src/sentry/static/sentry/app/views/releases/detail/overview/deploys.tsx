@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DeployBadge from 'app/components/deployBadge';
+import TextOverflow from 'app/components/textOverflow';
+import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy} from 'app/types';
-import TimeSince from 'app/components/timeSince';
-import DeployBadge from 'app/components/deployBadge';
-import TextOverflow from 'app/components/textOverflow';
 
 import {SectionHeading, Wrapper} from './styles';
 
@@ -45,7 +45,7 @@ const Row = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledDeployBadge = styled(DeployBadge)`

@@ -1,17 +1,17 @@
 import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Tooltip from 'app/components/tooltip';
+import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
 import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
-import {IconMute, IconStar} from 'app/icons';
-import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import Tooltip from 'app/components/tooltip';
-import {getMessage, getLocation} from 'app/utils/events';
+import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
-import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import UnhandledTag, {
   TagAndMessageWrapper,
 } from 'app/views/organizationGroupDetails/unhandledTag';
@@ -108,8 +108,7 @@ class EventOrGroupHeader extends React.Component<Props> {
     const location = getLocation(data);
     const message = getMessage(data);
     const {isUnhandled} = data as Group;
-    const orgFeatures = new Set(organization.features);
-    const showUnhandled = isUnhandled && !orgFeatures.has('inbox');
+    const showUnhandled = isUnhandled && !organization.features.includes('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
@@ -148,7 +147,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -158,7 +157,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   span {
     direction: ltr;
   }

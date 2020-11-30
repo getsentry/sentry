@@ -1,12 +1,12 @@
-import orderBy from 'lodash/orderBy';
-import Papa from 'papaparse';
 import React from 'react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
+import Papa from 'papaparse';
 
 import {formatVersion} from 'app/utils/formatters';
 
-import {Aggregation, Query, Result, SnubaResult} from '../types';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
+import {Aggregation, Query, Result, SnubaResult} from '../types';
 
 const CHART_KEY = '__CHART_KEY__';
 
@@ -337,7 +337,7 @@ const LightGray = styled('span')`
 `;
 
 const DarkGray = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
 `;
 
 /**

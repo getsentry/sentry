@@ -1,6 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
+import ExternalLink from 'app/components/links/externalLink';
+import {IconDelete} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -9,16 +17,9 @@ import {
   IssueAlertRuleConditionTemplate,
   MailActionTargetType,
 } from 'app/types/alerts';
-import Alert from 'app/components/alert';
-import Button from 'app/components/button';
 import Input from 'app/views/settings/components/forms/controls/input';
-import SelectControl from 'app/components/forms/selectControl';
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
-import ExternalLink from 'app/components/links/externalLink';
-import {Organization, Project} from 'app/types';
-import {IconDelete} from 'app/icons';
+import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
 
 type FormField = {
   // Type of form fields
@@ -212,7 +213,6 @@ class RuleNode extends React.Component<Props> {
       if (key === 'value' && data && (data.match === 'is' || data.match === 'ns')) {
         return null;
       }
-
       return (
         <Separator key={key}>
           {formFields && formFields.hasOwnProperty(key)
@@ -226,10 +226,10 @@ class RuleNode extends React.Component<Props> {
 
     // We return this so that it can be a grid
     return (
-      <Rule>
+      <React.Fragment>
         {title}
         {inputs}
-      </Rule>
+      </React.Fragment>
     );
   }
 
@@ -278,13 +278,17 @@ class RuleNode extends React.Component<Props> {
   }
 
   render() {
-    const {data, disabled} = this.props;
+    const {data, disabled, node} = this.props;
+    const ticketRule = node?.hasOwnProperty('actionType');
 
     return (
       <RuleRowContainer>
         <RuleRow>
-          {data && <input type="hidden" name="id" value={data.id} />}
-          {this.renderRow()}
+          <Rule>
+            {data && <input type="hidden" name="id" value={data.id} />}
+            {this.renderRow()}
+            {ticketRule && <TicketRuleForm />}
+          </Rule>
           <DeleteButton
             disabled={disabled}
             label={t('Delete Node')}

@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 import {IconSwitch} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 import {GridCell} from './styles';
 
@@ -43,7 +43,7 @@ const StyledGridCell = styled(GridCell)`
   top: 0;
   border-bottom: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-weight: 600;
   text-transform: uppercase;
   line-height: 1;

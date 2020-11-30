@@ -4,8 +4,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 import FormModel from 'app/views/settings/components/forms/model';
+import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
 jest.mock('app/actionCreators/indicator');
 
@@ -39,6 +39,10 @@ describe('Incident Rules Form', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: TestStubs.EventsStats(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',

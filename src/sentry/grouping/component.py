@@ -11,7 +11,7 @@ DEFAULT_HINTS = {"salt": "a static salt"}
 KNOWN_MAJOR_COMPONENT_NAMES = {
     "app": "in-app",
     "exception": "exception",
-    "stacktrace": "stacktrace",
+    "stacktrace": "stack-trace",
     "threads": "thread",
     "hostname": "hostname",
     "violation": "violation",

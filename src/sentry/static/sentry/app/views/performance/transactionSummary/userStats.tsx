@@ -1,24 +1,24 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading} from 'app/components/charts/styles';
 import UserMisery from 'app/components/userMisery';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
-import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
   WEB_VITAL_DETAILS,
 } from 'app/views/performance/transactionVitals/constants';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
 type Props = {
   totals: Record<string, number>;
@@ -68,7 +68,7 @@ function UserStats({totals, location, organization, transactionName}: Props) {
       [0, 0]
     );
     if (vitalsTotal > 0) {
-      vitalsPassRate = <StatNumber>{`${vitalsPassed} / ${vitalsTotal}`}</StatNumber>;
+      vitalsPassRate = <StatNumber>{`${vitalsPassed}/${vitalsTotal}`}</StatNumber>;
     }
   }
 
@@ -82,12 +82,35 @@ function UserStats({totals, location, organization, transactionName}: Props) {
   return (
     <Container>
       <div>
-        <SectionHeading>{t('Apdex Score')}</SectionHeading>
+        <SectionHeading>
+          {t('Apdex Score')}
+          <QuestionTooltip
+            position="top"
+            title={t(
+              'Apdex is the ratio of both satisfactory and tolerable response time to all response times.'
+            )}
+            size="sm"
+          />
+        </SectionHeading>
         <StatNumber>{apdex}</StatNumber>
+        <Link to={`/settings/${organization.slug}/performance/`}>
+          <SectionValue>
+            {threshold}ms {t('threshold')}
+          </SectionValue>
+        </Link>
       </div>
       {vitalsPassRate !== null && (
         <div>
-          <SectionHeading>{t('Web Vitals')}</SectionHeading>
+          <SectionHeading>
+            {t('Web Vitals')}
+            <QuestionTooltip
+              position="top"
+              title={t(
+                'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
+              )}
+              size="sm"
+            />
+          </SectionHeading>
           <StatNumber>{vitalsPassRate}</StatNumber>
           <Link to={webVitalsTarget}>
             <SectionValue>{t('Passed')}</SectionValue>
@@ -112,8 +135,8 @@ function UserStats({totals, location, organization, transactionName}: Props) {
 const Container = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(4)};
-  margin-bottom: 40px;
+  grid-row-gap: ${space(2)};
+  margin-bottom: ${space(4)};
 `;
 
 const UserMiseryContainer = styled('div')`
@@ -122,7 +145,8 @@ const UserMiseryContainer = styled('div')`
 
 const StatNumber = styled('div')`
   font-size: 32px;
-  color: ${p => p.theme.gray500};
+  margin-bottom: ${space(0.5)};
+  color: ${p => p.theme.textColor};
 
   > div {
     text-align: left;

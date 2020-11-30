@@ -1,9 +1,12 @@
+import {EChartOption} from 'echarts';
+import {Location} from 'history';
 import moment from 'moment';
 
-import {GlobalSelection} from 'app/types';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {GlobalSelection} from 'app/types';
 import {escape} from 'app/utils';
+import {parsePeriodToHours} from 'app/utils/dates';
+import {decodeList} from 'app/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -106,4 +109,18 @@ export function canIncludePreviousPeriod(
 
   // otherwise true
   return !!includePrevious;
+}
+
+/**
+ * Generates a series selection based on the query parameters defined by the location.
+ */
+export function getSeriesSelection(
+  location: Location,
+  parameter = 'unselectedSeries'
+): EChartOption.Legend['selected'] {
+  const unselectedSeries = decodeList(location.query[parameter]) ?? [];
+  return unselectedSeries.reduce((selection, series) => {
+    selection[series] = false;
+    return selection;
+  }, {});
 }

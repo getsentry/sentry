@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
 import Link from 'app/components/links/link';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 import {Theme} from 'app/utils/theme';
 
 type MenuItemProps = {
@@ -200,9 +200,10 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
   return `
     ${common}
     color: ${props.theme.gray500};
+    background-color: ${props.theme.white};
 
     &:hover {
-      background: ${props.theme.backgroundSecondary};
+      background: ${props.theme.gray100};
     }
   `;
 }

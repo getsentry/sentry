@@ -1,38 +1,36 @@
-import $ from 'jquery';
-// eslint-disable-next-line no-restricted-imports
-import {Flex, Box} from 'reflexbox';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import $ from 'jquery';
+// eslint-disable-next-line no-restricted-imports
+import {Box, Flex} from 'reflexbox';
 
-import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
-import {PanelItem} from 'app/components/panels';
-import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
+import Link from 'app/components/links/link';
+import MenuItem from 'app/components/menuItem';
+import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
+import {PanelItem} from 'app/components/panels';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
-import GuideAnchor from 'app/components/assistant/guideAnchor';
-import MenuItem from 'app/components/menuItem';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
-import SentryTypes from 'app/sentryTypes';
-import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
+import {valueIsEqual} from 'app/utils';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import EventView from 'app/utils/discover/eventView';
+import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import EventView from 'app/utils/discover/eventView';
-import {t} from 'app/locale';
-import Link from 'app/components/links/link';
-import {queryToObj} from 'app/utils/stream';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import Times from 'app/components/group/timesBadge';
-import InboxReason from 'app/components/group/inboxReason';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -71,19 +69,6 @@ type State = {
 };
 
 class StreamGroup extends React.Component<Props, State> {
-  static propTypes: any = {
-    id: PropTypes.string.isRequired,
-    statsPeriod: PropTypes.string.isRequired,
-    canSelect: PropTypes.bool,
-    query: PropTypes.string,
-    hasGuideAnchor: PropTypes.bool,
-    memberList: PropTypes.array,
-    withChart: PropTypes.bool,
-    selection: SentryTypes.GlobalSelection.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    useFilteredStats: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();
@@ -96,7 +81,7 @@ class StreamGroup extends React.Component<Props, State> {
     return {
       data: {
         ...data,
-        filtered: useFilteredStats ? data.filtered : undefined,
+        filtered: useFilteredStats ? data.filtered : null,
       },
     };
   }
@@ -111,7 +96,7 @@ class StreamGroup extends React.Component<Props, State> {
       this.setState({
         data: {
           ...data,
-          filtered: nextProps.useFilteredStats ? data.filtered : undefined,
+          filtered: nextProps.useFilteredStats ? data.filtered : null,
         },
       });
     }
@@ -166,7 +151,7 @@ class StreamGroup extends React.Component<Props, State> {
 
     const queryTerms: string[] = [];
 
-    if (isFiltered && query) {
+    if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj)
         if (!DiscoveryExclusionFields.includes(queryTag)) {
@@ -231,7 +216,6 @@ class StreamGroup extends React.Component<Props, State> {
       organization,
     } = this.props;
 
-    const queryObj = queryToObj(query);
     const {period, start, end} = selection.datetime || {};
     const summary =
       !!start && !!end
@@ -247,9 +231,7 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod
     );
 
-    const orgFeatures = new Set(organization.features);
-    const hasInbox = orgFeatures.has('inbox');
-    const inboxTabActive = queryObj.hasOwnProperty('is') && queryObj.is === 'inbox';
+    const hasInbox = organization.features.includes('inbox');
 
     return (
       <Wrapper data-test-id="group" onClick={this.toggleSelect}>
@@ -264,9 +246,30 @@ class StreamGroup extends React.Component<Props, State> {
           mr={1}
           flex="1"
         >
-          <EventOrGroupHeader includeLink data={data} query={query} size="normal" />
-          <EventOrGroupExtraDetails data={data} />
+          <EventOrGroupHeader
+            organization={organization}
+            includeLink
+            data={data}
+            query={query}
+            size="normal"
+          />
+          <EventOrGroupExtraDetails organization={organization} data={data} />
         </GroupSummary>
+        {hasInbox && (
+          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
+            {data.inbox && (
+              <InboxReasonWrapper>
+                <InboxReason inbox={data.inbox} />
+              </InboxReasonWrapper>
+            )}
+            <div>
+              <TimesTag
+                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+              />
+            </div>
+          </ReasonAndTimesContainer>
+        )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
@@ -392,21 +395,6 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
-        {hasInbox && (
-          <React.Fragment>
-            {inboxTabActive && (
-              <Box width={80} mx={2} className="hidden-xs hidden-sm">
-                <InboxReason data={data} />
-              </Box>
-            )}
-            <Box width={150} mx={2} className="hidden-xs hidden-sm">
-              <StyledTimes
-                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-              />
-            </Box>
-          </React.Fragment>
-        )}
       </Wrapper>
     );
   }
@@ -486,8 +474,15 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const StyledTimes = styled(Times)`
-  margin-right: 0;
+const ReasonAndTimesContainer = styled('div')`
+  display: flex;
+  width: 160px;
+  flex-direction: column;
+  margin: 0 ${space(2)};
+`;
+
+const InboxReasonWrapper = styled('div')`
+  margin-bottom: ${space(0.75)};
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

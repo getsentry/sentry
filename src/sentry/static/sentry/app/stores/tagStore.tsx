@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {Tag, TagCollection} from 'app/types';
 import TagActions from 'app/actions/tagActions';
+import {Tag, TagCollection} from 'app/types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -77,7 +77,15 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
       is: {
         key: 'is',
         name: 'Status',
-        values: ['resolved', 'unresolved', 'ignored', 'assigned', 'unassigned'],
+        values: [
+          'resolved',
+          'unresolved',
+          'ignored',
+          'assigned',
+          'unassigned',
+          'linked',
+          'unlinked',
+        ],
         predefined: true,
       },
       has: {

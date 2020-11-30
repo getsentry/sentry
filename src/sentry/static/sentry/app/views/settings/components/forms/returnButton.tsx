@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {IconReturn} from 'app/icons/iconReturn';
 import Tooltip from 'app/components/tooltip';
+import {IconReturn} from 'app/icons/iconReturn';
+import {t} from 'app/locale';
 
 const SubmitButton = styled('div')`
   background: transparent;
@@ -28,7 +28,7 @@ const ClickTargetStyled = styled('div')`
   cursor: pointer;
 
   &:hover ${SubmitButton} {
-    background: #fff;
+    background: ${p => p.theme.background};
     box-shadow: ${p => p.theme.dropShadowLight};
     border: 1px solid ${p => p.theme.border};
   }

@@ -31,7 +31,6 @@ from sentry.models import (
     GroupAssignee,
     GroupBookmark,
     GroupEnvironment,
-    GroupInbox,
     GroupLink,
     GroupMeta,
     GroupResolution,
@@ -48,6 +47,8 @@ from sentry.models import (
     UserOptionValue,
     Organization,
 )
+from sentry.models.groupinbox import get_inbox_details
+from sentry.models.groupowner import get_owner_details
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
@@ -98,9 +99,10 @@ class GroupSerializerBase(Serializer):
         # but it has to be at least 14 days, and not more than 90 days ago.
         # Fallback to the 30 days ago if we are not able to calculate the value.
         last_seen = None
-        for item in seen_stats.values():
-            if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                last_seen = item["last_seen"]
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
 
         if last_seen is None:
             return datetime.now(pytz.utc) - timedelta(days=30)
@@ -747,6 +749,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "assigned_to",
         "inbox",
         "unassigned",
+        "linked",
         "subscribed_by",
         "active_at",
         "first_release",
@@ -869,6 +872,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         collapse=None,
         expand=None,
         has_inbox=False,
+        has_workflow_owners=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids, start, end, search_filters
@@ -887,13 +891,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.collapse = collapse
         self.expand = expand
         self.has_inbox = has_inbox
+        self.has_workflow_owners = has_workflow_owners
 
     def _expand(self, key):
         if self.expand is None:
             return False
 
-        if key == "inbox":
-            return self.has_inbox and "inbox" in self.expand
+        if key == "inbox" and not self.has_inbox:
+            return False
+
+        if key == "owners" and not self.has_workflow_owners:
+            return False
 
         return key in self.expand
 
@@ -934,22 +942,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     }
                 )
             return time_range_result
-
         return None
-
-    def _get_inbox_details(self, item_list):
-        group_ids = [g.id for g in item_list]
-        group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
-        inbox_stats = {
-            gi.group_id: {
-                "reason": gi.reason,
-                "reason_details": gi.reason_details,
-                "date_added": gi.date_added,
-            }
-            for gi in group_inboxes
-        }
-
-        return inbox_stats
 
     def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
         return snuba_tsdb.get_range(
@@ -961,7 +954,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         )
 
     def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+        if not self._collapse("base"):
+            attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+        else:
+            seen_stats = self._get_seen_stats(item_list, user)
+            if seen_stats:
+                attrs = {item: seen_stats.get(item, {}) for item in item_list}
+            else:
+                attrs = {item: {} for item in item_list}
+
         if self.stats_period and not self._collapse("stats"):
             partial_get_stats = functools.partial(
                 self.get_stats, item_list=item_list, user=user, environment_ids=self.environment_ids
@@ -972,20 +973,33 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if self.conditions and not self._collapse("filtered")
                 else None
             )
-            if self._expand("inbox"):
-                inbox_stats = self._get_inbox_details(item_list)
             for item in item_list:
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
-                if self._expand("inbox"):
-                    attrs[item].update({"inbox": inbox_stats.get(item.id)})
-
                 attrs[item].update({"stats": stats[item.id]})
+
+        if self._expand("inbox"):
+            inbox_stats = get_inbox_details(item_list)
+            for item in item_list:
+                attrs[item].update({"inbox": inbox_stats.get(item.id)})
+
+        if self._expand("owners"):
+            owner_details = get_owner_details(item_list)
+            for item in item_list:
+                attrs[item].update({"owners": owner_details.get(item.id)})
 
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+        if not self._collapse("base"):
+            result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+        else:
+            result = {
+                "id": six.text_type(obj.id),
+            }
+            if "times_seen" in attrs:
+                result.update(self._convert_seen_stats(attrs))
+
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id
 
@@ -1012,5 +1026,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("inbox"):
             result["inbox"] = attrs["inbox"]
+
+        if self._expand("owners"):
+            result["owners"] = attrs["owners"]
 
         return result

@@ -1,19 +1,19 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
-import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconClose} from 'app/icons/iconClose';
-import {queryToObj, objToQuery, QueryObj} from 'app/utils/stream';
 import {t} from 'app/locale';
-import {Tag, TagCollection} from 'app/types';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Tag, TagCollection} from 'app/types';
+import {objToQuery, QueryObj, queryToObj} from 'app/utils/stream';
 
-import {TagValueLoader} from './types';
 import IssueListTagFilter from './tagFilter';
+import {TagValueLoader} from './types';
 
 type DefaultProps = {
   tags: TagCollection;
@@ -176,7 +176,7 @@ const StyledIconClose = styled(IconClose)`
 `;
 
 const StyledHeader = styled('h6')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;
 

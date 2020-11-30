@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:25.427715Z'
+created: '2020-11-12T10:57:11.136208Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -64,7 +64,7 @@ app:
               "bound_func"
             lineno (line number is not used if context-line is available)
               25
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -86,7 +86,7 @@ app:
               "dispatch"
             lineno (line number is not used if context-line is available)
               87
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -97,7 +97,7 @@ app:
               "post"
             lineno (line number is not used if context-line is available)
               127
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
@@ -163,7 +163,7 @@ system:
               "_wrapper"
             lineno (line number is not used if context-line is available)
               29
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.decorators.csrf"
             filename (module takes precedence)
@@ -174,7 +174,7 @@ system:
               "wrapped_view"
             lineno (line number is not used if context-line is available)
               57
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -185,7 +185,7 @@ system:
               "bound_func"
             lineno (line number is not used if context-line is available)
               25
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -196,7 +196,7 @@ system:
               "dispatch"
             lineno (line number is not used if context-line is available)
               37
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -207,7 +207,7 @@ system:
               "dispatch"
             lineno (line number is not used if context-line is available)
               87
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry.web.frontend.release_webhook"
             filename (module takes precedence)
@@ -218,7 +218,7 @@ system:
               "post"
             lineno (line number is not used if context-line is available)
               127
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "sentry_plugins.heroku.plugin"
             filename (module takes precedence)
@@ -229,7 +229,7 @@ system:
               "handle"
             lineno (line number is not used if context-line is available)
               17
-          frame (ignored by grouping enhancement rule (function:wrapped_view ^-group -group))
+          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
             module*
               "django.utils.datastructures"
             filename (module takes precedence)

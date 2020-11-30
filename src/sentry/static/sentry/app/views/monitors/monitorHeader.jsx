@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';

@@ -1,19 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import TimeSince from 'app/components/timeSince';
-import Button from 'app/components/button';
-import {IconClock, IconDelete, IconDownload} from 'app/icons';
-import ButtonBar from 'app/components/buttonBar';
-import FileSize from 'app/components/fileSize';
-import {Artifact} from 'app/types';
-import Confirm from 'app/components/confirm';
 import Access from 'app/components/acl/access';
 import Role from 'app/components/acl/role';
-import Tooltip from 'app/components/tooltip';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
+import FileSize from 'app/components/fileSize';
 import Tag from 'app/components/tag';
+import TimeSince from 'app/components/timeSince';
+import Tooltip from 'app/components/tooltip';
+import {IconClock, IconDelete, IconDownload} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Artifact} from 'app/types';
 
 type Props = {
   artifact: Artifact;
@@ -40,7 +40,7 @@ const SourceMapsArtifactRow = ({
         <Name>{name || `(${t('empty')})`}</Name>
         <TimeAndDistWrapper>
           <TimeWrapper>
-            <IconClock size="xs" />
+            <IconClock size="sm" />
             <TimeSince date={dateCreated} />
           </TimeWrapper>
           <StyledTag
@@ -134,8 +134,9 @@ const TimeWrapper = styled('div')`
   display: grid;
   grid-gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray400};
+  font-size: ${p => p.theme.fontSizeMedium};
+  align-items: center;
+  color: ${p => p.theme.subText};
 `;
 
 const StyledTag = styled(Tag)`

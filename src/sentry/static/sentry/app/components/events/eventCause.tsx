@@ -1,18 +1,18 @@
 import React from 'react';
-import uniqBy from 'lodash/uniqBy';
-import flatMap from 'lodash/flatMap';
 import styled from '@emotion/styled';
+import flatMap from 'lodash/flatMap';
+import uniqBy from 'lodash/uniqBy';
 
+import {Client} from 'app/api';
 import CommitRow from 'app/components/commitRow';
-import {IconAdd, IconSubtract} from 'app/icons';
+import {CauseHeader, DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
-import {DataSection, CauseHeader} from 'app/components/events/styles';
+import {IconAdd, IconSubtract} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {AvatarProject, Committer, Event, Group, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {Event, Group, Organization, AvatarProject, Committer} from 'app/types';
-import {Client} from 'app/api';
 
 type Props = {
   // injected by HoC

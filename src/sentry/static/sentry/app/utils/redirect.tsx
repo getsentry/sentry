@@ -1,7 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import {LocationDescriptor} from 'history';
 import * as ReactRouter from 'react-router';
+import {LocationDescriptor} from 'history';
+import PropTypes from 'prop-types';
 
 type Props = {
   router: ReactRouter.InjectedRouter;

@@ -1,20 +1,21 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
+import partition from 'lodash/partition';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
-import {t} from 'app/locale';
 import MarkLine from 'app/components/charts/components/markLine';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {escape} from 'app/utils';
+import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
+import {formatVersion} from 'app/utils/formatters';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {escape} from 'app/utils';
-import {formatVersion} from 'app/utils/formatters';
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
@@ -52,8 +53,11 @@ class ReleaseSeries extends React.Component {
     // Array of releases, if empty, component will fetch releases itself
     releases: PropTypes.arrayOf(SentryTypes.Release),
     tooltip: SentryTypes.EChartsTooltip,
+    queryExtra: PropTypes.object,
 
     memoized: PropTypes.bool,
+    preserveQueryParams: PropTypes.bool,
+    emphasizeReleases: PropTypes.arrayOf(PropTypes.string),
   };
 
   state = {
@@ -83,6 +87,8 @@ class ReleaseSeries extends React.Component {
       !isEqual(prevProps.period, this.props.period)
     ) {
       this.fetchData();
+    } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
+      this.setReleasesWithSeries(this.state.releases);
     }
   }
 
@@ -144,14 +150,48 @@ class ReleaseSeries extends React.Component {
   }
 
   setReleasesWithSeries(releases) {
+    const {emphasizeReleases = []} = this.props;
+    const [unemphasizedReleases, emphasizedReleases] = partition(
+      releases,
+      release => !emphasizeReleases.includes(release.version)
+    );
+    const releaseSeries = [];
+    if (unemphasizedReleases.length) {
+      releaseSeries.push(this.getReleaseSeries(unemphasizedReleases));
+    }
+    if (emphasizedReleases.length) {
+      releaseSeries.push(this.getReleaseSeries(emphasizedReleases, 0.8));
+    }
+
     this.setState({
       releases,
-      releaseSeries: [this.getReleaseSeries(releases)],
+      releaseSeries,
     });
   }
 
-  getReleaseSeries = releases => {
-    const {organization, router, tooltip} = this.props;
+  getReleaseSeries = (releases, opacity = 0.3) => {
+    const {
+      organization,
+      router,
+      tooltip,
+      environments,
+      start,
+      end,
+      period,
+      preserveQueryParams,
+      queryExtra,
+    } = this.props;
+
+    const query = {...queryExtra};
+    if (organization.features.includes('global-views')) {
+      query.project = router.location.query.project;
+    }
+    if (preserveQueryParams) {
+      query.environment = environments;
+      query.start = start ? getUtcDateString(start) : undefined;
+      query.end = start ? getUtcDateString(end) : undefined;
+      query.statsPeriod = period || undefined;
+    }
 
     return {
       seriesName: 'Releases',
@@ -161,7 +201,7 @@ class ReleaseSeries extends React.Component {
         lineStyle: {
           normal: {
             color: theme.purple300,
-            opacity: 0.3,
+            opacity,
             type: 'solid',
           },
         },
@@ -199,9 +239,7 @@ class ReleaseSeries extends React.Component {
           onClick: () => {
             router.push({
               pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-              query: new Set(organization.features).has('global-views')
-                ? undefined
-                : {project: router.location.query.project},
+              query,
             });
           },
           label: {

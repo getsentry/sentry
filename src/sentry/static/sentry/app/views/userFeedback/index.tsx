@@ -1,27 +1,27 @@
+import React from 'react';
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
-import omit from 'lodash/omit';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import omit from 'lodash/omit';
 
-import {Organization, UserReport} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import CompactIssue from 'app/components/issues/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import CompactIssue from 'app/components/issues/compactIssue';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization, UserReport} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
-import {getQuery} from './utils';
 import UserFeedbackEmpty from './userFeedbackEmpty';
+import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {
   reportList: UserReport[];
@@ -32,7 +32,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       organization,
       location: {search},

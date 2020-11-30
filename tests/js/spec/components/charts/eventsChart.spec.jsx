@@ -1,12 +1,12 @@
 import React from 'react';
 
 import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import EventsChart from 'app/components/charts/eventsChart';
 import * as globalSelection from 'app/actionCreators/globalSelection';
+import EventsChart from 'app/components/charts/eventsChart';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
 
 jest.mock('app/components/charts/eventsRequest', () => jest.fn(() => null));
 jest.spyOn(globalSelection, 'updateDateTime');

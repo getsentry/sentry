@@ -1,19 +1,19 @@
+import React from 'react';
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import {css} from '@emotion/core';
-import PropTypes from 'prop-types';
-import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {IssueAlertRule} from 'app/types/alerts';
-import {
-  SavedIncidentRule,
-  AlertRuleThresholdType,
-} from 'app/views/settings/incidentRules/types';
-import {getDisplayName} from 'app/utils/environment';
 import {t, tct} from 'app/locale';
-import recreateRoute from 'app/utils/recreateRoute';
 import space from 'app/styles/space';
+import {IssueAlertRule} from 'app/types/alerts';
+import {getDisplayName} from 'app/utils/environment';
+import recreateRoute from 'app/utils/recreateRoute';
+import {
+  AlertRuleThresholdType,
+  SavedIncidentRule,
+} from 'app/views/settings/incidentRules/types';
 
 function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
@@ -155,7 +155,7 @@ type HasBorderProp = {
 };
 
 const RuleType = styled('div')<RowSpansProp>`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
   text-transform: uppercase;
@@ -221,7 +221,7 @@ const TriggerDescription = styled('div')`
 
 const StatusBadge = styled('div')`
   background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   text-transform: uppercase;
   padding: ${space(0.25)} ${space(0.5)};
   font-weight: 600;

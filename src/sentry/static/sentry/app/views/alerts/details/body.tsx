@@ -1,39 +1,40 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {Project} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {defined} from 'app/utils';
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
-import Duration from 'app/components/duration';
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
+import Duration from 'app/components/duration';
 import Link from 'app/components/links/link';
 import NavTabs from 'app/components/navTabs';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import SeenByList from 'app/components/seenByList';
 import {IconWarning} from 'app/icons';
-import {SectionHeading} from 'app/components/charts/styles';
-import Projects from 'app/utils/projects';
+import {t, tct} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Project} from 'app/types';
+import {defined} from 'app/utils';
+import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
-import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
-import Button from 'app/components/button';
-import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
-import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
+import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
+import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
-import Activity from './activity';
-import Chart from './chart';
 import {
+  AlertRuleStatus,
   Incident,
   IncidentStats,
-  AlertRuleStatus,
   IncidentStatus,
   IncidentStatusMethod,
 } from '../types';
-import {getIncidentMetricPreset, DATA_SOURCE_LABELS} from '../utils';
+import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../utils';
+
+import Activity from './activity';
+import Chart from './chart';
 
 type Props = {
   incident?: Incident;
@@ -295,7 +296,7 @@ export default class DetailsBody extends React.Component<Props> {
 }
 
 const Main = styled('div')`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding-top: ${space(3)};
   flex-grow: 1;
 `;
@@ -356,7 +357,7 @@ const ChartActions = styled(PanelFooter)`
 `;
 
 const ChartParameters = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-auto-flow: column;
@@ -427,6 +428,6 @@ const RuleDetails = styled('div')`
 
   & > span:nth-child(4n + 1),
   & > span:nth-child(4n + 2) {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.rowBackground};
   }
 `;

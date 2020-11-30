@@ -1,24 +1,25 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import SearchBar from 'app/views/events/searchBar';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
-import VitalsPanel from './vitalsPanel';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
+
 import {FILTER_OPTIONS, ZOOM_KEYS} from './constants';
+import VitalsPanel from './vitalsPanel';
 
 type Props = {
   location: Location;
@@ -55,7 +56,7 @@ class VitalsContent extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})

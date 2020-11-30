@@ -1,15 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Card from 'app/components/card';
-import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
-import Radio from 'app/components/radio';
-import textStyles from 'app/styles/text';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
-import Feature from 'app/components/acl/feature';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import textStyles from 'app/styles/text';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -165,7 +165,7 @@ const ExampleHeading = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: bold;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(2)};
 `;
 

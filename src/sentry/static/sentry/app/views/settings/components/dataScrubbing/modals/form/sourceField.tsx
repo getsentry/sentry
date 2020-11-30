@@ -1,15 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import InputField from 'app/views/settings/components/forms/inputField';
 import TextOverflow from 'app/components/textOverflow';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {defined} from 'app/utils';
+import InputField from 'app/views/settings/components/forms/inputField';
 
-import {unarySuggestions, binarySuggestions} from '../../utils';
-import SourceSuggestionExamples from './sourceSuggestionExamples';
 import {SourceSuggestion, SourceSuggestionType} from '../../types';
+import {binarySuggestions, unarySuggestions} from '../../utils';
+
+import SourceSuggestionExamples from './sourceSuggestionExamples';
 
 const defaultHelp = t(
   'Where to look. In the simplest case this can be an attribute name.'
@@ -463,7 +464,7 @@ const Suggestions = styled('ul')<{error?: string}>`
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.border};
   border-radius: 0 0 ${space(0.5)} ${space(0.5)};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   top: 63px;
   left: 0;
   z-index: 1002;
@@ -480,7 +481,7 @@ const Suggestion = styled('li')<{active: boolean}>`
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
   cursor: pointer;
-  background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.white)};
+  background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.background)};
   :hover {
     background: ${p =>
       p.active ? p.theme.backgroundSecondary : p.theme.backgroundSecondary};

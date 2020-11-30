@@ -1,22 +1,22 @@
+import React from 'react';
 import {Link} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
-import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {IconDelete, IconEdit} from 'app/icons';
-import recreateRoute from 'app/utils/recreateRoute';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import recreateRoute from 'app/utils/recreateRoute';
+import AsyncView from 'app/views/asyncView';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import {SavedIncidentRule} from './types';
 import {deleteRule} from './actions';
+import {SavedIncidentRule} from './types';
 
 type State = {
   rules: SavedIncidentRule[];
@@ -30,7 +30,7 @@ type RouteParams = {
 type Props = RouteComponentProps<RouteParams, {}>;
 
 class IncidentRulesList extends AsyncView<Props, State> {
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
 
     return [['rules', `/organizations/${orgId}/alert-rules/`] as [string, string]];

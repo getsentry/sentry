@@ -1,4 +1,3 @@
-@import url('components/charts.less');
 @import url('components/statuspage.less');
 
 dl.flat {
@@ -1373,7 +1372,8 @@ header + .alert {
   letter-spacing: 0.1px;
   .clearfix;
 
-  a.help-link {
+  a.help-link,
+  span.help-link a {
     color: inherit;
     border-bottom: 1px dotted @gray-light;
   }
@@ -1519,7 +1519,7 @@ header + .alert {
 */
 
 ul.radio-inputs {
-  .list-unstyled;
+  list-style: none;
   position: relative;
   display: inline-block;
   margin-bottom: 10px;
