@@ -229,7 +229,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
 
-class DashboardSerializer(serializers.Serializer):
+class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(required=True)
 
     def create(self, validated_data):
