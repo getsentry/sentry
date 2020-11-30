@@ -313,7 +313,9 @@ def initialize_app(config, skip_service_validation=False):
     if not hasattr(settings, "CSRF_COOKIE_PATH"):
         settings.CSRF_COOKIE_PATH = getattr(settings, "SESSION_COOKIE_PATH", "/")
 
-    settings.CACHES["default"]["VERSION"] = settings.CACHE_VERSION
+    for key in settings.CACHES:
+        if not hasattr(settings.CACHES[key], "VERSION"):
+            settings.CACHES[key]["VERSION"] = settings.CACHE_VERSION
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
