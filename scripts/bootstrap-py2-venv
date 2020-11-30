@@ -26,7 +26,6 @@ export SENTRY_PYTHON2=1
 
 gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
-# Be careful changing this as there's a rm -rf later in the script
 export venv_name="${PWD}/.venv2"
 
 if [[ -f "${venv_name}/bin/activate" ]]; then
