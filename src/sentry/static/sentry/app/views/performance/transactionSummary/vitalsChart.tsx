@@ -24,6 +24,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import {TransactionsListOption} from 'app/views/releases/detail/overview';
 
 import {HeaderTitleLegend} from '../styles';
 
@@ -207,7 +208,7 @@ class VitalsChart extends React.Component<Props> {
                     end={end}
                     queryExtra={{
                       ...queryExtra,
-                      showTransactions: 'slow_lcp',
+                      showTransactions: TransactionsListOption.SLOW_LCP,
                     }}
                     period={statsPeriod}
                     utc={utc}

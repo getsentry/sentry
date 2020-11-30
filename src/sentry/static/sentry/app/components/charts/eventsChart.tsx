@@ -1,6 +1,7 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {EChartOption} from 'echarts/lib/echarts';
+import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -317,6 +318,8 @@ type Props = {
    * Markup for optional chart header
    */
   chartHeader?: React.ReactNode;
+  releaseQueryExtra?: Query;
+  preserveReleaseQueryParams?: boolean;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -365,6 +368,8 @@ class EventsChart extends React.Component<Props> {
     orderby: PropTypes.string,
     confirmedQuery: PropTypes.bool,
     colors: PropTypes.array,
+    preserveReleaseQueryParams: PropTypes.bool,
+    releaseQueryExtras: PropTypes.object,
     disableableSeries: PropTypes.array,
     chartHeader: PropTypes.object,
     legendOptions: PropTypes.object,
@@ -400,6 +405,8 @@ class EventsChart extends React.Component<Props> {
       chartHeader,
       legendOptions,
       chartOptions,
+      preserveReleaseQueryParams,
+      releaseQueryExtra,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -470,6 +477,8 @@ class EventsChart extends React.Component<Props> {
           projects={projects}
           environments={environments}
           emphasizeReleases={emphasizeReleases}
+          preserveQueryParams={preserveReleaseQueryParams}
+          queryExtra={releaseQueryExtra}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>
