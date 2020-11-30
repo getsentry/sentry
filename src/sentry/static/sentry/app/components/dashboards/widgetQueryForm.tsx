@@ -3,12 +3,16 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import {PanelBody, PanelItem} from 'app/components/panels';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, SavedQuery, SelectValue} from 'app/types';
 import {
   explodeField,
   generateFieldAsString,
@@ -22,6 +26,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 
 type Props = {
+  api: Client;
   widgetQuery: WidgetQuery;
   organization: Organization;
   selection: GlobalSelection;
@@ -31,11 +36,14 @@ type Props = {
   onRemove: () => void;
 };
 
+type SavedQueryOption = SelectValue<SavedQuery>;
+
 /**
  * Contain widget query interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
 function WidgetQueryForm({
+  api,
   canRemove,
   fieldOptions,
   onChange,
@@ -75,22 +83,72 @@ function WidgetQueryForm({
     onChange(newQuery);
   }
 
+  function handleSavedQueryChange({value}: SavedQueryOption) {
+    const newQuery = cloneDeep(widgetQuery);
+    newQuery.fields = [value.yAxis ?? 'count()'];
+    newQuery.conditions = value.query ?? '';
+    newQuery.name = value.name;
+    onChange(newQuery);
+  }
+
+  function handleLoadOptions(inputValue: string) {
+    return new Promise((resolve, reject) => {
+      fetchSavedQueries(api, organization.slug, inputValue)
+        .then((queries: SavedQuery[]) => {
+          const results = queries.map(query => ({
+            label: query.name,
+            value: query,
+          }));
+          resolve(results);
+        })
+        .catch(reject);
+    });
+  }
+
   return (
     <StyledPanelBody>
       {canRemove && (
-        <VerticalPanelItem>
-          <Heading>
-            {t('Name')}
-            <Button
-              data-test-id="remove-query"
-              priority="default"
-              size="zero"
-              borderless
-              onClick={onRemove}
-              icon={<IconDelete />}
-              title={t('Remove this query')}
+        <RemoveButtonWrapper>
+          <Button
+            data-test-id="remove-query"
+            priority="default"
+            size="zero"
+            borderless
+            onClick={onRemove}
+            icon={<IconDelete />}
+            title={t('Remove this query')}
+          />
+        </RemoveButtonWrapper>
+      )}
+      <Feature organization={organization} features={['discover-query']}>
+        {({hasFeature}) => (
+          <VerticalPanelItem>
+            <Heading>{t('Use a discover query')}</Heading>
+            <SelectControl
+              async
+              defaultOptions
+              value=""
+              name="discoverQuery"
+              loadOptions={handleLoadOptions}
+              onChange={handleSavedQueryChange}
+              options={[]}
+              disabled={!hasFeature}
+              cache
+              onSelectResetsInput={false}
+              onCloseResetsInput={false}
+              onBlurResetsInput={false}
             />
-          </Heading>
+            <FieldHelp>
+              {t(
+                'Use an existing discover saved query to define your widget, or build a new query.'
+              )}
+            </FieldHelp>
+          </VerticalPanelItem>
+        )}
+      </Feature>
+      {canRemove && (
+        <VerticalPanelItem>
+          <Heading>{t('Name')}</Heading>
           <Input
             type="text"
             name="name"
@@ -179,6 +237,12 @@ const QueryFieldWrapper = styled('div')`
   > * + * {
     margin-left: ${space(1)};
   }
+`;
+
+const RemoveButtonWrapper = styled('div')`
+  position: absolute;
+  top: ${space(2)};
+  right: ${space(2)};
 `;
 
 export default WidgetQueryForm;

@@ -110,7 +110,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {Body, Header, closeModal, organization, selection, tags} = this.props;
+    const {Body, Header, api, closeModal, organization, selection, tags} = this.props;
     const state = this.state;
 
     // TODO(mark) Figure out how to get measurement keys here.
@@ -164,6 +164,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 return (
                   <WidgetQueryForm
                     key={i}
+                    api={api}
                     organization={organization}
                     selection={selection}
                     fieldOptions={fieldOptions}
