@@ -646,6 +646,11 @@ class IssueListActions extends React.Component<Props, State> {
           <AssigneesLabel className="align-right hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
+          <Feature organization={organization} features={['organizations:inbox']}>
+            <ActionsLabel className="align-right hidden-xs hidden-sm">
+              <ToolbarHeader>{t('Actions')}</ToolbarHeader>
+            </ActionsLabel>
+          </Feature>
         </StyledFlex>
 
         {!allResultsVisible && pageSelected && (
@@ -798,6 +803,12 @@ const FirstSeenLastSeenHeader = styled(ToolbarHeader)`
 
 const AssigneesLabel = styled('div')`
   width: 80px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
+const ActionsLabel = styled('div')`
+  width: 120px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 `;

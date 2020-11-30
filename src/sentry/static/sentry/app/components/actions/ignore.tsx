@@ -36,7 +36,7 @@ const IGNORE_WINDOWS: [number, string][] = [
 const defaultProps = {
   isIgnored: false,
   confirmLabel: t('Ignore'),
-  inboxHoverAction: false,
+  inboxRowAction: false,
 };
 
 type Props = {
@@ -44,7 +44,7 @@ type Props = {
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
-  inboxHoverAction?: boolean;
+  inboxRowAction?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -89,7 +89,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
       shouldConfirm,
       confirmMessage,
       confirmLabel,
-      inboxHoverAction,
+      inboxRowAction,
     } = this.props;
 
     const linkClassName = classNames('btn btn-default btn-sm', {
@@ -97,8 +97,8 @@ export default class IgnoreActions extends React.Component<Props, State> {
     });
 
     const submenuClassName = classNames('dropdown-submenu', {
-      flex: inboxHoverAction,
-      'expand-left': inboxHoverAction,
+      flex: inboxRowAction,
+      'expand-left': inboxRowAction,
     });
 
     const actionLinkProps = {
@@ -153,7 +153,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
-          {!inboxHoverAction && (
+          {!inboxRowAction && (
             <StyledActionLink
               {...actionLinkProps}
               title={t('Ignore')}
@@ -166,15 +166,15 @@ export default class IgnoreActions extends React.Component<Props, State> {
           )}
 
           <StyledDropdownLink
-            caret={!inboxHoverAction}
+            caret={!inboxRowAction}
             className={linkClassName}
             customTitle={
-              inboxHoverAction ? <IconMute size="xs" color="gray200" /> : undefined
+              inboxRowAction ? <IconMute size="xs" color="gray300" /> : undefined
             }
             title=""
             alwaysRenderMenu
             disabled={disabled}
-            anchorRight={inboxHoverAction}
+            anchorRight={inboxRowAction}
           >
             <MenuItem header>Ignore</MenuItem>
             <li className={submenuClassName}>

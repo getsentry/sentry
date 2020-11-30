@@ -23,7 +23,7 @@ const defaultProps = {
   isResolved: false,
   isAutoResolved: false,
   confirmLabel: t('Resolve'),
-  inboxHoverAction: false,
+  inboxRowAction: false,
 };
 
 type Props = {
@@ -37,7 +37,7 @@ type Props = {
   disabled?: boolean;
   disableDropdown?: boolean;
   projectFetchError?: boolean;
-  inboxHoverAction?: boolean;
+  inboxRowAction?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -128,7 +128,7 @@ class ResolveActions extends React.Component<Props, State> {
       confirmLabel,
       disableDropdown,
       projectFetchError,
-      inboxHoverAction,
+      inboxRowAction,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -161,7 +161,7 @@ class ResolveActions extends React.Component<Props, State> {
         />
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
           <div className="btn-group">
-            {!inboxHoverAction && (
+            {!inboxRowAction && (
               <StyledActionLink
                 {...actionLinkProps}
                 title={t('Resolve')}
@@ -175,15 +175,15 @@ class ResolveActions extends React.Component<Props, State> {
 
             <StyledDropdownLink
               key="resolve-dropdown"
-              caret={!inboxHoverAction}
+              caret={!inboxRowAction}
               className={buttonClass}
               customTitle={
-                inboxHoverAction ? <IconCheckmark size="xs" color="gray200" /> : undefined
+                inboxRowAction ? <IconCheckmark size="xs" color="gray300" /> : undefined
               }
               title=""
               alwaysRenderMenu
               disabled={disableDropdown || disabled}
-              anchorRight={inboxHoverAction}
+              anchorRight={inboxRowAction}
             >
               <MenuItem header>{t('Resolved In')}</MenuItem>
               <MenuItem noAnchor>
