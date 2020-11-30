@@ -47,7 +47,10 @@ def bump_reprocessing_revision(project):
     from sentry.models import ProjectOption
 
     rev = uuid.uuid4().hex
-    ProjectOption.objects.set_value(project, REPROCESSING_OPTION, rev)
+    ProjectOption.objects.set_value(
+        project,
+        REPROCESSING_OPTION, rev
+    )
     return rev
 
 
