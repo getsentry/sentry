@@ -97,7 +97,7 @@ class OrganizationDashboardsTest(APITestCase):
         )
         assert dashboard.created_by == self.user
 
-        widgets = self.get_widgets(self.dashboard.id)
+        widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 2
 
         for expected_widget in data["widgets"]:

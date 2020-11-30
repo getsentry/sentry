@@ -109,23 +109,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
     validate_id = validate_id
 
-    def create(self, validated_data):
-        """
-        Create a dashboard, and create any widgets and their queries
-
-        Only call save() on this serializer from within a transaction or
-        bad things will happen
-        """
-        self.instance = Dashboard.objects.create(
-            organization_id=self.context.get("organization_id"),
-            title=validated_data["title"],
-            created_by=self.context.get("request").user,
-        )
-
-        self.update_widgets(self.instance, validated_data["widgets"])
-
-        return self.instance
-
     def update(self, instance, validated_data):
         """
         Update a dashboard, the connected widgets and queries
@@ -244,3 +227,25 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
     def remove_missing_queries(self, widget_id, keep_ids):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
+
+
+class DashboardSerializer(serializers.Serializer):
+    title = serializers.CharField(required=True)
+
+    def create(self, validated_data):
+        """
+        Create a dashboard, and create any widgets and their queries
+
+        Only call save() on this serializer from within a transaction or
+        bad things will happen
+        """
+        self.instance = Dashboard.objects.create(
+            organization_id=self.context.get("organization_id"),
+            title=validated_data["title"],
+            created_by=self.context.get("request").user,
+        )
+
+        if "widgets" in validated_data:
+            self.update_widgets(self.instance, validated_data["widgets"])
+
+        return self.instance
