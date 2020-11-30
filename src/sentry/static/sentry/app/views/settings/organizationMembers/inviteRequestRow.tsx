@@ -68,11 +68,9 @@ const InviteRequestRow = ({
             </Description>
           )
         ) : (
-          <JoinRequestIndicator
-            tooltipText={t('This user has asked to join your organization.')}
-          >
-            {t('Join request')}
-          </JoinRequestIndicator>
+          <Tooltip title={t('This user has asked to join your organization.')}>
+            <Tag>{t('Join request')}</Tag>
+          </Tooltip>
         )}
       </div>
 
@@ -165,10 +163,6 @@ InviteRequestRow.propTypes = {
   allRoles: PropTypes.arrayOf(PropTypes.object),
   allTeams: PropTypes.arrayOf(PropTypes.object),
 };
-
-const JoinRequestIndicator = styled(Tag)`
-  text-transform: uppercase;
-`;
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;

@@ -544,6 +544,11 @@ type IndicatorProps = {
   color: string;
 };
 
+const SummaryHeading = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
 const Indicator = styled('div')<IndicatorProps>`
   position: absolute;
   top: 20px;

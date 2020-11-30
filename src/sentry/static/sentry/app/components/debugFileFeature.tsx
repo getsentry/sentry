@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Tag from 'app/components/tag';
+import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -30,16 +31,20 @@ const DebugFileFeature = ({available = true, feature}: Props) => {
   const tooltipText = FEATURE_TOOLTIPS[feature];
   if (available === true) {
     return (
-      <StyledTag type="success" tooltipText={tooltipText} icon={<IconCheckmark />}>
-        {feature}
-      </StyledTag>
+      <Tooltip title={tooltipText}>
+        <StyledTag type="success" icon={<IconCheckmark />}>
+          {feature}
+        </StyledTag>
+      </Tooltip>
     );
   }
 
   return (
-    <StyledTag type="error" tooltipText={tooltipText} icon={<IconClose />}>
-      {feature}
-    </StyledTag>
+    <Tooltip title={tooltipText}>
+      <StyledTag type="error" icon={<IconClose />}>
+        {feature}
+      </StyledTag>
+    </Tooltip>
   );
 };
 export default DebugFileFeature;

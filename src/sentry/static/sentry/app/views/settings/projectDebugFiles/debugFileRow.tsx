@@ -78,9 +78,11 @@ const DebugFileRow = ({
           {features && (
             <FeatureTags>
               {features.map(feature => (
-                <StyledTag key={feature} tooltipText={getFeatureTooltip(feature)}>
-                  {feature}
-                </StyledTag>
+                <React.Fragment key={feature}>
+                  <Tooltip title={getFeatureTooltip(feature)}>
+                    <StyledTag>{feature}</StyledTag>
+                  </Tooltip>
+                </React.Fragment>
               ))}
             </FeatureTags>
           )}
