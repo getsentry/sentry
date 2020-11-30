@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
 from sentry.api.bases import (
     OrganizationEndpoint,
@@ -29,7 +30,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         project_id = request.GET.get("projectId")
         if not project_id:
-            return Response([], status=404)
+            raise ValidationError("Required parameter 'projectId' is missing")
 
         try:
             project = Project.objects.get(id=project_id, organization_id=organization.id)
