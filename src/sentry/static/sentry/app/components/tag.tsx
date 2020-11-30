@@ -118,7 +118,7 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
   color: ${p => p.theme.tag[p.type].textColor};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${space(1)};
 `;
 
 const IconWrapper = styled('span')`
