@@ -90,7 +90,7 @@ jobs:
 
       # Apply fixed files via pull request review comments
       - name: Apply any pre-commit fixed files as Pull Request review comments
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
         continue-on-error: true
         uses: getsentry/action-git-diff-suggestions@main
         with:
