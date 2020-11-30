@@ -15,6 +15,7 @@ import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
+import withApi from 'app/utils/withApi';
 
 import {getTermHelp} from '../performance/data';
 import {ChartContainer} from '../performance/styles';
@@ -129,4 +130,4 @@ class ProjectCharts extends React.Component<Props, State> {
   }
 }
 
-export default ProjectCharts;
+export default withApi(ProjectCharts);
