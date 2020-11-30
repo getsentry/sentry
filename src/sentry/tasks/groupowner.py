@@ -4,6 +4,7 @@ import logging
 
 from datetime import timedelta
 
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
@@ -35,28 +36,42 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
         )
         return
 
-    event = Event(
-        project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
-    )
-    project = Project.objects.get_from_cache(id=event.project_id)
-    owners = GroupOwner.objects.filter(
-        group_id=event.group_id,
-        project=project,
-        organization_id=project.organization_id,
-        type=GroupOwnerType.SUSPECT_COMMIT.value,
-    )
-    owner_count = owners.count()
-    oldest_owner = None
-
-    if owner_count >= PREFERRED_GROUP_OWNERS:
-        # We have enough owners already - so see if any are old.
-        # If so, we can delete it and replace with a fresh one.
-        oldest_owner = (
-            owners.filter(date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE)
-            .order_by("-date_added")
-            .first()
+    cache_key = "workflow-owners-ingestion:group-{}".format(group_id)
+    owner_data = cache.get(cache_key)
+    if owner_data is None:
+        event = Event(
+            project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
         )
-        if not oldest_owner:
+        project = Project.objects.get_from_cache(id=event.project_id)
+        owners = GroupOwner.objects.filter(
+            group_id=event.group_id,
+            project=project,
+            organization_id=project.organization_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        )
+        owner_count = owners.count()
+        oldest_owner = None
+        if owner_count >= PREFERRED_GROUP_OWNERS:
+            # We have enough owners already - so see if any are old.
+            # If so, we can delete it and replace with a fresh one.
+            oldest_owner = (
+                owners.filter(date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE)
+                .order_by("-date_added")
+                .first()
+            )
+            if not oldest_owner:
+                can_process = False
+
+        owner_data = {
+            "count": owner_count,
+            "oldest_owner": oldest_owner,
+        }
+        cache.set(cache_key, owner_data, 60)
+    else:
+        can_process = True
+        owner_count = owner_data["owner_count"]
+        oldest_owner = owner_data["oldest_owner"]
+        if owner_count >= PREFERRED_GROUP_OWNERS and not oldest_owner:
             can_process = False
 
     if can_process:
