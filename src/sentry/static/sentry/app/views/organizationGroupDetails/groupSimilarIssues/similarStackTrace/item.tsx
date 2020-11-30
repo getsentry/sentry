@@ -21,13 +21,12 @@ import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
-const similarInterfaces = ['exception', 'message'];
-
 type Props = {
   issue: Group;
   project: Project;
   orgId: Organization['id'];
   groupId: Group['id'];
+  v2: boolean;
   score?: Record<string, any>;
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
@@ -99,8 +98,9 @@ class Item extends React.Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue} = this.props;
+    const {aggregate, scoresByInterface, issue, v2} = this.props;
     const {visible, busy} = this.state;
+    const similarInterfaces = v2 ? ['similarity'] : ['exception', 'message'];
 
     if (!visible) {
       return null;
