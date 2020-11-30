@@ -76,6 +76,8 @@ from sentry.models import (
     Organization,
     Dashboard,
     DashboardWidgetQuery,
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
 )
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
@@ -996,3 +998,28 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             return
 
         self.assert_widget_queries(data["id"], queries)
+
+    def assert_serialized_widget_query(self, data, widget_data_source):
+        if "id" in data:
+            assert data["id"] == six.text_type(widget_data_source.id)
+        if "name" in data:
+            assert data["name"] == widget_data_source.name
+        if "fields" in data:
+            assert data["fields"] == widget_data_source.fields
+        if "conditions" in data:
+            assert data["conditions"] == widget_data_source.conditions
+
+    def get_widgets(self, dashboard_id):
+        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
+
+    def assert_serialized_widget(self, data, expected_widget):
+        if "id" in data:
+            assert data["id"] == six.text_type(expected_widget.id)
+        if "title" in data:
+            assert data["title"] == expected_widget.title
+        if "interval" in data:
+            assert data["interval"] == expected_widget.interval
+        if "displayType" in data:
+            assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
+                expected_widget.display_type
+            )
