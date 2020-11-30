@@ -1,12 +1,16 @@
 import React from 'react';
+import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import {t} from 'app/locale';
+import ButtonBar from 'app/components/buttonBar';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {
   Event,
   Frame,
+  Integration,
   Organization,
   Project,
   RepositoryProjectPathConfig,
@@ -14,6 +18,7 @@ import {
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
 
@@ -27,6 +32,7 @@ type Props = AsyncComponent['props'] & {
 
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
+  integrations: Integration[];
   config?: RepositoryProjectPathConfig;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
@@ -34,6 +40,8 @@ type StacktraceResultItem = {
 
 type State = AsyncComponent['state'] & {
   match: StacktraceResultItem;
+  showModal: boolean;
+  sourceCodeInput: string;
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
@@ -49,6 +57,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
   get config() {
     return this.match.config;
+  }
+
+  get integrations() {
+    return this.match.integrations;
   }
 
   get errorText() {
@@ -81,6 +93,34 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       ],
     ];
   }
+
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      showModal: false,
+      sourceCodeInput: '',
+      match: {integrations: []},
+    };
+  }
+
+  openModal() {
+    this.setState({
+      showModal: true,
+    });
+  }
+
+  closeModal() {
+    this.setState({
+      showModal: false,
+    });
+  }
+
+  onHandleChange(value: string) {
+    this.setState({
+      sourceCodeInput: value,
+    });
+  }
+
   onOpenLink() {
     const provider = this.config?.provider;
     if (provider) {
@@ -124,7 +164,81 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     return null;
   }
   renderNoMatch() {
-    //TODO: Improve UI
+    const {showModal, sourceCodeInput} = this.state;
+    const {organization} = this.props;
+    const filename = this.props.frame.filename;
+    const baseUrl = `/settings/${organization.slug}/integrations`;
+
+    if (this.integrations) {
+      return (
+        <CodeMappingButtonContainer columnQuantity={2}>
+          {t('Enable source code stack trace linking by setting up a code mapping.')}
+          <Button onClick={() => this.openModal()} size="xsmall">
+            {t('Setup Code Mapping')}
+          </Button>
+          <Modal
+            show={showModal}
+            onHide={() => this.closeModal()}
+            enforceFocus={false}
+            backdrop="static"
+            animation={false}
+          >
+            <Modal.Header closeButton>{t('Code Mapping Setup')}</Modal.Header>
+            <Modal.Body>
+              <ModalContainer>
+                <div>
+                  <h6>{t('Quick Setup')}</h6>
+                  {tct(
+                    'Enter in your source code url that corresponsds to stack trace filename [filename]. We will create a code mapping with this information.',
+                    {
+                      filename: <code>{filename}</code>,
+                    }
+                  )}
+                </div>
+                <SourceCodeInput>
+                  <StyledInputField
+                    inline={false}
+                    flexibleControlStateSize
+                    stacked
+                    name="source-code-input"
+                    type="text"
+                    value={sourceCodeInput}
+                    onChange={val => this.onHandleChange(val)}
+                    placeholder={t(
+                      `https://github.com/octocat/Hello-World/blob/master/${filename}`
+                    )}
+                  />
+                  <ButtonBar>
+                    <Button type="button" onClick={() => {}}>
+                      {t('Submit')}
+                    </Button>
+                  </ButtonBar>
+                </SourceCodeInput>
+                <div>
+                  <h6>{t('Manual Setup')}</h6>
+                  {t(
+                    'To set up a code mapping manually, select which of your following integrations you want to set up the mapping for:'
+                  )}
+                </div>
+                <ManualSetup>
+                  {this.integrations.map(integration => (
+                    <Button
+                      key={integration.id}
+                      type="button"
+                      to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings`}
+                    >
+                      {getIntegrationIcon(integration.provider.key)}
+                      <IntegrationName>{integration.name}</IntegrationName>
+                    </Button>
+                  ))}
+                </ManualSetup>
+              </ModalContainer>
+            </Modal.Body>
+            <Modal.Footer></Modal.Footer>
+          </Modal>
+        </CodeMappingButtonContainer>
+      );
+    }
     return null;
   }
   renderMatchNoUrl() {
@@ -170,4 +284,29 @@ export {StacktraceLink};
 
 export const CodeMappingButtonContainer = styled(OpenInContainer)`
   justify-content: space-between;
+`;
+
+const SourceCodeInput = styled('div')`
+  display: grid;
+  grid-template-columns: 5fr 1fr;
+  grid-gap: ${space(1)};
+`;
+
+const ManualSetup = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  justify-items: center;
+`;
+
+const ModalContainer = styled('div')`
+  display: grid;
+  grid-gap: ${space(3)};
+`;
+
+const StyledInputField = styled(InputField)`
+  padding: 0px;
+`;
+
+const IntegrationName = styled('p')`
+  padding-left: 10px;
 `;
