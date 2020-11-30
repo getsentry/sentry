@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader, {TAB} from './header';
-import {fetchGroupEvent, fetchGroupEventAndMarkSeen} from './utils';
+import {fetchGroupEvent, fetchGroupEventAndMarkSeen, markEventSeen} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -179,6 +179,10 @@ class GroupDetails extends React.Component<Props, State> {
         },
       });
       const [data] = await Promise.all([groupPromise, eventPromise]);
+      if (this.canLoadEventEarly(this.props)) {
+        // Early loaded events are not marked as seen
+        markEventSeen(api, params.orgId, data.project.slug, params.groupId);
+      }
 
       // TODO(billy): See if this is even in use and if not, can we just rip this out?
       if (this.props.params.groupId !== data.id) {
