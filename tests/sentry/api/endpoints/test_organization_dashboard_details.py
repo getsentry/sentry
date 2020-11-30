@@ -58,32 +58,10 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             kwargs={"organization_slug": self.organization.slug, "dashboard_id": dashboard_id},
         )
 
-    def assert_serialized_widget(self, data, expected_widget):
-        if "id" in data:
-            assert data["id"] == six.text_type(expected_widget.id)
-        if "title" in data:
-            assert data["title"] == expected_widget.title
-        if "interval" in data:
-            assert data["interval"] == expected_widget.interval
-        if "displayType" in data:
-            assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
-                expected_widget.display_type
-            )
-
     def assert_serialized_dashboard(self, data, dashboard):
         assert data["id"] == six.text_type(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"] == six.text_type(dashboard.created_by.id)
-
-    def assert_serialized_widget_query(self, data, widget_data_source):
-        if "id" in data:
-            assert data["id"] == six.text_type(widget_data_source.id)
-        if "name" in data:
-            assert data["name"] == widget_data_source.name
-        if "fields" in data:
-            assert data["fields"] == widget_data_source.fields
-        if "conditions" in data:
-            assert data["conditions"] == widget_data_source.conditions
 
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
@@ -146,9 +124,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
-
-    def get_widgets(self, dashboard_id):
-        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
 
     def get_widget_queries(self, widget):
         return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
