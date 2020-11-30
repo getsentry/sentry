@@ -5,7 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.utils.compat import zip
-from sentry.models import Dashboard, DashboardWidget, DashboardWidgetDisplayTypes
+from sentry.models import Dashboard
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -20,21 +20,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.dashboard_2 = Dashboard.objects.create(
             title="Dashboard 2", created_by=self.user, organization=self.organization
         )
-
-    def get_widgets(self, dashboard_id):
-        return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order")
-
-    def assert_serialized_widget(self, data, expected_widget):
-        if "id" in data:
-            assert data["id"] == six.text_type(expected_widget.id)
-        if "title" in data:
-            assert data["title"] == expected_widget.title
-        if "interval" in data:
-            assert data["interval"] == expected_widget.interval
-        if "displayType" in data:
-            assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
-                expected_widget.display_type
-            )
 
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == six.text_type(dashboard.id)
