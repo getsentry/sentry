@@ -26,7 +26,6 @@ command -v direnv >/dev/null || {
 
 gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
-# Be careful changing this as there's a rm -rf later in the script
 export venv_name="${PWD}/.venv"
 
 if [[ -f "${venv_name}/bin/activate" ]]; then
@@ -41,9 +40,7 @@ fi
 deactivate 2>/dev/null || true
 rm -rf "$venv_name"
 
-major=$(python -c "import sys; print(sys.version_info[0])")
-minor=$(python -c "import sys; print(sys.version_info[1])")
-if ! [[ major -eq 3 && minor -ge 6 ]]; then
+if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]];
     abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
