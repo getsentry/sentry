@@ -29,7 +29,7 @@ def find_roots(stack_path, source_path):
         overlap_to_check = overlap_to_check[1:]
     # validate_source_url should have ensured the file names match
     # so if we get here something went wrong and there is a bug
-    raise Exception("Could not common root from paths")
+    raise Exception("Could not find common root from paths")
 
 
 class PathMappingSerializer(CamelSnakeSerializer):
