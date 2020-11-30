@@ -20,7 +20,7 @@ import withApi from 'app/utils/withApi';
 import {getTermHelp} from '../performance/data';
 import {ChartContainer} from '../performance/styles';
 
-import ProjectApdexChart from './charts/projectApdexChart';
+import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 
 enum DisplayModes {
   APDEX = 'apdex',
@@ -92,7 +92,7 @@ class ProjectCharts extends React.Component<Props, State> {
   };
 
   render() {
-    const {api, router, organization, location} = this.props;
+    const {api, router, organization} = this.props;
     const {totalValues} = this.state;
     const displayMode = this.displayMode;
 
@@ -100,11 +100,15 @@ class ProjectCharts extends React.Component<Props, State> {
       <Panel>
         <ChartContainer>
           {displayMode === DisplayModes.APDEX && (
-            <ProjectApdexChart
+            <ProjectBaseEventsChart
+              title={t('Apdex')}
+              help={getTermHelp(organization, 'apdex')}
+              query="event.type:transaction"
+              yAxis={`apdex(${organization.apdexThreshold})`}
+              field={[`apdex(${organization.apdexThreshold})`]}
               api={api}
               router={router}
               organization={organization}
-              location={location}
               onTotalValuesChange={this.handleTotalValuesChange}
             />
           )}
