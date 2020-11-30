@@ -119,4 +119,50 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
   });
+
+  it('can add widget queries', function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // One query section to start with.
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+
+    // Click the add button
+    const add = wrapper.find('Button[data-test-id="add-query"] button');
+    add.simulate('click');
+    wrapper.update();
+
+    // Second query section should display.
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(2);
+
+    // Updated widget should have two queries.
+    wrapper.find('Button[data-test-id="add-widget"] button').simulate('click');
+    expect(widget.queries).toHaveLength(2);
+  });
+
+  it('can remove widget queries', function () {
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: () => {},
+    });
+    // Check default state and add a query.
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    const add = wrapper.find('Button[data-test-id="add-query"] button');
+    add.simulate('click');
+    wrapper.update();
+
+    // Should show delete buttons now that there are multiple queries
+    const remove = wrapper.find('Button[data-test-id="remove-query"] button');
+    expect(remove).toHaveLength(2);
+
+    remove.first().simulate('click');
+    wrapper.update();
+
+    // Only one widget query section, and no remove buttons now..
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    expect(wrapper.find('Button[data-test-id="remove-query"]')).toHaveLength(0);
+  });
 });
