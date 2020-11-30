@@ -30,6 +30,7 @@ type Props = {
   placeholder: string;
   disabled: boolean;
   error: React.ReactNode;
+  selectType?: 'grouped';
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
@@ -59,17 +60,41 @@ class RuleNodeList extends React.Component<Props> {
       project,
       disabled,
       error,
+      selectType,
     } = this.props;
 
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
-    const options = nodes
-      ? nodes
-          .filter(({enabled}) => enabled)
-          .map(node => ({
-            value: node.id,
-            label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
-          }))
-      : [];
+    let enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
+
+    const createSelectOptions = nodes =>
+      nodes.map(node => ({
+        value: node.id,
+        label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
+      }));
+
+    let options = !selectType ? createSelectOptions(enabledNodes) : [];
+
+    if (selectType === 'grouped') {
+      let grouped = enabledNodes.reduce(
+        (acc, curr) => {
+          if (curr.actionType === 'ticket') {
+            acc['ticket'] ? acc['ticket'].push(curr) : (acc['ticket'] = [curr]);
+          } else {
+            acc['notify'].push(curr);
+          }
+          return acc;
+        },
+        {
+          notify: [] as IssueAlertRuleActionTemplate[],
+        }
+      );
+
+      options = Object.entries(grouped).map(([key, values]) => {
+        let label = key === 'ticket' ? 'Create new...' : 'Send notifcation to...';
+        let options = createSelectOptions(values);
+        return {label, options};
+      });
+    }
 
     return (
       <React.Fragment>
