@@ -40,7 +40,7 @@ fi
 deactivate 2>/dev/null || true
 rm -rf "$venv_name"
 
-if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]];
+if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]]; then
     abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
