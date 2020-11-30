@@ -80,7 +80,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     )}.`;
 
     const permissionLabel = (
-      <React.Fragment>
+      <ListPermissions>
         {permissionQuestionBaseText}
         {permissions.map((permission, i) => (
           <React.Fragment key={permission}>
@@ -88,7 +88,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
           </React.Fragment>
         ))}
         .
-      </React.Fragment>
+      </ListPermissions>
     );
 
     //No translations since we need to be able to read this email :)
@@ -188,4 +188,8 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
   font-size: 18px;
+`;
+
+const ListPermissions = styled('span')`
+  line-height: 24px;
 `;
