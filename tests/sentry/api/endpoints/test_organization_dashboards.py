@@ -63,7 +63,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                     "interval": "5m",
                     "title": "Error count()",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error",}
+                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
                     ],
                 },
             ],
