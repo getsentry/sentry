@@ -19,8 +19,10 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
+import ProjectCharts from './projectCharts';
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
+import ProjectQuickLinks from './projectQuickLinks';
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
 
@@ -46,6 +48,11 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
+
+    if (this.state?.project) {
+      return [];
+    }
+
     return [['project', `/projects/${params.orgId}/${params.projectId}/`]];
   }
 
@@ -54,7 +61,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params, location} = this.props;
+    const {organization, params, location, router} = this.props;
     const {project} = this.state;
 
     return (
@@ -108,6 +115,11 @@ class ProjectDetail extends AsyncView<Props, State> {
             <Layout.Body>
               <Layout.Main>
                 <ProjectScoreCards />
+                <ProjectCharts
+                  location={location}
+                  organization={organization}
+                  router={router}
+                />
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
@@ -122,6 +134,11 @@ class ProjectDetail extends AsyncView<Props, State> {
                   organization={organization}
                   projectSlug={params.projectId}
                   projectId={project?.id}
+                  location={location}
+                />
+                <ProjectQuickLinks
+                  organization={organization}
+                  project={project}
                   location={location}
                 />
               </Layout.Side>

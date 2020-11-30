@@ -8,8 +8,8 @@ import U2fSign from './u2fsign';
 
 type Props = {
   api: Client;
-  displayMode?: string;
-  onTap?: ({response, challenge}: {response: string; challenge: string}) => void;
+  onTap: U2fSign['props']['onTap'];
+  displayMode?: U2fSign['props']['displayMode'];
   className?: string;
 };
 type State = {
@@ -47,7 +47,13 @@ class U2fContainer extends React.Component<Props, State> {
       <div className={className}>
         {authenticators.map(({id, ...other}) => {
           if (id === 'u2f' && other.challenge) {
-            return <U2fSign key={id} {...this.props} challengeData={other.challenge} />;
+            return (
+              <U2fSign
+                key={id}
+                {...this.props}
+                challengeData={other.challenge as U2fSign['props']['challengeData']}
+              />
+            );
           }
           return null;
         })}

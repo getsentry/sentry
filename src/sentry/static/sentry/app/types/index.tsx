@@ -1,3 +1,5 @@
+import u2f from 'u2f-api';
+
 import {Props as AlertProps} from 'app/components/alert';
 import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
@@ -703,8 +705,13 @@ export type Authenticator = {
 
   phone?: string;
 
-  challenge?: Record<string, any>;
+  challenge?: ChallengeData;
 } & Partial<EnrolledAuthenticator>;
+
+export type ChallengeData = {
+  authenticateRequests: u2f.SignRequest;
+  registerRequests: u2f.RegisterRequest;
+};
 
 export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
