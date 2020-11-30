@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import {Client} from 'app/api';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -21,6 +20,7 @@ import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
@@ -54,14 +54,13 @@ export type DropdownOption = {
   /**
    * overide the eventView query
    */
-  query?: string;
+  query?: [string, string][];
 };
 
 type Props = {
-  api: Client;
   location: Location;
   eventView: EventView;
-  trendView: TrendView;
+  trendView?: TrendView;
   organization: Organization;
   /**
    * The currently selected option on the dropdown.
@@ -92,13 +91,16 @@ type Props = {
    */
   linkDataTestId?: string;
   /**
-   * The callback to generate a link for the first column.
+   * A map of callbacks to generate a link for a column based on the title.
    */
-  generateFirstLink?: (
-    organization: Organization,
-    tableRow: TableDataRow,
-    query: Query
-  ) => LocationDescriptor;
+  generateLink?: Record<
+    string,
+    (
+      organization: Organization,
+      tableRow: TableDataRow,
+      query: Query
+    ) => LocationDescriptor
+  >;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -172,11 +174,16 @@ class TransactionsList extends React.Component<Props> {
       limit,
       titles,
       linkDataTestId,
-      generateFirstLink,
+      generateLink,
     } = this.props;
     const sortedEventView = eventView.withSorts([selected.sort]);
     const columnOrder = sortedEventView.getColumns();
     const cursor = decodeScalar(location.query?.[cursorName]);
+    if (selected.query) {
+      const query = tokenizeSearch(sortedEventView.query);
+      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      sortedEventView.query = stringifyQueryObject(query);
+    }
 
     return (
       <DiscoverQuery
@@ -197,7 +204,7 @@ class TransactionsList extends React.Component<Props> {
               columnOrder={columnOrder}
               titles={titles}
               linkDataTestId={linkDataTestId}
-              generateFirstLink={generateFirstLink}
+              generateLink={generateLink}
             />
             <StyledPagination
               pageLinks={pageLinks}
@@ -218,16 +225,22 @@ class TransactionsList extends React.Component<Props> {
       organization,
       cursorName,
       linkDataTestId,
-      generateFirstLink,
+      generateLink,
     } = this.props;
-    trendView.sorts = [selected.sort];
-    trendView.trendType = selected.trendType;
-    trendView.query = selected.query || '';
+
+    const sortedEventView: TrendView = trendView!.clone();
+    sortedEventView.sorts = [selected.sort];
+    sortedEventView.trendType = selected.trendType;
+    if (selected.query) {
+      const query = tokenizeSearch(sortedEventView.query);
+      selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      sortedEventView.query = stringifyQueryObject(query);
+    }
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     return (
       <TrendsEventsDiscoverQuery
-        eventView={trendView}
+        eventView={sortedEventView}
         orgSlug={organization.slug}
         location={location}
         cursor={cursor}
@@ -236,7 +249,7 @@ class TransactionsList extends React.Component<Props> {
         {({isLoading, trendsData, pageLinks}) => (
           <React.Fragment>
             <TransactionsTable
-              eventView={trendView}
+              eventView={sortedEventView}
               organization={organization}
               location={location}
               isLoading={isLoading}
@@ -248,7 +261,7 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               linkDataTestId={linkDataTestId}
-              generateFirstLink={generateFirstLink}
+              generateLink={generateLink}
             />
             <StyledPagination
               pageLinks={pageLinks}
@@ -285,20 +298,28 @@ type TableProps = {
   columnOrder: TableColumn<React.ReactText>[];
   titles?: string[];
   linkDataTestId?: string;
-  generateFirstLink?: (
-    organization: Organization,
-    tableRow: TableDataRow,
-    query: Query
-  ) => LocationDescriptor;
+  generateLink?: Record<
+    string,
+    (
+      organization: Organization,
+      tableRow: TableDataRow,
+      query: Query
+    ) => LocationDescriptor
+  >;
 };
 
 class TransactionsTable extends React.PureComponent<TableProps> {
+  getTitles() {
+    const {eventView, titles} = this.props;
+    return titles ?? eventView.getFields();
+  }
+
   renderHeader() {
-    const {eventView, tableData, titles, columnOrder} = this.props;
+    const {tableData, columnOrder} = this.props;
 
     const tableMeta = tableData?.meta;
     const generateSortLink = () => undefined;
-    const tableTitles = titles ?? eventView.getFields().map(field => t(field));
+    const tableTitles = this.getTitles();
 
     return tableTitles.map((title, index) => (
       <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
@@ -325,7 +346,8 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ): React.ReactNode[] {
-    const {organization, location, linkDataTestId, generateFirstLink} = this.props;
+    const {organization, location, linkDataTestId, generateLink} = this.props;
+    const tableTitles = this.getTitles();
 
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
@@ -336,17 +358,18 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       const fieldRenderer = getFieldRenderer(field, tableMeta);
       let rendered = fieldRenderer(row, {organization, location});
 
-      if (generateFirstLink) {
-        const isFirstCell = index === 0;
+      const target = generateLink?.[tableTitles[index]]?.(
+        organization,
+        row,
+        location.query
+      );
 
-        if (isFirstCell) {
-          const target = generateFirstLink(organization, row, location.query);
-          rendered = (
-            <Link data-test-id={linkDataTestId ?? 'transactions-list-link'} to={target}>
-              {rendered}
-            </Link>
-          );
-        }
+      if (target) {
+        rendered = (
+          <Link data-test-id={linkDataTestId ?? 'transactions-list-link'} to={target}>
+            {rendered}
+          </Link>
+        );
       }
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
