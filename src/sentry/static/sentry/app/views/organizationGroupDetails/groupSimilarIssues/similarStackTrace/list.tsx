@@ -35,6 +35,7 @@ type Props = {
   orgId: Organization['id'];
   project: Project;
   onMerge: () => void;
+  v2: boolean;
   groupId: string;
   pageLinks: string | null;
   items: Array<SimilarItem>;
@@ -75,6 +76,7 @@ class List extends React.Component<Props, State> {
       filteredItems,
       pageLinks,
       onMerge,
+      v2,
     } = this.props;
 
     const {showAllItems} = this.state;
@@ -92,12 +94,13 @@ class List extends React.Component<Props, State> {
         <Header>
           <SimilarSpectrum />
         </Header>
-        <Toolbar onMerge={onMerge} />
+        <Toolbar v2={v2} onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
             <Item
               key={item.issue.id}
               orgId={orgId}
+              v2={v2}
               groupId={groupId}
               project={project}
               {...item}

@@ -14,6 +14,7 @@ import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   onMerge: () => void;
+  v2: boolean;
 };
 
 const inititalState = {
@@ -42,7 +43,7 @@ class SimilarToolbar extends React.Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
   render() {
-    const {onMerge} = this.props;
+    const {onMerge, v2} = this.props;
     const {mergeCount} = this.state;
 
     return (
@@ -69,12 +70,21 @@ class SimilarToolbar extends React.Component<Props, State> {
             <StyledToolbarHeader className="event-count-header">
               {t('Events')}
             </StyledToolbarHeader>
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Exception')}
-            </StyledToolbarHeader>
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Message')}
-            </StyledToolbarHeader>
+
+            {v2 ? (
+              <StyledToolbarHeader className="event-similar-header">
+                {t('Score')}
+              </StyledToolbarHeader>
+            ) : (
+              <React.Fragment>
+                <StyledToolbarHeader className="event-similar-header">
+                  {t('Exception')}
+                </StyledToolbarHeader>
+                <StyledToolbarHeader className="event-similar-header">
+                  {t('Message')}
+                </StyledToolbarHeader>
+              </React.Fragment>
+            )}
           </Columns>
         </SpreadLayout>
       </Toolbar>

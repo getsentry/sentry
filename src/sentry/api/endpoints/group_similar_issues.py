@@ -38,22 +38,33 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         if limit is not None:
             limit = int(limit) + 1  # the target group will always be included
 
-        raw_results = {
-            group_id: {_fix_label(label): features for label, features in scores.items()}
-            for group_id, scores in features.compare(group, limit=limit)
-            if group_id != group.id
+        group_ids = []
+        group_scores = []
+
+        for group_id, scores in features.compare(group, limit=limit):
+            if group_id != group.id:
+                group_ids.append(group_id)
+                group_scores.append(scores)
+
+        serialized_groups = {
+            int(g["id"]): g
+            for g in serialize(
+                list(Group.objects.get_many_from_cache(group_ids)), user=request.user
+            )
         }
 
-        fetched_groups = Group.objects.get_many_from_cache(list(raw_results))
-        serialized_groups = serialize(fetched_groups, user=request.user)
-        group_scores = list(raw_results.pop(group.id) for group in fetched_groups)
+        results = []
 
-        results = list(zip(serialized_groups, group_scores))
+        # We need to preserve the ordering of the Redis results, as that
+        # ordering is directly shown in the UI
+        for group_id, scores in zip(group_ids, group_scores):
+            group = serialized_groups.get(group_id)
+            if group is None:
+                # TODO(tkaemming): This should log when we filter out a group that is
+                # unable to be retrieved from the database. (This will soon be
+                # unexpected behavior, but still possible.)
+                continue
 
-        if raw_results:
-            # Similarity has returned non-existent group IDs. This can indicate
-            # that group deletion is not triggering deletion in similarity, and
-            # that we are leaking resources
-            logger.error("similarity.api.unknown_group", extra={"group_ids": list(raw_results)})
+            results.append((group, {_fix_label(k): v for k, v in scores.items()}))
 
         return Response(results)
