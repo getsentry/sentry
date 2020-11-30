@@ -433,11 +433,14 @@ class Factories(object):
         return bundle.getvalue()
 
     @staticmethod
-    def create_repo(project, name=None):
+    def create_repo(project, name=None, provider=None, integration_id=None, url=None):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
             name=name
             or "{}-{}".format(petname.Generate(2, "", letters=10), random.randint(1000, 9999)),
+            provider=provider,
+            integration_id=integration_id,
+            url=url,
         )
         return repo
 
