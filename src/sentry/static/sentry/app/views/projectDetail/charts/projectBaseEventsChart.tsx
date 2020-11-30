@@ -17,7 +17,7 @@ type Props = Omit<
   keyof Omit<GlobalSelection, 'datetime'> | keyof GlobalSelection['datetime']
 > & {
   title: string;
-  help: string;
+  help?: string;
   selection: GlobalSelection;
   onTotalValuesChange: (value: number | null) => void;
 };
@@ -91,7 +91,7 @@ class ProjectBaseEventsChart extends React.Component<Props> {
           chartHeader={
             <HeaderTitleLegend>
               {title}
-              <QuestionTooltip size="sm" position="top" title={help} />
+              {help && <QuestionTooltip size="sm" position="top" title={help} />}
             </HeaderTitleLegend>
           }
           legendOptions={{right: 10, top: 0}}

@@ -12,9 +12,11 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import {getTermHelp} from '../performance/data';
@@ -24,15 +26,21 @@ import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 
 enum DisplayModes {
   APDEX = 'apdex',
+  FAILURE_RATE = 'failure_rate',
+  TPM = 'tpm',
+  ERRORS = 'errors',
+  TRANSACTIONS = 'transactions',
 }
 
-const DEFAULT_DISPLAY_MODE = DisplayModes.APDEX;
+const DISPLAY_URL_KEY = ['display1', 'display2'];
+const DEFAULT_DISPLAY_MODES = [DisplayModes.APDEX, DisplayModes.FAILURE_RATE];
 
 type Props = {
   api: Client;
   location: Location;
   organization: Organization;
   router: ReactRouter.InjectedRouter;
+  index: number;
 };
 
 type State = {
@@ -44,12 +52,25 @@ class ProjectCharts extends React.Component<Props, State> {
     totalValues: null,
   };
 
+  get otherActiveDisplayModes() {
+    const {location, index} = this.props;
+
+    return DISPLAY_URL_KEY.filter((_, idx) => idx !== index).map(urlKey => {
+      return (
+        decodeScalar(location.query[urlKey]) ??
+        DEFAULT_DISPLAY_MODES[DISPLAY_URL_KEY.findIndex(value => value === urlKey)]
+      );
+    });
+  }
+
   get displayMode() {
-    const {location} = this.props;
-    const displayMode = decodeScalar(location.query.display) || DEFAULT_DISPLAY_MODE;
+    const {location, index} = this.props;
+    const displayMode =
+      decodeScalar(location.query[DISPLAY_URL_KEY[index]]) ||
+      DEFAULT_DISPLAY_MODES[index];
 
     if (!Object.values(DisplayModes).includes(displayMode as DisplayModes)) {
-      return DEFAULT_DISPLAY_MODE;
+      return DEFAULT_DISPLAY_MODES[index];
     }
 
     return displayMode;
@@ -58,32 +79,76 @@ class ProjectCharts extends React.Component<Props, State> {
   get displayModes(): SelectValue<string>[] {
     const {organization} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
+    const hasDiscover = organization.features.includes('discover-basic');
+    const noPerformanceTooltip = t(
+      'This view is only available with Performance Monitoring.'
+    );
+    const noDiscoverTooltip = t('This view is only available with Discover feature.');
+
     return [
       {
         value: DisplayModes.APDEX,
         label: t('Apdex'),
-        disabled: !hasPerformance,
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.APDEX) || !hasPerformance,
         tooltip: hasPerformance
           ? getTermHelp(organization, 'apdex')
-          : t('This view is only available with Performance Monitoring.'),
+          : noPerformanceTooltip,
+      },
+      {
+        value: DisplayModes.FAILURE_RATE,
+        label: t('Failure Rate'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.FAILURE_RATE) ||
+          !hasPerformance,
+        tooltip: hasPerformance
+          ? getTermHelp(organization, 'failureRate')
+          : noPerformanceTooltip,
+      },
+      {
+        value: DisplayModes.TPM,
+        label: t('Transactions Per Minute'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.TPM) || !hasPerformance,
+        tooltip: hasPerformance ? getTermHelp(organization, 'tpm') : noPerformanceTooltip,
+      },
+      {
+        value: DisplayModes.ERRORS,
+        label: t('Daily Errors'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.ERRORS) || !hasDiscover,
+        tooltip: hasDiscover ? undefined : noDiscoverTooltip,
+      },
+      {
+        value: DisplayModes.TRANSACTIONS,
+        label: t('Daily Transactions'),
+        disabled:
+          this.otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) ||
+          !hasPerformance,
+        tooltip: hasPerformance ? undefined : noPerformanceTooltip,
       },
     ];
   }
 
   get summaryHeading() {
     switch (this.displayMode) {
+      case DisplayModes.ERRORS:
+        return t('Total Errors');
       case DisplayModes.APDEX:
+      case DisplayModes.FAILURE_RATE:
+      case DisplayModes.TPM:
+      case DisplayModes.TRANSACTIONS:
       default:
         return t('Total Transactions');
     }
   }
 
   handleDisplayModeChange = (value: string) => {
-    const {location} = this.props;
+    const {location, index} = this.props;
 
     browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, display: value},
+      query: {...location.query, [DISPLAY_URL_KEY[index]]: value},
     });
   };
 
@@ -110,6 +175,63 @@ class ProjectCharts extends React.Component<Props, State> {
               router={router}
               organization={organization}
               onTotalValuesChange={this.handleTotalValuesChange}
+              colors={[CHART_PALETTE[0][0], theme.purple200]}
+            />
+          )}
+          {displayMode === DisplayModes.FAILURE_RATE && (
+            <ProjectBaseEventsChart
+              title={t('Failure Rate')}
+              help={getTermHelp(organization, 'failureRate')}
+              query="event.type:transaction"
+              yAxis="failure_rate()"
+              field={[`failure_rate()`]}
+              api={api}
+              router={router}
+              organization={organization}
+              onTotalValuesChange={this.handleTotalValuesChange}
+              colors={[theme.red300, theme.purple200]}
+            />
+          )}
+          {displayMode === DisplayModes.TPM && (
+            <ProjectBaseEventsChart
+              title={t('Transactions Per Minute')}
+              help={getTermHelp(organization, 'tpm')}
+              query="event.type:transaction"
+              yAxis="tpm()"
+              field={[`tpm()`]}
+              api={api}
+              router={router}
+              organization={organization}
+              onTotalValuesChange={this.handleTotalValuesChange}
+              colors={[theme.purple300, theme.purple200]}
+            />
+          )}
+          {displayMode === DisplayModes.ERRORS && (
+            <ProjectBaseEventsChart
+              title={t('Daily Errors')}
+              query="event.type:error"
+              yAxis="count()"
+              field={[`count()`]}
+              api={api}
+              router={router}
+              organization={organization}
+              onTotalValuesChange={this.handleTotalValuesChange}
+              colors={[theme.purple300, theme.purple200]}
+              showDaily
+            />
+          )}
+          {displayMode === DisplayModes.TRANSACTIONS && (
+            <ProjectBaseEventsChart
+              title={t('Daily Transactions')}
+              query="event.type:transaction"
+              yAxis="count()"
+              field={[`count()`]}
+              api={api}
+              router={router}
+              organization={organization}
+              onTotalValuesChange={this.handleTotalValuesChange}
+              colors={[theme.gray200, theme.purple200]}
+              showDaily
             />
           )}
         </ChartContainer>
