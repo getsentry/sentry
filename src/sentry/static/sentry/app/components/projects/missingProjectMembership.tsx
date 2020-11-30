@@ -1,27 +1,35 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
 import {Client} from 'app/api';
-import Well from 'app/components/well';
+import Button from 'app/components/button';
+import {Panel} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
+import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
 import {Organization, Project, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Form from 'app/views/settings/components/forms/form';
+import SelectField from 'app/views/settings/components/forms/selectField';
 
 type Props = {
   api: Client;
   organization: Organization;
   projectId?: string;
+  groupId: string;
+  team: Team;
 };
 
 type State = {
   loading: boolean;
   error: boolean;
   project?: Project;
+  team: string;
 };
 
 class MissingProjectMembership extends React.Component<Props, State> {
@@ -35,10 +43,11 @@ class MissingProjectMembership extends React.Component<Props, State> {
       loading: false,
       error: false,
       project,
+      team: '',
     };
   }
 
-  joinTeam(team: Team) {
+  joinTeam(team) {
     this.setState({
       loading: true,
     });
@@ -47,7 +56,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
       this.props.api,
       {
         orgId: this.props.organization.slug,
-        teamId: team.slug,
+        teamId: team,
       },
       {
         success: () => {
@@ -55,93 +64,174 @@ class MissingProjectMembership extends React.Component<Props, State> {
             loading: false,
             error: false,
           });
+          addSuccessMessage(t('Request to join team sent.'));
         },
         error: () => {
           this.setState({
             loading: false,
             error: true,
           });
-          addErrorMessage(t('There was an error while trying to leave the team.'));
+          addErrorMessage(t('There was an error while trying to request access.'));
         },
       }
     );
   }
 
-  renderJoinTeam(team: Team, features: Set<string>) {
+  renderJoinTeam(team, features: Set<string>) {
+    const teamStatus = TeamStore.getBySlug(team);
+
     if (!team) {
       return null;
     }
     if (this.state.loading) {
-      return <a className="btn btn-default btn-loading btn-disabled">...</a>;
-    } else if (team.isPending) {
-      return <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>;
+      if (features.has('open-membership')) {
+        return <StyledButton busy>Join Team</StyledButton>;
+      }
+      return <StyledButton busy>Request Access</StyledButton>;
+    } else if (teamStatus?.isPending) {
+      return <StyledButton disabled>Request Pending</StyledButton>;
     } else if (features.has('open-membership')) {
       return (
-        <a className="btn btn-default" onClick={this.joinTeam.bind(this, team)}>
-          {t('Join Team')}
-        </a>
+        <StyledButton priority="primary" onClick={this.joinTeam.bind(this, team)}>
+          Join Team
+        </StyledButton>
       );
     }
     return (
-      <a className="btn btn-default" onClick={this.joinTeam.bind(this, team)}>
-        {t('Request Access')}
-      </a>
+      <StyledButton priority="primary" onClick={this.joinTeam.bind(this, team)}>
+        Request Access
+      </StyledButton>
     );
   }
 
-  renderExplanation(features: Set<string>) {
-    if (features.has('open-membership')) {
-      return t('To view this data you must one of the following teams.');
-    } else {
-      return t(
-        'To view this data you must first request access to one of the following teams:'
-      );
-    }
-  }
-
-  renderJoinTeams(features: Set<string>) {
+  requestAccess() {
+    const request: string[] = [];
+    const pending: string[] = [];
     const teams = this.state.project?.teams ?? [];
-
-    if (!teams.length) {
-      return (
-        <EmptyMessage>
-          {t(
-            'No teams have access to this project yet. Ask an admin to add your team to this project.'
-          )}
-        </EmptyMessage>
-      );
-    }
-
-    return teams.map((team: Team) => (
-      <p key={team.slug}>
-        #{team.slug}: {this.renderJoinTeam(team, features)}
-      </p>
-    ));
+    const team = teams.map(tm => TeamStore.getBySlug(tm.slug));
+    team.map(tm => (tm?.isPending ? pending.push(tm!.slug) : request.push(tm!.slug)));
+    return [request, pending];
   }
+
+  handleChange = evt => {
+    const input = evt;
+    this.setState({team: input});
+  };
+
+  requestPendingTeam = team => {
+    return {
+      value: team,
+      label: (
+        <StyledTooltip position="left" title={t(`Request pending for #${team}`)}>
+          <UnmentionableTeam>
+            <DisabledLabel>{`#${team}`}</DisabledLabel>
+          </UnmentionableTeam>
+        </StyledTooltip>
+      ),
+    };
+  };
 
   render() {
-    const {organization} = this.props;
+    const {organization, groupId} = this.props;
+    const teams = this.state.project?.teams ?? [];
     const features = new Set(organization.features);
+
+    const teamAccess = [
+      {
+        label: 'Request Access',
+        options: this.requestAccess()[0].map(request => ({
+          value: request,
+          label: `#${request}`,
+        })),
+      },
+      {
+        label: 'Pending Requests',
+        options: this.requestAccess()[1].map(pending => this.requestPendingTeam(pending)),
+      },
+    ];
 
     return (
       <div className="container">
-        <StyledWell centered>
-          <StyledIconFlag size="xxl" />
-          <p>{t("You're not a member of this project.")}</p>
-          <p>{this.renderExplanation(features)}</p>
-          {this.renderJoinTeams(features)}
-        </StyledWell>
+        <Panel>
+          <StyledIconFlag size="xxl" color="gray300" />
+          {!teams.length ? (
+            <EmptyMessage>
+              {t(
+                'No teams have access to this project yet. Ask an admin to add your team to this project.'
+              )}
+            </EmptyMessage>
+          ) : (
+            <EmptyMessage
+              title={t("You're not a member of this project.")}
+              description={t(
+                `You'll need to join a team with access to Issue ID ${groupId} before you can view it.`
+              )}
+              action={
+                <StyledForm submitLabel={t('Request Access')} hideFooter>
+                  <StyledSelectField
+                    name="select"
+                    placeholder={t('Select a Team')}
+                    options={teamAccess}
+                    onChange={this.handleChange}
+                    flexibleControlStateSize
+                  />
+                  {this.state.team ? (
+                    this.renderJoinTeam(this.state.team, features)
+                  ) : (
+                    <StyledButton disabled>Select a Team</StyledButton>
+                  )}
+                </StyledForm>
+              }
+            />
+          )}
+        </Panel>
       </div>
     );
   }
 }
 
-const StyledWell = styled(Well)`
-  margin-top: ${space(2)};
+const StyledForm = styled(Form)`
+  display: inline-block;
+  text-align: left;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  width: 350px;
+  border-bottom: 0;
+  display: inline-block;
+  & > div {
+    width: 100%;
+    padding: 0;
+  }
 `;
 
 const StyledIconFlag = styled(IconFlag)`
-  margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: center;
+  margin: auto;
+  padding-top: 30px;
+`;
+
+const StyledButton = styled(Button)`
+  display: inline-block;
+  justify-content: center;
+  margin-right: ${space(2)};
+`;
+
+const DisabledLabel = styled('div')`
+  display: flex;
+  opacity: 0.5;
+  overflow: hidden;
+`;
+
+const UnmentionableTeam = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
 `;
 
 export {MissingProjectMembership};

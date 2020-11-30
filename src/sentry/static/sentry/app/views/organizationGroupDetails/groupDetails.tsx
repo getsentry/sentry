@@ -238,7 +238,7 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderError() {
-    const {organization, location} = this.props;
+    const {organization, location, params} = this.props;
     const projects = organization.projects;
     const projectId = location.query.project;
 
@@ -259,6 +259,7 @@ class GroupDetails extends React.Component<Props, State> {
           <MissingProjectMembership
             organization={this.props.organization}
             projectId={projectSlug}
+            groupId={params.groupId}
           />
         );
       default:
