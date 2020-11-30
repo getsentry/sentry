@@ -87,6 +87,7 @@ class OrganizationRelayHistoryTest(APITestCase):
         response = self.get_valid_response(self.organization.slug)
         assert response.data == []
 
+    @with_feature({"organizations:relay": False})
     def test_endpoint_checks_feature_present(self):
         self.login_as(user=self.user)
         resp = self.get_response(self.organization.slug)

@@ -340,7 +340,9 @@ class OrganizationUpdateTest(APITestCase):
             ]
         }
 
-        response = self.client.put(url, data=data)
+        with self.feature({"organizations:relay": False}):
+            response = self.client.put(url, data=data)
+
         assert response.status_code == 400
         assert b"feature" in response.content
 
