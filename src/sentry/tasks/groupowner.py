@@ -38,7 +38,12 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
 
     cache_key = "workflow-owners-ingestion:group-{}".format(group_id)
     owner_data = cache.get(cache_key)
-    if owner_data is None:
+    if owner_data:
+        owner_count = owner_data["owner_count"]
+        oldest_owner = owner_data["oldest_owner"]
+        if owner_count >= PREFERRED_GROUP_OWNERS and not oldest_owner:
+            can_process = False
+    else:
         event = Event(
             project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
         )
@@ -61,17 +66,11 @@ def process_suspect_commits(group_id, cache_key, **kwargs):
             )
             if not oldest_owner:
                 can_process = False
-
         owner_data = {
             "count": owner_count,
             "oldest_owner": oldest_owner,
         }
         cache.set(cache_key, owner_data, 60)
-    else:
-        owner_count = owner_data["owner_count"]
-        oldest_owner = owner_data["oldest_owner"]
-        if owner_count >= PREFERRED_GROUP_OWNERS and not oldest_owner:
-            can_process = False
 
     if can_process:
         try:
