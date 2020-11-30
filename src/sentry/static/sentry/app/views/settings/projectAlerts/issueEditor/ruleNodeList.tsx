@@ -66,16 +66,16 @@ class RuleNodeList extends React.Component<Props> {
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
     let enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
-    const createSelectOptions = nodes =>
+    const createSelectOptions = (nodes: IssueAlertRuleActionTemplate[]) =>
       nodes.map(node => ({
         value: node.id,
         label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
       }));
 
-    let options = !selectType ? createSelectOptions(enabledNodes) : [];
+    let options: any = !selectType ? createSelectOptions(enabledNodes) : [];
 
     if (selectType === 'grouped') {
-      let grouped = enabledNodes.reduce(
+      const grouped = enabledNodes.reduce(
         (acc, curr) => {
           if (curr.actionType === 'ticket') {
             acc['ticket'] ? acc['ticket'].push(curr) : (acc['ticket'] = [curr]);
@@ -91,8 +91,7 @@ class RuleNodeList extends React.Component<Props> {
 
       options = Object.entries(grouped).map(([key, values]) => {
         let label = key === 'ticket' ? t('Create new...') : t('Send notifcation to...');
-        let options = createSelectOptions(values);
-        return {label, options};
+        return {label, options: createSelectOptions(values)};
       });
     }
 
