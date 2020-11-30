@@ -124,7 +124,7 @@ def inbox_filter(inbox, projects):
 
 
 def owner_filter(owner, projects):
-    from sentry.models import Team
+    from sentry.models import Team, User
 
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
@@ -136,14 +136,16 @@ def owner_filter(owner, projects):
             .values_list("group_id", flat=True)
             .distinct()
         )
-
-    return Q(
-        id__in=GroupOwner.objects.filter(
-            user=owner, project_id__in=project_ids, organization_id=organization_id
+    elif isinstance(owner, User):
+        return Q(
+            id__in=GroupOwner.objects.filter(
+                user=owner, project_id__in=project_ids, organization_id=organization_id
+            )
+            .values_list("group_id", flat=True)
+            .distinct()
         )
-        .values_list("group_id", flat=True)
-        .distinct()
-    )
+
+    raise InvalidSearchQuery(u"Unsupported owner type.")
 
 
 class Condition(object):
