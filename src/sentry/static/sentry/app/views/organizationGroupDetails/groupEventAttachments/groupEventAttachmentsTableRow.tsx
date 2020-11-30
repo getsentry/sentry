@@ -50,21 +50,23 @@ const GroupEventAttachmentsTableRow = ({
     </td>
 
     <td>
-      <AttachmentUrl
-        projectId={projectId}
-        eventId={attachment.event_id}
-        attachment={attachment}
-      >
-        {url =>
-          !isDeleted && (
-            <EventAttachmentActions
-              url={url}
-              onDelete={onDelete}
-              attachmentId={attachment.id}
-            />
-          )
-        }
-      </AttachmentUrl>
+      <ActionsWrapper>
+        <AttachmentUrl
+          projectId={projectId}
+          eventId={attachment.event_id}
+          attachment={attachment}
+        >
+          {url =>
+            !isDeleted && (
+              <EventAttachmentActions
+                url={url}
+                onDelete={onDelete}
+                attachmentId={attachment.id}
+              />
+            )
+          }
+        </AttachmentUrl>
+      </ActionsWrapper>
     </td>
   </TableRow>
 );
@@ -74,6 +76,10 @@ const TableRow = styled('tr')<{isDeleted: boolean}>`
   td {
     text-decoration: ${p => (p.isDeleted ? 'line-through' : 'normal')};
   }
+`;
+
+const ActionsWrapper = styled('div')`
+  display: inline-block;
 `;
 
 export default GroupEventAttachmentsTableRow;

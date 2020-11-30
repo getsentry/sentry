@@ -122,7 +122,9 @@ class ContextData extends React.Component {
     data: PropTypes.any,
     preserveQuotes: PropTypes.bool,
     withAnnotatedText: PropTypes.bool,
+    maxDefaultDepth: PropTypes.number,
     meta: PropTypes.any,
+    jsonConsts: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -131,7 +133,14 @@ class ContextData extends React.Component {
   };
 
   renderValue(value) {
-    const {preserveQuotes, meta, withAnnotatedText} = this.props;
+    const {
+      preserveQuotes,
+      meta,
+      withAnnotatedText,
+      jsonConsts,
+      maxDefaultDepth,
+    } = this.props;
+    const maxDepth = maxDefaultDepth ?? 2;
 
     function getValueWithAnnotatedText(v, meta) {
       return <AnnotatedText value={v} meta={meta} />;
@@ -142,9 +151,13 @@ class ContextData extends React.Component {
       let i = 0;
       const children = [];
       if (value === null) {
-        return <span className="val-null">{'None'}</span>;
+        return <span className="val-null">{jsonConsts ? 'null' : 'None'}</span>;
       } else if (value === true || value === false) {
-        return <span className="val-bool">{value ? 'True' : 'False'}</span>;
+        return (
+          <span className="val-bool">
+            {jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
+          </span>
+        );
       } else if (isString(value)) {
         const valueInfo = analyzeStringForRepr(value);
 
@@ -192,7 +205,7 @@ class ContextData extends React.Component {
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            <ToggleWrap highUp={depth <= 2} wrapClassName="val-array-items">
+            <ToggleWrap highUp={depth <= maxDepth} wrapClassName="val-array-items">
               {children}
             </ToggleWrap>
             <span className="val-array-marker">{']'}</span>
@@ -223,7 +236,7 @@ class ContextData extends React.Component {
         return (
           <span className="val-dict">
             <span className="val-dict-marker">{'{'}</span>
-            <ToggleWrap highUp={depth <= 1} wrapClassName="val-dict-items">
+            <ToggleWrap highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
               {children}
             </ToggleWrap>
             <span className="val-dict-marker">{'}'}</span>
