@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.rules.actions.base import EventAction
 from sentry.models import Integration
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.utils import metrics
 
 from .card_builder import build_group_card
@@ -53,10 +53,12 @@ class MsTeamsNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class MsTeamsNotifyServiceAction(EventAction):
+class MsTeamsNotifyServiceAction(IntegrationEventAction):
     form_cls = MsTeamsNotifyServiceForm
     label = u"Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"
+    provider = "msteams"
+    integration_key = "team"
 
     def __init__(self, *args, **kwargs):
         super(MsTeamsNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -68,17 +70,11 @@ class MsTeamsNotifyServiceAction(EventAction):
             "channel": {"type": "string", "placeholder": "i.e. General"},
         }
 
-    def is_enabled(self):
-        return self.get_integrations().exists()
-
     def after(self, event, state):
-        integration_id = self.get_option("team")
         channel = self.get_option("channel_id")
 
         try:
-            integration = Integration.objects.get(
-                provider="msteams", organizations=self.project.organization, id=integration_id
-            )
+            integration = self.get_integration()
         except Integration.DoesNotExist:
             return
 
@@ -89,26 +85,14 @@ class MsTeamsNotifyServiceAction(EventAction):
             client = MsTeamsClient(integration)
             client.send_card(channel, card)
 
-        key = u"msteams:{}:{}".format(integration_id, channel)
+        key = u"msteams:{}:{}".format(integration.id, channel)
 
         metrics.incr("notifications.sent", instance="msteams.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
 
     def render_label(self):
-        try:
-            integration_name = Integration.objects.get(
-                provider="msteams",
-                organizations=self.project.organization,
-                id=self.get_option("team"),
-            ).name
-        except Integration.DoesNotExist:
-            integration_name = "[removed]"
-
-        return self.label.format(team=integration_name, channel=self.get_option("channel"),)
-
-    def get_integrations(self):
-        return Integration.objects.filter(
-            provider="msteams", organizations=self.project.organization
+        return self.label.format(
+            team=self.get_integration_name(), channel=self.get_option("channel")
         )
 
     def get_form_instance(self):
