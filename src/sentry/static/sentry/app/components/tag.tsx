@@ -117,8 +117,8 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
-  color: ${p => p.theme.tag[p.type].textColor};
   padding: 0 ${space(1)};
+  color: ${p => p.theme.tag[p.type].textColor};
 `;
 
 const IconWrapper = styled('span')`
@@ -127,7 +127,6 @@ const IconWrapper = styled('span')`
 `;
 
 const Text = styled('span')<{maxWidth: number}>`
-  color: ${p => p.theme.gray500};
   font-size: ${p => p.theme.fontSizeSmall};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
