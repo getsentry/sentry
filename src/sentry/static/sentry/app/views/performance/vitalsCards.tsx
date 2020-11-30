@@ -62,7 +62,7 @@ export default function VitalsCards(props: Props) {
 
 const VitalsContainer = styled('div')`
   display: grid;
-  grid-auto-flow: column dense;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
