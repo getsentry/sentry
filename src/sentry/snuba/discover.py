@@ -681,6 +681,14 @@ def top_events_timeseries(
             referrer=referrer,
         )
 
+    if not result.get("data", []):
+        return SnubaTSResult(
+            {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
+            snuba_filter.start,
+            snuba_filter.end,
+            rollup,
+        )
+
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.transform_results"
     ) as span:

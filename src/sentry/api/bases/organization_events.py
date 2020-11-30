@@ -19,7 +19,7 @@ from sentry.api.event_search import (
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.models.group import Group
 from sentry.snuba import discover
-from sentry.utils.snuba import MAX_FIELDS
+from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.http import absolute_uri
 from sentry.utils import snuba
@@ -261,7 +261,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
-            if top_events:
+            # When top_events mode is True, result can be a SnubaTSResult in the event that
+            # there were no top events found. In this case, result contains a zerofilled series
+            # that acts as a placeholder.
+            if top_events and not isinstance(result, SnubaTSResult):
                 results = {}
                 for key, event_result in six.iteritems(result):
                     if len(query_columns) > 1:
