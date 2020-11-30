@@ -11,7 +11,7 @@ import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
-import {Organization, Project, Team} from 'app/types';
+import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
@@ -22,7 +22,6 @@ type Props = {
   organization: Organization;
   projectId?: string;
   groupId: string;
-  team: Team;
 };
 
 type State = {
@@ -133,8 +132,11 @@ class MissingProjectMembership extends React.Component<Props, State> {
 
   render() {
     const {organization, groupId} = this.props;
+    const team = this.state.team;
     const teams = this.state.project?.teams ?? [];
     const features = new Set(organization.features);
+
+    const endpoint = `/organizations/${organization.slug}/members/me/`;
 
     const teamAccess = [
       {
@@ -167,7 +169,12 @@ class MissingProjectMembership extends React.Component<Props, State> {
                 `You'll need to join a team with access to Issue ID ${groupId} before you can view it.`
               )}
               action={
-                <StyledForm submitLabel={t('Request Access')} hideFooter>
+                <StyledForm
+                  apiEndpoint={endpoint}
+                  apiMethod="GET"
+                  submitLabel={t('Request Access')}
+                  hideFooter
+                >
                   <StyledSelectField
                     name="select"
                     placeholder={t('Select a Team')}
@@ -175,8 +182,8 @@ class MissingProjectMembership extends React.Component<Props, State> {
                     onChange={this.handleChange}
                     flexibleControlStateSize
                   />
-                  {this.state.team ? (
-                    this.renderJoinTeam(this.state.team, features)
+                  {team ? (
+                    this.renderJoinTeam(team, features)
                   ) : (
                     <StyledButton disabled>Select a Team</StyledButton>
                   )}
