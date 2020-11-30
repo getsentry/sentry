@@ -29,15 +29,18 @@ class UserReportSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
+        name = obj.name or obj.email
+        email = obj.email
+        if attrs["event_user"]:
+            event_user = attrs["event_user"]
+            if isinstance(event_user, dict):
+                name = name or event_user.get("name")
+                email = email or event_user.get("email")
         return {
             "id": six.text_type(obj.id),
             "eventID": obj.event_id,
-            "name": (
-                obj.name
-                or obj.email
-                or (attrs["event_user"].get_display_name() if attrs["event_user"] else None)
-            ),
-            "email": (obj.email or (attrs["event_user"].email if attrs["event_user"] else None)),
+            "name": name,
+            "email": email,
             "comments": obj.comments,
             "dateCreated": obj.date_added,
             "user": attrs["event_user"],
