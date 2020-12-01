@@ -1,0 +1,43 @@
+on:
+  workflow_run:
+    workflows: ["acceptance"]
+    types:
+      - completed
+
+  visual-diff:
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: Dump job context
+        env:
+          JOB_CONTEXT: ${{ toJson(job) }}
+        run: echo "$JOB_CONTEXT"
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJson(steps) }}
+        run: echo "$STEPS_CONTEXT"
+      - name: Dump runner context
+        env:
+          RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: echo "$RUNNER_CONTEXT"
+      - name: Dump strategy context
+        env:
+          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+        run: echo "$STRATEGY_CONTEXT"
+      - name: Dump matrix context
+        env:
+          MATRIX_CONTEXT: ${{ toJson(matrix) }}
+        run: echo "$MATRIX_CONTEXT"
+      # - name: Diff snapshots
+        # id: visual-snapshots-diff
+        # uses: getsentry/action-visual-snapshot@v2
+        # with:
+          # api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          # github-token: ${{ secrets.GITHUB_TOKEN }}
+          # gcs-bucket: 'sentry-visual-snapshots'
+          # gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
