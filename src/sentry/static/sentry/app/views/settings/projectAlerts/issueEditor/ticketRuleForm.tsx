@@ -9,6 +9,7 @@ import Form from 'app/views/settings/components/forms/form';
 
 type Props = {
   data: any;
+  instance: any;
 };
 
 type State = {
@@ -46,6 +47,12 @@ class TicketRuleForm extends React.Component<Props, State> {
   cleanData = data => {
     const names = this.getNames();
     const formData = {};
+    if (this.props.instance.hasOwnProperty('jira_integration')) {
+      formData.jira_integration = this.props.instance.jira_integration;
+    }
+    if (this.props.instance.hasOwnProperty('vsts_integration')) {
+      formData.vsts_integration = this.props.instance.vsts_integration;
+    }
 
     for (const [key, value] of Object.entries(data)) {
       if (names.includes(key)) {

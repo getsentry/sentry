@@ -291,27 +291,9 @@ class RuleNode extends React.Component<Props, State> {
     });
   };
 
-  updateFormFields = () => {
-    if (this.props.data.hasOwnProperty('jira_integration')) {
-      const stateCopy = {...this.state.formData};
-      stateCopy.jira_integration = this.props.data.jira_integration;
-      this.setState({
-        formData: stateCopy,
-      });
-    }
-    if (this.props.data.hasOwnProperty('vsts_integration')) {
-      const stateCopy = {...this.state.formData};
-      stateCopy.vsts_integration = this.props.data.vsts_integration;
-      this.setState({
-        formData: stateCopy,
-      });
-    }
-  };
-
   render() {
     const {data, disabled, node} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
-    this.updateFormFields();
     return (
       <RuleRowContainer>
         <RuleRow>
@@ -319,7 +301,11 @@ class RuleNode extends React.Component<Props, State> {
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
             {ticketRule && (
-              <TicketRuleForm data={node} onSubmitAction={this.updateParent} />
+              <TicketRuleForm
+                data={node}
+                instance={data}
+                onSubmitAction={this.updateParent}
+              />
             )}
           </Rule>
           <DeleteButton
