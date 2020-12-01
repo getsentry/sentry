@@ -4,13 +4,13 @@ export type WidgetQuery = {
   name: string;
   fields: string[];
   conditions: string;
-  interval?: string; // not required
 };
 
 export type Widget = {
   id: string;
   title: string;
   displayType: DisplayType;
+  interval: string;
   queries: WidgetQuery[];
 };
 
@@ -26,7 +26,7 @@ export type OrgDashboard = {
 
 export type DashboardListItem = PrebuiltDashboard | OrgDashboard;
 
-export type DashboardState = 'default' | 'edit' | 'create';
+export type DashboardState = 'view' | 'edit' | 'create';
 
 // POST response when creating a new dashboard
 export type OrgDashboardResponse = {

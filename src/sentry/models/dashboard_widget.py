@@ -64,7 +64,6 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
-    interval = models.CharField(max_length=10)
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -86,6 +85,7 @@ class DashboardWidget(Model):
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
+    interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
 

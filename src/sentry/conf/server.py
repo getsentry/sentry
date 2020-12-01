@@ -10,6 +10,7 @@ import os.path
 import re
 import socket
 import sys
+import six
 import tempfile
 
 import sentry
@@ -823,6 +824,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable inline preview of attachments.
+    "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -900,7 +903,7 @@ SENTRY_FEATURES = {
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
-    "organizations:relay": False,
+    "organizations:relay": True,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1125,7 +1128,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
-CACHE_VERSION = 1
+CACHE_VERSION = 2 if six.PY3 else 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"

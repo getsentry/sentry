@@ -48,6 +48,7 @@ from sentry.models import (
     Organization,
 )
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.groupowner import get_owner_details
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import snuba
@@ -55,6 +56,7 @@ from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
+from sentry.reprocessing2 import get_num_pending_events
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -382,6 +384,7 @@ class GroupSerializerBase(Serializer):
                 ignore_actor = None
 
             result[item] = {
+                "id": item.id,
                 "assigned_to": resolved_assignees.get(item.id),
                 "is_bookmarked": item.id in bookmarks,
                 "subscription": subscriptions[item.id],
@@ -449,6 +452,9 @@ class GroupSerializerBase(Serializer):
             status_label = "pending_deletion"
         elif status == GroupStatus.PENDING_MERGE:
             status_label = "pending_merge"
+        elif status == GroupStatus.REPROCESSING:
+            status_label = "reprocessing"
+            status_details["pendingEvents"] = get_num_pending_events(attrs["id"])
         else:
             status_label = "unresolved"
         return status_details, status_label
@@ -871,6 +877,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         collapse=None,
         expand=None,
         has_inbox=False,
+        has_workflow_owners=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids, start, end, search_filters
@@ -889,13 +896,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.collapse = collapse
         self.expand = expand
         self.has_inbox = has_inbox
+        self.has_workflow_owners = has_workflow_owners
 
     def _expand(self, key):
         if self.expand is None:
             return False
 
-        if key == "inbox":
-            return self.has_inbox and "inbox" in self.expand
+        if key == "inbox" and not self.has_inbox:
+            return False
+
+        if key == "owners" and not self.has_workflow_owners:
+            return False
 
         return key in self.expand
 
@@ -977,6 +988,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 attrs[item].update({"inbox": inbox_stats.get(item.id)})
 
+        if self._expand("owners"):
+            owner_details = get_owner_details(item_list)
+            for item in item_list:
+                attrs[item].update({"owners": owner_details.get(item.id)})
+
         return attrs
 
     def serialize(self, obj, attrs, user):
@@ -1015,5 +1031,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("inbox"):
             result["inbox"] = attrs["inbox"]
+
+        if self._expand("owners"):
+            result["owners"] = attrs["owners"]
 
         return result

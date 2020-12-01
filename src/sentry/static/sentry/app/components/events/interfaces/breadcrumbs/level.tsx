@@ -1,10 +1,8 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Highlight from 'app/components/highlight';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import {Color} from 'app/utils/theme';
 
 import {BreadcrumbLevelType} from './types';
 
@@ -17,27 +15,27 @@ const Level = React.memo(({level, searchTerm = ''}: Props) => {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
-        <StyledTag color="red300">
+        <Tag type="error">
           <Highlight text={searchTerm}>{t('fatal')}</Highlight>
-        </StyledTag>
+        </Tag>
       );
     case BreadcrumbLevelType.ERROR:
       return (
-        <StyledTag color="red300">
+        <Tag type="error">
           <Highlight text={searchTerm}>{t('error')}</Highlight>
-        </StyledTag>
+        </Tag>
       );
     case BreadcrumbLevelType.INFO:
       return (
-        <StyledTag color="blue300">
+        <Tag type="info">
           <Highlight text={searchTerm}>{t('info')}</Highlight>
-        </StyledTag>
+        </Tag>
       );
     case BreadcrumbLevelType.WARNING:
       return (
-        <StyledTag color="orange400">
+        <Tag type="warning">
           <Highlight text={searchTerm}>{t('warning')}</Highlight>
-        </StyledTag>
+        </Tag>
       );
     default:
       return (
@@ -49,9 +47,3 @@ const Level = React.memo(({level, searchTerm = ''}: Props) => {
 });
 
 export default Level;
-
-// TODO(style): Update the tag component with the new colors
-const StyledTag = styled(Tag)<{color: Color}>`
-  background-color: ${p => p.theme[p.color]};
-  color: ${p => p.theme.white};
-`;

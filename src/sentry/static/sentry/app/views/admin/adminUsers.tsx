@@ -1,33 +1,54 @@
-/* eslint-disable react/jsx-key */
 import React from 'react';
+import {Location} from 'history';
 import moment from 'moment';
 
 import Link from 'app/components/links/link';
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 
 export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
-class AdminUsers extends React.Component {
-  getRow = row => [
-    <td>
+type Row = {
+  id: string;
+  username: string;
+  email: string;
+  dateJoined: string;
+  lastLogin: string;
+};
+
+type Props = {
+  location: Location;
+} & AsyncView['props'];
+
+export default class AdminUsers extends AsyncView<Props> {
+  getRow = (row: Row) => [
+    <td key="username">
       <strong>
         <Link to={`/manage/users/${row.id}/`}>{row.username}</Link>
       </strong>
       <br />
       {row.email !== row.username && <small>{row.email}</small>}
     </td>,
-    <td style={{textAlign: 'center'}}>{prettyDate(row.dateJoined)}</td>,
-    <td style={{textAlign: 'center'}}>{prettyDate(row.lastLogin)}</td>,
+    <td key="dateJoined" style={{textAlign: 'center'}}>
+      {prettyDate(row.dateJoined)}
+    </td>,
+    <td key="lastLogin" style={{textAlign: 'center'}}>
+      {prettyDate(row.lastLogin)}
+    </td>,
   ];
 
   render() {
     const columns = [
-      <th>User</th>,
-      <th style={{textAlign: 'center', width: 150}}>Joined</th>,
-      <th style={{textAlign: 'center', width: 150}}>Last Login</th>,
+      <th key="username">User</th>,
+      <th key="dateJoined" style={{textAlign: 'center', width: 150}}>
+        Joined
+      </th>,
+      <th key="lastLogin" style={{textAlign: 'center', width: 150}}>
+        Last Login
+      </th>,
     ];
 
     return (
@@ -57,5 +78,3 @@ class AdminUsers extends React.Component {
     );
   }
 }
-
-export default AdminUsers;
