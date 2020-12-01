@@ -21,16 +21,6 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/events/latest/`,
-      body: event,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/events/1/`,
-      body: event,
-    });
-
-    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/issues/`,
       method: 'PUT',
     });
@@ -129,6 +119,7 @@ describe('groupEventDetails', () => {
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
+        event={event}
         project={project}
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -150,6 +141,7 @@ describe('groupEventDetails', () => {
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
+        event={event}
         project={project}
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -186,6 +178,7 @@ describe('groupEventDetails', () => {
       <GroupEventDetails
         api={new MockApiClient()}
         group={group}
+        event={event}
         project={project}
         organization={org}
         environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -237,6 +230,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
+          event={event}
           project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -267,6 +261,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
+          event={event}
           project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -292,6 +287,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
+          event={event}
           project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -318,6 +314,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
+          event={event}
           project={proj}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
@@ -343,6 +340,7 @@ describe('groupEventDetails', () => {
         <GroupEventDetails
           api={new MockApiClient()}
           group={group}
+          event={event}
           project={project}
           organization={org}
           environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
