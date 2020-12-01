@@ -2,9 +2,10 @@ import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 
 import Button from 'app/components/button';
+import {IconSettings} from 'app/icons';
+import {t} from 'app/locale';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
-import {IconSettings} from 'app/icons';
 
 type Props = {
   data: any;
@@ -12,6 +13,7 @@ type Props = {
 
 type State = {
   showModal: boolean;
+  formData: any;
 };
 
 class TicketRuleForm extends React.Component<Props, State> {
@@ -31,33 +33,64 @@ class TicketRuleForm extends React.Component<Props, State> {
     });
   };
 
-  linkIssueSuccess = (onSuccess: () => void) => {
-    // this.props.onChange(() => onSuccess());
+  getNames = () => {
+    const names = [];
+    for (const name in this.props.data.formFields) {
+      if (this.props.data.formFields[name].hasOwnProperty('name')) {
+        names.push(this.props.data.formFields[name].name);
+      }
+    }
+    return names;
+  };
+
+  cleanData = data => {
+    const names = this.getNames();
+    const formData = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (names.includes(key)) {
+        formData[key] = value;
+      }
+    }
+    return formData;
+  };
+
+  onFormSubmit = (data: any) => {
+    const formData = this.cleanData(data);
+    this.props.onSubmitAction(formData);
     this.closeModal();
   };
 
   renderFields = () => {
-    let fields = [];
+    const fields = [];
+    this.props.data.formFields.reporter.required = false; // this is a hack for now until I figure out how to populate it with loadOptions!!
     const formFields = Object.values(this.props.data.formFields);
-    delete formFields.jira_integration; // this doesn't have a name field and doesn't render anyway
-    
+
     for (const key in formFields) {
-      fields.push(
-        <FieldFromConfig
-          key={formFields[key].name}
-          field={formFields[key]}
-          inline={false}
-          stacked
-          flexibleControlStateSize
-        />
-        )
+      if (formFields[key].hasOwnProperty('name')) {
+        fields.push(
+          <FieldFromConfig
+            key={formFields[key].name}
+            field={formFields[key]}
+            inline={false}
+            stacked
+            flexibleControlStateSize
+            // loadOptions={() => {console.log("helloooo")}}
+            // async={true}
+            // cache={false}
+            // onSelectResetsInput={false}
+            // onCloseResetsInput={false}
+            // onBlurResetsInput={false}
+            // autoload={true}
+          />
+        );
+      }
     }
     return fields;
-  }
+  };
 
   render() {
-    console.log("the props data: ")
-    console.log(this.props.data);
+    const submitLabel = t('Apply Changes');
     return (
       <React.Fragment>
         <Button
@@ -81,34 +114,18 @@ class TicketRuleForm extends React.Component<Props, State> {
             <Form
               // apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
               // apiMethod={action === 'create' ? 'POST' : 'PUT'}
-              // onSubmitSuccess={this.onSubmitSuccess}
+              onSubmit={this.onFormSubmit}
+              // onSubmitSuccess={this.formSubmitSuccess}
               initialData={this.props.data}
               // onFieldChange={this.onFieldChange}
-              // submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+              submitLabel={submitLabel}
               // submitDisabled={this.state.reloading}
               // footerClass="modal-footer"
               // onPreSubmit={this.handlePreSubmit}
               // onSubmitError={this.handleSubmitError}
             >
-            {this.renderFields}
+              {this.renderFields}
             </Form>
-
-
-            {/* 
-              okay maybe fuck ExternalIssueForm and just do our own
-
-            */}
-            {/* 
-                <ExternalIssueForm
-                  // need the key here so React will re-render
-                  // with a new action prop
-                  key={this.props.data.actionType}
-                  group={this.props.group} // don't have access to group
-                  integration={integration}
-                  action='create'
-                  onSubmitSuccess={(_, onSuccess) => this.linkIssueSuccess(onSuccess)}
-                />
-            */}
           </Modal.Body>
         </Modal>
       </React.Fragment>

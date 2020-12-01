@@ -39,7 +39,15 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-class RuleNode extends React.Component<Props> {
+type State = {
+  formData?: any;
+};
+
+class RuleNode extends React.Component<Props, State> {
+  state = {
+    formData: {},
+  };
+
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -277,18 +285,42 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
+  updateParent = data => {
+    this.setState({
+      formData: data,
+    });
+  };
+
+  updateFormFields = () => {
+    if (this.props.data.hasOwnProperty('jira_integration')) {
+      const stateCopy = {...this.state.formData};
+      stateCopy.jira_integration = this.props.data.jira_integration;
+      this.setState({
+        formData: stateCopy,
+      });
+    }
+    if (this.props.data.hasOwnProperty('vsts_integration')) {
+      const stateCopy = {...this.state.formData};
+      stateCopy.vsts_integration = this.props.data.vsts_integration;
+      this.setState({
+        formData: stateCopy,
+      });
+    }
+  };
+
   render() {
     const {data, disabled, node} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
-    console.log({node});
-    console.log({data})
+    this.updateFormFields();
     return (
       <RuleRowContainer>
         <RuleRow>
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && <TicketRuleForm data={node}/>} 
+            {ticketRule && (
+              <TicketRuleForm data={node} onSubmitAction={this.updateParent} />
+            )}
           </Rule>
           <DeleteButton
             disabled={disabled}
