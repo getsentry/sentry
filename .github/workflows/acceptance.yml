@@ -5,7 +5,7 @@
 # Also note that this name *MUST* match the filename because GHA
 # only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
 # and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
-name: acceptance
+name: acceptance-testing
 on:
   push:
     branches:
