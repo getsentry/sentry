@@ -29,7 +29,15 @@ cd "$gitroot"
 export venv_name="${PWD}/.venv"
 
 if [[ -f "${venv_name}/bin/activate" ]]; then
-    echo "You seem to have a virtualenv already. This script is meant to start one from scratch. Continue (y/N)?"
+    prompt_text="You seem to have a virtualenv already. This script is meant to start one from scratch. Continue (y/N)?"
+
+    # Temporary special case for Python 2 .venv/ -> .venv2/ transition.
+    # Just a more helpful error message.
+    if ! [[ "$(python -V 2>&1)" = "Python $(grep "2.7" .python-version)" ]]; then
+        prompt_text="You seem to have a virtualenv already, but it's Python 2. Remove it and replace with Python 3 (y/N)?"
+    fi
+
+    echo "$prompt_text"
     read resp
     case "$resp" in
       y|Y ) echo "Okay, let's do this." ;;
