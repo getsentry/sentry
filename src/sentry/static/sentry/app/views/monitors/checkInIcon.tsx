@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 type Props = {
   size: number | string;
-  color?: string;
   status: 'error' | 'ok';
+  color?: string;
 };
 
 export default styled('div')<Props>`
