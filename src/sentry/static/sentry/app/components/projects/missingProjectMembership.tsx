@@ -19,7 +19,6 @@ type Props = {
   api: Client;
   organization: Organization;
   projectId?: string;
-  groupId: string;
 };
 
 type State = {
@@ -130,7 +129,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
   };
 
   render() {
-    const {organization, groupId} = this.props;
+    const {organization} = this.props;
     const team = this.state.team;
     const teams = this.state.project?.teams ?? [];
     const features = new Set(organization.features);
@@ -164,7 +163,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
             icon={<IconFlag size="xl" />}
             title={t("You're not a member of this project.")}
             description={t(
-              `You'll need to join a team with access to Issue ID ${groupId} before you can view it.`
+              `You'll need to join a team with access before you can view this data.`
             )}
             action={
               <StyledField>

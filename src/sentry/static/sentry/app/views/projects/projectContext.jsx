@@ -1,6 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {withRouter} from 'react-router';
+import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
@@ -261,7 +262,7 @@ const ProjectContext = createReactClass({
   render() {
     return (
       <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
-        {this.renderBody()}
+        <ErrorWrapper>{this.renderBody()}</ErrorWrapper>
       </DocumentTitle>
     );
   },
@@ -270,3 +271,8 @@ const ProjectContext = createReactClass({
 export {ProjectContext};
 
 export default withApi(withOrganization(withProjects(withRouter(ProjectContext))));
+
+const ErrorWrapper = styled('div')`
+  width: 100%;
+  margin: 15px 30px;
+`;
