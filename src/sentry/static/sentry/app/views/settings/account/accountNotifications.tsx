@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import AlertLink from 'app/components/alertLink';
 import Link from 'app/components/links/link';
@@ -36,8 +35,14 @@ const FINE_TUNE_FOOTERS = {
   },
 };
 
-export default class AccountNotifications extends AsyncView {
-  getEndpoints() {
+type Props = AsyncView['props'] & {};
+
+type State = AsyncView['state'] & {
+  data: Record<string, unknown> | null;
+};
+
+export default class AccountNotifications extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/users/me/notifications/']];
   }
 
@@ -50,7 +55,7 @@ export default class AccountNotifications extends AsyncView {
       <div>
         <SettingsPageHeader title="Notifications" />
         <Form
-          initialData={this.state.data}
+          initialData={this.state.data ?? undefined}
           saveOnBlur
           apiMethod="PUT"
           apiEndpoint="/users/me/notifications/"
@@ -58,6 +63,9 @@ export default class AccountNotifications extends AsyncView {
           <JsonForm
             forms={accountNotificationFields}
             renderFooter={({title}) => {
+              if (typeof title !== 'string') {
+                return null;
+              }
               if (FINE_TUNE_FOOTERS[title]) {
                 return <FineTuningFooter {...FINE_TUNE_FOOTERS[title]} />;
               }
@@ -80,23 +88,16 @@ const FineTuneLink = styled(Link)`
   color: inherit;
 `;
 
-class FineTuningFooter extends React.Component {
-  static propTypes = {
-    path: PropTypes.string.isRequired,
-    text: PropTypes.string.isRequired,
-  };
+type FooterProps = {
+  path: string;
+  text: string;
+};
 
-  render() {
-    const {path, text} = this.props;
-    const baseUrl = '/settings/account/notifications/';
-
-    return (
-      <PanelFooter css={{borderTop: 'none'}}>
-        <FineTuneLink to={`${baseUrl}${path}`}>
-          <span>{text}</span>
-          <IconChevron direction="right" size="15px" />
-        </FineTuneLink>
-      </PanelFooter>
-    );
-  }
-}
+const FineTuningFooter = ({path, text}: FooterProps) => (
+  <PanelFooter css={{borderTop: 'none'}}>
+    <FineTuneLink to={`/settings/account/notifications/${path}`}>
+      <span>{text}</span>
+      <IconChevron direction="right" size="15px" />
+    </FineTuneLink>
+  </PanelFooter>
+);
