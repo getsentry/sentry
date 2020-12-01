@@ -22,6 +22,20 @@ jobs:
     runs-on: ubuntu-latest
     name: 'Release a new version'
     steps:
+      - name: Prepare release
+        uses: getsentry/action-prepare-release
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_SENTRY_BOT_PAT }}
+          fetch-depth: 20
+      - uses: getsentry/craft@master
+        name: Craft Prepare
+        if: ${{ !github.event.inputs.skip_prepare }}
+        with:
+          action: prepare
+          version: ${{ env.RELEASE_VERSION }}
+        env:
+          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       - id: killswitch
         name: Check release blockers
         if: ${{ !github.event.inputs.force }}
@@ -30,37 +44,6 @@ jobs:
             echo "Open release-blocking issues found, cancelling release...";
             curl -sf -X POST -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }}/cancel;
           fi
-      - id: set-version
-        name: Determine version
-        run: |
-          if [[ -n '${{ github.event.inputs.version }}' ]]; then
-            echo 'RELEASE_VERSION=${{ github.event.inputs.version }}' >> $GITHUB_ENV;
-          else
-            DATE_PART=$(date +'%y.%-m')
-            declare -i PATCH_VERSION=0
-            while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
-              PATCH_VERSION+=1
-            done
-            echo "RELEASE_VERSION=${DATE_PART}.${PATCH_VERSION}" >> $GITHUB_ENV;
-          fi
-      - uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_SENTRY_BOT_PAT }}
-          fetch-depth: 20
-      - id: set-git-user
-        name: Set git user to getsentry-bot
-        run: |
-          git config user.name getsentry-bot
-          git config user.email bot@getsentry.com
-      - uses: getsentry/craft@master
-        name: Craft Prepare
-        if: ${{ !github.event.inputs.skip_prepare }}
-        with:
-          action: prepare
-          version: ${{ env.RELEASE_VERSION }}
-        env:
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
-          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       # Wait until the builds start. Craft should do this automatically
       # but it is broken now.
       - run: sleep 10
