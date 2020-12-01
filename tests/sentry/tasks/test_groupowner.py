@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.eventstore.processing import event_processing_store
@@ -9,6 +12,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.compat.mock import patch
 
 
 class TestGroupOwners(TestCase):
@@ -102,6 +106,7 @@ class TestGroupOwners(TestCase):
         process_suspect_commits(self.event_1.group_id, cache_key)
         assert not GroupOwner.objects.filter(group=self.event_1.group).exists()
 
+    @patch("sentry.tasks.groupowner.GROUP_PROCESSING_DELAY", timedelta(minutes=0))
     def test_delete_old_entries(self):
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
@@ -162,34 +167,11 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
-        self.event_4 = self.store_event(
-            data={
-                "message": "BAP!",
-                "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "process_suspect_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/tasks/groupowner.py",
-                            "module": "sentry.tasks.groupowner",
-                            "in_app": True,
-                            "lineno": 48,
-                            "filename": "sentry/tasks/groupowner.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-                "fingerprint": ["put-me-in-the-control-group"],
-            },
-            project_id=self.project.id,
-        )
+
         self.user_2 = self.create_user("another@user.com", is_superuser=True)
         self.create_member(teams=[self.team], user=self.user_2, organization=self.organization)
         self.user_3 = self.create_user("user_3@sentry.io", is_superuser=True)
         self.create_member(teams=[self.team], user=self.user_3, organization=self.organization)
-        self.user_4 = self.create_user("user_4@sentry.io", is_superuser=True)
-        self.create_member(teams=[self.team], user=self.user_4, organization=self.organization)
         self.release.set_commits(
             [
                 {
@@ -205,7 +187,6 @@ class TestGroupOwners(TestCase):
 
         assert self.event_2.group == self.event_1.group
         assert self.event_3.group == self.event_1.group
-        assert self.event_4.group == self.event_1.group
 
         data = self.event_2.data
         data["event_id"] = self.event_2.event_id
@@ -224,39 +205,38 @@ class TestGroupOwners(TestCase):
         cache_key = event_processing_store.store(data)
         self.set_release_commits(self.user_3.email)
         process_suspect_commits(self.event_3.group_id, cache_key)
-        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 3
+        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event_1.group, user=self.user).exists()
         assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
-
-        data = self.event_4.data
-        data["event_id"] = self.event_4.event_id
-        data["project"] = self.event_4.project_id
-        cache_key = event_processing_store.store(data)
-        self.set_release_commits(self.user_4.email)
-        process_suspect_commits(self.event_4.group_id, cache_key)
-        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 3
-        assert GroupOwner.objects.filter(group=self.event_1.group, user=self.user).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
-        assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_4).exists()
+        assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
 
         go = GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).first()
         go.date_added = timezone.now() - PREFERRED_GROUP_OWNER_AGE * 2
         go.save()
 
-        data = self.event_4.data
-        data["event_id"] = self.event_4.event_id
-        data["project"] = self.event_4.project_id
+        data = self.event_3.data
+        data["event_id"] = self.event_3.event_id
+        data["project"] = self.event_3.project_id
         cache_key = event_processing_store.store(data)
-        self.set_release_commits(self.user_4.email)
-        process_suspect_commits(self.event_4.group_id, cache_key)
-        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 3
+        self.set_release_commits(self.user_3.email)
+        process_suspect_commits(self.event_3.group_id, cache_key)
+        # Won't be processed because the cache is present and this group has owners
+        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 2
+        assert GroupOwner.objects.filter(group=self.event_1.group, user=self.user).exists()
+        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
+        assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
+
+        cache.delete(
+            "workflow-owners-ingestion:group-{}".format(self.event_2.group_id)
+        )  # Deleting the cache will cause us to process this group
+        cache_key = event_processing_store.store(data)
+        process_suspect_commits(self.event_3.group_id, cache_key)
+        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event_1.group, user=self.user).exists()
         assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
         assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_4).exists()
 
+    @patch("sentry.tasks.groupowner.GROUP_PROCESSING_DELAY", timedelta(minutes=0))
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
