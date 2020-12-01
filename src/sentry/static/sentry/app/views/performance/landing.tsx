@@ -7,6 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -46,6 +47,7 @@ import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
 import Table from './table';
 import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
+import VitalsCards from './vitalsCards';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -359,6 +361,13 @@ class PerformanceLanding extends React.Component<Props, State> {
                     )}
                     onSearch={this.handleSearch}
                   />
+                  <Feature features={['performance-vitals-overview']}>
+                    <VitalsCards
+                      eventView={eventView}
+                      organization={organization}
+                      location={location}
+                    />
+                  </Feature>
                   <Charts
                     eventView={eventView}
                     organization={organization}

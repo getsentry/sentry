@@ -1773,6 +1773,24 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/performance/vitaldetail/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceVitalDetail" */ 'app/views/performance/vitalDetail'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
             path="/organizations/:orgId/performance/:eventSlug/"
             componentPromise={() =>
               import(
