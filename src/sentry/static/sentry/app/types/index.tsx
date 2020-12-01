@@ -91,6 +91,11 @@ export type Actor = {
   email?: string;
 };
 
+export type SuggestedAssignee = Actor & {
+  suggestedReason: SuggestedOwnerReason;
+  assignee: Team | User;
+};
+
 /**
  * Organization summaries are sent when you request a
  * list of all organizations
@@ -785,6 +790,15 @@ export type InboxDetails = {
   };
 };
 
+export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
+
+// Received from the backend to denote suggested owners of an issue
+export type SuggestedOwner = {
+  type: SuggestedOwnerReason;
+  owner: string;
+  dateAdded: string;
+};
+
 type GroupFiltered = {
   count: string;
   stats: Record<string, TimeseriesValue[]>;
@@ -833,6 +847,7 @@ export type Group = GroupFiltered & {
   filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
+  owners?: SuggestedOwner[] | null;
 };
 
 export type GroupTombstone = {
