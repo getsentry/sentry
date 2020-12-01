@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import maxBy from 'lodash/maxBy';
 
 import {t, tct} from 'app/locale';
 import {Organization, SentryTransactionEvent} from 'app/types';
@@ -121,6 +122,21 @@ class SpanTree extends React.Component<PropType> {
     }
 
     return <SpanRowMessage>{messages}</SpanRowMessage>;
+  }
+
+  generateLimiteExceededMessage() {
+    const {trace} = this.props;
+
+    const {traceEndTimestamp, spans} = trace;
+    const lastSpan = maxBy(spans, span => span.timestamp)!;
+    const missingDuration = traceEndTimestamp - lastSpan.timestamp;
+
+    if (spans.length < 999 || missingDuration < 0.1) {
+      return null;
+    }
+
+    const message = t('Maximum span limit exceeded.');
+    return <SpanRowMessage>{message}</SpanRowMessage>;
   }
 
   isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
@@ -419,6 +435,8 @@ class SpanTree extends React.Component<PropType> {
       numOfFilteredSpansAbove,
     });
 
+    const limitExceededMessage = this.generateLimiteExceededMessage();
+
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
         <MeasurementsManager.Provider>
@@ -426,6 +444,7 @@ class SpanTree extends React.Component<PropType> {
           <TraceViewContainer ref={this.traceViewRef}>
             {spanTree}
             {infoMessage}
+            {limitExceededMessage}
           </TraceViewContainer>
         </MeasurementsManager.Provider>
       </DividerHandlerManager.Provider>
