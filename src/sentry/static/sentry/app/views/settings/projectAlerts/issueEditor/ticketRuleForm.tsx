@@ -145,6 +145,25 @@ class TicketRuleForm extends React.Component<Props, State> {
     return bodyText;
   };
 
+  addFields = formFields => {
+    const title = {
+      name: 'title',
+      label: 'Title',
+      type: 'string',
+      default: 'This will be the same as the Sentry Issue.',
+      disabled: true,
+    };
+    const description = {
+      name: 'description',
+      label: 'Description',
+      type: 'string',
+      default: 'This will be generated from the Sentry Issue details.',
+      disabled: true,
+    };
+    formFields.unshift(description);
+    formFields.unshift(title);
+  };
+
   render() {
     const {ticketType, link} = this.buildText();
     const text = t(
@@ -153,6 +172,7 @@ class TicketRuleForm extends React.Component<Props, State> {
     );
     const submitLabel = t('Apply Changes');
     const formFields = Object.values(this.props.data.formFields);
+    this.addFields(formFields);
     const initialData = {};
     formFields.forEach(field => {
       // passing an empty array breaks multi select
