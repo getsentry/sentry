@@ -16,9 +16,9 @@ const MAX_SUGGESTIONS = 5;
 
 const SuggestedAvatarStack = ({owners, ...props}: Props) => {
   const backgroundAvatarProps = {
+    ...props,
     round: owners[0].type === 'user',
     suggested: true,
-    ...props,
   };
   const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
   const backgroundAvatars: React.ReactElement[] = [];
@@ -26,8 +26,8 @@ const SuggestedAvatarStack = ({owners, ...props}: Props) => {
   for (let i = 0; i < numAvatars - 1; i++) {
     backgroundAvatars.push(
       <StyledBackgroundAvatar
-        key={i}
         {...backgroundAvatarProps}
+        key={i}
         type="background"
         index={i}
       />
@@ -37,8 +37,8 @@ const SuggestedAvatarStack = ({owners, ...props}: Props) => {
     <AvatarStack>
       {backgroundAvatars}
       <StyledAvatar
-        suggested
         {...props}
+        suggested
         actor={owners[0]}
         index={numAvatars - 1}
         hasTooltip={false}
