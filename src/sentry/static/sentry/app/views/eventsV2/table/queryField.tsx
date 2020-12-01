@@ -359,6 +359,24 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
+  renderBadge(kind) {
+    let text, priority;
+    switch (kind) {
+      case FieldValueKind.FUNCTION:
+        text = 'f(x)';
+        priority = 'strong';
+        break;
+      case FieldValueKind.MEASUREMENT:
+        text = 'measure';
+        priority = 'highlight';
+        break;
+      default:
+        priority = undefined;
+        text = kind;
+    }
+    return <Badge text={text} priority={priority} />;
+  }
+
   render() {
     const {
       className,
@@ -418,13 +436,13 @@ class QueryField extends React.Component<Props> {
             Option: ({label, data, ...props}: OptionProps<OptionType>) => (
               <components.Option label={label} {...(props as any)}>
                 <span data-test-id="label">{label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderBadge(data.value.kind)}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
               <components.SingleValue data={data} {...(props as any)}>
                 <span data-test-id="label">{data.label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderBadge(data.value.kind)}
               </components.SingleValue>
             ),
           }}
