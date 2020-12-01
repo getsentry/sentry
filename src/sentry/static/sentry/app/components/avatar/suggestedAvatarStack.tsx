@@ -8,7 +8,8 @@ import {Actor} from 'app/types';
 
 type Props = {
   owners: Actor[];
-};
+} & BaseAvatar['props'] &
+  ActorAvatar['props'];
 
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 5;
@@ -19,32 +20,29 @@ const SuggestedAvatarStack = ({owners, ...props}: Props) => {
     suggested: true,
     ...props,
   };
-  const reversedOwners = owners.slice(0, MAX_SUGGESTIONS).reverse();
+  const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
+  const backgroundAvatars: React.ReactElement[] = [];
+  // Generate N - 1 background avatars
+  for (let i = 0; i < numAvatars - 1; i++) {
+    backgroundAvatars.push(
+      <StyledBackgroundAvatar
+        key={i}
+        {...backgroundAvatarProps}
+        type="background"
+        index={i}
+      />
+    );
+  }
   return (
     <AvatarStack>
-      {reversedOwners.map((owner, id) => {
-        if (id === reversedOwners.length - 1) {
-          return (
-            <StyledAvatar
-              key={owner.id}
-              actor={owner}
-              suggested
-              {...props}
-              index={id}
-              hasTooltip={false}
-            />
-          );
-        } else {
-          return (
-            <StyledBackgroundAvatar
-              key={owner.id}
-              {...backgroundAvatarProps}
-              type="background"
-              index={id}
-            />
-          );
-        }
-      })}
+      {backgroundAvatars}
+      <StyledAvatar
+        suggested
+        {...props}
+        actor={owners[0]}
+        index={numAvatars - 1}
+        hasTooltip={false}
+      />
     </AvatarStack>
   );
 };
