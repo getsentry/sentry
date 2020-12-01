@@ -13,6 +13,7 @@ from sentry.utils.compat.mock import patch
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
+    Group,
     Environment,
     GroupLink,
     GroupResolution,
@@ -261,6 +262,19 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group)
         assert not result["isSubscribed"]
+
+    def test_reprocessing(self):
+        from sentry.reprocessing2 import start_group_reprocessing
+
+        group = self.create_group()
+        start_group_reprocessing(project_id=group.project_id, group_id=group.id)
+
+        result = serialize(Group.objects.get(id=group.id))
+
+        assert result["status"] == "reprocessing"
+        assert result["statusDetails"] == {
+            "pendingEvents": 0,
+        }
 
 
 class StreamGroupSerializerTestCase(TestCase):
