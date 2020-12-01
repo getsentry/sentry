@@ -89,21 +89,21 @@ class CreateSnubaSubscriptionTest(TestCase):
         assert subscription.subscription_id is None
 
     def test_with_task(self):
-        with self.tasks():
-            type = "something"
-            dataset = QueryDatasets.EVENTS
-            query = "level:error"
-            time_window = timedelta(minutes=10)
-            resolution = timedelta(minutes=1)
-            snuba_query = create_snuba_query(
-                dataset, query, "count()", time_window, resolution, self.environment
-            )
+        type = "something"
+        dataset = QueryDatasets.EVENTS
+        query = "level:error"
+        time_window = timedelta(minutes=10)
+        resolution = timedelta(minutes=1)
+        snuba_query = create_snuba_query(
+            dataset, query, "count()", time_window, resolution, self.environment
+        )
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             subscription = create_snuba_subscription(self.project, type, snuba_query)
-            subscription = QuerySubscription.objects.get(id=subscription.id)
-            assert subscription.status == QuerySubscription.Status.ACTIVE.value
-            assert subscription.project == self.project
-            assert subscription.type == type
-            assert subscription.subscription_id is not None
+        subscription = QuerySubscription.objects.get(id=subscription.id)
+        assert subscription.status == QuerySubscription.Status.ACTIVE.value
+        assert subscription.project == self.project
+        assert subscription.type == type
+        assert subscription.subscription_id is not None
 
     def test_translated_query(self):
         type = "something"
@@ -111,7 +111,7 @@ class CreateSnubaSubscriptionTest(TestCase):
         query = "event.type:error"
         time_window = timedelta(minutes=10)
         resolution = timedelta(minutes=1)
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 dataset, query, "count()", time_window, resolution, self.environment
             )
@@ -213,7 +213,7 @@ class UpdateSnubaQueryTest(TestCase):
 class UpdateSnubaSubscriptionTest(TestCase):
     def test(self):
         old_dataset = QueryDatasets.EVENTS
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 old_dataset,
                 "level:error",
@@ -250,8 +250,8 @@ class UpdateSnubaSubscriptionTest(TestCase):
         assert subscription.snuba_query.resolution == int(resolution.total_seconds())
 
     def test_with_task(self):
-        with self.tasks():
-            old_dataset = QueryDatasets.EVENTS
+        old_dataset = QueryDatasets.EVENTS
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 old_dataset,
                 "level:error",
@@ -262,32 +262,33 @@ class UpdateSnubaSubscriptionTest(TestCase):
             )
             subscription = create_snuba_subscription(self.project, "something", snuba_query)
 
-            dataset = QueryDatasets.TRANSACTIONS
-            query = "level:warning"
-            aggregate = "count_unique(tags[sentry:user])"
-            time_window = timedelta(minutes=20)
-            resolution = timedelta(minutes=2)
-            subscription = QuerySubscription.objects.get(id=subscription.id)
-            subscription_id = subscription.subscription_id
-            assert subscription_id is not None
-            snuba_query.update(
-                dataset=dataset.value,
-                query=query,
-                time_window=int(time_window.total_seconds()),
-                resolution=int(resolution.total_seconds()),
-                environment=self.environment,
-                aggregate=aggregate,
-            )
+        dataset = QueryDatasets.TRANSACTIONS
+        query = "level:warning"
+        aggregate = "count_unique(tags[sentry:user])"
+        time_window = timedelta(minutes=20)
+        resolution = timedelta(minutes=2)
+        subscription = QuerySubscription.objects.get(id=subscription.id)
+        subscription_id = subscription.subscription_id
+        assert subscription_id is not None
+        snuba_query.update(
+            dataset=dataset.value,
+            query=query,
+            time_window=int(time_window.total_seconds()),
+            resolution=int(resolution.total_seconds()),
+            environment=self.environment,
+            aggregate=aggregate,
+        )
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             update_snuba_subscription(subscription, old_dataset)
-            subscription = QuerySubscription.objects.get(id=subscription.id)
-            assert subscription.status == QuerySubscription.Status.ACTIVE.value
-            assert subscription.subscription_id is not None
-            assert subscription.subscription_id != subscription_id
+        subscription = QuerySubscription.objects.get(id=subscription.id)
+        assert subscription.status == QuerySubscription.Status.ACTIVE.value
+        assert subscription.subscription_id is not None
+        assert subscription.subscription_id != subscription_id
 
 
 class BulkDeleteSnubaSubscriptionTest(TestCase):
     def test(self):
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "level:error",
@@ -322,7 +323,7 @@ class BulkDeleteSnubaSubscriptionTest(TestCase):
 
 class DeleteSnubaSubscriptionTest(TestCase):
     def test(self):
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "level:error",
@@ -336,12 +337,13 @@ class DeleteSnubaSubscriptionTest(TestCase):
         subscription = QuerySubscription.objects.get(id=subscription.id)
         subscription_id = subscription.subscription_id
         assert subscription_id is not None
-        delete_snuba_subscription(subscription)
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
+            delete_snuba_subscription(subscription)
         assert subscription.status == QuerySubscription.Status.DELETING.value
         assert subscription.subscription_id == subscription_id
 
     def test_with_task(self):
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "level:error",
@@ -351,6 +353,7 @@ class DeleteSnubaSubscriptionTest(TestCase):
                 None,
             )
             subscription = create_snuba_subscription(self.project, "something", snuba_query)
-            subscription_id = subscription.id
+        subscription_id = subscription.id
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             delete_snuba_subscription(subscription)
-            assert not QuerySubscription.objects.filter(id=subscription_id).exists()
+        assert not QuerySubscription.objects.filter(id=subscription_id).exists()

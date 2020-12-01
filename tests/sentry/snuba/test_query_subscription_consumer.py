@@ -95,7 +95,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         registration_key = "registered_test"
         mock_callback = Mock()
         register_subscriber(registration_key)(mock_callback)
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "hello",

@@ -136,8 +136,8 @@ def create_snuba_subscription(project, subscription_type, snuba_query):
         snuba_query=snuba_query,
         type=subscription_type,
     )
-    create_subscription_in_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        create_subscription_in_snuba.s(query_subscription_id=subscription.id).delay
     )
 
     return subscription
@@ -170,10 +170,10 @@ def update_snuba_subscription(subscription, old_dataset):
     """
     with transaction.atomic():
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
-
-        update_subscription_in_snuba.apply_async(
-            kwargs={"query_subscription_id": subscription.id, "old_dataset": old_dataset.value},
-            countdown=5,
+        transaction.on_commit(
+            update_subscription_in_snuba.s(
+                query_subscription_id=subscription.id, old_dataset=old_dataset.value,
+            ).delay
         )
 
     return subscription
@@ -197,9 +197,8 @@ def delete_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.DELETING.value)
-
-    delete_subscription_from_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        delete_subscription_from_snuba.s(query_subscription_id=subscription.id).delay
     )
 
 
@@ -221,9 +220,8 @@ def disable_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.DISABLED.value)
-
-    delete_subscription_from_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        delete_subscription_from_snuba.s(query_subscription_id=subscription.id).delay
     )
 
 
@@ -245,6 +243,6 @@ def enable_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.CREATING.value)
-    create_subscription_in_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        create_subscription_in_snuba.s(query_subscription_id=subscription.id).delay
     )

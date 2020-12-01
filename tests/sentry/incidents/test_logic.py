@@ -877,7 +877,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     def test_update_subscription(self):
         old_subscription_id = self.alert_rule.snuba_query.subscriptions.get().subscription_id
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             update_alert_rule(self.alert_rule, query="some new query")
         assert (
             old_subscription_id != self.alert_rule.snuba_query.subscriptions.get().subscription_id
@@ -911,7 +911,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         query_update = "level:warning"
         new_project = self.create_project(fire_project_created=True)
         updated_projects = [self.project, new_project]
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
@@ -946,7 +946,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         projects = set([new_project, self.project])
         alert_rule = self.create_alert_rule(include_all_projects=True)
         assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             update_alert_rule(alert_rule, excluded_projects=[self.project])
         assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
@@ -958,7 +958,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         projects = set([new_project, self.project])
         alert_rule = self.create_alert_rule(include_all_projects=True)
         assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
         assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
@@ -1077,18 +1077,19 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
         return self.create_alert_rule()
 
     def test(self):
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             disable_alert_rule(self.alert_rule)
-            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
-            assert alert_rule.status == AlertRuleStatus.DISABLED.value
-            for subscription in alert_rule.snuba_query.subscriptions.all():
-                assert subscription.status == QuerySubscription.Status.DISABLED.value
+        alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+        assert alert_rule.status == AlertRuleStatus.DISABLED.value
+        for subscription in alert_rule.snuba_query.subscriptions.all():
+            assert subscription.status == QuerySubscription.Status.DISABLED.value
 
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             enable_alert_rule(self.alert_rule)
-            alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
-            assert alert_rule.status == AlertRuleStatus.PENDING.value
-            for subscription in alert_rule.snuba_query.subscriptions.all():
-                assert subscription.status == QuerySubscription.Status.ACTIVE.value
+        alert_rule = AlertRule.objects.get(id=self.alert_rule.id)
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+        for subscription in alert_rule.snuba_query.subscriptions.all():
+            assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
 class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
