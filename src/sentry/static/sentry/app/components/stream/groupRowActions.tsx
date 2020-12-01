@@ -11,7 +11,6 @@ import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {GlobalSelection, Group, Project, Release} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
@@ -75,124 +74,91 @@ class GroupRowActions extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <HoverActionsWrapper>
-          <ActionWrapper>
-            <Tooltip title={t('Move to Backlog')}>
-              <ActionLink
-                className="btn btn-default btn-sm"
-                onAction={() => this.handleUpdate({inbox: false})}
-                shouldConfirm={false}
-                title={t('Move to backlog')}
-              >
-                <IconIssues size="xs" color="gray300" />
-              </ActionLink>
-            </Tooltip>
-          </ActionWrapper>
+        <Tooltip title={t('Move to Backlog')}>
+          <ActionLink
+            className="btn btn-default btn-sm"
+            onAction={() => this.handleUpdate({inbox: false})}
+            shouldConfirm={false}
+            title={t('Move to backlog')}
+          >
+            <IconIssues size="xs" color="gray300" />
+          </ActionLink>
+        </Tooltip>
 
-          <ActionWrapper>
-            <Tooltip title={t('Ignore')}>
-              <IgnoreActions
-                onUpdate={this.handleUpdate}
-                shouldConfirm={false}
-                inboxRowAction
-              />
-            </Tooltip>
-          </ActionWrapper>
+        <Tooltip title={t('Ignore')}>
+          <IgnoreActions onUpdate={this.handleUpdate} shouldConfirm={false} hasInbox />
+        </Tooltip>
 
-          <ActionWrapper>
-            <StyledDropdownLink
-              key="actions"
-              caret={false}
-              className="btn btn-sm btn-default action-more"
-              customTitle={<IconEllipsis size="xs" />}
-              title=""
-              anchorRight
+        <StyledDropdownLink
+          key="actions"
+          caret={false}
+          className="btn btn-sm btn-default action-more"
+          customTitle={<IconEllipsis size="xs" />}
+          title=""
+          anchorRight
+        >
+          <MenuItem noAnchor>
+            <Projects orgId={orgId} slugs={[group.project.slug]}>
+              {({projects, initiallyLoaded, fetchError}) => {
+                const project = projects[0];
+                return (
+                  <ResolveActions
+                    hasRelease={
+                      project.hasOwnProperty('features')
+                        ? (project as Project).features.includes('releases')
+                        : false
+                    }
+                    latestRelease={
+                      project.hasOwnProperty('latestRelease')
+                        ? ((project as Project).latestRelease as Release)
+                        : undefined
+                    }
+                    orgId={orgId}
+                    projectId={group.project.id}
+                    onUpdate={this.handleUpdate}
+                    shouldConfirm={false}
+                    hasInbox
+                    disabled={!!fetchError}
+                    disableDropdown={!initiallyLoaded || !!fetchError}
+                    projectFetchError={!!fetchError}
+                  />
+                );
+              }}
+            </Projects>
+          </MenuItem>
+          <MenuItem divider />
+          <MenuItem noAnchor>
+            <ActionLink
+              className="action-remove-bookmark"
+              onAction={() => this.handleUpdate({isBookmarked: false})}
+              shouldConfirm={false}
+              title={t('Remove from Bookmarks')}
             >
-              <MenuItem noAnchor>
-                <Projects orgId={orgId} slugs={[group.project.slug]}>
-                  {({projects, initiallyLoaded, fetchError}) => {
-                    const project = projects[0];
-                    return (
-                      <ResolveActions
-                        hasRelease={
-                          project.hasOwnProperty('features')
-                            ? (project as Project).features.includes('releases')
-                            : false
-                        }
-                        latestRelease={
-                          project.hasOwnProperty('latestRelease')
-                            ? ((project as Project).latestRelease as Release)
-                            : undefined
-                        }
-                        orgId={orgId}
-                        projectId={group.project.id}
-                        onUpdate={this.handleUpdate}
-                        shouldConfirm={false}
-                        inboxRowAction
-                        disabled={!!fetchError}
-                        disableDropdown={!initiallyLoaded || !!fetchError}
-                        projectFetchError={!!fetchError}
-                      />
-                    );
-                  }}
-                </Projects>
-              </MenuItem>
-              <MenuItem divider />
-              <MenuItem noAnchor>
-                <ActionLink
-                  className="action-remove-bookmark"
-                  onAction={() => this.handleUpdate({isBookmarked: false})}
-                  shouldConfirm={false}
-                  title={t('Remove from Bookmarks')}
-                >
-                  {t('Remove from Bookmarks')}
-                </ActionLink>
-              </MenuItem>
-              <MenuItem divider />
-              <MenuItem noAnchor>
-                <ActionLink
-                  className="action-delete"
-                  onAction={this.handleDelete}
-                  shouldConfirm={false}
-                  title={t('Delete')}
-                >
-                  {t('Delete')}
-                </ActionLink>
-              </MenuItem>
-            </StyledDropdownLink>
-          </ActionWrapper>
-        </HoverActionsWrapper>
+              {t('Remove from Bookmarks')}
+            </ActionLink>
+          </MenuItem>
+          <MenuItem divider />
+          <MenuItem noAnchor>
+            <ActionLink
+              className="action-delete"
+              onAction={this.handleDelete}
+              shouldConfirm={false}
+              title={t('Delete')}
+            >
+              {t('Delete')}
+            </ActionLink>
+          </MenuItem>
+        </StyledDropdownLink>
       </Wrapper>
     );
   }
 }
 
 const Wrapper = styled('div')`
-  position: absolute;
-  background: transparent;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-`;
-
-const HoverActionsWrapper = styled('div')`
-  width: 200px;
-  height: 100%;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
-`;
-
-const ActionWrapper = styled('div')`
-  margin-right: ${space(1.5)};
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`

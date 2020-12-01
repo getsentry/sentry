@@ -36,7 +36,7 @@ const IGNORE_WINDOWS: [number, string][] = [
 const defaultProps = {
   isIgnored: false,
   confirmLabel: t('Ignore'),
-  inboxRowAction: false,
+  hasInbox: false,
 };
 
 type Props = {
@@ -44,7 +44,7 @@ type Props = {
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
-  inboxRowAction?: boolean;
+  hasInbox?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -89,7 +89,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
       shouldConfirm,
       confirmMessage,
       confirmLabel,
-      inboxRowAction,
+      hasInbox,
     } = this.props;
 
     const linkClassName = classNames('btn btn-default btn-sm', {
@@ -97,8 +97,8 @@ export default class IgnoreActions extends React.Component<Props, State> {
     });
 
     const submenuClassName = classNames('dropdown-submenu', {
-      flex: inboxRowAction,
-      'expand-left': inboxRowAction,
+      flex: hasInbox,
+      'expand-left': hasInbox,
     });
 
     const actionLinkProps = {
@@ -153,7 +153,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
-          {!inboxRowAction && (
+          {!hasInbox && (
             <StyledActionLink
               {...actionLinkProps}
               title={t('Ignore')}
@@ -166,15 +166,13 @@ export default class IgnoreActions extends React.Component<Props, State> {
           )}
 
           <StyledDropdownLink
-            caret={!inboxRowAction}
+            caret={!hasInbox}
             className={linkClassName}
-            customTitle={
-              inboxRowAction ? <IconMute size="xs" color="gray300" /> : undefined
-            }
+            customTitle={hasInbox ? <IconMute size="xs" color="gray300" /> : undefined}
             title=""
             alwaysRenderMenu
             disabled={disabled}
-            anchorRight={inboxRowAction}
+            anchorRight={hasInbox}
           >
             <MenuItem header>Ignore</MenuItem>
             <li className={submenuClassName}>

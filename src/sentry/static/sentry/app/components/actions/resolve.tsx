@@ -23,7 +23,7 @@ const defaultProps = {
   isResolved: false,
   isAutoResolved: false,
   confirmLabel: t('Resolve'),
-  inboxRowAction: false,
+  hasInbox: false,
 };
 
 type Props = {
@@ -37,7 +37,7 @@ type Props = {
   disabled?: boolean;
   disableDropdown?: boolean;
   projectFetchError?: boolean;
-  inboxRowAction?: boolean;
+  hasInbox?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -125,7 +125,7 @@ class ResolveActions extends React.Component<Props, State> {
       disabled,
       confirmLabel,
       disableDropdown,
-      inboxRowAction,
+      hasInbox,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -148,13 +148,13 @@ class ResolveActions extends React.Component<Props, State> {
     return (
       <StyledDropdownLink
         key="resolve-dropdown"
-        caret={!inboxRowAction}
-        className={inboxRowAction ? undefined : buttonClass}
+        caret={!hasInbox}
+        className={hasInbox ? undefined : buttonClass}
         title="Resolve"
         alwaysRenderMenu
         disabled={disableDropdown || disabled}
-        anchorRight={inboxRowAction}
-        isNestedDropdown={inboxRowAction}
+        anchorRight={hasInbox}
+        isNestedDropdown={hasInbox}
       >
         <MenuItem header>{t('Resolved In')}</MenuItem>
         <MenuItem noAnchor>
@@ -220,7 +220,7 @@ class ResolveActions extends React.Component<Props, State> {
       disabled,
       confirmLabel,
       projectFetchError,
-      inboxRowAction,
+      hasInbox,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -240,7 +240,7 @@ class ResolveActions extends React.Component<Props, State> {
       <div
         style={{
           display: 'inline-block',
-          width: inboxRowAction ? '100%' : undefined,
+          width: hasInbox ? '100%' : undefined,
         }}
       >
         <CustomResolutionModal
@@ -253,7 +253,7 @@ class ResolveActions extends React.Component<Props, State> {
           projectId={projectId}
         />
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-          {inboxRowAction ? (
+          {hasInbox ? (
             <div style={{width: '100%'}}>
               <li className="dropdown-submenu flex expand-left">
                 {this.renderDropdownMenu()}
