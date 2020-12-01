@@ -1,15 +1,23 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
-import {sortArray} from 'app/utils';
+import {Repository} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 
-export default class OrganizationRepositoriesContainer extends AsyncView {
-  getEndpoints() {
+type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
+
+type State = AsyncView['state'] & {
+  itemList: Repository[] | null;
+  repoConfig: any[] | null; // TODO
+};
+
+export default class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId} = this.props.params;
     return [
       ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
@@ -18,22 +26,14 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
   }
 
   // Callback used by child component to signal state change
-  onRepositoryChange = data => {
+  onRepositoryChange = (data: Pick<Repository, 'id' | 'status'>) => {
     const itemList = this.state.itemList;
-    itemList.forEach(item => {
+    itemList?.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
       }
     });
     this.setState({itemList});
-  };
-
-  onAddRepo = repo => {
-    const itemList = this.state.itemList;
-    itemList.push(repo);
-    this.setState({
-      itemList: sortArray(itemList, item => item.name),
-    });
   };
 
   getTitle() {
@@ -46,9 +46,8 @@ export default class OrganizationRepositoriesContainer extends AsyncView {
       <React.Fragment>
         <OrganizationRepositories
           {...this.props}
-          {...this.state}
+          itemList={this.state.itemList!}
           api={this.api}
-          onAddRepo={this.onAddRepo}
           onRepositoryChange={this.onRepositoryChange}
         />
         {this.state.itemListPageLinks && (
