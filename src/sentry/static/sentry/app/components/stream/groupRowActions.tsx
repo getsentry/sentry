@@ -11,7 +11,7 @@ import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
-import {GlobalSelection, Group, Project, Release} from 'app/types';
+import {GlobalSelection, Group, Project, Release, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
 
@@ -97,6 +97,17 @@ class GroupRowActions extends React.Component<Props> {
           title=""
           anchorRight
         >
+          <MenuItem noAnchor>
+            <ActionLink
+              className="action-resolve"
+              onAction={() => this.handleUpdate({status: ResolutionStatus.RESOLVED})}
+              shouldConfirm={false}
+              title={t('Resolve')}
+            >
+              {t('Resolve')}
+            </ActionLink>
+          </MenuItem>
+          <MenuItem divider />
           <MenuItem noAnchor>
             <Projects orgId={orgId} slugs={[group.project.slug]}>
               {({projects, initiallyLoaded, fetchError}) => {

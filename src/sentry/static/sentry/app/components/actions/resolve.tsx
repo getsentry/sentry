@@ -150,7 +150,7 @@ class ResolveActions extends React.Component<Props, State> {
         key="resolve-dropdown"
         caret={!hasInbox}
         className={hasInbox ? undefined : buttonClass}
-        title="Resolve"
+        title={hasInbox ? 'Resolve In...' : ''}
         alwaysRenderMenu
         disabled={disableDropdown || disabled}
         anchorRight={hasInbox}
