@@ -675,17 +675,6 @@ function routes() {
         </Route>
 
         <Route
-          path="new/"
-          name="Invite"
-          componentPromise={() =>
-            import(
-              /* webpackChunkName: "InviteMember" */ 'app/views/settings/organizationMembers/inviteMember'
-            )
-          }
-          component={errorHandler(LazyLoad)}
-        />
-
-        <Route
           path=":memberId/"
           name="Details"
           componentPromise={() =>
@@ -2064,10 +2053,6 @@ function routes() {
               <Redirect
                 path="/organizations/:orgId/members/"
                 to="/settings/:orgId/members/"
-              />
-              <Redirect
-                path="/organizations/:orgId/members/new/"
-                to="/settings/:orgId/members/new/"
               />
               <Redirect
                 path="/organizations/:orgId/members/:memberId/"
