@@ -225,11 +225,7 @@ class HealthChart extends React.Component<Props> {
             return '';
           }
 
-          return [
-            '<div class="tooltip-description">',
-            `<div>${seriesNameDesc}</div>`,
-            '</div>',
-          ].join('');
+          return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
         },
       },
     };

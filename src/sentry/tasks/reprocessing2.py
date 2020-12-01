@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import time
 
+from django.db import transaction
+
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.utils.query import celery_run_batch_query
@@ -18,15 +20,24 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
     soft_time_limit=110,
 )
 def reprocess_group(
-    project_id, group_id, query_state=None, start_time=None, max_events=None, acting_user_id=None
+    project_id,
+    group_id,
+    new_group_id=None,
+    query_state=None,
+    start_time=None,
+    max_events=None,
+    acting_user_id=None,
 ):
     from sentry.reprocessing2 import start_group_reprocessing
 
     if start_time is None:
+        assert new_group_id is None
         start_time = time.time()
-        start_group_reprocessing(
+        new_group_id = start_group_reprocessing(
             project_id, group_id, max_events=max_events, acting_user_id=acting_user_id
         )
+
+    assert new_group_id is not None
 
     query_state, events = celery_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),
@@ -36,9 +47,9 @@ def reprocess_group(
     )
 
     if not events:
-        # Need to delay this until we have queried all events.
-        eventstream.exclude_groups(project_id, [group_id])
-        wait_group_reprocessed.delay(project_id=project_id, group_id=group_id)
+        wait_group_reprocessed.delay(
+            project_id=project_id, group_id=group_id, new_group_id=new_group_id
+        )
         return
 
     tombstoned_event_ids = []
@@ -62,6 +73,7 @@ def reprocess_group(
     reprocess_group.delay(
         project_id=project_id,
         group_id=group_id,
+        new_group_id=new_group_id,
         query_state=query_state,
         start_time=start_time,
         max_events=max_events,
@@ -84,6 +96,8 @@ def tombstone_events(project_id, group_id, event_ids):
     however we must only run this task for event IDs that we don't intend to
     reuse for reprocessed events. An event ID that is once tombstoned cannot be
     inserted over in eventstream.
+
+    See doccomment in sentry.reprocessing2.
     """
 
     from sentry.reprocessing2 import delete_unprocessed_events
@@ -119,31 +133,52 @@ def reprocess_event(project_id, event_id, start_time):
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def wait_group_reprocessed(project_id, group_id):
+def wait_group_reprocessed(project_id, group_id, new_group_id):
     from sentry.reprocessing2 import is_group_finished
 
     if is_group_finished(group_id):
-        delete_old_group.delay(project_id=project_id, group_id=group_id)
+        finish_reprocessing.delay(
+            project_id=project_id, group_id=group_id, new_group_id=new_group_id
+        )
     else:
         wait_group_reprocessed.apply_async(
-            kwargs={"project_id": project_id, "group_id": group_id}, countdown=60 * 5
+            kwargs={"project_id": project_id, "group_id": group_id, "new_group_id": new_group_id},
+            countdown=60 * 5,
         )
 
 
 @instrumented_task(
-    name="sentry.tasks.reprocessing2.delete_old_group",
+    name="sentry.tasks.reprocessing2.finish_reprocessing",
     queue="events.reprocessing.preprocess_event",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def delete_old_group(project_id, group_id):
-    from sentry import similarity
-    from sentry.models.group import Group
+def finish_reprocessing(project_id, group_id, new_group_id):
+    from sentry.models import Group, GroupRedirect, Activity
 
-    group = Group.objects.get_from_cache(id=group_id)
+    with transaction.atomic():
+        group = Group.objects.get(id=group_id)
+        new_group = Group.objects.get(id=new_group_id)
+
+        # Any sort of success message will be shown at the *new* group ID's URL
+        GroupRedirect.objects.create(
+            organization_id=new_group.project.organization_id,
+            group_id=new_group.id,
+            previous_group_id=group_id,
+        )
+
+        # While we migrated all associated models at the beginning of
+        # reprocessing, there is still the "reprocessing" activity that we need
+        # to transfer manually.
+        Activity.objects.filter(group_id=group_id).update(group_id=new_group_id)
+
+        # All the associated models (groupassignee and eventattachments) should
+        # have moved to a successor group that may be deleted independently.
+        group.delete()
+
+    # Need to delay this until we have enqueued all events.
+    eventstream.exclude_groups(project_id, [group_id])
+
+    from sentry import similarity
 
     similarity.delete(None, group)
-
-    # All the associated models (groupassignee and eventattachments) should
-    # have moved to a successor group that may be deleted independently.
-    group.delete()

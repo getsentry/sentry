@@ -5,8 +5,26 @@ import u2f from 'u2f-api';
 
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import {ChallengeData} from 'app/types';
 
-class U2fInterface extends React.Component {
+type Props = {
+  challengeData: ChallengeData;
+  flowMode: string;
+  silentIfUnsupported: boolean;
+  onTap: ({response, challenge}) => Promise<void>;
+  style?: React.CSSProperties;
+};
+
+type State = {
+  responseElement: HTMLInputElement | null;
+  formElement: HTMLFormElement | null;
+  challengeElement: HTMLInputElement | null;
+  isSupported: boolean | null;
+  hasBeenTapped: boolean;
+  deviceFailure: string | null;
+};
+
+class U2fInterface extends React.Component<Props, State> {
   static propTypes = {
     challengeData: PropTypes.object.isRequired,
     flowMode: PropTypes.string.isRequired,
@@ -18,7 +36,7 @@ class U2fInterface extends React.Component {
     silentIfUnsupported: false,
   };
 
-  state = {
+  state: State = {
     isSupported: null,
     formElement: null,
     challengeElement: null,
@@ -71,8 +89,10 @@ class U2fInterface extends React.Component {
             const u2fResponse = JSON.stringify(data);
             const challenge = JSON.stringify(this.props.challengeData);
 
-            // eslint-disable-next-line react/no-direct-mutation-state
-            this.state.responseElement.value = u2fResponse;
+            if (this.state.responseElement) {
+              // eslint-disable-next-line react/no-direct-mutation-state
+              this.state.responseElement.value = u2fResponse;
+            }
 
             if (!this.props.onTap) {
               this.state.formElement && this.state.formElement.submit();
@@ -188,7 +208,7 @@ class U2fInterface extends React.Component {
                   support,
                 }
               ),
-            }[deviceFailure]
+            }[deviceFailure || '']
           }
         </div>
         {this.canTryAgain() && (

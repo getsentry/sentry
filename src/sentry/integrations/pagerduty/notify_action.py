@@ -7,9 +7,8 @@ import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import ObjectStatus
-from sentry.rules.actions.base import EventAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 from .client import PagerDutyClient
 
@@ -62,10 +61,12 @@ class PagerDutyNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class PagerDutyNotifyServiceAction(EventAction):
+class PagerDutyNotifyServiceAction(IntegrationEventAction):
     form_cls = PagerDutyNotifyServiceForm
     label = "Send a notification to PagerDuty account {account} and service {service}"
     prompt = "Send a PagerDuty notification"
+    provider = "pagerduty"
+    integration_key = "account"
 
     def __init__(self, *args, **kwargs):
         super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -77,26 +78,18 @@ class PagerDutyNotifyServiceAction(EventAction):
             "service": {"type": "choice", "choices": self.get_services()},
         }
 
-    def is_enabled(self):
-        return self.get_integrations().exists()
+    def _get_service(self):
+        return PagerDutyService.objects.get(id=self.get_option("service"))
 
     def after(self, event, state):
-        integration_id = self.get_option("account")
-        service_id = self.get_option("service")
-
         try:
-            integration = Integration.objects.get(
-                id=integration_id,
-                provider="pagerduty",
-                organizations=self.project.organization,
-                status=ObjectStatus.VISIBLE,
-            )
+            integration = self.get_integration()
         except Integration.DoesNotExist:
             # integration removed but rule still exists
             return
 
         try:
-            service = PagerDutyService.objects.get(pk=service_id)
+            service = self._get_service()
         except PagerDutyService.DoesNotExist:
             return
 
@@ -130,46 +123,24 @@ class PagerDutyNotifyServiceAction(EventAction):
         key = u"pagerduty:{}".format(integration.id)
         yield self.future(send_notification, key=key)
 
-    def get_integrations(self):
-        integrations = Integration.objects.filter(
-            provider="pagerduty",
-            organizations=self.project.organization,
-            status=ObjectStatus.VISIBLE,
-        )
-
-        return integrations
-
     def get_services(self):
-        organization = self.project.organization
-        integrations = Integration.objects.filter(
-            provider="pagerduty", organizations=organization, status=ObjectStatus.VISIBLE
-        )
-        services = []
-        for integration in integrations:
-            service_list = PagerDutyService.objects.filter(
+        return [
+            service
+            for integration in self.get_integrations()
+            for service in PagerDutyService.objects.filter(
                 organization_integration_id=OrganizationIntegration.objects.get(
-                    organization=organization, integration=integration
+                    organization=self.project.organization, integration=integration
                 )
             ).values_list("id", "service_name")
-            services += service_list
-        return services
+        ]
 
     def render_label(self):
         try:
-            integration_name = Integration.objects.get(
-                provider="pagerduty",
-                organizations=self.project.organization,
-                id=self.get_option("account"),
-            ).name
-        except Integration.DoesNotExist:
-            integration_name = "[removed]"
-
-        try:
-            service_name = PagerDutyService.objects.get(id=self.get_option("service")).service_name
+            service_name = self._get_service().service_name
         except PagerDutyService.DoesNotExist:
             service_name = "[removed]"
 
-        return self.label.format(account=integration_name, service=service_name)
+        return self.label.format(account=self.get_integration_name(), service=service_name)
 
     def get_form_instance(self):
         return self.form_cls(
