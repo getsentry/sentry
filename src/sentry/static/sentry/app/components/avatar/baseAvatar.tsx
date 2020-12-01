@@ -4,6 +4,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
+import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
 
@@ -202,6 +203,10 @@ class BaseAvatar extends React.Component<Props, State> {
       );
     }
 
+    if (type === 'background') {
+      return this.renderBackgroundAvatar();
+    }
+
     return this.renderLetterAvatar();
   };
 
@@ -215,6 +220,11 @@ class BaseAvatar extends React.Component<Props, State> {
         suggested={suggested}
       />
     );
+  }
+
+  renderBackgroundAvatar() {
+    const {round, suggested} = this.props;
+    return <BackgroundAvatar round={round} suggested={suggested} />;
   }
 
   render() {
