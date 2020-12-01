@@ -115,13 +115,13 @@ class ProjectDetail extends AsyncView<Props, State> {
             <Layout.Body>
               <Layout.Main>
                 <ProjectScoreCards />
-                {[1, 2].map((id, index) => (
+                {[0, 1].map(id => (
                   <ProjectCharts
                     location={location}
                     organization={organization}
                     router={router}
                     key={`project-charts-${id}`}
-                    index={index}
+                    index={id}
                   />
                 ))}
               </Layout.Main>

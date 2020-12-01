@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import {browserHistory} from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -16,7 +17,7 @@ import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import {getTermHelp} from '../performance/data';
@@ -41,6 +42,7 @@ type Props = {
   organization: Organization;
   router: ReactRouter.InjectedRouter;
   index: number;
+  theme: Theme;
 };
 
 type State = {
@@ -83,7 +85,7 @@ class ProjectCharts extends React.Component<Props, State> {
     const noPerformanceTooltip = t(
       'This view is only available with Performance Monitoring.'
     );
-    const noDiscoverTooltip = t('This view is only available with Discover feature.');
+    const noDiscoverTooltip = t('This view is only available with Discover.');
 
     return [
       {
@@ -157,7 +159,7 @@ class ProjectCharts extends React.Component<Props, State> {
   };
 
   render() {
-    const {api, router, organization} = this.props;
+    const {api, router, organization, theme} = this.props;
     const {totalValues} = this.state;
     const displayMode = this.displayMode;
 
@@ -256,4 +258,4 @@ class ProjectCharts extends React.Component<Props, State> {
   }
 }
 
-export default withApi(ProjectCharts);
+export default withApi(withTheme(ProjectCharts));

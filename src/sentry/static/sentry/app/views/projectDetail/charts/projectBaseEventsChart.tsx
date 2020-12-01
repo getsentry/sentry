@@ -17,9 +17,9 @@ type Props = Omit<
   keyof Omit<GlobalSelection, 'datetime'> | keyof GlobalSelection['datetime']
 > & {
   title: string;
-  help?: string;
   selection: GlobalSelection;
   onTotalValuesChange: (value: number | null) => void;
+  help?: string;
 };
 
 class ProjectBaseEventsChart extends React.Component<Props> {

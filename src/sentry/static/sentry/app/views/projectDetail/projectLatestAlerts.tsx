@@ -41,7 +41,7 @@ type State = {
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     if (
-      !isEqual(this.state, nextState) ||
+      this.state !== nextState ||
       !isEqual(
         pick(this.props.location.query, Object.values(URL_PARAM)),
         pick(nextProps.location.query, Object.values(URL_PARAM))
