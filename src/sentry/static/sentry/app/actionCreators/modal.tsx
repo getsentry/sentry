@@ -209,7 +209,9 @@ export async function openInviteMembersModal(options = {}) {
 type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
+  widget?: Widget;
   onAddWidget: (data: Widget) => void;
+  onUpdateWidget?: (nextWidget: Widget) => void;
 };
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
