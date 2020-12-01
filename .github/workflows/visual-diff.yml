@@ -1,3 +1,4 @@
+name: visual diff
 on:
   workflow_run:
     workflows: ["acceptance"]
