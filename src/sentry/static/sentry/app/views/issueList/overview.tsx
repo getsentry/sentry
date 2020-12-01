@@ -722,6 +722,8 @@ class IssueListOverview extends React.Component<Props, State> {
                 query={query}
                 queryCount={queryCount}
                 queryMaxCount={queryMaxCount}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={this.onRealtimeChange}
                 onTabChange={this.handleTabClick}
               />
             )}

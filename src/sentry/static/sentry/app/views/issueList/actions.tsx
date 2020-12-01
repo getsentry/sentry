@@ -586,21 +586,23 @@ class IssueListActions extends React.Component<Props, State> {
             </MenuItem>
           </DropdownLink>
         </div>
-        <div className="btn-group">
-          <Tooltip
-            title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
-          >
-            <a
-              data-test-id="realtime-control"
-              className="btn btn-default btn-sm hidden-xs"
-              onClick={this.handleRealtimeChange}
+        {!hasInbox && (
+          <div className="btn-group">
+            <Tooltip
+              title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
             >
-              <IconPad>
-                {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-              </IconPad>
-            </a>
-          </Tooltip>
-        </div>
+              <a
+                data-test-id="realtime-control"
+                className="btn btn-default btn-sm hidden-xs"
+                onClick={this.handleRealtimeChange}
+              >
+                <IconPad>
+                  {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+                </IconPad>
+              </a>
+            </Tooltip>
+          </div>
+        )}
       </ActionSet>
     );
   }
