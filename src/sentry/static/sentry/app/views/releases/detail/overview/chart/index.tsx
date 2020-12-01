@@ -121,6 +121,7 @@ class ReleaseChartContainer extends React.Component<Props> {
 
     const releaseQueryExtra = {
       showTransactions: location.query.showTransactions,
+      eventType,
       yAxis,
     };
 
