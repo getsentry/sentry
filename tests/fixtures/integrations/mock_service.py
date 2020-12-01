@@ -1,8 +1,9 @@
+import json
 import os
 import shutil
 
 from collections import defaultdict
-from sentry.utils import json
+
 from tests.fixtures.integrations import FIXTURE_DIRECTORY
 from tests.fixtures.integrations.stub_service import StubService
 
@@ -100,7 +101,7 @@ class MockService(StubService):
 
         path = os.path.join(self._get_project_path(project), "{}.json".format(name))
         with open(path, "w") as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(data, sort_keys=True, indent=4))
 
     def _get_data(self, project, name):
         if self.mode == "memory":
