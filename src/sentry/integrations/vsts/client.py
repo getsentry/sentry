@@ -279,10 +279,6 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def search_issues(self, account_name, query=None):
         return self.post(
             VstsApiPath.work_item_search.format(account_name=account_name),
-            data={
-                "searchText": query,
-                "$top": 1000,
-                "filters": {"System.WorkItemType": ["Bug", "User Story", "Feature", "Task"]},
-            },
+            data={"searchText": query, "$top": 1000},
             api_preview=True,
         )
