@@ -28,8 +28,8 @@ jobs:
       - name: Prepare release
         uses: getsentry/action-prepare-release@main
         with:
-          version: ${{ inputs.version }}
-          force: ${{ inputs.force }}
+          version: ${{ github.event.inputs.version }}
+          force: ${{ github.event.inputs.force }}
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_SENTRY_BOT_PAT }}
