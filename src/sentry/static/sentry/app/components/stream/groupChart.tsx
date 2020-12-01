@@ -66,6 +66,7 @@ function GroupChart({
         series={series}
         colors={colors}
         emphasisColors={emphasisColors}
+        hideDelay={50}
       />
     </LazyLoad>
   );

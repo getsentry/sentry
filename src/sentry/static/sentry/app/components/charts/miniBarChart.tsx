@@ -59,6 +59,11 @@ type Props = Omit<ChartProps, 'series'> &
      */
     emphasisColors?: string[];
 
+    /**
+     * Delay time for hiding tooltip, in ms.
+     */
+    hideDelay?: number;
+
     series?: BarChartProps['series'];
   };
 
@@ -74,6 +79,7 @@ class MiniBarChart extends React.Component<Props> {
       labelYAxisExtents,
       stacked,
       series,
+      hideDelay,
       ...props
     } = this.props;
 
@@ -161,6 +167,7 @@ class MiniBarChart extends React.Component<Props> {
     const chartOptions = {
       tooltip: {
         trigger: 'axis' as const,
+        hideDelay,
       },
       yAxis: {
         max(value) {

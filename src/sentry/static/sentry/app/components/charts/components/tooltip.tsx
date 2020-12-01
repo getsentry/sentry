@@ -207,6 +207,7 @@ export default function Tooltip({
   formatAxisLabel,
   valueFormatter,
   nameFormatter,
+  hideDelay,
   ...props
 }: Props = {}): EChartOption.Tooltip {
   formatter =
@@ -229,6 +230,8 @@ export default function Tooltip({
     backgroundColor: 'transparent',
     transitionDuration: 0,
     padding: 0,
+    // Default hideDelay in echarts docs is 100ms
+    hideDelay: hideDelay || 100,
     position(pos, _params, dom, _rec, _size) {
       // Center the tooltip slightly above the cursor.
       const tipWidth = dom.clientWidth;
