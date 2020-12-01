@@ -1,6 +1,6 @@
 import React from 'react';
 import {withInfo} from '@storybook/addon-info';
-import {text, boolean} from '@storybook/addon-knobs';
+import {boolean, text} from '@storybook/addon-knobs';
 
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
@@ -59,7 +59,7 @@ BasicMenuItem.story = {
 
 export const ElementLabel = withInfo('Element labels replace the button contents')(() => (
   <div className="clearfix">
-    <DropdownControl label={<em>Created Date</em>}>
+    <DropdownControl label="Created Date">
       <MenuItem href="">Item</MenuItem>
       <MenuItem href="">Item</MenuItem>
     </DropdownControl>
@@ -73,7 +73,7 @@ ElementLabel.story = {
 export const PrefixedLabel = withInfo('Element labels replace the button contents')(
   () => (
     <div className="clearfix">
-      <DropdownControl buttonProps={{prefix: 'Sort By'}} label={<em>Created At</em>}>
+      <DropdownControl buttonProps={{prefix: 'Sort By'}} label="Created Date">
         <MenuItem href="">Item</MenuItem>
         <MenuItem href="">Item</MenuItem>
       </DropdownControl>
