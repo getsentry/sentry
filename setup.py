@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import logging
 import os
 import sys
 
-if os.environ.get("SENTRY_PYTHON2") == "1" and sys.version_info[:2] != (2, 7):
+logger = logging.getLogger()
+
+version = sys.version_info
+if os.environ.get("SENTRY_PYTHON2") == "1" and version[:2] != (2, 7):
     sys.exit("Error: Sentry [In DEPRECATED Python 2 mode] requires Python 2.7.")
 
-if os.environ.get("SENTRY_PYTHON2") != "1" and sys.version_info[:2] != (3, 6):
-    sys.exit("Error: Sentry requires Python 3.6.")
+if os.environ.get("SENTRY_PYTHON2") != "1" and version[0] == 3:
+    if version[1] < 6:
+        sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
+    if version[1] >= 6:
+        logger.warning("A Python version different than 3.6 is being used ({})".format(version[:2]))
 
 
 from distutils.command.build import build as BuildCommand
