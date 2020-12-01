@@ -149,6 +149,8 @@ class ProjectDebugFile(Model):
             return ".pdb"
         if self.file_format == "sourcebundle":
             return ".src.zip"
+        if self.file_format == "wasm":
+            return ".wasm"
 
         return ""
 
@@ -190,7 +192,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     """
     if meta.file_format == "proguard":
         object_name = "proguard-mapping"
-    elif meta.file_format in ("macho", "elf", "pdb", "pe", "sourcebundle"):
+    elif meta.file_format in ("macho", "elf", "pdb", "pe", "wasm", "sourcebundle"):
         object_name = meta.name
     elif meta.file_format == "breakpad":
         object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name

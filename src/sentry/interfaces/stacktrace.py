@@ -144,6 +144,7 @@ class Frame(Interface):
             "image_addr",
             "in_app",
             "instruction_addr",
+            "addr_mode",
             "lineno",
             "module",
             "package",
@@ -172,6 +173,7 @@ class Frame(Interface):
                 "symbol": self.symbol,
                 "symbol_addr": self.symbol_addr,
                 "instruction_addr": self.instruction_addr,
+                "addr_mode": self.addr_mode,
                 "trust": self.trust,
                 "in_app": self.in_app,
                 "context_line": self.context_line,
@@ -214,6 +216,10 @@ class Frame(Interface):
         }
         if not is_public:
             data["vars"] = self.vars
+
+        if self.addr_mode and self.addr_mode != "abs":
+            data["addrMode"] = self.addr_mode
+
         # TODO(dcramer): abstract out this API
         if self.data and "sourcemap" in data:
             data.update(

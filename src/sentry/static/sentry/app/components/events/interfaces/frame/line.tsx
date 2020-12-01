@@ -56,6 +56,18 @@ type State = {
   isExpanded?: boolean;
 };
 
+function makeFilter(
+  addr: string,
+  addrMode: string | undefined,
+  image?: React.ComponentProps<typeof DebugImage>['image']
+): string {
+  let filter = addr;
+  if (!(!addrMode || addrMode === 'abs') && image) {
+    filter = image.debug_id + '!' + filter;
+  }
+  return filter;
+}
+
 export class Line extends React.Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
@@ -147,7 +159,12 @@ export class Line extends React.Component<Props, State> {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
-    DebugMetaActions.updateFilter(this.props.data.instructionAddr);
+    const {instructionAddr, addrMode} = this.props.data;
+    if (instructionAddr) {
+      DebugMetaActions.updateFilter(
+        makeFilter(instructionAddr, addrMode, this.props.image)
+      );
+    }
     scrollToElement('#packages');
   };
 
