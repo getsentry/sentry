@@ -36,7 +36,7 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
   };
 
   const formatErrorKind = (kind: string) => {
-    return capitalize(kind.replace('_', ' '));
+    return capitalize(kind.replace(/_/g, ' '));
   };
 
   const getErrorMessage = (error: MetaError) => {
