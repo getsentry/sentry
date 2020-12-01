@@ -690,6 +690,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def create_issue(self, data, **kwargs):
+        """
+        Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
+        the Jira issue by removing all fields that aren't enumerated by this
+        schema. Send this cleaned data to Jira. Finally, make another API call
+        to Jira to make sure the issue was created and return basic issue details.
+
+        :param data: JiraCreateTicketAction object
+        :param kwargs: not used
+        :return: simple object with basic Jira issue details
+        """
         client = self.get_client()
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
