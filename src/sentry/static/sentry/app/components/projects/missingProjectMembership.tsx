@@ -15,6 +15,8 @@ import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
+type SelectOption = Record<'value' | 'label', string>;
+
 type Props = {
   api: Client;
   organization: Organization;
@@ -25,7 +27,7 @@ type State = {
   loading: boolean;
   error: boolean;
   project?: Project;
-  team: string;
+  value: string | null;
 };
 
 class MissingProjectMembership extends React.Component<Props, State> {
@@ -39,11 +41,11 @@ class MissingProjectMembership extends React.Component<Props, State> {
       loading: false,
       error: false,
       project,
-      team: '',
+      value: '',
     };
   }
 
-  joinTeam(team: {value: string; label: string}) {
+  joinTeam(teamSlug: string) {
     this.setState({
       loading: true,
     });
@@ -52,7 +54,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
       this.props.api,
       {
         orgId: this.props.organization.slug,
-        teamId: team.value,
+        teamId: teamSlug,
       },
       {
         success: () => {
@@ -73,38 +75,38 @@ class MissingProjectMembership extends React.Component<Props, State> {
     );
   }
 
-  renderJoinTeam(team: string, features: Set<string>) {
-    const teamStatus = TeamStore.getBySlug(team);
+  renderJoinTeam(teamSlug: string, features: Set<string>) {
+    const team = TeamStore.getBySlug(teamSlug);
 
     if (!team) {
       return null;
     }
     if (this.state.loading) {
       if (features.has('open-membership')) {
-        return <StyledButton busy>Join Team</StyledButton>;
+        return <Button busy>{t('Join Team')}</Button>;
       }
-      return <StyledButton busy>Request Access</StyledButton>;
-    } else if (teamStatus?.isPending) {
-      return <StyledButton disabled>Request Pending</StyledButton>;
+      return <Button busy>{t('Request Access')}</Button>;
+    } else if (team?.isPending) {
+      return <Button disabled>{t('Request Pending')}</Button>;
     } else if (features.has('open-membership')) {
       return (
-        <StyledButton
+        <Button
           priority="primary"
           type="button"
-          onClick={this.joinTeam.bind(this, team)}
+          onClick={this.joinTeam.bind(this, teamSlug)}
         >
           {t('Join Team')}
-        </StyledButton>
+        </Button>
       );
     }
     return (
-      <StyledButton
+      <Button
         priority="primary"
         type="button"
-        onClick={this.joinTeam.bind(this, team)}
+        onClick={this.joinTeam.bind(this, teamSlug)}
       >
         {t('Request Access')}
-      </StyledButton>
+      </Button>
     );
   }
 
@@ -117,20 +119,25 @@ class MissingProjectMembership extends React.Component<Props, State> {
     return [request, pending];
   }
 
-  handleChangeTeam = (team: string) => {
-    this.setState({team});
+  handleChangeTeam = (teamObj: SelectOption | null) => {
+    const value = teamObj ? teamObj.value : null;
+    this.handleChange(value);
   };
+
+  handleChange(value: string | null) {
+    this.setState({value});
+  }
 
   getPendingTeamOption = (team: string) => {
     return {
       value: team,
-      label: <DisabledLabel>{`#${team}`}</DisabledLabel>,
+      label: <DisabledLabel>{t(`#${team}`)}</DisabledLabel>,
     };
   };
 
   render() {
     const {organization} = this.props;
-    const team = this.state.team;
+    const teamSlug = this.state.value;
     const teams = this.state.project?.teams ?? [];
     const features = new Set(organization.features);
 
@@ -139,7 +146,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
         label: t('Request Access'),
         options: this.getTeamsForAccess()[0].map(request => ({
           value: request,
-          label: `#${request}`,
+          label: t(`#${request}`),
         })),
       },
       {
@@ -166,19 +173,19 @@ class MissingProjectMembership extends React.Component<Props, State> {
               `You'll need to join a team with access before you can view this data.`
             )}
             action={
-              <StyledField>
+              <Field>
                 <StyledSelectControl
                   name="select"
                   placeholder={t('Select a Team')}
                   options={teamAccess}
                   onChange={this.handleChangeTeam}
                 />
-                {team ? (
-                  this.renderJoinTeam(team, features)
+                {teamSlug ? (
+                  this.renderJoinTeam(teamSlug, features)
                 ) : (
-                  <StyledButton disabled>{t('Select a Team')}</StyledButton>
+                  <Button disabled>{t('Select a Team')}</Button>
                 )}
-              </StyledField>
+              </Field>
             }
           />
         )}
@@ -188,28 +195,18 @@ class MissingProjectMembership extends React.Component<Props, State> {
 }
 
 const StyledPanel = styled(Panel)`
-  margin: 15px 0 15px 0;
+  margin: ${space(2)} 0;
 `;
 
-const StyledField = styled('div')`
-  display: inline-block;
+const Field = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(2)};
   text-align: left;
 `;
 
 const StyledSelectControl = styled(SelectControl)`
   width: 250px;
-  border-bottom: 0;
-  display: inline-block;
-  & > div {
-    width: 100%;
-    padding: 0;
-  }
-`;
-
-const StyledButton = styled(Button)`
-  display: inline-block;
-  justify-content: center;
-  margin-left: ${space(2)};
 `;
 
 const DisabledLabel = styled('div')`

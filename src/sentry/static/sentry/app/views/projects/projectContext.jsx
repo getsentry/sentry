@@ -15,6 +15,7 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
+import space from 'app/styles/space';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -274,5 +275,5 @@ export default withApi(withOrganization(withProjects(withRouter(ProjectContext))
 
 const ErrorWrapper = styled('div')`
   width: 100%;
-  margin: 15px 30px;
+  margin: ${space(2)} ${space(4)};
 `;
