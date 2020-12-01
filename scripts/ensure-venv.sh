@@ -22,12 +22,18 @@ EOF
 }
 
 if [[ -n "$VIRTUAL_ENV" ]]; then
-    if [[ "$VIRTUAL_ENV" != "${PWD}/${venv_name}" ]]; then
-        die "You're in a virtualenv, but it's not in the expected location (${PWD}/${venv_name})"
-    fi
-
-    if [[ "$(python -V 2>&1)" != "Python $(grep ${python_version} .python-version)" ]]; then
-        die "For some reason, the virtualenv isn't Python ${python_version}."
+    major=`python -c "import sys; print(sys.version_info[0])"`
+    minor=`python -c "import sys; print(sys.version_info[1])"`
+    # If .venv contains Python2 and no SENTRY_PYTHON2 is set, then fail with instructions
+    if [[ major -eq 2 ]]; then
+        [[ -n "$SENTRY_PYTHON2" ]] ||
+            die \
+            "To set up Python 3, run the following: source ./scripts/bootstrap-py3-venv" \
+            "To keep using Python 2, run: source ./scripts/bootstrap-py2-venv"
+    else
+        # If .venv is less than Python 3.6 fail
+        [[ major != 3 || minor < 6 ]] ||
+            die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
