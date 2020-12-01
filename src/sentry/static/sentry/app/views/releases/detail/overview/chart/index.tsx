@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
 import {Panel} from 'app/components/panels';
+import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
@@ -23,6 +24,7 @@ import {getReleaseEventView} from './utils';
 type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   releaseMeta: ReleaseMeta;
   selection: GlobalSelection;
+  platform: PlatformKey;
   yAxis: YAxis;
   eventType: EventType;
   onYAxisChange: (yAxis: YAxis) => void;
@@ -117,6 +119,11 @@ class ReleaseChartContainer extends React.Component<Props> {
     const apiPayload = eventView.getEventsAPIPayload(location);
     const colors = this.getTransactionsChartColors();
 
+    const releaseQueryExtra = {
+      showTransactions: location.query.showTransactions,
+      yAxis,
+    };
+
     return (
       <EventsChart
         router={router}
@@ -143,15 +150,27 @@ class ReleaseChartContainer extends React.Component<Props> {
         seriesNameTransformer={this.seriesNameTransformer}
         disableableSeries={[t('This Release'), t('Other Releases')]}
         colors={colors}
+        preserveReleaseQueryParams
+        releaseQueryExtra={releaseQueryExtra}
       />
     );
   }
 
   renderHealthChart() {
-    const {loading, errored, reloading, chartData, selection, yAxis, router} = this.props;
+    const {
+      loading,
+      errored,
+      reloading,
+      chartData,
+      selection,
+      yAxis,
+      router,
+      platform,
+    } = this.props;
 
     return (
       <HealthChartContainer
+        platform={platform}
         loading={loading}
         errored={errored}
         reloading={reloading}

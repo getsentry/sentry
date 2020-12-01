@@ -13,11 +13,13 @@ export function createDashboard(
   orgId: string,
   newDashboard: DashboardListItem
 ): Promise<OrgDashboardResponse> {
+  const {title, widgets} = newDashboard;
+
   const promise: Promise<OrgDashboardResponse> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title: newDashboard.title},
+      data: {title, widgets},
     }
   );
 

@@ -5,14 +5,16 @@ from datetime import datetime, timedelta
 import six
 
 from sentry.models import GroupStatus, UserReport
-from sentry.testutils import APITestCase
+from sentry.ingest.userreport import save_userreport
+from sentry.testutils import APITestCase, SnubaTestCase
 
 
-class OrganizationUserReportListTest(APITestCase):
+class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"
 
     def setUp(self):
+        super(OrganizationUserReportListTest, self).setUp()
         self.user = self.create_user("test@test.com")
         self.login_as(user=self.user)
         self.org = self.create_organization()
@@ -112,3 +114,29 @@ class OrganizationUserReportListTest(APITestCase):
             self.project_1.organization.slug, **{"start": "null", "end": "null"}
         )
         assert response.status_code == 400
+
+    def test_with_event_user(self):
+        event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "message": "oh no",
+                "environment": self.env_1.name,
+                "user": {"id": 1234, "email": "alice@example.com"},
+            },
+            project_id=self.project_1.id,
+        )
+
+        # Simulate how ingest saves reports to get event_user connections
+        report_data = {
+            "event_id": event.event_id,
+            "name": "",
+            "email": "",
+            "comments": "It broke",
+        }
+        save_userreport(self.project_1, report_data)
+
+        response = self.get_response(self.project_1.organization.slug, project=[self.project_1.id])
+        assert response.status_code == 200
+        assert response.data[0]["comments"] == "It broke"
+        assert response.data[0]["user"]["name"] == "alice@example.com"
+        assert response.data[0]["user"]["email"] == "alice@example.com"

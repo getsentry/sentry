@@ -1,6 +1,7 @@
 import React from 'react';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -38,11 +39,25 @@ type State = {
 } & AsyncComponent['state'];
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    if (
+      this.state !== nextState ||
+      !isEqual(
+        pick(this.props.location.query, Object.values(URL_PARAM)),
+        pick(nextProps.location.query, Object.values(URL_PARAM))
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {location, organization} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      ...pick(location.query, Object.values(URL_PARAM)),
       per_page: 3,
     };
 
@@ -51,12 +66,12 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
       [
         'unresolvedAlerts',
         `/organizations/${organization.slug}/incidents/`,
-        {query: {...query, status: IncidentStatus.OPENED}},
+        {query: {...query, status: 'open'}},
       ],
       [
         'resolvedAlerts',
         `/organizations/${organization.slug}/incidents/`,
-        {query: {...query, status: IncidentStatus.CLOSED}},
+        {query: {...query, status: 'closed'}},
       ],
     ];
   }
