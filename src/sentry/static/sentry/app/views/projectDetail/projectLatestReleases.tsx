@@ -1,5 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -35,11 +36,25 @@ type State = {
 } & AsyncComponent['state'];
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    if (
+      this.state !== nextState ||
+      !isEqual(
+        pick(this.props.location.query, Object.values(URL_PARAM)),
+        pick(nextProps.location.query, Object.values(URL_PARAM))
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {location, organization, projectSlug} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      ...pick(location.query, Object.values(URL_PARAM)),
       per_page: 5,
     };
 
