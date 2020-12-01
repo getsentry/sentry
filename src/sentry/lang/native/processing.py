@@ -292,11 +292,11 @@ def _handles_frame(data, frame):
     return is_native_platform(platform) and "instruction_addr" in frame
 
 
-def get_frames_for_symbolication(data, modules):
+def get_frames_for_symbolication(frames, data, modules):
     modules_by_debug_id = None
     rv = []
 
-    for frame in reversed(data.get("frames") or ()):
+    for frame in reversed(frames):
         if not _handles_frame(data, frame):
             continue
         s_frame = dict(frame)
@@ -353,7 +353,9 @@ def process_payload(data):
     stacktraces = [
         {
             "registers": sinfo.stacktrace.get("registers") or {},
-            "frames": get_frames_for_symbolication(data, modules),
+            "frames": get_frames_for_symbolication(
+                sinfo.stacktrace.get("frames") or (), data, modules
+            ),
         }
         for sinfo in stacktrace_infos
     ]
