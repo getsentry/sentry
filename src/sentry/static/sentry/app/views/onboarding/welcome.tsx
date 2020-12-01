@@ -31,9 +31,9 @@ const OnboardingWelcome = ({organization, onComplete, config, active}: Props) =>
       </p>
       <p>
         {t(
-          `With Sentry, you can find and fix bugs before your customers even
-             notice a problem. When things go to hell, we'll help you fight the
-             fires. In the next two steps you will…`
+          `With Sentry, find and fix bugs and hunt down performance slowdowns
+             before customers even notice a problem. When things go to hell
+             we’ll help fight the fires. In the next two steps you will…`
         )}
       </p>
       <ul>
