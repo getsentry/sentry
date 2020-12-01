@@ -126,7 +126,7 @@ const ReleaseHeader = ({
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
-          <Feature features={['release-performance-views']}>
+          <Feature features={['performance-view', 'release-performance-views']}>
             <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
               <DiscoverQuery
                 eventView={releaseEventView}
