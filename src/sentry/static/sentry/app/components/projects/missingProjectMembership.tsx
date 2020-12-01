@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam} from 'app/actionCreators/teams';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import {Panel} from 'app/components/panels';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
@@ -13,7 +14,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import SelectField from 'app/views/settings/components/forms/selectField';
 
 type Props = {
   api: Client;
@@ -44,7 +44,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
     };
   }
 
-  joinTeam(team: string) {
+  joinTeam(team: {value: string; label: string}) {
     this.setState({
       loading: true,
     });
@@ -53,7 +53,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
       this.props.api,
       {
         orgId: this.props.organization.slug,
-        teamId: team,
+        teamId: team.value,
       },
       {
         success: () => {
@@ -118,12 +118,11 @@ class MissingProjectMembership extends React.Component<Props, State> {
     return [request, pending];
   }
 
-  handleChange = (evt: string) => {
-    const input = evt;
-    this.setState({team: input});
+  handleChangeTeam = (team: string) => {
+    this.setState({team});
   };
 
-  renderPendingTeam = (team: string) => {
+  getPendingTeamOption = (team: string) => {
     return {
       value: team,
       label: <DisabledLabel>{`#${team}`}</DisabledLabel>,
@@ -147,58 +146,59 @@ class MissingProjectMembership extends React.Component<Props, State> {
       {
         label: t('Pending Requests'),
         options: this.getTeamsForAccess()[1].map(pending =>
-          this.renderPendingTeam(pending)
+          this.getPendingTeamOption(pending)
         ),
       },
     ];
 
     return (
-      <div className="container">
-        <Panel>
-          {!teams.length ? (
-            <EmptyMessage icon={<StyledIconFlag size="xl" color="gray300" />}>
-              {t(
-                'No teams have access to this project yet. Ask an admin to add your team to this project.'
-              )}
-            </EmptyMessage>
-          ) : (
-            <EmptyMessage
-              icon={<StyledIconFlag size="xl" color="gray300" />}
-              title={t("You're not a member of this project.")}
-              description={t(
-                `You'll need to join a team with access to Issue ID ${groupId} before you can view it.`
-              )}
-              action={
-                <StyledField>
-                  <StyledSelectField
-                    name="select"
-                    placeholder={t('Select a Team')}
-                    options={teamAccess}
-                    onChange={this.handleChange}
-                    flexibleControlStateSize
-                  />
-                  {team ? (
-                    this.renderJoinTeam(team, features)
-                  ) : (
-                    <StyledButton disabled>{t('Select a Team')}</StyledButton>
-                  )}
-                </StyledField>
-              }
-            />
-          )}
-        </Panel>
-      </div>
+      <StyledPanel>
+        {!teams.length ? (
+          <EmptyMessage icon={<IconFlag size="xl" />}>
+            {t(
+              'No teams have access to this project yet. Ask an admin to add your team to this project.'
+            )}
+          </EmptyMessage>
+        ) : (
+          <EmptyMessage
+            icon={<IconFlag size="xl" />}
+            title={t("You're not a member of this project.")}
+            description={t(
+              `You'll need to join a team with access to Issue ID ${groupId} before you can view it.`
+            )}
+            action={
+              <StyledField>
+                <StyledSelectControl
+                  name="select"
+                  placeholder={t('Select a Team')}
+                  options={teamAccess}
+                  onChange={this.handleChangeTeam}
+                />
+                {team ? (
+                  this.renderJoinTeam(team, features)
+                ) : (
+                  <StyledButton disabled>{t('Select a Team')}</StyledButton>
+                )}
+              </StyledField>
+            }
+          />
+        )}
+      </StyledPanel>
     );
   }
 }
+
+const StyledPanel = styled(Panel)`
+  margin: 15px 0 15px 0;
+`;
 
 const StyledField = styled('div')`
   display: inline-block;
   text-align: left;
 `;
 
-const StyledSelectField = styled(SelectField)`
-  width: 350px;
+const StyledSelectControl = styled(SelectControl)`
+  width: 250px;
   border-bottom: 0;
   display: inline-block;
   & > div {
@@ -207,16 +207,10 @@ const StyledSelectField = styled(SelectField)`
   }
 `;
 
-const StyledIconFlag = styled(IconFlag)`
-  display: flex;
-  justify-content: center;
-  margin: auto;
-`;
-
 const StyledButton = styled(Button)`
   display: inline-block;
   justify-content: center;
-  margin-right: ${space(2)};
+  margin-left: ${space(2)};
 `;
 
 const DisabledLabel = styled('div')`
