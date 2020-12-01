@@ -7,19 +7,13 @@ import {t, tct} from 'app/locale';
  * Fetches group data and mark as seen
  *
  * @param {String} orgId organization slug
- * @param {String} projectId project slug
  * @param {String} groupId groupId
  * @param {String} eventId eventId or "latest" or "oldest"
+ * @param {String[]} envNames
+ * @param {String|undefined} projectId project slug required for eventId that is not latest or oldest
  * @returns {Promise<Object>}
  */
-export async function fetchGroupEventAndMarkSeen(
-  api,
-  orgId,
-  projectId,
-  groupId,
-  eventId,
-  envNames
-) {
+export async function fetchGroupEvent(api, orgId, groupId, eventId, envNames, projectId) {
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
@@ -30,32 +24,7 @@ export async function fetchGroupEventAndMarkSeen(
     query.environment = envNames;
   }
 
-  try {
-    const data = await api.requestPromise(url, {query});
-    markEventSeen(api, orgId, projectId, groupId);
-    return data;
-  } catch (err) {
-    throw err;
-  }
-}
-
-/**
- * Fetches group data and mark as seen
- * Only fetches latest or oldest event, do not pass an actual event id
- *
- * @param {String} groupId groupId
- * @param {String} eventId "latest" or "oldest"
- * @returns {Promise<Object>}
- */
-export async function fetchGroupEvent(api, groupId, eventId, envNames) {
-  const query = {};
-  if (envNames.length !== 0) {
-    query.environment = envNames;
-  }
-
-  const data = await api.requestPromise(`/issues/${groupId}/events/${eventId}/`, {
-    query,
-  });
+  const data = await api.requestPromise(url, {query});
   return data;
 }
 

@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader, {TAB} from './header';
-import {fetchGroupEvent, fetchGroupEventAndMarkSeen, markEventSeen} from './utils';
+import {fetchGroupEvent, markEventSeen} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -118,16 +118,14 @@ class GroupDetails extends React.Component<Props, State> {
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
     try {
-      const event = await (group
-        ? fetchGroupEventAndMarkSeen(
-            api,
-            orgSlug,
-            group.project.slug,
-            groupId,
-            eventId,
-            environments
-          )
-        : fetchGroupEvent(api, groupId, eventId, environments));
+      const event = await fetchGroupEvent(
+        api,
+        orgSlug,
+        groupId,
+        eventId,
+        environments,
+        group?.project?.slug
+      );
       this.setState({
         event,
         loading: false,
@@ -179,10 +177,6 @@ class GroupDetails extends React.Component<Props, State> {
         },
       });
       const [data] = await Promise.all([groupPromise, eventPromise]);
-      if (this.canLoadEventEarly(this.props)) {
-        // Early loaded events are not marked as seen
-        markEventSeen(api, params.orgId, data.project.slug, params.groupId);
-      }
 
       // TODO(billy): See if this is even in use and if not, can we just rip this out?
       if (this.props.params.groupId !== data.id) {
@@ -196,6 +190,7 @@ class GroupDetails extends React.Component<Props, State> {
         return;
       }
       const project = data.project;
+      markEventSeen(api, params.orgId, project.slug, params.groupId);
 
       if (!project) {
         Sentry.withScope(() => {
