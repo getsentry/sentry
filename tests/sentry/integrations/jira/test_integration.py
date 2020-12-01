@@ -24,8 +24,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from tests.fixtures.integrations.jira.mocks.jira import StubJiraApiClient
-from tests.fixtures.integrations.mock_service import StubService
+from tests.fixtures.integrations.jira import StubJiraApiClient
+from tests.fixtures.integrations import StubService
 
 
 class JiraIntegrationTest(APITestCase):

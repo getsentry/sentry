@@ -28,7 +28,7 @@ from sentry.models import IntegrationExternalProject, Organization, Organization
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
-from tests.fixtures.integrations.jira.mocks.jira import MockJira
+from tests.fixtures.integrations.jira import MockJira
 
 from .client import JiraApiClient, JiraCloud
 from .utils import build_user_choice

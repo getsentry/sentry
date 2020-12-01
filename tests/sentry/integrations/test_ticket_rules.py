@@ -11,7 +11,7 @@ from sentry.models.rule import Rule
 from sentry.testutils import RuleTestCase
 from sentry.utils.compat import mock
 
-from tests.fixtures.integrations.jira.mocks.jira import MockJira
+from tests.fixtures.integrations.jira import MockJira
 
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
