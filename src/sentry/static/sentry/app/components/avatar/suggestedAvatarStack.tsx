@@ -9,7 +9,7 @@ import {Actor} from 'app/types';
 type Props = {
   owners: Actor[];
 } & BaseAvatar['props'] &
-  ActorAvatar['props'];
+  Omit<ActorAvatar['props'], 'actor' | 'hasTooltip'>;
 
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 5;
