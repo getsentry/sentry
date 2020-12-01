@@ -23,7 +23,7 @@ class StubJiraApiClient(StubService):
     def update_comment(self, issue_key, comment_id, comment):
         return comment
 
-    def create_issue(self, data):
+    def create_issue(self, raw_form_data):
         return {"key": "APP-123"}
 
     def get_transitions(self, issue_key):
@@ -77,20 +77,22 @@ class MockJira(StubJiraApiClient, MockService):
             return createmeta
 
         # Use stub data
-        return super(MockJira).get_create_meta_for_project(project)
+        return super(MockJira, self).get_create_meta_for_project(project)
 
-    def create_issue(self, data):
+    def create_issue(self, raw_form_data):
         """
 
-        :param data:
+        :param raw_form_data:
         :return:
         """
         self._throw_if_broken()
 
-        project = data.get("project")
-
+        project = raw_form_data.get("project", {}).get("id")
+        data = {"fields": raw_form_data}
         ticket_name = self._get_new_ticket_name(project)
-        return self._set_data(project, ticket_name,  data)
+        self._set_data(project, ticket_name,  data)
+
+        return {"key": ticket_name}
 
     def get_issue(self, issue_key):
         """

@@ -125,6 +125,8 @@ class MockService(StubService):
 
     def _set_data(self, project, name, data):
         if self.mode == "memory":
+            if not self._memory[project]:
+                self._memory[project] = defaultdict()
             self._memory[project][name] = data
             return
 
@@ -134,7 +136,9 @@ class MockService(StubService):
 
     def _get_data(self, project, name):
         if self.mode == "memory":
-            return self._memory[project][name]
+            if not self._memory[project]:
+                self._memory[project] = defaultdict()
+            return self._memory[project].get(name)
 
         path = os.path.join(self._get_project_path(project), "{}.json".format(name))
         with open(path, 'r') as f:
