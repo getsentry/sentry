@@ -24,6 +24,8 @@ from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.compat import zip
 
+from symbolic import normalize_debug_id, ParseDebugIdError
+
 
 logger = logging.getLogger(__name__)
 
@@ -290,28 +292,47 @@ def _handles_frame(data, frame):
     return is_native_platform(platform) and "instruction_addr" in frame
 
 
-def _expand_addr_mode(addr_mode, modules):
-    if addr_mode in (None, "abs"):
-        return "abs"
-    if addr_mode.startswith("rel:"):
-        arg = addr_mode[4:]
+def get_frames_for_symbolication(data, modules):
+    modules_by_debug_id = None
+    rv = []
 
-        for idx, module in enumerate(modules):
-            if module.get("debug_id") == arg:
-                return "rel:%d" % idx
+    for frame in reversed(data.get("frames") or ()):
+        if not _handles_frame(data, frame):
+            continue
+        s_frame = dict(frame)
 
-        if arg.isdigit():
-            return addr_mode
+        # validate and expand addressing modes.  If we can't validate and
+        # expand it, we keep None which is absolute.  That's not great but
+        # at least won't do damage.
+        addr_mode = s_frame.pop("addr_mode", None)
+        sanitized_addr_mode = None
 
-    # This is wrong but we want to set the addr mode to abs if somone
-    # sends a bad mode.
-    return "abs"
+        # None and abs mean absolute addressing explicitly.
+        if addr_mode in (None, "abs"):
+            pass
+        # this is relative addressing to module by index or debug id.
+        elif addr_mode.startswith("rel:"):
+            arg = addr_mode[4:]
+            idx = None
 
+            if modules_by_debug_id is None:
+                modules_by_debug_id = dict(
+                    (x.get("debug_id"), idx) for idx, x in enumerate(modules)
+                )
+            try:
+                idx = modules_by_debug_id.get(normalize_debug_id(arg))
+            except ParseDebugIdError:
+                pass
 
-def frame_to_symbolicator_frame(frame, modules):
-    rv = dict(frame)
+            if idx is None and arg.isdigit():
+                idx = int(arg)
 
-    rv["addr_mode"] = _expand_addr_mode(rv.get("addr_mode"), modules)
+            if idx is not None:
+                sanitized_addr_mode = "rel:%d" % idx
+
+        if sanitized_addr_mode is not None:
+            s_frame["addr_mode"] = sanitized_addr_mode
+        rv.append(s_frame)
 
     return rv
 
@@ -332,11 +353,7 @@ def process_payload(data):
     stacktraces = [
         {
             "registers": sinfo.stacktrace.get("registers") or {},
-            "frames": [
-                frame_to_symbolicator_frame(f, modules)
-                for f in reversed(sinfo.stacktrace.get("frames") or ())
-                if _handles_frame(data, f)
-            ],
+            "frames": get_frames_for_symbolication(data, modules),
         }
         for sinfo in stacktrace_infos
     ]
