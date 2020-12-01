@@ -1,4 +1,4 @@
-import {RouteProps} from 'react-router';
+import {RouteWithName} from './types';
 
 /**
  * For all routes with a `path`, find the first route without a route param (e.g. :apiKey)
@@ -8,8 +8,8 @@ import {RouteProps} from 'react-router';
  * @return Object Returns a react-router route object
  */
 export default function findFirstRouteWithoutRouteParam(
-  routes: RouteProps[],
-  route?: RouteProps
+  routes: RouteWithName[],
+  route?: RouteWithName
 ) {
   const routeIndex = route !== undefined ? routes.indexOf(route) : -1;
   const routesToSearch = route && routeIndex > -1 ? routes.slice(routeIndex) : routes;
