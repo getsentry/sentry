@@ -706,6 +706,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=5),
         "options": {"expires": 3600},
     },
+    "snuba-subscription-checker": {
+        "task": "sentry.snuba.tasks.subscription_checker",
+        "schedule": timedelta(minutes=20),
+        "options": {"expires": 20 * 60},
+    },
 }
 
 BGTASKS = {
