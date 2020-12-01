@@ -117,6 +117,7 @@ class GroupDetails extends React.Component<Props, State> {
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
+    const projectId = group?.project?.slug;
     try {
       const event = await fetchGroupEvent(
         api,
@@ -124,7 +125,7 @@ class GroupDetails extends React.Component<Props, State> {
         groupId,
         eventId,
         environments,
-        group?.project?.slug
+        projectId
       );
       this.setState({
         event,
