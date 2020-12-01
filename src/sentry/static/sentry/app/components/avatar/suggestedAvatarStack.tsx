@@ -21,22 +21,17 @@ const SuggestedAvatarStack = ({owners, ...props}: Props) => {
     suggested: true,
   };
   const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
-  const backgroundAvatars: React.ReactElement[] = [];
-  // Generate N - 1 background avatars
-  for (let i = 0; i < numAvatars - 1; i++) {
-    backgroundAvatars.push(
-      <StyledBackgroundAvatar
-        {...backgroundAvatarProps}
-        key={i}
-        type="background"
-        index={i}
-      />
-    );
-  }
   return (
     <AvatarStack>
-      {backgroundAvatars}
-      <StyledAvatar
+      {[...Array(numAvatars - 1)].map((_, i) => (
+        <BackgroundAvatar
+          {...backgroundAvatarProps}
+          key={i}
+          type="background"
+          index={i}
+        />
+      ))}
+      <Avatar
         {...props}
         suggested
         actor={owners[0]}
@@ -57,11 +52,11 @@ const translateStyles = (props: {index: number}) => css`
   transform: translateX(${60 * props.index}%);
 `;
 
-const StyledAvatar = styled(ActorAvatar)<{index: number}>`
+const Avatar = styled(ActorAvatar)<{index: number}>`
   ${translateStyles}
 `;
 
-const StyledBackgroundAvatar = styled(BaseAvatar)<{index: number}>`
+const BackgroundAvatar = styled(BaseAvatar)<{index: number}>`
   ${translateStyles}
 `;
 

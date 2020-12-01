@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {imageStyle} from 'app/components/avatar/styles';
 import theme from 'app/utils/theme';
@@ -26,10 +25,6 @@ const BackgroundAvatar = styled(
 )<Props>`
   ${imageStyle};
 `;
-
-BackgroundAvatar.propTypes = {
-  round: PropTypes.bool,
-};
 
 BackgroundAvatar.defaultProps = {
   round: false,
