@@ -6,8 +6,10 @@ import {Client} from 'app/api';
 import ActionLink from 'app/components/actions/actionLink';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
-import {IconIssues} from 'app/icons';
+import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Group, Project, Release} from 'app/types';
@@ -28,16 +30,36 @@ class GroupRowActions extends React.Component<Props> {
 
     addLoadingMessage(t('Saving changes\u2026'));
 
-    const projectConstraints = {project: selection.projects};
-
     api.bulkUpdate(
       {
         orgId,
         itemIds: [group.id],
         data,
         query,
+        project: selection.projects,
         environment: selection.environments,
-        ...projectConstraints,
+        ...selection.datetime,
+      },
+      {
+        complete: () => {
+          clearIndicators();
+        },
+      }
+    );
+  };
+
+  handleDelete = () => {
+    const {api, group, orgId, query, selection} = this.props;
+
+    addLoadingMessage(t('Removing events\u2026'));
+
+    api.bulkDelete(
+      {
+        orgId,
+        itemIds: [group.id],
+        query,
+        project: selection.projects,
+        environment: selection.environments,
         ...selection.datetime,
       },
       {
@@ -78,35 +100,66 @@ class GroupRowActions extends React.Component<Props> {
           </ActionWrapper>
 
           <ActionWrapper>
-            <Tooltip title={t('Resolve')}>
-              <Projects orgId={orgId} slugs={[group.project.slug]}>
-                {({projects, initiallyLoaded, fetchError}) => {
-                  const project = projects[0];
-                  return (
-                    <ResolveActions
-                      hasRelease={
-                        project.hasOwnProperty('features')
-                          ? (project as Project).features.includes('releases')
-                          : false
-                      }
-                      latestRelease={
-                        project.hasOwnProperty('latestRelease')
-                          ? ((project as Project).latestRelease as Release)
-                          : undefined
-                      }
-                      orgId={orgId}
-                      projectId={group.project.id}
-                      onUpdate={this.handleUpdate}
-                      shouldConfirm={false}
-                      inboxRowAction
-                      disabled={!!fetchError}
-                      disableDropdown={!initiallyLoaded || !!fetchError}
-                      projectFetchError={!!fetchError}
-                    />
-                  );
-                }}
-              </Projects>
-            </Tooltip>
+            <StyledDropdownLink
+              key="actions"
+              caret={false}
+              className="btn btn-sm btn-default action-more"
+              customTitle={<IconEllipsis size="xs" />}
+              title=""
+              anchorRight
+            >
+              <MenuItem noAnchor>
+                <Projects orgId={orgId} slugs={[group.project.slug]}>
+                  {({projects, initiallyLoaded, fetchError}) => {
+                    const project = projects[0];
+                    return (
+                      <ResolveActions
+                        hasRelease={
+                          project.hasOwnProperty('features')
+                            ? (project as Project).features.includes('releases')
+                            : false
+                        }
+                        latestRelease={
+                          project.hasOwnProperty('latestRelease')
+                            ? ((project as Project).latestRelease as Release)
+                            : undefined
+                        }
+                        orgId={orgId}
+                        projectId={group.project.id}
+                        onUpdate={this.handleUpdate}
+                        shouldConfirm={false}
+                        inboxRowAction
+                        disabled={!!fetchError}
+                        disableDropdown={!initiallyLoaded || !!fetchError}
+                        projectFetchError={!!fetchError}
+                      />
+                    );
+                  }}
+                </Projects>
+              </MenuItem>
+              <MenuItem divider />
+              <MenuItem noAnchor>
+                <ActionLink
+                  className="action-remove-bookmark"
+                  onAction={() => this.handleUpdate({isBookmarked: false})}
+                  shouldConfirm={false}
+                  title={t('Remove from Bookmarks')}
+                >
+                  {t('Remove from Bookmarks')}
+                </ActionLink>
+              </MenuItem>
+              <MenuItem divider />
+              <MenuItem noAnchor>
+                <ActionLink
+                  className="action-delete"
+                  onAction={this.handleDelete}
+                  shouldConfirm={false}
+                  title={t('Delete')}
+                >
+                  {t('Delete')}
+                </ActionLink>
+              </MenuItem>
+            </StyledDropdownLink>
           </ActionWrapper>
         </HoverActionsWrapper>
       </Wrapper>
@@ -140,6 +193,12 @@ const ActionWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  display: flex;
+  align-items: center;
+  transition: none;
 `;
 
 export default withApi(GroupRowActions);

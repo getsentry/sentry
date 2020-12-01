@@ -114,20 +114,17 @@ class ResolveActions extends React.Component<Props, State> {
     }
   }
 
-  render() {
+  renderDropdownMenu() {
     const {
       isResolved,
       hasRelease,
       latestRelease,
       onUpdate,
-      orgId,
-      projectId,
       confirmMessage,
       shouldConfirm,
       disabled,
       confirmLabel,
       disableDropdown,
-      projectFetchError,
       inboxRowAction,
     } = this.props;
 
@@ -149,7 +146,103 @@ class ResolveActions extends React.Component<Props, State> {
     };
 
     return (
-      <div style={{display: 'inline-block'}}>
+      <StyledDropdownLink
+        key="resolve-dropdown"
+        caret={!inboxRowAction}
+        className={inboxRowAction ? undefined : buttonClass}
+        title="Resolve"
+        alwaysRenderMenu
+        disabled={disableDropdown || disabled}
+        anchorRight={inboxRowAction}
+        isNestedDropdown={inboxRowAction}
+      >
+        <MenuItem header>{t('Resolved In')}</MenuItem>
+        <MenuItem noAnchor>
+          <Tooltip title={actionTitle} containerDisplayMode="block">
+            <ActionLink
+              {...actionLinkProps}
+              title={t('The next release')}
+              onAction={() =>
+                hasRelease &&
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {
+                    inNextRelease: true,
+                  },
+                })
+              }
+            >
+              {t('The next release')}
+            </ActionLink>
+          </Tooltip>
+          <Tooltip title={actionTitle} containerDisplayMode="block">
+            <ActionLink
+              {...actionLinkProps}
+              title={t('The current release')}
+              onAction={() =>
+                hasRelease &&
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {
+                    inRelease: latestRelease ? latestRelease.version : 'latest',
+                  },
+                })
+              }
+            >
+              {latestRelease
+                ? t('The current release (%s)', formatVersion(latestRelease.version))
+                : t('The current release')}
+            </ActionLink>
+          </Tooltip>
+          <Tooltip title={actionTitle} containerDisplayMode="block">
+            <ActionLink
+              {...actionLinkProps}
+              title={t('Another version')}
+              onAction={() => hasRelease && this.setState({modal: true})}
+              shouldConfirm={false}
+            >
+              {t('Another version\u2026')}
+            </ActionLink>
+          </Tooltip>
+        </MenuItem>
+      </StyledDropdownLink>
+    );
+  }
+
+  render() {
+    const {
+      isResolved,
+      onUpdate,
+      orgId,
+      projectId,
+      confirmMessage,
+      shouldConfirm,
+      disabled,
+      confirmLabel,
+      projectFetchError,
+      inboxRowAction,
+    } = this.props;
+
+    const buttonClass = this.getButtonClass();
+
+    if (isResolved) {
+      return this.renderResolved();
+    }
+
+    const actionLinkProps = {
+      shouldConfirm,
+      message: confirmMessage,
+      confirmLabel,
+      disabled,
+    };
+
+    return (
+      <div
+        style={{
+          display: 'inline-block',
+          width: inboxRowAction ? '100%' : undefined,
+        }}
+      >
         <CustomResolutionModal
           show={this.state.modal}
           onSelected={(statusDetails: ResolutionStatusDetails) =>
@@ -160,8 +253,14 @@ class ResolveActions extends React.Component<Props, State> {
           projectId={projectId}
         />
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-          <div className="btn-group">
-            {!inboxRowAction && (
+          {inboxRowAction ? (
+            <div style={{width: '100%'}}>
+              <li className="dropdown-submenu flex expand-left">
+                {this.renderDropdownMenu()}
+              </li>
+            </div>
+          ) : (
+            <div className="btn-group">
               <StyledActionLink
                 {...actionLinkProps}
                 title={t('Resolve')}
@@ -171,74 +270,9 @@ class ResolveActions extends React.Component<Props, State> {
                 <StyledIconCheckmark size="xs" />
                 {t('Resolve')}
               </StyledActionLink>
-            )}
-
-            <StyledDropdownLink
-              key="resolve-dropdown"
-              caret={!inboxRowAction}
-              className={buttonClass}
-              customTitle={
-                inboxRowAction ? <IconCheckmark size="xs" color="gray300" /> : undefined
-              }
-              title=""
-              alwaysRenderMenu
-              disabled={disableDropdown || disabled}
-              anchorRight={inboxRowAction}
-            >
-              <MenuItem header>{t('Resolved In')}</MenuItem>
-              <MenuItem noAnchor>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    title={t('The next release')}
-                    onAction={() =>
-                      hasRelease &&
-                      onUpdate({
-                        status: ResolutionStatus.RESOLVED,
-                        statusDetails: {
-                          inNextRelease: true,
-                        },
-                      })
-                    }
-                  >
-                    {t('The next release')}
-                  </ActionLink>
-                </Tooltip>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    title={t('The current release')}
-                    onAction={() =>
-                      hasRelease &&
-                      onUpdate({
-                        status: ResolutionStatus.RESOLVED,
-                        statusDetails: {
-                          inRelease: latestRelease ? latestRelease.version : 'latest',
-                        },
-                      })
-                    }
-                  >
-                    {latestRelease
-                      ? t(
-                          'The current release (%s)',
-                          formatVersion(latestRelease.version)
-                        )
-                      : t('The current release')}
-                  </ActionLink>
-                </Tooltip>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    title={t('Another version')}
-                    onAction={() => hasRelease && this.setState({modal: true})}
-                    shouldConfirm={false}
-                  >
-                    {t('Another version\u2026')}
-                  </ActionLink>
-                </Tooltip>
-              </MenuItem>
-            </StyledDropdownLink>
-          </div>
+              {this.renderDropdownMenu()}
+            </div>
+          )}
         </Tooltip>
       </div>
     );
@@ -259,8 +293,6 @@ const StyledActionLink = styled(ActionLink)`
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
-  display: flex;
-  align-items: center;
   transition: none;
 `;
 
