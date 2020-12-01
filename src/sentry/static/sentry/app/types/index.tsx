@@ -1675,6 +1675,7 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
+  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
