@@ -177,7 +177,7 @@ describe('Performance > VitalDetail', function () {
         pathname: '/organizations/org-slug/performance/summary/',
         query: expect.objectContaining({
           display: 'vitals',
-          query: 'has:measurements.fid',
+          query: 'has:measurements.lcp',
           showTransactions: 'recent',
           statsPeriod: '24h',
           transaction: 'something',

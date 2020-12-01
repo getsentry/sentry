@@ -62,7 +62,7 @@ export function vitalNameFromLocation(location: Location): WebVital {
   if (vitalName) {
     return vitalName;
   } else {
-    return WebVital.FID;
+    return WebVital.LCP;
   }
 }
 
