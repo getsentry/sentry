@@ -1,16 +1,3 @@
-from __future__ import absolute_import
-
-
-EXAMPLE_JIRA_SERVER_USER = """
-{
-    "name": "bob",
-    "displayName": "Bobby",
-    "emailAddress": "bob@example.org"
-}
-"""
-
-
-EXAMPLE_JIRA_CLOUD_USER = """
 {
   "active": true,
   "avatarUrls": {
@@ -27,4 +14,3 @@ EXAMPLE_JIRA_CLOUD_USER = """
   "self": "https://example.atlassian.net/rest/api/2/user?accountId=012345:00000000-1111-2222-3333-444444444444",
   "accountId": "012345:00000000-1111-2222-3333-444444444444"
 }
-"""
