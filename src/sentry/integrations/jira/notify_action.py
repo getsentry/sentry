@@ -118,7 +118,12 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
-        integration = self.get_integration()
+        try:
+            integration = self.get_integration()
+        except Integration.DoesNotExist:
+            # Integration removed, rule still active.
+            return
+
         installation = integration.get_installation(organization.id)
 
         self.data["title"] = event.title

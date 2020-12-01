@@ -1,4 +1,4 @@
-from tests.fixtures.integrations.jira import StubJiraApiClient
+from tests.fixtures.integrations.jira.stub_client import StubJiraApiClient
 from tests.fixtures.integrations import MockService
 
 
@@ -26,21 +26,20 @@ class MockJira(StubJiraApiClient, MockService):
     def set_createmeta(self, project, createmeta):
         """
         This special method lets you seed the stub data with your own metadata.
+        # TODO validate createmeta
 
         :param project:
         :param createmeta:
         :return:
         """
-        # TODO validate createmeta
-
         return self._set_data(project, "createmeta", createmeta)
 
     def get_create_meta_for_project(self, project):
         """
-        TODO MARCOS DESCRIBE
+        Get the Jira "createmeta" for a project.
 
-        :param project:
-        :return:
+        :param project: String name of a Jira project
+        :return: Object containing the "createmeta" of the project.
         """
         self._throw_if_broken()
 
@@ -48,28 +47,38 @@ class MockJira(StubJiraApiClient, MockService):
         if createmeta:
             return createmeta
 
-        # Use stub data
+        # Fallback to stub data
         return super(MockJira, self).get_create_meta_for_project(project)
 
     def create_issue(self, raw_form_data):
         """
+        Create a new Jira issue. Currently overwrites if the issue already exists.
 
-        :param raw_form_data:
-        :return:
+        :param raw_form_data: Object containing issue parameters
+        :return: Object containing the newly created ticket's "key" as a string.
         """
         self._throw_if_broken()
 
         project = raw_form_data.get("project", {}).get("id")
-        data = {"fields": raw_form_data}
-        ticket_name = self._get_new_ticket_name(project)
-        self._set_data(project, ticket_name,  data)
+        ticket_key = self._get_new_ticket_name(project)
+        self._set_data(project, ticket_key, {"fields": raw_form_data})
 
-        return {"key": ticket_name}
+        return {"key": ticket_key}
 
     def get_issue(self, issue_key):
         """
+        Get a saved issue from Jira.
 
-        :param issue_key:
-        :return:
+        :param issue_key: string
+        :return: Object containing Jira Issue data
         """
-        return self._get_stub_data("get_issue_response.json")
+        project = issue_key.split("-")[0]
+        data = self._get_data(project, issue_key)
+        if not data:
+            return None
+
+        data.update({
+            "id": issue_key,
+            "key": issue_key,
+        })
+        return data

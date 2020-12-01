@@ -4,6 +4,7 @@ import shutil
 
 from collections import defaultdict
 
+from sentry.utils.numbers import base32_encode
 from tests.fixtures.integrations import FIXTURE_DIRECTORY
 from tests.fixtures.integrations.stub_service import StubService
 
@@ -26,21 +27,19 @@ class MockService(StubService):
         self._next_ids = defaultdict(lambda: 0)
 
         if self.mode == "file":
-            path = os.path.join(FIXTURE_DIRECTORY, "integrations", self.service_name)
-            # TODO Undo commenting out
-            # TODO add this path to gitignore
-            # if os.path.exists(path):
-            #     shutil.rmtree(path)
+            path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data")
+            if os.path.exists(path):
+                shutil.rmtree(path)
             os.makedirs(path)
         else:
             self._memory = defaultdict(dict)
 
     def add_project(self, project):
         """
-        TODO RENAME project
+        Create a new, empty project.
 
-        :param project:
-        :return:
+        :param project: String name of project
+        :return: void
         """
         self._next_ids.get(project)  # touch
         if self.mode == "file":
@@ -48,10 +47,10 @@ class MockService(StubService):
 
     def remove_project(self, project):
         """
-        TODO DESCRIBE
+        Totally wipe out a project.
 
-        :param project:
-        :return:
+        :param project: String name of project
+        :return: void
         """
         del self._next_ids[project]
         if self.mode == "file":
@@ -61,18 +60,19 @@ class MockService(StubService):
     def break_next_api_call(self, error_code=500):
         """
         Simulate an outage for a single API call.
-
         """
         self._next_error_code = error_code
 
-    def _throw_if_broken(self):
+    def _throw_if_broken(self, message_option=None):
         """
         See break_next_api_call.
-        :raises: TODO
+        :param message_option: What should the message be if this raises?
+        :raises: Generic Exception
         """
         if self._next_error_code:
             self._next_error_code = None
-            raise Exception("{}: {} is down".format(self._next_error_code, self.service_name))
+            message = message_option or "{} is down".format(self.service_name)
+            raise Exception("{}: {}".format(self._next_error_code, message))
 
     def _get_project_names(self):
         return self._next_ids.keys()
@@ -81,12 +81,10 @@ class MockService(StubService):
         counter = self._next_ids[project]
         self._next_ids[project] = counter + 1
 
-        # TODO make this alphanumeric
-        return str(counter)
+        return "{}-{}".format(project, base32_encode(counter))
 
     def _get_project_path(self, project):
-        # TODO Should we keep track of projects in memory?
-        path = os.path.join(FIXTURE_DIRECTORY, "integrations", self.service_name, project)
+        path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data", project)
 
         if not os.path.exists(path):
             os.makedirs(path)
@@ -110,5 +108,8 @@ class MockService(StubService):
             return self._memory[project].get(name)
 
         path = os.path.join(self._get_project_path(project), "{}.json".format(name))
+        if not os.path.exists(path):
+            return None
+
         with open(path, 'r') as f:
             return json.loads(f.read())
