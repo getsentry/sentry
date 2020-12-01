@@ -23,7 +23,7 @@ jobs:
     name: 'Release a new version'
     steps:
       - name: Prepare release
-        uses: getsentry/action-prepare-release
+        uses: getsentry/action-prepare-release@main
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_SENTRY_BOT_PAT }}
