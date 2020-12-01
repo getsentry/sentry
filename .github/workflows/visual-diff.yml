@@ -1,9 +1,10 @@
 name: visual diff
 on:
   workflow_run:
-    workflows: ["acceptance"]
-    types:
-      - completed
+    workflows:
+      - acceptance-testing
+    # types:
+      # - completed
 
 jobs:
   visual-diff:
