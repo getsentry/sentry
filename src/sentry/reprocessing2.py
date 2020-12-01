@@ -56,7 +56,7 @@ internally:
 
   After that the Redis set can be cleared out.
 
-As such, reusing the group model will not work as the Redis set will prevent
+As such, reusing the group ID will not work as the Redis set will prevent
 any events in that group from being searchable. We can also not skip the Redis
 part specifically for reprocessing: When the user chooses to process `x` out of
 `n` events, the other `n - x` events would randomly appear within search
