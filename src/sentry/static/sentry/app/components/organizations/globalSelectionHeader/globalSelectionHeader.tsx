@@ -399,6 +399,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
                     projects={loadingProjects ? projects : memberProjects}
+                    selectedProjects={selectedProjects}
                     isGlobalSelectionReady={isGlobalSelectionReady}
                     isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}

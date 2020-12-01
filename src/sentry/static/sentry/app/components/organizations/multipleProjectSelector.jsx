@@ -288,6 +288,11 @@ export default class MultipleProjectSelector extends React.PureComponent {
                   isOpen={isOpen}
                   onClear={this.handleClear}
                   allowClear={multi}
+                  settingsLink={
+                    selectedProjects.length === 1
+                      ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
+                      : ''
+                  }
                   {...getActorProps()}
                 >
                   {title}
