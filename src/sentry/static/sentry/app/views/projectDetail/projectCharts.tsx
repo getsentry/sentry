@@ -16,6 +16,7 @@ import {Panel} from 'app/components/panels';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -146,7 +147,14 @@ class ProjectCharts extends React.Component<Props, State> {
   }
 
   handleDisplayModeChange = (value: string) => {
-    const {location, index} = this.props;
+    const {location, index, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `project_detail.change_chart${index + 1}`,
+      eventName: `Project Detail: Change Chart #${index + 1}`,
+      organization_id: parseInt(organization.id, 10),
+      metric: value,
+    });
 
     browserHistory.push({
       pathname: location.pathname,
