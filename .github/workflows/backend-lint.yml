@@ -88,5 +88,14 @@ jobs:
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
 
+      # Apply fixed files via pull request review comments
+      - name: Apply any pre-commit fixed files as Pull Request review comments
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
+        continue-on-error: true
+        uses: getsentry/action-git-diff-suggestions@main
+        with:
+          message: pre-commit made this change
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
