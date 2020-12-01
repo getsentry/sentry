@@ -4,6 +4,7 @@ on:
     types:
       - completed
 
+jobs:
   visual-diff:
     runs-on: ubuntu-16.04
     timeout-minutes: 20
