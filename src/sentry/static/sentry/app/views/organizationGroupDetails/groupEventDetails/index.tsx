@@ -31,6 +31,7 @@ type Props = RouteComponentProps<
   project: Project;
   group: Group;
   event: Event;
+  loadingEvent: boolean;
 };
 
 type State = typeof OrganizationEnvironmentsStore['state'];
