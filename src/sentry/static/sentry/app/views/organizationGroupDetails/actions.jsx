@@ -309,17 +309,6 @@ const GroupDetailsActions = createReactClass({
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
-        {projectFeatures.has('reprocessing-v2') && (
-          <div className="btn-group">
-            <Tooltip title={t('Reprocess this issue')}>
-              <div className={buttonClassName} onClick={this.onReprocess}>
-                <IconWrapper>
-                  <IconRefresh size="xs" />
-                </IconWrapper>
-              </div>
-            </Tooltip>
-          </div>
-        )}
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
@@ -357,6 +346,17 @@ const GroupDetailsActions = createReactClass({
           </BookmarkButton>
         </div>
         <SubscribeAction group={group} onClick={this.onToggleSubscribe} />
+        {projectFeatures.has('reprocessing-v2') && (
+          <div className="btn-group">
+            <Tooltip title={t('Reprocess this issue')}>
+              <div className={buttonClassName} onClick={this.onReprocess}>
+                <IconWrapper>
+                  <IconRefresh size="xs" />
+                </IconWrapper>
+              </div>
+            </Tooltip>
+          </div>
+        )}
       </div>
     );
   },
