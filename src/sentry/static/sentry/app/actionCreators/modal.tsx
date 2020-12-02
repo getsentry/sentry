@@ -123,7 +123,11 @@ export async function openCommandPalette(options: ModalOptions = {}) {
   openModal(deps => <Modal Body={deps.Body} {...options} />, {modalCss});
 }
 
-export async function openRecoveryOptions(options: ModalOptions = {}) {
+type RecoveryModalOptions = {
+  authenticatorName: string;
+};
+
+export async function openRecoveryOptions(options: RecoveryModalOptions) {
   const mod = await import(
     /* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal'
   );

@@ -1,30 +1,30 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Authenticator} from 'app/types';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-class RecoveryOptionsModal extends AsyncComponent {
-  static propTypes = {
-    closeModal: PropTypes.func,
-    onClose: PropTypes.func,
-    authenticatorName: PropTypes.string.isRequired,
-    Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
-    Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
+type Props = AsyncComponent['props'] &
+  ModalRenderProps & {
+    authenticatorName: string;
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      skipSms: false,
-    };
+type State = AsyncComponent['state'] & {
+  authenticators: Authenticator[] | null;
+  skipSms: boolean;
+};
+
+class RecoveryOptionsModal extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {...super.getDefaultState(), skipSms: false};
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['authenticators', '/users/me/authenticators/']];
   }
 
@@ -36,10 +36,13 @@ class RecoveryOptionsModal extends AsyncComponent {
     const {authenticatorName, closeModal, Body, Header} = this.props;
     const {authenticators, skipSms} = this.state;
 
-    const {recovery, sms} = authenticators.reduce((obj, item) => {
-      obj[item.id] = item;
-      return obj;
-    }, {});
+    const {recovery, sms} = authenticators!.reduce<{[key: string]: Authenticator}>(
+      (obj, item) => {
+        obj[item.id] = item;
+        return obj;
+      },
+      {}
+    );
     const recoveryEnrolled = recovery && recovery.isEnrolled;
     const displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
 
