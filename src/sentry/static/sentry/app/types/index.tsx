@@ -306,6 +306,7 @@ export type EventAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
+  mimetype: string;
   name: string;
   sha1: string;
   size: number;
@@ -378,6 +379,7 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   dateCreated: string;
+  dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
@@ -423,7 +425,7 @@ type SentryEventBase = {
 
   measurements?: Record<string, Measurement>;
 
-  release?: ReleaseData;
+  release?: Release;
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
@@ -1749,4 +1751,12 @@ export type InternetProtocol = {
   firstSeen: string;
   countryCode: string | null;
   regionCode: string | null;
+};
+
+export type AuthConfig = {
+  canRegister: boolean;
+  serverHostname: string;
+  hasNewsletter: boolean;
+  githubLoginLink: string;
+  vstsLoginLink: string;
 };

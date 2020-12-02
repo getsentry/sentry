@@ -59,21 +59,22 @@ class ReleaseSerializer(serializers.Serializer):
     dateReleased = serializers.DateTimeField(required=False, allow_null=True)
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
 
-
-class ReleaseWithVersionSerializer(ReleaseSerializer):
-    version = serializers.CharField(
-        max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
-    )
     status = serializers.CharField(required=False, allow_null=False)
-    owner = UserField(required=False)
-
-    def validate_version(self, value):
-        if not Release.is_valid_version(value):
-            raise serializers.ValidationError("Release with name %s is not allowed" % value)
-        return value
 
     def validate_status(self, value):
         try:
             return ReleaseStatus.from_string(value)
         except ValueError:
             raise serializers.ValidationError("Invalid status %s" % value)
+
+
+class ReleaseWithVersionSerializer(ReleaseSerializer):
+    version = serializers.CharField(
+        max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
+    )
+    owner = UserField(required=False)
+
+    def validate_version(self, value):
+        if not Release.is_valid_version(value):
+            raise serializers.ValidationError("Release with name %s is not allowed" % value)
+        return value
