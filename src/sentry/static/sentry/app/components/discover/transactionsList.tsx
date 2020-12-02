@@ -100,10 +100,6 @@ type Props = {
    */
   titles?: string[];
   /**
-   * Alternate data-test-id to use for the optional links in the first column.
-   */
-  linkDataTestId?: string;
-  /**
    * A map of callbacks to generate a link for a column based on the title.
    */
   generateLink?: Record<
@@ -195,7 +191,6 @@ class TransactionsList extends React.Component<Props> {
       cursorName,
       limit,
       titles,
-      linkDataTestId,
       generateLink,
       baseline,
     } = this.props;
@@ -225,7 +220,6 @@ class TransactionsList extends React.Component<Props> {
           baselineData={baselineData ?? null}
           columnOrder={columnOrder}
           titles={titles}
-          linkDataTestId={linkDataTestId}
           generateLink={generateLink}
           baselineTransactionName={baselineTransactionName}
           handleCellAction={handleCellAction}
@@ -274,7 +268,6 @@ class TransactionsList extends React.Component<Props> {
       selected,
       organization,
       cursorName,
-      linkDataTestId,
       generateLink,
     } = this.props;
 
@@ -311,7 +304,6 @@ class TransactionsList extends React.Component<Props> {
                 {field: 'trend_percentage()'},
                 {field: 'trend_difference()'},
               ])}
-              linkDataTestId={linkDataTestId}
               generateLink={generateLink}
               baselineTransactionName={null}
             />
@@ -352,7 +344,6 @@ type TableProps = {
   baselineTransactionName: string | null;
   baselineData: BaselineQueryResults | null;
   handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
-  linkDataTestId?: string;
   generateLink?: Record<
     string,
     (
@@ -421,15 +412,16 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     tableMeta: MetaType
   ): React.ReactNode[] {
     const {
+      eventView,
       organization,
       location,
-      linkDataTestId,
       generateLink,
       baselineTransactionName,
       baselineData,
       handleBaselineClick,
       handleCellAction,
     } = this.props;
+    const fields = eventView.getFields();
     const tableTitles = this.getTitles();
 
     const resultsRow = columnOrder.map((column, index) => {
@@ -449,7 +441,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
       if (target) {
         rendered = (
-          <Link data-test-id={linkDataTestId ?? 'transactions-list-link'} to={target}>
+          <Link data-test-id={`view-${fields[index]}`} to={target}>
             {rendered}
           </Link>
         );
