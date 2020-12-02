@@ -304,7 +304,10 @@ class RuleNode extends React.Component<Props, State> {
               <TicketRuleForm
                 data={node}
                 instance={data}
+                index={this.props.index}
+                formData={this.state.formData}
                 onSubmitAction={this.updateParent}
+                onPropertyChange={this.props.onPropertyChange}
               />
             )}
           </Rule>

@@ -18,18 +18,18 @@ type Props = {
   data: any;
   instance: any;
   onSubmitAction: any;
+  formData: any;
+  onPropertyChange: any;
+  index: number;
 };
 
 type State = {
   showModal: boolean;
-  formData: any;
-  disabled: boolean;
 };
 
 class TicketRuleForm extends React.Component<Props, State> {
   state = {
     showModal: false,
-    disabled: false,
   };
 
   openModal = (event: React.MouseEvent) => {
@@ -44,6 +44,10 @@ class TicketRuleForm extends React.Component<Props, State> {
       showModal: false,
     });
   };
+
+  onCancel = () => {
+    this.closeModal();
+  }
 
   getNames = () => {
     const names = [];
@@ -74,35 +78,31 @@ class TicketRuleForm extends React.Component<Props, State> {
   };
 
   onFieldChange = (data: any) => {
-    // check if required fields have been filled out
     console.log({data})
-    // and if so, set disabled state to false
-
   }
 
-  handleSubmitError = () => {
-    addErrorMessage(t('Fill out required fields.'))
-  }
-
-  onFormSubmit = (data, success, error, e, model) => {
-    e.preventDefault(); 
-    e.stopPropagation(); 
+  // @ts-ignore success and error are not used
+  onFormSubmit = (data, _success, _error, e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
     const formData = this.cleanData(data);
     this.props.onSubmitAction(formData);
-    this.closeModal( );
+    addSuccessMessage(t('Changes applied.'))
+    this.closeModal();
   };
-
-  formSubmitSuccess = () => {
-    addSuccessMessage(t('Saved choices.'))
-  }
 
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
+        console.log("no input");
+        console.log({field})
+        // field["choices"] = ["5ab0069933719f2a50168cab", "it me"]
         const choices =
           (field.choices as Array<[number | string, number | string]>) || [];
         const options = choices.map(([value, label]) => ({value, label}));
+        console.log({choices})
+        console.log({options})
         return resolve({options});
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
@@ -193,14 +193,20 @@ class TicketRuleForm extends React.Component<Props, State> {
       ticketType
     );
     const submitLabel = t('Apply Changes');
+    const cancelLabel = t('Close');
     const formFields = Object.values(this.props.data.formFields);
+    console.log({formFields})
     this.addFields(formFields);
-    const initialData = {};
+    console.log("form data: ", this.props.formData)
+    const initialData = this.props.formData || {};
     formFields.forEach(field => {
       // passing an empty array breaks multi select
       // TODO(jess): figure out why this is breaking and fix
-      initialData[field.name] = field.multiple ? '' : field.default;
+      if (!initialData.hasOwnProperty(field.name)) {
+        initialData[field.name] = field.multiple ? '' : field.default;
+      }
     });
+    console.log({initialData})
     return (
       <React.Fragment>
         <Button
@@ -229,14 +235,14 @@ class TicketRuleForm extends React.Component<Props, State> {
             </BodyText>
             <Form
               onSubmit={this.onFormSubmit}
-              onSubmitSuccess={this.formSubmitSuccess}
               initialData={initialData}
               onFieldChange={this.onFieldChange}
               submitLabel={submitLabel}
+              cancelLabel={cancelLabel}
               submitDisabled={this.state.disabled}
               footerClass="modal-footer"
+              onCancel={this.onCancel}
               // onPreSubmit={this.handlePreSubmit}
-              onSubmitError={this.handleSubmitError}
             >
               {formFields
                 .filter(field => field.hasOwnProperty('name'))
@@ -247,6 +253,7 @@ class TicketRuleForm extends React.Component<Props, State> {
                     inline={false}
                     stacked
                     flexibleControlStateSize
+                    onChange={(value) => this.props.onPropertyChange(this.props.index, field, value)}
                     {...this.getFieldProps(field)}
                   />
                 ))}
