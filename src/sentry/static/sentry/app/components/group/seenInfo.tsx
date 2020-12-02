@@ -134,8 +134,8 @@ const DateWrapper = styled('div')`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${theme.gray300};
-  font-size: ${theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   justify-content: center;
 `;
@@ -167,13 +167,13 @@ const StyledTimeSince = styled(TimeSince)`
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   font-weight: normal;
-  border: 1px solid ${theme.gray500};
-  background: ${theme.gray500};
+  border: 1px solid ${p => p.theme.gray500};
+  background: ${p => p.theme.gray500};
   ${Header} {
     font-weight: normal;
-    color: ${theme.white};
-    background: ${theme.gray500};
-    border-bottom: 1px solid ${theme.gray400};
+    color: ${p => p.theme.white};
+    background: ${p => p.theme.gray500};
+    border-bottom: 1px solid ${p => p.theme.gray400};
   }
   ${Body} {
     padding: ${space(1.5)};

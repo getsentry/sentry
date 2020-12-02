@@ -87,7 +87,7 @@ const GroupReleaseStats = ({
                       title={t('When the most recent event in this issue was captured.')}
                       disableForVisualTest
                     >
-                      <IconQuestion size="xs" color="gray200" />
+                      <StyledIconQuest size="xs" color="gray200" />
                     </Tooltip>
                   </TooltipWrapper>
                 </span>
@@ -121,7 +121,7 @@ const GroupReleaseStats = ({
                       title={t('When the first event in this issue was captured.')}
                       disableForVisualTest
                     >
-                      <IconQuestion size="xs" color="gray200" />
+                      <StyledIconQuest size="xs" color="gray200" />
                     </Tooltip>
                   </TooltipWrapper>
                 </span>
@@ -144,20 +144,11 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection
-              secondary
-              title={
-                <React.Fragment>
-                  <span>{t('Releases not configured')}</span>
-                </React.Fragment>
-              }
-            >
-              <React.Fragment>
-                <NotConfigured>
-                  <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
-                  {t(' to make issues easier to fix.')}
-                </NotConfigured>
-              </React.Fragment>
+            <SidebarSection secondary title={<span>{t('Releases not configured')}</span>}>
+              <span>
+                <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
+                {t(' to make issues easier to fix.')}
+              </span>
             </SidebarSection>
           ) : null}
         </React.Fragment>
@@ -168,16 +159,11 @@ const GroupReleaseStats = ({
 
 export default React.memo(GroupReleaseStats);
 
-const NotConfigured = styled('span')``;
-
 const TooltipWrapper = styled('span')`
-  svg {
-    margin-left: ${space(0.5)};
-    position: relative;
-    top: 1px;
-  }
+  margin-left: ${space(0.5)};
+`;
 
-  a {
-    display: inline;
-  }
+const StyledIconQuest = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
 `;
