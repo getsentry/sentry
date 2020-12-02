@@ -6,10 +6,10 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  totalUsers: number;
-  totalUsers24h: number | null;
-  totalSessions: number;
-  totalSessions24h: number | null;
+  totalUsers?: number;
+  totalUsers24h?: number | null;
+  totalSessions?: number;
+  totalSessions24h?: number | null;
 };
 
 const AdoptionTooltip = ({
@@ -29,7 +29,7 @@ const AdoptionTooltip = ({
       <Row>
         <Title>{t('Total Users')}:</Title>
         <Value>
-          <Count value={totalUsers} />
+          <Count value={totalUsers ?? 0} />
         </Value>
       </Row>
       <Divider />
@@ -43,7 +43,7 @@ const AdoptionTooltip = ({
       <Row>
         <Title>{t('Total Sessions')}:</Title>
         <Value>
-          <Count value={totalSessions} />
+          <Count value={totalSessions ?? 0} />
         </Value>
       </Row>
     </Wrapper>

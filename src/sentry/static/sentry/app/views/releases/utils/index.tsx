@@ -33,11 +33,6 @@ export const displayCrashFreePercent = (
   return `${rounded}\u0025`;
 };
 
-export const convertAdoptionToProgress = (
-  percent: number,
-  numberOfProgressUnits = 10
-): number => Math.ceil((percent * numberOfProgressUnits) / 100);
-
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,
   projectId: string | number | null,
