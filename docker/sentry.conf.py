@@ -200,12 +200,10 @@ SENTRY_DIGESTS = "sentry.digests.backends.redis.RedisBackend"
 ##############
 
 # If you're using a reverse SSL proxy, you should enable the X-Forwarded-Proto
-# header and set `SENTRY_USE_SSL=1`
-
-if Bool(env("SENTRY_USE_SSL", False)):
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+# header and uncomment the following settings:
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
 
 SENTRY_WEB_HOST = "0.0.0.0"
 SENTRY_WEB_PORT = 9000
