@@ -232,7 +232,7 @@ class ReleaseSerializerTest(unittest.TestCase):
         )
 
         assert serializer.is_valid()
-        assert sorted(serializer.fields.keys()) == sorted(["ref", "url", "dateReleased", "commits"])
+        assert set(serializer.fields.keys()) == {"ref", "url", "dateReleased", "commits", "status"}
 
         result = serializer.validated_data
         assert result["ref"] == self.ref
