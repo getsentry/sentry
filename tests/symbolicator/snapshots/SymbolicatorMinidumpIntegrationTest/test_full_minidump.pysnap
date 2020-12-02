@@ -1,5 +1,5 @@
 ---
-created: '2020-11-17T16:59:10.116713Z'
+created: '2020-12-02T14:30:45.784827Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -14,6 +14,16 @@ contexts:
 debug_meta:
   images:
   - arch: x86
+    candidates:
+    - download:
+        features:
+          has_debug_info: true
+          has_sources: false
+          has_symbols: true
+          has_unwind_info: true
+        status: ok
+      location: '1'
+      source: sentry:project
     code_file: C:\projects\breakpad-tools\windows\Release\crash.exe
     code_id: 5ab380779000
     debug_file: C:\projects\breakpad-tools\windows\Release\crash.pdb
