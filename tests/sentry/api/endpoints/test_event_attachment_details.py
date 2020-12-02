@@ -21,7 +21,7 @@ class CreateAttachmentMixin(object):
             project_id=self.project.id,
         )
 
-        self.file = File.objects.create(name="hello.png", type="image/png")
+        self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
         self.file.putfile(six.BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
@@ -31,6 +31,7 @@ class CreateAttachmentMixin(object):
             type=self.file.type,
             name="hello.png",
         )
+        assert self.attachment.mimetype == "image/png"
 
         return self.attachment
 
@@ -49,6 +50,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == six.text_type(self.attachment.id)
+        assert response.data["mimetype"] == self.attachment.mimetype
 
     def test_download(self):
         self.login_as(user=self.user)

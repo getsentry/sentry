@@ -44,3 +44,4 @@ class EventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(attachment1.id)
+        assert response.data[0]["mimetype"] == attachment1.mimetype

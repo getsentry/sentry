@@ -104,6 +104,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                 "id": six.text_type(attachment.id),
                 "name": attachment.name,
                 "headers": attachment.file.headers,
+                "mimetype": attachment.mimetype,
                 "size": attachment.file.size,
                 "sha1": attachment.file.checksum,
                 "dateCreated": attachment.file.timestamp,

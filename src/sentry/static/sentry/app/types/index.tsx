@@ -306,6 +306,7 @@ export type EventAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
+  mimetype: string;
   name: string;
   sha1: string;
   size: number;

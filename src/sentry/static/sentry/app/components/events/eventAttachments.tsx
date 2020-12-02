@@ -100,9 +100,7 @@ class EventAttachments extends React.Component<Props, State> {
   };
 
   getInlineAttachmentRenderer(attachment: EventAttachment) {
-    const contentType = attachment.headers['Content-Type'] || '';
-    const mimeType = contentType.split(';')[0].trim();
-    switch (mimeType) {
+    switch (attachment.mimetype) {
       case 'text/plain':
         return attachment.size > 0 ? LogFileViewer : undefined;
       case 'text/json':
