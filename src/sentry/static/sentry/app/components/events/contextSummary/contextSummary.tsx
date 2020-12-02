@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Event} from 'app/types';
 import {objectIsEmpty} from 'app/utils';
 
 import ContextSummaryDevice from './contextSummaryDevice';
@@ -13,9 +13,15 @@ import ContextSummaryOS from './contextSummaryOS';
 import ContextSummaryUser from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
+type Context = {
+  keys: string[];
+  Component: (props: any) => JSX.Element;
+  unknownTitle?: string;
+};
+
 const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
-const KNOWN_CONTEXTS = [
+const KNOWN_CONTEXTS: Context[] = [
   {keys: ['user'], Component: ContextSummaryUser},
   {
     keys: ['browser'],
@@ -32,25 +38,25 @@ const KNOWN_CONTEXTS = [
   {keys: ['gpu'], Component: ContextSummaryGPU},
 ];
 
-class ContextSummary extends React.Component {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-  };
+type Props = {
+  event: Event;
+};
 
+class ContextSummary extends React.Component<Props> {
   render() {
-    const evt = this.props.event;
+    const {event} = this.props;
     let contextCount = 0;
 
     // Add defined contexts in the declared order, until we reach the limit
     // defined by MAX_CONTEXTS.
-    let contexts = KNOWN_CONTEXTS.filter((...args) => filterContexts(evt, ...args)).map(
-      ({keys, Component, ...props}) => {
+    let contexts = KNOWN_CONTEXTS.filter(context => filterContexts(event, context)).map(
+      ({keys, Component, unknownTitle}) => {
         if (contextCount >= MAX_CONTEXTS) {
           return null;
         }
 
         const [key, data] = keys
-          .map(k => [k, evt.contexts[k] || evt[k]])
+          .map(k => [k, event.contexts[k] || event[k]])
           .find(([_k, d]) => !objectIsEmpty(d)) || [null, null];
 
         if (!key) {
@@ -58,7 +64,7 @@ class ContextSummary extends React.Component {
         }
 
         contextCount += 1;
-        return <Component key={key} data={data} {...props} />;
+        return <Component key={key} data={data} unknownTitle={unknownTitle} />;
       }
     );
 
@@ -70,8 +76,8 @@ class ContextSummary extends React.Component {
     if (contextCount < MIN_CONTEXTS) {
       // Add contents in the declared order until we have at least MIN_CONTEXTS
       // contexts in our list.
-      contexts = KNOWN_CONTEXTS.filter((...args) => filterContexts(evt, ...args)).map(
-        ({keys, Component, ...props}, index) => {
+      contexts = KNOWN_CONTEXTS.filter(context => filterContexts(event, context)).map(
+        ({keys, Component, unknownTitle}, index) => {
           if (contexts[index]) {
             return contexts[index];
           }
@@ -79,7 +85,7 @@ class ContextSummary extends React.Component {
             return null;
           }
           contextCount += 1;
-          return <Component key={keys[0]} data={{}} {...props} />;
+          return <Component key={keys[0]} data={{}} unknownTitle={unknownTitle} />;
         }
       );
     }
