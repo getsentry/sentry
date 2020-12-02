@@ -61,6 +61,10 @@ type Props = {
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  /**
+   * Whether or not to add the tag explaining the FieldValueKind of each field
+   */
+  shouldRenderTag?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
   disabled?: boolean;
 };
@@ -360,6 +364,10 @@ class QueryField extends React.Component<Props> {
   }
 
   renderTag(kind) {
+    const {shouldRenderTag} = this.props;
+    if (shouldRenderTag === false) {
+      return null;
+    }
     let text, tagType;
     switch (kind) {
       case FieldValueKind.FUNCTION:
