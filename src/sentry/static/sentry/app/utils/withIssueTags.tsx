@@ -87,6 +87,7 @@ const withIssueTags = <P extends InjectedTagsProps>(
         .filter(team => team.isMember)
         .map(team => `#${team.name}`);
       const allAssigned = usernames.concat(teamnames);
+      allAssigned.unshift('me_or_none');
       allAssigned.unshift('me');
       usernames.unshift('me');
 
@@ -100,6 +101,10 @@ const withIssueTags = <P extends InjectedTagsProps>(
           bookmarks: {
             ...tags.bookmarks,
             values: usernames,
+          },
+          owner: {
+            ...tags.owner,
+            values: allAssigned,
           },
         },
       });
