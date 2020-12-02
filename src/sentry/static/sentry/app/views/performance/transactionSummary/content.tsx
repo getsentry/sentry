@@ -199,6 +199,7 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               selected={selectedSort}
               options={sortOptions}
+              titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{
                 id: generateTransactionLink(transactionName),
