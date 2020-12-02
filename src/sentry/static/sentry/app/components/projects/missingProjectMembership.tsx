@@ -27,7 +27,7 @@ type State = {
   loading: boolean;
   error: boolean;
   project?: Project;
-  value: string | null;
+  team: string | null;
 };
 
 class MissingProjectMembership extends React.Component<Props, State> {
@@ -41,7 +41,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
       loading: false,
       error: false,
       project,
-      value: '',
+      team: '',
     };
   }
 
@@ -114,19 +114,18 @@ class MissingProjectMembership extends React.Component<Props, State> {
     const request: string[] = [];
     const pending: string[] = [];
     const teams = this.state.project?.teams ?? [];
-    const team = teams.map(tm => TeamStore.getBySlug(tm.slug));
-    team.map(tm => (tm?.isPending ? pending.push(tm!.slug) : request.push(tm!.slug)));
+    teams.forEach(({slug}) => {
+      const team = TeamStore.getBySlug(slug);
+      team?.isPending ? pending.push(team!.slug) : request.push(team!.slug);
+    });
+
     return [request, pending];
   }
 
   handleChangeTeam = (teamObj: SelectOption | null) => {
-    const value = teamObj ? teamObj.value : null;
-    this.handleChange(value);
+    const team = teamObj ? teamObj.value : null;
+    this.setState({team});
   };
-
-  handleChange(value: string | null) {
-    this.setState({value});
-  }
 
   getPendingTeamOption = (team: string) => {
     return {
@@ -137,7 +136,7 @@ class MissingProjectMembership extends React.Component<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const teamSlug = this.state.value;
+    const teamSlug = this.state.team;
     const teams = this.state.project?.teams ?? [];
     const features = new Set(organization.features);
 
