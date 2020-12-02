@@ -241,6 +241,4 @@ class DifAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]["state"] == ChunkFileState.ERROR
-        assert response.data[total_checksum]["detail"].startswith(
-            "Unsupported debug information file"
-        )
+        assert "unsupported object file format" in response.data[total_checksum]["detail"]

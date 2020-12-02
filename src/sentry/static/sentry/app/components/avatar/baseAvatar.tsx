@@ -4,11 +4,12 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
+import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
 
 import Gravatar from './gravatar';
-import {imageStyle} from './styles';
+import {imageStyle, ImageStyleProps} from './styles';
 
 const DEFAULT_GRAVATAR_SIZE = 64;
 const ALLOWED_SIZES = [20, 32, 36, 48, 52, 64, 80, 96, 120];
@@ -67,6 +68,8 @@ type Props = {
   forwardedRef?: React.Ref<HTMLSpanElement>;
 
   style?: React.CSSProperties;
+
+  suggested?: boolean;
 } & Partial<DefaultProps> &
   React.HTMLAttributes<HTMLSpanElement>;
 
@@ -167,7 +170,7 @@ class BaseAvatar extends React.Component<Props, State> {
       return null;
     }
 
-    const {type, round, gravatarId} = this.props;
+    const {type, round, gravatarId, suggested} = this.props;
 
     const eventProps = {
       onError: this.handleError,
@@ -181,21 +184,47 @@ class BaseAvatar extends React.Component<Props, State> {
           gravatarId={gravatarId}
           round={round}
           remoteSize={DEFAULT_REMOTE_SIZE}
+          suggested={suggested}
+          grayscale={suggested}
           {...eventProps}
         />
       );
     }
 
     if (type === 'upload') {
-      return <Image round={round} src={this.buildUploadUrl()} {...eventProps} />;
+      return (
+        <Image
+          round={round}
+          src={this.buildUploadUrl()}
+          {...eventProps}
+          suggested={suggested}
+          grayscale={suggested}
+        />
+      );
+    }
+
+    if (type === 'background') {
+      return this.renderBackgroundAvatar();
     }
 
     return this.renderLetterAvatar();
   };
 
   renderLetterAvatar() {
-    const {title, letterId, round} = this.props;
-    return <LetterAvatar round={round} displayName={title} identifier={letterId} />;
+    const {title, letterId, round, suggested} = this.props;
+    return (
+      <LetterAvatar
+        round={round}
+        displayName={title}
+        identifier={letterId}
+        suggested={suggested}
+      />
+    );
+  }
+
+  renderBackgroundAvatar() {
+    const {round, suggested} = this.props;
+    return <BackgroundAvatar round={round} suggested={suggested} />;
   }
 
   render() {
@@ -250,6 +279,6 @@ const StyledBaseAvatar = styled('span')<{round: boolean; loaded: boolean}>`
   ${p => p.round && 'border-radius: 100%;'};
 `;
 
-const Image = styled('img')<Pick<Props, 'round'>>`
+const Image = styled('img')<ImageStyleProps>`
   ${imageStyle};
 `;

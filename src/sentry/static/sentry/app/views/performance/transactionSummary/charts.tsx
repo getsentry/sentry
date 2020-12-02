@@ -14,6 +14,7 @@ import {t} from 'app/locale';
 import {OrganizationSummary, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import {TransactionsListOption} from 'app/views/releases/detail/overview';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {ChartContainer} from '../styles';
@@ -83,9 +84,18 @@ class TransactionSummaryCharts extends React.Component<Props> {
       trendDisplay = TrendFunctionField.P50;
     }
 
-    const releaseQueryExtra = {
-      yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_LCP : YAxis.COUNT_DURATION,
-    };
+    let releaseQueryExtra = {};
+    if (organization.features.includes('release-performance-views')) {
+      releaseQueryExtra = {
+        yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_LCP : YAxis.COUNT_DURATION,
+        showTransactions:
+          display === DisplayModes.VITALS
+            ? TransactionsListOption.SLOW_LCP
+            : display === DisplayModes.DURATION
+            ? TransactionsListOption.SLOW
+            : undefined,
+      };
+    }
 
     return (
       <Panel>

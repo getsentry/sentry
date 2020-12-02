@@ -98,7 +98,7 @@ def sort_dependencies():
 
 
 @click.command()
-@click.argument("dest", default="-", type=click.File("wb"))
+@click.argument("dest", default="-", type=click.File("w"))
 @click.option("--silent", "-q", default=False, is_flag=True, help="Silence all debug output.")
 @click.option(
     "--indent", default=2, help="Number of spaces to indent for the JSON output. (default: 2)"

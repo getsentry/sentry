@@ -296,9 +296,9 @@ class CreateProject extends React.Component<Props, State> {
           <PageHeading withMargins>{t('Create a new Project')}</PageHeading>
           <HelpText>
             {t(
-              `Projects allow you to scope events to a specific application in
-               your organization. For example, you might have separate projects
-               for your API server and frontend client.`
+              `Projects allow you to scope error and transaction events to a specific
+               application in your organization. For example, you might have separate
+               projects for your API server and frontend client.`
             )}
           </HelpText>
           <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
@@ -358,5 +358,5 @@ const TeamSelectInput = styled('div')`
 
 const HelpText = styled('p')`
   color: ${p => p.theme.subText};
-  max-width: 700px;
+  max-width: 760px;
 `;

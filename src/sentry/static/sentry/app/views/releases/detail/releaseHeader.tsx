@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import Feature from 'app/components/acl/feature';
 import Badge from 'app/components/badge';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Clipboard from 'app/components/clipboard';
@@ -26,7 +27,7 @@ import {getAggregateAlias} from 'app/utils/discover/fields';
 import {formatAbbreviatedNumber, formatVersion} from 'app/utils/formatters';
 import {getTermHelp} from 'app/views/performance/data';
 
-import {getSessionTermDescription} from '../utils/sessionTerm';
+import {getSessionTermDescription, SessionTerm, sessionTerm} from '../utils/sessionTerm';
 
 import ReleaseActions from './releaseActions';
 import ReleaseStat from './releaseStat';
@@ -52,7 +53,8 @@ const ReleaseHeader = ({
 }: Props) => {
   const {version, newGroups, url, lastDeploy, dateCreated} = release;
   const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
-  const {hasHealthData, sessionsCrashed} = project.healthData;
+  const {hasHealthData} = project;
+  const {sessionsCrashed} = project.healthData;
 
   const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
     version
@@ -118,34 +120,36 @@ const ReleaseHeader = ({
           </ReleaseStat>
           {hasHealthData && (
             <ReleaseStat
-              label={t('Crashes')}
-              help={getSessionTermDescription('crashes', project.platform)}
+              label={sessionTerm.crashes}
+              help={getSessionTermDescription(SessionTerm.CRASHES, project.platform)}
             >
               <Count value={sessionsCrashed} />
             </ReleaseStat>
           )}
-          <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
-            <DiscoverQuery
-              eventView={releaseEventView}
-              location={location}
-              orgSlug={organization.slug}
-            >
-              {({isLoading, error, tableData}) => {
-                if (isLoading || error || !tableData || tableData.data.length === 0) {
-                  return '\u2014';
-                }
-                return (
-                  <Count
-                    value={
-                      tableData.data[0][
-                        getAggregateAlias(`apdex(${organization.apdexThreshold})`)
-                      ]
-                    }
-                  />
-                );
-              }}
-            </DiscoverQuery>
-          </ReleaseStat>
+          <Feature features={['performance-view', 'release-performance-views']}>
+            <ReleaseStat label={t('Apdex')} help={getTermHelp(organization, 'apdex')}>
+              <DiscoverQuery
+                eventView={releaseEventView}
+                location={location}
+                orgSlug={organization.slug}
+              >
+                {({isLoading, error, tableData}) => {
+                  if (isLoading || error || !tableData || tableData.data.length === 0) {
+                    return '\u2014';
+                  }
+                  return (
+                    <Count
+                      value={
+                        tableData.data[0][
+                          getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                        ]
+                      }
+                    />
+                  );
+                }}
+              </DiscoverQuery>
+            </ReleaseStat>
+          </Feature>
           <ReleaseStat label={t('New Issues')}>
             <Count value={newGroups} />
           </ReleaseStat>

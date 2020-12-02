@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import abc
 from uuid import uuid4
 
+import pytest
 import responses
+from django.utils import timezone
 from exam import patcher
 from mock import Mock, patch
 from six import add_metaclass
@@ -13,8 +15,10 @@ from sentry.snuba.tasks import (
     apply_dataset_query_conditions,
     build_snuba_filter,
     create_subscription_in_snuba,
-    update_subscription_in_snuba,
     delete_subscription_from_snuba,
+    update_subscription_in_snuba,
+    subscription_checker,
+    SUBSCRIPTION_STATUS_MAX_AGE,
 )
 from sentry.utils import json
 from sentry.testutils import TestCase
@@ -372,3 +376,56 @@ class TestApplyDatasetQueryConditions(TestCase):
             )
             == "(event.type:transaction) AND (release:123)"
         )
+
+
+class SubscriptionCheckerTest(TestCase):
+    def create_subscription(self, status, subscription_id=None, date_updated=None):
+        dataset = QueryDatasets.EVENTS.value
+        aggregate = "count_unique(tags[sentry:user])"
+        query = "hello"
+        time_window = 60
+        resolution = 60
+
+        snuba_query = SnubaQuery.objects.create(
+            dataset=dataset,
+            aggregate=aggregate,
+            query=query,
+            time_window=time_window,
+            resolution=resolution,
+        )
+        sub = QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=status.value,
+            subscription_id=subscription_id,
+            project=self.project,
+            type="something",
+        )
+        if date_updated:
+            QuerySubscription.objects.filter(id=sub.id).update(date_updated=date_updated)
+        return sub
+
+    def test_create_update(self):
+        for status in (
+            QuerySubscription.Status.CREATING,
+            QuerySubscription.Status.UPDATING,
+            QuerySubscription.Status.DELETING,
+        ):
+            sub = self.create_subscription(
+                status, date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
+            )
+            sub_new = self.create_subscription(status, date_updated=timezone.now(),)
+            with self.tasks():
+                subscription_checker()
+            if status == QuerySubscription.Status.DELETING:
+                with pytest.raises(QuerySubscription.DoesNotExist):
+                    QuerySubscription.objects.get(id=sub.id)
+                sub_new = QuerySubscription.objects.get(id=sub_new.id)
+                assert sub_new.status == status.value
+                assert sub_new.subscription_id is None
+            else:
+                sub = QuerySubscription.objects.get(id=sub.id)
+                assert sub.status == QuerySubscription.Status.ACTIVE.value
+                assert sub.subscription_id is not None
+                sub_new = QuerySubscription.objects.get(id=sub_new.id)
+                assert sub_new.status == status.value
+                assert sub_new.subscription_id is None

@@ -1,3 +1,5 @@
+import u2f from 'u2f-api';
+
 import {Props as AlertProps} from 'app/components/alert';
 import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
@@ -304,6 +306,7 @@ export type EventAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
+  mimetype: string;
   name: string;
   sha1: string;
   size: number;
@@ -376,6 +379,7 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   dateCreated: string;
+  dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
@@ -421,7 +425,7 @@ type SentryEventBase = {
 
   measurements?: Record<string, Measurement>;
 
-  release?: ReleaseData;
+  release?: Release;
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
@@ -703,8 +707,13 @@ export type Authenticator = {
 
   phone?: string;
 
-  challenge?: Record<string, any>;
+  challenge?: ChallengeData;
 } & Partial<EnrolledAuthenticator>;
+
+export type ChallengeData = {
+  authenticateRequests: u2f.SignRequest;
+  registerRequests: u2f.RegisterRequest;
+};
 
 export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
@@ -1491,7 +1500,7 @@ export type Meta = {
   err: Array<MetaError>;
 };
 
-export type MetaError = [string, any];
+export type MetaError = string | [string, any];
 export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
@@ -1668,6 +1677,7 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
+  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
@@ -1741,4 +1751,12 @@ export type InternetProtocol = {
   firstSeen: string;
   countryCode: string | null;
   regionCode: string | null;
+};
+
+export type AuthConfig = {
+  canRegister: boolean;
+  serverHostname: string;
+  hasNewsletter: boolean;
+  githubLoginLink: string;
+  vstsLoginLink: string;
 };

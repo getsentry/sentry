@@ -22,7 +22,7 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader, {TAB} from './header';
-import {fetchGroupEventAndMarkSeen} from './utils';
+import {fetchGroupEvent, markEventSeen} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -40,6 +40,7 @@ type Props = {
 type State = {
   group: Group | null;
   loading: boolean;
+  loadingEvent: boolean;
   error: boolean;
   errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
@@ -71,7 +72,7 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     if (
-      (!prevState?.group && this.state.group) ||
+      (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
       this.getEvent(this.state.group);
@@ -87,6 +88,7 @@ class GroupDetails extends React.Component<Props, State> {
     return {
       group: null,
       loading: true,
+      loadingEvent: true,
       error: false,
       errorType: null,
       project: null,
@@ -98,36 +100,66 @@ class GroupDetails extends React.Component<Props, State> {
     this.fetchData();
   };
 
+  canLoadEventEarly(props: Props) {
+    return !props.params.eventId || ['oldest', 'latest'].includes(props.params.eventId);
+  }
+
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
   }
 
-  async getEvent(group: Group) {
-    const {params, environments, api, organization} = this.props;
-    const orgSlug = organization.slug;
-    const groupId = group.id;
-    const projSlug = group.project.slug;
-    const eventId = params?.eventId || 'latest';
+  async getEvent(group?: Group) {
+    if (group) {
+      this.setState({loadingEvent: true});
+    }
 
+    const {params, environments, api} = this.props;
+    const orgSlug = params.orgId;
+    const groupId = params.groupId;
+    const eventId = params?.eventId || 'latest';
+    const projectId = group?.project?.slug;
     try {
-      const event = await fetchGroupEventAndMarkSeen(
+      const event = await fetchGroupEvent(
         api,
         orgSlug,
-        projSlug,
         groupId,
         eventId,
-        environments
+        environments,
+        projectId
       );
-      this.setState({event, loading: false, error: false, errorType: null});
+      this.setState({
+        event,
+        loading: false,
+        loadingEvent: false,
+        error: false,
+        errorType: null,
+      });
     } catch (err) {
       // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
       Sentry.captureException(err);
-      this.setState({error: true, errorType: null, loading: false});
+      let errorType: Error = null;
+      switch (err?.status) {
+        case 404:
+          errorType = ERROR_TYPES.GROUP_NOT_FOUND;
+          break;
+        case 403:
+          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
+          break;
+        default:
+      }
+      this.setState({error: true, errorType, loading: false});
     }
   }
 
   async fetchData() {
-    const {environments, api, isGlobalSelectionReady} = this.props;
+    const {
+      environments,
+      api,
+      isGlobalSelectionReady,
+      params,
+      routes,
+      location,
+    } = this.props;
 
     // Need to wait for global selection store to be ready before making request
     if (!isGlobalSelectionReady) {
@@ -135,16 +167,20 @@ class GroupDetails extends React.Component<Props, State> {
     }
 
     try {
-      const data = await api.requestPromise(this.groupDetailsEndpoint, {
+      let eventPromise: Promise<any> | undefined;
+      if (this.canLoadEventEarly(this.props)) {
+        eventPromise = this.getEvent();
+      }
+      const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
         query: {
           // Note, we do not want to include the environment key at all if there are no environments
           ...(environments ? {environment: environments} : {}),
         },
       });
+      const [data] = await Promise.all([groupPromise, eventPromise]);
 
       // TODO(billy): See if this is even in use and if not, can we just rip this out?
       if (this.props.params.groupId !== data.id) {
-        const {routes, params, location} = this.props;
         ReactRouter.browserHistory.push(
           recreateRoute('', {
             routes,
@@ -155,6 +191,7 @@ class GroupDetails extends React.Component<Props, State> {
         return;
       }
       const project = data.project;
+      markEventSeen(api, params.orgId, project.slug, params.groupId);
 
       if (!project) {
         Sentry.withScope(() => {
@@ -268,6 +305,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderContent(project: AvatarProject) {
     const {children, environments, organization, routes} = this.props;
+    const {loadingEvent} = this.state;
 
     // all the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
@@ -290,7 +328,7 @@ class GroupDetails extends React.Component<Props, State> {
     };
 
     if (currentTab === TAB.DETAILS) {
-      childProps = {...childProps, event};
+      childProps = {...childProps, event, loadingEvent};
     }
 
     if (currentTab === TAB.TAGS) {

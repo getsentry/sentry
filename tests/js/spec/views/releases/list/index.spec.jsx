@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ReleasesList from 'app/views/releases/list/';
+import {DisplayOption, SortOption, StatusOption} from 'app/views/releases/list/utils';
 
 describe('ReleasesList', function () {
   const {organization, routerContext, router} = initializeOrg();
@@ -17,11 +18,11 @@ describe('ReleasesList', function () {
     location: {
       query: {
         query: 'derp',
-        sort: 'sessions',
+        sort: SortOption.SESSIONS,
         healthStatsPeriod: '24h',
         healthStat: 'sessions',
         somethingBad: 'XXX',
-        display: 'active',
+        status: StatusOption.ACTIVE,
       },
     },
   };
@@ -68,11 +69,11 @@ describe('ReleasesList', function () {
 
     expect(items).toHaveLength(3);
     expect(items.at(0).text()).toContain('1.0.0');
-    expect(items.at(0).text()).toContain('Release adoption');
+    expect(items.at(0).text()).toContain('User Adoption');
     expect(items.at(1).text()).toContain('1.0.1');
-    expect(items.at(1).find('DailyUsersColumn').at(1).text()).toContain('\u2014');
+    expect(items.at(1).find('DailyColumn').at(1).text()).toContain('\u2014');
     expect(items.at(2).text()).toContain('af4f231ec9a8');
-    expect(items.at(2).find('Header').text()).toEqual('Projects');
+    expect(items.at(2).find('Header').text()).toContain('Project');
   });
 
   it('displays the right empty state', function () {
@@ -107,7 +108,7 @@ describe('ReleasesList', function () {
       "There are no releases that match: 'abc'."
     );
 
-    location = {query: {sort: 'sessions', statsPeriod: '7d'}};
+    location = {query: {sort: SortOption.SESSIONS, statsPeriod: '7d'}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
       routerContext
@@ -116,7 +117,7 @@ describe('ReleasesList', function () {
       'There are no releases with data in the last 7 days.'
     );
 
-    location = {query: {sort: 'users_24h', statsPeriod: '7d'}};
+    location = {query: {sort: SortOption.USERS_24_HOURS, statsPeriod: '7d'}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
       routerContext
@@ -149,65 +150,97 @@ describe('ReleasesList', function () {
     expect(endpointMock).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        query: expect.objectContaining({sort: 'sessions'}),
+        query: expect.objectContaining({
+          sort: SortOption.SESSIONS,
+          healthStat: 'sessions',
+        }),
       })
     );
 
-    const sortDropdown = wrapper.find('ReleaseListSortOptions').first();
-    const sortOptions = sortDropdown.find('DropdownItem span');
-    const sortByDateOption = sortOptions.at(0);
+    const sortDropdown = wrapper.find('ReleaseListSortOptions');
+    const sortByOptions = sortDropdown.find('DropdownItem span');
 
-    expect(sortOptions).toHaveLength(5);
-    expect(sortByDateOption.text()).toEqual('Date Created');
+    const dateCreatedOption = sortByOptions.at(0);
+    expect(sortByOptions).toHaveLength(5);
+    expect(dateCreatedOption.text()).toEqual('Date Created');
 
-    sortByDateOption.simulate('click');
+    const healthStatsControls = wrapper.find('DailyColumn span').first();
+    expect(healthStatsControls.text()).toEqual('Sessions');
+
+    dateCreatedOption.simulate('click');
 
     expect(router.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
-        sort: 'date',
+        sort: SortOption.DATE,
+      }),
+    });
+  });
+
+  it('display the right Crash Free column', async function () {
+    const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
+
+    const activeDisplay = displayDropdown.find('DropdownButton span');
+    expect(activeDisplay.text()).toEqual('Display:Crash Free Sessions');
+
+    const displayOptions = displayDropdown.find('DropdownItem');
+    expect(displayOptions).toHaveLength(2);
+
+    const crashFreeSessionsOption = displayOptions.at(0);
+    expect(crashFreeSessionsOption.props().isActive).toEqual(true);
+    expect(crashFreeSessionsOption.text()).toEqual('Crash Free Sessions');
+
+    const crashFreeUsersOption = displayOptions.at(1);
+    expect(crashFreeUsersOption.text()).toEqual('Crash Free Users');
+    expect(crashFreeUsersOption.props().isActive).toEqual(false);
+
+    crashFreeUsersOption.find('span').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        display: DisplayOption.CRASH_FREE_USERS,
       }),
     });
   });
 
   it('displays archived releases', function () {
     const archivedWrapper = mountWithTheme(
-      <ReleasesList {...props} location={{query: {display: 'archived'}}} />,
+      <ReleasesList {...props} location={{query: {status: StatusOption.ARCHIVED}}} />,
       routerContext
     );
 
     expect(endpointMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        query: expect.objectContaining({status: 'archived'}),
+        query: expect.objectContaining({status: StatusOption.ARCHIVED}),
       })
     );
 
     expect(archivedWrapper.find('ReleaseArchivedNotice').exists()).toBeTruthy();
 
-    const displayOptions = archivedWrapper
-      .find('ReleaseListDisplayOptions')
+    const statusOptions = archivedWrapper
+      .find('ReleaseListStatusOptions')
       .first()
       .find('DropdownItem span');
-    const displayActiveOption = displayOptions.at(0);
-    const displayArchivedOption = displayOptions.at(1);
+    const statusActiveOption = statusOptions.at(0);
+    const statusArchivedOption = statusOptions.at(1);
 
-    expect(displayOptions).toHaveLength(2);
-    expect(displayActiveOption.text()).toEqual('Active');
-    expect(displayArchivedOption.text()).toEqual('Archived');
+    expect(statusOptions).toHaveLength(2);
+    expect(statusActiveOption.text()).toEqual('Active');
+    expect(statusArchivedOption.text()).toEqual('Archived');
 
-    displayActiveOption.simulate('click');
+    statusActiveOption.simulate('click');
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({
-        display: 'active',
+        status: StatusOption.ACTIVE,
       }),
     });
 
     expect(wrapper.find('ReleaseArchivedNotice').exists()).toBeFalsy();
 
-    displayArchivedOption.simulate('click');
+    statusArchivedOption.simulate('click');
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({
-        display: 'archived',
+        status: StatusOption.ARCHIVED,
       }),
     });
   });
@@ -229,30 +262,20 @@ describe('ReleasesList', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           healthStatsPeriod: '24h',
-          healthStat: 'sessions',
         }),
       })
     );
 
-    const healthStatsControls = wrapper.find('DailyUsersColumn').first();
+    const healthStatsControls = wrapper.find('DailyColumn').first();
 
     expect(healthStatsControls.find('Period[selected=true]').text()).toEqual('24h');
-    expect(healthStatsControls.find('Title[selected=true]').text()).toEqual('Sessions');
 
     const period14d = healthStatsControls.find('Period[selected=false] Link').first();
-    const subjectUsers = healthStatsControls.find('Title[selected=false] Link').first();
 
     expect(period14d.prop('to')).toEqual({
       pathname: undefined,
       query: expect.objectContaining({
         healthStatsPeriod: '14d',
-      }),
-    });
-
-    expect(subjectUsers.prop('to')).toEqual({
-      pathname: undefined,
-      query: expect.objectContaining({
-        healthStat: 'users',
       }),
     });
   });

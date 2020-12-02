@@ -13,7 +13,6 @@ import isNil from 'lodash/isNil';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
-import ClippedBox from 'app/components/clippedBox';
 import EventDataSection from 'app/components/events/eventDataSection';
 import ImageForBar from 'app/components/events/interfaces/imageForBar';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
@@ -30,8 +29,7 @@ import DebugImage from './debugImage';
 import {getFileName} from './utils';
 
 const MIN_FILTER_LEN = 3;
-const DEFAULT_CLIP_HEIGHT = 560;
-const PANEL_MAX_HEIGHT = 600;
+const PANEL_MAX_HEIGHT = 400;
 
 type Image = React.ComponentProps<typeof DebugImage>['image'];
 
@@ -53,10 +51,13 @@ type State = {
   filteredImages: Array<Image>;
   showUnused: boolean;
   showDetails: boolean;
-  clipHeight: number;
   foundFrame?: Frame;
   panelBodyHeight?: number;
 };
+
+function normalizeId(id: string | undefined): string {
+  return id ? id.trim().toLowerCase().replace(/[- ]/g, '') : '';
+}
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -74,7 +75,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
     filteredImages: [],
     showUnused: false,
     showDetails: false,
-    clipHeight: DEFAULT_CLIP_HEIGHT,
   };
 
   componentDidMount() {
@@ -163,19 +163,24 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     // When searching for an address, check for the address range of the image
-    // instead of an exact match.
+    // instead of an exact match.  Note that images cannot be found by index
+    // if they are at 0x0.  For those relative addressing has to be used.
     if (searchTerm.indexOf('0x') === 0) {
       const needle = parseAddress(searchTerm);
-      if (needle > 0) {
+      if (needle > 0 && image.image_addr !== '0x0') {
         const [startAddress, endAddress] = getImageRange(image);
         return needle >= startAddress && needle < endAddress;
       }
     }
 
+    // the searchTerm ending at "!" is the end of the ID search.
+    const relMatch = normalizeId(searchTerm).match(/^\s*(.*?)!/);
+    const idSearchTerm = normalizeId((relMatch && relMatch[1]) || searchTerm);
+
     return (
       // Prefix match for identifiers
-      (image.code_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
-      (image.debug_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
+      normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
+      normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
       // Any match for file paths
       (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
       (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
@@ -218,9 +223,27 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return undefined;
     }
 
-    const searchTerm = this.state.filter.toLowerCase();
+    const searchTerm = normalizeId(this.state.filter.toLowerCase());
+    const relMatch = searchTerm.match(/^\s*(.*?)!(.*)$/);
 
-    return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
+    if (relMatch) {
+      const debugImages = this.getDebugImages().map(
+        (image, idx) => [idx, image] as [number, Image]
+      );
+      const filteredImages = debugImages.filter(([_, image]) => this.filterImage(image));
+      if (filteredImages.length === 1) {
+        return frames.find(frame => {
+          return (
+            frame.addrMode === `rel:${filteredImages[0][0]}` &&
+            frame.instructionAddr?.toLowerCase() === relMatch[2]
+          );
+        });
+      } else {
+        return undefined;
+      }
+    } else {
+      return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
+    }
   }
 
   getDebugImages() {
@@ -327,7 +350,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   renderImageList() {
-    const {filteredImages, showDetails, panelBodyHeight, clipHeight} = this.state;
+    const {filteredImages, showDetails, panelBodyHeight} = this.state;
     const {orgId, projectId} = this.props;
 
     if (!panelBodyHeight) {
@@ -357,24 +380,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
             rowRenderer={this.renderRow}
             width={width}
             isScrolling={false}
-            overflowHidden={panelBodyHeight > clipHeight}
           />
         )}
       </AutoSizer>
     );
   }
-
-  handleOnReveal = () => {
-    const {panelBodyHeight} = this.state;
-
-    if (!panelBodyHeight) {
-      return;
-    }
-
-    this.setState({
-      clipHeight: panelBodyHeight,
-    });
-  };
 
   handleChangeShowUnused = (event: React.ChangeEvent<HTMLInputElement>) => {
     const showUnused = event.target.checked;
@@ -395,7 +405,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   render() {
-    const {filteredImages, foundFrame, panelBodyHeight, clipHeight} = this.state;
+    const {filteredImages, foundFrame} = this.state;
 
     return (
       <StyledEventDataSection
@@ -411,11 +421,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       >
         <DebugImagesPanel>
           {filteredImages.length > 0 ? (
-            <ClippedBox
-              clipHeight={clipHeight}
-              renderedHeight={panelBodyHeight}
-              onReveal={this.handleOnReveal}
-            >
+            <React.Fragment>
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
@@ -425,7 +431,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
               <PanelBody forwardRef={this.panelBodyRef}>
                 {this.renderImageList()}
               </PanelBody>
-            </ClippedBox>
+            </React.Fragment>
           ) : (
             <EmptyMessage icon={<IconWarning size="xl" />}>
               {this.getNoImagesMessage()}
@@ -439,8 +445,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
 export default DebugMeta;
 
-const StyledList = styled(List)<{overflowHidden: boolean; height: number}>`
-  ${p => p.overflowHidden && 'overflow: hidden !important;'}
+const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;
   outline: none;

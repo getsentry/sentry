@@ -56,6 +56,7 @@ class ReleaseSeries extends React.Component {
     queryExtra: PropTypes.object,
 
     memoized: PropTypes.bool,
+    preserveQueryParams: PropTypes.bool,
     emphasizeReleases: PropTypes.arrayOf(PropTypes.string),
   };
 
@@ -86,6 +87,8 @@ class ReleaseSeries extends React.Component {
       !isEqual(prevProps.period, this.props.period)
     ) {
       this.fetchData();
+    } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
+      this.setReleasesWithSeries(this.state.releases);
     }
   }
 
@@ -167,11 +170,27 @@ class ReleaseSeries extends React.Component {
   }
 
   getReleaseSeries = (releases, opacity = 0.3) => {
-    const {organization, router, tooltip, queryExtra} = this.props;
+    const {
+      organization,
+      router,
+      tooltip,
+      environments,
+      start,
+      end,
+      period,
+      preserveQueryParams,
+      queryExtra,
+    } = this.props;
 
     const query = {...queryExtra};
     if (organization.features.includes('global-views')) {
       query.project = router.location.query.project;
+    }
+    if (preserveQueryParams) {
+      query.environment = environments;
+      query.start = start ? getUtcDateString(start) : undefined;
+      query.end = start ? getUtcDateString(end) : undefined;
+      query.statsPeriod = period || undefined;
     }
 
     return {

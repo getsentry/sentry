@@ -653,19 +653,24 @@ class IssueListActions extends React.Component<Props, State> {
           </GraphHeader>
         </GraphHeaderWrapper>
         <React.Fragment>
-          <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
-          <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
+          <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
+          <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
         </React.Fragment>
-        <AssigneesLabel className="align-right hidden-xs hidden-sm">
+        <AssigneesLabel className="hidden-xs hidden-sm">
           <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
         </AssigneesLabel>
+        {hasInbox && (
+          <ActionsLabel className="hidden-xs hidden-sm">
+            <ToolbarHeader>{t('Actions')}</ToolbarHeader>
+          </ActionsLabel>
+        )}
       </React.Fragment>
     );
   }
 
   render() {
-    const {allInQuerySelected, anySelected, pageSelected} = this.state;
     const {allResultsVisible, queryCount, hasInbox} = this.props;
+    const {allInQuerySelected, anySelected, pageSelected} = this.state;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
 
@@ -678,7 +683,6 @@ class IssueListActions extends React.Component<Props, State> {
           {(anySelected || !hasInbox) && this.renderActionSet()}
           {(!anySelected || !hasInbox) && this.renderHeaders()}
         </StyledFlex>
-
         {!allResultsVisible && pageSelected && (
           <SelectAllNotice>
             {allInQuerySelected ? (
@@ -824,6 +828,8 @@ const GraphToggle = styled('a')<{active: boolean}>`
 const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
   align-items: center;
+  justify-content: flex-end;
+  text-align: right;
 
   margin-left: ${space(1.5)};
   margin-right: ${space(1.5)};
@@ -845,7 +851,17 @@ const FirstSeenLastSeenHeader = styled(ToolbarHeader)`
 `;
 
 const AssigneesLabel = styled('div')`
+  justify-content: flex-end;
+  text-align: right;
   width: 80px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
+const ActionsLabel = styled('div')`
+  justify-content: flex-end;
+  text-align: right;
+  width: 120px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 `;

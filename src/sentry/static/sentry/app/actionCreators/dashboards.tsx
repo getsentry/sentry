@@ -6,6 +6,7 @@ import {
   OrgDashboard,
   OrgDashboardResponse,
   OrgDashboardUpdate,
+  Widget,
 } from 'app/views/dashboardsV2/types';
 
 export function createDashboard(
@@ -13,11 +14,13 @@ export function createDashboard(
   orgId: string,
   newDashboard: DashboardListItem
 ): Promise<OrgDashboardResponse> {
+  const {title, widgets} = newDashboard;
+
   const promise: Promise<OrgDashboardResponse> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title: newDashboard.title},
+      data: {title, widgets},
     }
   );
 
@@ -87,5 +90,20 @@ export function deleteDashboard(
     }
   });
 
+  return promise;
+}
+
+export function validateWidget(
+  api: Client,
+  orgId: string,
+  widget: Widget
+): Promise<undefined> {
+  const promise: Promise<undefined> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/widgets/`,
+    {
+      method: 'POST',
+      data: widget,
+    }
+  );
   return promise;
 }
