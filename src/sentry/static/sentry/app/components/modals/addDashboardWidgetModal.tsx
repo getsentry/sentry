@@ -1,8 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import omit from 'lodash/omit';
 import set from 'lodash/set';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -29,11 +31,21 @@ type Props = ModalRenderProps & {
   tags: TagCollection;
 };
 
+type ValidationError = {
+  [key: string]: string[] | ValidationError[] | ValidationError;
+};
+
+type FlatValidationError = {
+  [key: string]: string | FlatValidationError[] | FlatValidationError;
+};
+
 type State = {
   title: string;
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   queries: Widget['queries'];
+  errors?: Record<string, any>;
+  loading: boolean;
 };
 
 const DISPLAY_TYPE_CHOICES = [
@@ -55,21 +67,52 @@ const newQuery = {
   conditions: '',
 };
 
+function mapErrors(
+  data: ValidationError,
+  update: FlatValidationError
+): FlatValidationError {
+  Object.keys(data).forEach((key: string) => {
+    const value = data[key];
+    // Recurse into nested objects.
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      update[key] = value[0];
+    } else if (Array.isArray(value) && typeof value[0] === 'object') {
+      update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
+    } else {
+      update[key] = mapErrors(value as ValidationError, {});
+    }
+  });
+
+  return update;
+}
+
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   state: State = {
     title: '',
     displayType: 'line',
     interval: '5m',
     queries: [{...newQuery}],
+    errors: undefined,
+    loading: false,
   };
 
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {closeModal, onAddWidget} = this.props;
-    onAddWidget(this.state as Widget);
-    addSuccessMessage(t('Added widget.'));
-    closeModal();
+    const {api, closeModal, organization, onAddWidget} = this.props;
+    this.setState({loading: true});
+    try {
+      const widgetData: Widget = omit(this.state, ['errors', 'loading']);
+      await validateWidget(api, organization.slug, widgetData);
+      onAddWidget(widgetData);
+      addSuccessMessage(t('Added widget.'));
+      closeModal();
+    } catch (err) {
+      const errors = mapErrors(err?.responseJSON ?? {}, {});
+      this.setState({errors});
+    } finally {
+      this.setState({loading: false});
+    }
   };
 
   handleAddQuery = (event: React.MouseEvent) => {
@@ -112,6 +155,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   render() {
     const {Body, Header, api, closeModal, organization, selection, tags} = this.props;
     const state = this.state;
+    const errors = state.errors;
 
     // TODO(mark) Figure out how to get measurement keys here.
     const fieldOptions = generateFieldOptions({
@@ -136,6 +180,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   required
                   value={state.title}
                   onChange={this.handleFieldChange('title')}
+                  error={errors?.title}
                 />
                 <SelectField
                   name="interval"
@@ -146,6 +191,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   options={INTERVAL_CHOICES.slice()}
                   value={state.interval}
                   onChange={this.handleFieldChange('interval')}
+                  error={errors?.interval}
                 />
                 <SelectField
                   deprecatedSelectControl
@@ -155,6 +201,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   label={t('Chart Style')}
                   value={state.displayType}
                   onChange={this.handleFieldChange('displayType')}
+                  error={errors?.displayType}
                 />
               </PanelBody>
             </Panel>
@@ -174,6 +221,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                     onChange={(widgetQuery: WidgetQuery) =>
                       this.handleQueryChange(widgetQuery, i)
                     }
+                    errors={errors?.queries?.[i]}
                   />
                 );
               })}
@@ -194,6 +242,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 priority="primary"
                 type="button"
                 onClick={this.handleSubmit}
+                disabled={state.loading}
+                busy={state.loading}
               >
                 {t('Add Widget')}
               </Button>
