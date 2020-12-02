@@ -122,7 +122,8 @@ function getSelectedTransaction(
   }
 
   const selectedTransaction = transactions.find(
-    transaction => transaction.transaction === selectedTransactionName
+    transaction =>
+      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
   );
 
   if (selectedTransaction) {
@@ -141,7 +142,9 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
     if (!transaction) {
       delete query[selectedQueryKey];
     } else {
-      query[selectedQueryKey] = transaction?.transaction;
+      query[selectedQueryKey] = transaction
+        ? `${transaction.transaction}-${transaction.project}`
+        : undefined;
     }
     browserHistory.push({
       pathname: location.pathname,
