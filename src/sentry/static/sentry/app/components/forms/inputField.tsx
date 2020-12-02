@@ -12,7 +12,6 @@ type InputFieldProps = FormField['props'] & {
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   autoComplete?: string;
   min?: number;
-  max?: number;
 };
 
 class InputField<
@@ -43,7 +42,6 @@ class InputField<
         onKeyPress={this.props.onKeyPress}
         onKeyDown={this.props.onKeyDown}
         min={this.props.min}
-        max={this.props.max}
       />
     );
   }

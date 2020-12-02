@@ -94,7 +94,7 @@ class ReprocessingForm extends React.Component<Props, State> {
                 'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events.'
               )}
               placeholder={t('Reprocess all events')}
-              onChange={value => this.handleChangeMaxEvents(value as number)}
+              onChange={value => this.handleChangeMaxEvents(Number(value))}
               min={1}
               required
             />
