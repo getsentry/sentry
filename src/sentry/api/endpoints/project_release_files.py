@@ -36,7 +36,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         :qparam string query: If set, this parameter is used to search files.
         :auth: required
         """
-        query = request.GET.get("query")
+        query = request.GET.getlist("query")
 
         try:
             release = Release.objects.get(

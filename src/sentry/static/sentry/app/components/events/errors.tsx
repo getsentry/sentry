@@ -78,7 +78,7 @@ class EventErrors extends React.Component<Props, State> {
       }
     }
 
-    this.fetchReleaseArtifacts(pathNames.join('&'));
+    this.fetchReleaseArtifacts(pathNames.join('&query='));
   }
 
   getURLPathname(url: string) {
@@ -103,10 +103,9 @@ class EventErrors extends React.Component<Props, State> {
       const releaseArtifacts = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
           releaseVersion
-        )}/files/`,
+        )}/files/?query=${query}`,
         {
           method: 'GET',
-          query: {query},
         }
       );
 
