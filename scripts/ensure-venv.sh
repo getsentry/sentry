@@ -6,6 +6,10 @@ if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
     exit 0
 fi
 
+yellow="$(tput setaf 3)"
+bold="$(tput bold)"
+reset="$(tput sgr0)"
+
 venv_name=".venv"
 python_version="3.6"
 
@@ -26,7 +30,12 @@ if [[ -n "$VIRTUAL_ENV" ]]; then
     minor=`python -c "import sys; print(sys.version_info[1])"`
     # If .venv contains Python2 or SENTRY_PYTHON2 is set, then fail with instructions
     if [[ "$major" -eq 2 ]] || [[ ! -z "$SENTRY_PYTHON2" ]]; then
-        echo "Running in DEPRECATED Python 2 mode..."
+        cat << EOF
+${yellow}${bold}
+WARNING! You are running a Python 2 virtualenv, which is DEPRECATED.
+Support will be dropped beginning in 2021.
+${reset}
+EOF
     else
         # If .venv is less than Python 3.6 fail
         [[ "$minor" -lt 6 ]] &&
