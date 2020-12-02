@@ -173,6 +173,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
             alwaysRenderMenu
             disabled={disabled}
             anchorRight={hasInbox}
+            hasInbox
           >
             <MenuItem header>Ignore</MenuItem>
             <li className={submenuClassName}>
@@ -330,8 +331,8 @@ const StyledActionLink = styled(ActionLink)`
   transition: none;
 `;
 
-const StyledDropdownLink = styled(DropdownLink)`
-  display: flex;
-  align-items: center;
+const StyledDropdownLink = styled(DropdownLink)<{hasInbox: boolean}>`
+  ${p => (!p.hasInbox ? 'display: flex' : '')};
+  ${p => (!p.hasInbox ? 'align-items: center' : '')};
   transition: none;
 `;
