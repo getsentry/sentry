@@ -164,8 +164,18 @@ dl.flat dd {
 }
 
 // Align the dropdown menu tip to the center of the open button
-.btn-group > .dropdown.open > .dropdown-menu {
-  left: -5px;
+.btn-group > .dropdown.open {
+  &:not(.anchor-right) {
+    > .dropdown-menu {
+      left: -5px;
+    }
+  }
+
+  &.anchor-right {
+    > .dropdown-menu {
+      right: -5px;
+    }
+  }
 }
 
 // Disabled buttons
