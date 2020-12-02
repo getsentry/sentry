@@ -1,13 +1,13 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
-import GroupDetails from 'app/views/organizationGroupDetails';
-import ProjectsStore from 'app/stores/projectsStore';
 import GroupStore from 'app/stores/groupStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import GroupDetails from 'app/views/organizationGroupDetails';
 
 jest.unmock('app/utils/recreateRoute');
 
@@ -125,7 +125,7 @@ describe('groupDetails', function () {
     await tick();
 
     expect(MockComponent).toHaveBeenLastCalledWith(
-      {
+      expect.objectContaining({
         environments: [],
         group,
         project: expect.objectContaining({
@@ -133,7 +133,7 @@ describe('groupDetails', function () {
           slug: project.slug,
         }),
         event,
-      },
+      }),
       {}
     );
 
@@ -143,6 +143,10 @@ describe('groupDetails', function () {
   it('renders error when issue is not found', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
+      statusCode: 404,
+    });
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
 
@@ -159,9 +163,13 @@ describe('groupDetails', function () {
     );
   });
 
-  it('renders error message when failing to retrieve issue details and can retry request', async function () {
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
+      statusCode: 403,
+    });
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
       statusCode: 403,
     });
     wrapper = createWrapper();
@@ -172,13 +180,11 @@ describe('groupDetails', function () {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(issueDetailsMock).toHaveBeenCalledTimes(1);
     expect(MockComponent).not.toHaveBeenCalled();
-    expect(wrapper.find('LoadingError').text()).toEqual(
-      'There was an error loading data.Retry'
+    expect(wrapper.find('MissingProjectMembership').prop('projectId')).toEqual(
+      'project-slug'
     );
 
-    wrapper.find('button[aria-label="Retry"]').simulate('click');
-
-    expect(issueDetailsMock).toHaveBeenCalledTimes(2);
+    wrapper.find('a').simulate('click');
   });
 
   it('fetches issue details for a given environment', async function () {
@@ -217,7 +223,7 @@ describe('groupDetails', function () {
       })
     );
     expect(MockComponent).toHaveBeenLastCalledWith(
-      {
+      expect.objectContaining({
         environments: ['staging'],
         group,
         project: expect.objectContaining({
@@ -225,7 +231,7 @@ describe('groupDetails', function () {
           slug: project.slug,
         }),
         event,
-      },
+      }),
       {}
     );
   });

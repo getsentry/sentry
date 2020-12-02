@@ -1,29 +1,29 @@
-import capitalize from 'lodash/capitalize';
-import uniq from 'lodash/uniq';
 import React from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
+import uniq from 'lodash/uniq';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t, tct, tn} from 'app/locale';
-import {IconEllipsis, IconPause, IconPlay, IconIssues} from 'app/icons';
 import {Client} from 'app/api';
-import {GlobalSelection, Group, Organization, Project, ResolutionStatus} from 'app/types';
-import space from 'app/styles/space';
-import theme from 'app/utils/theme';
+import Feature from 'app/components/acl/feature';
 import ActionLink from 'app/components/actions/actionLink';
+import IgnoreActions from 'app/components/actions/ignore';
+import ResolveActions from 'app/components/actions/resolve';
 import Checkbox from 'app/components/checkbox';
 import DropdownLink from 'app/components/dropdownLink';
 import ExternalLink from 'app/components/links/externalLink';
-import GroupStore from 'app/stores/groupStore';
-import IgnoreActions from 'app/components/actions/ignore';
 import MenuItem from 'app/components/menuItem';
-import Projects from 'app/utils/projects';
-import ResolveActions from 'app/components/actions/resolve';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import Tooltip from 'app/components/tooltip';
-import Feature from 'app/components/acl/feature';
+import {IconEllipsis, IconIssues, IconPause, IconPlay} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
+import GroupStore from 'app/stores/groupStore';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import space from 'app/styles/space';
+import {GlobalSelection, Group, Organization, Project, ResolutionStatus} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import Projects from 'app/utils/projects';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -156,7 +156,6 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
-  issuesLoading: boolean;
 };
 
 type State = {
@@ -408,8 +407,6 @@ class IssueListActions extends React.Component<Props, State> {
       selection,
       statsPeriod,
       organization,
-      groupIds,
-      issuesLoading,
     } = this.props;
     const issues = this.state.selectedIds;
     const numIssues = issues.size;
@@ -426,8 +423,6 @@ class IssueListActions extends React.Component<Props, State> {
     // merges require a single project to be active in an org context
     // selectedProjectSlug is null when 0 or >1 projects are selected.
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
-    const hasInboxReason =
-      issuesLoading || groupIds.some(id => !!GroupStore.get(id)?.inbox);
 
     return (
       <Sticky>
@@ -620,6 +615,13 @@ class IssueListActions extends React.Component<Props, State> {
               </Tooltip>
             </div>
           </ActionSet>
+          <Feature organization={organization} features={['organizations:inbox']}>
+            <TimesSpacerLabel className="hidden-xs hidden-sm">
+              <FirstSeenLastSeenHeader>
+                {t('Last Seen')} &nbsp;|&nbsp; {t('First Seen')}
+              </FirstSeenLastSeenHeader>
+            </TimesSpacerLabel>
+          </Feature>
           <GraphHeaderWrapper className="hidden-xs hidden-sm">
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
@@ -638,15 +640,16 @@ class IssueListActions extends React.Component<Props, State> {
             </GraphHeader>
           </GraphHeaderWrapper>
           <React.Fragment>
-            <EventsOrUsersLabel className="align-right">{t('Events')}</EventsOrUsersLabel>
-            <EventsOrUsersLabel className="align-right">{t('Users')}</EventsOrUsersLabel>
+            <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
+            <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
           </React.Fragment>
-          <AssigneesLabel className="align-right hidden-xs hidden-sm">
+          <AssigneesLabel className="hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
           <Feature organization={organization} features={['organizations:inbox']}>
-            {hasInboxReason && <ReasonSpacerLabel className="hidden-xs hidden-sm" />}
-            <TimesSpacerLabel className="hidden-xs hidden-sm" />
+            <ActionsLabel className="hidden-xs hidden-sm">
+              <ToolbarHeader>{t('Actions')}</ToolbarHeader>
+            </ActionsLabel>
           </Feature>
         </StyledFlex>
 
@@ -778,6 +781,8 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   grid-auto-flow: column;
   grid-gap: ${space(0.5)};
   align-items: center;
+  justify-content: flex-end;
+  text-align: right;
 
   margin-left: ${space(1.5)};
   margin-right: ${space(1.5)};
@@ -794,20 +799,29 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   }
 `;
 
+const FirstSeenLastSeenHeader = styled(ToolbarHeader)`
+  white-space: nowrap;
+`;
+
 const AssigneesLabel = styled('div')`
+  justify-content: flex-end;
+  text-align: right;
   width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 `;
 
-const ReasonSpacerLabel = styled('div')`
-  width: 95px;
-  margin: 0 ${space(0.25)} 0 ${space(1)};
+const ActionsLabel = styled('div')`
+  justify-content: flex-end;
+  text-align: right;
+  width: 120px;
+  margin-left: ${space(2)};
+  margin-right: ${space(2)};
 `;
 
 const TimesSpacerLabel = styled('div')`
-  width: 170px;
-  margin: 0 ${space(1.5)} 0 ${space(0.5)};
+  width: 160px;
+  margin: 0 ${space(2)};
 `;
 
 // New icons are misaligned inside bootstrap buttons.

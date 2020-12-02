@@ -1,19 +1,21 @@
+import u2f from 'u2f-api';
+
+import {Props as AlertProps} from 'app/components/alert';
 import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
+import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
-import {Field} from 'app/views/settings/components/forms/type';
 import {PlatformKey} from 'app/data/platformCategories';
 import {OrgExperiments, UserExperiments} from 'app/types/experiments';
+import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
+import {Query as DiscoverQuery} from 'app/views/discover/types';
 import {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
 } from 'app/views/organizationIntegrations/constants';
-import {WIDGET_DISPLAY} from 'app/views/dashboards/constants';
-import {Props as AlertProps} from 'app/components/alert';
-import {Query as DiscoverQuery} from 'app/views/discover/types';
-import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {Field} from 'app/views/settings/components/forms/type';
 
-import {StacktraceType, RawStacktrace, Mechanism} from './stacktrace';
+import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {
   interface Window {
@@ -221,9 +223,39 @@ export type Project = {
   latestRelease?: {version: string};
   groupingEnhancementsBase: string;
   groupingConfig: string;
+  options?: Record<string, boolean | string>;
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+
+// Response from project_keys endpoints.
+export type ProjectKey = {
+  id: string;
+  name: string;
+  label: string;
+  public: string;
+  secret: string;
+  projectId: string;
+  isActive: boolean;
+  rateLimit: {
+    window: string;
+    count: number;
+  } | null;
+  dsn: {
+    secret: string;
+    public: string;
+    csp: string;
+    security: string;
+    minidump: string;
+    unreal: string;
+    cdn: string;
+  };
+  browserSdkVersion: string;
+  browserSdk: {
+    choices: [key: string, value: string][];
+  };
+  dateCreated: string;
+};
 
 export type Health = {
   totalUsers: number;
@@ -274,6 +306,7 @@ export type EventAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
+  mimetype: string;
   name: string;
   sha1: string;
   size: number;
@@ -346,6 +379,7 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   dateCreated: string;
+  dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
@@ -391,7 +425,7 @@ type SentryEventBase = {
 
   measurements?: Record<string, Measurement>;
 
-  release?: ReleaseData;
+  release?: Release;
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
@@ -673,8 +707,13 @@ export type Authenticator = {
 
   phone?: string;
 
-  challenge?: Record<string, any>;
+  challenge?: ChallengeData;
 } & Partial<EnrolledAuthenticator>;
+
+export type ChallengeData = {
+  authenticateRequests: u2f.SignRequest;
+  registerRequests: u2f.RegisterRequest;
+};
 
 export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
@@ -1461,7 +1500,7 @@ export type Meta = {
   err: Array<MetaError>;
 };
 
-export type MetaError = [string, any];
+export type MetaError = string | [string, any];
 export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
@@ -1611,6 +1650,7 @@ export type Artifact = {
   headers: {'Content-Type': string};
 };
 
+// TODO(mark) remove when dashboards 1 is removed.
 export type Widget = {
   queries: {
     discover: DiscoverQuery[];
@@ -1637,6 +1677,7 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
+  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
@@ -1710,4 +1751,12 @@ export type InternetProtocol = {
   firstSeen: string;
   countryCode: string | null;
   regionCode: string | null;
+};
+
+export type AuthConfig = {
+  canRegister: boolean;
+  serverHostname: string;
+  hasNewsletter: boolean;
+  githubLoginLink: string;
+  vstsLoginLink: string;
 };

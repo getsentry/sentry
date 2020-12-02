@@ -1,15 +1,15 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {ClassNames} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {IconQuestion} from 'app/icons';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
-import {t} from 'app/locale';
-import Button from 'app/components/button';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
+import {IconQuestion} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Project, Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 
 import SidebarSection from '../sidebarSection';
 

@@ -1,11 +1,11 @@
 import React from 'react';
 import upperFirst from 'lodash/upperFirst';
 
-import {t} from 'app/locale';
+import ClippedBox from 'app/components/clippedBox';
 import ContextBlock from 'app/components/events/contexts/contextBlock';
 import {KeyValueListData} from 'app/components/events/interfaces/keyValueList/types';
-import ClippedBox from 'app/components/clippedBox';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {t} from 'app/locale';
 
 type StateDescription = {
   type?: string;

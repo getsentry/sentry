@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {extractMultilineFields} from 'app/utils';
-import {tct} from 'app/locale';
-import {Field} from 'app/views/settings/components/forms/type';
 import ExternalLink from 'app/components/links/externalLink';
+import {tct} from 'app/locale';
+import {extractMultilineFields} from 'app/utils';
+import {Field} from 'app/views/settings/components/forms/type';
 
 const getPublicFormFields = (): Field[] => [
   {

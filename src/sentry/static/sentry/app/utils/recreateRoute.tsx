@@ -1,11 +1,11 @@
 import {Location} from 'history';
-import {PlainRoute} from 'react-router/lib/Route';
 import findLastIndex from 'lodash/findLastIndex';
 
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import {RouteWithName} from 'app/views/settings/components/settingsBreadcrumb/types';
 
 type Options = {
-  routes: PlainRoute[];
+  routes: RouteWithName[];
 
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
@@ -27,7 +27,10 @@ type Options = {
  *
  * See tests for examples
  */
-export default function recreateRoute(to: string | PlainRoute, options: Options): string {
+export default function recreateRoute(
+  to: string | RouteWithName,
+  options: Options
+): string {
   const {routes, params, location, stepBack} = options;
   const paths = routes.map(({path}) => path || '');
   let lastRootIndex: number;

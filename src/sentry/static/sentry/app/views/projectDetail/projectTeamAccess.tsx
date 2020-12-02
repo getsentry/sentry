@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization, Project} from 'app/types';
-import {SectionHeading} from 'app/components/charts/styles';
-import {t, tn} from 'app/locale';
-import Link from 'app/components/links/link';
-import space from 'app/styles/space';
-import Placeholder from 'app/components/placeholder';
-import IdBadge from 'app/components/idBadge';
 import Button from 'app/components/button';
+import {SectionHeading} from 'app/components/charts/styles';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 
 type Props = {
   organization: Organization;
@@ -36,6 +36,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
     const {project, organization} = this.props;
 
     if (!project) {
+      // TODO(project-detail): check the most common number of teams and set height accordingly
       return <Placeholder />;
     }
 
@@ -47,6 +48,7 @@ class ProjectTeamAccess extends React.Component<Props, State> {
           disabled={!hasPermission}
           title={hasPermission ? undefined : t('You do not have permission to do this')}
           priority="primary"
+          size="small"
         >
           {t('Assign Team')}
         </Button>
@@ -101,8 +103,8 @@ class ProjectTeamAccess extends React.Component<Props, State> {
   }
 }
 
-const Section = styled('div')`
-  margin-bottom: ${space(4)};
+const Section = styled('section')`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledLink = styled(Link)`

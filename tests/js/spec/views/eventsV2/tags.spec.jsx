@@ -4,8 +4,8 @@ import {mount} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
-import {Tags} from 'app/views/eventsV2/tags';
 import EventView from 'app/utils/discover/eventView';
+import {Tags} from 'app/views/eventsV2/tags';
 
 describe('Tags', function () {
   function generateUrl(key, value) {

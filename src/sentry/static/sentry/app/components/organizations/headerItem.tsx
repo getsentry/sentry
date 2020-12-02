@@ -1,14 +1,13 @@
-import {Link} from 'react-router';
 import React from 'react';
-import PropTypes from 'prop-types';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import PropTypes from 'prop-types';
 
-import {IconClose, IconLock, IconChevron, IconInfo, IconSettings} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
+import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 type DefaultProps = {
   allowClear: boolean;
@@ -81,7 +80,14 @@ class HeaderItem extends React.Component<Props> {
         {...textColorProps}
       >
         <IconContainer {...textColorProps}>{icon}</IconContainer>
-        <Content>{children}</Content>
+        <Content>
+          <StyledContent>{children}</StyledContent>
+          {settingsLink && (
+            <SettingsIconLink to={settingsLink}>
+              <IconSettings />
+            </SettingsIconLink>
+          )}
+        </Content>
         {hint && (
           <Hint>
             <Tooltip title={hint} position="bottom">
@@ -91,11 +97,6 @@ class HeaderItem extends React.Component<Props> {
         )}
         {hasSelected && !locked && allowClear && (
           <StyledClose {...textColorProps} onClick={this.handleClear} />
-        )}
-        {settingsLink && (
-          <SettingsIconLink to={settingsLink}>
-            <IconSettings />
-          </SettingsIconLink>
         )}
         {!locked && !loading && (
           <StyledChevron isOpen={isOpen}>
@@ -147,9 +148,16 @@ const StyledHeaderItem = styled('div', {
 `;
 
 const Content = styled('div')`
+  display: flex;
   flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
   margin-right: ${space(1.5)};
-  ${overflowEllipsis};
+`;
+
+const StyledContent = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const IconContainer = styled('span', {shouldForwardProp: isPropValid})<ColorProps>`
@@ -188,10 +196,11 @@ const StyledChevron = styled('div')<StyledChevronProps>`
 
 const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray300};
-  display: flex;
   align-items: center;
+  display: inline-flex;
   justify-content: space-between;
-  padding: ${space(1)};
+  margin-right: ${space(1.5)};
+  margin-left: ${space(1.0)};
   transition: 0.5s opacity ease-out;
 
   &:hover {

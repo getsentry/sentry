@@ -1,35 +1,37 @@
 import React from 'react';
-import {Location, Query} from 'history';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
-import {Organization} from 'app/types';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import PanelTable from 'app/components/panels/panelTable';
+import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import PanelTable from 'app/components/panels/panelTable';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import {TableColumn} from 'app/views/eventsV2/table/types';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
-import SortLink from 'app/components/gridEditable/sortLink';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import HeaderCell from 'app/views/eventsV2/table/headerCell';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {GridCell, GridCellNumber} from '../styles';
-import {getTransactionDetailsUrl, getTransactionComparisonUrl} from '../utils';
+import {getTransactionComparisonUrl, getTransactionDetailsUrl} from '../utils';
+
 import BaselineQuery, {BaselineQueryResults} from './baselineQuery';
+import {TransactionFilterOptions} from './utils';
 
 const TOP_TRANSACTION_LIMIT = 5;
 
@@ -45,25 +47,25 @@ function getFilterOptions({p95}: {p95: number}): FilterOption[] {
     {
       query: null,
       sort: {kind: 'asc', field: 'transaction.duration'},
-      value: 'fastest',
+      value: TransactionFilterOptions.FASTEST,
       label: t('Fastest Transactions'),
     },
     {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'slow',
+      value: TransactionFilterOptions.SLOW,
       label: t('Slow Transactions (p95)'),
     },
     {
       query: null,
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'outlier',
+      value: TransactionFilterOptions.OUTLIER,
       label: t('Outlier Transactions (p100)'),
     },
     {
       query: null,
       sort: {kind: 'desc', field: 'timestamp'},
-      value: 'recent',
+      value: TransactionFilterOptions.RECENT,
       label: t('Recent Transactions'),
     },
   ];
@@ -74,7 +76,8 @@ function getTransactionSort(
   p95: number
 ): {selected: FilterOption; options: FilterOption[]} {
   const options = getFilterOptions({p95});
-  const urlParam = decodeScalar(location.query.showTransactions) || 'slow';
+  const urlParam =
+    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
   const selected = options.find(opt => opt.value === urlParam) || options[0];
   return {selected, options};
 }

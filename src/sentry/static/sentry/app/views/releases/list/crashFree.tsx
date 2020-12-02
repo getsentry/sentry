@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {IconFire, IconWarning, IconCheckmark} from 'app/icons';
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 import {displayCrashFreePercent} from '../utils';
 
@@ -30,7 +30,7 @@ const CrashFree = ({percent}: Props) => {
   return (
     <Wrapper>
       {getIcon(percent)}
-      <CrahFreePercent>{displayCrashFreePercent(percent)}</CrahFreePercent>
+      <CrashFreePercent>{displayCrashFreePercent(percent)}</CrashFreePercent>
     </Wrapper>
   );
 };
@@ -38,11 +38,11 @@ const CrashFree = ({percent}: Props) => {
 const Wrapper = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(0.75)};
+  grid-gap: ${space(1)};
   align-items: center;
 `;
 
-const CrahFreePercent = styled('div')`
+const CrashFreePercent = styled('div')`
   ${overflowEllipsis};
 `;
 

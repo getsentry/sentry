@@ -1417,10 +1417,13 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
     return snuba_json
 
 
+# The regex for alias here is to match any word, but exclude anything that is only digits
+# eg. 123 doesn't match, but test_123 will match
+ALIAS_REGEX = "(\w+)?(?!\d+)\w+"
+
+ALIAS_PATTERN = re.compile(r"{}$".format(ALIAS_REGEX))
 FUNCTION_PATTERN = re.compile(
-    # The alias for alias here is to match any word, but exclude anything that is only digits
-    # eg. 123 doesn't match, but test_123 will match
-    r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)( (as|AS) (?P<alias>(\w+)?(?!\d+)\w+))?$"
+    r"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{}))?$".format(ALIAS_REGEX)
 )
 
 
@@ -1446,6 +1449,13 @@ class FunctionArg(object):
 
     def get_type(self, value):
         raise InvalidFunctionArgument(u"{} has no type defined".format(self.name))
+
+
+class FunctionAliasArg(FunctionArg):
+    def normalize(self, value, params):
+        if not ALIAS_PATTERN.match(value):
+            raise InvalidFunctionArgument(u"{} is not a valid function alias".format(value))
+        return value
 
 
 class NullColumn(FunctionArg):
@@ -1494,7 +1504,18 @@ class CountColumn(FunctionArg):
 
 
 class StringArg(FunctionArg):
+    def __init__(self, name, unquote=False, unescape_quotes=False):
+        super(StringArg, self).__init__(name)
+        self.unquote = unquote
+        self.unescape_quotes = unescape_quotes
+
     def normalize(self, value, params):
+        if self.unquote:
+            if len(value) < 2 or value[0] != '"' or value[-1] != '"':
+                raise InvalidFunctionArgument("string should be quoted")
+            value = value[1:-1]
+        if self.unescape_quotes:
+            value = re.sub(r'\\"', '"', value)
         return u"'{}'".format(value)
 
 
@@ -1509,6 +1530,28 @@ class DateArg(FunctionArg):
                 u"{} is in the wrong format, expected a date like 2020-03-14T15:14:15".format(value)
             )
         return u"'{}'".format(value)
+
+
+class ConditionArg(FunctionArg):
+    # List and not a set so the error message is consistent
+    VALID_CONDITIONS = [
+        "equals",
+        "notEquals",
+        "lessOrEquals",
+        "greaterOrEquals",
+        "less",
+        "greater",
+    ]
+
+    def normalize(self, value, params):
+        if value not in self.VALID_CONDITIONS:
+            raise InvalidFunctionArgument(
+                u"{} is not a valid condition, the only supported conditions are: {}".format(
+                    value, ",".join(self.VALID_CONDITIONS),
+                )
+            )
+
+        return value
 
 
 class Column(FunctionArg):
@@ -1927,6 +1970,34 @@ FUNCTIONS = {
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
         Function(
+            "failure_count",
+            aggregate=[
+                "countIf",
+                [
+                    [
+                        "not",
+                        [
+                            [
+                                "has",
+                                [
+                                    [
+                                        "array",
+                                        [
+                                            SPAN_STATUS_NAME_TO_CODE[name]
+                                            for name in ["ok", "cancelled", "unknown"]
+                                        ],
+                                    ],
+                                    "transaction_status",
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                None,
+            ],
+            default_result_type="integer",
+        ),
+        Function(
             "array_join",
             required_args=[StringArrayColumn("column")],
             column=["arrayJoin", [ArgValue("column")], None],
@@ -2181,12 +2252,12 @@ FUNCTIONS = {
         Function(
             "t_test",
             required_args=[
-                FunctionArg("avg_1"),
-                FunctionArg("avg_2"),
-                FunctionArg("variance_1"),
-                FunctionArg("variance_2"),
-                FunctionArg("count_1"),
-                FunctionArg("count_2"),
+                FunctionAliasArg("avg_1"),
+                FunctionAliasArg("avg_2"),
+                FunctionAliasArg("variance_1"),
+                FunctionAliasArg("variance_2"),
+                FunctionAliasArg("count_1"),
+                FunctionAliasArg("count_2"),
             ],
             aggregate=[
                 u"divide(minus({avg_1},{avg_2}),sqrt(plus(divide({variance_1},{count_1}),divide({variance_2},{count_2}))))",
@@ -2211,10 +2282,26 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
+            "compare_numeric_aggregate",
+            required_args=[
+                FunctionAliasArg("aggregate_alias"),
+                ConditionArg("condition"),
+                NumberRange("value", 0, None),
+            ],
+            aggregate=[
+                # snuba json syntax isn't compatible with this query here
+                # this function can't be a column, since we want to use this with aggregates
+                "{condition}({aggregate_alias},{value})",
+                None,
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
             "to_other",
             required_args=[
                 ColumnNoLookup("column", allowed_columns=["release"]),
-                StringArg("value"),
+                StringArg("value", unquote=True, unescape_quotes=True),
             ],
             optional_args=[
                 with_default("that", StringArg("that")),
@@ -2255,14 +2342,16 @@ def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
+
     if match.group("alias") is not None:
         return match.group("alias")
-    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
-    return get_function_alias_with_columns(match.group("function"), columns)
+    function = match.group("function")
+    columns = parse_arguments(function, match.group("columns"))
+    return get_function_alias_with_columns(function, columns)
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = "_".join(columns).replace(".", "_")
+    columns = re.sub("[^\w]", "_", "_".join(columns))
     return u"{}_{}".format(function_name, columns).rstrip("_")
 
 
@@ -2276,16 +2365,70 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_function(field, match=None):
+def parse_arguments(function, columns):
+    """
+    The to_other function takes a quoted string for one of its arguments
+    that may contain commas, so it requires special handling.
+    """
+    if function != "to_other":
+        return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
+
+    args = []
+
+    quoted = False
+    escaped = False
+
+    i, j = 0, 0
+
+    while j < len(columns):
+        if i == j and columns[j] == '"':
+            # when we see a quote at the beginning of
+            # an argument, then this is a quoted string
+            quoted = True
+        elif quoted and not escaped and columns[j] == "\\":
+            # when we see a slash inside a quoted string,
+            # the next character is an escape character
+            escaped = True
+        elif quoted and not escaped and columns[j] == '"':
+            # when we see a non-escaped quote while inside
+            # of a quoted string, we should end it
+            quoted = False
+        elif quoted and escaped:
+            # when we are inside a quoted string and have
+            # begun an escape character, we should end it
+            escaped = False
+        elif quoted and columns[j] == ",":
+            # when we are inside a quoted string and see
+            # a comma, it should not be considered an
+            # argument separator
+            pass
+        elif columns[j] == ",":
+            # when we see a comma outside of a quoted string
+            # it is an argument separator
+            args.append(columns[i:j].strip())
+            i = j + 1
+        j += 1
+
+    if i != j:
+        # add in the last argument if any
+        args.append(columns[i:].strip())
+
+    return [arg for arg in args if arg]
+
+
+def parse_function(field, match=None, err_msg=None):
     if not match:
-        match = FUNCTION_PATTERN.search(field)
+        match = is_function(field)
 
     if not match or match.group("function") not in FUNCTIONS:
-        raise InvalidSearchQuery(u"{} is not a valid function".format(field))
+        if err_msg is None:
+            err_msg = u"{} is not a valid function".format(field)
+        raise InvalidSearchQuery(err_msg)
 
+    function = match.group("function")
     return (
-        match.group("function"),
-        [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0],
+        function,
+        parse_arguments(function, match.group("columns")),
         match.group("alias"),
     )
 

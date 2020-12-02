@@ -1,19 +1,26 @@
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
-import LineChart from 'app/components/charts/lineChart';
 import AreaChart from 'app/components/charts/areaChart';
+import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
+import {PlatformKey} from 'app/data/platformCategories';
 import {Series} from 'app/types/echarts';
-import theme from 'app/utils/theme';
 import {defined} from 'app/utils';
-import {getExactDuration} from 'app/utils/formatters';
 import {axisDuration} from 'app/utils/discover/charts';
+import {getExactDuration} from 'app/utils/formatters';
 import {decodeList} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+
+import {
+  getSessionTermDescription,
+  SessionTerm,
+  sessionTerm,
+} from '../../../utils/sessionTerm';
 
 import {YAxis} from './releaseChartControls';
 
@@ -24,6 +31,7 @@ type Props = {
   zoomRenderProps: any;
   yAxis: YAxis;
   location: Location;
+  platform: PlatformKey;
   shouldRecalculateVisibleSeries: boolean;
   onVisibleSeriesRecalculated: () => void;
 };
@@ -59,7 +67,7 @@ class HealthChart extends React.Component<Props> {
     const {timeseriesData, location, shouldRecalculateVisibleSeries} = this.props;
 
     const otherAreasThanHealthyArePositive = timeseriesData
-      .filter(s => s.seriesName !== 'Healthy')
+      .filter(s => s.seriesName !== sessionTerm.healthy)
       .some(s => s.data.some(d => d.value > 0));
     const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
 
@@ -145,7 +153,10 @@ class HealthChart extends React.Component<Props> {
     return undefined;
   }
 
-  getChart() {
+  getChart():
+    | React.ComponentType<StackedAreaChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']> {
     const {yAxis} = this.props;
     switch (yAxis) {
       case YAxis.SESSION_DURATION:
@@ -156,6 +167,27 @@ class HealthChart extends React.Component<Props> {
       case YAxis.CRASH_FREE:
       default:
         return LineChart;
+    }
+  }
+
+  getLegendTooltipDescription(serieName: string) {
+    const {platform} = this.props;
+
+    switch (serieName) {
+      case sessionTerm.crashed:
+        return getSessionTermDescription(SessionTerm.CRASHED, platform);
+      case sessionTerm.abnormal:
+        return getSessionTermDescription(SessionTerm.ABNORMAL, platform);
+      case sessionTerm.errored:
+        return getSessionTermDescription(SessionTerm.ERRORED, platform);
+      case sessionTerm.healthy:
+        return getSessionTermDescription(SessionTerm.HEALTHY, platform);
+      case sessionTerm['crash-free-users']:
+        return getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, platform);
+      case sessionTerm['crash-free-sessions']:
+        return getSessionTermDescription(SessionTerm.CRASH_FREE_SESSIONS, platform);
+      default:
+        return '';
     }
   }
 
@@ -179,6 +211,23 @@ class HealthChart extends React.Component<Props> {
       },
       data: timeseriesData.map(d => d.seriesName).reverse(),
       selected: getSeriesSelection(location),
+      tooltip: {
+        show: true,
+        formatter: (params: {
+          $vars: string[];
+          componentType: string;
+          legendIndex: number;
+          name: string;
+        }): string => {
+          const seriesNameDesc = this.getLegendTooltipDescription(params.name);
+
+          if (!seriesNameDesc) {
+            return '';
+          }
+
+          return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
+        },
+      },
     };
 
     return (

@@ -1,6 +1,6 @@
 import {
-  formatFloat,
   formatAbbreviatedNumber,
+  formatFloat,
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';

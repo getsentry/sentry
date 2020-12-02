@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import Pagination from 'app/components/pagination';
 import Button from 'app/components/button';
-import SimilarSpectrum from 'app/components/similarSpectrum';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
+import SimilarSpectrum from 'app/components/similarSpectrum';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, Group} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 
 import Item from './item';
 import Toolbar from './toolbar';
@@ -35,6 +35,7 @@ type Props = {
   orgId: Organization['id'];
   project: Project;
   onMerge: () => void;
+  v2: boolean;
   groupId: string;
   pageLinks: string | null;
   items: Array<SimilarItem>;
@@ -75,6 +76,7 @@ class List extends React.Component<Props, State> {
       filteredItems,
       pageLinks,
       onMerge,
+      v2,
     } = this.props;
 
     const {showAllItems} = this.state;
@@ -92,12 +94,13 @@ class List extends React.Component<Props, State> {
         <Header>
           <SimilarSpectrum />
         </Header>
-        <Toolbar onMerge={onMerge} />
+        <Toolbar v2={v2} onMerge={onMerge} />
         <div className="similar-list">
           {itemsWithFiltered.map(item => (
             <Item
               key={item.issue.id}
               orgId={orgId}
+              v2={v2}
               groupId={groupId}
               project={project}
               {...item}

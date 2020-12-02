@@ -2,22 +2,27 @@ import React from 'react';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
-import AsyncView from 'app/views/asyncView';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import {PageContent} from 'app/styles/organization';
-import routeTitleGen from 'app/utils/routeTitle';
-import {IconSettings} from 'app/icons';
-import * as Layout from 'app/components/layouts/thirds';
+import Feature from 'app/components/acl/feature';
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import IdBadge from 'app/components/idBadge';
-import TextOverflow from 'app/components/textOverflow';
 import CreateAlertButton from 'app/components/createAlertButton';
+import IdBadge from 'app/components/idBadge';
+import * as Layout from 'app/components/layouts/thirds';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import TextOverflow from 'app/components/textOverflow';
+import {IconSettings} from 'app/icons';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import {Organization, Project} from 'app/types';
+import routeTitleGen from 'app/utils/routeTitle';
+import AsyncView from 'app/views/asyncView';
 
+import ProjectCharts from './projectCharts';
+import ProjectLatestAlerts from './projectLatestAlerts';
+import ProjectLatestReleases from './projectLatestReleases';
+import ProjectQuickLinks from './projectQuickLinks';
 import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
 
@@ -43,6 +48,11 @@ class ProjectDetail extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
+
+    if (this.state?.project) {
+      return [];
+    }
+
     return [['project', `/projects/${params.orgId}/${params.projectId}/`]];
   }
 
@@ -51,7 +61,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, params} = this.props;
+    const {organization, params, location, router} = this.props;
     const {project} = this.state;
 
     return (
@@ -105,16 +115,36 @@ class ProjectDetail extends AsyncView<Props, State> {
             <Layout.Body>
               <Layout.Main>
                 <ProjectScoreCards />
+                {[0, 1].map(id => (
+                  <ProjectCharts
+                    location={location}
+                    organization={organization}
+                    router={router}
+                    key={`project-charts-${id}`}
+                    index={id}
+                  />
+                ))}
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-
-                <p>
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit. Cumque
-                  doloremque ut perferendis harum, optio temporibus eaque officia, illo
-                  est quia animi eum sunt dolorem in eligendi quod, corrupti dolores
-                  doloribus!
-                </p>
+                <Feature features={['incidents']}>
+                  <ProjectLatestAlerts
+                    organization={organization}
+                    projectSlug={params.projectId}
+                    location={location}
+                  />
+                </Feature>
+                <ProjectLatestReleases
+                  organization={organization}
+                  projectSlug={params.projectId}
+                  projectId={project?.id}
+                  location={location}
+                />
+                <ProjectQuickLinks
+                  organization={organization}
+                  project={project}
+                  location={location}
+                />
               </Layout.Side>
             </Layout.Body>
           </StyledPageContent>

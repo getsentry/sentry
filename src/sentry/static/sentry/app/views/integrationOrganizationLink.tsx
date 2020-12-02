@@ -1,27 +1,28 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router/lib/Router';
+import {components} from 'react-select';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
-import {components} from 'react-select';
 
-import {Organization, IntegrationProvider} from 'app/types';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
-import {
-  trackIntegrationEvent,
-  getIntegrationFeatureGate,
-  SingleIntegrationEvent,
-} from 'app/utils/integrationUtil';
-import {singleLineRenderer} from 'app/utils/marked';
 import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import Field from 'app/views/settings/components/forms/field';
-import NarrowLayout from 'app/components/narrowLayout';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
-import {IconFlag} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NarrowLayout from 'app/components/narrowLayout';
+import {IconFlag} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {Integration, IntegrationProvider, Organization} from 'app/types';
+import {
+  getIntegrationFeatureGate,
+  SingleIntegrationEvent,
+  trackIntegrationEvent,
+} from 'app/utils/integrationUtil';
+import {singleLineRenderer} from 'app/utils/marked';
+import AsyncView from 'app/views/asyncView';
+import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import Field from 'app/views/settings/components/forms/field';
 
 //installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
@@ -134,7 +135,28 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return organization?.access.includes('org:integrations');
   };
 
-  renderAddButton(onClick: React.ComponentProps<typeof Button>['onClick']) {
+  //used with Github to redirect to the the integration detail
+  onInstallWithInstallationId = (data: Integration) => {
+    const {organization} = this.state;
+    const orgId = organization && organization.slug;
+    this.props.router.push(
+      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}`
+    );
+  };
+
+  //non-Github redirects to the extension view where the backend will finish the installation
+  finishInstallation = () => {
+    // add the selected org to the query parameters and then redirect back to configure
+    const {selectedOrgSlug} = this.state;
+    const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
+    this.trackInstallationStart();
+    window.location.assign(
+      `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+    );
+  };
+
+  renderAddButton() {
+    const {installationId} = this.props.params;
     const {organization, provider} = this.state;
     // should never happen but we need this check for TS
     if (!provider || !organization) {
@@ -154,40 +176,41 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
 
     const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
 
+    //Github uses a different installation flow with the installationId as a parameter
+    //We have to wrap our installation button with AddIntegration so we can get the
+    //addIntegrationWithInstallationId callback.
+    //if we don't hve an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationDirectoryFeatures
         organization={organization}
         features={featuresComponents}
       >
         {({disabled}) => (
-          <ButtonWrapper>
-            <Button
-              priority="primary"
-              disabled={!this.hasAccess() || disabled}
-              onClick={onClick}
-            >
-              {t('Install %s', provider.name)}
-            </Button>
-          </ButtonWrapper>
+          <AddIntegration
+            provider={provider}
+            onInstall={this.onInstallWithInstallationId}
+          >
+            {addIntegrationWithInstallationId => (
+              <ButtonWrapper>
+                <Button
+                  priority="primary"
+                  disabled={!this.hasAccess() || disabled}
+                  onClick={() =>
+                    installationId
+                      ? addIntegrationWithInstallationId({
+                          installation_id: installationId,
+                        })
+                      : this.finishInstallation()
+                  }
+                >
+                  {t('Install %s', provider.name)}
+                </Button>
+              </ButtonWrapper>
+            )}
+          </AddIntegration>
         )}
       </IntegrationDirectoryFeatures>
     );
-  }
-
-  renderAddButtonContainer() {
-    // TOOD: Implement for Github
-    if (this.props.params.installationId) {
-      throw new Error('Not implemented yet');
-    }
-    return this.renderAddButton(() => {
-      // add the selected org to the query parameters and then redirect back to configure
-      const {selectedOrgSlug} = this.state;
-      const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
-      this.trackInstallationStart();
-      window.location.assign(
-        `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
-      );
-    });
   }
 
   customOption = orgProps => {
@@ -269,7 +292,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
           </React.Fragment>
         )}
 
-        <div className="form-actions">{this.renderAddButtonContainer()}</div>
+        <div className="form-actions">{this.renderAddButton()}</div>
       </React.Fragment>
     );
   }

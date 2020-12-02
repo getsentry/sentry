@@ -184,7 +184,6 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
-
         self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -202,10 +201,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
+        self.wait_for_event_count(self.project.id, 2)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
+            # This test is flakey in that we sometimes load this page before the event is processed
+            # depend on pytest-retry to reload the page
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )
             self.browser.snapshot("events-v2 - all events query - list")
 
         with self.feature(FEATURE_NAMES):
@@ -287,10 +292,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         event_data = generate_transaction()
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
+        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )
             self.browser.snapshot("events-v2 - transactions query - list")
 
     @patch("django.utils.timezone.now")
@@ -336,6 +345,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             }
         )
         self.store_event(data=event_data, project_id=self.project.id)
+        self.wait_for_event_count(self.project.id, 1)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page
@@ -369,6 +379,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         child_event["transaction"] = "z-child-transaction"
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
+        self.wait_for_event_count(self.project.id, 2)
 
         with self.feature(FEATURE_NAMES):
             # Get the list page

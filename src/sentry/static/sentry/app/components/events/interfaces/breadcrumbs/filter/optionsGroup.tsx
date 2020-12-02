@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
 import {Option} from './types';
 

@@ -1,24 +1,24 @@
 import React, {CSSProperties} from 'react';
-import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named
-import {components, SingleValueProps, OptionProps} from 'react-select';
+import {components, OptionProps, SingleValueProps} from 'react-select';
+import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
-import Input from 'app/views/settings/components/forms/controls/input';
 import SelectControl from 'app/components/forms/selectControl';
-import {SelectValue} from 'app/types';
+import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import Badge from 'app/components/badge';
 import space from 'app/styles/space';
+import {SelectValue} from 'app/types';
 import {
-  ColumnType,
   AggregateParameter,
+  ColumnType,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import {FieldValueKind, FieldValue, FieldValueColumns} from './types';
+import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
 type FieldOptions = Record<string, SelectValue<FieldValue>>;
 
@@ -62,6 +62,7 @@ type Props = {
    */
   inFieldLabels?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
+  disabled?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -281,7 +282,7 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {inFieldLabels} = this.props;
+    const {disabled, inFieldLabels} = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         return (
@@ -294,6 +295,7 @@ class QueryField extends React.Component<Props> {
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
+            disabled={disabled}
           />
         );
       }
@@ -305,6 +307,7 @@ class QueryField extends React.Component<Props> {
           required: descriptor.required,
           value: descriptor.value,
           onUpdate: handler,
+          disabled,
         };
         switch (descriptor.dataType) {
           case 'number':
@@ -356,8 +359,39 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
+  renderTag(kind) {
+    let text, tagType;
+    switch (kind) {
+      case FieldValueKind.FUNCTION:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
+      case FieldValueKind.MEASUREMENT:
+        text = 'measure';
+        tagType = 'info';
+        break;
+      case FieldValueKind.TAG:
+        text = kind;
+        tagType = 'warning';
+        break;
+      case FieldValueKind.FIELD:
+        text = kind;
+        tagType = 'highlight';
+        break;
+      default:
+        text = kind;
+    }
+    return <Tag type={tagType}>{text}</Tag>;
+  }
+
   render() {
-    const {className, takeFocus, filterPrimaryOptions, inFieldLabels} = this.props;
+    const {
+      className,
+      takeFocus,
+      filterPrimaryOptions,
+      inFieldLabels,
+      disabled,
+    } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
     const allFieldOptions = filterPrimaryOptions
@@ -371,6 +405,7 @@ class QueryField extends React.Component<Props> {
       value: field,
       onChange: this.handleFieldChange,
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
+      disabled,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -408,13 +443,13 @@ class QueryField extends React.Component<Props> {
             Option: ({label, data, ...props}: OptionProps<OptionType>) => (
               <components.Option label={label} {...(props as any)}>
                 <span data-test-id="label">{label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderTag(data.value.kind)}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
               <components.SingleValue data={data} {...(props as any)}>
                 <span data-test-id="label">{data.label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderTag(data.value.kind)}
               </components.SingleValue>
             ),
           }}
@@ -510,13 +545,13 @@ class BufferedInput extends React.Component<InputProps, InputState> {
 // Set a min-width to allow shrinkage in grid.
 const StyledInput = styled(Input)`
   /* Match the height of the select boxes */
-  height: 37px;
+  height: 41px;
   min-width: 50px;
 `;
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: 37px;
+  height: 41px;
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};

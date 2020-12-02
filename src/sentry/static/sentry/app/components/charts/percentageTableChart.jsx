@@ -1,15 +1,15 @@
-import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import Count from 'app/components/count';
-import {IconChevron} from 'app/icons';
 import TableChart from 'app/components/charts/tableChart';
+import Count from 'app/components/count';
+import {PanelItem} from 'app/components/panels';
+import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 

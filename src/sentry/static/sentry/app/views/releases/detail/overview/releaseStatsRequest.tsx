@@ -1,35 +1,35 @@
 import React from 'react';
-import pick from 'lodash/pick';
-import omitBy from 'lodash/omitBy';
-import isEqual from 'lodash/isEqual';
-import meanBy from 'lodash/meanBy';
-import mean from 'lodash/mean';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import mean from 'lodash/mean';
+import meanBy from 'lodash/meanBy';
+import omitBy from 'lodash/omitBy';
+import pick from 'lodash/pick';
 
-import {Client} from 'app/api';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
-import {GlobalSelection, CrashFreeTimeBreakdown} from 'app/types';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {percent, defined} from 'app/utils';
-import {Series} from 'app/types/echarts';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {getExactDuration} from 'app/utils/formatters';
 import {fetchTotalCount} from 'app/actionCreators/events';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {t, tct} from 'app/locale';
+import {CrashFreeTimeBreakdown, GlobalSelection, Organization} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {defined, percent} from 'app/utils';
+import {getExactDuration} from 'app/utils/formatters';
 
-import {YAxis} from './chart/releaseChartControls';
-import {getInterval, getReleaseEventView} from './chart/utils';
 import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
+import {sessionTerm} from '../../utils/sessionTerm';
+
+import {EventType, YAxis} from './chart/releaseChartControls';
+import {getInterval, getReleaseEventView} from './chart/utils';
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
     ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
-type ChartData = {
-  [key: string]: Series;
-};
+type ChartData = Record<string, Series>;
 
 type Data = {
   chartData: Series[];
@@ -46,11 +46,12 @@ export type ReleaseStatsRequestRenderProps = Data & {
 type Props = {
   api: Client;
   version: string;
-  orgId: string;
+  organization: Organization;
   projectSlug: string;
   selection: GlobalSelection;
   location: Location;
   yAxis: YAxis;
+  eventType: EventType;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
   hasHealthData: boolean;
   hasDiscover: boolean;
@@ -105,7 +106,8 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       } else if (
         yAxis === YAxis.EVENTS ||
         yAxis === YAxis.FAILED_TRANSACTIONS ||
-        yAxis === YAxis.ALL_TRANSACTIONS
+        yAxis === YAxis.COUNT_DURATION ||
+        yAxis === YAxis.COUNT_LCP
       ) {
         data = await this.fetchEventData();
       } else {
@@ -177,15 +179,31 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   fetchEventData = async () => {
-    const {api, orgId, location, yAxis, selection, version, hasHealthData} = this.props;
+    const {
+      api,
+      organization,
+      location,
+      yAxis,
+      eventType,
+      selection,
+      version,
+      hasHealthData,
+    } = this.props;
     const {crashFreeTimeBreakdown} = this.state.data || {};
-    const eventView = getReleaseEventView(selection, version, yAxis, true);
+    const eventView = getReleaseEventView(
+      selection,
+      version,
+      yAxis,
+      eventType,
+      organization,
+      true
+    );
     const payload = eventView.getEventsAPIPayload(location);
     let userResponse, eventsCountResponse;
 
     // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
     if (crashFreeTimeBreakdown || !hasHealthData) {
-      eventsCountResponse = await fetchTotalCount(api, orgId, payload);
+      eventsCountResponse = await fetchTotalCount(api, organization.slug, payload);
     } else {
       [userResponse, eventsCountResponse] = await Promise.all([
         api.requestPromise(this.statsPath, {
@@ -194,7 +212,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
             type: YAxis.USERS,
           },
         }),
-        fetchTotalCount(api, orgId, payload),
+        fetchTotalCount(api, organization.slug, payload),
       ]);
     }
 
@@ -205,9 +223,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   get statsPath() {
-    const {orgId, projectSlug, version} = this.props;
+    const {organization, projectSlug, version} = this.props;
 
-    return `/projects/${orgId}/${projectSlug}/releases/${version}/stats/`;
+    return `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`;
   }
 
   get baseQueryParams() {
@@ -227,7 +245,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     // here we can configure colors of the chart
     const chartData: ChartData = {
       crashed: {
-        seriesName: t('Crashed'),
+        seriesName: sessionTerm.crashed,
         data: [],
         color: CHART_PALETTE[3][0],
         areaStyle: {
@@ -240,7 +258,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
       },
       abnormal: {
-        seriesName: t('Abnormal'),
+        seriesName: sessionTerm.abnormal,
         data: [],
         color: CHART_PALETTE[3][1],
         areaStyle: {
@@ -253,7 +271,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
       },
       errored: {
-        seriesName: t('Errored'),
+        seriesName: sessionTerm.errored,
         data: [],
         color: CHART_PALETTE[3][2],
         areaStyle: {
@@ -266,7 +284,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         },
       },
       healthy: {
-        seriesName: t('Healthy'),
+        seriesName: sessionTerm.healthy,
         data: [],
         color: CHART_PALETTE[3][3],
         areaStyle: {
@@ -309,12 +327,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   ): Omit<Data, 'crashFreeTimeBreakdown'> {
     const chartData: ChartData = {
       users: {
-        seriesName: t('Crash Free Users'),
+        seriesName: sessionTerm['crash-free-users'],
         data: [],
         color: CHART_PALETTE[1][0],
       },
       sessions: {
-        seriesName: t('Crash Free Sessions'),
+        seriesName: sessionTerm['crash-free-sessions'],
         data: [],
         color: CHART_PALETTE[1][1],
       },

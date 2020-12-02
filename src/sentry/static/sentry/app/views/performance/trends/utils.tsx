@@ -1,30 +1,30 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
-import moment from 'moment';
 import {ASAP} from 'downsample/methods/ASAP';
+import {Location} from 'history';
+import moment from 'moment';
 
-import theme from 'app/utils/theme';
 import {getInterval} from 'app/components/charts/utils';
-import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import Duration from 'app/components/duration';
-import {Sort, Field} from 'app/utils/discover/fields';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import {IconArrow} from 'app/icons';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import EventView from 'app/utils/discover/eventView';
+import {Field, Sort} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
-  TrendFunction,
   ConfidenceLevel,
-  TrendChangeType,
-  TrendView,
-  TrendsTransaction,
   NormalizedTrendsTransaction,
+  TrendChangeType,
+  TrendFunction,
   TrendFunctionField,
+  TrendsTransaction,
+  TrendView,
 } from './types';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
@@ -316,6 +316,14 @@ export const smoothTrend = (data: [number, number][], resolution = 100) => {
   return ASAP(data, resolution);
 };
 
+export const replaceSeriesName = (seriesName: string) => {
+  return ['p50', 'p75'].find(aggregate => seriesName.includes(aggregate));
+};
+
+export const replaceSmoothedSeriesName = (seriesName: string) => {
+  return `Smoothed ${['p50', 'p75'].find(aggregate => seriesName.includes(aggregate))}`;
+};
+
 export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
   let minValue = Number.MAX_SAFE_INTEGER;
   let maxValue = 0;
@@ -326,34 +334,42 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
       smoothedResults: undefined,
     };
   }
-  const currentData = data[0].data;
-  const resultData: SeriesDataUnit[] = [];
 
-  const smoothed = smoothTrend(currentData.map(({name, value}) => [Number(name), value]));
+  const smoothedResults: Series[] = [];
 
-  for (let i = 0; i < smoothed.length; i++) {
-    const point = smoothed[i] as any;
-    const value = point.y;
-    resultData.push({
-      name: point.x,
-      value,
-    });
-    if (!isNaN(value)) {
-      const rounded = Math.round(value);
-      minValue = Math.min(rounded, minValue);
-      maxValue = Math.max(rounded, maxValue);
+  for (const current of data) {
+    const currentData = current.data;
+    const resultData: SeriesDataUnit[] = [];
+
+    const smoothed = smoothTrend(
+      currentData.map(({name, value}) => [Number(name), value])
+    );
+
+    for (let i = 0; i < smoothed.length; i++) {
+      const point = smoothed[i] as any;
+      const value = point.y;
+      resultData.push({
+        name: point.x,
+        value,
+      });
+      if (!isNaN(value)) {
+        const rounded = Math.round(value);
+        minValue = Math.min(rounded, minValue);
+        maxValue = Math.max(rounded, maxValue);
+      }
     }
+    smoothedResults.push({
+      seriesName: seriesName || current.seriesName || 'Current',
+      data: resultData,
+      lineStyle: current.lineStyle,
+      color: current.color,
+    });
   }
 
   return {
     minValue,
     maxValue,
-    smoothedResults: [
-      {
-        seriesName: seriesName || 'Current',
-        data: resultData,
-      },
-    ],
+    smoothedResults,
   };
 }
 

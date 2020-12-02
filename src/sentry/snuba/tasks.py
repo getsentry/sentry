@@ -1,5 +1,10 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
+import sentry_sdk
+from django.utils import timezone
+
 from sentry.api.event_search import get_filter, resolve_field_list
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
@@ -20,6 +25,7 @@ DATASET_CONDITIONS = {
     QueryDatasets.EVENTS: "event.type:error",
     QueryDatasets.TRANSACTIONS: "event.type:transaction",
 }
+SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
 
 def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
@@ -195,3 +201,36 @@ def _delete_from_snuba(dataset, subscription_id):
     )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
+
+
+@instrumented_task(
+    name="sentry.snuba.tasks.subscription_checker", queue="subscriptions",
+)
+def subscription_checker(**kwargs):
+    """
+    Checks for subscriptions stuck in a transition status and attempts to repair them
+    """
+    count = 0
+    with sentry_sdk.start_transaction(
+        op="subscription_checker", name="subscription_checker", sampled=False,
+    ):
+        for subscription in QuerySubscription.objects.filter(
+            status__in=(
+                QuerySubscription.Status.CREATING.value,
+                QuerySubscription.Status.UPDATING.value,
+                QuerySubscription.Status.DELETING.value,
+            ),
+            date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
+        ):
+            with sentry_sdk.start_span(op="repair_subscription") as span:
+                span.set_data("subscription_id", subscription.id)
+                span.set_data("status", subscription.status)
+                count += 1
+                if subscription.status == QuerySubscription.Status.CREATING.value:
+                    create_subscription_in_snuba.delay(query_subscription_id=subscription.id)
+                elif subscription.status == QuerySubscription.Status.UPDATING.value:
+                    update_subscription_in_snuba.delay(query_subscription_id=subscription.id)
+                elif subscription.status == QuerySubscription.Status.DELETING.value:
+                    delete_subscription_from_snuba.delay(query_subscription_id=subscription.id)
+
+    metrics.incr("snuba.subscriptions.repair", amount=count)

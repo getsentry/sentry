@@ -1,16 +1,16 @@
-import flattenDepth from 'lodash/flattenDepth';
 import React from 'react';
-import {FuseOptions, FuseResultWithMatches} from 'fuse.js';
 import {WithRouterProps} from 'react-router';
+import {FuseOptions, FuseResultWithMatches} from 'fuse.js';
+import flattenDepth from 'lodash/flattenDepth';
 
+import {Organization, Project} from 'app/types';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withLatestContext from 'app/utils/withLatestContext';
 import accountSettingsNavigation from 'app/views/settings/account/navigationConfiguration';
 import organizationSettingsNavigation from 'app/views/settings/organization/navigationConfiguration';
 import projectSettingsNavigation from 'app/views/settings/project/navigationConfiguration';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import withLatestContext from 'app/utils/withLatestContext';
 import {NavigationItem} from 'app/views/settings/types';
-import {Organization, Project} from 'app/types';
 
 type Config =
   | typeof accountSettingsNavigation

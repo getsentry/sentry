@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {defined} from 'app/utils';
 import InputField from 'app/components/forms/inputField';
+import {defined} from 'app/utils';
 
 type Props = {
   yesLabel: string;

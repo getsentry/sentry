@@ -1,14 +1,14 @@
-import {
-  AlertRuleThresholdType,
-  UnsavedIncidentRule,
-  Trigger,
-  Dataset,
-  Datasource,
-  EventTypes,
-} from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {
+  AlertRuleThresholdType,
+  Dataset,
+  Datasource,
+  EventTypes,
+  Trigger,
+  UnsavedIncidentRule,
+} from 'app/views/settings/incidentRules/types';
 
 export const DEFAULT_AGGREGATE = 'count()';
 

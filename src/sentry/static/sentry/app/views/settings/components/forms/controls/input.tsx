@@ -1,5 +1,5 @@
-import styled, {StyledComponent} from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import styled, {StyledComponent} from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
 

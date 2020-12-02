@@ -1,25 +1,27 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import {InjectedRouter} from 'react-router/lib/Router';
+import {EChartOption} from 'echarts/lib/echarts';
+import {Query} from 'history';
+import isEqual from 'lodash/isEqual';
+import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import {DateString, OrganizationSummary} from 'app/types';
-import {Series} from 'app/types/echarts';
-import {t} from 'app/locale';
-import {getInterval} from 'app/components/charts/utils';
-import ChartZoom from 'app/components/charts/chartZoom';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
-import LineChart from 'app/components/charts/lineChart';
-import TransitionChart from 'app/components/charts/transitionChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
-import {IconWarning} from 'app/icons';
-import theme from 'app/utils/theme';
-import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
+import LineChart from 'app/components/charts/lineChart';
+import ReleaseSeries from 'app/components/charts/releaseSeries';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {getInterval} from 'app/components/charts/utils';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {DateString, OrganizationSummary} from 'app/types';
+import {Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateMultiPlotType} from 'app/utils/discover/fields';
+import theme from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
 
@@ -30,6 +32,8 @@ type ChartProps = {
   zoomRenderProps: any;
   timeseriesData: Series[];
   showLegend?: boolean;
+  legendOptions?: EChartOption.Legend;
+  chartOptions?: EChartOption;
   currentSeriesName?: string;
   releaseSeries?: Series | null;
   previousTimeseriesData?: Series | null;
@@ -71,6 +75,8 @@ class Chart extends React.Component<ChartProps, State> {
     yAxis: PropTypes.string,
     colors: PropTypes.array,
     disableableSeries: PropTypes.array,
+    legendOptions: PropTypes.object,
+    chartOptions: PropTypes.object,
   };
 
   state: State = {
@@ -102,7 +108,10 @@ class Chart extends React.Component<ChartProps, State> {
     return true;
   }
 
-  getChartComponent() {
+  getChartComponent():
+    | React.ComponentType<BarChart['props']>
+    | React.ComponentType<AreaChart['props']>
+    | React.ComponentType<LineChart['props']> {
     const {showDaily, timeseriesData, yAxis} = this.props;
     if (showDaily) {
       return BarChart;
@@ -148,6 +157,8 @@ class Chart extends React.Component<ChartProps, State> {
       timeseriesData,
       previousTimeseriesData,
       showLegend,
+      legendOptions,
+      chartOptions: chartOptionsProp,
       currentSeriesName,
       previousSeriesName,
       seriesNameTransformer,
@@ -176,6 +187,7 @@ class Chart extends React.Component<ChartProps, State> {
       },
       data,
       selected: seriesSelection,
+      ...(legendOptions ?? {}),
     };
 
     const chartOptions = {
@@ -200,6 +212,7 @@ class Chart extends React.Component<ChartProps, State> {
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
+      ...(chartOptionsProp ?? {}),
     };
 
     const Component = this.getChartComponent();
@@ -273,6 +286,10 @@ type Props = {
    */
   disableReleases?: boolean;
   /**
+   * A list of release names to visually emphasize. Can only be used when `disableReleases` is false.
+   */
+  emphasizeReleases?: string[];
+  /**
    * Fetch n top events as dictated by the field and orderby props.
    */
   topEvents?: number;
@@ -297,6 +314,12 @@ type Props = {
    * Override the default color palette.
    */
   colors?: string[];
+  /**
+   * Markup for optional chart header
+   */
+  chartHeader?: React.ReactNode;
+  releaseQueryExtra?: Query;
+  preserveReleaseQueryParams?: boolean;
 } & Pick<
   ChartProps,
   | 'currentSeriesName'
@@ -304,6 +327,8 @@ type Props = {
   | 'seriesNameTransformer'
   | 'showLegend'
   | 'disableableSeries'
+  | 'legendOptions'
+  | 'chartOptions'
 >;
 
 type ChartDataProps = {
@@ -333,6 +358,7 @@ class EventsChart extends React.Component<Props> {
     yAxis: PropTypes.string,
     disablePrevious: PropTypes.bool,
     disableReleases: PropTypes.bool,
+    emphasizeReleases: PropTypes.array,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
     seriesNameTransformer: PropTypes.func,
@@ -342,7 +368,12 @@ class EventsChart extends React.Component<Props> {
     orderby: PropTypes.string,
     confirmedQuery: PropTypes.bool,
     colors: PropTypes.array,
+    preserveReleaseQueryParams: PropTypes.bool,
+    releaseQueryExtras: PropTypes.object,
     disableableSeries: PropTypes.array,
+    chartHeader: PropTypes.object,
+    legendOptions: PropTypes.object,
+    chartOptions: PropTypes.object,
   };
 
   render() {
@@ -360,6 +391,7 @@ class EventsChart extends React.Component<Props> {
       yAxis,
       disablePrevious,
       disableReleases,
+      emphasizeReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
       seriesNameTransformer,
@@ -370,6 +402,11 @@ class EventsChart extends React.Component<Props> {
       orderby,
       confirmedQuery,
       colors,
+      chartHeader,
+      legendOptions,
+      chartOptions,
+      preserveReleaseQueryParams,
+      releaseQueryExtra,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -403,6 +440,9 @@ class EventsChart extends React.Component<Props> {
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />
+
+          {React.isValidElement(chartHeader) && chartHeader}
+
           <Chart
             {...zoomRenderProps}
             loading={loading}
@@ -419,6 +459,8 @@ class EventsChart extends React.Component<Props> {
             yAxis={yAxis}
             showDaily={showDaily}
             colors={colors}
+            legendOptions={legendOptions}
+            chartOptions={chartOptions}
           />
         </TransitionChart>
       );
@@ -434,6 +476,9 @@ class EventsChart extends React.Component<Props> {
           end={end}
           projects={projects}
           environments={environments}
+          emphasizeReleases={emphasizeReleases}
+          preserveQueryParams={preserveReleaseQueryParams}
+          queryExtra={releaseQueryExtra}
         >
           {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
         </ReleaseSeries>

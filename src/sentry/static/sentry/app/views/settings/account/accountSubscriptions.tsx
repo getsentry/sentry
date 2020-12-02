@@ -1,19 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 import groupBy from 'lodash/groupBy';
+import moment from 'moment';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import DateTime from 'app/components/dateTime';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Switch from 'app/components/switch';
+import {IconToggle} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import AsyncView from 'app/views/asyncView';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import Switch from 'app/components/switch';
-import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import {IconToggle} from 'app/icons';
 
 const ENDPOINT = '/users/me/subscriptions/';
 

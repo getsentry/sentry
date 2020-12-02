@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 import * as queryString from 'query-string';
 
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {

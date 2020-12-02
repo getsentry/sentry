@@ -1,23 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import {IconNot} from 'app/icons';
+import ActionLink from 'app/components/actions/actionLink';
+import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
+import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
+import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
+import MenuItem from 'app/components/menuItem';
+import Tooltip from 'app/components/tooltip';
+import {IconMute, IconNot} from 'app/icons';
+import {t, tn} from 'app/locale';
+import space from 'app/styles/space';
 import {
   ResolutionStatus,
   ResolutionStatusDetails,
   UpdateResolutionStatus,
 } from 'app/types';
-import {t, tn} from 'app/locale';
-import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
-import Duration from 'app/components/duration';
-import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
-import ActionLink from 'app/components/actions/actionLink';
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 
 enum ModalStates {
   COUNT,
@@ -36,6 +36,7 @@ const IGNORE_WINDOWS: [number, string][] = [
 const defaultProps = {
   isIgnored: false,
   confirmLabel: t('Ignore'),
+  hasInbox: false,
 };
 
 type Props = {
@@ -43,6 +44,7 @@ type Props = {
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
+  hasInbox?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -87,10 +89,16 @@ export default class IgnoreActions extends React.Component<Props, State> {
       shouldConfirm,
       confirmMessage,
       confirmLabel,
+      hasInbox,
     } = this.props;
 
     const linkClassName = classNames('btn btn-default btn-sm', {
       active: isIgnored,
+    });
+
+    const submenuClassName = classNames('dropdown-submenu', {
+      flex: hasInbox,
+      'expand-left': hasInbox,
     });
 
     const actionLinkProps = {
@@ -145,25 +153,30 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowChoices={IGNORE_WINDOWS}
         />
         <div className="btn-group">
-          <StyledActionLink
-            {...actionLinkProps}
-            title={t('Ignore')}
-            className={linkClassName}
-            onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-          >
-            <StyledIconNot size="xs" />
-            {t('Ignore')}
-          </StyledActionLink>
+          {!hasInbox && (
+            <StyledActionLink
+              {...actionLinkProps}
+              title={t('Ignore')}
+              className={linkClassName}
+              onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+            >
+              <StyledIconNot size="xs" />
+              {t('Ignore')}
+            </StyledActionLink>
+          )}
 
           <StyledDropdownLink
-            caret
+            caret={!hasInbox}
             className={linkClassName}
+            customTitle={hasInbox ? <IconMute size="xs" color="gray300" /> : undefined}
             title=""
             alwaysRenderMenu
             disabled={disabled}
+            anchorRight={hasInbox}
+            hasInbox
           >
             <MenuItem header>Ignore</MenuItem>
-            <li className="dropdown-submenu">
+            <li className={submenuClassName}>
               <DropdownLink
                 title={t('For\u2026')}
                 caret={false}
@@ -188,7 +201,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 </MenuItem>
               </DropdownLink>
             </li>
-            <li className="dropdown-submenu">
+            <li className={submenuClassName}>
               <DropdownLink
                 title={t('Until this occurs again\u2026')}
                 caret={false}
@@ -196,7 +209,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 alwaysRenderMenu
               >
                 {IGNORE_COUNTS.map(count => (
-                  <li className="dropdown-submenu" key={count}>
+                  <li className={submenuClassName} key={count}>
                     <DropdownLink
                       title={
                         count === 1
@@ -241,7 +254,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 </MenuItem>
               </DropdownLink>
             </li>
-            <li className="dropdown-submenu">
+            <li className={submenuClassName}>
               <DropdownLink
                 title={t('Until this affects an additional\u2026')}
                 caret={false}
@@ -249,7 +262,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
                 alwaysRenderMenu
               >
                 {IGNORE_COUNTS.map(count => (
-                  <li className="dropdown-submenu" key={count}>
+                  <li className={submenuClassName} key={count}>
                     <DropdownLink
                       title={tn('one user\u2026', '%s users\u2026', count)}
                       caret={false}
@@ -318,6 +331,8 @@ const StyledActionLink = styled(ActionLink)`
   transition: none;
 `;
 
-const StyledDropdownLink = styled(DropdownLink)`
+const StyledDropdownLink = styled(DropdownLink)<{hasInbox: boolean}>`
+  ${p => (!p.hasInbox ? 'display: flex' : '')};
+  ${p => (!p.hasInbox ? 'align-items: center' : '')};
   transition: none;
 `;

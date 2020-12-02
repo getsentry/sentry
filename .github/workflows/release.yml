@@ -13,6 +13,9 @@ on:
         description: Do not actually cut the release
         required: false
         default: false
+      force:
+        description: Force a release even when there are release-blockers (optional)
+        required: false
   schedule:
     # We want the release to be at 9-10am Pacific Time
     # We also want it to be 1 hour before the on-prem release
@@ -22,35 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     name: 'Release a new version'
     steps:
-      - id: killswitch
-        name: Check release blockers
-        if: ${{ !github.event.inputs.force }}
-        run: |
-          if curl -s "https://api.github.com/repos/$GITHUB_REPOSITORY/issues?state=open&labels=release-blocker" | grep -Pzvo '\[[\s\n\r]*\]'; then
-            echo "Open release-blocking issues found, cancelling release...";
-            curl -sf -X POST -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/${{ github.run_id }}/cancel;
-          fi
-      - id: set-version
-        name: Determine version
-        run: |
-          if [[ -n '${{ github.event.inputs.version }}' ]]; then
-            echo 'RELEASE_VERSION=${{ github.event.inputs.version }}' >> $GITHUB_ENV;
-          else
-            DATE_PART=$(date +'%y.%-m')
-            declare -i PATCH_VERSION=0
-            while curl -sf -o /dev/null "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/tags/$DATE_PART.$PATCH_VERSION"; do
-              PATCH_VERSION+=1
-            done
-            echo "RELEASE_VERSION=${DATE_PART}.${PATCH_VERSION}" >> $GITHUB_ENV;
-          fi
+      - name: Prepare release
+        uses: getsentry/action-prepare-release@main
+        with:
+          version: ${{ github.event.inputs.version }}
+          force: ${{ github.event.inputs.force }}
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_SENTRY_BOT_PAT }}
-      - id: set-git-user
-        name: Set git user to getsentry-bot
-        run: |
-          git config user.name getsentry-bot
-          git config user.email bot@getsentry.com
+          fetch-depth: 20
       - uses: getsentry/craft@master
         name: Craft Prepare
         if: ${{ !github.event.inputs.skip_prepare }}
@@ -58,7 +41,6 @@ jobs:
           action: prepare
           version: ${{ env.RELEASE_VERSION }}
         env:
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
           ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       # Wait until the builds start. Craft should do this automatically
       # but it is broken now.

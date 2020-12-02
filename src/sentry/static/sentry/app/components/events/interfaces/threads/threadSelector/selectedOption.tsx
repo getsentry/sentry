@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import TextOverflow from 'app/components/textOverflow';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {tct, t} from 'app/locale';
 
 type Props = {
   id: number;

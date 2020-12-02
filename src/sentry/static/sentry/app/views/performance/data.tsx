@@ -1,10 +1,15 @@
 import {Location} from 'history';
 
 import {t} from 'app/locale';
-import {NewQuery, LightWeightOrganization, SelectValue} from 'app/types';
+import {LightWeightOrganization, NewQuery, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+
+import {
+  getVitalDetailTableStatusFunction,
+  vitalNameFromLocation,
+} from './vitalDetail/utils';
 
 export const DEFAULT_STATS_PERIOD = '24h';
 
@@ -129,6 +134,55 @@ export function generatePerformanceEventView(
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
+  conditions.setTagValues('event.type', ['transaction']);
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.query = [];
+  }
+  savedQuery.query = stringifyQueryObject(conditions);
+
+  return EventView.fromNewQueryWithLocation(savedQuery, location);
+}
+
+export function generatePerformanceVitalDetailView(
+  _organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const vitalName = vitalNameFromLocation(location);
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Vitals Performance Details'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [
+      'transaction',
+      'project',
+      'count_unique(user)',
+      'count()',
+      `p50(${vitalName})`,
+      `p75(${vitalName})`,
+      `p95(${vitalName})`,
+      getVitalDetailTableStatusFunction(vitalName),
+    ],
+    version: 2,
+  };
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort) || `-count`;
+
+  const searchQuery = decodeScalar(query.query) || '';
+  const conditions = tokenizeSearch(searchQuery);
+
+  conditions.setTagValues('has', [vitalName]);
   conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search

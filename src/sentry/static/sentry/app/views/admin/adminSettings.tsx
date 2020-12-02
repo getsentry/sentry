@@ -1,9 +1,9 @@
 import React from 'react';
 import isUndefined from 'lodash/isUndefined';
 
-import AsyncView from 'app/views/asyncView';
-import {t} from 'app/locale';
 import {ApiForm} from 'app/components/forms';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
 
 import {getOption, getOptionField} from './options';
 
@@ -66,6 +66,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
           apiMethod="PUT"
           apiEndpoint={this.endpoint}
           initialData={initialData}
+          omitDisabled
           requireChanges
         >
           <h4>General</h4>

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
 import TransactionsList from 'app/components/discover/transactionsList';
@@ -18,7 +18,7 @@ describe('TransactionsList', function () {
   let eventView;
   let options;
   let handleDropdownChange;
-  let generateFirstLink;
+  let generateLink;
 
   beforeEach(function () {
     api = new Client();
@@ -54,14 +54,16 @@ describe('TransactionsList', function () {
         wrapper.setProps({selected});
       }
     };
-    generateFirstLink = (org, row, query) => ({
-      pathname: `/${org.slug}`,
-      query: {
-        ...query,
-        transaction: row.transaction,
-        count: row.count,
-      },
-    });
+    generateLink = {
+      transaction: (org, row, query) => ({
+        pathname: `/${org.slug}`,
+        query: {
+          ...query,
+          transaction: row.transaction,
+          count: row.count,
+        },
+      }),
+    };
 
     MockApiClient.addMockResponse(
       {
@@ -121,7 +123,6 @@ describe('TransactionsList', function () {
         location={location}
         organization={organization}
         eventView={eventView}
-        dropdownTitle={t('Title')}
         selected={options[0]}
         options={options}
         handleDropdownChange={handleDropdownChange}
@@ -155,7 +156,6 @@ describe('TransactionsList', function () {
         location={location}
         organization={organization}
         trendView={eventView}
-        dropdownTitle={t('Title')}
         selected={options[2]}
         options={options}
         handleDropdownChange={handleDropdownChange}
@@ -183,7 +183,6 @@ describe('TransactionsList', function () {
         location={location}
         organization={organization}
         eventView={eventView}
-        dropdownTitle={t('Title')}
         selected={options[0]}
         options={options}
         handleDropdownChange={handleDropdownChange}
@@ -206,7 +205,6 @@ describe('TransactionsList', function () {
         location={location}
         organization={organization}
         eventView={eventView}
-        dropdownTitle={t('Title')}
         selected={options[0]}
         options={options}
         handleDropdownChange={handleDropdownChange}
@@ -230,7 +228,6 @@ describe('TransactionsList', function () {
         location={location}
         organization={organization}
         eventView={eventView}
-        dropdownTitle={t('Title')}
         selected={options[0]}
         options={options}
         handleDropdownChange={handleDropdownChange}
@@ -257,18 +254,17 @@ describe('TransactionsList', function () {
     expect(wrapper.find('GridCellNumber').last().text()).toEqual('100');
   });
 
-  it('generates link for the first cell', async function () {
+  it('generates link for the transaction cell', async function () {
     wrapper = mountWithTheme(
       <TransactionsList
         api={api}
         location={location}
         organization={organization}
         eventView={eventView}
-        dropdownTitle={t('Title')}
         selected={options[0]}
         options={options}
         handleDropdownChange={handleDropdownChange}
-        generateFirstLink={generateFirstLink}
+        generateLink={generateLink}
       />
     );
 

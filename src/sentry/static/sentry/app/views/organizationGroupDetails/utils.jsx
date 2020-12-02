@@ -1,25 +1,19 @@
 import React from 'react';
 
-import {t, tct} from 'app/locale';
 import {Client} from 'app/api';
+import {t, tct} from 'app/locale';
 
 /**
  * Fetches group data and mark as seen
  *
  * @param {String} orgId organization slug
- * @param {String} projectId project slug
  * @param {String} groupId groupId
  * @param {String} eventId eventId or "latest" or "oldest"
+ * @param {String[]} envNames
+ * @param {String|undefined} projectId project slug required for eventId that is not latest or oldest
  * @returns {Promise<Object>}
  */
-export async function fetchGroupEventAndMarkSeen(
-  api,
-  orgId,
-  projectId,
-  groupId,
-  eventId,
-  envNames
-) {
+export async function fetchGroupEvent(api, orgId, groupId, eventId, envNames, projectId) {
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
@@ -30,19 +24,18 @@ export async function fetchGroupEventAndMarkSeen(
     query.environment = envNames;
   }
 
-  try {
-    const data = await api.requestPromise(url, {query});
-    api.bulkUpdate({
-      orgId,
-      projectId,
-      itemIds: [groupId],
-      failSilently: true,
-      data: {hasSeen: true},
-    });
-    return data;
-  } catch (err) {
-    throw err;
-  }
+  const data = await api.requestPromise(url, {query});
+  return data;
+}
+
+export function markEventSeen(api, orgId, projectId, groupId) {
+  api.bulkUpdate({
+    orgId,
+    projectId,
+    itemIds: [groupId],
+    failSilently: true,
+    data: {hasSeen: true},
+  });
 }
 
 export function fetchGroupUserReports(groupId, query) {

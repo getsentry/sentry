@@ -1,11 +1,11 @@
+import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
-import React from 'react';
 
-import {t} from 'app/locale';
-import {ResolutionStatusDetails} from 'app/types';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {t} from 'app/locale';
+import {ResolutionStatusDetails} from 'app/types';
 import InputField from 'app/views/settings/components/forms/inputField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 

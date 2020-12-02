@@ -1,15 +1,15 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import Hovercard from 'app/components/hovercard';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {OnboardingTaskKey, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import {Organization, OnboardingTaskKey} from 'app/types';
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 
 type Props = {
   api: Client;

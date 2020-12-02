@@ -1,17 +1,13 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
-from rest_framework import serializers
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
 from rest_framework.response import Response
-
-
-class DashboardSerializer(serializers.Serializer):
-    title = serializers.CharField(required=True)
 
 
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
@@ -47,19 +43,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                                           dashboards belongs to.
         :param string title: the title of the dashboard.
         """
-        serializer = DashboardSerializer(data=request.data)
+        serializer = DashboardSerializer(
+            data=request.data, context={"organization_id": organization.id, "request": request}
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        result = serializer.validated_data
-
         try:
             with transaction.atomic():
-                dashboard = Dashboard.objects.create(
-                    organization_id=organization.id, title=result["title"], created_by=request.user
-                )
+                dashboard = serializer.save()
+                return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            return Response("This dashboard already exists", status=409)
-
-        return Response(serialize(dashboard, request.user), status=201)
+            return Response("Dashboard title already taken", status=409)

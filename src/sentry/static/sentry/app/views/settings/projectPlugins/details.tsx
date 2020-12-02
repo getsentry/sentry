@@ -8,16 +8,16 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {disablePlugin, enablePlugin} from 'app/actionCreators/plugins';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import PluginConfig from 'app/components/pluginConfig';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withPlugins from 'app/utils/withPlugins';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Plugin, Organization, Project} from 'app/types';
+import {Organization, Plugin, Project} from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import withPlugins from 'app/utils/withPlugins';
+import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type Props = {
   organization: Organization;

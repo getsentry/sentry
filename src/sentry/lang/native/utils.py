@@ -24,6 +24,7 @@ NATIVE_IMAGE_TYPES = (
     "elf",  # Linux
     "macho",  # macOS, iOS
     "pe",  # Windows
+    "wasm",  # WASM
 )
 
 # Default disables storing crash reports.
@@ -40,8 +41,6 @@ def is_native_image(image):
     return (
         bool(image)
         and image.get("type") in NATIVE_IMAGE_TYPES
-        and image.get("image_addr") is not None
-        and image.get("image_size") is not None
         and (image.get("debug_id") or image.get("id") or image.get("uuid")) is not None
     )
 

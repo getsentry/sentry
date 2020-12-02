@@ -282,6 +282,7 @@ KNOWN_DIF_FORMATS = {
     "application/x-elf-binary": "elf",
     "application/x-dosexec": "pe",
     "application/x-ms-pdb": "pdb",
+    "application/wasm": "wasm",
     "text/x-proguard+plain": "proguard",
     "application/x-sentry-bundle+zip": "sourcebundle",
 }

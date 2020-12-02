@@ -1,7 +1,7 @@
 import round from 'lodash/round';
 
-import {stringifyQueryObject, QueryResults} from 'app/utils/tokenizeSearch';
 import {Release, ReleaseStatus} from 'app/types';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -32,11 +32,6 @@ export const displayCrashFreePercent = (
 
   return `${rounded}\u0025`;
 };
-
-export const convertAdoptionToProgress = (
-  percent: number,
-  numberOfProgressUnits = 10
-): number => Math.ceil((percent * numberOfProgressUnits) / 100);
 
 export const getReleaseNewIssuesUrl = (
   orgSlug: string,

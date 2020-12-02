@@ -1,27 +1,27 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import {DATA_SOURCE_LABELS} from 'app/views/alerts/utils';
-import {Environment, Organization} from 'app/types';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Environment, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {getDisplayName} from 'app/utils/environment';
-import {t, tct} from 'app/locale';
-import FormField from 'app/views/settings/components/forms/formField';
-import SearchBar from 'app/views/events/searchBar';
-import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import space from 'app/styles/space';
 import theme from 'app/utils/theme';
-import Tooltip from 'app/components/tooltip';
-import Feature from 'app/components/acl/feature';
+import {DATA_SOURCE_LABELS} from 'app/views/alerts/utils';
+import SearchBar from 'app/views/events/searchBar';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
+import FormField from 'app/views/settings/components/forms/formField';
+import SelectField from 'app/views/settings/components/forms/selectField';
 
-import {TimeWindow, IncidentRule, Dataset} from './types';
-import MetricField from './metricField';
 import {DATASET_EVENT_TYPE_FILTERS, DEFAULT_AGGREGATE} from './constants';
+import MetricField from './metricField';
+import {Dataset, IncidentRule, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),

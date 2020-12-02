@@ -1,19 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import GroupingStore from 'app/stores/groupingStore';
-import SpreadLayout from 'app/components/spreadLayout';
-import FlowLayout from 'app/components/flowLayout';
-import Confirm from 'app/components/confirm';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import FlowLayout from 'app/components/flowLayout';
+import SpreadLayout from 'app/components/spreadLayout';
 import Toolbar from 'app/components/toolbar';
 import ToolbarHeader from 'app/components/toolbarHeader';
-import {callIfFunction} from 'app/utils/callIfFunction';
+import {t} from 'app/locale';
+import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   onMerge: () => void;
+  v2: boolean;
 };
 
 const inititalState = {
@@ -42,7 +43,7 @@ class SimilarToolbar extends React.Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
   render() {
-    const {onMerge} = this.props;
+    const {onMerge, v2} = this.props;
     const {mergeCount} = this.state;
 
     return (
@@ -69,12 +70,21 @@ class SimilarToolbar extends React.Component<Props, State> {
             <StyledToolbarHeader className="event-count-header">
               {t('Events')}
             </StyledToolbarHeader>
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Exception')}
-            </StyledToolbarHeader>
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Message')}
-            </StyledToolbarHeader>
+
+            {v2 ? (
+              <StyledToolbarHeader className="event-similar-header">
+                {t('Score')}
+              </StyledToolbarHeader>
+            ) : (
+              <React.Fragment>
+                <StyledToolbarHeader className="event-similar-header">
+                  {t('Exception')}
+                </StyledToolbarHeader>
+                <StyledToolbarHeader className="event-similar-header">
+                  {t('Message')}
+                </StyledToolbarHeader>
+              </React.Fragment>
+            )}
           </Columns>
         </SpreadLayout>
       </Toolbar>

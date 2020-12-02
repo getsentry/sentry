@@ -1,10 +1,10 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import * as Sentry from '@sentry/react';
+import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
-import UserAvatar from 'app/components/avatar/userAvatar';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
+import UserAvatar from 'app/components/avatar/userAvatar';
+import SentryTypes from 'app/sentryTypes';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import {Actor} from 'app/types';
@@ -21,6 +21,7 @@ type Props = DefaultProps & {
   gravatar?: boolean;
   className?: string;
   onClick?: () => void;
+  suggested?: boolean;
 };
 
 class ActorAvatar extends React.Component<Props> {
@@ -31,6 +32,7 @@ class ActorAvatar extends React.Component<Props> {
     title: PropTypes.string,
     gravatar: PropTypes.bool,
     hasTooltip: PropTypes.bool,
+    suggested: PropTypes.bool,
   };
 
   static defaultProps: DefaultProps = {

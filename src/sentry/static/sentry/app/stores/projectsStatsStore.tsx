@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
 
-import {Project} from 'app/types';
 import ProjectActions from 'app/actions/projectActions';
+import {Project} from 'app/types';
 
 type ProjectsStatsStoreInterface = {
   itemsBySlug: Record<string, Project>;

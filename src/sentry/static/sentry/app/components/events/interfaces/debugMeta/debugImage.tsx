@@ -1,19 +1,19 @@
-import isNil from 'lodash/isNil';
 import React from 'react';
 import styled from '@emotion/styled';
+import isNil from 'lodash/isNil';
 
-import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import DebugFileFeature from 'app/components/debugFileFeature';
+import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import {PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'app/icons';
 import {t} from 'app/locale';
-import {IconSearch, IconCircle, IconCheckmark, IconFlag} from 'app/icons';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 
-import {getFileName, combineStatus} from './utils';
+import {combineStatus, getFileName} from './utils';
 
 type Status = ReturnType<typeof combineStatus>;
 
@@ -176,9 +176,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
 
       <ImageInfoGroup>
-        <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
-        <AddressDivider />
-        <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+        {startAddress && endAddress ? (
+          <React.Fragment>
+            <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+            <AddressDivider />
+            <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+          </React.Fragment>
+        ) : null}
       </ImageInfoGroup>
 
       <ImageInfoGroup fullWidth>

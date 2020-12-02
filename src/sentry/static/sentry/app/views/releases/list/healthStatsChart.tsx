@@ -2,13 +2,13 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 
-import {Series} from 'app/types/echarts';
-import {t} from 'app/locale';
 import MiniBarChart from 'app/components/charts/miniBarChart';
+import {t} from 'app/locale';
+import {Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
-import {StatsSubject} from './healthStatsSubject';
 import {StatsPeriod} from './healthStatsPeriod';
+import {DisplayOption} from './utils';
 
 type DefaultProps = {
   height: number;
@@ -16,7 +16,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   period: StatsPeriod;
-  subject: StatsSubject;
+  activeDisplay: DisplayOption;
   data: {
     [statsPeriod: string]: [number, number][];
   };
@@ -36,8 +36,8 @@ class HealthStatsChart extends React.Component<Props> {
   }
 
   getChartLabel() {
-    const {subject} = this.props;
-    if (subject === 'users') {
+    const {activeDisplay} = this.props;
+    if (activeDisplay === DisplayOption.CRASH_FREE_USERS) {
       return t('Users');
     }
 

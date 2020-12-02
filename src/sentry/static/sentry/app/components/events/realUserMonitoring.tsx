@@ -1,19 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Event} from 'app/types';
-import {IconSize} from 'app/utils/theme';
-import {t} from 'app/locale';
 import {SectionHeading} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
-import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
 import {IconFire, IconWarning} from 'app/icons';
-import {
-  WEB_VITAL_DETAILS,
-  LONG_WEB_VITAL_NAMES,
-} from 'app/views/performance/transactionVitals/constants';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Event} from 'app/types';
 import {formattedValue} from 'app/utils/measurements/index';
+import {IconSize} from 'app/utils/theme';
+import {
+  LONG_WEB_VITAL_NAMES,
+  WEB_VITAL_DETAILS,
+} from 'app/views/performance/transactionVitals/constants';
 
 type Props = {
   event: Event;

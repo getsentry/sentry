@@ -1,15 +1,16 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 
 const defaultprops = {
   maxVisibleItems: 4,
-  fadeHeight: 46,
+  fadeHeight: 41,
 };
+
 const WRAPPER_DEFAULT_HEIGHT = defaultprops.fadeHeight * defaultprops.maxVisibleItems;
 
 type Props = {
@@ -23,7 +24,7 @@ type State = {
 
 // TODO(matej): refactor to reusable component
 
-class clippedHealthRows extends React.Component<Props, State> {
+class ClippedHealthRows extends React.Component<Props, State> {
   static defaultProps = defaultprops;
   state: State = {
     isCollapsed: true,
@@ -171,4 +172,4 @@ const LargerDevicesShowMoreButton = styled(Button)`
   }
 `;
 
-export default clippedHealthRows;
+export default ClippedHealthRows;
