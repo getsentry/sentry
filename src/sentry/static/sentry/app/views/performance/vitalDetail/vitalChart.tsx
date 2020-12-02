@@ -23,6 +23,7 @@ import {OrganizationSummary} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
@@ -158,7 +159,8 @@ class VitalChart extends React.Component<Props> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value: number, seriesName: string) =>
+          tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : 'p75()'),
       },
       yAxis: {
         min: 0,
