@@ -8,6 +8,7 @@ import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
@@ -15,6 +16,7 @@ import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeList} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
+import {HeaderTitleLegend} from 'app/views/performance/styles';
 
 import {
   getSessionTermDescription,
@@ -34,6 +36,8 @@ type Props = {
   platform: PlatformKey;
   shouldRecalculateVisibleSeries: boolean;
   onVisibleSeriesRecalculated: () => void;
+  title: string;
+  help: string | null;
 };
 
 class HealthChart extends React.Component<Props> {
@@ -192,13 +196,13 @@ class HealthChart extends React.Component<Props> {
   }
 
   render() {
-    const {utc, timeseriesData, zoomRenderProps, location} = this.props;
+    const {utc, timeseriesData, zoomRenderProps, location, title, help} = this.props;
 
     const Chart = this.getChart();
 
     const legend = {
-      right: 22,
-      top: 10,
+      right: 10,
+      top: 0,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
@@ -231,27 +235,34 @@ class HealthChart extends React.Component<Props> {
     };
 
     return (
-      <Chart
-        legend={legend}
-        utc={utc}
-        {...zoomRenderProps}
-        series={timeseriesData}
-        isGroupedByDate
-        seriesOptions={{
-          showSymbol: false,
-        }}
-        grid={{
-          left: '24px',
-          right: '24px',
-          top: '32px',
-          bottom: '12px',
-        }}
-        yAxis={this.configureYAxis()}
-        xAxis={this.configureXAxis()}
-        tooltip={{valueFormatter: this.formatTooltipValue}}
-        onLegendSelectChanged={this.handleLegendSelectChanged}
-        transformSinglePointToBar
-      />
+      <React.Fragment>
+        <HeaderTitleLegend>
+          {title}
+          {help && <QuestionTooltip size="sm" position="top" title={help} />}
+        </HeaderTitleLegend>
+
+        <Chart
+          legend={legend}
+          utc={utc}
+          {...zoomRenderProps}
+          series={timeseriesData}
+          isGroupedByDate
+          seriesOptions={{
+            showSymbol: false,
+          }}
+          grid={{
+            left: '10px',
+            right: '10px',
+            top: '40px',
+            bottom: '0px',
+          }}
+          yAxis={this.configureYAxis()}
+          xAxis={this.configureXAxis()}
+          tooltip={{valueFormatter: this.formatTooltipValue}}
+          onLegendSelectChanged={this.handleLegendSelectChanged}
+          transformSinglePointToBar
+        />
+      </React.Fragment>
     );
   }
 }

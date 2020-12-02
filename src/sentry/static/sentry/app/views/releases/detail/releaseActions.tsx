@@ -6,7 +6,9 @@ import PropTypes from 'prop-types';
 import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
+import CreateAlertButton from 'app/components/createAlertButton';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import MenuItem from 'app/components/menuItem';
@@ -16,13 +18,13 @@ import {IconEllipsis} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Release, ReleaseMeta} from 'app/types';
+import {Organization, Release, ReleaseMeta} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 
 import {isReleaseArchived} from '../utils';
 
 type Props = {
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   release: Release;
   releaseMeta: ReleaseMeta;
@@ -30,7 +32,7 @@ type Props = {
 };
 
 function ReleaseActions({
-  orgSlug,
+  organization,
   projectSlug,
   release,
   releaseMeta,
@@ -39,11 +41,11 @@ function ReleaseActions({
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
-        orgSlug,
+        orgSlug: organization.slug,
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(`/organizations/${orgSlug}/releases/`);
+      browserHistory.push(`/organizations/${organization.slug}/releases/`);
     } catch {
       // do nothing, action creator is already displaying error message
     }
@@ -52,7 +54,7 @@ function ReleaseActions({
   async function handleRestore() {
     try {
       await restoreRelease(new Client(), {
-        orgSlug,
+        orgSlug: organization.slug,
         projectSlug,
         releaseVersion: release.version,
       });
@@ -110,7 +112,8 @@ function ReleaseActions({
   }
 
   return (
-    <Wrapper>
+    <ButtonBar gap={1}>
+      <CreateAlertButton organization={organization} projectSlug={projectSlug} />
       <StyledDropdownLink
         caret={false}
         anchorRight
@@ -158,29 +161,17 @@ function ReleaseActions({
           </Confirm>
         )}
       </StyledDropdownLink>
-    </Wrapper>
+    </ButtonBar>
   );
 }
 
 ReleaseActions.propTypes = {
-  orgSlug: PropTypes.string.isRequired,
+  organization: SentryTypes.Organization.isRequired,
   projectSlug: PropTypes.string.isRequired,
   release: SentryTypes.Release.isRequired,
   releaseMeta: PropTypes.object.isRequired,
   refetchData: PropTypes.func.isRequired,
 };
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: min-content;
-  grid-gap: ${space(0.5)};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: 100%;
-    margin: ${space(1)} 0 ${space(2)} 0;
-  }
-`;
 
 const ActionsButton = styled(Button)`
   width: 40px;
