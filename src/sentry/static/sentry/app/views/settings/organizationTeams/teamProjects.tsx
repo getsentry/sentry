@@ -1,9 +1,10 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -14,21 +15,32 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconFlag, IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import {sortProjects} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ProjectListItem from 'app/views/settings/components/settingsProjectItem';
 
-class TeamProjects extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
+type Props = {
+  api: Client;
+  organization: Organization;
+} & RouteComponentProps<{orgId: string; teamId: string}, {}>;
 
-  state = {
+type State = {
+  error: boolean;
+  loading: boolean;
+  pageLinks: null | string;
+  unlinkedProjects: Project[];
+  linkedProjects: Project[];
+};
+
+type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
+type Item = Parameters<NonNullable<DropdownAutoCompleteProps['onSelect']>>[0];
+
+class TeamProjects extends React.Component<Props, State> {
+  state: State = {
     error: false,
     loading: true,
     pageLinks: null,
@@ -40,7 +52,7 @@ class TeamProjects extends React.Component {
     this.fetchAll();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (
       prevProps.params.orgId !== this.props.params.orgId ||
       prevProps.params.teamId !== this.props.params.teamId
@@ -58,7 +70,7 @@ class TeamProjects extends React.Component {
     this.fetchUnlinkedProjects();
   };
 
-  fetchTeamProjects = () => {
+  fetchTeamProjects() {
     const {
       location,
       params: {orgId, teamId},
@@ -79,15 +91,15 @@ class TeamProjects extends React.Component {
           loading: false,
           error: false,
           linkedProjects,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? null,
         });
       })
       .catch(() => {
         this.setState({loading: false, error: true});
       });
-  };
+  }
 
-  fetchUnlinkedProjects = query => {
+  fetchUnlinkedProjects(query = '') {
     const {
       params: {orgId, teamId},
     } = this.props;
@@ -101,9 +113,9 @@ class TeamProjects extends React.Component {
       .then(unlinkedProjects => {
         this.setState({unlinkedProjects});
       });
-  };
+  }
 
-  handleLinkProject = (project, action) => {
+  handleLinkProject = (project: Project, action: string) => {
     const {orgId, teamId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${project.slug}/teams/${teamId}/`, {
       method: action === 'add' ? 'POST' : 'DELETE',
@@ -122,17 +134,18 @@ class TeamProjects extends React.Component {
     });
   };
 
-  handleProjectSelected = selection => {
+  handleProjectSelected = (selection: Item) => {
     const project = this.state.unlinkedProjects.find(p => p.id === selection.value);
-
-    this.handleLinkProject(project, 'add');
+    if (project) {
+      this.handleLinkProject(project, 'add');
+    }
   };
 
-  handleQueryUpdate = evt => {
+  handleQueryUpdate = (evt: React.ChangeEvent<HTMLInputElement>) => {
     this.fetchUnlinkedProjects(evt.target.value);
   };
 
-  projectPanelContents(projects) {
+  projectPanelContents(projects: Project[]) {
     const {organization} = this.props;
     const access = new Set(organization.access);
     const canWrite = access.has('org:write');
