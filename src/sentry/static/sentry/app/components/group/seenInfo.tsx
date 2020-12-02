@@ -147,10 +147,6 @@ const TooltipWrapper = styled('span')`
     position: relative;
     top: 1px;
   }
-
-  a {
-    display: inline;
-  }
 `;
 
 const TimeSinceWrapper = styled('div')`

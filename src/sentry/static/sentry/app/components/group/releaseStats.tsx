@@ -79,19 +79,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <React.Fragment>
-                <span>
-                  {t('Last seen')}
-                  <TooltipWrapper>
-                    <Tooltip
-                      title={t('When the most recent event in this issue was captured.')}
-                      disableForVisualTest
-                    >
-                      <StyledIconQuest size="xs" color="gray200" />
-                    </Tooltip>
-                  </TooltipWrapper>
-                </span>
-              </React.Fragment>
+              <span>
+                {t('Last seen')}
+                <TooltipWrapper>
+                  <Tooltip
+                    title={t('When the most recent event in this issue was captured.')}
+                    disableForVisualTest
+                  >
+                    <StyledIconQuest size="xs" color="gray200" />
+                  </Tooltip>
+                </TooltipWrapper>
+              </span>
             }
           >
             <SeenInfo
@@ -113,19 +111,17 @@ const GroupReleaseStats = ({
           <SidebarSection
             secondary
             title={
-              <React.Fragment>
-                <span>
-                  {t('First seen')}
-                  <TooltipWrapper>
-                    <Tooltip
-                      title={t('When the first event in this issue was captured.')}
-                      disableForVisualTest
-                    >
-                      <StyledIconQuest size="xs" color="gray200" />
-                    </Tooltip>
-                  </TooltipWrapper>
-                </span>
-              </React.Fragment>
+              <span>
+                {t('First seen')}
+                <TooltipWrapper>
+                  <Tooltip
+                    title={t('When the first event in this issue was captured.')}
+                    disableForVisualTest
+                  >
+                    <StyledIconQuest size="xs" color="gray200" />
+                  </Tooltip>
+                </TooltipWrapper>
+              </span>
             }
           >
             <SeenInfo
@@ -144,11 +140,9 @@ const GroupReleaseStats = ({
             />
           </SidebarSection>
           {!hasRelease ? (
-            <SidebarSection secondary title={<span>{t('Releases not configured')}</span>}>
-              <span>
-                <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
-                {t(' to make issues easier to fix.')}
-              </span>
+            <SidebarSection secondary title={t('Releases not configured')}>
+              <a href={releaseTrackingUrl}>{t('Setup Releases')}</a>{' '}
+              {t(' to make issues easier to fix.')}
             </SidebarSection>
           ) : null}
         </React.Fragment>
