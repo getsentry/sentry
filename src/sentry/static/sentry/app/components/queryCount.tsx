@@ -25,9 +25,9 @@ const QueryCount = ({count, max, hideIfEmpty = true, hideParens = false}: Props)
   }
 
   return (
-    <span className="query-count">
+    <span>
       {!hideParens && <span>(</span>}
-      <span className="query-count-value">{countOrMax}</span>
+      <span>{countOrMax}</span>
       {!hideParens && <span>)</span>}
     </span>
   );
