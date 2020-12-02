@@ -99,7 +99,7 @@ class TeamProjects extends React.Component<Props, State> {
       });
   }
 
-  fetchUnlinkedProjects(query: string = '') {
+  fetchUnlinkedProjects(query = '') {
     const {
       params: {orgId, teamId},
     } = this.props;
