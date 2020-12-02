@@ -24,15 +24,12 @@ EOF
 if [[ -n "$VIRTUAL_ENV" ]]; then
     major=`python -c "import sys; print(sys.version_info[0])"`
     minor=`python -c "import sys; print(sys.version_info[1])"`
-    # If .venv contains Python2 and no SENTRY_PYTHON2 is set, then fail with instructions
-    if [[ "$major" -eq 2 ]]; then
-        [[ -n "$SENTRY_PYTHON2" ]] ||
-            die \
-            "To set up Python 3, run the following: source ./scripts/bootstrap-py3-venv" \
-            "To keep using Python 2, run: source ./scripts/bootstrap-py2-venv"
+    # If .venv contains Python2 or SENTRY_PYTHON2 is set, then fail with instructions
+    if [[ "$major" -eq 2 ]] || [[ ! -z "$SENTRY_PYTHON2" ]]; then
+        echo "Running in DEPRECATED Python 2 mode..."
     else
         # If .venv is less than Python 3.6 fail
-        [[ "$major" != 3 || "$minor" < 6 ]] ||
+        [[ "$minor" -lt 6 ]] &&
             die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
     fi
 else
@@ -41,3 +38,6 @@ else
     fi
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi
+
+# Somehow it does not succeed unless I exit with 0
+exit 0

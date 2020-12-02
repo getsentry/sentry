@@ -8,10 +8,10 @@ version = sys.version_info
 if os.environ.get("SENTRY_PYTHON2") == "1" and version[:2] != (2, 7):
     sys.exit("Error: Sentry [In DEPRECATED Python 2 mode] requires Python 2.7.")
 
-if os.environ.get("SENTRY_PYTHON2") != "1":
-    if version < (3, 6):
+if os.environ.get("SENTRY_PYTHON2") != "1" and version[:2] != (2, 7):
+    if version[:2] < (3, 6):
         sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
-    if version > (3, 6):
+    if version[:2] > (3, 6):
         import logging
 
         logger = logging.getLogger()
