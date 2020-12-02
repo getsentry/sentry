@@ -331,8 +331,8 @@ const StyledActionLink = styled(ActionLink)`
   transition: none;
 `;
 
+// The icon with no text label needs the height reduced for row actions
 const StyledDropdownLink = styled(DropdownLink)<{hasInbox: boolean}>`
-  ${p => (p.hasInbox ? 'display: flex' : '')};
-  ${p => (p.hasInbox ? 'align-items: center' : '')};
+  ${p => (p.hasInbox ? 'line-height: 0' : '')};
   transition: none;
 `;
