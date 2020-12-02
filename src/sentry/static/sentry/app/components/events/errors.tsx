@@ -170,8 +170,8 @@ class EventErrors extends React.Component<Props, State> {
                   error.message = t(
                     'Source code was not found because the distribution did not match'
                   );
-                  error.data['expected-dist'] = dist;
-                  error.data['current-dist'] = t('none');
+                  error.data['expected-distribution'] = dist;
+                  error.data['current-distribution'] = t('none');
                 }
               }
               return <EventErrorItem key={errorIdx} error={error} />;
