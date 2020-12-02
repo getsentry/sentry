@@ -79,23 +79,28 @@ class RuleNodeList extends React.Component<Props> {
       const grouped = enabledNodes.reduce(
         (acc, curr) => {
           if (curr.actionType === 'ticket') {
-            acc['ticket'] ? acc['ticket'].push(curr) : (acc['ticket'] = [curr]);
+            acc.ticket.push(curr);
           } else {
-            acc['notify'].push(curr);
+            acc.notify.push(curr);
           }
           return acc;
         },
         {
           notify: [] as IssueAlertRuleActionTemplate[],
+          ticket: [] as IssueAlertRuleActionTemplate[],
         }
       );
 
-      options = Object.entries(grouped).map(([key, values]) => {
-        let label =
-          key === 'ticket' ? t('Create new\u{2026}') : t('Send notification to\u{2026}');
+      options = Object.entries(grouped)
+        .filter(([_, values]) => values.length)
+        .map(([key, values]) => {
+          const label =
+            key === 'ticket'
+              ? t('Create new\u{2026}')
+              : t('Send notification to\u{2026}');
 
-        return {label, options: createSelectOptions(values)};
-      });
+          return {label, options: createSelectOptions(values)};
+        });
     }
 
     return (
