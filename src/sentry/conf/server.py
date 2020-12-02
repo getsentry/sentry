@@ -10,7 +10,6 @@ import os.path
 import re
 import socket
 import sys
-import six
 import tempfile
 
 import sentry
@@ -1134,7 +1133,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
-CACHE_VERSION = 2 if six.PY3 else 1
+CACHE_VERSION = 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"
