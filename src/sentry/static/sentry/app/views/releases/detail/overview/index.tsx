@@ -305,7 +305,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       version={version}
                       location={location}
                     />
-                    <Feature features={['release-performance-views']}>
+                    <Feature features={['performance-view', 'release-performance-views']}>
                       <TransactionsList
                         location={location}
                         organization={organization}

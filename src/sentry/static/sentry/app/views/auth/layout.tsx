@@ -64,11 +64,13 @@ const AuthSidebar = styled('div')`
   );
 `;
 
-const SentryButton = styled(p => (
-  <Link to="/" {...p}>
-    <IconSentry size="24px" />
-  </Link>
-))`
+const SentryButton = styled(
+  (p: Omit<React.ComponentPropsWithoutRef<typeof Link>, 'to'>) => (
+    <Link to="/" {...p}>
+      <IconSentry size="24px" />
+    </Link>
+  )
+)`
   color: #fff;
 
   &:hover,

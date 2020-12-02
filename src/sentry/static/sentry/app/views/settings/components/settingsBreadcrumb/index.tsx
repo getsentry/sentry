@@ -16,13 +16,23 @@ import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/
 import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';
 
+import {RouteWithName} from './types';
+
 const MENUS = {
   Organization: OrganizationCrumb,
   Project: ProjectCrumb,
   Team: TeamCrumb,
+} as const;
+
+type Props = {
+  className?: string;
+  routes: RouteWithName[];
+  pathMap: Record<string, string>;
+  params: {[param: string]: string | undefined};
+  route: any;
 };
 
-class SettingsBreadcrumb extends React.Component {
+class SettingsBreadcrumb extends React.Component<Props> {
   static propTypes = {
     routes: PropTypes.array,
     // pathMap maps stringifed routes to a breadcrumb title. This property is
@@ -38,7 +48,7 @@ class SettingsBreadcrumb extends React.Component {
     pathMap: {},
   };
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (this.props.routes === prevProps.routes) {
       return;
     }
@@ -63,7 +73,7 @@ class SettingsBreadcrumb extends React.Component {
           const CrumbPicker = hasMenu
             ? Menu
             : () => (
-                <Crumb route={route} isLast={isLast}>
+                <Crumb>
                   <CrumbLink to={recreateRoute(route, {routes, params})}>
                     {pathTitle || route.name}{' '}
                   </CrumbLink>
@@ -86,9 +96,9 @@ class SettingsBreadcrumb extends React.Component {
   }
 }
 
-export default createReactClass({
+export default createReactClass<Omit<Props, 'pathMap'>>({
   displayName: 'ConnectedSettingsBreadcrumb',
-  mixins: [Reflux.connect(SettingsBreadcrumbStore, 'pathMap')],
+  mixins: [Reflux.connect(SettingsBreadcrumbStore, 'pathMap') as any],
   render() {
     return <SettingsBreadcrumb {...this.props} {...this.state} />;
   },
