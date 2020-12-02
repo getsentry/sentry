@@ -37,6 +37,7 @@ import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
 import UserStats from './userStats';
+import {TransactionFilterOptions} from './utils';
 
 type Props = {
   location: Location;
@@ -257,23 +258,23 @@ function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
   return [
     {
       sort: {kind: 'asc', field: 'transaction.duration'},
-      value: 'fastest',
+      value: TransactionFilterOptions.FASTEST,
       label: t('Fastest Transactions'),
     },
     {
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'slow',
+      value: TransactionFilterOptions.SLOW,
       label: t('Slow Transactions (p95)'),
     },
     {
       sort: {kind: 'desc', field: 'transaction.duration'},
-      value: 'outlier',
+      value: TransactionFilterOptions.OUTLIER,
       label: t('Outlier Transactions (p100)'),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
-      value: 'recent',
+      value: TransactionFilterOptions.RECENT,
       label: t('Recent Transactions'),
     },
   ];
@@ -284,7 +285,8 @@ function getTransactionsListSort(
   options: {p95: number}
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
-  const urlParam = decodeScalar(location.query.showTransactions) || 'slow';
+  const urlParam =
+    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }

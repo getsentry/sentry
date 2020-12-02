@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import mimetypes
+
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 
@@ -38,6 +41,13 @@ class EventAttachment(Model):
         unique_together = (("project_id", "event_id", "file"),)
 
     __repr__ = sane_repr("event_id", "name", "file_id")
+
+    @cached_property
+    def mimetype(self):
+        rv = self.file.headers.get("Content-Type")
+        if rv:
+            return rv.split(";")[0].strip()
+        return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
 
     def delete(self, *args, **kwargs):
         rv = super(EventAttachment, self).delete(*args, **kwargs)

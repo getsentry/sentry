@@ -46,7 +46,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     name = serializers.CharField(required=False, allow_blank=True)
-    conditions = serializers.CharField(required=False)
+    conditions = serializers.CharField(required=False, allow_blank=True)
 
     required_for_create = {"fields", "conditions"}
 

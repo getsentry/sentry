@@ -21,6 +21,7 @@ type Props = DefaultProps & {
   gravatar?: boolean;
   className?: string;
   onClick?: () => void;
+  suggested?: boolean;
 };
 
 class ActorAvatar extends React.Component<Props> {
@@ -31,6 +32,7 @@ class ActorAvatar extends React.Component<Props> {
     title: PropTypes.string,
     gravatar: PropTypes.bool,
     hasTooltip: PropTypes.bool,
+    suggested: PropTypes.bool,
   };
 
   static defaultProps: DefaultProps = {
