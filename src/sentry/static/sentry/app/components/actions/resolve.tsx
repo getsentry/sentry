@@ -147,7 +147,6 @@ class ResolveActions extends React.Component<Props, State> {
 
     return (
       <StyledDropdownLink
-        key="resolve-dropdown"
         caret={!hasInbox}
         className={hasInbox ? undefined : buttonClass}
         title={hasInbox ? 'Resolve In...' : ''}
@@ -237,12 +236,7 @@ class ResolveActions extends React.Component<Props, State> {
     };
 
     return (
-      <div
-        style={{
-          display: 'inline-block',
-          width: hasInbox ? '100%' : undefined,
-        }}
-      >
+      <Wrapper hasInbox={hasInbox}>
         <CustomResolutionModal
           show={this.state.modal}
           onSelected={(statusDetails: ResolutionStatusDetails) =>
@@ -274,10 +268,15 @@ class ResolveActions extends React.Component<Props, State> {
             </div>
           )}
         </Tooltip>
-      </div>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('div')<{hasInbox: boolean}>`
+  display: inline-block;
+  width: ${p => (p.hasInbox ? '100%' : 'auto')};
+`;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
   margin-right: ${space(0.5)};

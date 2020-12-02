@@ -90,7 +90,6 @@ class GroupRowActions extends React.Component<Props> {
         </Tooltip>
 
         <StyledDropdownLink
-          key="actions"
           caret={false}
           className="btn btn-sm btn-default action-more"
           customTitle={<IconEllipsis size="xs" />}
