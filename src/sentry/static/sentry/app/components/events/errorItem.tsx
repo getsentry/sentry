@@ -6,7 +6,6 @@ import moment from 'moment';
 
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
-import {EventError} from 'app/sentryTypes';
 
 type Error = {
   type: string;
@@ -36,10 +35,6 @@ type State = {
 };
 
 class EventErrorItem extends React.Component<Props, State> {
-  static propTypes = {
-    error: EventError.isRequired,
-  };
-
   state: State = {
     isOpen: false,
   };
