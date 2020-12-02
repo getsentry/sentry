@@ -67,8 +67,8 @@ class RuleNodeList extends React.Component<Props> {
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
     let enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
-    const createSelectOptions = (nodes: IssueAlertRuleActionTemplate[]) =>
-      nodes.map(node => ({
+    const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
+      actions.map(node => ({
         value: node.id,
         label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
       }));
