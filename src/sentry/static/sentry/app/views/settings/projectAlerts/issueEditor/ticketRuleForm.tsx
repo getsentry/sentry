@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconSettings} from 'app/icons';
@@ -22,14 +23,17 @@ type Props = {
 type State = {
   showModal: boolean;
   formData: any;
+  disabled: boolean;
 };
 
 class TicketRuleForm extends React.Component<Props, State> {
   state = {
     showModal: false,
+    disabled: false,
   };
 
-  openModal = () => {
+  openModal = (event: React.MouseEvent) => {
+    event.preventDefault();
     this.setState({
       showModal: true,
     });
@@ -69,11 +73,29 @@ class TicketRuleForm extends React.Component<Props, State> {
     return formData;
   };
 
-  onFormSubmit = (data: any) => {
+  onFieldChange = (data: any) => {
+    // check if required fields have been filled out
+    console.log({data})
+    // and if so, set disabled state to false
+
+  }
+
+  handleSubmitError = () => {
+    addErrorMessage(t('Fill out required fields.'))
+  }
+
+  onFormSubmit = (data, success, error, e, model) => {
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    
     const formData = this.cleanData(data);
     this.props.onSubmitAction(formData);
-    this.closeModal();
+    this.closeModal( );
   };
+
+  formSubmitSuccess = () => {
+    addSuccessMessage(t('Saved choices.'))
+  }
 
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
@@ -184,7 +206,7 @@ class TicketRuleForm extends React.Component<Props, State> {
         <Button
           size="small"
           icon={<IconSettings size="xs" />}
-          onClick={() => this.openModal()}
+          onClick={() => this.openModal(event)}
         >
           Issue Link Settings
         </Button>
@@ -207,14 +229,14 @@ class TicketRuleForm extends React.Component<Props, State> {
             </BodyText>
             <Form
               onSubmit={this.onFormSubmit}
-              // onSubmitSuccess={this.formSubmitSuccess}
+              onSubmitSuccess={this.formSubmitSuccess}
               initialData={initialData}
-              // onFieldChange={this.onFieldChange}
+              onFieldChange={this.onFieldChange}
               submitLabel={submitLabel}
-              // submitDisabled={this.state.reloading}
+              submitDisabled={this.state.disabled}
               footerClass="modal-footer"
               // onPreSubmit={this.handlePreSubmit}
-              // onSubmitError={this.handleSubmitError}
+              onSubmitError={this.handleSubmitError}
             >
               {formFields
                 .filter(field => field.hasOwnProperty('name'))
