@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 from datetime import timedelta
 
 import sentry_sdk
@@ -16,6 +17,8 @@ from sentry.utils.snuba import (
     resolve_snuba_aliases,
     resolve_column,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # TODO: If we want to support security events here we'll need a way to
@@ -76,7 +79,16 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         return
     if subscription.subscription_id is not None:
         metrics.incr("snuba.subscriptions.create.already_created_in_snuba")
-        return
+        # This mostly shouldn't happen, but it's possible that a subscription can get
+        # into this state. Just attempt to delete the existing subscription and then
+        # create a new one.
+        try:
+            _delete_from_snuba(
+                QueryDatasets(subscription.snuba_query.dataset), subscription.subscription_id
+            )
+        except SnubaError:
+            logger.exception("Failed to delete subscription")
+
     subscription_id = _create_in_snuba(subscription)
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
