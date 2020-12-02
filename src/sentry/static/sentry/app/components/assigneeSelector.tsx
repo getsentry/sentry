@@ -297,41 +297,41 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
 
   getSuggestedAssignees(): SuggestedAssignee[] | null {
     const {suggestedOwners} = this.state;
-    if (suggestedOwners) {
-      return suggestedOwners
-        .map(owner => {
-          // converts a backend suggested owner to a suggested assignee
-          const [ownerType, id] = owner.owner.split(':');
-          if (ownerType === 'user') {
-            const member = this.memberList()?.find(user => user.id === id);
-            if (member) {
-              return {
-                type: 'user',
-                id,
-                name: member.name,
-                suggestedReason: owner.type,
-                assignee: member,
-              };
-            }
-          } else if (ownerType === 'team') {
-            const matchingTeam = this.assignableTeams().find(
-              assignableTeam => assignableTeam.id === owner.owner
-            );
-            if (matchingTeam) {
-              return {
-                type: 'team',
-                id,
-                name: matchingTeam.team.name,
-                suggestedReason: owner.type,
-                assignee: matchingTeam,
-              };
-            }
-          }
-          return null;
-        })
-        .filter((owner): owner is SuggestedAssignee => !!owner);
+    if (!suggestedOwners) {
+      return null;
     }
-    return null;
+    return suggestedOwners
+      .map(owner => {
+        // converts a backend suggested owner to a suggested assignee
+        const [ownerType, id] = owner.owner.split(':');
+        if (ownerType === 'user') {
+          const member = this.memberList()?.find(user => user.id === id);
+          if (member) {
+            return {
+              type: 'user',
+              id,
+              name: member.name,
+              suggestedReason: owner.type,
+              assignee: member,
+            };
+          }
+        } else if (ownerType === 'team') {
+          const matchingTeam = this.assignableTeams().find(
+            assignableTeam => assignableTeam.id === owner.owner
+          );
+          if (matchingTeam) {
+            return {
+              type: 'team',
+              id,
+              name: matchingTeam.team.name,
+              suggestedReason: owner.type,
+              assignee: matchingTeam,
+            };
+          }
+        }
+        return null;
+      })
+      .filter((owner): owner is SuggestedAssignee => !!owner);
   },
 
   render() {

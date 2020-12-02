@@ -796,7 +796,7 @@ export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
 export type SuggestedOwner = {
   type: SuggestedOwnerReason;
   owner: string;
-  dateAdded: string;
+  date_added: string;
 };
 
 type GroupFiltered = {
