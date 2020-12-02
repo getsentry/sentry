@@ -87,7 +87,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         return "registered_keyboard_interrupt"
 
     def create_subscription(self):
-        with self.tasks():
+        with self.tasks(), self.capture_on_commit_callbacks(execute=True):
             snuba_query = create_snuba_query(
                 QueryDatasets.EVENTS,
                 "hello",
@@ -97,9 +97,8 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
                 None,
             )
             sub = create_snuba_subscription(self.project, self.registration_key, snuba_query)
-            sub.subscription_id = self.subscription_id
-            sub.status = 0
-            sub.save()
+        sub.refresh_from_db()
+        sub.update(subscription_id=self.subscription_id, status=0)
         return sub
 
     def test_old(self):
