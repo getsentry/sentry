@@ -51,7 +51,7 @@ describe('withIssueTags HoC', function () {
 
     let tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned).toBeTruthy();
-    expect(tagsProp.assigned.values).toEqual(['me', 'me_or_none']);
+    expect(tagsProp.assigned.values).toEqual(['me']);
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
     TeamStore.loadInitialData([
@@ -63,14 +63,12 @@ describe('withIssueTags HoC', function () {
     tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned.values).toEqual([
       'me',
-      'me_or_none',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',
     ]);
     expect(tagsProp.owner.values).toEqual([
       'me',
-      'me_or_none',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',
