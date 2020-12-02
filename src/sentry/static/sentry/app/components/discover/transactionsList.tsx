@@ -23,6 +23,7 @@ import {generateEventSlug} from 'app/utils/discover/urls';
 import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
@@ -79,7 +80,13 @@ type Props = {
   /**
    * The callback for when the dropdown option changes.
    */
-  handleDropdownChange: any;
+  handleDropdownChange: (k: string) => void;
+  /**
+   * The callback to generate a cell action handler for a column
+   */
+  handleCellAction?: (
+    c: TableColumn<React.ReactText>
+  ) => (a: Actions, v: React.ReactText) => void;
   /**
    * The name of the url parameter that contains the cursor info.
    */
@@ -107,7 +114,13 @@ type Props = {
       query: Query
     ) => LocationDescriptor
   >;
+  /**
+   * The name of the transaction to find a baseline for.
+   */
   baseline?: string;
+  /**
+   * The callback for when a baseline cell is clicked.
+   */
   handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
 };
 
@@ -178,6 +191,7 @@ class TransactionsList extends React.Component<Props> {
       location,
       organization,
       selected,
+      handleCellAction,
       cursorName,
       limit,
       titles,
@@ -214,6 +228,7 @@ class TransactionsList extends React.Component<Props> {
           linkDataTestId={linkDataTestId}
           generateLink={generateLink}
           baselineTransactionName={baselineTransactionName}
+          handleCellAction={handleCellAction}
         />
         <StyledPagination
           pageLinks={pageLinks}
@@ -346,6 +361,9 @@ type TableProps = {
       query: Query
     ) => LocationDescriptor
   >;
+  handleCellAction?: (
+    c: TableColumn<React.ReactText>
+  ) => (a: Actions, v: React.ReactText) => void;
 };
 
 class TransactionsTable extends React.PureComponent<TableProps> {
@@ -410,6 +428,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       baselineTransactionName,
       baselineData,
       handleBaselineClick,
+      handleCellAction,
     } = this.props;
     const tableTitles = this.getTitles();
 
@@ -438,16 +457,25 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       const key = `${rowIndex}:${column.key}:${index}`;
-
-      return (
-        <BodyCellContainer key={key}>
-          {isNumeric ? (
-            <GridCellNumber>{rendered}</GridCellNumber>
-          ) : (
-            <GridCell>{rendered}</GridCell>
-          )}
-        </BodyCellContainer>
+      rendered = isNumeric ? (
+        <GridCellNumber>{rendered}</GridCellNumber>
+      ) : (
+        <GridCell>{rendered}</GridCell>
       );
+
+      if (handleCellAction) {
+        rendered = (
+          <CellAction
+            column={column}
+            dataRow={row}
+            handleCellAction={handleCellAction(column)}
+          >
+            {rendered}
+          </CellAction>
+        );
+      }
+
+      return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
     });
 
     if (baselineTransactionName) {

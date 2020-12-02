@@ -18,8 +18,11 @@ import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import SearchBar from 'app/views/events/searchBar';
+import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -87,6 +90,31 @@ class SummaryContent extends React.Component<Props, State> {
       this.setState({incompatibleAlertNotice: null})
     );
     this.setState({incompatibleAlertNotice});
+  };
+
+  handleCellAction = (column: TableColumn<React.ReactText>) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, location} = this.props;
+
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
+
+      // no need to include transaction as its already in the query params
+      searchConditions.removeTag('transaction');
+
+      updateQuery(searchConditions, action, column.name, value);
+
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: stringifyQueryObject(searchConditions),
+        },
+      });
+    };
   };
 
   handleTransactionsListSortChange = (value: string) => {
@@ -176,6 +204,7 @@ class SummaryContent extends React.Component<Props, State> {
               }}
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
+              handleCellAction={this.handleCellAction}
             />
             <RelatedIssues
               organization={organization}
