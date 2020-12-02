@@ -10,6 +10,7 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
+import {t} from 'app/locale';
 
 import RuleNode from './ruleNode';
 
@@ -90,7 +91,8 @@ class RuleNodeList extends React.Component<Props> {
       );
 
       options = Object.entries(grouped).map(([key, values]) => {
-        let label = key === 'ticket' ? t('Create new...') : t('Send notifcation to...');
+        let label =
+          key === 'ticket' ? t('Create new\u{2026}') : t('Send notification to\u{2026}');
 
         return {label, options: createSelectOptions(values)};
       });
