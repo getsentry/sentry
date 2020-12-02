@@ -3,9 +3,11 @@ import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
@@ -48,28 +50,6 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     });
   }
 
-  createConfig = async configData => {
-    const {organization, project} = this.props;
-    const endpoint = `/organizations/${organization.slug}/integrations/${configData.integrationId}/repo-project-path-configs/`;
-    try {
-      await this.api.requestPromise(endpoint, {
-        method: 'POST',
-        data: {...configData, projectId: project.id},
-      });
-      addSuccessMessage(t('Stack trace link config created.'));
-    } catch (err) {
-      const errors = err?.responseJSON
-        ? Array.isArray(err?.responseJSON)
-          ? err?.responseJSON
-          : Object.values(err?.responseJSON)
-        : [];
-      const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
-      addErrorMessage(t('Unable to save configuration%s', apiErrors));
-    }
-    this.closeModal();
-    this.props.onClose();
-  };
-
   onHandleChange(sourceCodeInput: string) {
     this.setState({
       sourceCodeInput,
@@ -79,23 +59,34 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
     const {organization, filename, project} = this.props;
-    const endpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
+
+    const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
-      const configData = await this.api.requestPromise(endpoint, {
+      const configData = await this.api.requestPromise(parsingEndpoint, {
         method: 'POST',
         data: {
           sourceUrl: sourceCodeInput,
           stackPath: filename,
         },
       });
-      this.createConfig(configData);
+
+      const configEndpoint = `/organizations/${organization.slug}/integrations/${configData.integrationId}/repo-project-path-configs/`;
+      await this.api.requestPromise(configEndpoint, {
+        method: 'POST',
+        data: {...configData, projectId: project.id},
+      });
+
+      addSuccessMessage(t('Stack trace configuration saved.'));
+      this.closeModal();
+      this.props.onClose();
     } catch (err) {
-      const error = err?.responseJSON?.sourceUrl;
-      if (error && error.length > 0) {
-        addErrorMessage(t(`${error[0]}`));
-      } else {
-        addErrorMessage(t('An error occurred'));
-      }
+      const errors = err?.responseJSON
+        ? Array.isArray(err?.responseJSON)
+          ? err?.responseJSON
+          : Object.values(err?.responseJSON)
+        : [];
+      const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+      addErrorMessage(t('Something went wrong%s', apiErrors));
     }
   };
 
@@ -117,13 +108,15 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
           backdrop="static"
           animation={false}
         >
-          <Modal.Header closeButton>{t('Code Mapping Setup')}</Modal.Header>
+          <Modal.Header closeButton>
+            {t('Link Your Stack Trace To Your Source Code')}
+          </Modal.Header>
           <Modal.Body>
             <ModalContainer>
               <div>
                 <h6>{t('Quick Setup')}</h6>
                 {tct(
-                  'Enter in your source code url that corresponsds to stack trace filename [filename]. We will create a code mapping with this information.',
+                  'Enter in your source code url that corresponds to stack trace filename [filename]. We will use this information to automatically set up your stack trace linking configuration.',
                   {
                     filename: <code>{filename}</code>,
                   }
@@ -150,8 +143,13 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
               </SourceCodeInput>
               <div>
                 <h6>{t('Manual Setup')}</h6>
+                <Alert type="warning">
+                  {t(
+                    'Recommended for more complicated configurations such as having multiple repositories for the same Sentry project.'
+                  )}
+                </Alert>
                 {t(
-                  'To set up a code mapping manually, select which of your following integrations you want to set up the mapping for:'
+                  'To configure stack trace linking manually, select which of your following integrations you want to set up the mapping for:'
                 )}
               </div>
               <ManualSetup>
@@ -168,7 +166,14 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
               </ManualSetup>
             </ModalContainer>
           </Modal.Body>
-          <Modal.Footer></Modal.Footer>
+          <Modal.Footer>
+            <Alert type="info" icon={<IconInfo />}>
+              {tct(
+                'Stack trace linking is still in Beta, if you have feedback, email [email:ecosystem-feedback@sentry.io].',
+                {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
+              )}
+            </Alert>
+          </Modal.Footer>
         </Modal>
       </CodeMappingButtonContainer>
     );
