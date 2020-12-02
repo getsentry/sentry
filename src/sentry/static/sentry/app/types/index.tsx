@@ -1750,3 +1750,11 @@ export type InternetProtocol = {
   countryCode: string | null;
   regionCode: string | null;
 };
+
+export type AuthConfig = {
+  canRegister: boolean;
+  serverHostname: string;
+  hasNewsletter: boolean;
+  githubLoginLink: string;
+  vstsLoginLink: string;
+};
