@@ -332,7 +332,7 @@ const StyledActionLink = styled(ActionLink)`
 `;
 
 const StyledDropdownLink = styled(DropdownLink)<{hasInbox: boolean}>`
-  ${p => (!p.hasInbox ? 'display: flex' : '')};
-  ${p => (!p.hasInbox ? 'align-items: center' : '')};
+  ${p => (p.hasInbox ? 'display: flex' : '')};
+  ${p => (p.hasInbox ? 'align-items: center' : '')};
   transition: none;
 `;
