@@ -42,6 +42,7 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   error: boolean;
+  eventError: boolean;
   errorType: Error;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
   event?: Event;
@@ -90,6 +91,7 @@ class GroupDetails extends React.Component<Props, State> {
       loading: true,
       loadingEvent: true,
       error: false,
+      eventError: false,
       errorType: null,
       project: null,
     };
@@ -110,7 +112,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   async getEvent(group?: Group) {
     if (group) {
-      this.setState({loadingEvent: true});
+      this.setState({loadingEvent: true, eventError: false});
     }
 
     const {params, environments, api} = this.props;
@@ -127,27 +129,11 @@ class GroupDetails extends React.Component<Props, State> {
         environments,
         projectId
       );
-      this.setState({
-        event,
-        loading: false,
-        loadingEvent: false,
-        error: false,
-        errorType: null,
-      });
+      this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
       // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
       Sentry.captureException(err);
-      let errorType: Error = null;
-      switch (err?.status) {
-        case 404:
-          errorType = ERROR_TYPES.GROUP_NOT_FOUND;
-          break;
-        case 403:
-          errorType = ERROR_TYPES.MISSING_MEMBERSHIP;
-          break;
-        default:
-      }
-      this.setState({error: true, errorType, loading: false});
+      this.setState({eventError: true, loading: false});
     }
   }
 
@@ -281,10 +267,6 @@ class GroupDetails extends React.Component<Props, State> {
 
     const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
 
-    if (!this.state.error) {
-      return null;
-    }
-
     switch (this.state.errorType) {
       case ERROR_TYPES.GROUP_NOT_FOUND:
         return (
@@ -305,7 +287,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderContent(project: AvatarProject) {
     const {children, environments, organization, routes} = this.props;
-    const {loadingEvent} = this.state;
+    const {loadingEvent, eventError} = this.state;
 
     // all the routes under /organizations/:orgId/issues/:groupId have a defined props
     const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
@@ -328,7 +310,13 @@ class GroupDetails extends React.Component<Props, State> {
     };
 
     if (currentTab === TAB.DETAILS) {
-      childProps = {...childProps, event, loadingEvent};
+      childProps = {
+        ...childProps,
+        event,
+        loadingEvent,
+        eventError,
+        onRetry: () => this.remountComponent(),
+      };
     }
 
     if (currentTab === TAB.TAGS) {
@@ -352,9 +340,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   render() {
     const {organization} = this.props;
-    const {error, group, project, loading} = this.state;
-
-    const isError = error;
+    const {error: isError, group, project, loading} = this.state;
     const isLoading = loading || (!group && !isError);
 
     return (

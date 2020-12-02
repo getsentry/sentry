@@ -2,7 +2,6 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -34,12 +33,12 @@ type Props = RouteComponentProps<
   environments: Environment[];
   event: Event;
   loadingEvent: boolean;
+  eventError: boolean;
+  onRetry: () => void;
   className?: string;
 };
 
 type State = {
-  loading: boolean;
-  error: boolean;
   eventNavLinks: string;
   releasesCompletion: any;
 };
@@ -53,24 +52,38 @@ class GroupEventDetails extends React.Component<Props, State> {
     environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
   };
 
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      loading: true,
-      error: false,
-      eventNavLinks: '',
-      releasesCompletion: null,
-    };
-  }
+  state: State = {
+    eventNavLinks: '',
+    releasesCompletion: null,
+  };
 
   componentDidMount() {
     this.fetchData();
+
+    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
+    metric.measure({
+      name: 'app.page.perf.issue-details',
+      start: 'page-issue-details-start',
+      data: {
+        // start_type is set on 'page-issue-details-start'
+        org_id: parseInt(this.props.organization.id, 10),
+        group: this.props.organization.features.includes('enterprise-perf')
+          ? 'enterprise-perf'
+          : 'control',
+        milestone: 'first-meaningful-paint',
+        is_enterprise: this.props.organization.features
+          .includes('enterprise-orgs')
+          .toString(),
+        is_outlier: this.props.organization.features
+          .includes('enterprise-orgs-outliers')
+          .toString(),
+      },
+    });
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const {environments, params, location} = this.props;
+  componentDidUpdate(prevProps: Props) {
+    const {environments, params, location, organization, project} = this.props;
 
-    const eventHasChanged = prevProps.params.eventId !== params.eventId;
     const environmentsHaveChanged = !isEqual(prevProps.environments, environments);
 
     // If environments are being actively changed and will no longer contain the
@@ -94,30 +107,11 @@ class GroupEventDetails extends React.Component<Props, State> {
       }
     }
 
-    if (eventHasChanged || environmentsHaveChanged) {
+    if (
+      prevProps.organization.slug !== organization.slug ||
+      prevProps.project.slug !== project.slug
+    ) {
       this.fetchData();
-    }
-
-    // First Meaningful Paint for /organizations/:orgId/issues/:groupId/
-    if (prevState.loading && !this.state.loading) {
-      metric.measure({
-        name: 'app.page.perf.issue-details',
-        start: 'page-issue-details-start',
-        data: {
-          // start_type is set on 'page-issue-details-start'
-          org_id: parseInt(this.props.organization.id, 10),
-          group: this.props.organization.features.includes('enterprise-perf')
-            ? 'enterprise-perf'
-            : 'control',
-          milestone: 'first-meaningful-paint',
-          is_enterprise: this.props.organization.features
-            .includes('enterprise-orgs')
-            .toString(),
-          is_outlier: this.props.organization.features
-            .includes('enterprise-orgs-outliers')
-            .toString(),
-        },
-      });
     }
   }
 
@@ -132,39 +126,17 @@ class GroupEventDetails extends React.Component<Props, State> {
     const projSlug = project.slug;
     const projectId = project.id;
 
-    this.setState({
-      loading: true,
-      error: false,
-    });
-
     /**
      * Perform below requests in parallel
      */
     const releasesCompletionPromise = api.requestPromise(
       `/projects/${orgSlug}/${projSlug}/releases/completion/`
     );
-
     fetchSentryAppInstallations(api, orgSlug);
     fetchSentryAppComponents(api, orgSlug, projectId);
 
     const releasesCompletion = await releasesCompletionPromise;
-    this.setState({
-      releasesCompletion,
-    });
-
-    try {
-      this.setState({
-        error: false,
-        loading: false,
-      });
-    } catch (err) {
-      // This is an expected error, capture to Sentry so that it is not considered as an unhandled error
-      Sentry.captureException(err);
-      this.setState({
-        error: true,
-        loading: false,
-      });
-    }
+    this.setState({releasesCompletion});
   };
 
   get showExampleCommit() {
@@ -187,6 +159,8 @@ class GroupEventDetails extends React.Component<Props, State> {
       location,
       event,
       loadingEvent,
+      eventError,
+      onRetry,
     } = this.props;
     const evt = withMeta(event);
 
@@ -208,12 +182,12 @@ class GroupEventDetails extends React.Component<Props, State> {
             {group.status === 'resolved' && (
               <ResolutionBox statusDetails={group.statusDetails} projectId={project.id} />
             )}
-            {this.state.loading || loadingEvent ? (
+            {loadingEvent ? (
               <LoadingIndicator />
-            ) : this.state.error ? (
+            ) : eventError ? (
               <GroupEventDetailsLoadingError
                 environments={environments}
-                onRetry={this.fetchData}
+                onRetry={onRetry}
               />
             ) : (
               <EventEntries
