@@ -10,7 +10,7 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
-import {decodeScalar} from 'app/utils/queryString';
+import {decodeList} from 'app/utils/queryString';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {
@@ -160,7 +160,7 @@ const VitalLink = (props: VitalLinkProps) => {
     orgSlug: organization.slug,
     query: view.generateQueryStringObject(),
     vitalName,
-    projectID: decodeScalar(location.query.project),
+    projectID: decodeList(location.query.project),
   });
 
   return (
