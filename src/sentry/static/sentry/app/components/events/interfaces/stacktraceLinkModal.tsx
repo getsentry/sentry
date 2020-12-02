@@ -99,7 +99,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
       <CodeMappingButtonContainer columnQuantity={2}>
         {t('Enable source code stack trace linking by setting up a code mapping.')}
         <Button onClick={() => this.openModal()} size="xsmall">
-          {t('Setup Code Mapping')}
+          {t('Setup Stack Trace Linking')}
         </Button>
         <Modal
           show={showModal}

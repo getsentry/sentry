@@ -172,7 +172,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <CodeMappingButtonContainer columnQuantity={2}>
         {text}
         <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
-          {t('Configure Code Mapping')}
+          {t('Configure Stack Trace Linking')}
         </Button>
       </CodeMappingButtonContainer>
     );
