@@ -247,10 +247,12 @@ const ProjectContext = createReactClass({
           // TODO(dcramer): add various controls to improve this flow and break it
           // out into a reusable missing access error component
           return (
-            <MissingProjectMembership
-              organization={this.props.organization}
-              projectId={this.state.project.slug}
-            />
+            <ErrorWrapper>
+              <MissingProjectMembership
+                organization={this.props.organization}
+                projectId={this.state.project.slug}
+              />
+            </ErrorWrapper>
           );
         default:
           return <LoadingError onRetry={this.remountComponent} />;
@@ -263,7 +265,7 @@ const ProjectContext = createReactClass({
   render() {
     return (
       <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
-        <ErrorWrapper>{this.renderBody()}</ErrorWrapper>
+        {this.renderBody()}
       </DocumentTitle>
     );
   },
