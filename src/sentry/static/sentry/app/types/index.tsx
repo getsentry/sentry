@@ -378,6 +378,7 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   dateCreated: string;
+  dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
@@ -423,7 +424,7 @@ type SentryEventBase = {
 
   measurements?: Record<string, Measurement>;
 
-  release?: ReleaseData;
+  release?: Release;
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
