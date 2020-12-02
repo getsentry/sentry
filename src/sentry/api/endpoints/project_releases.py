@@ -111,6 +111,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                 result = serializer.validated_data
                 scope.set_tag("version", result["version"])
 
+                new_status = result.get("status")
+
                 # release creation is idempotent to simplify user
                 # experiences
                 try:
@@ -123,6 +125,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 url=result.get("url"),
                                 owner=result.get("owner"),
                                 date_released=result.get("dateReleased"),
+                                status=new_status or ReleaseStatus.OPEN,
                             ),
                             True,
                         )
@@ -137,6 +140,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     was_released = bool(release.date_released)
                 else:
                     release_created.send_robust(release=release, sender=self.__class__)
+
+                if not created and new_status is not None and new_status != release.status:
+                    release.status = new_status
+                    release.save()
 
                 created = release.add_project(project)
 

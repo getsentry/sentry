@@ -120,6 +120,8 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                 kwargs["ref"] = result["ref"]
             if result.get("url"):
                 kwargs["url"] = result["url"]
+            if result.get("status"):
+                kwargs["status"] = result["status"]
 
             if kwargs:
                 release.update(**kwargs)

@@ -12,6 +12,7 @@ from sentry.models import (
     Environment,
     File,
     Release,
+    ReleaseStatus,
     ReleaseCommit,
     ReleaseFile,
     ReleaseProject,
@@ -343,6 +344,34 @@ class UpdateReleaseDetailsTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id == org.id
 
+    def test_release_archiving(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+
+        release.add_project(project)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(url, data={"status": "archived"})
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        assert Release.objects.get(id=release.id).status == ReleaseStatus.ARCHIVED
+
     def test_activity_generation(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -570,9 +599,15 @@ class ReleaseSerializerTest(unittest.TestCase):
         )
 
         assert serializer.is_valid()
-        assert sorted(serializer.fields.keys()) == sorted(
-            ["ref", "url", "dateReleased", "commits", "headCommits", "refs"]
-        )
+        assert set(serializer.fields.keys()) == {
+            "ref",
+            "url",
+            "dateReleased",
+            "commits",
+            "headCommits",
+            "refs",
+            "status",
+        }
 
         result = serializer.validated_data
         assert result["ref"] == self.ref
