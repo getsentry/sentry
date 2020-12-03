@@ -470,7 +470,7 @@ const DividerSpacer = styled('div')`
 `;
 
 /**
- * Checks if a trace contains all of it's spans.
+ * Checks if a trace contains all of its spans.
  *
  * The heuristic used here favors false negatives over false positives.
  * This is because showing a warning that the trace is not showing all
