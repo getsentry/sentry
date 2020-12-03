@@ -253,4 +253,22 @@ describe('groupDetails', function () {
       '/organizations/org-slug/issues/new-id/?foo=bar#hash'
     );
   });
+
+  it('renders issue event error', async function () {
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
+      statusCode: 404,
+    });
+    wrapper = createWrapper();
+
+    await tick();
+    expect(MockComponent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        group,
+        event: undefined,
+        eventError: true,
+      }),
+      {}
+    );
+  });
 });

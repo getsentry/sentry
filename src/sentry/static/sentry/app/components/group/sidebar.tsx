@@ -35,7 +35,7 @@ type Props = {
   organization: Organization;
   project: Project;
   group: Group;
-  event: Event | null;
+  event?: Event;
   environments: Environment[];
   className?: string;
 };
