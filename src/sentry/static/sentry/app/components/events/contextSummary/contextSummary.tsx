@@ -15,6 +15,7 @@ import filterContexts from './filterContexts';
 
 export type Context = {
   keys: string[];
+  // TODO(ts): Refactor this component
   Component: (props: any) => JSX.Element;
   unknownTitle?: string;
 };
