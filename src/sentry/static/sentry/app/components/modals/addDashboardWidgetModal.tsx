@@ -1,29 +1,23 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import omit from 'lodash/omit';
 import set from 'lodash/set';
 
+import {validateWidget} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import {SectionHeading} from 'app/components/charts/styles';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-import {IconAdd, IconDelete} from 'app/icons';
+import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
-import {
-  explodeField,
-  generateFieldAsString,
-  QueryFieldValue,
-} from 'app/utils/discover/fields';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
-import {DashboardListItem, Widget} from 'app/views/dashboardsV2/types';
-import SearchBar from 'app/views/events/searchBar';
-import {QueryField} from 'app/views/eventsV2/table/queryField';
+import {DashboardListItem, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
@@ -37,11 +31,21 @@ type Props = ModalRenderProps & {
   tags: TagCollection;
 };
 
+type ValidationError = {
+  [key: string]: string[] | ValidationError[] | ValidationError;
+};
+
+type FlatValidationError = {
+  [key: string]: string | FlatValidationError[] | FlatValidationError;
+};
+
 type State = {
   title: string;
   displayType: Widget['displayType'];
   interval: Widget['interval'];
   queries: Widget['queries'];
+  errors?: Record<string, any>;
+  loading: boolean;
 };
 
 const DISPLAY_TYPE_CHOICES = [
@@ -50,11 +54,37 @@ const DISPLAY_TYPE_CHOICES = [
   {label: t('Line chart'), value: 'line'},
 ];
 
+const INTERVAL_CHOICES = [
+  {label: t('1 Minute'), value: '1m'},
+  {label: t('5 Minutes'), value: '5m'},
+  {label: t('1 Hour'), value: '1h'},
+  {label: t('1 Day'), value: '1d'},
+];
+
 const newQuery = {
   name: '',
   fields: ['count()'],
   conditions: '',
 };
+
+function mapErrors(
+  data: ValidationError,
+  update: FlatValidationError
+): FlatValidationError {
+  Object.keys(data).forEach((key: string) => {
+    const value = data[key];
+    // Recurse into nested objects.
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      update[key] = value[0];
+    } else if (Array.isArray(value) && typeof value[0] === 'object') {
+      update[key] = (value as ValidationError[]).map(item => mapErrors(item, {}));
+    } else {
+      update[key] = mapErrors(value as ValidationError, {});
+    }
+  });
+
+  return update;
+}
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
   state: State = {
@@ -62,42 +92,37 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     displayType: 'line',
     interval: '5m',
     queries: [{...newQuery}],
+    errors: undefined,
+    loading: false,
   };
 
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {closeModal, onAddWidget} = this.props;
-    onAddWidget(this.state as Widget);
-    addSuccessMessage(t('Added widget.'));
-    closeModal();
+    const {api, closeModal, organization, onAddWidget} = this.props;
+    this.setState({loading: true});
+    try {
+      const widgetData: Widget = omit(this.state, ['errors', 'loading']);
+      await validateWidget(api, organization.slug, widgetData);
+      onAddWidget(widgetData);
+      addSuccessMessage(t('Added widget.'));
+      closeModal();
+    } catch (err) {
+      const errors = mapErrors(err?.responseJSON ?? {}, {});
+      this.setState({errors});
+    } finally {
+      this.setState({loading: false});
+    }
   };
 
-  handleAddField = (queryIndex: number) => (event: React.MouseEvent) => {
+  handleAddQuery = (event: React.MouseEvent) => {
     event.preventDefault();
 
     this.setState(prevState => {
-      const queries = cloneDeep(prevState.queries);
-      queries[queryIndex].fields.push('');
-      return {
-        ...prevState,
-        queries,
-      };
-    });
-  };
+      const newState = cloneDeep(prevState);
+      newState.queries.push(cloneDeep(newQuery));
 
-  handleRemoveField = (queryIndex: number, fieldIndex: number) => (
-    event: React.MouseEvent
-  ) => {
-    event.preventDefault();
-
-    this.setState(prevState => {
-      const queries = cloneDeep(prevState.queries);
-      queries[queryIndex].fields.splice(fieldIndex, fieldIndex + 1);
-      return {
-        ...prevState,
-        queries,
-      };
+      return newState;
     });
   };
 
@@ -109,23 +134,28 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   };
 
-  handleQueryField = (queryIndex: number, fieldIndex: number) => (
-    value: QueryFieldValue
-  ) => {
+  handleQueryChange = (widgetQuery: WidgetQuery, index: number) => {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      set(
-        newState,
-        `queries.${queryIndex}.fields.${fieldIndex}`,
-        generateFieldAsString(value)
-      );
+      set(newState, `queries.${index}`, widgetQuery);
+
+      return newState;
+    });
+  };
+
+  handleQueryRemove = (index: number) => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.splice(index, index + 1);
+
       return newState;
     });
   };
 
   render() {
-    const {Body, Header, closeModal, organization, selection, tags} = this.props;
+    const {Body, Header, api, closeModal, organization, selection, tags} = this.props;
     const state = this.state;
+    const errors = state.errors;
 
     // TODO(mark) Figure out how to get measurement keys here.
     const fieldOptions = generateFieldOptions({
@@ -134,8 +164,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       measurementKeys: [],
     });
 
-    // TODO(mark) Expand query inputs to be more complete.
-    // Currently missing is multiple queries and interval input.
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
@@ -152,6 +180,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   required
                   value={state.title}
                   onChange={this.handleFieldChange('title')}
+                  error={errors?.title}
+                />
+                <SelectField
+                  name="interval"
+                  label={t('Interval')}
+                  help={t(
+                    'The smallest resolution of data to use. May be increased for large time ranges.'
+                  )}
+                  options={INTERVAL_CHOICES.slice()}
+                  value={state.interval}
+                  onChange={this.handleFieldChange('interval')}
+                  error={errors?.interval}
                 />
                 <SelectField
                   deprecatedSelectControl
@@ -161,57 +201,40 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   label={t('Chart Style')}
                   value={state.displayType}
                   onChange={this.handleFieldChange('displayType')}
+                  error={errors?.displayType}
                 />
               </PanelBody>
             </Panel>
             <Panel>
-              <PanelHeader>{t('Query')}</PanelHeader>
-              <PanelBody>
-                <VerticalPanelItem>
-                  <SectionHeading>{t('Conditions')}</SectionHeading>
-                  <SearchBar
+              <PanelHeader>{t('Queries')}</PanelHeader>
+              {state.queries.map((query, i) => {
+                return (
+                  <WidgetQueryForm
+                    key={i}
+                    api={api}
                     organization={organization}
-                    projectIds={selection.projects}
-                    query={state.queries[0].conditions}
-                    fields={[]}
-                    onSearch={this.handleFieldChange('queries.0.conditions')}
-                    onBlur={this.handleFieldChange('queries.0.conditions')}
-                    useFormWrapper={false}
+                    selection={selection}
+                    fieldOptions={fieldOptions}
+                    widgetQuery={query}
+                    canRemove={state.queries.length > 1}
+                    onRemove={() => this.handleQueryRemove(i)}
+                    onChange={(widgetQuery: WidgetQuery) =>
+                      this.handleQueryChange(widgetQuery, i)
+                    }
+                    errors={errors?.queries?.[i]}
                   />
-                </VerticalPanelItem>
-                <VerticalPanelItem>
-                  <SectionHeading>{t('Fields')}</SectionHeading>
-                  {state.queries[0].fields.map((field, i) => (
-                    <QueryFieldWrapper key={`${field}:${i}`}>
-                      <QueryField
-                        fieldValue={explodeField({field})}
-                        fieldOptions={fieldOptions}
-                        onChange={this.handleQueryField(0, i)}
-                      />
-                      {state.queries[0].fields.length > 1 && (
-                        <Button
-                          priority="default"
-                          size="zero"
-                          borderless
-                          onClick={this.handleRemoveField(0, i)}
-                          icon={<IconDelete />}
-                          title={t('Remove this field')}
-                        />
-                      )}
-                    </QueryFieldWrapper>
-                  ))}
-                  <div>
-                    <Button
-                      data-test-id="add-field"
-                      priority="default"
-                      size="small"
-                      onClick={this.handleAddField(0)}
-                      icon={<IconAdd />}
-                      title={t('Add a field')}
-                    />
-                  </div>
-                </VerticalPanelItem>
-              </PanelBody>
+                );
+              })}
+              <AddQueryContainer>
+                <Button
+                  data-test-id="add-query"
+                  priority="default"
+                  type="button"
+                  onClick={this.handleAddQuery}
+                >
+                  {t('Add Query')}
+                </Button>
+              </AddQueryContainer>
             </Panel>
             <FooterButtons>
               <Button
@@ -219,6 +242,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 priority="primary"
                 type="button"
                 onClick={this.handleSubmit}
+                disabled={state.loading}
+                busy={state.loading}
               >
                 {t('Add Widget')}
               </Button>
@@ -235,19 +260,8 @@ const FooterButtons = styled('div')`
   justify-content: flex-end;
 `;
 
-const VerticalPanelItem = styled(PanelItem)`
-  flex-direction: column;
-`;
-
-const QueryFieldWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
+const AddQueryContainer = styled(FooterButtons)`
+  padding: ${space(2)};
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

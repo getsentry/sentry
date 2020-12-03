@@ -8,18 +8,18 @@ import sentry_sdk
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.rules.actions.base import EventAction
-from sentry.utils import metrics, json
 from sentry.models import Integration
+from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.utils import metrics, json
 
 from .client import SlackClient
 from .utils import (
     build_group_attachment,
     build_upgrade_notice_attachment,
     get_channel_id,
-    strip_channel_name,
     get_integration_type,
+    strip_channel_name,
 )
 
 logger = logging.getLogger("sentry.rules")
@@ -123,10 +123,12 @@ class SlackNotifyServiceForm(forms.Form):
         return cleaned_data
 
 
-class SlackNotifyServiceAction(EventAction):
+class SlackNotifyServiceAction(IntegrationEventAction):
     form_cls = SlackNotifyServiceForm
     label = u"Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
     prompt = "Send a Slack notification"
+    provider = "slack"
+    integration_key = "workspace"
 
     def __init__(self, *args, **kwargs):
         super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
@@ -139,18 +141,12 @@ class SlackNotifyServiceAction(EventAction):
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
-    def is_enabled(self):
-        return self.get_integrations().exists()
-
     def after(self, event, state):
-        integration_id = self.get_option("workspace")
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
         try:
-            integration = Integration.objects.get(
-                provider="slack", organizations=self.project.organization, id=integration_id
-            )
+            integration = self.get_integration()
         except Integration.DoesNotExist:
             # Integration removed, rule still active.
             return
@@ -192,34 +188,22 @@ class SlackNotifyServiceAction(EventAction):
                         },
                     )
 
-        key = u"slack:{}:{}".format(integration_id, channel)
+        key = u"slack:{}:{}".format(integration.id, channel)
 
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
 
     def render_label(self):
-        try:
-            integration_name = Integration.objects.get(
-                provider="slack",
-                organizations=self.project.organization,
-                id=self.get_option("workspace"),
-            ).name
-        except Integration.DoesNotExist:
-            integration_name = "[removed]"
-
         tags = self.get_tags_list()
 
         return self.label.format(
-            workspace=integration_name,
+            workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
             tags=u"[{}]".format(", ".join(tags)),
         )
 
     def get_tags_list(self):
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_integrations(self):
-        return Integration.objects.filter(provider="slack", organizations=self.project.organization)
 
     def get_form_instance(self):
         return self.form_cls(

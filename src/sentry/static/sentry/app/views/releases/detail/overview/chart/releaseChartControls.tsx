@@ -68,7 +68,7 @@ const ReleaseChartControls = ({
     ? t('This view is only available with release health data.')
     : undefined;
   const noDiscoverTooltip = !hasDiscover
-    ? t('This view is only available with Discover feature.')
+    ? t('This view is only available with Discover.')
     : undefined;
   const noPerformanceTooltip = !hasPerformance
     ? t('This view is only available with Performance Monitoring.')
@@ -186,7 +186,7 @@ const ReleaseChartControls = ({
           )}
         </Feature>
         <OptionSelector
-          title={t('Y-Axis')}
+          title={t('Display')}
           selected={yAxis}
           options={yAxisOptions}
           onChange={onYAxisChange as (value: string) => void}

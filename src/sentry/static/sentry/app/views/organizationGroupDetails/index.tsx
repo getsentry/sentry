@@ -16,7 +16,7 @@ type Props = {
 } & ReactRouter.RouteComponentProps<{orgId: string; groupId: string}, {}>;
 
 class OrganizationGroupDetails extends React.Component<Props> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Setup in the constructor as render() may be expensive

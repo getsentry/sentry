@@ -12,7 +12,7 @@ from sentry.api.event_search import (
     SearchValue,
     SearchVisitor,
 )
-from sentry.constants import STATUS_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
     parse_user_value,
@@ -50,7 +50,7 @@ class IssueSearchVisitor(SearchVisitor):
             "linked": (SearchKey("linked"), SearchValue(True)),
             "unlinked": (SearchKey("linked"), SearchValue(False)),
         }
-        for status_key, status_value in STATUS_CHOICES.items():
+        for status_key, status_value in STATUS_QUERY_CHOICES.items():
             is_filter_translators[status_key] = (SearchKey("status"), SearchValue(status_value))
         return is_filter_translators
 

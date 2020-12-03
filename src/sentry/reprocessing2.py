@@ -1,3 +1,81 @@
+"""
+Reprocessing allows a user to re-enqueue all events of a group at the start of
+preprocess-event, for example to reattempt symbolication of stacktraces or
+reattempt grouping.
+
+How reprocessing works
+======================
+
+1. In `start_group_reprocessing`, the group is put into REPROCESSING state. In
+   this state it must not be modified or receive events. Much like with group
+   merging, all its hashes are detached, they are moved to a new, empty group.
+
+   The group gets a new activity entry that contains metadata about who
+   triggered reprocessing with how many events. This is purely to serve UI.
+
+   If a user at this point navigates to the group, they will not be able to
+   interact with it at all, but only watch the progress of reprocessing.
+
+2. All events from the group are iterated through and enqueued into
+   preprocess_event. The event payload is taken from a backup that was made on
+   first ingestion in preprocess_event.
+
+3. wait_group_reprocessed in sentry.tasks.reprocessing2 polls a counter in
+   Redis to see if reprocessing is done. When it reaches zero, all associated
+   models like assignee and activity are moved into the new group.
+
+   A group redirect is installed. The old group is deleted, while the new group
+   is unresolved. This effectively unsets the REPROCESSING status.
+
+   A user looking at the progressbar on the old group's URL is supposed to be
+   redirected at this point. The new group can either:
+
+   a. Have events by itself, but also show a success message based on the data in activity.
+   b. Be totally empty but suggest a search for original_issue_id based on data in activity.
+
+   However, there's no special flag for whether that new group has been a
+   result of reprocessing.
+
+Why not mutate the group in-place? (and how reprocessing actually works)
+========================================================================
+
+Snuba is only able to delete entire groups at once. How group deletion works
+internally:
+
+* A new row is inserted into the events table with the same event_id, but a
+  `deleted=1` property. This row by itself would naturally appear as a new
+  event with the same event ID, however Snuba adds `and not deleted` to every query.
+
+* The group ID is added to a Redis set of "temporarily excluded group IDs".
+  This set is now appended to every query: `and group_id not in (<long list of
+  deleted group IDs>)`
+
+* Every n hours, ClickHouse folds rows with duplicate primary keys into one
+  row. Now only the `deleted=1` row of the deleted event remains. This process
+  is basically rewriting the table, and as such itself takes a couple of hours.
+
+  After that the Redis set can be cleared out.
+
+As such, reusing the group ID will not work as the Redis set will prevent
+any events in that group from being searchable. We can also not skip the Redis
+part specifically for reprocessing: When the user chooses to process `x` out of
+`n` events, the other `n - x` events would randomly appear within search
+results until the next table rewrite is done.
+
+One could in theory store individual event IDs in Redis that should be excluded
+from all queries. However, this blows up the size of all queries within a
+project until the next table rewrite is done, and slows down all searches. In
+theory this slowdown can also happen if one chose to delete a lot of groups
+within a project.
+
+There is the additional complication that the `deleted=1` row "wins" over any
+other row one may insert at a later point. So what reprocessing actually does
+instead of group deletion is:
+
+* Insert `deleted=1` for all events that are *not* supposed to be reprocessed.
+* Mark the group as deleted in Redis.
+* All reprocessed events are "just" inserted over the old ones.
+"""
 from __future__ import absolute_import
 
 import hashlib
@@ -11,6 +89,7 @@ from sentry import nodestore, features, eventstore
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry import models
 from sentry.utils import snuba
+from sentry.utils.safe import set_path, get_path
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
@@ -18,7 +97,7 @@ from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 
 logger = logging.getLogger("sentry.reprocessing")
 
-_REDIS_SYNC_TTL = 3600
+_REDIS_SYNC_TTL = 3600 * 24
 
 
 # Note: Event attachments and group reports are migrated in save_event.
@@ -72,7 +151,6 @@ def delete_unprocessed_events(project_id, event_ids):
 
 def reprocess_event(project_id, event_id, start_time):
 
-    from sentry.event_manager import set_tag
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 
@@ -109,7 +187,7 @@ def reprocess_event(project_id, event_id, start_time):
 
     # Step 1: Fix up the event payload for reprocessing and put it in event
     # cache/event_processing_store
-    set_tag(data, "original_group_id", event.group_id)
+    set_path(data, "contexts", "reprocessing", "original_issue_id", value=event.group_id)
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
@@ -177,16 +255,11 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
 
 
 def is_reprocessed_event(data):
-    from sentry.event_manager import get_tag
-
-    return bool(get_tag(data, "original_group_id"))
+    return bool(_get_original_issue_id(data))
 
 
-def _get_original_group_id(data):
-    from sentry.event_manager import get_tag
-
-    # XXX: Have real snuba column
-    return get_tag(data, "original_group_id")
+def _get_original_issue_id(data):
+    return get_path(data, "contexts", "reprocessing", "original_issue_id")
 
 
 def _get_sync_redis_client():
@@ -205,7 +278,7 @@ def mark_event_reprocessed(data):
     if not is_reprocessed_event(data):
         return
 
-    key = _get_sync_counter_key(_get_original_group_id(data))
+    key = _get_sync_counter_key(_get_original_issue_id(data))
     _get_sync_redis_client().decr(key)
 
 
@@ -215,6 +288,13 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
     with transaction.atomic():
         group = models.Group.objects.get(id=group_id)
         original_status = group.status
+        if original_status == models.GroupStatus.REPROCESSING:
+            # This is supposed to be a rather unlikely UI race when two people
+            # click reprocessing in the UI at the same time.
+            #
+            # During reprocessing the button is greyed out.
+            raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
+
         original_short_id = group.short_id
         group.status = models.GroupStatus.REPROCESSING
         # satisfy unique constraint of (project_id, short_id)
@@ -241,20 +321,6 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         for model in GROUP_MODELS_TO_MIGRATE:
             model.objects.filter(group_id=group_id).update(group_id=new_group.id)
 
-    models.GroupRedirect.objects.create(
-        organization_id=new_group.project.organization_id,
-        group_id=new_group.id,
-        previous_group_id=group_id,
-    )
-
-    models.Activity.objects.create(
-        type=models.Activity.REPROCESS,
-        project=new_group.project,
-        ident=six.text_type(group_id),
-        group=new_group,
-        user_id=acting_user_id,
-    )
-
     # Get event counts of issue (for all environments etc). This was copypasted
     # and simplified from groupserializer.
     event_count = snuba.aliased_query(
@@ -267,8 +333,24 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
     if max_events is not None:
         event_count = min(event_count, max_events)
 
-    key = _get_sync_counter_key(group_id)
-    _get_sync_redis_client().setex(key, _REDIS_SYNC_TTL, event_count)
+    # Create activity on *old* group as that will serve the landing page for our
+    # reprocessing status
+    #
+    # Later the activity is migrated to the new group where it is used to serve
+    # the success message.
+    models.Activity.objects.create(
+        type=models.Activity.REPROCESS,
+        project=new_group.project,
+        ident=six.text_type(group_id),
+        group_id=group_id,
+        user_id=acting_user_id,
+        data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},
+    )
+
+    client = _get_sync_redis_client()
+    client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, event_count)
+
+    return new_group.id
 
 
 def is_group_finished(group_id):
@@ -276,5 +358,9 @@ def is_group_finished(group_id):
     Checks whether a group has finished reprocessing.
     """
 
-    pending = int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)))
+    pending = get_num_pending_events(group_id)
     return pending <= 0
+
+
+def get_num_pending_events(group_id):
+    return int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)))

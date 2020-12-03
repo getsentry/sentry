@@ -82,6 +82,9 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
+from .endpoints.organization_dashboard_widget_details import (
+    OrganizationDashboardWidgetDetailsEndpoint,
+)
 from .endpoints.organization_dashboard_details import OrganizationDashboardDetailsEndpoint
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
@@ -239,6 +242,7 @@ from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
+from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.relay_details import RelayDetailsEndpoint
 from .endpoints.relay_healthcheck import RelayHealthCheck
@@ -722,6 +726,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/dashboards/$",
                     OrganizationDashboardsEndpoint.as_view(),
                     name="sentry-api-0-organization-dashboards",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/dashboards/widgets/$",
+                    OrganizationDashboardWidgetDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-dashboard-widget-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/$",
@@ -1603,6 +1612,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stacktrace-link/$",
                     ProjectStacktraceLinkEndpoint.as_view(),
                     name="sentry-api-0-project-stacktrace-link",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",
+                    ProjectRepoPathParsingEndpoint.as_view(),
+                    name="sentry-api-0-project-repo-path-parsing",
                 ),
             ]
         ),

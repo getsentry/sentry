@@ -142,15 +142,6 @@ options_mapper = {
 }
 
 
-# Just reuse the integration app for Single Org / Self-Hosted as
-# it doesn't make much sense to use 2 separate apps for SSO and
-# integration.
-if settings.SENTRY_SINGLE_ORGANIZATION:
-    options_mapper.update(
-        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"}
-    )
-
-
 def bootstrap_options(settings, config=None):
     """
     Quickly bootstrap options that come in from a config file
@@ -283,6 +274,17 @@ def configure_structlog():
 def initialize_app(config, skip_service_validation=False):
     settings = config["settings"]
 
+    # Just reuse the integration app for Single Org / Self-Hosted as
+    # it doesn't make much sense to use 2 separate apps for SSO and
+    # integration.
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        options_mapper.update(
+            {
+                "github-app.client-id": "GITHUB_APP_ID",
+                "github-app.client-secret": "GITHUB_API_SECRET",
+            }
+        )
+
     bootstrap_options(settings, config["options"])
 
     configure_structlog()
@@ -313,7 +315,9 @@ def initialize_app(config, skip_service_validation=False):
     if not hasattr(settings, "CSRF_COOKIE_PATH"):
         settings.CSRF_COOKIE_PATH = getattr(settings, "SESSION_COOKIE_PATH", "/")
 
-    settings.CACHES["default"]["VERSION"] = settings.CACHE_VERSION
+    for key in settings.CACHES:
+        if not hasattr(settings.CACHES[key], "VERSION"):
+            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)

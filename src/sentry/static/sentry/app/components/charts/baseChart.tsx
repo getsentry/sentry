@@ -74,7 +74,7 @@ type Props = {
   /**
    * Must be explicitly `null` to disable yAxis
    */
-  yAxis?: EChartOption.YAxis;
+  yAxis?: EChartOption.YAxis | null;
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
@@ -502,6 +502,9 @@ const ChartContainer = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     line-height: 1.4;
     font-family: ${p => p.theme.text.family};
+    max-width: 250px;
+    white-space: normal;
+    text-align: center;
     :after {
       content: '';
       position: absolute;

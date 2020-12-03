@@ -125,7 +125,7 @@ describe('groupDetails', function () {
     await tick();
 
     expect(MockComponent).toHaveBeenLastCalledWith(
-      {
+      expect.objectContaining({
         environments: [],
         group,
         project: expect.objectContaining({
@@ -133,7 +133,7 @@ describe('groupDetails', function () {
           slug: project.slug,
         }),
         event,
-      },
+      }),
       {}
     );
 
@@ -143,6 +143,10 @@ describe('groupDetails', function () {
   it('renders error when issue is not found', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
+      statusCode: 404,
+    });
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
 
@@ -162,6 +166,10 @@ describe('groupDetails', function () {
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
     issueDetailsMock = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
+      statusCode: 403,
+    });
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
       statusCode: 403,
     });
     wrapper = createWrapper();
@@ -215,7 +223,7 @@ describe('groupDetails', function () {
       })
     );
     expect(MockComponent).toHaveBeenLastCalledWith(
-      {
+      expect.objectContaining({
         environments: ['staging'],
         group,
         project: expect.objectContaining({
@@ -223,7 +231,7 @@ describe('groupDetails', function () {
           slug: project.slug,
         }),
         event,
-      },
+      }),
       {}
     );
   });
@@ -243,6 +251,24 @@ describe('groupDetails', function () {
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/new-id/?foo=bar#hash'
+    );
+  });
+
+  it('renders issue event error', async function () {
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/latest/`,
+      statusCode: 404,
+    });
+    wrapper = createWrapper();
+
+    await tick();
+    expect(MockComponent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        group,
+        event: undefined,
+        eventError: true,
+      }),
+      {}
     );
   });
 });

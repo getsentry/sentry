@@ -11,8 +11,8 @@ type FormProps = {
   onCancel?: () => void;
   onSubmit?: (
     data: object,
-    onSubmitSuccess?: (data: object) => void,
-    onSubmitError?: (error: object) => void
+    onSubmitSuccess: (data: object) => void,
+    onSubmitError: (error: object) => void
   ) => void;
   initialData?: object;
   onSubmitSuccess?: (data: object) => void;

@@ -518,6 +518,7 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.snuba.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
@@ -704,6 +705,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         "schedule": timedelta(minutes=5),
         "options": {"expires": 3600},
+    },
+    "snuba-subscription-checker": {
+        "task": "sentry.snuba.tasks.subscription_checker",
+        "schedule": timedelta(minutes=20),
+        "options": {"expires": 20 * 60},
     },
 }
 

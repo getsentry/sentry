@@ -7,7 +7,7 @@ import six
 from django.db import DataError
 from django.utils import timezone
 
-from sentry.constants import STATUS_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
@@ -33,9 +33,9 @@ def get_user_tag(projects, key, value):
 
 
 def parse_status_value(value):
-    if value in STATUS_CHOICES:
-        return STATUS_CHOICES[value]
-    if value in STATUS_CHOICES.values():
+    if value in STATUS_QUERY_CHOICES:
+        return STATUS_QUERY_CHOICES[value]
+    if value in STATUS_QUERY_CHOICES.values():
         return value
     raise ValueError("Invalid status value")
 
@@ -444,7 +444,7 @@ def parse_query(projects, query, user, environments):
                     results["linked"] = False
                 else:
                     try:
-                        results["status"] = STATUS_CHOICES[value]
+                        results["status"] = STATUS_QUERY_CHOICES[value]
                     except KeyError:
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == "assigned":
