@@ -96,11 +96,11 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         assert resp.data == {
             "integrationId": self.integration.id,
-            "repoId": self.repo.id,
+            "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "",
             "sourceRoot": "src/",
-            "branch": "master",
+            "defaultBranch": "master",
         }
 
     def test_short_path(self):
@@ -110,11 +110,11 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert resp.data == {
             "integrationId": self.integration.id,
-            "repoId": self.repo.id,
+            "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "sentry/",
             "sourceRoot": "",
-            "branch": "main",
+            "defaultBranch": "main",
         }
 
     def test_long_root(self):
@@ -124,9 +124,9 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert resp.status_code == 200, resp.content
         assert resp.data == {
             "integrationId": self.integration.id,
-            "repoId": self.repo.id,
+            "repositoryId": self.repo.id,
             "provider": "github",
             "stackRoot": "stuff/hey/here",
             "sourceRoot": "src",
-            "branch": "master",
+            "defaultBranch": "master",
         }

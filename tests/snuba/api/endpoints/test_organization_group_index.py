@@ -803,7 +803,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is None
 
-            # Test with owner
+            # Test with owners
             GroupOwner.objects.create(
                 group=event.group,
                 project=event.project,
@@ -811,15 +811,28 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
                 user=self.user,
             )
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.project,
+                organization=event.project.organization,
+                type=GroupOwnerType.OWNERSHIP_RULE.value,
+                team=self.team,
+            )
             response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is not None
-            assert response.data[0]["owners"]["owner"] == "user:{}".format(self.user.id)
+            assert len(response.data[0]["owners"]) == 2
+            assert response.data[0]["owners"][0]["owner"] == "user:{}".format(self.user.id)
+            assert response.data[0]["owners"][1]["owner"] == "team:{}".format(self.team.id)
             assert (
-                response.data[0]["owners"]["type"]
+                response.data[0]["owners"][0]["type"]
                 == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+            )
+            assert (
+                response.data[0]["owners"][1]["type"]
+                == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
             )
 
     @patch(

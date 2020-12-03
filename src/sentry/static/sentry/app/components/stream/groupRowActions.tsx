@@ -74,12 +74,12 @@ class GroupRowActions extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <Tooltip title={t('Move to Backlog')}>
+        <Tooltip title={t('Acknowledge')}>
           <ActionLink
             className="btn btn-default btn-sm"
             onAction={() => this.handleUpdate({inbox: false})}
             shouldConfirm={false}
-            title={t('Move to backlog')}
+            title={t('Acknowledge')}
           >
             <IconIssues size="xs" color="gray300" />
           </ActionLink>

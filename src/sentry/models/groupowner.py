@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
 from enum import Enum
 
 from django.conf import settings
@@ -68,13 +69,14 @@ class GroupOwner(Model):
 def get_owner_details(group_list):
     group_ids = [g.id for g in group_list]
     group_owners = GroupOwner.objects.filter(group__in=group_ids)
-    owner_details = {
-        go.group_id: {
-            "type": GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
-            "owner": go.owner().get_actor_id(),
-            "date_added": go.date_added,
-        }
-        for go in group_owners
-    }
+    owner_details = defaultdict(list)
+    for go in group_owners:
+        owner_details[go.group_id].append(
+            {
+                "type": GROUP_OWNER_TYPE[GroupOwnerType(go.type)],
+                "owner": go.owner().get_actor_id(),
+                "date_added": go.date_added,
+            }
+        )
 
     return owner_details
