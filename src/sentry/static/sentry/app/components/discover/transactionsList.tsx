@@ -19,18 +19,25 @@ import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discove
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
+import {generateEventSlug} from 'app/utils/discover/urls';
+import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
+import BaselineQuery, {
+  BaselineQueryResults,
+} from 'app/views/performance/transactionSummary/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
 import {
   TrendChangeType,
   TrendsDataEvents,
   TrendView,
 } from 'app/views/performance/trends/types';
+import {getTransactionComparisonUrl} from 'app/views/performance/utils';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
@@ -73,7 +80,13 @@ type Props = {
   /**
    * The callback for when the dropdown option changes.
    */
-  handleDropdownChange: any;
+  handleDropdownChange: (k: string) => void;
+  /**
+   * The callback to generate a cell action handler for a column
+   */
+  handleCellAction?: (
+    c: TableColumn<React.ReactText>
+  ) => (a: Actions, v: React.ReactText) => void;
   /**
    * The name of the url parameter that contains the cursor info.
    */
@@ -87,10 +100,6 @@ type Props = {
    */
   titles?: string[];
   /**
-   * Alternate data-test-id to use for the optional links in the first column.
-   */
-  linkDataTestId?: string;
-  /**
    * A map of callbacks to generate a link for a column based on the title.
    */
   generateLink?: Record<
@@ -101,6 +110,18 @@ type Props = {
       query: Query
     ) => LocationDescriptor
   >;
+  /**
+   * The name of the transaction to find a baseline for.
+   */
+  baseline?: string;
+  /**
+   * The callback for when a baseline cell is clicked.
+   */
+  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
+  /**
+   * The callback for when Open in Discover is clicked.
+   */
+  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -118,7 +139,14 @@ class TransactionsList extends React.Component<Props> {
   };
 
   renderHeader(): React.ReactNode {
-    const {eventView, organization, selected, options, handleDropdownChange} = this.props;
+    const {
+      eventView,
+      organization,
+      selected,
+      options,
+      handleDropdownChange,
+      handleOpenInDiscoverClick,
+    } = this.props;
 
     return (
       <Header>
@@ -150,6 +178,7 @@ class TransactionsList extends React.Component<Props> {
         {!this.isTrend() && (
           <HeaderButtonContainer>
             <DiscoverButton
+              onClick={handleOpenInDiscoverClick}
               to={eventView
                 .withSorts([selected.sort])
                 .getResultsViewUrlTarget(organization.slug)}
@@ -170,11 +199,12 @@ class TransactionsList extends React.Component<Props> {
       location,
       organization,
       selected,
+      handleCellAction,
       cursorName,
       limit,
       titles,
-      linkDataTestId,
       generateLink,
+      baseline,
     } = this.props;
     const sortedEventView = eventView.withSorts([selected.sort]);
     const columnOrder = sortedEventView.getColumns();
@@ -185,6 +215,51 @@ class TransactionsList extends React.Component<Props> {
       sortedEventView.query = stringifyQueryObject(query);
     }
 
+    const baselineTransactionName = organization.features.includes(
+      'transaction-comparison'
+    )
+      ? baseline ?? null
+      : null;
+
+    let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
+      <React.Fragment>
+        <TransactionsTable
+          eventView={sortedEventView}
+          organization={organization}
+          location={location}
+          isLoading={isLoading}
+          tableData={tableData}
+          baselineData={baselineData ?? null}
+          columnOrder={columnOrder}
+          titles={titles}
+          generateLink={generateLink}
+          baselineTransactionName={baselineTransactionName}
+          handleCellAction={handleCellAction}
+        />
+        <StyledPagination
+          pageLinks={pageLinks}
+          onCursor={this.handleCursor}
+          size="small"
+        />
+      </React.Fragment>
+    );
+
+    if (baselineTransactionName) {
+      const orgTableRenderer = tableRenderer;
+      tableRenderer = ({isLoading, pageLinks, tableData}) => (
+        <BaselineQuery eventView={eventView} orgSlug={organization.slug}>
+          {baselineQueryProps => {
+            return orgTableRenderer({
+              isLoading: isLoading || baselineQueryProps.isLoading,
+              pageLinks,
+              tableData,
+              baselineData: baselineQueryProps.results,
+            });
+          }}
+        </BaselineQuery>
+      );
+    }
+
     return (
       <DiscoverQuery
         location={location}
@@ -193,26 +268,7 @@ class TransactionsList extends React.Component<Props> {
         limit={limit}
         cursor={cursor}
       >
-        {({isLoading, tableData, pageLinks}) => (
-          <React.Fragment>
-            <TransactionsTable
-              eventView={sortedEventView}
-              organization={organization}
-              location={location}
-              isLoading={isLoading}
-              tableData={tableData}
-              columnOrder={columnOrder}
-              titles={titles}
-              linkDataTestId={linkDataTestId}
-              generateLink={generateLink}
-            />
-            <StyledPagination
-              pageLinks={pageLinks}
-              onCursor={this.handleCursor}
-              size="small"
-            />
-          </React.Fragment>
-        )}
+        {tableRenderer}
       </DiscoverQuery>
     );
   }
@@ -224,7 +280,6 @@ class TransactionsList extends React.Component<Props> {
       selected,
       organization,
       cursorName,
-      linkDataTestId,
       generateLink,
     } = this.props;
 
@@ -254,14 +309,15 @@ class TransactionsList extends React.Component<Props> {
               location={location}
               isLoading={isLoading}
               tableData={trendsData}
+              baselineData={null}
               titles={['transaction', 'percentage', 'difference']}
               columnOrder={decodeColumnOrder([
                 {field: 'transaction'},
                 {field: 'trend_percentage()'},
                 {field: 'trend_difference()'},
               ])}
-              linkDataTestId={linkDataTestId}
               generateLink={generateLink}
+              baselineTransactionName={null}
             />
             <StyledPagination
               pageLinks={pageLinks}
@@ -294,10 +350,12 @@ type TableProps = {
   organization: Organization;
   location: Location;
   isLoading: boolean;
-  tableData: TableData | TrendsDataEvents | null | undefined;
+  tableData: TableData | TrendsDataEvents | null;
   columnOrder: TableColumn<React.ReactText>[];
   titles?: string[];
-  linkDataTestId?: string;
+  baselineTransactionName: string | null;
+  baselineData: BaselineQueryResults | null;
+  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
   generateLink?: Record<
     string,
     (
@@ -306,6 +364,9 @@ type TableProps = {
       query: Query
     ) => LocationDescriptor
   >;
+  handleCellAction?: (
+    c: TableColumn<React.ReactText>
+  ) => (a: Actions, v: React.ReactText) => void;
 };
 
 class TransactionsTable extends React.PureComponent<TableProps> {
@@ -315,13 +376,13 @@ class TransactionsTable extends React.PureComponent<TableProps> {
   }
 
   renderHeader() {
-    const {tableData, columnOrder} = this.props;
+    const {tableData, columnOrder, baselineTransactionName} = this.props;
 
     const tableMeta = tableData?.meta;
     const generateSortLink = () => undefined;
     const tableTitles = this.getTitles();
 
-    return tableTitles.map((title, index) => (
+    const headers = tableTitles.map((title, index) => (
       <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
         {({align}) => {
           return (
@@ -338,6 +399,22 @@ class TransactionsTable extends React.PureComponent<TableProps> {
         }}
       </HeaderCell>
     ));
+
+    if (baselineTransactionName) {
+      headers.push(
+        <HeadCellContainer key="baseline">
+          <SortLink
+            align="right"
+            title={t('Compared to Baseline')}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={generateSortLink}
+          />
+        </HeadCellContainer>
+      );
+    }
+
+    return headers;
   }
 
   renderRow(
@@ -346,7 +423,17 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ): React.ReactNode[] {
-    const {organization, location, linkDataTestId, generateLink} = this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      generateLink,
+      baselineTransactionName,
+      baselineData,
+      handleBaselineClick,
+      handleCellAction,
+    } = this.props;
+    const fields = eventView.getFields();
     const tableTitles = this.getTitles();
 
     const resultsRow = columnOrder.map((column, index) => {
@@ -366,7 +453,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
       if (target) {
         rendered = (
-          <Link data-test-id={linkDataTestId ?? 'transactions-list-link'} to={target}>
+          <Link data-test-id={`view-${fields[index]}`} to={target}>
             {rendered}
           </Link>
         );
@@ -374,17 +461,71 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       const key = `${rowIndex}:${column.key}:${index}`;
-
-      return (
-        <BodyCellContainer key={key}>
-          {isNumeric ? (
-            <GridCellNumber>{rendered}</GridCellNumber>
-          ) : (
-            <GridCell>{rendered}</GridCell>
-          )}
-        </BodyCellContainer>
+      rendered = isNumeric ? (
+        <GridCellNumber>{rendered}</GridCellNumber>
+      ) : (
+        <GridCell>{rendered}</GridCell>
       );
+
+      if (handleCellAction) {
+        rendered = (
+          <CellAction
+            column={column}
+            dataRow={row}
+            handleCellAction={handleCellAction(column)}
+          >
+            {rendered}
+          </CellAction>
+        );
+      }
+
+      return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
     });
+
+    if (baselineTransactionName) {
+      if (baselineData) {
+        const currentTransactionDuration: number =
+          Number(row['transaction.duration']) || 0;
+        const duration = baselineData['transaction.duration'];
+
+        const delta = Math.abs(currentTransactionDuration - duration);
+
+        const relativeSpeed =
+          currentTransactionDuration < duration
+            ? t('faster')
+            : currentTransactionDuration > duration
+            ? t('slower')
+            : '';
+
+        const target = getTransactionComparisonUrl({
+          organization,
+          baselineEventSlug: generateEventSlug(baselineData),
+          regressionEventSlug: generateEventSlug(row),
+          transaction: baselineTransactionName,
+          query: location.query,
+        });
+
+        resultsRow.push(
+          <BodyCellContainer
+            data-test-id="baseline-cell"
+            key={`${rowIndex}-baseline`}
+            style={{textAlign: 'right'}}
+          >
+            <GridCell>
+              <Link to={target} onClick={handleBaselineClick}>
+                {`${getDuration(delta / 1000, delta < 1000 ? 0 : 2)} ${relativeSpeed}`}
+              </Link>
+            </GridCell>
+          </BodyCellContainer>
+        );
+      } else {
+        resultsRow.push(
+          <BodyCellContainer data-test-id="baseline-cell" key={`${rowIndex}-baseline`}>
+            {'\u2014'}
+          </BodyCellContainer>
+        );
+      }
+    }
 
     return resultsRow;
   }

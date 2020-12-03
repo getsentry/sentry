@@ -82,7 +82,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
             # View the first event details.
-            self.browser.element('[data-test-id="view-details"]').click()
+            self.browser.element('[data-test-id="view-id"]').click()
             self.page.wait_until_loaded()
             self.browser.snapshot("performance event details")
 
