@@ -114,7 +114,7 @@ function ReleaseActions({
     <ButtonBar gap={1}>
       <StyledDropdownLink
         caret={false}
-        anchorRight
+        anchorRight={window.innerWidth > 992}
         title={<ActionsButton icon={<IconEllipsis />} label={t('Actions')} />}
       >
         {isReleaseArchived(release) ? (
