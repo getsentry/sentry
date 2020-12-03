@@ -47,13 +47,14 @@ def transform_jira_fields_to_form_fields(fields_list):
 def transform_jira_choices_to_strings(fields, data):
     choices = {}
     for key, value in data.items():
+        if key in ["jira_integration", "dynamic_form_fields"] or not value:
+            continue
         if key in fields and fields[key]["type"] == "choice":
             temp_dict = {k: v for (k, v) in fields[key]["choices"]}
-            if type(value) == list:
-                temp_value = [v for v in value]
+            if fields[key].get("multiple") and type(value) == list:
+                choices[key] = [temp_dict[v] for v in value]
             else:
-                temp_value = temp_dict.get(value, value)
-            choices[key] = temp_value
+                choices[key] = temp_dict.get(value)
         else:
             choices[key] = value
     return choices
