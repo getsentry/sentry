@@ -154,7 +154,7 @@ const EventIdLink = styled(Link)`
 const Heading = styled('h4')`
   line-height: 1.3;
   margin: 0;
-  font-size: 16px;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const StyledNavigationButtonGroup = styled(NavigationButtonGroup)`
@@ -173,8 +173,8 @@ const StyledDateTime = styled(DateTime)`
 `;
 
 const JsonLink = styled(ExternalLink)`
-  margin-left: 8px;
-  padding-left: 8px;
+  margin-left: ${space(1)};
+  padding-left: ${space(1)};
   position: relative;
 
   &:before {
