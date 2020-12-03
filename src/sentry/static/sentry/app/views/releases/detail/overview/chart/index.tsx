@@ -59,9 +59,15 @@ class ReleaseChartContainer extends React.Component<Props> {
 
     switch (yAxis) {
       case YAxis.SESSIONS:
-        return {title: t('Session Count'), help: null};
+        return {
+          title: t('Session Count'),
+          help: t('The number of sessions in a given period.'),
+        };
       case YAxis.USERS:
-        return {title: t('User Count'), help: null};
+        return {
+          title: t('User Count'),
+          help: t('The number of users in a given period.'),
+        };
       case YAxis.SESSION_DURATION:
         return {title: t('Session Duration'), help: null};
       case YAxis.CRASH_FREE:

@@ -25,7 +25,7 @@ describe('ReleaseActions', function () {
   it('archives a release', async function () {
     const wrapper = mountWithTheme(
       <ReleaseActions
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
@@ -72,7 +72,7 @@ describe('ReleaseActions', function () {
 
     const wrapper = mountWithTheme(
       <ReleaseActions
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={release.projects[0].slug}
         release={{...release, status: 'archived'}}
         refetchData={refetchDataMock}
