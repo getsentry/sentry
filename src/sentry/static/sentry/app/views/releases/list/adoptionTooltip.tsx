@@ -21,29 +21,30 @@ const AdoptionTooltip = ({
   return (
     <Wrapper>
       <Row>
-        <Title>{t('Last 24h')}:</Title>
-        <Value>
-          <Count value={totalUsers24h ?? 0} />
-        </Value>
-      </Row>
-      <Row>
         <Title>{t('Total Users')}:</Title>
         <Value>
           <Count value={totalUsers ?? 0} />
         </Value>
       </Row>
-      <Divider />
-
       <Row>
         <Title>{t('Last 24h')}:</Title>
         <Value>
-          <Count value={totalSessions24h ?? 0} />
+          <Count value={totalUsers24h ?? 0} />
         </Value>
       </Row>
+
+      <Divider />
+
       <Row>
         <Title>{t('Total Sessions')}:</Title>
         <Value>
           <Count value={totalSessions ?? 0} />
+        </Value>
+      </Row>
+      <Row>
+        <Title>{t('Last 24h')}:</Title>
+        <Value>
+          <Count value={totalSessions24h ?? 0} />
         </Value>
       </Row>
     </Wrapper>
