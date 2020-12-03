@@ -83,7 +83,7 @@ describe('MetricField', function () {
     wrapper.find('FieldHelp button[aria-label="Failure rate"]').simulate('click');
 
     expect(wrapper.find('QueryField SingleValue SingleValue').text()).toEqual(
-      'failure_rate()f(x)'
+      'failure_rate()'
     );
   });
 });

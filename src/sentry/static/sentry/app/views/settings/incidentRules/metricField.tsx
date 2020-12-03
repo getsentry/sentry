@@ -121,6 +121,7 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
             columnWidth={columnWidth}
             gridColumns={numParameters}
             inFieldLabels={inFieldLabels}
+            shouldRenderTag={false}
             disabled={disabled}
           />
         </React.Fragment>
