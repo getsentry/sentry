@@ -123,6 +123,22 @@ class SpanTree extends React.Component<PropType> {
     return <SpanRowMessage>{messages}</SpanRowMessage>;
   }
 
+  generateLimitExceededMessage() {
+    const {trace} = this.props;
+
+    if (hasAllSpans(trace)) {
+      return null;
+    }
+
+    return (
+      <SpanRowMessage>
+        {t(
+          'The next spans are unavailable. You may have exceeded the span limit or need to address missing instrumentation.'
+        )}
+      </SpanRowMessage>
+    );
+  }
+
   isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
     const {filterSpans, operationNameFilters} = this.props;
 
@@ -419,6 +435,8 @@ class SpanTree extends React.Component<PropType> {
       numOfFilteredSpansAbove,
     });
 
+    const limitExceededMessage = this.generateLimitExceededMessage();
+
     return (
       <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
         <MeasurementsManager.Provider>
@@ -426,6 +444,7 @@ class SpanTree extends React.Component<PropType> {
           <TraceViewContainer ref={this.traceViewRef}>
             {spanTree}
             {infoMessage}
+            {limitExceededMessage}
           </TraceViewContainer>
         </MeasurementsManager.Provider>
       </DividerHandlerManager.Provider>
@@ -449,5 +468,40 @@ const SecondaryHeader = styled('div')`
 const DividerSpacer = styled('div')`
   width: 1px;
 `;
+
+/**
+ * Checks if a trace contains all of its spans.
+ *
+ * The heuristic used here favors false negatives over false positives.
+ * This is because showing a warning that the trace is not showing all
+ * spans when it has them all is more misleading than not showing a
+ * warning when it is missing some spans.
+ *
+ * A simple heuristic to determine when there are unrecorded spans
+ *
+ * 1. We assume if there are less than 999 spans, then we have all
+ *    the spans for a transaction. 999 was chosen because most SDKs
+ *    have a default limit of 1000 spans per transaction, but the
+ *    python SDK is 999 for historic reasons.
+ *
+ * 2. We assume that if there are unrecorded spans, they should be
+ *    at least 100ms in duration.
+ *
+ * While not perfect, this simple heuristic is unlikely to report
+ * false positives.
+ */
+function hasAllSpans(trace: ParsedTraceType): boolean {
+  const {traceEndTimestamp, spans} = trace;
+  if (spans.length < 999) {
+    return true;
+  }
+
+  const lastSpan = spans.reduce((latest, span) =>
+    latest.timestamp > span.timestamp ? latest : span
+  );
+  const missingDuration = traceEndTimestamp - lastSpan.timestamp;
+
+  return missingDuration < 0.1;
+}
 
 export default SpanTree;
