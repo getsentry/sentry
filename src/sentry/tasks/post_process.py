@@ -145,6 +145,7 @@ def post_process_group(
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
         from sentry.models import (
+            Commit,
             Project,
             Organization,
             EventDict,
@@ -205,10 +206,24 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            has_workflow_owners = features.has("projects:workflow-owners-ingestion", event.project)
-            if has_workflow_owners:
-                processed_suspect_commits = True
-                process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
+            cache_key = "workflow-owners-ingestion:org-{}-has-commits".format(
+                event.project.organization_id
+            )
+            commit_data = cache.get(cache_key)
+            if commit_data is None:
+                org_has_commits = Commit.objects.filter(
+                    organization_id=event.project.organization_id
+                ).exists()
+                commit_data = {"has_commits": org_has_commits}
+                cache.set(cache_key, commit_data, 3600)
+
+            if commit_data["has_commits"] is True:
+                has_workflow_owners = features.has(
+                    "projects:workflow-owners-ingestion", event.project
+                )
+                if has_workflow_owners:
+                    processed_suspect_commits = True
+                    process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])

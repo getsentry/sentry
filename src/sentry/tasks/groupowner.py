@@ -20,7 +20,7 @@ MIN_COMMIT_SCORE = 2
 OWNER_CACHE_LIFE = 3600  # seconds
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=1)
 GROUP_PROCESSING_DELAY = timedelta(
-    minutes=10
+    minutes=60
 )  # Minimum time between processing the same group id again
 
 logger = logging.getLogger("tasks.groupowner")
@@ -97,40 +97,45 @@ def process_suspect_commits(group_id, event_cache_key, **kwargs):
             cache.set(cache_key, owner_data, OWNER_CACHE_LIFE)
 
         if can_process:
-            try:
+            with metrics.timer("sentry.tasks.process_suspect_commits.process_loop"):
                 metrics.incr("sentry.tasks.process_suspect_commits.calculated")
-                committers = get_serialized_event_file_committers(project, event)
-                # TODO(Chris F.) We would like to store this commit information so that we can get perf gains
-                # and synced information on the Issue details page.
-                # There are issues with this...like mutable commits and commits coming in after events.
-                for committer in committers:
-                    if (
-                        "score" in committer["commits"][0]
-                        and committer["commits"][0]["score"] >= MIN_COMMIT_SCORE
+                try:
+
+                    with metrics.timer(
+                        "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
                     ):
-                        if "id" in committer["author"]:
-                            owner_id = committer["author"]["id"]
-                            go, created = GroupOwner.objects.update_or_create(
-                                group_id=event.group_id,
-                                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                                user_id=owner_id,
-                                project=project,
-                                organization_id=project.organization_id,
-                                defaults={
-                                    "date_added": timezone.now()
-                                },  # Updates date of an existing owner, since we just matched them with this new event,
-                            )
-                            if created:
-                                owner_count += 1
-                                if owner_count > PREFERRED_GROUP_OWNERS:
-                                    owners.first().delete()
-                        else:
-                            # TODO(Chris F.) We actually need to store and display these too, somehow. In the future.
-                            pass
-            except Release.DoesNotExist:
-                logger.info(
-                    "process_suspect_commits.skipped",
-                    extra={"cache_key": event_cache_key, "reason": "no_release"},
-                )
+                        committers = get_serialized_event_file_committers(project, event)
+                    # TODO(Chris F.) We would like to store this commit information so that we can get perf gains
+                    # and synced information on the Issue details page.
+                    # There are issues with this...like mutable commits and commits coming in after events.
+                    for committer in committers:
+                        if (
+                            "score" in committer["commits"][0]
+                            and committer["commits"][0]["score"] >= MIN_COMMIT_SCORE
+                        ):
+                            if "id" in committer["author"]:
+                                owner_id = committer["author"]["id"]
+                                go, created = GroupOwner.objects.update_or_create(
+                                    group_id=event.group_id,
+                                    type=GroupOwnerType.SUSPECT_COMMIT.value,
+                                    user_id=owner_id,
+                                    project=project,
+                                    organization_id=project.organization_id,
+                                    defaults={
+                                        "date_added": timezone.now()
+                                    },  # Updates date of an existing owner, since we just matched them with this new event,
+                                )
+                                if created:
+                                    owner_count += 1
+                                    if owner_count > PREFERRED_GROUP_OWNERS:
+                                        owners.first().delete()
+                            else:
+                                # TODO(Chris F.) We actually need to store and display these too, somehow. In the future.
+                                pass
+                except Release.DoesNotExist:
+                    logger.info(
+                        "process_suspect_commits.skipped",
+                        extra={"cache_key": event_cache_key, "reason": "no_release"},
+                    )
 
         event_processing_store.delete_by_key(event_cache_key)
