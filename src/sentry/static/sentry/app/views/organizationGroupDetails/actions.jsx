@@ -208,8 +208,14 @@ const GroupDetailsActions = createReactClass({
 
   onReprocess() {
     const {group, organization} = this.props;
-    openModal(props => (
-      <ReprocessingForm group={group} organization={organization} {...props} />
+    openModal(({closeModal, Header, Body}) => (
+      <ReprocessingForm
+        group={group}
+        orgSlug={organization.slug}
+        closeModal={closeModal}
+        Header={Header}
+        Body={Body}
+      />
     ));
   },
 
