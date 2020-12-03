@@ -136,7 +136,11 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
                   )}
                 />
                 <ButtonBar>
-                  <Button type="button" onClick={() => this.handleSubmit()}>
+                  <Button
+                    data-test-id="quick-setup-button"
+                    type="button"
+                    onClick={() => this.handleSubmit()}
+                  >
                     {t('Submit')}
                   </Button>
                 </ButtonBar>
@@ -169,7 +173,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
           <Modal.Footer>
             <Alert type="info" icon={<IconInfo />}>
               {tct(
-                'Stack trace linking is still in Beta, if you have feedback, email [email:ecosystem-feedback@sentry.io].',
+                'Stack trace linking is still in Beta. If you have feedback, please email [email:ecosystem-feedback@sentry.io].',
                 {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
               )}
             </Alert>
