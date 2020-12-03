@@ -67,8 +67,9 @@ def insta_snapshot_stacktrace_data(self, event, **kwargs):
             },
             "debug_meta": event.get("debug_meta"),
             "contexts": {
-                k: v for k, v in six.iteritems(event.get("contexts")) if k != "reprocessing"
-            },
+                k: v for k, v in six.iteritems(event.get("contexts") or {}) if k != "reprocessing"
+            }
+            or None,
             "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
         },
         **kwargs
