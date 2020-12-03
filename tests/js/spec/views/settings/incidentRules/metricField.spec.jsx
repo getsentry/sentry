@@ -37,6 +37,12 @@ describe('MetricField', function () {
     openMenu(wrapper, {selector: 'QueryField', at: 1});
 
     expect(wrapper.find('SelectControl').at(1).find('Option')).toHaveLength(1);
+    expect(wrapper.find('SelectControl').at(1).find('input').at(1).props().value).toEqual(
+      {
+        kind: 'field',
+        meta: {dataType: 'string', name: 'tags[sentry:user]'},
+      }
+    );
   });
 
   it('has a select subset of transaction fields', function () {
