@@ -112,7 +112,7 @@ class EventSerializer(Serializer):
                 for i, kv in enumerate(raw_tags)
                 if kv is not None
             ],
-            key=lambda x: x["key"],
+            key=lambda x: x["key"] if x["key"] is not None else "",
         )
 
         # Add 'query' for each tag to tell the UI what to use as query
