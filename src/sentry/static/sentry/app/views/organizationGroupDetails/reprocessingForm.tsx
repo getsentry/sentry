@@ -47,7 +47,7 @@ class ReprocessingForm extends React.Component<Props, State> {
   handleSuccess = () => {
     const {orgSlug, group} = this.props;
     browserHistory.push(
-      `/organizations/${orgSlug}/issues/?query=tags[original_group_id]:${group.id}`
+      `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${group.id}`
     );
   };
 

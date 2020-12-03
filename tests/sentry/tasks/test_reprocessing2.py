@@ -133,7 +133,7 @@ def test_basic(
     assert event.group_id != old_event.group_id
 
     assert event.event_id == old_event.event_id
-    assert int(event.get_tag("original_group_id")) == old_event.group_id
+    assert int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == old_event.group_id
 
     assert not Group.objects.filter(id=old_event.group_id).exists()
 
@@ -168,10 +168,10 @@ def test_concurrent_events_go_into_new_group(
     event = eventstore.get_event_by_id(default_project.id, event_id)
     original_short_id = event.group.short_id
     assert original_short_id
-    original_group_id = event.group.id
+    original_issue_id = event.group.id
 
     original_assignee = GroupAssignee.objects.create(
-        group_id=original_group_id, project=default_project, user=default_user
+        group_id=original_issue_id, project=default_project, user=default_user
     )
 
     with burst_task_runner() as burst_reprocess:
@@ -200,7 +200,7 @@ def test_concurrent_events_go_into_new_group(
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
     activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
-    assert activity.ident == six.text_type(original_group_id)
+    assert activity.ident == six.text_type(original_issue_id)
 
 
 @pytest.mark.django_db
@@ -239,7 +239,7 @@ def test_max_events(
             assert event is None
         else:
             assert event.group_id != group_id
-            assert int(event.get_tag("original_group_id")) == group_id
+            assert int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == group_id
 
     assert is_group_finished(group_id)
 
