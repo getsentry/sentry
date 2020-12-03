@@ -15,6 +15,7 @@ type Props = Omit<
 > &
   Partial<typeof DropdownMenu.defaultProps> & {
     title: React.ReactNode;
+    customTitle?: React.ReactNode;
     children: React.ReactNode;
     /**
      * display dropdown caret
@@ -40,6 +41,7 @@ const DropdownLink = ({
   anchorRight,
   disabled,
   title,
+  customTitle,
   caret,
   children,
   menuClasses,
@@ -74,10 +76,12 @@ const DropdownLink = ({
               className: cx,
             })}
           >
-            <div className="dropdown-actor-title">
-              <span>{title}</span>
-              {caret && <IconChevron direction="down" size="xs" />}
-            </div>
+            {customTitle || (
+              <div className="dropdown-actor-title">
+                <span>{title}</span>
+                {caret && <IconChevron direction="down" size="xs" />}
+              </div>
+            )}
           </a>
 
           {shouldRenderMenu && (

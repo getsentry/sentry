@@ -1,28 +1,34 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import IdBadge from 'app/components/idBadge';
-import SentryTypes from 'app/sentryTypes';
+import {Organization} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 import withLatestContext from 'app/utils/withLatestContext';
 import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from 'app/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
 
+import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
-class OrganizationCrumb extends React.Component {
-  static propTypes = {
-    organizations: PropTypes.array,
-    organization: SentryTypes.Organization,
-    routes: PropTypes.array,
-    route: PropTypes.object,
-  };
+type Props = RouteComponentProps<{projectId?: string}, {}> & {
+  organizations: Organization[];
+  organization: Organization;
+  routes: RouteWithName[];
+  route: RouteWithName;
+};
 
-  handleSelect = item => {
-    const {params, routes, route} = this.props;
+const OrganizationCrumb = ({
+  organization,
+  organizations,
+  params,
+  routes,
+  route,
+  ...props
+}: Props) => {
+  const handleSelect = (item: {value: string}) => {
     // If we are currently in a project context, and we're attempting to switch organizations,
     // then we need to default to index route (e.g. `route`)
     //
@@ -40,6 +46,10 @@ class OrganizationCrumb extends React.Component {
       destination = route;
     }
 
+    if (destination === undefined) {
+      return;
+    }
+
     browserHistory.push(
       recreateRoute(destination, {
         routes,
@@ -48,45 +58,41 @@ class OrganizationCrumb extends React.Component {
     );
   };
 
-  render() {
-    const {organizations, organization, params, routes, route, ...props} = this.props;
-
-    if (!organization) {
-      return null;
-    }
-
-    const hasMenu = organizations.length > 1;
-
-    return (
-      <BreadcrumbDropdown
-        name={
-          <CrumbLink
-            to={recreateRoute(route, {
-              routes,
-              params: {...params, orgId: organization.slug},
-            })}
-          >
-            <BadgeWrapper>
-              <IdBadge avatarSize={18} organization={organization} />
-            </BadgeWrapper>
-          </CrumbLink>
-        }
-        onSelect={this.handleSelect}
-        hasMenu={hasMenu}
-        route={route}
-        items={organizations.map(org => ({
-          value: org.slug,
-          label: (
-            <MenuItem>
-              <IdBadge organization={org} />
-            </MenuItem>
-          ),
-        }))}
-        {...props}
-      />
-    );
+  if (!organization) {
+    return null;
   }
-}
+
+  const hasMenu = organizations.length > 1;
+
+  return (
+    <BreadcrumbDropdown
+      name={
+        <CrumbLink
+          to={recreateRoute(route, {
+            routes,
+            params: {...params, orgId: organization.slug},
+          })}
+        >
+          <BadgeWrapper>
+            <IdBadge avatarSize={18} organization={organization} />
+          </BadgeWrapper>
+        </CrumbLink>
+      }
+      onSelect={handleSelect}
+      hasMenu={hasMenu}
+      route={route}
+      items={organizations.map(org => ({
+        value: org.slug,
+        label: (
+          <MenuItem>
+            <IdBadge organization={org} />
+          </MenuItem>
+        ),
+      }))}
+      {...props}
+    />
+  );
+};
 
 const BadgeWrapper = styled('div')`
   display: flex;

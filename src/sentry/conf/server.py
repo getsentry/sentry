@@ -10,7 +10,6 @@ import os.path
 import re
 import socket
 import sys
-import six
 import tempfile
 
 import sentry
@@ -519,6 +518,7 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.snuba.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
@@ -705,6 +705,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         "schedule": timedelta(minutes=5),
         "options": {"expires": 3600},
+    },
+    "snuba-subscription-checker": {
+        "task": "sentry.snuba.tasks.subscription_checker",
+        "schedule": timedelta(minutes=20),
+        "options": {"expires": 20 * 60},
     },
 }
 
@@ -1128,7 +1133,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
-CACHE_VERSION = 2 if six.PY3 else 1
+CACHE_VERSION = 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"

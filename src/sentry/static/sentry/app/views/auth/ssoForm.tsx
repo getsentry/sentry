@@ -1,29 +1,27 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Form from 'app/components/forms/form';
 import TextField from 'app/components/forms/textField';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {AuthConfig} from 'app/types';
 
-const SlugExample = p => (
-  <code>
-    {p.hostname}/<strong>{p.slug}</strong>
-  </code>
-);
+type Props = {
+  api: Client;
+  authConfig: AuthConfig;
+};
 
-class SsoForm extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    authConfig: SentryTypes.AuthConfig,
-  };
+type State = {
+  errorMessage: string | null;
+};
 
+class SsoForm extends React.Component<Props, State> {
   state = {
     errorMessage: null,
   };
 
-  handleSubmit = async (data, onSuccess, onError) => {
+  handleSubmit: Form['props']['onSubmit'] = async (data, onSuccess, onError) => {
     const {api} = this.props;
     try {
       const response = await api.requestPromise('/auth/sso-locate/', {
@@ -69,5 +67,16 @@ class SsoForm extends React.Component {
     );
   }
 }
+
+type SlugExampleProps = {
+  hostname: string;
+  slug: string;
+};
+
+const SlugExample = ({hostname, slug}: SlugExampleProps) => (
+  <code>
+    {hostname}/<strong>{slug}</strong>
+  </code>
+);
 
 export default SsoForm;

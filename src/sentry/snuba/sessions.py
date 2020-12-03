@@ -207,6 +207,20 @@ def get_release_adoption(project_releases, environments=None, now=None):
     return rv
 
 
+def extract_duration_quantiles(raw_stats):
+    if len(raw_stats["duration_quantiles"]) == 2:
+        return {
+            "duration_p50": _convert_duration(raw_stats["duration_quantiles"][0]),
+            "duration_p90": _convert_duration(raw_stats["duration_quantiles"][1]),
+        }
+
+    else:
+        return {
+            "duration_p50": _convert_duration(raw_stats["duration_quantiles"][0]),
+            "duration_p90": _convert_duration(raw_stats["duration_quantiles"][2]),
+        }
+
+
 def get_release_health_data_overview(
     project_releases,
     environments=None,
@@ -236,11 +250,11 @@ def get_release_health_data_overview(
             "release",
             "project_id",
             "duration_quantiles",
-            "users",
             "sessions",
             "sessions_errored",
             "sessions_crashed",
             "sessions_abnormal",
+            "users",
             "users_crashed",
         ],
         groupby=["release", "project_id"],
@@ -250,8 +264,6 @@ def get_release_health_data_overview(
         referrer="sessions.release-overview",
     )["data"]:
         rp = {
-            "duration_p50": _convert_duration(x["duration_quantiles"][0]),
-            "duration_p90": _convert_duration(x["duration_quantiles"][1]),
             "crash_free_users": (
                 100 - x["users_crashed"] / float(x["users"]) * 100 if x["users"] else None
             ),
@@ -266,6 +278,7 @@ def get_release_health_data_overview(
             ),
             "has_health_data": True,
         }
+        rp.update(extract_duration_quantiles(x))
         if health_stats_period:
             rp["stats"] = {
                 health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
@@ -442,9 +455,8 @@ def get_project_release_stats(project_id, release, stat, rollup, start, end, env
             + "_errored": max(
                 0, rv[stat + "_errored"] - rv[stat + "_crashed"] - rv[stat + "_abnormal"]
             ),
-            "duration_p50": _convert_duration(rv["duration_quantiles"][0]),
-            "duration_p90": _convert_duration(rv["duration_quantiles"][1]),
         }
+        stats[bucket][1].update(extract_duration_quantiles(rv))
 
         # Session stats we can sum up directly without another query
         # as the data becomes available.

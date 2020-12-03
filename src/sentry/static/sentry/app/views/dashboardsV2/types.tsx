@@ -7,7 +7,7 @@ export type WidgetQuery = {
 };
 
 export type Widget = {
-  id: string;
+  id?: string;
   title: string;
   displayType: DisplayType;
   interval: string;
@@ -41,5 +41,5 @@ export type OrgDashboardResponse = {
 // PUT body for updating a dashboard
 export type OrgDashboardUpdate = {
   title: string;
-  widgets: Array<{id: string}>;
+  widgets: Widget[];
 };
