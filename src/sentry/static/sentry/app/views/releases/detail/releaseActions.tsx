@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -110,10 +111,10 @@ function ReleaseActions({
   }
 
   return (
-    <Wrapper>
+    <ButtonBar gap={1}>
       <StyledDropdownLink
         caret={false}
-        anchorRight
+        anchorRight={window.innerWidth > 992}
         title={<ActionsButton icon={<IconEllipsis />} label={t('Actions')} />}
       >
         {isReleaseArchived(release) ? (
@@ -158,7 +159,7 @@ function ReleaseActions({
           </Confirm>
         )}
       </StyledDropdownLink>
-    </Wrapper>
+    </ButtonBar>
   );
 }
 
@@ -169,18 +170,6 @@ ReleaseActions.propTypes = {
   releaseMeta: PropTypes.object.isRequired,
   refetchData: PropTypes.func.isRequired,
 };
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: min-content;
-  grid-gap: ${space(0.5)};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: 100%;
-    margin: ${space(1)} 0 ${space(2)} 0;
-  }
-`;
 
 const ActionsButton = styled(Button)`
   width: 40px;

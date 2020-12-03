@@ -19,7 +19,13 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
   const shouldLinkToIssues = !!orgSlug && !!version;
 
   const badge = (
-    <Tag className={className} type="highlight" icon={shouldLinkToIssues && <IconOpen />}>
+    <Tag
+      className={className}
+      type="highlight"
+      icon={shouldLinkToIssues && <IconOpen />}
+      textMaxWidth={80}
+      tooltipText={shouldLinkToIssues ? t('Open In Issues') : undefined}
+    >
       {deploy.environment}
     </Tag>
   );
@@ -38,7 +44,6 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
           query: stringifyQueryObject(new QueryResults([`release:${version!}`])),
         },
       }}
-      title={t('Open in Issues')}
     >
       {badge}
     </Link>

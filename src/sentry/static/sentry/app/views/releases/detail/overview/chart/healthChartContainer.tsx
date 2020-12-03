@@ -22,6 +22,8 @@ type Props = Omit<
   yAxis: YAxis;
   router: ReactRouter.InjectedRouter;
   platform: PlatformKey;
+  title: string;
+  help?: string;
 };
 
 type State = {
@@ -47,6 +49,8 @@ class ReleaseChartContainer extends React.Component<Props, State> {
       yAxis,
       router,
       platform,
+      title,
+      help,
     } = this.props;
     const {shouldRecalculateVisibleSeries} = this.state;
     const {datetime} = selection;
@@ -63,6 +67,10 @@ class ReleaseChartContainer extends React.Component<Props, State> {
             );
           }
 
+          // Stack the toolbox under the legend.
+          // so all series names are clickable.
+          zoomRenderProps.toolBox.z = -1;
+
           return (
             <TransitionChart loading={loading} reloading={reloading}>
               <TransparentLoadingMask visible={reloading} />
@@ -76,6 +84,8 @@ class ReleaseChartContainer extends React.Component<Props, State> {
                 shouldRecalculateVisibleSeries={shouldRecalculateVisibleSeries}
                 onVisibleSeriesRecalculated={this.handleVisibleSeriesRecalculated}
                 platform={platform}
+                title={title}
+                help={help}
               />
             </TransitionChart>
           );
