@@ -16,7 +16,11 @@ class SlackClient(ApiClient):
     datadog_prefix = "integrations.slack"
 
     def track_response_data(self, code, span, error=None, resp=None):
-        span.set_http_status(code)
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(code)
+
         span.set_tag("integration", "slack")
 
         is_ok = False
