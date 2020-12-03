@@ -465,26 +465,22 @@ def track_update_groups(function):
 def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
         def wrapper(self, request, *args, **kwargs):
-            try:
-                if ratelimiter.is_limited(
-                    u"rate_limit_endpoint:{}:{}".format(
-                        md5_text(function).hexdigest(), request.user.id
-                    ),
-                    limit=limit,
-                    window=window,
-                ):
-                    return Response(
-                        {
-                            "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
-                                limit, window
-                            )
-                        },
-                        status=429,
-                    )
-                else:
-                    return function(*args, **kwargs)
-            except Exception:
-                raise
+            ip = request.META.get("REMOTE_ADDR")
+            if ratelimiter.is_limited(
+                u"rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
+                limit=limit,
+                window=window,
+            ):
+                return Response(
+                    {
+                        "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
+                            limit, window
+                        )
+                    },
+                    status=429,
+                )
+            else:
+                return function(*args, **kwargs)
 
         return wrapper
 
