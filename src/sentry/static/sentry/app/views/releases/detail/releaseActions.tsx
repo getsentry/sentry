@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
-import CreateAlertButton from 'app/components/createAlertButton';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import MenuItem from 'app/components/menuItem';
@@ -18,13 +17,13 @@ import {IconEllipsis} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Organization, Release, ReleaseMeta} from 'app/types';
+import {Release, ReleaseMeta} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 
 import {isReleaseArchived} from '../utils';
 
 type Props = {
-  organization: Organization;
+  orgSlug: string;
   projectSlug: string;
   release: Release;
   releaseMeta: ReleaseMeta;
@@ -32,7 +31,7 @@ type Props = {
 };
 
 function ReleaseActions({
-  organization,
+  orgSlug,
   projectSlug,
   release,
   releaseMeta,
@@ -41,11 +40,11 @@ function ReleaseActions({
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
-        orgSlug: organization.slug,
+        orgSlug,
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(`/organizations/${organization.slug}/releases/`);
+      browserHistory.push(`/organizations/${orgSlug}/releases/`);
     } catch {
       // do nothing, action creator is already displaying error message
     }
@@ -54,7 +53,7 @@ function ReleaseActions({
   async function handleRestore() {
     try {
       await restoreRelease(new Client(), {
-        orgSlug: organization.slug,
+        orgSlug,
         projectSlug,
         releaseVersion: release.version,
       });
@@ -113,7 +112,6 @@ function ReleaseActions({
 
   return (
     <ButtonBar gap={1}>
-      <CreateAlertButton organization={organization} projectSlug={projectSlug} />
       <StyledDropdownLink
         caret={false}
         anchorRight
@@ -166,7 +164,7 @@ function ReleaseActions({
 }
 
 ReleaseActions.propTypes = {
-  organization: SentryTypes.Organization.isRequired,
+  orgSlug: PropTypes.string.isRequired,
   projectSlug: PropTypes.string.isRequired,
   release: SentryTypes.Release.isRequired,
   releaseMeta: PropTypes.object.isRequired,

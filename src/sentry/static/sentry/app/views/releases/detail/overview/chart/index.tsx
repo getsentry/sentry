@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -10,7 +11,7 @@ import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import {getTermHelp} from 'app/views/performance/data';
 import {ChartContainer, HeaderTitleLegend} from 'app/views/performance/styles';
 
@@ -40,11 +41,12 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   version: string;
   hasDiscover: boolean;
   hasPerformance: boolean;
+  theme: Theme;
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
   getTransactionsChartColors(): [string, string] {
-    const {yAxis} = this.props;
+    const {yAxis, theme} = this.props;
 
     switch (yAxis) {
       case YAxis.FAILED_TRANSACTIONS:
@@ -69,21 +71,21 @@ class ReleaseChartContainer extends React.Component<Props> {
           help: t('The number of users in a given period.'),
         };
       case YAxis.SESSION_DURATION:
-        return {title: t('Session Duration'), help: null};
+        return {title: t('Session Duration')};
       case YAxis.CRASH_FREE:
-        return {title: t('Crash Free Rate'), help: null};
+        return {title: t('Crash Free Rate')};
       case YAxis.FAILED_TRANSACTIONS:
         return {
           title: t('Failure Count'),
           help: getTermHelp(organization, 'failureRate'),
         };
       case YAxis.COUNT_DURATION:
-        return {title: t('Slow Count (duration)'), help: null};
+        return {title: t('Slow Count (duration)')};
       case YAxis.COUNT_LCP:
-        return {title: t('Slow Count (LCP)'), help: null};
+        return {title: t('Slow Count (LCP)')};
       case YAxis.EVENTS:
       default:
-        return {title: t('Event Count'), help: null};
+        return {title: t('Event Count')};
     }
   }
 
@@ -290,4 +292,4 @@ class ReleaseChartContainer extends React.Component<Props> {
   }
 }
 
-export default ReleaseChartContainer;
+export default withTheme(ReleaseChartContainer);

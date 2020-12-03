@@ -37,7 +37,7 @@ type Props = {
   shouldRecalculateVisibleSeries: boolean;
   onVisibleSeriesRecalculated: () => void;
   title: string;
-  help: string | null;
+  help?: string;
 };
 
 class HealthChart extends React.Component<Props> {

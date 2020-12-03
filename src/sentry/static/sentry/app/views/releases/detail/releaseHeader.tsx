@@ -125,7 +125,7 @@ const ReleaseHeader = ({
 
       <Layout.HeaderActions>
         <ReleaseActions
-          organization={organization}
+          orgSlug={organization.slug}
           projectSlug={project.slug}
           release={release}
           releaseMeta={releaseMeta}

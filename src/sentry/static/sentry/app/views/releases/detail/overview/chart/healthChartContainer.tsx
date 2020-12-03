@@ -23,7 +23,7 @@ type Props = Omit<
   router: ReactRouter.InjectedRouter;
   platform: PlatformKey;
   title: string;
-  help: string | null;
+  help?: string;
 };
 
 type State = {
