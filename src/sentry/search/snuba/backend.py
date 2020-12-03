@@ -130,6 +130,9 @@ def inbox_filter(inbox, projects):
 def owner_filter(owner, projects):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
+    relevant_owners = GroupOwner.objects.filter(
+        project_id__in=project_ids, organization_id=organization_id
+    )
     if isinstance(owner, Team):
         return Q(
             id__in=GroupOwner.objects.filter(
@@ -147,20 +150,11 @@ def owner_filter(owner, projects):
                 is_active=True,
             ).values("team")
         )
-        group_owner_ids = (
-            (
-                GroupOwner.objects.filter(
-                    team__in=teams, project_id__in=project_ids, organization_id=organization_id
-                )
-                | GroupOwner.objects.filter(
-                    user=owner, project_id__in=project_ids, organization_id=organization_id
-                )
-            )
+        return Q(
+            id__in=relevant_owners.filter(Q(team__in=teams) | Q(user=owner),)
             .values_list("group_id", flat=True)
             .distinct()
         )
-        return Q(id__in=group_owner_ids)
-
     elif owner == "me_or_none":
         pass
 
