@@ -206,16 +206,16 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            cache_key = "workflow-owners-ingestion:org-{}-has-commits".format(
+            commit_cache_key = "workflow-owners-ingestion:org-{}-has-commits".format(
                 event.project.organization_id
             )
-            commit_data = cache.get(cache_key)
+            commit_data = cache.get(commit_cache_key)
             if commit_data is None:
                 org_has_commits = Commit.objects.filter(
                     organization_id=event.project.organization_id
                 ).exists()
                 commit_data = {"has_commits": org_has_commits}
-                cache.set(cache_key, commit_data, 3600)
+                cache.set(commit_cache_key, commit_data, 3600)
 
             if commit_data["has_commits"] and features.has(
                 "projects:workflow-owners-ingestion", event.project
@@ -268,7 +268,6 @@ def post_process_group(
                 event=event,
                 primary_hash=kwargs.get("primary_hash"),
             )
-
         if not processed_suspect_commits:
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 event_processing_store.delete_by_key(cache_key)
