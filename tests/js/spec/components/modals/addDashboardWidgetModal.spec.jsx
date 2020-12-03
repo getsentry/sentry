@@ -23,6 +23,15 @@ function mountModal({onAddWidget, initialData}) {
   );
 }
 
+async function clickSubmit(wrapper) {
+  // Click on submit.
+  const button = wrapper.find('Button[data-test-id="add-widget"] button');
+  button.simulate('click');
+
+  // Wait for xhr to complete.
+  return tick();
+}
+
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
@@ -47,13 +56,19 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       url: '/organizations/org-slug/discover/saved/',
       body: [discoverQuery],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      statusCode: 200,
+      body: [],
+    });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('can update the title', function () {
+  it('can update the title', async function () {
     let widget = undefined;
     const wrapper = mountModal({
       initialData,
@@ -62,16 +77,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const input = wrapper.find('Input[name="title"] input');
     input.simulate('change', {target: {value: 'Unique Users'}});
 
-    // Click on submit.
-    const button = wrapper.find('Button[data-test-id="add-widget"] button');
-    button.simulate('click');
+    await clickSubmit(wrapper);
 
     expect(widget.title).toEqual('Unique Users');
   });
 
-  it('can add conditions', function () {
+  it('can add conditions', async function () {
     jest.useFakeTimers();
-
     let widget = undefined;
     const wrapper = mountModal({
       initialData,
@@ -80,17 +92,17 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // Change the search text on the first query.
     const input = wrapper.find('#smart-search-input').first();
     input.simulate('change', {target: {value: 'color:blue'}}).simulate('blur');
-    jest.runAllTimers();
 
-    // Click on submit.
-    const button = wrapper.find('Button[data-test-id="add-widget"] button');
-    button.simulate('click');
+    jest.runAllTimers();
+    jest.useRealTimers();
+
+    await clickSubmit(wrapper);
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].conditions).toEqual('color:blue');
   });
 
-  it('can choose a field', function () {
+  it('can choose a field', async function () {
     let widget = undefined;
     const wrapper = mountModal({
       initialData,
@@ -101,15 +113,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 0, control: true});
 
-    // Click on submit.
-    const button = wrapper.find('Button[data-test-id="add-widget"] button');
-    button.simulate('click');
+    await clickSubmit(wrapper);
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
   });
 
-  it('can add additional fields', function () {
+  it('can add additional fields', async function () {
     let widget = undefined;
     const wrapper = mountModal({
       initialData,
@@ -126,15 +136,13 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
 
-    // Click on submit.
-    const button = wrapper.find('Button[data-test-id="add-widget"] button');
-    button.simulate('click');
+    await clickSubmit(wrapper);
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
   });
 
-  it('can add widget queries', function () {
+  it('can add widget queries', async function () {
     let widget = undefined;
     const wrapper = mountModal({
       initialData,
@@ -147,14 +155,47 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // Click the add button
     const add = wrapper.find('Button[data-test-id="add-query"] button');
     add.simulate('click');
-    wrapper.update();
 
     // Second query section should display.
     expect(wrapper.find('WidgetQueryForm')).toHaveLength(2);
 
     // Updated widget should have two queries.
     wrapper.find('Button[data-test-id="add-widget"] button').simulate('click');
+    // Wait for xhr to complete.
+    await tick();
+
     expect(widget.queries).toHaveLength(2);
+  });
+
+  it('can respond to validation feedback', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        title: ['This field is required'],
+        queries: [{conditions: ['Invalid value']}],
+      },
+    });
+
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    await clickSubmit(wrapper);
+    await wrapper.update();
+
+    // API request should fail and not add widget.
+    expect(widget).toBeUndefined();
+
+    const errors = wrapper.find('FieldErrorReason');
+    expect(errors).toHaveLength(2);
+
+    // Nested object error should display
+    const conditionError = wrapper.find('WidgetQueryForm FieldErrorReason');
+    expect(conditionError).toHaveLength(1);
   });
 
   it('can remove widget queries', function () {
@@ -204,8 +245,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       .at(0)
       .simulate('click');
 
-    // Add widget to get update.
-    wrapper.find('Button[data-test-id="add-widget"] button').simulate('click');
+    await clickSubmit(wrapper);
 
     expect(widget.queries[0].conditions).toEqual(discoverQuery.query);
     expect(widget.queries[0].fields).toEqual([discoverQuery.yAxis]);

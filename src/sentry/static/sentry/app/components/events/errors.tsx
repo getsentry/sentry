@@ -84,8 +84,7 @@ class EventErrors extends React.Component<Props, State> {
   getURLPathname(url: string) {
     try {
       return new URL(url).pathname;
-    } catch (error) {
-      Sentry.captureException(error);
+    } catch {
       return undefined;
     }
   }
