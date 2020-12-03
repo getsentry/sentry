@@ -119,7 +119,7 @@ class Client {
     if (!response || !mock) {
       // Endpoints need to be mocked
       const err = new Error(
-        `No mocked response found for request:\n\t${options.method || 'GET'} ${url}`
+        `No mocked response found for request: ${options.method || 'GET'} ${url}`
       );
 
       // Mutate stack to drop frames since test file so that we know where in the test

@@ -678,6 +678,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
+                        selectType="grouped"
                         items={actions ?? []}
                         placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
