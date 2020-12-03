@@ -217,13 +217,11 @@ def post_process_group(
                 commit_data = {"has_commits": org_has_commits}
                 cache.set(cache_key, commit_data, 3600)
 
-            if commit_data["has_commits"] is True:
-                has_workflow_owners = features.has(
-                    "projects:workflow-owners-ingestion", event.project
-                )
-                if has_workflow_owners:
-                    processed_suspect_commits = True
-                    process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
+            if commit_data["has_commits"] and features.has(
+                "projects:workflow-owners-ingestion", event.project
+            ):
+                processed_suspect_commits = True
+                process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
