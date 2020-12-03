@@ -465,7 +465,7 @@ def track_update_groups(function):
 def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
         def wrapper(self, request, *args, **kwargs):
-            ip = request.META.get("REMOTE_ADDR")
+            ip = request.META["REMOTE_ADDR"]
             if ratelimiter.is_limited(
                 u"rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
                 limit=limit,
