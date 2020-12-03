@@ -50,7 +50,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.groupinbox import add_group_to_inbox, get_inbox_details
-from sentry.models.group import looks_like_short_id
+from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
     issue_deleted,
@@ -151,16 +151,6 @@ def get_by_short_id(organization_id, is_short_id_lookup, query):
             pass
 
 
-STATUS_CHOICES = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-}
-
-
 class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
@@ -251,7 +241,9 @@ class InboxDetailsValidator(serializers.Serializer):
 class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
-    status = serializers.ChoiceField(choices=zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys()))
+    status = serializers.ChoiceField(
+        choices=zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())
+    )
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
@@ -726,7 +718,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         result.update({"status": "resolved", "statusDetails": status_details})
 
     elif status:
-        new_status = STATUS_CHOICES[result["status"]]
+        new_status = STATUS_UPDATE_CHOICES[result["status"]]
 
         with transaction.atomic():
             happened = queryset.exclude(status=new_status).update(status=new_status)
