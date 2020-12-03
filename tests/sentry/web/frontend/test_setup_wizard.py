@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
-from django.core.cache import cache
 
+from sentry.cache import default_cache
 from sentry.testutils import PermissionTestCase
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 
@@ -24,7 +24,7 @@ class SetupWizard(PermissionTestCase):
         self.login_as(self.user)
 
         key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, "abc")
-        cache.set(key, "test")
+        default_cache.set(key, "test", 600)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
         resp = self.client.get(url)
@@ -49,14 +49,14 @@ class SetupWizard(PermissionTestCase):
         self.login_as(self.user)
 
         key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, "abc")
-        cache.set(key, "test")
+        default_cache.set(key, "test", 600)
 
         url = reverse("sentry-project-wizard-fetch", kwargs={"wizard_hash": "abc"})
         resp = self.client.get(url)
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
-        cached = cache.get(key)
+        cached = default_cache.get(key)
         assert cached.get("apiKeys").get("scopes")[0] == "project:releases"
         assert cached.get("projects")[0].get("status") == "active"
         assert cached.get("projects")[0].get("keys")[0].get("isActive")
