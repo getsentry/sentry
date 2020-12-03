@@ -8,6 +8,8 @@ brew 'readline'
 brew 'watchman'
 
 # required to build some of sentry's dependencies
+# XXX: we need realpath here for macOS to be uniform with Linux
+brew 'coreutils'
 brew 'pkgconfig'
 brew 'libxmlsec1'
 brew 'geoip'

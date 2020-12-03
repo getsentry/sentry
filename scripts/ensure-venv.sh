@@ -21,7 +21,7 @@ die() {
 
 if [ -n "$VIRTUAL_ENV" ]; then
     # we're enforcing that virtualenv be in .venv, since future tooling e.g. venv-update will rely on this.
-    if [ "$VIRTUAL_ENV" != "${PWD}/${venv_name}" ]; then
+    if [ "$VIRTUAL_ENV" != $(realpath "${PWD}/${venv_name}") ]; then
         die "You're in a virtualenv, but it's not in the expected location (${PWD}/${venv_name})"
     fi
 
