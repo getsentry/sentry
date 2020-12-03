@@ -30,7 +30,6 @@ def transform_jira_fields_to_form_fields(fields_list):
     :param fields_list: Create ticket fields from Jira as an array.
     :return: The "create ticket" fields from Jira as a dict.
     """
-    # print("fields", fields_list)
     return {
         field["name"]: {
             key: ({"select": "choice", "text": "string"}.get(value, value))
