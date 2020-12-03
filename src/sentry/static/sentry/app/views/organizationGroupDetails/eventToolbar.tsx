@@ -1,8 +1,8 @@
 import React from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import moment from 'moment-timezone';
-import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
@@ -11,16 +11,16 @@ import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import {Event, Group} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 
-const formatDateDelta = (reference, observed) => {
+const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
   const hours = Math.floor(+duration / (60 * 60 * 1000));
   const minutes = duration.minutes();
-  const results = [];
+  const results: string[] = [];
 
   if (hours) {
     results.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
@@ -37,22 +37,22 @@ const formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-class GroupEventToolbar extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired,
-    location: PropTypes.object.isRequired,
-  };
+type Props = {
+  orgId: string;
+  group: Group;
+  event: Event;
+  location: Location;
+};
 
-  shouldComponentUpdate(nextProps) {
+class GroupEventToolbar extends React.Component<Props> {
+  shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
 
   getDateTooltip() {
     const evt = this.props.event;
     const user = ConfigStore.get('user');
-    const options = user ? user.options : {};
+    const options = user?.options ?? {};
     const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
     const dateCreated = moment(evt.dateCreated);
     const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
@@ -92,9 +92,6 @@ class GroupEventToolbar extends React.Component {
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
     const jsonUrl = `/organizations/${orgId}/issues/${groupId}/events/${evt.id}/json/`;
-    const style = {
-      borderBottom: '1px dotted #dfe3ea',
-    };
 
     const latencyThreshold = 30 * 60 * 1000; // 30 minutes
     const isOverLatencyThreshold =
@@ -105,8 +102,8 @@ class GroupEventToolbar extends React.Component {
       <div className="event-toolbar">
         <StyledNavigationButtonGroup
           location={location}
-          hasPrevious={evt.previousEventID}
-          hasNext={evt.nextEventID}
+          hasPrevious={!!evt.previousEventID}
+          hasNext={!!evt.nextEventID}
           urls={[
             `${baseEventsPath}oldest/`,
             `${baseEventsPath}${evt.previousEventID}/`,
@@ -122,9 +119,8 @@ class GroupEventToolbar extends React.Component {
         </h4>
         <span>
           <Tooltip title={this.getDateTooltip()} disableForVisualTest>
-            <DateTime
+            <StyledDateTime
               date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
-              style={style}
             />
             {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
           </Tooltip>
@@ -145,6 +141,10 @@ const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.5)};
   position: relative;
   top: ${space(0.25)};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  border-bottom: 1px dotted #dfe3ea;
 `;
 
 export default GroupEventToolbar;
