@@ -11,15 +11,16 @@ import {IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {IssueConfigField} from 'app/types';
+import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
+import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = {
-  data: any;
-  instance: any;
-  onSubmitAction: any;
-  formData: any;
-  onPropertyChange: any;
+  formFields: {[key: string]: any};
+  instance?: IssueAlertRuleAction | IssueAlertRuleCondition;
+  onSubmitAction: (data: {[key: string]: string}) => void;
+  onPropertyChange: (rowIndex: number, name: string, value: string) => void;
   index: number;
 };
 
@@ -49,23 +50,33 @@ class TicketRuleForm extends React.Component<Props, State> {
     this.closeModal();
   };
 
-  getNames = () => {
-    const names = [];
-    for (const name in this.props.data.formFields) {
-      if (this.props.data.formFields[name].hasOwnProperty('name')) {
-        names.push(this.props.data.formFields[name].name);
+  getNames = (): string[] => {
+    const names: string[] = [];
+    for (const name in this.props.formFields) {
+      if (this.props.formFields[name].hasOwnProperty('name')) {
+        names.push(this.props.formFields[name].name);
       }
     }
     return names;
   };
 
-  cleanData = data => {
-    const names = this.getNames();
-    const formData = {};
-    if (this.props.instance.hasOwnProperty('jira_integration')) {
+  cleanData = (data: {
+    [key: string]: string;
+  }): {
+    jira_integration?: any;
+    vsts_integration?: any;
+    [key: string]: any;
+  } => {
+    const names: string[] = this.getNames();
+    const formData: {
+      jira_integration?: any;
+      vsts_integration?: any;
+      [key: string]: any;
+    } = {};
+    if (this.props.instance?.hasOwnProperty('jira_integration')) {
       formData.jira_integration = this.props.instance?.jira_integration;
     }
-    if (this.props.instance.hasOwnProperty('vsts_integration')) {
+    if (this.props.instance?.hasOwnProperty('vsts_integration')) {
       formData.vsts_integration = this.props.instance?.vsts_integration;
     }
 
@@ -113,8 +124,8 @@ class TicketRuleForm extends React.Component<Props, State> {
     ) => {
       const options = this.props.instance;
       const query = queryString.stringify({
-        project: options.project,
-        issuetype: options.issuetype,
+        project: options?.project,
+        issuetype: options?.issuetype,
         field: field.name,
         query: input,
       });
@@ -147,18 +158,21 @@ class TicketRuleForm extends React.Component<Props, State> {
         }
       : {};
 
-  buildText = () => {
-    const bodyText = {};
-    bodyText.ticketType = this.props.instance.hasOwnProperty('jira_integration')
-      ? 'Jira issue'
-      : 'Azure DevOps work item';
-    bodyText.link = this.props.instance.hasOwnProperty('jira_integration')
-      ? 'https://docs.sentry.io/product/integrations/jira/#issue-sync'
-      : 'https://docs.sentry.io/product/integrations/azure-devops/#issue-sync';
-    return bodyText;
+  buildText = (): {
+    ticketType: string;
+    link: string;
+  } => {
+    return {
+      ticketType: this.props.instance?.hasOwnProperty('jira_integration')
+        ? 'Jira issue'
+        : 'Azure DevOps work item',
+      link: this.props.instance?.hasOwnProperty('jira_integration')
+        ? 'https://docs.sentry.io/product/integrations/jira/#issue-sync'
+        : 'https://docs.sentry.io/product/integrations/azure-devops/#issue-sync',
+    };
   };
 
-  addFields = formFields => {
+  addFields = (formFields: FormField[]): void => {
     const title = {
       name: 'title',
       label: 'Title',
@@ -185,10 +199,10 @@ class TicketRuleForm extends React.Component<Props, State> {
     );
     const submitLabel = t('Apply Changes');
     const cancelLabel = t('Close');
-    const formFields = Object.values(this.props.data.formFields);
+    const formFields = Object.values(this.props.formFields);
     this.addFields(formFields);
     const initialData = this.props.instance || {};
-    formFields.forEach(field => {
+    formFields.forEach((field: FormField) => {
       // passing an empty array breaks multi select
       // TODO(jess): figure out why this is breaking and fix
       if (!initialData.hasOwnProperty(field.name)) {
@@ -200,7 +214,7 @@ class TicketRuleForm extends React.Component<Props, State> {
         <Button
           size="small"
           icon={<IconSettings size="xs" />}
-          onClick={() => this.openModal(event)}
+          onClick={event => this.openModal(event)}
         >
           Issue Link Settings
         </Button>
@@ -224,15 +238,14 @@ class TicketRuleForm extends React.Component<Props, State> {
             <Form
               onSubmit={this.onFormSubmit}
               initialData={initialData}
-              onFieldChange={this.onFieldChange}
               submitLabel={submitLabel}
               cancelLabel={cancelLabel}
               footerClass="modal-footer"
               onCancel={this.onCancel}
             >
               {formFields
-                .filter(field => field.hasOwnProperty('name'))
-                .map(field => (
+                .filter((field: FormField) => field.hasOwnProperty('name'))
+                .map((field: IssueConfigField) => (
                   <FieldFromConfig
                     key={`${field.name}-${field.default}-${field.required}`}
                     field={field}

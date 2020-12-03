@@ -21,7 +21,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
 import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
 
-type FormField = {
+export type FormField = {
   // Type of form fields
   type: string;
   // The rest is configuration for the form field
@@ -277,7 +277,7 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
-  updateParent = data => {
+  updateParent = (data: {[key: string]: string}): void => {
     // iterating through these upon save instead of when each
     // element is changed to match the spec
     for (const [name, value] of Object.entries(data)) {
@@ -296,7 +296,7 @@ class RuleNode extends React.Component<Props> {
             {this.renderRow()}
             {ticketRule && (
               <TicketRuleForm
-                data={node}
+                formFields={node?.formFields || {}}
                 instance={data}
                 index={this.props.index}
                 onSubmitAction={this.updateParent}
