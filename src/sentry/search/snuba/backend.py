@@ -128,7 +128,6 @@ def inbox_filter(inbox, projects):
 
 
 def owner_filter(owner, projects):
-
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
     if isinstance(owner, Team):
