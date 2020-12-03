@@ -27,7 +27,7 @@ class StubJiraApiClient(StubService):
         return {"key": "APP-123"}
 
     def get_transitions(self, issue_key):
-        return self._get_stub_data("transitions_response.json")["transitions"]
+        return self._get_stub_data("transition_response.json")["transitions"]
 
     def transition_issue(self, issue_key, transition_id):
         pass
