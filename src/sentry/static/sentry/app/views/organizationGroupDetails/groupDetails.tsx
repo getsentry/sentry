@@ -297,11 +297,12 @@ class GroupDetails extends React.Component<Props, State> {
 
     // At this point group and event have to be defined
     const group = this.state.group!;
-    const event = this.state.event!;
+    const event = this.state.event;
 
-    const baseUrl = isEventRoute
-      ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
-      : `/organizations/${organization.slug}/issues/${group.id}/`;
+    const baseUrl =
+      isEventRoute && event
+        ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
+        : `/organizations/${organization.slug}/issues/${group.id}/`;
 
     let childProps: Record<string, any> = {
       environments,
