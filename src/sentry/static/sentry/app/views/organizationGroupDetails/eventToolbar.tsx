@@ -118,17 +118,15 @@ class GroupEventToolbar extends React.Component<Props> {
           {t('Event')}{' '}
           <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
         </Heading>
-        <React.Fragment>
-          <Tooltip title={this.getDateTooltip()} disableForVisualTest>
-            <StyledDateTime
-              date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
-            />
-            {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
-          </Tooltip>
-          <JsonLink href={jsonUrl}>
-            {'JSON'} (<FileSize bytes={evt.size} />)
-          </JsonLink>
-        </React.Fragment>
+        <Tooltip title={this.getDateTooltip()} disableForVisualTest>
+          <StyledDateTime
+            date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
+          />
+          {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
+        </Tooltip>
+        <JsonLink href={jsonUrl}>
+          {'JSON'} (<FileSize bytes={evt.size} />)
+        </JsonLink>
       </Wrapper>
     );
   }
