@@ -102,7 +102,7 @@ class GroupEventToolbar extends React.Component {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <div className="event-toolbar">
+      <div className="event-toolbar-2">
         <StyledNavigationButtonGroup
           location={location}
           hasPrevious={evt.previousEventID}
