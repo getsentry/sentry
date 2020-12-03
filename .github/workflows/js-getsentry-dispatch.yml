@@ -42,7 +42,7 @@ jobs:
             github.actions.createWorkflowDispatch({
               owner: 'getsentry',
               repo: 'getsentry',
-              workflow_id: 'javascript.yml',
+              workflow_id: 'js-build-and-lint.yml',
               ref: 'master',
               inputs: {
                 'skip': "${{ steps.changes.outputs.frontend != 'true' }}",
