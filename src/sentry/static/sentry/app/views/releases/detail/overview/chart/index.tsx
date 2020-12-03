@@ -88,12 +88,14 @@ class ReleaseChartContainer extends React.Component<Props> {
   }
 
   seriesNameTransformer(name: string): string {
-    if (name === 'current') {
-      return t('This Release');
-    } else if (name === 'others') {
-      return t('Other Releases');
+    switch (name) {
+      case 'current':
+        return t('This Release');
+      case 'others':
+        return t('Other Releases');
+      default:
+        return name;
     }
-    return name;
   }
 
   // TODO(tonyx): Delete this else once the feature flags are removed
