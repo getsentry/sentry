@@ -127,6 +127,15 @@ class SummaryContent extends React.Component<Props, State> {
     browserHistory.push(target);
   };
 
+  handleDiscoverViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_discover',
+      eventName: 'Performance Views: View in Discover from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   handleViewDetailsClick = (_e: React.MouseEvent<Element>) => {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -207,6 +216,7 @@ class SummaryContent extends React.Component<Props, State> {
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
+              handleOpenInDiscoverClick={this.handleDiscoverViewClick}
             />
             <RelatedIssues
               organization={organization}

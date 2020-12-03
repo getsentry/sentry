@@ -118,6 +118,10 @@ type Props = {
    * The callback for when a baseline cell is clicked.
    */
   handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
+  /**
+   * The callback for when Open in Discover is clicked.
+   */
+  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -135,7 +139,14 @@ class TransactionsList extends React.Component<Props> {
   };
 
   renderHeader(): React.ReactNode {
-    const {eventView, organization, selected, options, handleDropdownChange} = this.props;
+    const {
+      eventView,
+      organization,
+      selected,
+      options,
+      handleDropdownChange,
+      handleOpenInDiscoverClick,
+    } = this.props;
 
     return (
       <Header>
@@ -167,6 +178,7 @@ class TransactionsList extends React.Component<Props> {
         {!this.isTrend() && (
           <HeaderButtonContainer>
             <DiscoverButton
+              onClick={handleOpenInDiscoverClick}
               to={eventView
                 .withSorts([selected.sort])
                 .getResultsViewUrlTarget(organization.slug)}
