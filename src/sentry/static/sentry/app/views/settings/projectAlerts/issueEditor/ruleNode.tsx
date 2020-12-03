@@ -39,15 +39,7 @@ type Props = {
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
-type State = {
-  formData?: any;
-};
-
-class RuleNode extends React.Component<Props, State> {
-  state = {
-    formData: {},
-  };
-
+class RuleNode extends React.Component<Props> {
   handleDelete = () => {
     const {index, onDelete} = this.props;
     onDelete(index);
@@ -286,9 +278,11 @@ class RuleNode extends React.Component<Props, State> {
   }
 
   updateParent = data => {
-    this.setState({
-      formData: data,
-    });
+    // iterating through these upon save instead of when each
+    // element is changed to match the spec
+    for (const [name, value] of Object.entries(data)) {
+      this.props.onPropertyChange(this.props.index, name, value);
+    }
   };
 
   render() {
@@ -305,7 +299,6 @@ class RuleNode extends React.Component<Props, State> {
                 data={node}
                 instance={data}
                 index={this.props.index}
-                formData={this.state.formData}
                 onSubmitAction={this.updateParent}
                 onPropertyChange={this.props.onPropertyChange}
               />

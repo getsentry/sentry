@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconSettings} from 'app/icons';
@@ -47,7 +47,7 @@ class TicketRuleForm extends React.Component<Props, State> {
 
   onCancel = () => {
     this.closeModal();
-  }
+  };
 
   getNames = () => {
     const names = [];
@@ -77,32 +77,23 @@ class TicketRuleForm extends React.Component<Props, State> {
     return formData;
   };
 
-  onFieldChange = (data: any) => {
-    console.log({data})
-  }
-
   // @ts-ignore success and error are not used
   onFormSubmit = (data, _success, _error, e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const formData = this.cleanData(data);
     this.props.onSubmitAction(formData);
-    addSuccessMessage(t('Changes applied.'))
+    addSuccessMessage(t('Changes applied.'));
     this.closeModal();
   };
 
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
-        console.log("no input");
-        console.log({field})
-        // field["choices"] = ["5ab0069933719f2a50168cab", "it me"]
         const choices =
           (field.choices as Array<[number | string, number | string]>) || [];
         const options = choices.map(([value, label]) => ({value, label}));
-        console.log({choices})
-        console.log({options})
         return resolve({options});
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
@@ -195,10 +186,8 @@ class TicketRuleForm extends React.Component<Props, State> {
     const submitLabel = t('Apply Changes');
     const cancelLabel = t('Close');
     const formFields = Object.values(this.props.data.formFields);
-    console.log({formFields})
     this.addFields(formFields);
-    console.log("form data: ", this.props.formData)
-    const initialData = this.props.formData || {};
+    const initialData = this.props.instance || {};
     formFields.forEach(field => {
       // passing an empty array breaks multi select
       // TODO(jess): figure out why this is breaking and fix
@@ -206,7 +195,6 @@ class TicketRuleForm extends React.Component<Props, State> {
         initialData[field.name] = field.multiple ? '' : field.default;
       }
     });
-    console.log({initialData})
     return (
       <React.Fragment>
         <Button
@@ -242,7 +230,6 @@ class TicketRuleForm extends React.Component<Props, State> {
               submitDisabled={this.state.disabled}
               footerClass="modal-footer"
               onCancel={this.onCancel}
-              // onPreSubmit={this.handlePreSubmit}
             >
               {formFields
                 .filter(field => field.hasOwnProperty('name'))
@@ -253,7 +240,6 @@ class TicketRuleForm extends React.Component<Props, State> {
                     inline={false}
                     stacked
                     flexibleControlStateSize
-                    onChange={(value) => this.props.onPropertyChange(this.props.index, field, value)}
                     {...this.getFieldProps(field)}
                   />
                 ))}
