@@ -13,7 +13,7 @@ import ContextSummaryOS from './contextSummaryOS';
 import ContextSummaryUser from './contextSummaryUser';
 import filterContexts from './filterContexts';
 
-type Context = {
+export type Context = {
   keys: string[];
   Component: (props: any) => JSX.Element;
   unknownTitle?: string;

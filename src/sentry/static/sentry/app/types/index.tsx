@@ -338,9 +338,27 @@ type RuntimeContext = {
   name?: string;
 };
 
+type DeviceContext = {
+  arch: string;
+  family: string;
+  model: string;
+  type: string;
+};
+
+type OSContext = {
+  kernel_version: string;
+  version: string;
+  type: string;
+  build: string;
+  name: string;
+};
+
 type EventContexts = {
   runtime?: RuntimeContext;
   trace?: TraceContextType;
+  device?: DeviceContext;
+  os?: OSContext;
+  client_os?: OSContext;
 };
 
 type EnableIntegrationSuggestion = {
