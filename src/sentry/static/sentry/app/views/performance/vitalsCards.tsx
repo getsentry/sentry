@@ -30,13 +30,7 @@ export default function VitalsCards(props: Props) {
   const {eventView, organization, location} = props;
   const vitalsView = eventView.clone();
 
-  const shownVitals = [
-    WebVital.FP,
-    WebVital.FCP,
-    WebVital.LCP,
-    WebVital.FID,
-    WebVital.CLS,
-  ];
+  const shownVitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
   return (
     <VitalsCardsDiscoverQuery
