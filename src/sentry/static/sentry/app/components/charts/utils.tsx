@@ -3,7 +3,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {GlobalSelection} from 'app/types';
+import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
@@ -123,4 +123,10 @@ export function getSeriesSelection(
     selection[series] = false;
     return selection;
   }, {});
+}
+
+export function isMultiSeriesStats(
+  data: MultiSeriesEventsStats | EventsStats | null
+): data is MultiSeriesEventsStats {
+  return data !== null && data.data === undefined && data.totals === undefined;
 }
