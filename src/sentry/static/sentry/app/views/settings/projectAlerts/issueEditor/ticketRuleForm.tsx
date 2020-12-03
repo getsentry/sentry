@@ -227,7 +227,6 @@ class TicketRuleForm extends React.Component<Props, State> {
               onFieldChange={this.onFieldChange}
               submitLabel={submitLabel}
               cancelLabel={cancelLabel}
-              submitDisabled={this.state.disabled}
               footerClass="modal-footer"
               onCancel={this.onCancel}
             >
