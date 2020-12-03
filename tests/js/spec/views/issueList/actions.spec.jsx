@@ -366,15 +366,15 @@ describe('IssueListActions', function () {
     });
 
     it('hides actions when no issues are selected', async function () {
-      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBe(false);
+      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(false);
     });
 
     it('displays actions on issue selection', async function () {
       wrapper.setState({anySelected: true});
-      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBe(true);
+      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(true);
     });
 
-    it('moves group to backlog', async function () {
+    it('acknowledges group', async function () {
       wrapper.setState({anySelected: true});
       SelectedGroupStore.add([1, 2, 3]);
       SelectedGroupStore.toggleSelectAll();

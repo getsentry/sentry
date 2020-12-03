@@ -1,5 +1,4 @@
 import React from 'react';
-import {WithRouterProps} from 'react-router';
 import uniq from 'lodash/uniq';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -23,12 +22,12 @@ type IssueOwnershipResponse = {
   autoAssignment: boolean;
 };
 
-type Props = {
+type Props = AsyncComponent['props'] & {
   organization: Organization;
   project: Project;
   issueId: string;
   onSave: () => void;
-} & WithRouterProps<{orgId: string; projectId: string; issueId: string}, {}>;
+};
 
 type State = {
   ownership: null | IssueOwnershipResponse;

@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import {
   Event,
   Frame,
+  Integration,
   Organization,
   Project,
   RepositoryProjectPathConfig,
@@ -16,6 +17,7 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import {OpenInContainer, OpenInLink, OpenInName} from './openInContextLine';
+import StacktraceLinkModal from './stacktraceLinkModal';
 
 type Props = AsyncComponent['props'] & {
   frame: Frame;
@@ -27,6 +29,7 @@ type Props = AsyncComponent['props'] & {
 
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
+  integrations: Integration[];
   config?: RepositoryProjectPathConfig;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
@@ -49,6 +52,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
   get config() {
     return this.match.config;
+  }
+
+  get integrations() {
+    return this.match.integrations;
   }
 
   get errorText() {
@@ -81,6 +88,16 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       ],
     ];
   }
+
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      showModal: false,
+      sourceCodeInput: '',
+      match: {integrations: []},
+    };
+  }
+
   onOpenLink() {
     const provider = this.config?.provider;
     if (provider) {
@@ -114,6 +131,10 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
+  onClose() {
+    this.reloadData();
+  }
+
   // let the ErrorBoundary handle errors by raising it
   renderError(): React.ReactNode {
     throw new Error('Error loading endpoints');
@@ -123,10 +144,25 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     //TODO: Add loading
     return null;
   }
+
   renderNoMatch() {
-    //TODO: Improve UI
+    const {organization} = this.props;
+    const filename = this.props.frame.filename;
+
+    if (this.project && this.integrations.length > 0 && filename) {
+      return (
+        <StacktraceLinkModal
+          filename={filename}
+          project={this.project}
+          organization={organization}
+          integrations={this.integrations}
+          onClose={() => this.onClose()}
+        />
+      );
+    }
     return null;
   }
+
   renderMatchNoUrl() {
     const {config} = this.match;
     const {organization} = this.props;
@@ -136,7 +172,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <CodeMappingButtonContainer columnQuantity={2}>
         {text}
         <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
-          {t('Configure Code Mapping')}
+          {t('Configure Stack Trace Linking')}
         </Button>
       </CodeMappingButtonContainer>
     );

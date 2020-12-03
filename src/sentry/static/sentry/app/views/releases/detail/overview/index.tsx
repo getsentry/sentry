@@ -35,6 +35,7 @@ import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
+import ReleaseStats from './releaseStats';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
@@ -320,6 +321,13 @@ class ReleaseOverview extends AsyncView<Props> {
                     </Feature>
                   </Main>
                   <Side>
+                    <ReleaseStats
+                      organization={organization}
+                      release={release}
+                      project={project}
+                      location={location}
+                      selection={selection}
+                    />
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}

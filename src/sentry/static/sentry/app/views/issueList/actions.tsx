@@ -336,7 +336,7 @@ class IssueListActions extends React.Component<Props, State> {
     action:
       | 'resolve'
       | 'unresolve'
-      | 'backlog'
+      | 'acknowledge'
       | 'ignore'
       | 'unbookmark'
       | 'bookmark'
@@ -350,7 +350,7 @@ class IssueListActions extends React.Component<Props, State> {
       case 'ignore':
       case 'unbookmark':
         return this.state.pageSelected && selectedItems.size > 1;
-      case 'backlog':
+      case 'acknowledge':
       case 'bookmark':
         return selectedItems.size > 1;
       case 'merge':
@@ -420,17 +420,17 @@ class IssueListActions extends React.Component<Props, State> {
         {hasInbox && (
           <div className="btn-group hidden-sm hidden-xs">
             <StyledActionLink
-              className="btn btn-default btn-sm action-backlog"
-              data-test-id="button-backlog"
+              className="btn btn-default btn-sm action-merge"
+              data-test-id="button-acknowledge"
               disabled={!anySelected}
               onAction={() => this.handleUpdate({inbox: false})}
-              shouldConfirm={this.shouldConfirm('backlog')}
-              message={confirm('move', false, ' to the backlog')}
-              confirmLabel={label('backlog')}
-              title={t('Move to backlog')}
+              shouldConfirm={this.shouldConfirm('acknowledge')}
+              message={confirm('acknowledge', false)}
+              confirmLabel={label('acknowledge')}
+              title={t('Acknowledge')}
             >
               <StyledIconIssues size="xs" />
-              {t('Backlog')}
+              {t('Acknowledge')}
             </StyledActionLink>
           </div>
         )}
@@ -511,15 +511,15 @@ class IssueListActions extends React.Component<Props, State> {
                 <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
                 <MenuItem noAnchor>
                   <ActionLink
-                    className="action-backlog hidden-md hidden-lg hidden-xl"
+                    className="action-acknowledge hidden-md hidden-lg hidden-xl"
                     disabled={!anySelected}
                     onAction={() => this.handleUpdate({inbox: false})}
-                    shouldConfirm={this.shouldConfirm('backlog')}
-                    message={confirm('move', false, ' to the backlog')}
-                    confirmLabel={label('backlog')}
-                    title={t('Move to backlog')}
+                    shouldConfirm={this.shouldConfirm('acknowledge')}
+                    message={confirm('acknowledge', false)}
+                    confirmLabel={label('acknowledge')}
+                    title={t('Acknowledge')}
                   >
-                    {t('Move to backlog')}
+                    {t('Acknowledge')}
                   </ActionLink>
                 </MenuItem>
               </React.Fragment>
