@@ -58,10 +58,7 @@ class GroupEventToolbar extends React.Component<Props> {
     const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
 
     return (
-      <dl
-        className="flat"
-        style={{textAlign: 'left', margin: 0, minWidth: '200px', maxWidth: '250px'}}
-      >
+      <DescriptionList className="flat">
         <dt>Occurred</dt>
         <dd>
           {dateCreated.format('ll')}
@@ -80,7 +77,7 @@ class GroupEventToolbar extends React.Component<Props> {
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
           </React.Fragment>
         )}
-      </dl>
+      </DescriptionList>
     );
   }
 
@@ -184,6 +181,13 @@ const JsonLink = styled(ExternalLink)`
     height: 14px;
     border-left: 1px solid ${p => p.theme.border};
   }
+`;
+
+const DescriptionList = styled('dl')`
+  text-align: left;
+  margin: 0;
+  min-width: 200px;
+  max-width: 250px;
 `;
 
 export default GroupEventToolbar;
