@@ -480,7 +480,7 @@ def rate_limit_endpoint(limit=1, window=1):
                     status=429,
                 )
             else:
-                return function(*args, **kwargs)
+                return function(self, request, *args, **kwargs)
 
         return wrapper
 
