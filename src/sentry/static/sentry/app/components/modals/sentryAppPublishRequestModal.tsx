@@ -81,10 +81,10 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 
     const permissionLabel = (
       <React.Fragment>
-        {permissionQuestionBaseText}
+        <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
         {permissions.map((permission, i) => (
           <React.Fragment key={permission}>
-            {i > 0 && ', '} <code>{permission}</code>
+            {i > 0 && ', '} <Permission>{permission}</Permission>
           </React.Fragment>
         ))}
         .
@@ -188,4 +188,12 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
   font-size: 18px;
+`;
+
+const PermissionLabel = styled('span')`
+  line-height: 24px;
+`;
+
+const Permission = styled('code')`
+  line-height: 24px;
 `;

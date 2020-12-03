@@ -5,12 +5,14 @@ import partition from 'lodash/partition';
 
 import {GlobalSelection, Release} from 'app/types';
 
-import CompactContent from './compactContent';
+import {DisplayOption} from '../utils';
+
 import Content from './content';
 
 type Props = {
   release: Release;
   orgSlug: string;
+  activeDisplay: DisplayOption;
   location: Location;
   showPlaceholders: boolean;
   selection: GlobalSelection;
@@ -19,6 +21,7 @@ type Props = {
 const ReleaseHealth = ({
   release,
   orgSlug,
+  activeDisplay,
   location,
   selection,
   showPlaceholders,
@@ -32,27 +35,16 @@ const ReleaseHealth = ({
     )
   );
 
-  const hasAtLeastOneHealthData = sortedProjects.some(
-    sortedProject => sortedProject.hasHealthData
+  return (
+    <Content
+      activeDisplay={activeDisplay}
+      orgSlug={orgSlug}
+      releaseVersion={release.version}
+      projects={sortedProjects}
+      location={location}
+      showPlaceholders={showPlaceholders}
+    />
   );
-
-  const contentProps = {
-    projects: sortedProjects,
-    releaseVersion: release.version,
-    orgSlug,
-  };
-
-  if (hasAtLeastOneHealthData) {
-    return (
-      <Content
-        {...contentProps}
-        location={location}
-        showPlaceholders={showPlaceholders}
-      />
-    );
-  }
-
-  return <CompactContent {...contentProps} />;
 };
 
 export default ReleaseHealth;

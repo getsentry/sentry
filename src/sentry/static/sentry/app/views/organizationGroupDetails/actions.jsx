@@ -208,8 +208,14 @@ const GroupDetailsActions = createReactClass({
 
   onReprocess() {
     const {group, organization} = this.props;
-    openModal(props => (
-      <ReprocessingForm group={group} organization={organization} {...props} />
+    openModal(({closeModal, Header, Body}) => (
+      <ReprocessingForm
+        group={group}
+        orgSlug={organization.slug}
+        closeModal={closeModal}
+        Header={Header}
+        Body={Body}
+      />
     ));
   },
 
@@ -309,17 +315,6 @@ const GroupDetailsActions = createReactClass({
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
-        {projectFeatures.has('reprocessing-v2') && (
-          <div className="btn-group">
-            <Tooltip title={t('Reprocess this issue')}>
-              <div className={buttonClassName} onClick={this.onReprocess}>
-                <IconWrapper>
-                  <IconRefresh size="xs" />
-                </IconWrapper>
-              </div>
-            </Tooltip>
-          </div>
-        )}
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
@@ -357,6 +352,17 @@ const GroupDetailsActions = createReactClass({
           </BookmarkButton>
         </div>
         <SubscribeAction group={group} onClick={this.onToggleSubscribe} />
+        {projectFeatures.has('reprocessing-v2') && (
+          <div className="btn-group">
+            <Tooltip title={t('Reprocess this issue')}>
+              <div className={buttonClassName} onClick={this.onReprocess}>
+                <IconWrapper>
+                  <IconRefresh size="xs" />
+                </IconWrapper>
+              </div>
+            </Tooltip>
+          </div>
+        )}
       </div>
     );
   },

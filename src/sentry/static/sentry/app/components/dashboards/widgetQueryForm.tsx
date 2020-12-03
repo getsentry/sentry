@@ -23,6 +23,7 @@ import SearchBar from 'app/views/events/searchBar';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 
 type Props = {
@@ -34,6 +35,7 @@ type Props = {
   onChange: (widgetQuery: WidgetQuery) => void;
   canRemove: boolean;
   onRemove: () => void;
+  errors?: Record<string, any>;
 };
 
 type SavedQueryOption = SelectValue<SavedQuery>;
@@ -45,6 +47,7 @@ type SavedQueryOption = SelectValue<SavedQuery>;
 function WidgetQueryForm({
   api,
   canRemove,
+  errors,
   fieldOptions,
   onChange,
   onRemove,
@@ -156,20 +159,24 @@ function WidgetQueryForm({
             value={widgetQuery.name}
             onChange={event => handleFieldChange('name')(event.target.value)}
           />
+          {errors?.name && <FieldErrorReason>{errors.name}</FieldErrorReason>}
           <FieldHelp>{t('Used to disambiguate results from multiple queries')}</FieldHelp>
         </VerticalPanelItem>
       )}
       <VerticalPanelItem>
         <Heading>{t('Conditions')}</Heading>
-        <SearchBar
-          organization={organization}
-          projectIds={selection.projects}
-          query={widgetQuery.conditions}
-          fields={[]}
-          onSearch={handleFieldChange('conditions')}
-          onBlur={handleFieldChange('conditions')}
-          useFormWrapper={false}
-        />
+        <ConditionContainer>
+          <SearchBar
+            organization={organization}
+            projectIds={selection.projects}
+            query={widgetQuery.conditions}
+            fields={[]}
+            onSearch={handleFieldChange('conditions')}
+            onBlur={handleFieldChange('conditions')}
+            useFormWrapper={false}
+          />
+          {errors?.conditions && <FieldErrorReason>{errors.conditions}</FieldErrorReason>}
+        </ConditionContainer>
       </VerticalPanelItem>
       <VerticalPanelItem>
         <Heading>{t('Fields')}</Heading>
@@ -192,6 +199,7 @@ function WidgetQueryForm({
             )}
           </QueryFieldWrapper>
         ))}
+        {errors?.fields && <FieldErrorReason>{errors.fields}</FieldErrorReason>}
         <div>
           <Button
             data-test-id="add-field"
@@ -211,6 +219,10 @@ function WidgetQueryForm({
 const StyledPanelBody = styled(PanelBody)`
   position: relative;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+`;
+
+const ConditionContainer = styled('div')`
+  position: relative;
 `;
 
 const Heading = styled('h3')`

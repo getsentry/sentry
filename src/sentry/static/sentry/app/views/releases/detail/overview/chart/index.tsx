@@ -1,15 +1,19 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
 import {Panel} from 'app/components/panels';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
+import {getTermHelp} from 'app/views/performance/data';
+import {ChartContainer, HeaderTitleLegend} from 'app/views/performance/styles';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 
@@ -37,9 +41,65 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   version: string;
   hasDiscover: boolean;
   hasPerformance: boolean;
+  theme: Theme;
 };
 
 class ReleaseChartContainer extends React.Component<Props> {
+  getTransactionsChartColors(): [string, string] {
+    const {yAxis, theme} = this.props;
+
+    switch (yAxis) {
+      case YAxis.FAILED_TRANSACTIONS:
+        return [theme.red300, theme.red100];
+      default:
+        return [theme.purple300, theme.purple100];
+    }
+  }
+
+  getChartTitle() {
+    const {yAxis, organization} = this.props;
+
+    switch (yAxis) {
+      case YAxis.SESSIONS:
+        return {
+          title: t('Session Count'),
+          help: t('The number of sessions in a given period.'),
+        };
+      case YAxis.USERS:
+        return {
+          title: t('User Count'),
+          help: t('The number of users in a given period.'),
+        };
+      case YAxis.SESSION_DURATION:
+        return {title: t('Session Duration')};
+      case YAxis.CRASH_FREE:
+        return {title: t('Crash Free Rate')};
+      case YAxis.FAILED_TRANSACTIONS:
+        return {
+          title: t('Failure Count'),
+          help: getTermHelp(organization, 'failureRate'),
+        };
+      case YAxis.COUNT_DURATION:
+        return {title: t('Slow Count (duration)')};
+      case YAxis.COUNT_LCP:
+        return {title: t('Slow Count (LCP)')};
+      case YAxis.EVENTS:
+      default:
+        return {title: t('Event Count')};
+    }
+  }
+
+  seriesNameTransformer(name: string): string {
+    switch (name) {
+      case 'current':
+        return t('This Release');
+      case 'others':
+        return t('Other Releases');
+      default:
+        return name;
+    }
+  }
+
   // TODO(tonyx): Delete this else once the feature flags are removed
   renderEventsChart() {
     const {location, router, organization, api, yAxis, selection, version} = this.props;
@@ -53,6 +113,7 @@ class ReleaseChartContainer extends React.Component<Props> {
       organization
     );
     const apiPayload = eventView.getEventsAPIPayload(location);
+    const {title, help} = this.getChartTitle();
 
     return (
       <EventsChart
@@ -71,28 +132,16 @@ class ReleaseChartContainer extends React.Component<Props> {
         disablePrevious
         disableReleases
         currentSeriesName={t('Events')}
+        chartHeader={
+          <HeaderTitleLegend>
+            {title}
+            {help && <QuestionTooltip size="sm" position="top" title={help} />}
+          </HeaderTitleLegend>
+        }
+        legendOptions={{right: 10, top: 0}}
+        chartOptions={{grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'}}}
       />
     );
-  }
-
-  getTransactionsChartColors(): [string, string] {
-    const {yAxis} = this.props;
-
-    switch (yAxis) {
-      case YAxis.FAILED_TRANSACTIONS:
-        return [theme.red300, theme.red100];
-      default:
-        return [theme.purple300, theme.purple100];
-    }
-  }
-
-  seriesNameTransformer(name: string): string {
-    if (name === 'current') {
-      return t('This Release');
-    } else if (name === 'others') {
-      return t('Other Releases');
-    }
-    return name;
   }
 
   renderStackedChart() {
@@ -118,9 +167,11 @@ class ReleaseChartContainer extends React.Component<Props> {
     );
     const apiPayload = eventView.getEventsAPIPayload(location);
     const colors = this.getTransactionsChartColors();
+    const {title, help} = this.getChartTitle();
 
     const releaseQueryExtra = {
       showTransactions: location.query.showTransactions,
+      eventType,
       yAxis,
     };
 
@@ -152,6 +203,14 @@ class ReleaseChartContainer extends React.Component<Props> {
         colors={colors}
         preserveReleaseQueryParams
         releaseQueryExtra={releaseQueryExtra}
+        chartHeader={
+          <HeaderTitleLegend>
+            {title}
+            {help && <QuestionTooltip size="sm" position="top" title={help} />}
+          </HeaderTitleLegend>
+        }
+        legendOptions={{right: 10, top: 0}}
+        chartOptions={{grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'}}}
       />
     );
   }
@@ -167,6 +226,7 @@ class ReleaseChartContainer extends React.Component<Props> {
       router,
       platform,
     } = this.props;
+    const {title, help} = this.getChartTitle();
 
     return (
       <HealthChartContainer
@@ -178,6 +238,8 @@ class ReleaseChartContainer extends React.Component<Props> {
         selection={selection}
         yAxis={yAxis}
         router={router}
+        title={title}
+        help={help}
       />
     );
   }
@@ -213,7 +275,7 @@ class ReleaseChartContainer extends React.Component<Props> {
 
     return (
       <Panel>
-        {chart}
+        <ChartContainer>{chart}</ChartContainer>
         <ReleaseChartControls
           summary={chartSummary}
           yAxis={yAxis}
@@ -230,4 +292,4 @@ class ReleaseChartContainer extends React.Component<Props> {
   }
 }
 
-export default ReleaseChartContainer;
+export default withTheme(ReleaseChartContainer);

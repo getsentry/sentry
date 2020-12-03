@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
@@ -9,6 +9,7 @@ import AsyncView from 'app/views/asyncView';
 
 import AuditLogList from './auditLogList';
 
+// Please keep this list sorted
 const EVENT_TYPES = [
   'member.invite',
   'member.add',
@@ -60,18 +61,19 @@ const EVENT_TYPES = [
   'trial.started',
   'plan.changed',
   'plan.cancelled',
-].sort();
+];
 
-class OrganizationAuditLog extends AsyncView {
-  static propTypes = {
-    routes: PropTypes.array,
-  };
+type Props = RouteComponentProps<{orgId: string}, {}> & AsyncView['props'];
 
+type State = AsyncView['state'];
+
+class OrganizationAuditLog extends AsyncView<Props, State> {
   static contextTypes = {
+    router: PropTypes.object,
     organization: SentryTypes.Organization,
   };
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [
       [
         'entryList',
@@ -87,7 +89,7 @@ class OrganizationAuditLog extends AsyncView {
     return routeTitleGen(t('Audit Log'), this.context.organization.slug, false);
   }
 
-  handleEventSelect = value => {
+  handleEventSelect = (value: string) => {
     // Dont update if event has not changed
     if (this.props.location.query.event === value) {
       return;

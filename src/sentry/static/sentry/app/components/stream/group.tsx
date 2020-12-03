@@ -5,6 +5,7 @@ import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Box, Flex} from 'reflexbox';
 
+import Feature from 'app/components/acl/feature';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
@@ -19,6 +20,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import {PanelItem} from 'app/components/panels';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
+import GroupRowActions from 'app/components/stream/groupRowActions';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
@@ -395,12 +397,24 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
+        <Feature organization={organization} features={['organizations:inbox']}>
+          <Box width={120} mx={2} className="hidden-xs hidden-sm">
+            <GroupRowActions
+              group={data}
+              orgId={organization.slug}
+              selection={selection}
+              query={query}
+            />
+          </Box>
+        </Feature>
       </Wrapper>
     );
   }
 }
 
+// Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)`
+  position: relative;
   padding: ${space(1)} 0;
   align-items: center;
   line-height: 1.1;
