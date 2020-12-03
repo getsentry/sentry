@@ -5,13 +5,12 @@ from __future__ import absolute_import
 from sentry.utils.compat import mock
 import zlib
 import pytest
-import six
 
 from sentry.cache.redis import RedisClusterCache, RbCache
 from sentry.utils.imports import import_string
 
 
-KEY_FMT = "c:2:%s" if six.PY3 else "c:1:%s"
+KEY_FMT = "c:1:%s"
 
 
 class FakeClient(object):
