@@ -22,7 +22,6 @@ from sentry.models import (
     Group,
     GroupRelease,
     GroupSeen,
-    GroupStatus,
     Release,
     ReleaseEnvironment,
     ReleaseProject,
@@ -38,16 +37,6 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-STATUS_CHOICES = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-}
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):

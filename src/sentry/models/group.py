@@ -133,6 +133,33 @@ class GroupStatus(object):
     MUTED = IGNORED
 
 
+# Statuses that can be queried/searched for
+STATUS_QUERY_CHOICES = {
+    "resolved": GroupStatus.RESOLVED,
+    "unresolved": GroupStatus.UNRESOLVED,
+    "ignored": GroupStatus.IGNORED,
+    # TODO(dcramer): remove in 9.0
+    "muted": GroupStatus.IGNORED,
+    "reprocessing": GroupStatus.REPROCESSING,
+}
+
+# Statuses that can be updated from the regular "update group" API
+#
+# Differences over STATUS_QUERY_CHOICES:
+#
+# reprocessing is missing as it is its own endpoint and requires extra input
+# resolvedInNextRelease is added as that is an action that can be taken, but at
+# the same time it can't be queried for
+STATUS_UPDATE_CHOICES = {
+    "resolved": GroupStatus.RESOLVED,
+    "unresolved": GroupStatus.UNRESOLVED,
+    "ignored": GroupStatus.IGNORED,
+    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
+    # TODO(dcramer): remove in 9.0
+    "muted": GroupStatus.IGNORED,
+}
+
+
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]

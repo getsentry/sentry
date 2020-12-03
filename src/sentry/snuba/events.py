@@ -291,3 +291,12 @@ class Columns(Enum):
         "contexts[trace.parent_span_id]",
         "trace.parent_span",
     )
+
+    # Reprocessing context
+    REPROCESSING_ORIGINAL_GROUP_ID = Column(
+        "events.contexts[reprocessing.original_issue_id]",
+        "contexts[reprocessing.original_issue_id]",
+        "contexts[reprocessing.original_issue_id]",
+        "contexts[reprocessing.original_issue_id]",
+        "reprocessing.original_issue_id",
+    )

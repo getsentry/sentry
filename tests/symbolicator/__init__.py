@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import os
 
+import six
+
 from sentry.utils.safe import get_path
 
 
@@ -64,7 +66,10 @@ def insta_snapshot_stacktrace_data(self, event, **kwargs):
                 ]
             },
             "debug_meta": event.get("debug_meta"),
-            "contexts": event.get("contexts"),
+            "contexts": {
+                k: v for k, v in six.iteritems(event.get("contexts") or {}) if k != "reprocessing"
+            }
+            or None,
             "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
         },
         **kwargs
