@@ -19,7 +19,11 @@ from sentry.models import (
     GroupOwner,
     GroupStatus,
     GroupSubscription,
+    OrganizationMember,
+    OrganizationMemberTeam,
     PlatformExternalIssue,
+    Team,
+    User,
 )
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
@@ -124,7 +128,6 @@ def inbox_filter(inbox, projects):
 
 
 def owner_filter(owner, projects):
-    from sentry.models import Team, User
 
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
@@ -137,13 +140,30 @@ def owner_filter(owner, projects):
             .distinct()
         )
     elif isinstance(owner, User):
-        return Q(
-            id__in=GroupOwner.objects.filter(
-                user=owner, project_id__in=project_ids, organization_id=organization_id
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__in=OrganizationMember.objects.filter(
+                    user=owner, organization_id=organization_id
+                ),
+                is_active=True,
+            ).values("team")
+        )
+        group_owner_ids = (
+            (
+                GroupOwner.objects.filter(
+                    team__in=teams, project_id__in=project_ids, organization_id=organization_id
+                )
+                | GroupOwner.objects.filter(
+                    user=owner, project_id__in=project_ids, organization_id=organization_id
+                )
             )
             .values_list("group_id", flat=True)
             .distinct()
         )
+        return Q(id__in=group_owner_ids)
+
+    elif owner == "me_or_none":
+        pass
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
 
