@@ -21,7 +21,7 @@ const impacts = [
     {strong: <strong />}
   ),
   tct(
-    '[strong:Reprocessed events count towards your organization’s quota.] Rate limits and spike protection don’t apply here.',
+    '[strong:Reprocessed events count towards your organization’s quota.] Rate limits and spike protection don’t apply to reprocessed events.',
     {strong: <strong />}
   ),
   t('Please wait one hour before attempting to reprocess missing debug files.'),
