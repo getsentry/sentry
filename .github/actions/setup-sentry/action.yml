@@ -44,7 +44,7 @@ runs:
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
-        [ "$PYTHON_VERSION" = "3" ] && echo "SENTRY_PYTHON3=1" >> $GITHUB_ENV || true
+        [ "$PYTHON_VERSION" = "2" ] && echo "SENTRY_PYTHON2=1" >> $GITHUB_ENV || true
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV

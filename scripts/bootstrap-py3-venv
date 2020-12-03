@@ -12,6 +12,8 @@
 
 # So just going to sprinkle returns everywhere.
 
+unset SENTRY_PYTHON2
+
 command -v pyenv >/dev/null || {
     echo "You need to install pyenv. https://develop.sentry.dev/environment/#python"
     return 1
@@ -22,13 +24,20 @@ command -v direnv >/dev/null || {
     return 1
 }
 
-export SENTRY_PYTHON3=1
-
 gitroot="$(git rev-parse --show-toplevel)"
 cd "$gitroot"
+export venv_name="${PWD}/.venv"
 
-if [[ -f .venv3/bin/activate ]]; then
-    echo "You seem to have a virtualenv already. This script is meant to start one from scratch. Continue (y/N)?"
+if [[ -f "${venv_name}/bin/activate" ]]; then
+    prompt_text="You have an existing virtualenv. This script will OVERWRITE it. Continue (y/N)?"
+
+    # Temporary special case for Python 2 .venv/ -> .venv2/ transition.
+    # Just a more helpful error message.
+    if [[ "$(python -V 2>&1)" = "Python $(grep "2.7" .python-version)" ]]; then
+        prompt_text="You have an existing Python 2 virtualenv. Remove it and replace with a Python 3 virtualenv (y/N)?"
+    fi
+
+    echo "$prompt_text"
     read resp
     case "$resp" in
       y|Y ) echo "Okay, let's do this." ;;
@@ -37,16 +46,16 @@ if [[ -f .venv3/bin/activate ]]; then
 fi
 
 deactivate 2>/dev/null || true
-rm -rf .venv3/
+rm -rf "$venv_name"
 
-if ! [[ "$(python3 -V 2>&1)" = "Python $(awk -v ORS='' 'FNR == 2' .python-version)" ]]; then
+if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]]; then
     abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
 python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
 python3 -m pip install -U virtualenv    || { echo "bootstrap failed!"; return 1; }
-python3 -m virtualenv .venv3            || { echo "bootstrap failed!"; return 1; }
-source .venv3/bin/activate              || { echo "bootstrap failed!"; return 1; }
+python3 -m virtualenv "${venv_name}"    || { echo "bootstrap failed!"; return 1; }
+source "${venv_name}/bin/activate"      || { echo "bootstrap failed!"; return 1; }
 make setup-git                          || { echo "bootstrap failed!"; return 1; }
 make install-py-dev                     || { echo "bootstrap failed!"; return 1; }
 deactivate                              || { echo "bootstrap failed!"; return 1; }

@@ -30,7 +30,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.api_docs == 'true'
         run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -57,7 +57,6 @@ jobs:
         id: setup
         if: steps.changes.outputs.api_docs == 'true'
         with:
-          python: 3
           snuba: true
 
       - name: Install Javascript Dependencies
