@@ -99,6 +99,7 @@ class SettingsLayout extends React.Component<Props, State> {
                 onClick={() => this.toggleNav(!navVisible)}
               />
             )}
+            SNAPSHOT TEST
             <StyledSettingsBreadcrumb
               params={params}
               routes={childRoutes}
