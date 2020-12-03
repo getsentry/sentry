@@ -122,10 +122,10 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         return self.respond(
             {
                 "integrationId": integration.id,
-                "repoId": repo.id,
+                "repositoryId": repo.id,
                 "provider": integration.provider,
                 "stackRoot": stack_root,
                 "sourceRoot": source_root,
-                "branch": branch,
+                "defaultBranch": branch,
             }
         )
