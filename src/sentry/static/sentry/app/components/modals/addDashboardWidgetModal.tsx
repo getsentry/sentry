@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import set from 'lodash/set';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
@@ -102,7 +102,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const {api, closeModal, organization, onAddWidget} = this.props;
     this.setState({loading: true});
     try {
-      const widgetData: Widget = omit(this.state, ['errors', 'loading']);
+      const widgetData: Widget = pick(this.state, [
+        'title',
+        'displayType',
+        'interval',
+        'queries',
+      ]);
       await validateWidget(api, organization.slug, widgetData);
       onAddWidget(widgetData);
       addSuccessMessage(t('Added widget.'));

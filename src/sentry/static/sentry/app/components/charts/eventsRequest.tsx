@@ -7,7 +7,7 @@ import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import LoadingPanel from 'app/components/charts/loadingPanel';
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
+import {canIncludePreviousPeriod, isMultiSeriesStats} from 'app/components/charts/utils';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {
@@ -153,12 +153,6 @@ type EventsRequestState = {
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
-
-function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null
-): data is MultiSeriesEventsStats {
-  return data !== null && data.data === undefined && data.totals === undefined;
-}
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
   static propTypes = {
