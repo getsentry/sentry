@@ -142,11 +142,7 @@ const ExtraDescription = ({all, query, queryCount}: ExtraDescriptionProps) => {
   );
 };
 
-const defaultProps = {
-  hasInbox: false,
-};
-
-type Props = typeof defaultProps & {
+type Props = {
   api: Client;
   allResultsVisible: boolean;
   orgId: string;
@@ -160,6 +156,7 @@ type Props = typeof defaultProps & {
   queryCount: number;
   queryMaxCount: number;
   pageCount: number;
+  hasInbox?: boolean;
 };
 
 type State = {
@@ -173,7 +170,6 @@ type State = {
 };
 
 class IssueListActions extends React.Component<Props, State> {
-  static defaultProps = defaultProps;
   state: State = {
     datePickerActive: false,
     anySelected: false,
