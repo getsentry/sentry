@@ -365,16 +365,16 @@ describe('IssueListActions', function () {
       );
     });
 
-    it('renders backlog action', function () {
-      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBeTruthy();
+    it('renders acknowledge action', function () {
+      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBeTruthy();
     });
 
-    it('moves group to backlog', async function () {
+    it('acknowledges group', async function () {
       const apiMock = MockApiClient.addMockResponse({
         url: '/organizations/1337/issues/',
         method: 'PUT',
       });
-      wrapper.find('[data-test-id="button-backlog"]').first().simulate('click');
+      wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');
 
       expect(wrapper.find('ModalDialog')).toSnapshot();
       wrapper.find('Button[priority="primary"]').simulate('click');
