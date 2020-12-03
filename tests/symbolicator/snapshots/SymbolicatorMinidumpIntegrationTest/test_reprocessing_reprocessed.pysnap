@@ -1,5 +1,5 @@
 ---
-created: '2020-12-02T22:05:57.591298Z'
+created: '2020-11-17T17:07:25.663438Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -11,9 +11,6 @@ contexts:
     name: Windows
     type: os
     version: 10.0.14393
-  reprocessing:
-    original_issue_id: 1
-    type: reprocessing
 debug_meta:
   images:
   - arch: x86
