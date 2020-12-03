@@ -212,6 +212,26 @@ describe('groupEventDetails', () => {
     });
   });
 
+  it('displays error on event error', async function () {
+    const wrapper = mountWithTheme(
+      <GroupEventDetails
+        api={new MockApiClient()}
+        group={group}
+        event={undefined}
+        eventError
+        project={project}
+        organization={org}
+        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+        params={{orgId: org.slug, group: group.id, eventId: '1'}}
+        location={{}}
+      />,
+      routerContext
+    );
+    await tick();
+
+    expect(wrapper.text()).toContain('events for this issue could not be found');
+  });
+
   describe('EventCauseEmpty', () => {
     const proj = TestStubs.Project({firstEvent: '2020-01-01T01:00:00Z'});
 

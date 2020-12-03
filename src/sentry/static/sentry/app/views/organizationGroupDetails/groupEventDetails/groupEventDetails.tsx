@@ -31,7 +31,7 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
-  event: Event;
+  event?: Event;
   loadingEvent: boolean;
   eventError: boolean;
   onRetry: () => void;
@@ -168,12 +168,14 @@ class GroupEventDetails extends React.Component<Props, State> {
       <div className={className}>
         <div className="event-details-container">
           <div className="primary">
-            <GroupEventToolbar
-              group={group}
-              event={evt}
-              orgId={organization.slug}
-              location={location}
-            />
+            {evt && (
+              <GroupEventToolbar
+                group={group}
+                event={evt}
+                orgId={organization.slug}
+                location={location}
+              />
+            )}
             {group.status === 'ignored' && (
               <MutedBox statusDetails={group.statusDetails} />
             )}
