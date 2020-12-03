@@ -31,7 +31,7 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
-  event: Event;
+  event?: Event;
   loadingEvent: boolean;
   eventError: boolean;
   onRetry: () => void;
