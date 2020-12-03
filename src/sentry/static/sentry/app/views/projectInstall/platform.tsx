@@ -166,7 +166,7 @@ class ProjectInstallPlatform extends React.Component<Props, State> {
                   <React.Fragment>
                     {showPerformancePrompt && (
                       <Feature
-                        features={['organization:performance-view']}
+                        features={['performance-view']}
                         hookName="feature-disabled:performance-new-project"
                       >
                         {({hasFeature}) => {
