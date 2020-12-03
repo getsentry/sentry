@@ -58,7 +58,10 @@ class GroupEventToolbar extends React.Component<Props> {
     const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
 
     return (
-      <dl className="flat" style={{textAlign: 'left', margin: 0, minWidth: '200px'}}>
+      <dl
+        className="flat"
+        style={{textAlign: 'left', margin: 0, minWidth: '200px', maxWidth: '250px'}}
+      >
         <dt>Occurred</dt>
         <dd>
           {dateCreated.format('ll')}
@@ -99,7 +102,7 @@ class GroupEventToolbar extends React.Component<Props> {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <div className="event-toolbar">
+      <Wrapper>
         <StyledNavigationButtonGroup
           location={location}
           hasPrevious={!!evt.previousEventID}
@@ -111,27 +114,48 @@ class GroupEventToolbar extends React.Component<Props> {
             `${baseEventsPath}latest/`,
           ]}
         />
-        <h4>
+        <Heading>
           {t('Event')}{' '}
-          <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
-            {evt.eventID}
-          </Link>
-        </h4>
-        <span>
+          <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
+        </Heading>
+        <React.Fragment>
           <Tooltip title={this.getDateTooltip()} disableForVisualTest>
             <StyledDateTime
               date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
             />
             {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
           </Tooltip>
-          <ExternalLink href={jsonUrl} className="json-link">
+          <JsonLink href={jsonUrl}>
             {'JSON'} (<FileSize bytes={evt.size} />)
-          </ExternalLink>
-        </span>
-      </div>
+          </JsonLink>
+        </React.Fragment>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+  margin-bottom: -5px;
+  /* z-index seems unnecessary, but increasing (instead of removing) just in case(billy) */
+  /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
+  z-index: 3;
+  padding: 20px 30px 20px 40px;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+`;
+
+const EventIdLink = styled(Link)`
+  font-weight: normal;
+`;
+
+const Heading = styled('h4')`
+  line-height: 1.3;
+  margin: 0;
+  font-size: 16px;
+`;
 
 const StyledNavigationButtonGroup = styled(NavigationButtonGroup)`
   float: right;
@@ -145,6 +169,23 @@ const StyledIconWarning = styled(IconWarning)`
 
 const StyledDateTime = styled(DateTime)`
   border-bottom: 1px dotted #dfe3ea;
+  color: ${p => p.theme.subText};
+`;
+
+const JsonLink = styled(ExternalLink)`
+  margin-left: 8px;
+  padding-left: 8px;
+  position: relative;
+
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 2px;
+    height: 14px;
+    border-left: 1px solid ${p => p.theme.border};
+  }
 `;
 
 export default GroupEventToolbar;
