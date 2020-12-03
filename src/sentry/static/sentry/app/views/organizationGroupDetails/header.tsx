@@ -82,6 +82,7 @@ class GroupHeader extends React.Component<Props, State> {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
+    const isReprocessing = group.status === 'reprocessing';
 
     const hasReprocessingV2Feature = projectFeatures.has('reprocessing-v2');
     const hasSimilarView = projectFeatures.has('similarity-view');
@@ -219,54 +220,61 @@ class GroupHeader extends React.Component<Props, State> {
         />
         <GroupActions group={group} project={project} disabled={isReprocessing} />
         <NavTabs>
-          <ListLink
+          <StyledListLink
             to={`${baseUrl}${location.search}`}
             isActive={() => currentTab === TAB.DETAILS}
           >
             {t('Details')}
-          </ListLink>
-          <ListLink
+          </StyledListLink>
+          <StyledListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.COMMENTS}
           >
             {t('Activity')} <Badge text={group.numComments} />
-          </ListLink>
-          <ListLink
+          </StyledListLink>
+          <StyledListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
-          </ListLink>
+          </StyledListLink>
           {hasEventAttachments && (
-            <ListLink
+            <StyledListLink
               to={`${baseUrl}attachments/${location.search}`}
               isActive={() => currentTab === TAB.ATTACHMENTS}
             >
               {t('Attachments')}
-            </ListLink>
+            </StyledListLink>
           )}
-          <ListLink
-            to={`${baseUrl}tags/${location.search}`}
-            isActive={() => currentTab === TAB.TAGS}
-          >
-            {t('Tags')}
-          </ListLink>
-          <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
-            {t('Events')}
-          </ListLink>
-          <ListLink
-            to={`${baseUrl}merged/${location.search}`}
-            isActive={() => currentTab === TAB.MERGED}
-          >
-            {t('Merged Issues')}
-          </ListLink>
-          {hasSimilarView && (
-            <ListLink
-              to={`${baseUrl}similar/${location.search}`}
-              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
-            >
-              {t('Similar Issues')}
-            </ListLink>
+          {!isReprocessing && (
+            <React.Fragment>
+              <StyledListLink
+                to={`${baseUrl}tags/${location.search}`}
+                isActive={() => currentTab === TAB.TAGS}
+              >
+                {t('Tags')}
+              </StyledListLink>
+              <StyledListLink
+                to={eventRouteToObject}
+                isActive={() => currentTab === 'events'}
+              >
+                {t('Events')}
+              </StyledListLink>
+              <StyledListLink
+                to={`${baseUrl}merged/${location.search}`}
+                isActive={() => currentTab === TAB.MERGED}
+              >
+                {t('Merged Issues')}
+              </StyledListLink>
+              {hasSimilarView && (
+                <StyledListLink
+                  to={`${baseUrl}similar/${location.search}`}
+                  isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+                >
+                  {t('Similar Issues')}
+                </StyledListLink>
+              )}
+            </React.Fragment>
           )}
         </NavTabs>
       </div>
@@ -291,3 +299,14 @@ const EventAnnotationWithSpace = styled(EventAnnotation)`
 export {GroupHeader, TAB};
 
 export default withApi(GroupHeader);
+
+const StyledListLink = styled(ListLink)`
+  ${p =>
+    !p.to &&
+    `
+    &.active a, &.active a:focus &.active a:hover, a:hover, a.active {
+      color: #7c6a8e !important;
+      cursor: not-allowed !important;
+    }
+`}
+`;

@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import orderBy from 'lodash/orderBy';
 import PropTypes from 'prop-types';
 
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
@@ -15,10 +16,12 @@ import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import {Environment, Event, Group, Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
+import ReprocessingProgress from '../reprocessingProgress';
 import {getEventEnvironment} from '../utils';
 
 type Props = RouteComponentProps<
@@ -30,10 +33,10 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
-  event?: Event;
   loadingEvent: boolean;
   eventError: boolean;
   onRetry: () => void;
+  event?: Event;
   className?: string;
 };
 
@@ -163,53 +166,77 @@ class GroupEventDetails extends React.Component<Props, State> {
       eventError,
       onRetry,
     } = this.props;
+
     const evt = withMeta(event);
+
+    // reprocessing
+    const hasReprocessingV2Feature = project.features?.includes('reprocessing-v2');
+    const {activity, statusDetails, status} = group;
+    const {pendingEvents} = statusDetails;
+
+    const {data, type} =
+      orderBy([...activity], ({dateCreated}) => new Date(dateCreated), ['desc'])[0] || {};
 
     return (
       <div className={className}>
         <div className="event-details-container">
-          <div className="primary">
-            {evt && (
-              <GroupEventToolbar
-                group={group}
-                event={evt}
-                orgId={organization.slug}
-                location={location}
-              />
-            )}
-            {group.status === 'ignored' && (
-              <MutedBox statusDetails={group.statusDetails} />
-            )}
-            {group.status === 'resolved' && (
-              <ResolutionBox statusDetails={group.statusDetails} projectId={project.id} />
-            )}
-            {loadingEvent ? (
-              <LoadingIndicator />
-            ) : eventError ? (
-              <GroupEventDetailsLoadingError
-                environments={environments}
-                onRetry={onRetry}
-              />
-            ) : (
-              <EventEntries
-                group={group}
-                event={evt}
-                organization={organization}
-                project={project}
-                location={location}
-                showExampleCommit={this.showExampleCommit}
-              />
-            )}
-          </div>
-          <div className="secondary">
-            <GroupSidebar
-              organization={organization}
-              project={project}
-              group={group}
-              event={evt}
-              environments={environments}
+          {hasReprocessingV2Feature &&
+          status === 'reprocessing' &&
+          type === 'reprocess' &&
+          defined(data.eventCount) ? (
+            <ReprocessingProgress
+              totalEvents={data.eventCount}
+              pendingEvents={pendingEvents ?? 0}
             />
-          </div>
+          ) : (
+            <React.Fragment>
+              <div className="primary">
+                {evt && (
+                  <GroupEventToolbar
+                    group={group}
+                    event={evt}
+                    orgId={organization.slug}
+                    location={location}
+                  />
+                )}
+                {group.status === 'ignored' && (
+                  <MutedBox statusDetails={group.statusDetails} />
+                )}
+                {group.status === 'resolved' && (
+                  <ResolutionBox
+                    statusDetails={group.statusDetails}
+                    projectId={project.id}
+                  />
+                )}
+                {loadingEvent ? (
+                  <LoadingIndicator />
+                ) : eventError ? (
+                  <GroupEventDetailsLoadingError
+                    environments={environments}
+                    onRetry={onRetry}
+                  />
+                ) : (
+                  <EventEntries
+                    group={group}
+                    event={evt}
+                    organization={organization}
+                    project={project}
+                    location={location}
+                    showExampleCommit={this.showExampleCommit}
+                  />
+                )}
+              </div>
+              <div className="secondary">
+                <GroupSidebar
+                  organization={organization}
+                  project={project}
+                  group={group}
+                  event={evt}
+                  environments={environments}
+                />
+              </div>
+            </React.Fragment>
+          )}
         </div>
       </div>
     );
