@@ -64,6 +64,8 @@ steps:
       - get-onpremise-repo
     entrypoint: 'bash'
     dir: onpremise
+    env:
+      - 'SENTRY_PYTHON2=1'
     args:
       - '-e'
       - '-c'
@@ -127,6 +129,12 @@ steps:
         docker push $$DOCKER_REPO:$COMMIT_SHA
         docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly
         docker push $$DOCKER_REPO:nightly
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA-py2
+        docker push $$DOCKER_REPO:$SHORT_SHA-py2
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA-py2
+        docker push $$DOCKER_REPO:$COMMIT_SHA-py2
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly-py2
+        docker push $$DOCKER_REPO:nightly-py2
   - name: 'gcr.io/cloud-builders/docker'
     id: docker-push-py3
     waitFor:
