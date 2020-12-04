@@ -51,6 +51,8 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     def test_python_event(self):
+        self.create_sample_event(platform="python")
+        self.create_sample_event(platform="python")
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
 
