@@ -752,7 +752,6 @@ const StyledFlex = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;
-  overflow: hidden;
 `;
 
 const ActionsCheckbox = styled('div')`
@@ -801,7 +800,7 @@ const ActionSet = styled('div')`
   @keyframes ZoomUp {
     0% {
       opacity: 0;
-      transform: translateY(50px);
+      transform: translateY(5px);
     }
     100% {
       opacity: 1;
