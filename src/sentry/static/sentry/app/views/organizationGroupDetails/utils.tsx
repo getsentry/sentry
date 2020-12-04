@@ -2,24 +2,31 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {t, tct} from 'app/locale';
+import {Event, Group} from 'app/types';
 
 /**
  * Fetches group data and mark as seen
  *
- * @param {String} orgId organization slug
- * @param {String} groupId groupId
- * @param {String} eventId eventId or "latest" or "oldest"
- * @param {String[]} envNames
- * @param {String|undefined} projectId project slug required for eventId that is not latest or oldest
- * @returns {Promise<Object>}
+ * @param orgId organization slug
+ * @param groupId groupId
+ * @param eventId eventId or "latest" or "oldest"
+ * @param envNames
+ * @param projectId project slug required for eventId that is not latest or oldest
  */
-export async function fetchGroupEvent(api, orgId, groupId, eventId, envNames, projectId) {
+export async function fetchGroupEvent(
+  api: Client,
+  orgId: string,
+  groupId: string,
+  eventId: string,
+  envNames: string[],
+  projectId?: string
+): Promise<Event> {
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
       : `/projects/${orgId}/${projectId}/events/${eventId}/`;
 
-  const query = {};
+  const query: {environment?: string[]} = {};
   if (envNames.length !== 0) {
     query.environment = envNames;
   }
@@ -28,17 +35,25 @@ export async function fetchGroupEvent(api, orgId, groupId, eventId, envNames, pr
   return data;
 }
 
-export function markEventSeen(api, orgId, projectId, groupId) {
-  api.bulkUpdate({
-    orgId,
-    projectId,
-    itemIds: [groupId],
-    failSilently: true,
-    data: {hasSeen: true},
-  });
+export function markEventSeen(
+  api: Client,
+  orgId: string,
+  projectId: string,
+  groupId: string
+) {
+  api.bulkUpdate(
+    {
+      orgId,
+      projectId,
+      itemIds: [groupId],
+      failSilently: true,
+      data: {hasSeen: true},
+    },
+    {}
+  );
 }
 
-export function fetchGroupUserReports(groupId, query) {
+export function fetchGroupUserReports(groupId: string, query: Record<string, string>) {
   const api = new Client();
 
   return api.requestPromise(`/issues/${groupId}/user-reports/`, {
@@ -50,10 +65,9 @@ export function fetchGroupUserReports(groupId, query) {
 /**
  * Returns the environment name for an event or null
  *
- * @param {Object} event
- * @returns {String|Void}
+ * @param event
  */
-export function getEventEnvironment(event) {
+export function getEventEnvironment(event: Event) {
   const tag = event.tags.find(({key}) => key === 'environment');
 
   return tag ? tag.value : null;
@@ -78,11 +92,11 @@ const SUBSCRIPTION_REASONS = {
 };
 
 /**
- * @param {object} group
- * @param {boolean} removeLinks add/remove links to subscription reasons text (default: false)
+ * @param group
+ * @param removeLinks add/remove links to subscription reasons text (default: false)
  * @returns Reason for subscription
  */
-export function getSubscriptionReason(group, removeLinks = false) {
+export function getSubscriptionReason(group: Group, removeLinks = false) {
   if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
     return tct('You have [link:disabled workflow notifications] for this project.', {
       link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
@@ -101,8 +115,8 @@ export function getSubscriptionReason(group, removeLinks = false) {
       );
     }
 
-    if (SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-      return SUBSCRIPTION_REASONS[reason];
+    if (SUBSCRIPTION_REASONS.hasOwnProperty(reason as string)) {
+      return SUBSCRIPTION_REASONS[reason as string];
     }
   }
 
