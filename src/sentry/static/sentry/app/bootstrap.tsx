@@ -57,7 +57,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       routingInstrumentation: Sentry.reactRouterV3Instrumentation(
         Router.browserHistory as any,
         Router.createRoutes(routes()),
-        Router.match as any
+        Router.match
       ),
       idleTimeout: 5000,
     }),
