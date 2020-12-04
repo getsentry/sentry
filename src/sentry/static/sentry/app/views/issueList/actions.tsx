@@ -619,9 +619,16 @@ class IssueListActions extends React.Component<Props, State> {
           <React.Fragment>
             <ActionSetPlaceholder>
               {/* total includes its own space */}
-              {tct('Select [count] of [total] issues', {
+              {tct('Select [count] of [total]', {
                 count: <React.Fragment>{pageCount}</React.Fragment>,
-                total: <QueryCount hideParens count={queryCount} max={queryMaxCount} />,
+                total: (
+                  <QueryCount
+                    hideParens
+                    hideIfEmpty={false}
+                    count={queryCount || 0}
+                    max={queryMaxCount || 1}
+                  />
+                ),
               })}
             </ActionSetPlaceholder>
             <TimesSpacerLabel className="hidden-xs hidden-sm">
