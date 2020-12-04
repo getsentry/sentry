@@ -78,7 +78,6 @@ jobs:
       # Apply fixed files via pull request review comments
       - name: Apply any eslint fixed files as Pull Request review comments
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
-        continue-on-error: true
         uses: getsentry/action-git-diff-suggestions@main
         with:
           message: eslint made this change
