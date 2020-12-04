@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
