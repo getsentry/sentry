@@ -51,7 +51,9 @@ def _get_frame_paths(event):
 def _get_commits(releases):
     return list(
         Commit.objects.filter(
-            releasecommit__in=ReleaseCommit.objects.filter(release__in=releases)
+            releasecommit__in=ReleaseCommit.objects.get_many_from_cache(
+                [r.id for r in releases], key="release"
+            ),
         ).select_related("author")
     )
 
@@ -165,7 +167,7 @@ def get_previous_releases(project, start_version, limit=5):
 
 
 def get_event_file_committers(project, event, frame_limit=25):
-    group = Group.objects.get(id=event.group_id)
+    group = Group.objects.get_from_cache(id=event.group_id)
 
     first_release_version = group.get_first_release()
 

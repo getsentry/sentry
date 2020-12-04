@@ -1,10 +1,18 @@
 from __future__ import absolute_import, print_function
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 
 
 class ReleaseCommit(Model):
     __core__ = False
+
+    objects = BaseManager(cache_fields=["release"])
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     # DEPRECATED

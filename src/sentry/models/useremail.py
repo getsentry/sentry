@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 
 CHARACTERS = u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -19,6 +19,8 @@ def default_validation_hash():
 
 class UserEmail(Model):
     __core__ = True
+
+    objects = BaseManager(cache_fields=["email"],)
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)

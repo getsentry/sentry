@@ -8,12 +8,12 @@ from django.db.models import Sum
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.db.models.query import in_iexact
 from sentry.snuba.sessions import get_release_health_data_overview, check_has_health_data
 from sentry.models import (
     Commit,
     CommitAuthor,
     Deploy,
+    OrganizationMember,
     ProjectPlatform,
     Release,
     ReleaseStatus,
@@ -62,17 +62,19 @@ def get_users_for_authors(organization_id, authors, user=None):
     }
     """
     # Filter users based on the emails provided in the commits
-    user_emails = list(
-        UserEmail.objects.filter(in_iexact("email", [a.email for a in authors])).order_by("id")
+    user_emails = sorted(
+        UserEmail.objects.get_many_from_cache([a.email.lower() for a in authors], key="email"),
+        key=lambda x: x.id,
     )
-
     # Filter users belonging to the organization associated with
     # the release
-    users = User.objects.filter(
-        id__in={ue.user_id for ue in user_emails},
-        is_active=True,
-        sentry_orgmember_set__organization_id=organization_id,
-    )
+    users = [
+        u
+        for u in User.objects.get_many_from_cache([ue.user_id for ue in user_emails])
+        if u.is_active
+        and OrganizationMember.objects.filter(user=u, organization_id=organization_id).exists()
+    ]
+
     users = serialize(list(users), user)
     users_by_id = {user["id"]: user for user in users}
 
