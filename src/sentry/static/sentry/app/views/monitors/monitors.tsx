@@ -1,7 +1,7 @@
 import React from 'react';
-import {Link, withRouter} from 'react-router';
+import {Link, RouteComponentProps, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
+import * as qs from 'query-string';
 
 import Button from 'app/components/button';
 import FeatureBadge from 'app/components/featureBadge';
@@ -12,25 +12,28 @@ import {Panel, PanelBody, PanelItem} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {decodeScalar} from 'app/utils/queryString';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
 import MonitorIcon from './monitorIcon';
+import {Monitor} from './types';
 
-class Monitors extends AsyncView {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    location: PropTypes.object.isRequired,
+type Props = AsyncView['props'] &
+  RouteComponentProps<{orgId: string}, {}> &
+  WithRouterProps & {
+    organization: Organization;
   };
 
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-  };
+type State = AsyncView['state'] & {
+  monitorList: Monitor[] | null;
+};
 
-  getEndpoints() {
+class Monitors extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
     return [
       [
@@ -47,7 +50,7 @@ class Monitors extends AsyncView {
     return `Monitors - ${this.props.params.orgId}`;
   }
 
-  handleSearch = query => {
+  handleSearch = (query: string) => {
     const {location} = this.props;
     const {router} = this.context;
     router.push({
@@ -60,7 +63,7 @@ class Monitors extends AsyncView {
   };
 
   renderBody() {
-    const {monitorListPageLinks} = this.state;
+    const {monitorList, monitorListPageLinks} = this.state;
     const {organization} = this.props;
     return (
       <React.Fragment>
@@ -78,15 +81,14 @@ class Monitors extends AsyncView {
             </NewMonitorButton>
           </HeaderTitle>
           <StyledSearchBar
-            organization={organization}
-            query={(location.query && location.query.query) || ''}
+            query={decodeScalar(qs.parse(location.search)?.query) ?? ''}
             placeholder={t('Search for monitors.')}
             onSearch={this.handleSearch}
           />
         </PageHeader>
         <Panel>
           <PanelBody>
-            {this.state.monitorList.map(monitor => (
+            {monitorList?.map(monitor => (
               <PanelItemCentered key={monitor.id}>
                 <MonitorIcon status={monitor.status} size={16} />
                 <StyledLink

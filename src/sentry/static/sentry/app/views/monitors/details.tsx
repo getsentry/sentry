@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import {Panel, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -8,19 +9,19 @@ import MonitorCheckIns from './monitorCheckIns';
 import MonitorHeader from './monitorHeader';
 import MonitorIssues from './monitorIssues';
 import MonitorStats from './monitorStats';
+import {Monitor} from './types';
 
-class MonitorDetails extends AsyncView {
-  getEndpoints() {
+type Props = AsyncView['props'] &
+  RouteComponentProps<{orgId: string; monitorId: string}, {}>;
+
+type State = AsyncView['state'] & {
+  monitor: Monitor | null;
+};
+
+class MonitorDetails extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
-    return [
-      [
-        'monitor',
-        `/monitors/${params.monitorId}/`,
-        {
-          query: location.query,
-        },
-      ],
-    ];
+    return [['monitor', `/monitors/${params.monitorId}/`, {query: location.query}]];
   }
 
   getTitle() {
@@ -30,17 +31,16 @@ class MonitorDetails extends AsyncView {
     return `Monitors - ${this.props.params.orgId}`;
   }
 
-  onUpdate = data => {
-    this.setState({
-      monitor: {
-        ...this.state.monitor,
-        ...data,
-      },
-    });
-  };
+  onUpdate = (data: Monitor) =>
+    this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   renderBody() {
     const {monitor} = this.state;
+
+    if (monitor === null) {
+      return null;
+    }
+
     return (
       <React.Fragment>
         <MonitorHeader
