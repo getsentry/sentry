@@ -488,9 +488,9 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getGroupStatsEndpoint(): string {
-    const params = this.props.params;
+    const {orgId} = this.props.params;
 
-    return `/organizations/${params.orgId}/issues-stats/`;
+    return `/organizations/${orgId}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
