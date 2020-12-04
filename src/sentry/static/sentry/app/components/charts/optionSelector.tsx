@@ -111,12 +111,6 @@ const StyledDropdownButton = styled(DropdownButton)`
   padding: ${space(1)} ${space(2)};
   font-weight: normal;
   z-index: ${p => (p.isOpen ? p.theme.zIndex.dropdownAutocomplete.actor : 'auto')};
-
-  &:hover,
-  &:focus,
-  &:active {
-    color: ${p => p.theme.gray500};
-  }
 `;
 
 const StyledDropdownBubble = styled(DropdownBubble)<{
