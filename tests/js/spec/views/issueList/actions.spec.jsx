@@ -382,7 +382,7 @@ describe('IssueListActions', function () {
         url: '/organizations/1337/issues/',
         method: 'PUT',
       });
-      wrapper.find('[data-test-id="button-backlog"]').first().simulate('click');
+      wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');
 
       expect(wrapper.find('ModalDialog')).toSnapshot();
       wrapper.find('Button[priority="primary"]').simulate('click');
