@@ -62,6 +62,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       statusCode: 200,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
   });
 
   afterEach(() => {
