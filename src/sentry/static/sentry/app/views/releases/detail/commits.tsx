@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {Client} from 'app/api';
 import CommitRow from 'app/components/commitRow';
