@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
@@ -15,6 +14,7 @@ import EventAnnotation from 'app/components/events/eventAnnotation';
 import EventMessage from 'app/components/events/eventMessage';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import SeenByList from 'app/components/seenByList';
@@ -82,6 +82,7 @@ class GroupHeader extends React.Component<Props, State> {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
+    const isReprocessing = group.status === 'reprocessing';
 
     let className = 'group-detail';
 
@@ -177,23 +178,35 @@ class GroupHeader extends React.Component<Props, State> {
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
-                <Link to={eventRouteToObject}>
+                {isReprocessing ? (
                   <Count className="count" value={group.count} />
-                </Link>
+                ) : (
+                  <Link to={eventRouteToObject}>
+                    <Count className="count" value={group.count} />
+                  </Link>
+                )}
               </div>
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  <Link to={`${baseUrl}tags/user/${location.search}`}>
+                  isReprocessing ? (
                     <Count className="count" value={userCount} />
-                  </Link>
+                  ) : (
+                    <Link to={`${baseUrl}tags/user/${location.search}`}>
+                      <Count className="count" value={userCount} />
+                    </Link>
+                  )
                 ) : (
                   <span>0</span>
                 )}
               </div>
               <div className="assigned-to m-l-1">
                 <h6 className="nav-header">{t('Assignee')}</h6>
-                <AssigneeSelector id={group.id} memberList={memberList} />
+                <AssigneeSelector
+                  id={group.id}
+                  memberList={memberList}
+                  disabled={isReprocessing}
+                />
               </div>
             </div>
           </div>
@@ -202,7 +215,7 @@ class GroupHeader extends React.Component<Props, State> {
           seenBy={group.seenBy}
           iconTooltip={t('People who have viewed this issue')}
         />
-        <GroupActions group={group} project={project} />
+        <GroupActions group={group} project={project} disabled={isReprocessing} />
         <NavTabs>
           <ListLink
             to={`${baseUrl}${location.search}`}
