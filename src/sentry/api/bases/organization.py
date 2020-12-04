@@ -242,8 +242,7 @@ class OrganizationEndpoint(Endpoint):
         return projects
 
     def get_environments(self, request, organization):
-        with sentry_sdk.start_span(op="PERF: Org.get_environments"):
-            return get_environments(request, organization)
+        return get_environments(request, organization)
 
     def get_filter_params(
         self, request, organization, date_filter_optional=False, project_ids=None
@@ -275,11 +274,10 @@ class OrganizationEndpoint(Endpoint):
         except InvalidParams as e:
             raise ParseError(detail=u"Invalid date range: {}".format(e))
 
-        with sentry_sdk.start_span(op="PERF: org.get_filter_params - projects"):
-            try:
-                projects = self.get_projects(request, organization, project_ids)
-            except ValueError:
-                raise ParseError(detail="Invalid project ids")
+        try:
+            projects = self.get_projects(request, organization, project_ids)
+        except ValueError:
+            raise ParseError(detail="Invalid project ids")
 
         if not projects:
             raise NoProjects
@@ -298,11 +296,10 @@ class OrganizationEndpoint(Endpoint):
         return params
 
     def convert_args(self, request, organization_slug, *args, **kwargs):
-        with sentry_sdk.start_span(op="PERF: org.convert_args - organization (cache)"):
-            try:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
-            except Organization.DoesNotExist:
-                raise ResourceDoesNotExist
+        try:
+            organization = Organization.objects.get_from_cache(slug=organization_slug)
+        except Organization.DoesNotExist:
+            raise ResourceDoesNotExist
 
         with sentry_sdk.start_span(
             op="check_object_permissions_on_organization", description=organization_slug
