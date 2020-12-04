@@ -1,7 +1,6 @@
 import React from 'react';
 import keydown from 'react-keydown';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import $ from 'jquery';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';

@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {t} from 'app/locale';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';

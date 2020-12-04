@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
