@@ -1,6 +1,6 @@
 import {Project} from 'app/types';
 
-export type Status = 'ok' | 'error';
+export type Status = 'ok' | 'error' | 'disabled' | 'active';
 
 export type Monitor = {
   status: Status;
