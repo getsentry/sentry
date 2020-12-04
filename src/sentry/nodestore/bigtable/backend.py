@@ -126,7 +126,7 @@ class BigtableNodeStorage(NodeStorage):
             rv[id] = None
 
         for row in self.connection.read_rows(row_set=rows):
-            rv[row.row_key] = self.decode_row(row)
+            rv[row.row_key.decode("utf-8")] = self.decode_row(row)
         self._set_cache_items(rv)
         rv.update(cache_items)
         return rv
