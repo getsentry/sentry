@@ -66,6 +66,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_not(
                 '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
             )
+            # We have to wait for this again because there are loaders inside of the table
+            self.page.wait_until_loaded()
             self.browser.snapshot("performance summary - with data")
 
     @patch("django.utils.timezone.now")
