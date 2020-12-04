@@ -653,11 +653,11 @@ class IssueListActions extends React.Component<Props, State> {
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
         </React.Fragment>
         <AssigneesLabel className="hidden-xs hidden-sm">
-          <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
+          <IssueToolbarHeader>{t('Assignee')}</IssueToolbarHeader>
         </AssigneesLabel>
         {hasInbox && (
           <ActionsLabel className="hidden-xs hidden-sm">
-            <ToolbarHeader>{t('Actions')}</ToolbarHeader>
+            <IssueToolbarHeader>{t('Actions')}</IssueToolbarHeader>
           </ActionsLabel>
         )}
       </React.Fragment>
@@ -722,6 +722,19 @@ class IssueListActions extends React.Component<Props, State> {
   }
 }
 
+const IssueToolbarHeader = styled(ToolbarHeader)`
+  animation: 0.3s FadeIn linear forwards;
+
+  @keyframes FadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+`;
+
 const Sticky = styled('div')`
   position: sticky;
   z-index: ${p => p.theme.zIndex.header};
@@ -739,6 +752,7 @@ const StyledFlex = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   margin-bottom: -1px;
+  overflow: hidden;
 `;
 
 const ActionsCheckbox = styled('div')`
@@ -750,7 +764,7 @@ const ActionsCheckbox = styled('div')`
   }
 `;
 
-const ActionSetPlaceholder = styled(ToolbarHeader)`
+const ActionSetPlaceholder = styled(IssueToolbarHeader)`
   @media (min-width: 800px) {
     width: 66.66666666666666%;
   }
@@ -776,12 +790,23 @@ const ActionSet = styled('div')`
   flex: 1;
   margin-left: ${space(1)};
   margin-right: ${space(1)};
-
   display: flex;
+  animation: 0.15s linear ZoomUp forwards;
 
   .btn-group {
     display: flex;
     margin-right: 6px;
+  }
+
+  @keyframes ZoomUp {
+    0% {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    100% {
+      opacity: 1;
+      transform: tranlsateY(0);
+    }
   }
 `;
 
@@ -789,13 +814,23 @@ const GraphHeaderWrapper = styled('div')`
   width: 160px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
+  animation: 0.25s FadeIn linear forwards;
+
+  @keyframes FadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 `;
 
 const GraphHeader = styled('div')`
   display: flex;
 `;
 
-const StyledToolbarHeader = styled(ToolbarHeader)`
+const StyledToolbarHeader = styled(IssueToolbarHeader)`
   flex: 1;
 `;
 
@@ -821,7 +856,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const EventsOrUsersLabel = styled(ToolbarHeader)`
+const EventsOrUsersLabel = styled(IssueToolbarHeader)`
   display: inline-grid;
   align-items: center;
   justify-content: flex-end;
@@ -842,7 +877,7 @@ const EventsOrUsersLabel = styled(ToolbarHeader)`
   }
 `;
 
-const FirstSeenLastSeenHeader = styled(ToolbarHeader)`
+const FirstSeenLastSeenHeader = styled(IssueToolbarHeader)`
   white-space: nowrap;
 `;
 
