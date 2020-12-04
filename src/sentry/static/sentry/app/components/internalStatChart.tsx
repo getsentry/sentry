@@ -1,26 +1,28 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 
-class InternalStatChart extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    since: PropTypes.number.isRequired,
-    resolution: PropTypes.string.isRequired,
-    stat: PropTypes.string.isRequired,
-    label: PropTypes.string,
-    height: PropTypes.number,
-  };
+type Props = {
+  api: Client;
+  since: number;
+  resolution: string;
+  stat: string;
+  label: string;
+  height?: number;
+};
 
-  static defaultProps = {
-    height: 150,
-  };
+type State = {
+  error: boolean;
+  loading: boolean;
+  data: [number, number][] | null;
+};
 
-  state = {
+class InternalStatChart extends React.Component<Props, State> {
+  state: State = {
     error: false,
     loading: true,
     data: null,
@@ -30,11 +32,11 @@ class InternalStatChart extends React.Component {
     this.fetchData();
   }
 
-  shouldComponentUpdate(_nextProps, nextState) {
+  shouldComponentUpdate(_nextProps: Props, nextState: State) {
     return this.state.loading !== nextState.loading;
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (
       prevProps.since !== this.props.since ||
       prevProps.stat !== this.props.stat ||
@@ -74,14 +76,15 @@ class InternalStatChart extends React.Component {
 
     const series = {
       seriesName: label,
-      data: data.map(([timestamp, value]) => ({
-        name: timestamp * 1000,
-        value,
-      })),
+      data:
+        data?.map(([timestamp, value]) => ({
+          name: timestamp * 1000,
+          value,
+        })) ?? [],
     };
     return (
       <MiniBarChart
-        height={height}
+        height={height ?? 150}
         series={[series]}
         isGroupedByDate
         showTimeInTooltip
