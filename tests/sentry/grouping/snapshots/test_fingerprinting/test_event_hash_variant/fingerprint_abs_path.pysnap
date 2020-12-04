@@ -1,5 +1,5 @@
 ---
-created: '2020-12-04T21:42:15.964096Z'
+created: '2020-12-04T21:43:40.366411Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -7,16 +7,14 @@ config:
   rules:
   - attributes: {}
     fingerprint:
-    - something-went-wrong
-    - '{{ error.value }}'
+    - '{{ stack.abs_path }}'
     matchers:
-    - - value
-      - '*went wrong*'
+    - - type
+      - DatabaseUnavailable
   version: 1
 fingerprint:
-- something-went-wrong
-- '{{ error.value }}'
-title: 'EndOfWorld: something went WRONG'
+- '{{ stack.abs_path }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
     component:
@@ -27,8 +25,7 @@ variants:
   custom-fingerprint:
     type: custom-fingerprint
     values:
-    - something-went-wrong
-    - something went WRONG
+    - /foo/Application.cpp
   system:
     component:
       contributes: false
