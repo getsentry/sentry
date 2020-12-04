@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import MiniBarChart from 'app/components/charts/miniBarChart';
@@ -8,23 +7,27 @@ import {t} from 'app/locale';
 import theme from 'app/utils/theme';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-export default class MonitorStats extends AsyncComponent {
-  static propTypes = {
-    monitor: PropTypes.object.isRequired,
-    ...AsyncComponent.PropTypes,
-  };
+import {Monitor, MonitorStat} from './types';
 
+type Props = AsyncComponent['props'] & {
+  monitor: Monitor;
+};
+
+type State = AsyncComponent['state'] & {
+  stats: MonitorStat[] | null;
+};
+
+type Stat = {name: string; value: number};
+
+export default class MonitorStats extends AsyncComponent<Props, State> {
   getDefaultState() {
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
 
-    return {
-      since,
-      until,
-    };
+    return {...super.getDefaultState(), since, until};
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {monitor} = this.props;
     return [
       [
@@ -45,19 +48,19 @@ export default class MonitorStats extends AsyncComponent {
     let emptyStats = true;
     const success = {
       seriesName: t('Successful'),
-      data: [],
+      data: [] as Stat[],
     };
     const failed = {
       seriesName: t('Failed'),
-      data: [],
+      data: [] as Stat[],
     };
-    this.state.stats.forEach(p => {
+    this.state.stats?.forEach(p => {
       if (p.ok || p.error) {
         emptyStats = false;
       }
       const timestamp = p.ts * 1000;
-      success.data.push({name: timestamp, value: p.ok});
-      failed.data.push({name: timestamp, value: p.error});
+      success.data.push({name: timestamp.toString(), value: p.ok});
+      failed.data.push({name: timestamp.toString(), value: p.error});
     });
     const colors = [theme.green300, theme.red300];
 

@@ -1,33 +1,33 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import {IconDelete, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {logException} from 'app/utils/logging';
 import withApi from 'app/utils/withApi';
 
-class MonitorHeaderActions extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    monitor: SentryTypes.Monitor.isRequired,
-    orgId: PropTypes.string.isRequired,
-    onUpdate: PropTypes.func,
-  };
+import {Monitor} from './types';
 
-  handleDelete = () => {
-    const {api, orgId, monitor} = this.props;
+type Props = {
+  api: Client;
+  monitor: Monitor;
+  orgId: string;
+  onUpdate: (data: Monitor) => void;
+};
+
+const MonitorHeaderActions = ({api, monitor, orgId, onUpdate}: Props) => {
+  const handleDelete = () => {
     const redirectPath = `/organizations/${orgId}/monitors/`;
     addLoadingMessage(t('Deleting Monitor...'));
 
@@ -43,8 +43,7 @@ class MonitorHeaderActions extends React.Component {
       });
   };
 
-  updateMonitor = data => {
-    const {api, monitor} = this.props;
+  const updateMonitor = (data: Partial<Monitor>) => {
     addLoadingMessage();
     api
       .requestPromise(`/monitors/${monitor.id}/`, {
@@ -53,7 +52,7 @@ class MonitorHeaderActions extends React.Component {
       })
       .then(resp => {
         clearIndicators();
-        this.props.onUpdate && this.props.onUpdate(resp);
+        onUpdate?.(resp);
       })
       .catch(err => {
         logException(err);
@@ -61,44 +60,39 @@ class MonitorHeaderActions extends React.Component {
       });
   };
 
-  toggleStatus = () => {
-    const {monitor} = this.props;
-    this.updateMonitor({
+  const toggleStatus = () =>
+    updateMonitor({
       status: monitor.status === 'disabled' ? 'active' : 'disabled',
     });
-  };
 
-  render() {
-    const {monitor, orgId} = this.props;
-    return (
-      <ButtonContainer>
-        <ButtonBar gap={1}>
-          <Button
-            size="small"
-            icon={<IconEdit size="xs" />}
-            to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
-          >
-            &nbsp;
-            {t('Edit')}
+  return (
+    <ButtonContainer>
+      <ButtonBar gap={1}>
+        <Button
+          size="small"
+          icon={<IconEdit size="xs" />}
+          to={`/organizations/${orgId}/monitors/${monitor.id}/edit/`}
+        >
+          &nbsp;
+          {t('Edit')}
+        </Button>
+        <Button size="small" onClick={toggleStatus}>
+          {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
+        </Button>
+        <Confirm
+          onConfirm={handleDelete}
+          message={t(
+            'Deleting this monitor is permanent. Are you sure you wish to continue?'
+          )}
+        >
+          <Button size="small" icon={<IconDelete size="xs" />}>
+            {t('Delete')}
           </Button>
-          <Button size="small" onClick={this.toggleStatus}>
-            {monitor.status !== 'disabled' ? t('Pause') : t('Enable')}
-          </Button>
-          <Confirm
-            onConfirm={this.handleDelete}
-            message={t(
-              'Deleting this monitor is permanent. Are you sure you wish to continue?'
-            )}
-          >
-            <Button size="small" icon={<IconDelete size="xs" />}>
-              {t('Delete')}
-            </Button>
-          </Confirm>
-        </ButtonBar>
-      </ButtonContainer>
-    );
-  }
-}
+        </Confirm>
+      </ButtonBar>
+    </ButtonContainer>
+  );
+};
 
 const ButtonContainer = styled('div')`
   margin-bottom: ${space(3)};

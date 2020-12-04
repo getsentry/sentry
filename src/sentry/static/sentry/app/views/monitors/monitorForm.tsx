@@ -1,11 +1,10 @@
 import React, {Component} from 'react';
 import {Observer} from 'mobx-react';
-import PropTypes from 'prop-types';
 
 import Access from 'app/components/acl/access';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {GlobalSelection, Organization} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import Field from 'app/views/settings/components/forms/field';
@@ -16,8 +15,9 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 
 import MonitorModel from './monitorModel';
+import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
 
-const SCHEDULE_TYPES = [
+const SCHEDULE_TYPES: [ScheduleType, string][] = [
   ['crontab', 'Crontab'],
   ['interval', 'Interval'],
 ];
@@ -33,22 +33,19 @@ const INTERVALS = [
   ['year', 'year(s)'],
 ];
 
-class MonitorForm extends Component {
-  static propTypes = {
-    monitor: SentryTypes.Monitor,
-    organization: SentryTypes.Organization.isRequired,
-    selection: SentryTypes.GlobalSelection,
-    apiEndpoint: PropTypes.string.isRequired,
-    apiMethod: PropTypes.string.isRequired,
-    onSubmitSuccess: PropTypes.func.isRequired,
-  };
+type Props = {
+  monitor?: Monitor;
+  organization: Organization;
+  selection: GlobalSelection;
+  apiEndpoint: string;
+  apiMethod: Form['props']['apiMethod'];
+  onSubmitSuccess: Form['props']['onSubmitSuccess'];
+};
 
-  constructor(...args) {
-    super(...args);
-    this.form = new MonitorModel();
-  }
+class MonitorForm extends Component<Props> {
+  form = new MonitorModel();
 
-  formDataFromConfig(type, config) {
+  formDataFromConfig(type: MonitorTypes, config: MonitorConfig) {
     const rv = {};
     switch (type) {
       case 'cron_job':
