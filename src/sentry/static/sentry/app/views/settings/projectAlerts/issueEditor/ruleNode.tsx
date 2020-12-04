@@ -21,7 +21,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
 import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
 
-type FormField = {
+export type FormField = {
   // Type of form fields
   type: string;
   // The rest is configuration for the form field
@@ -277,17 +277,32 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
+  updateParent = (data: {[key: string]: string}): void => {
+    // iterating through these upon save instead of when each
+    // element is changed to match the spec
+    for (const [name, value] of Object.entries(data)) {
+      this.props.onPropertyChange(this.props.index, name, value);
+    }
+  };
+
   render() {
     const {data, disabled, node} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
-
     return (
       <RuleRowContainer>
         <RuleRow>
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && <TicketRuleForm />}
+            {ticketRule && (
+              <TicketRuleForm
+                formFields={node?.formFields || {}}
+                instance={data}
+                index={this.props.index}
+                onSubmitAction={this.updateParent}
+                onPropertyChange={this.props.onPropertyChange}
+              />
+            )}
           </Rule>
           <DeleteButton
             disabled={disabled}
