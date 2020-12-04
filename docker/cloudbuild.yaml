@@ -17,20 +17,6 @@ steps:
       - 'SOURCE_COMMIT=$COMMIT_SHA'
     timeout: 360s
   - name: 'gcr.io/kaniko-project/executor:v0.22.0'
-    id: runtime-image-py2
-    waitFor:
-      - builder-run
-    args:
-      [
-        '--cache=true',
-        '--build-arg',
-        'SOURCE_COMMIT=$COMMIT_SHA',
-        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py2',
-        '-f',
-        './docker/Dockerfile',
-      ]
-    timeout: 300s
-  - name: 'gcr.io/kaniko-project/executor:v0.22.0'
     id: runtime-image
     waitFor:
       - builder-run
@@ -42,6 +28,20 @@ steps:
         '--build-arg',
         'PY_VER=3.6.10',
         '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+        '-f',
+        './docker/Dockerfile',
+      ]
+    timeout: 300s
+  - name: 'gcr.io/kaniko-project/executor:v0.22.0'
+    id: runtime-image-py2
+    waitFor:
+      - builder-run
+    args:
+      [
+        '--cache=true',
+        '--build-arg',
+        'SOURCE_COMMIT=$COMMIT_SHA',
+        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py2',
         '-f',
         './docker/Dockerfile',
       ]
@@ -58,15 +58,12 @@ steps:
         curl -L "https://github.com/getsentry/onpremise/archive/master.tar.gz" | tar xzf - --strip-components=1
         echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
-    id: e2e-test-py2
+    id: e2e-test
     waitFor:
-      - runtime-image-py2
+      - runtime-image
       - get-onpremise-repo
-      - e2e-test
     entrypoint: 'bash'
     dir: onpremise
-    env:
-      - 'SENTRY_PYTHON2=1'
     args:
       - '-e'
       - '-c'
@@ -84,12 +81,15 @@ steps:
         fi
     timeout: 450s
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
-    id: e2e-test
+    id: e2e-test-py2
     waitFor:
-      - runtime-image
+      - runtime-image-py2
       - get-onpremise-repo
+      - e2e-test
     entrypoint: 'bash'
     dir: onpremise
+    env:
+      - 'SENTRY_PYTHON2=1'
     args:
       - '-e'
       - '-c'
