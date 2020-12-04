@@ -1,8 +1,9 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import pick from 'lodash/pick';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsTable from 'app/components/eventsTable/eventsTable';
 import LoadingError from 'app/components/loadingError';
@@ -11,17 +12,25 @@ import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {Event, Group} from 'app/types';
 import parseApiError from 'app/utils/parseApiError';
 import withApi from 'app/utils/withApi';
 
-class GroupEvents extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    group: SentryTypes.Group.isRequired,
-  };
+type Props = {
+  api: Client;
+  group: Group;
+} & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
-  constructor(props) {
+type State = {
+  eventList: Event[];
+  loading: boolean;
+  error: string | false;
+  pageLinks: string;
+  query: string;
+};
+
+class GroupEvents extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props);
 
     const queryParams = this.props.location.query;
@@ -38,7 +47,7 @@ class GroupEvents extends React.Component {
     this.fetchData();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.props.location.search !== nextProps.location.search) {
       const queryParams = nextProps.location.query;
 
@@ -51,7 +60,7 @@ class GroupEvents extends React.Component {
     }
   }
 
-  handleSearch = query => {
+  handleSearch = (query: string) => {
     const targetQueryParams = {...this.props.location.query};
     targetQueryParams.query = query;
     const {groupId, orgId} = this.props.params;
@@ -82,7 +91,7 @@ class GroupEvents extends React.Component {
           eventList: data,
           error: false,
           loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR?.getResponseHeader('Link') ?? '',
         });
       },
       error: err => {
@@ -126,7 +135,7 @@ class GroupEvents extends React.Component {
   }
 
   renderBody() {
-    let body;
+    let body: React.ReactNode;
 
     if (this.state.loading) {
       body = <LoadingIndicator />;
