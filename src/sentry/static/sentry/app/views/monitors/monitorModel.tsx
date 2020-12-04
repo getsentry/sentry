@@ -1,9 +1,20 @@
 import FormModel from 'app/views/settings/components/forms/model';
 
+import {MonitorConfig} from './types';
+
+type TransformedData = {
+  config?: Partial<MonitorConfig>;
+};
+
 export default class MonitorModel extends FormModel {
   getTransformedData() {
-    return Object.entries(this.fields.toJSON()).reduce((data, [k, v]) => {
-      if (k.indexOf('config.') === 0) {
+    return Object.entries(this.fields.toJSON()).reduce<TransformedData>(
+      (data, [k, v]) => {
+        if (k.indexOf('config.') !== 0) {
+          data[k] = v;
+          return data;
+        }
+
         if (!data.config) {
           data.config = {};
         }
@@ -14,23 +25,20 @@ export default class MonitorModel extends FormModel {
         }
 
         if (k === 'config.schedule.frequency') {
-          data.config.schedule[0] = parseInt(v, 10);
+          data.config!.schedule![0] = parseInt(v as string, 10);
         } else if (k === 'config.schedule.interval') {
-          data.config.schedule[1] = v;
+          data.config!.schedule![1] = v;
         } else {
           data.config[k.substr(7)] = v;
         }
-      } else {
-        data[k] = v;
-      }
-      return data;
-    }, {});
+
+        return data;
+      },
+      {}
+    );
   }
 
-  getTransformedValue(id) {
-    if (id.indexOf('config') === 0) {
-      return this.getValue(id);
-    }
-    return super.getTransformedValue(id);
+  getTransformedValue(id: string) {
+    return id.indexOf('config') === 0 ? this.getValue(id) : super.getTransformedValue(id);
   }
 }

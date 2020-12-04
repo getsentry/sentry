@@ -12,25 +12,19 @@ const Body = styled('div')`
   flex: 1;
 `;
 
-class MonitorsContainer extends React.Component {
-  render() {
-    const {children} = this.props;
-
-    return (
-      <Feature features={['monitors']} renderDisabled>
-        <GlobalSelectionHeader
-          showEnvironmentSelector={false}
-          showDateSelector={false}
-          resetParamsOnChange={['cursor']}
-        >
-          <PageContent>
-            <Body>{children}</Body>
-          </PageContent>
-        </GlobalSelectionHeader>
-      </Feature>
-    );
-  }
-}
+const MonitorsContainer: React.FC = ({children}) => (
+  <Feature features={['monitors']} renderDisabled>
+    <GlobalSelectionHeader
+      showEnvironmentSelector={false}
+      showDateSelector={false}
+      resetParamsOnChange={['cursor']}
+    >
+      <PageContent>
+        <Body>{children}</Body>
+      </PageContent>
+    </GlobalSelectionHeader>
+  </Feature>
+);
 
 export default withGlobalSelection(MonitorsContainer);
 export {MonitorsContainer};

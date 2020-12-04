@@ -1,16 +1,19 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import AsyncView from 'app/views/asyncView';
 
 import MonitorForm from './monitorForm';
+import {Monitor} from './types';
 
-export default class CreateMonitor extends AsyncView {
+type Props = AsyncView['props'] & RouteComponentProps<{orgId: string}, {}>;
+
+export default class CreateMonitor extends AsyncView<Props, AsyncView['state']> {
   getTitle() {
     return `Monitors - ${this.props.params.orgId}`;
   }
 
-  onSubmitSuccess = data => {
+  onSubmitSuccess = (data: Monitor) => {
     browserHistory.push(`/organizations/${this.props.params.orgId}/monitors/${data.id}/`);
   };
 
