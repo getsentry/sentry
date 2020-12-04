@@ -58,6 +58,26 @@ def get_prebuilt_dashboards(organization, title_query=None):
     return results
 
 
+def get_prebuilt_dashboard(dashboard_id):
+    for dashboard in PREBUILT_DASHBOARDS:
+        if dashboard["id"] == dashboard_id:
+            return dashboard
+    return None
+
+
+def create_tombstone(organization, slug):
+    exists = DashboardTombstone.objects.filter(organization=organization, slug=slug).exists()
+    if exists:
+        return
+    DashboardTombstone.objects.create(organization=organization, slug=slug)
+
+
+# Prebuilt dashboards are added to API responses for all accounts that have
+# not added a tombstone for the id value. If you change the id of a prebuilt dashboard
+# it will invalidate all the tombstone records that already exist.
+#
+# All widgets and queries in prebuilt dashboards must not have id attributes defined,
+# or users will be unable to 'update' them with a forked version.
 PREBUILT_DASHBOARDS = [
     {
         "id": "default-overview",

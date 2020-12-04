@@ -84,9 +84,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 },
             ],
         }
-
         response = self.client.post(self.url, data=data)
-        assert response.status_code == 201
+        assert response.status_code == 201, response.data
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )

@@ -58,7 +58,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         :param string title: the title of the dashboard.
         """
         serializer = DashboardSerializer(
-            data=request.data, context={"organization_id": organization.id, "request": request}
+            data=request.data, context={"organization": organization, "request": request}
         )
 
         if not serializer.is_valid():
