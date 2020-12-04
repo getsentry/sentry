@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled, {SerializedStyles} from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
@@ -231,7 +232,6 @@ class Tooltip extends React.Component<Props, State> {
       return children;
     }
 
-    let tip: React.ReactPortal | null = null;
     const modifiers: PopperJS.Modifiers = {
       hide: {enabled: false},
       preventOverflow: {
@@ -241,16 +241,19 @@ class Tooltip extends React.Component<Props, State> {
       },
     };
 
-    if (isOpen) {
-      tip = ReactDOM.createPortal(
-        <Popper placement={position} modifiers={modifiers}>
-          {({ref, style, placement, arrowProps}) => (
+    const tip = isOpen ? (
+      <Popper placement={position} modifiers={modifiers}>
+        {({ref, style, placement, arrowProps}) => (
+          <PositionWrapper style={style}>
             <TooltipContent
               id={this.tooltipId}
+              initial={{opacity: 0, scale: 0.96}}
+              animate={{opacity: 1, scale: 1}}
+              exit={{opacity: 0, scale: 0.96}}
+              transition={{duration: 0.1}}
               className="tooltip-content"
               aria-hidden={!isOpen}
               ref={ref}
-              style={style}
               hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
@@ -265,16 +268,18 @@ class Tooltip extends React.Component<Props, State> {
                 background={(popperStyle as React.CSSProperties)?.background || '#000'}
               />
             </TooltipContent>
-          )}
-        </Popper>,
-        this.getPortal(usesGlobalPortal)
-      );
-    }
+          </PositionWrapper>
+        )}
+      </Popper>
+    ) : null;
 
     return (
       <Manager>
         <Reference>{({ref}) => this.renderTrigger(children, ref)}</Reference>
-        {tip}
+        {ReactDOM.createPortal(
+          <AnimatePresence>{tip}</AnimatePresence>,
+          this.getPortal(usesGlobalPortal)
+        )}
       </Manager>
     );
   }
@@ -289,7 +294,12 @@ const Container = styled('span')<{
   max-width: 100%;
 `;
 
-const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+const PositionWrapper = styled('div')`
+  z-index: ${p => p.theme.zIndex.tooltip};
+`;
+
+const TooltipContent = styled(motion.div)<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+  position: relative;
   color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
@@ -298,7 +308,6 @@ const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'
   border-radius: ${p => p.theme.borderRadius};
   overflow-wrap: break-word;
   max-width: 225px;
-  z-index: ${p => p.theme.zIndex.tooltip};
 
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};
