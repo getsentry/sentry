@@ -25,13 +25,13 @@ steps:
         '--cache=true',
         '--build-arg',
         'SOURCE_COMMIT=$COMMIT_SHA',
-        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
+        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py2',
         '-f',
         './docker/Dockerfile',
       ]
     timeout: 300s
   - name: 'gcr.io/kaniko-project/executor:v0.22.0'
-    id: runtime-image-py3
+    id: runtime-image
     waitFor:
       - builder-run
     args:
@@ -41,7 +41,7 @@ steps:
         'SOURCE_COMMIT=$COMMIT_SHA',
         '--build-arg',
         'PY_VER=3.6.10',
-        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py3',
+        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
         '-f',
         './docker/Dockerfile',
       ]
@@ -62,6 +62,7 @@ steps:
     waitFor:
       - runtime-image-py2
       - get-onpremise-repo
+      - e2e-test
     entrypoint: 'bash'
     dir: onpremise
     env:
@@ -83,15 +84,12 @@ steps:
         fi
     timeout: 450s
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
-    id: e2e-test-py3
+    id: e2e-test
     waitFor:
-      - runtime-image-py3
+      - runtime-image
       - get-onpremise-repo
-      - e2e-test-py2
     entrypoint: 'bash'
     dir: onpremise
-    env:
-      - 'SENTRY_PYTHON3=1'
     args:
       - '-e'
       - '-c'
@@ -109,9 +107,30 @@ steps:
         fi
     timeout: 450s
   - name: 'gcr.io/cloud-builders/docker'
-    id: docker-push
+    id: docker-push-py2
     waitFor:
       - e2e-test-py2
+    secretEnv: ['DOCKER_PASSWORD']
+    entrypoint: 'bash'
+    args:
+      - '-e'
+      - '-c'
+      - |
+        # Only push to Docker Hub from master
+        [ "$BRANCH_NAME" != "master" ] && exit 0
+        # Need to pull the image first due to Kaniko
+        docker pull $$SENTRY_IMAGE
+        echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
+        docker tag $$SENTRY_IMAGE-py2 $$DOCKER_REPO:$SHORT_SHA-py2
+        docker push $$DOCKER_REPO:$SHORT_SHA-py2
+        docker tag $$SENTRY_IMAGE-py2 $$DOCKER_REPO:$COMMIT_SHA-py2
+        docker push $$DOCKER_REPO:$COMMIT_SHA-py2
+        docker tag $$SENTRY_IMAGE-py2 $$DOCKER_REPO:nightly-py2
+        docker push $$DOCKER_REPO:nightly-py2
+  - name: 'gcr.io/cloud-builders/docker'
+    id: docker-push
+    waitFor:
+      - e2e-test
     secretEnv: ['DOCKER_PASSWORD']
     entrypoint: 'bash'
     args:
@@ -129,32 +148,11 @@ steps:
         docker push $$DOCKER_REPO:$COMMIT_SHA
         docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly
         docker push $$DOCKER_REPO:nightly
-        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA-py2
-        docker push $$DOCKER_REPO:$SHORT_SHA-py2
-        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA-py2
-        docker push $$DOCKER_REPO:$COMMIT_SHA-py2
-        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly-py2
-        docker push $$DOCKER_REPO:nightly-py2
-  - name: 'gcr.io/cloud-builders/docker'
-    id: docker-push-py3
-    waitFor:
-      - e2e-test-py3
-    secretEnv: ['DOCKER_PASSWORD']
-    entrypoint: 'bash'
-    args:
-      - '-e'
-      - '-c'
-      - |
-        # Only push to Docker Hub from master
-        [ "$BRANCH_NAME" != "master" ] && exit 0
-        # Need to pull the image first due to Kaniko
-        docker pull $$SENTRY_IMAGE-py3
-        echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-        docker tag $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$SHORT_SHA-py3
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA-py3
         docker push $$DOCKER_REPO:$SHORT_SHA-py3
-        docker tag $$SENTRY_IMAGE-py3 $$DOCKER_REPO:$COMMIT_SHA-py3
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA-py3
         docker push $$DOCKER_REPO:$COMMIT_SHA-py3
-        docker tag $$SENTRY_IMAGE-py3 $$DOCKER_REPO:nightly-py3
+        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly-py3
         docker push $$DOCKER_REPO:nightly-py3
   - name: 'node:12'
     id: zeus-upload
