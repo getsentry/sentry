@@ -106,7 +106,7 @@ class AccountClose extends AsyncView<Props, State> {
     const {orgsToRemove} = this.state;
     const orgs = orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove);
 
-    addLoadingMessage('Closing account...');
+    addLoadingMessage('Closing account\u2026');
 
     try {
       await this.api.requestPromise('/users/me/', {
