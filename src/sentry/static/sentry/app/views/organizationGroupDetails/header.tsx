@@ -82,7 +82,6 @@ class GroupHeader extends React.Component<Props, State> {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
-    const isReprocessing = group.status === 'reprocessing';
 
     const hasReprocessingV2Feature = projectFeatures.has('reprocessing-v2');
     const hasSimilarView = projectFeatures.has('similarity-view');
