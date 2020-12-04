@@ -115,8 +115,8 @@ export function getSubscriptionReason(group: Group, removeLinks = false) {
       );
     }
 
-    if (SUBSCRIPTION_REASONS.hasOwnProperty(reason as string)) {
-      return SUBSCRIPTION_REASONS[reason as string];
+    if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
+      return SUBSCRIPTION_REASONS[reason];
     }
   }
 
