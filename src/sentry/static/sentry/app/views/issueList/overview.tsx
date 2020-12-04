@@ -361,8 +361,15 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const orgFeatures = new Set(this.props.organization.features);
+    const expandParams: string[] = [];
     if (orgFeatures.has('inbox')) {
-      requestParams.expand = 'inbox';
+      expandParams.push('inbox');
+    }
+    if (orgFeatures.has('workflow-owners')) {
+      expandParams.push('owners');
+    }
+    if (expandParams.length) {
+      requestParams.expand = expandParams;
     }
 
     if (this._lastRequest) {
