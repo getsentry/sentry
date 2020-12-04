@@ -20,7 +20,6 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
-import * as MeasurementsManager from './measurementsManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
 import {
@@ -364,8 +363,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <React.Fragment>
         {Array.from(measurements).map(([timestamp, verticalMark]) => {
-          const names = Object.keys(verticalMark.marks);
-
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -374,30 +371,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return null;
           }
 
-          const measurementName = names.join('');
-
           return (
-            <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering}) => {
-                return (
-                  <MeasurementMarker
-                    style={{
-                      left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-                    }}
-                    failedThreshold={verticalMark.failedThreshold}
-                    onMouseEnter={() => {
-                      hoveringMeasurement(measurementName);
-                    }}
-                    onMouseLeave={() => {
-                      notHovering();
-                    }}
-                    onMouseOver={() => {
-                      hoveringMeasurement(measurementName);
-                    }}
-                  />
-                );
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
               }}
-            </MeasurementsManager.Consumer>
+              failedThreshold={verticalMark.failedThreshold}
+            />
           );
         })}
       </React.Fragment>
