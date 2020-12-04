@@ -2,6 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
+<<<<<<< HEAD
+=======
+import ButtonBar from 'app/components/buttonBar';
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
@@ -19,10 +23,16 @@ type Props = {
   project: Project;
   onDelete: () => void;
   onDiscard: () => void;
+<<<<<<< HEAD
   disabled: boolean;
 };
 
 function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Props) {
+=======
+};
+
+function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
   function renderDiscardDisabled({children, ...props}) {
     return children({
       ...props,
@@ -46,7 +56,11 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
             <Body>
               {!hasFeature &&
                 typeof renderDisabled === 'function' &&
+<<<<<<< HEAD
                 renderDisabled({...props, hasFeature, children: null})}
+=======
+                renderDisabled({...props, hasFeature})}
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
               {t(
                 `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
               )}
@@ -76,7 +90,11 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
   }
 
   return (
+<<<<<<< HEAD
     <div className="btn-group">
+=======
+    <ButtonBar className="btn-group">
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
       <LinkWithConfirmation
         className="group-remove btn btn-default btn-sm"
         title={t('Delete')}
@@ -84,23 +102,34 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
           'Deleting this issue is permanent. Are you sure you wish to continue?'
         )}
         onConfirm={onDelete}
+<<<<<<< HEAD
         disabled={disabled}
+=======
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
       >
         <IconWrapper>
           <IconDelete size="xs" />
         </IconWrapper>
       </LinkWithConfirmation>
+<<<<<<< HEAD
       <DropdownLink
         title=""
         caret
         className="group-delete btn btn-default btn-sm"
         disabled={disabled}
       >
+=======
+      <DropdownLink title="" caret className="group-delete btn btn-default btn-sm">
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
         <MenuItem onClick={openDiscardModal}>
           <span>{t('Delete and discard future events')}</span>
         </MenuItem>
       </DropdownLink>
+<<<<<<< HEAD
     </div>
+=======
+    </ButtonBar>
+>>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
   );
 }
 
