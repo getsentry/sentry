@@ -24,12 +24,12 @@ import {
   toPercent,
 } from './utils';
 
-export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
 const MINIMAP_HEIGHT = 120;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 20;
 const VIEW_HANDLE_HEIGHT = 18;
+export const MINIMAP_CONTAINER_HEIGHT = MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1;
 
 type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
@@ -580,7 +580,7 @@ const HeaderContainer = styled('div')`
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
-  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+  height: ${MINIMAP_CONTAINER_HEIGHT}px;
 `;
 
 const MinimapBackground = styled('div')`
