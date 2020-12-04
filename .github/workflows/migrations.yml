@@ -41,7 +41,7 @@ jobs:
           sentry upgrade --noinput
 
 
-      - run: docker exec -it sentry_postgres psql -U postgres sentry -c "\d sentry_dashboardwidget"
+      - run: docker exec sentry_postgres psql -U postgres sentry -c "\d sentry_dashboardwidget"
 
       - name: Get changed migration files
         id: file
