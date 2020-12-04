@@ -148,12 +148,6 @@ steps:
         docker push $$DOCKER_REPO:$COMMIT_SHA
         docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly
         docker push $$DOCKER_REPO:nightly
-        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$SHORT_SHA-py3
-        docker push $$DOCKER_REPO:$SHORT_SHA-py3
-        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:$COMMIT_SHA-py3
-        docker push $$DOCKER_REPO:$COMMIT_SHA-py3
-        docker tag $$SENTRY_IMAGE $$DOCKER_REPO:nightly-py3
-        docker push $$DOCKER_REPO:nightly-py3
   - name: 'node:12'
     id: zeus-upload
     waitFor:
