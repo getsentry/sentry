@@ -200,7 +200,6 @@ class Actions extends React.Component<Props, State> {
       complete: clearIndicators,
     });
   };
-<<<<<<< HEAD
 
   handleClick(
     disabled: boolean,
@@ -216,8 +215,6 @@ class Actions extends React.Component<Props, State> {
       onClick(event);
     };
   }
-=======
->>>>>>> fix lint errors
 
   render() {
     const {group, project, organization, disabled} = this.props;
