@@ -47,7 +47,6 @@ class Controls extends React.Component<Props> {
           e.preventDefault();
           onCancel();
         }}
-        size="small"
       >
         {t('Cancel')}
       </Button>
@@ -63,9 +62,8 @@ class Controls extends React.Component<Props> {
               onDelete();
             }}
             priority="danger"
-            size="small"
           >
-            {t('Delete Dashboard')}
+            {t('Delete')}
           </Button>
           <Button
             onClick={e => {
@@ -73,7 +71,6 @@ class Controls extends React.Component<Props> {
               onCommit();
             }}
             priority="primary"
-            size="small"
           >
             {t('Finish Editing')}
           </Button>
@@ -91,7 +88,7 @@ class Controls extends React.Component<Props> {
               onCommit();
             }}
             priority="primary"
-            size="small"
+            icon={<IconAdd size="xs" isCircled />}
           >
             {t('Create Dashboard')}
           </Button>
@@ -113,16 +110,6 @@ class Controls extends React.Component<Props> {
 
     return (
       <ButtonBar gap={1} key="controls">
-        <Button
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          icon={<IconEdit size="xs" />}
-          size="small"
-        >
-          {t('Edit')}
-        </Button>
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -151,11 +138,19 @@ class Controls extends React.Component<Props> {
         <Button
           onClick={e => {
             e.preventDefault();
+            onEdit();
+          }}
+          icon={<IconEdit size="xs" />}
+        >
+          {t('Edit')}
+        </Button>
+        <Button
+          onClick={e => {
+            e.preventDefault();
             onCreate();
           }}
           priority="primary"
           icon={<IconAdd size="xs" isCircled />}
-          size="small"
         >
           {t('Create Dashboard')}
         </Button>
