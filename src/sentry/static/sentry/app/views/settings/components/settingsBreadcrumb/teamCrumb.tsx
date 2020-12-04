@@ -47,7 +47,8 @@ const TeamCrumb = ({teams, params, routes, route, ...props}: Props) => {
       }}
       hasMenu={hasMenu}
       route={route}
-      items={teams.map(teamItem => ({
+      items={teams.map((teamItem, index) => ({
+        index,
         value: teamItem.slug,
         label: (
           <MenuItem>

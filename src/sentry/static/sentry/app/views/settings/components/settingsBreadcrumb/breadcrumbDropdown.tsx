@@ -1,36 +1,35 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import DropdownAutoCompleteMenu from 'app/components/dropdownAutoComplete/menu';
+import {Item} from 'app/components/dropdownAutoComplete/types';
 import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
 import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 
+import {RouteWithName} from './types';
+
 const EXIT_DELAY = 0;
 
-class BreadcrumbDropdown extends React.Component {
-  static propTypes = {
-    hasMenu: PropTypes.bool,
-    route: PropTypes.object,
-    isLast: PropTypes.bool,
-    enterDelay: PropTypes.number,
-    name: PropTypes.node,
-    items: PropTypes.array,
-    onSelect: PropTypes.func,
+type Props = {
+  route: RouteWithName;
+  hasMenu?: boolean;
+  isLast?: boolean;
+  enterDelay?: number;
+  name: React.ReactNode;
+  items: Item[];
+  onSelect: (item: Item) => void;
+};
+
+type State = {
+  isOpen: boolean;
+};
+
+class BreadcrumbDropdown extends React.Component<Props, State> {
+  state: State = {
+    isOpen: false,
   };
 
-  static defaultProps = {
-    enterDelay: 0,
-  };
-
-  constructor(...args) {
-    super(...args);
-
-    this.entering = false;
-    this.leaving = false;
-    this.state = {
-      isOpen: false,
-    };
-  }
+  entering: number | null = null;
+  leaving: number | null = null;
 
   open = () => {
     this.setState({isOpen: true});
@@ -48,7 +47,7 @@ class BreadcrumbDropdown extends React.Component {
       clearTimeout(this.leaving);
     }
 
-    this.entering = setTimeout(() => this.open(), this.props.enterDelay);
+    this.entering = window.setTimeout(() => this.open(), this.props.enterDelay ?? 0);
   };
 
   // handles mouseEnter event on actor and menu, should clear the leaving timeout and keep menu open
@@ -67,7 +66,7 @@ class BreadcrumbDropdown extends React.Component {
       clearTimeout(this.entering);
     }
 
-    this.leaving = setTimeout(() => this.close(), EXIT_DELAY);
+    this.leaving = window.setTimeout(() => this.close(), EXIT_DELAY);
   };
 
   // Close immediately when actor is clicked clicked
@@ -99,7 +98,6 @@ class BreadcrumbDropdown extends React.Component {
         {({getActorProps, actions, isOpen}) => (
           <Crumb
             {...getActorProps({
-              hasMenu,
               onClick: this.handleClickActor.bind(this, actions),
               onMouseEnter: this.handleMouseEnterActor.bind(this, actions),
               onMouseLeave: this.handleMouseLeave.bind(this, actions),
