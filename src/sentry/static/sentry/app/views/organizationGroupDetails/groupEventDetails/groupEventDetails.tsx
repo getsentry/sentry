@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
