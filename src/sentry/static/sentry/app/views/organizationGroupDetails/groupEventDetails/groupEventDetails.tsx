@@ -169,11 +169,9 @@ class GroupEventDetails extends React.Component<Props, State> {
           <div className="primary">
             {evt && (
               <GroupEventToolbar
-                organization={organization}
                 group={group}
                 event={evt}
                 orgId={organization.slug}
-                projectId={project.slug}
                 location={location}
               />
             )}

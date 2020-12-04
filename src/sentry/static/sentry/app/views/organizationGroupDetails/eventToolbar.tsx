@@ -1,8 +1,8 @@
 import React from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import moment from 'moment-timezone';
-import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
@@ -11,16 +11,16 @@ import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import {Event, Group} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 
-const formatDateDelta = (reference, observed) => {
+const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
   const hours = Math.floor(+duration / (60 * 60 * 1000));
   const minutes = duration.minutes();
-  const results = [];
+  const results: string[] = [];
 
   if (hours) {
     results.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
@@ -37,28 +37,28 @@ const formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-class GroupEventToolbar extends React.Component {
-  static propTypes = {
-    orgId: PropTypes.string.isRequired,
-    group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired,
-    location: PropTypes.object.isRequired,
-  };
+type Props = {
+  orgId: string;
+  group: Group;
+  event: Event;
+  location: Location;
+};
 
-  shouldComponentUpdate(nextProps) {
+class GroupEventToolbar extends React.Component<Props> {
+  shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
 
   getDateTooltip() {
     const evt = this.props.event;
     const user = ConfigStore.get('user');
-    const options = user ? user.options : {};
+    const options = user?.options ?? {};
     const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
     const dateCreated = moment(evt.dateCreated);
     const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
 
     return (
-      <dl className="flat" style={{textAlign: 'left', margin: 0, minWidth: '200px'}}>
+      <DescriptionList className="flat">
         <dt>Occurred</dt>
         <dd>
           {dateCreated.format('ll')}
@@ -77,7 +77,7 @@ class GroupEventToolbar extends React.Component {
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
           </React.Fragment>
         )}
-      </dl>
+      </DescriptionList>
     );
   }
 
@@ -92,9 +92,6 @@ class GroupEventToolbar extends React.Component {
     // TODO: possible to define this as a route in react-router, but without a corresponding
     //       React component?
     const jsonUrl = `/organizations/${orgId}/issues/${groupId}/events/${evt.id}/json/`;
-    const style = {
-      borderBottom: '1px dotted #dfe3ea',
-    };
 
     const latencyThreshold = 30 * 60 * 1000; // 30 minutes
     const isOverLatencyThreshold =
@@ -102,11 +99,11 @@ class GroupEventToolbar extends React.Component {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <div className="event-toolbar">
+      <Wrapper>
         <StyledNavigationButtonGroup
           location={location}
-          hasPrevious={evt.previousEventID}
-          hasNext={evt.nextEventID}
+          hasPrevious={!!evt.previousEventID}
+          hasNext={!!evt.nextEventID}
           urls={[
             `${baseEventsPath}oldest/`,
             `${baseEventsPath}${evt.previousEventID}/`,
@@ -114,28 +111,46 @@ class GroupEventToolbar extends React.Component {
             `${baseEventsPath}latest/`,
           ]}
         />
-        <h4>
+        <Heading>
           {t('Event')}{' '}
-          <Link to={`${baseEventsPath}${evt.id}/`} className="event-id">
-            {evt.eventID}
-          </Link>
-        </h4>
-        <span>
-          <Tooltip title={this.getDateTooltip()} disableForVisualTest>
-            <DateTime
-              date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
-              style={style}
-            />
-            {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
-          </Tooltip>
-          <ExternalLink href={jsonUrl} className="json-link">
-            {'JSON'} (<FileSize bytes={evt.size} />)
-          </ExternalLink>
-        </span>
-      </div>
+          <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
+        </Heading>
+        <Tooltip title={this.getDateTooltip()} disableForVisualTest>
+          <StyledDateTime
+            date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
+          />
+          {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
+        </Tooltip>
+        <JsonLink href={jsonUrl}>
+          {'JSON'} (<FileSize bytes={evt.size} />)
+        </JsonLink>
+      </Wrapper>
     );
   }
 }
+
+const Wrapper = styled('div')`
+  position: relative;
+  margin-bottom: -5px;
+  /* z-index seems unnecessary, but increasing (instead of removing) just in case(billy) */
+  /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
+  z-index: 3;
+  padding: 20px 30px 20px 40px;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+`;
+
+const EventIdLink = styled(Link)`
+  font-weight: normal;
+`;
+
+const Heading = styled('h4')`
+  line-height: 1.3;
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
 
 const StyledNavigationButtonGroup = styled(NavigationButtonGroup)`
   float: right;
@@ -145,6 +160,34 @@ const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.5)};
   position: relative;
   top: ${space(0.25)};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  border-bottom: 1px dotted #dfe3ea;
+  color: ${p => p.theme.subText};
+`;
+
+const JsonLink = styled(ExternalLink)`
+  margin-left: ${space(1)};
+  padding-left: ${space(1)};
+  position: relative;
+
+  &:before {
+    display: block;
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 2px;
+    height: 14px;
+    border-left: 1px solid ${p => p.theme.border};
+  }
+`;
+
+const DescriptionList = styled('dl')`
+  text-align: left;
+  margin: 0;
+  min-width: 200px;
+  max-width: 250px;
 `;
 
 export default GroupEventToolbar;
