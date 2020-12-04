@@ -6,17 +6,14 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withApi from 'app/utils/withApi';
 
-const defaultProps = {
-  height: 150,
-};
-
 type Props = {
   api: Client;
   since: number;
   resolution: string;
   stat: string;
   label: string;
-} & Partial<typeof defaultProps>;
+  height?: number;
+};
 
 type State = {
   error: boolean;
@@ -25,8 +22,6 @@ type State = {
 };
 
 class InternalStatChart extends React.Component<Props, State> {
-  static defaultProps = defaultProps;
-
   state: State = {
     error: false,
     loading: true,
@@ -89,7 +84,7 @@ class InternalStatChart extends React.Component<Props, State> {
     };
     return (
       <MiniBarChart
-        height={height}
+        height={height ?? 150}
         series={[series]}
         isGroupedByDate
         showTimeInTooltip
