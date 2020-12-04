@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import ButtonBar from 'app/components/buttonBar';
 >>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
+=======
+>>>>>>> fix lint errors
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
@@ -57,10 +60,14 @@ function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
               {!hasFeature &&
                 typeof renderDisabled === 'function' &&
 <<<<<<< HEAD
+<<<<<<< HEAD
                 renderDisabled({...props, hasFeature, children: null})}
 =======
                 renderDisabled({...props, hasFeature})}
 >>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
+=======
+                renderDisabled({...props, hasFeature, children: null})}
+>>>>>>> fix lint errors
               {t(
                 `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
               )}
@@ -91,10 +98,14 @@ function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
 
   return (
 <<<<<<< HEAD
+<<<<<<< HEAD
     <div className="btn-group">
 =======
     <ButtonBar className="btn-group">
 >>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
+=======
+    <div className="btn-group">
+>>>>>>> fix lint errors
       <LinkWithConfirmation
         className="group-remove btn btn-default btn-sm"
         title={t('Delete')}
@@ -126,10 +137,14 @@ function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
         </MenuItem>
       </DropdownLink>
 <<<<<<< HEAD
+<<<<<<< HEAD
     </div>
 =======
     </ButtonBar>
 >>>>>>> ref(ts): Convert organizationGroupDetails Actions to Typescript
+=======
+    </div>
+>>>>>>> fix lint errors
   );
 }
 
