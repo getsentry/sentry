@@ -518,7 +518,7 @@ class ParseQueryTest(TestCase):
 
     def test_owner_me(self):
         result = self.parse_query("owner:me")
-        assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
+        assert result == {"owner": self.user, "tags": {}, "query": ""}
 
     def test_owner_email(self):
         result = self.parse_query("owner:%s" % (self.user.email,))
