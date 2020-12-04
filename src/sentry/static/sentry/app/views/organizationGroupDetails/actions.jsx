@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
@@ -96,8 +97,8 @@ class DeleteActions extends React.Component {
 
   render() {
     return (
-      <div className="btn-group">
-        <LinkWithConfirmation
+      <DeleteDiscardWrapper>
+        <StyledLinkWithConfirmation
           className="group-remove btn btn-default btn-sm"
           title={t('Delete')}
           message={t(
@@ -108,13 +109,14 @@ class DeleteActions extends React.Component {
           <IconWrapper>
             <IconDelete size="xs" />
           </IconWrapper>
-        </LinkWithConfirmation>
-        <DropdownLink caret className="group-delete btn btn-default btn-sm">
-          <MenuItem onClick={this.openDiscardModal}>
+        </StyledLinkWithConfirmation>
+        <StyledDropdownLink caret className="group-delete btn btn-default btn-sm">
+          <StyledMenuItemHeader header>{t('Delete & Discard')}</StyledMenuItemHeader>
+          <StyledMenuItem onClick={this.openDiscardModal}>
             <span>{t('Delete and discard future events')}</span>
-          </MenuItem>
-        </DropdownLink>
-      </div>
+          </StyledMenuItem>
+        </StyledDropdownLink>
+      </DeleteDiscardWrapper>
     );
   }
 }
@@ -362,6 +364,16 @@ const GroupDetailsActions = createReactClass({
   },
 });
 
+const dropdownTipCss = props => css`
+  & ul {
+    padding: 0;
+    border-radius: ${props.theme.borderRadius};
+    top: 40px;
+    & :after {
+      border-bottom: 8px solid ${props.theme.bodyBackground};
+    }
+`;
+
 const IconWrapper = styled('span')`
   position: relative;
   top: 1px;
@@ -376,6 +388,52 @@ const BookmarkButton = styled('div')`
   border-color: ${p.theme.yellow300};
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
   `}
+`;
+
+const StyledMenuItemHeader = styled(MenuItem)`
+  text-transform: uppercase;
+  padding: ${space(1)} 0 ${space(1)} 10px;
+  font-weight: 600;
+  color: ${p => p.theme.subText};
+  background: ${p => p.theme.bodyBackground};
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  & span {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 5px;
+  }
+  & span:hover {
+    background: ${p => p.theme.bodyBackground};
+  }
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  transition: none;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+`;
+
+const StyledLinkWithConfirmation = styled(LinkWithConfirmation)`
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: 0;
+`;
+
+const DeleteDiscardWrapper = styled('div')`
+  display: inline-block;
+  margin-right: 5px;
+  ${dropdownTipCss}
+  & span {
+    position: relative;
+  }
 `;
 
 export {GroupDetailsActions};

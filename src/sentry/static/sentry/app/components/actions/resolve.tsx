@@ -1,9 +1,11 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
 import ActionLink from 'app/components/actions/actionLink';
+import Button from 'app/components/button';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
@@ -83,31 +85,31 @@ class ResolveActions extends React.Component<Props, State> {
 
     if (isAutoResolved) {
       return (
-        <div className="btn-group">
+        <ResolvedActionWrapper>
           <Tooltip
             title={t(
               'This event is resolved due to the Auto Resolve configuration for this project'
             )}
           >
-            <a className={this.getButtonClass('active')}>
-              <IconCheckmark size="xs" />
-            </a>
+            <StyledButton
+              data-test-id="button-unresolve"
+              icon={<IconCheckmark size="xs" />}
+              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
+            />
           </Tooltip>
-        </div>
+        </ResolvedActionWrapper>
       );
     } else {
       return (
-        <div className="btn-group">
+        <ResolvedActionWrapper>
           <Tooltip title={t('Unresolve')}>
-            <a
+            <StyledButton
               data-test-id="button-unresolve"
-              className={this.getButtonClass('active')}
               onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-            >
-              <IconCheckmark size="xs" />
-            </a>
+              icon={<IconCheckmark size="xs" />}
+            />
           </Tooltip>
-        </div>
+        </ResolvedActionWrapper>
       );
     }
   }
@@ -146,7 +148,7 @@ class ResolveActions extends React.Component<Props, State> {
     };
 
     return (
-      <div style={{display: 'inline-block'}}>
+      <ResolveWrapper>
         <CustomResolutionModal
           show={this.state.modal}
           onSelected={(statusDetails: ResolutionStatusDetails) =>
@@ -157,16 +159,16 @@ class ResolveActions extends React.Component<Props, State> {
           projectId={projectId}
         />
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-          <div className="btn-group">
-            <StyledActionLink
+          <ResolvedActionWrapper>
+            <StyledResolveActionLink
               {...actionLinkProps}
               title={t('Resolve')}
-              className={buttonClass}
+              disabled={disabled}
               onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
             >
               <StyledIconCheckmark size="xs" />
               {t('Resolve')}
-            </StyledActionLink>
+            </StyledResolveActionLink>
 
             <StyledDropdownLink
               key="resolve-dropdown"
@@ -176,65 +178,103 @@ class ResolveActions extends React.Component<Props, State> {
               alwaysRenderMenu
               disabled={disableDropdown || disabled}
             >
-              <MenuItem header>{t('Resolved In')}</MenuItem>
-              <MenuItem noAnchor>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    title={t('The next release')}
-                    onAction={() =>
-                      hasRelease &&
-                      onUpdate({
-                        status: ResolutionStatus.RESOLVED,
-                        statusDetails: {
-                          inNextRelease: true,
-                        },
-                      })
-                    }
-                  >
-                    {t('The next release')}
-                  </ActionLink>
-                </Tooltip>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    title={t('The current release')}
-                    onAction={() =>
-                      hasRelease &&
-                      onUpdate({
-                        status: ResolutionStatus.RESOLVED,
-                        statusDetails: {
-                          inRelease: latestRelease ? latestRelease.version : 'latest',
-                        },
-                      })
-                    }
-                  >
-                    {latestRelease
-                      ? t(
-                          'The current release (%s)',
-                          formatVersion(latestRelease.version)
-                        )
-                      : t('The current release')}
-                  </ActionLink>
-                </Tooltip>
-                <Tooltip title={actionTitle} containerDisplayMode="block">
-                  <ActionLink
-                    {...actionLinkProps}
-                    title={t('Another version')}
-                    onAction={() => hasRelease && this.setState({modal: true})}
-                    shouldConfirm={false}
-                  >
-                    {t('Another version\u2026')}
-                  </ActionLink>
-                </Tooltip>
-              </MenuItem>
+              <StyledMenuItem header>{t('Resolved In')}</StyledMenuItem>
+              <StyledTooltip title={actionTitle} containerDisplayMode="block">
+                <StyledActionLink
+                  {...actionLinkProps}
+                  title={t('The next release')}
+                  onAction={() =>
+                    hasRelease &&
+                    onUpdate({
+                      status: ResolutionStatus.RESOLVED,
+                      statusDetails: {
+                        inNextRelease: true,
+                      },
+                    })
+                  }
+                >
+                  {t('The next release')}
+                </StyledActionLink>
+              </StyledTooltip>
+              <StyledTooltip title={actionTitle} containerDisplayMode="block">
+                <StyledActionLink
+                  {...actionLinkProps}
+                  title={t('The current release')}
+                  onAction={() =>
+                    hasRelease &&
+                    onUpdate({
+                      status: ResolutionStatus.RESOLVED,
+                      statusDetails: {
+                        inRelease: latestRelease ? latestRelease.version : 'latest',
+                      },
+                    })
+                  }
+                >
+                  {latestRelease
+                    ? t('The current release (%s)', formatVersion(latestRelease.version))
+                    : t('The current release')}
+                </StyledActionLink>
+              </StyledTooltip>
+              <StyledTooltip title={actionTitle} containerDisplayMode="block">
+                <StyledActionLink
+                  {...actionLinkProps}
+                  title={t('Another version')}
+                  onAction={() => hasRelease && this.setState({modal: true})}
+                  shouldConfirm={false}
+                >
+                  {t('Another version\u2026')}
+                </StyledActionLink>
+              </StyledTooltip>
             </StyledDropdownLink>
-          </div>
+          </ResolvedActionWrapper>
         </Tooltip>
-      </div>
+      </ResolveWrapper>
     );
   }
 }
+
+// currently needed when the button is disabled on the issue stream (no issues are selected)
+// colors can probably be updated to use theme colors based on design
+const disabledCss = css`
+  color: #ced3d6;
+  border-color: #e3e5e6;
+  box-shadow: none;
+  cursor: default;
+  opacity: 0.65;
+  pointer-events: none;
+`;
+
+const dropdownTipCss = props => css`
+  & ul {
+    padding: 0;
+    border-radius: ${props.theme.borderRadius};
+    top: 40px;
+    & :after {
+      border-bottom: 8px solid ${props.theme.bodyBackground};
+    }
+`;
+
+const actionLinkCss = props => css`
+  color: ${props.theme.subText};
+  &:hover {
+    border-radius: ${props.theme.borderRadius};
+    background: ${props.theme.bodyBackground};
+    color: ${props.theme.textColor};
+  }
+`;
+
+const ResolvedActionWrapper = styled('div')`
+  margin-right: 5px;
+  display: inline-block;
+`;
+
+const ResolveWrapper = styled('div')`
+  display: inline-block;
+  ${dropdownTipCss}
+  & span {
+    position: relative;
+  }
+`;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
   margin-right: ${space(0.5)};
@@ -243,14 +283,86 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   }
 `;
 
+const StyledButton = styled(Button)`
+  display: inline-flex;
+  vertical-align: middle;
+  color: ${p => p.theme.white};
+  background: ${p => p.theme.purple300};
+  border: 1px solid #4538a1;
+  & span {
+    padding: 6px 4.5px;
+  }
+  &:hover {
+    background: ${p => p.theme.purple300};
+    color: ${p => p.theme.white};
+    border: 1px solid #4538a1;
+  }
+`;
+
+const StyledResolveActionLink = styled(ActionLink)`
+  float: left;
+  color: #493e54;
+  background-image: linear-gradient(to bottom, ${p => p.theme.white} 0%, #fcfbfc 100%);
+  background-repeat: repeat-x;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: ${space(0.5)} 9px;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 3px 0 0 3px !important;
+  border-right: 0;
+  font-weight: 600;
+  line-height: 1.5;
+  user-select: none;
+  transition: none;
+  ${p => (p.disabled ? disabledCss : null)}
+  &:hover {
+    background-color: #e6e6e6;
+    border-radius: 3px;
+    color: ${p => p.theme.button.default.color};
+    border-color: #afa3bb;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
+  }
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  text-transform: uppercase;
+  padding: ${space(1)} 0 ${space(1)} 10px;
+  font-weight: 600;
+  color: ${p => p.theme.subText};
+  background: ${p => p.theme.bodyBackground};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  :not(:first-child) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+  > span {
+    border-radius: ${p => p.theme.borderRadius};
+    display: block;
+  }
+  &:hover > span {
+    background: ${p => p.theme.bodyBackground};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
 const StyledActionLink = styled(ActionLink)`
   display: flex;
   align-items: center;
   transition: none;
+  color: ${p => p.theme.textColor} !important;
+  padding: ${space(1)} 10px ${space(1)} 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  ${actionLinkCss}
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
 `;
 
 export default ResolveActions;

@@ -1,16 +1,18 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
 import ActionLink from 'app/components/actions/actionLink';
+import Button from 'app/components/button';
 import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
 import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
-import {IconNot} from 'app/icons';
+import {IconChevron, IconNot} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -103,22 +105,20 @@ export default class IgnoreActions extends React.Component<Props, State> {
 
     if (isIgnored) {
       return (
-        <div className="btn-group">
+        <IgnoredButtonActionWrapper>
           <Tooltip title={t('Change status to unresolved')}>
-            <a
-              className={linkClassName}
+            <StyledButton
               data-test-id="button-unresolve"
               onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-            >
-              <SoloIconNot size="xs" />
-            </a>
+              icon={<IconNot size="xs" />}
+            />
           </Tooltip>
-        </div>
+        </IgnoredButtonActionWrapper>
       );
     }
 
     return (
-      <div style={{display: 'inline-block'}}>
+      <IgnoreWrapper>
         <CustomIgnoreDurationModal
           show={this.state.modal === ModalStates.DURATION}
           onSelected={details => this.onCustomIgnore(details)}
@@ -144,80 +144,102 @@ export default class IgnoreActions extends React.Component<Props, State> {
           windowName="ignoreUserWindow"
           windowChoices={IGNORE_WINDOWS}
         />
-        <div className="btn-group">
-          <StyledActionLink
+        <IgnoredButtonActionWrapper>
+          <StyledIgnoreActionLink
             {...actionLinkProps}
             title={t('Ignore')}
-            className={linkClassName}
+            disabled={disabled}
             onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
           >
             <StyledIconNot size="xs" />
             {t('Ignore')}
-          </StyledActionLink>
+          </StyledIgnoreActionLink>
 
           <StyledDropdownLink
-            caret
             className={linkClassName}
+            caret
             title=""
             alwaysRenderMenu
             disabled={disabled}
           >
-            <MenuItem header>Ignore</MenuItem>
-            <li className="dropdown-submenu">
+            <StyledMenuItem header>Ignore</StyledMenuItem>
+            <DropdownMenuItem>
               <DropdownLink
-                title={t('For\u2026')}
+                title={
+                  <ActionSubMenu>
+                    {t('For\u2026')}
+                    <SubMenuChevron>
+                      <IconChevron direction="right" size="xs" />
+                    </SubMenuChevron>
+                  </ActionSubMenu>
+                }
                 caret={false}
                 isNestedDropdown
                 alwaysRenderMenu
               >
                 {IGNORE_DURATIONS.map(duration => (
-                  <MenuItem noAnchor key={duration}>
-                    <ActionLink
+                  <DropdownMenuItem key={duration}>
+                    <StyledForActionLink
                       {...actionLinkProps}
                       onAction={() => this.onIgnore({ignoreDuration: duration})}
                     >
-                      <Duration seconds={duration * 60} />
-                    </ActionLink>
-                  </MenuItem>
+                      <ActionSubMenu>
+                        <Duration seconds={duration * 60} />
+                      </ActionSubMenu>
+                    </StyledForActionLink>
+                  </DropdownMenuItem>
                 ))}
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.DURATION})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
+                <DropdownMenuItem>
+                  <ActionSubMenu>
+                    <a onClick={() => this.setState({modal: ModalStates.DURATION})}>
+                      {t('Custom')}
+                    </a>
+                  </ActionSubMenu>
+                </DropdownMenuItem>
               </DropdownLink>
-            </li>
-            <li className="dropdown-submenu">
+            </DropdownMenuItem>
+            <DropdownMenuItem>
               <DropdownLink
-                title={t('Until this occurs again\u2026')}
+                title={
+                  <ActionSubMenu>
+                    {t('Until this occurs again\u2026')}
+                    <SubMenuChevron>
+                      <IconChevron direction="right" size="xs" />
+                    </SubMenuChevron>
+                  </ActionSubMenu>
+                }
                 caret={false}
                 isNestedDropdown
                 alwaysRenderMenu
               >
                 {IGNORE_COUNTS.map(count => (
-                  <li className="dropdown-submenu" key={count}>
+                  <DropdownMenuItem key={count}>
                     <DropdownLink
                       title={
-                        count === 1
-                          ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
-                          : tn('%s time\u2026', '%s times\u2026', count)
+                        <ActionSubMenu>
+                          {count === 1
+                            ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+                            : tn('%s time\u2026', '%s times\u2026', count)}
+                          <SubMenuChevron>
+                            <IconChevron direction="right" size="xs" />
+                          </SubMenuChevron>
+                        </ActionSubMenu>
                       }
                       caret={false}
                       isNestedDropdown
                       alwaysRenderMenu
                     >
-                      <MenuItem noAnchor>
-                        <ActionLink
+                      <DropdownMenuItem>
+                        <StyledActionLink
                           {...actionLinkProps}
                           onAction={() => this.onIgnore({ignoreCount: count})}
                         >
                           {t('from now')}
-                        </ActionLink>
-                      </MenuItem>
+                        </StyledActionLink>
+                      </DropdownMenuItem>
                       {IGNORE_WINDOWS.map(([hours, label]) => (
-                        <MenuItem noAnchor key={hours}>
-                          <ActionLink
+                        <DropdownMenuItem key={hours}>
+                          <StyledActionLink
                             {...actionLinkProps}
                             onAction={() =>
                               this.onIgnore({
@@ -227,46 +249,61 @@ export default class IgnoreActions extends React.Component<Props, State> {
                             }
                           >
                             {label}
-                          </ActionLink>
-                        </MenuItem>
+                          </StyledActionLink>
+                        </DropdownMenuItem>
                       ))}
                     </DropdownLink>
-                  </li>
+                  </DropdownMenuItem>
                 ))}
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.COUNT})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
+                <DropdownMenuItem>
+                  <ActionSubMenu>
+                    <a onClick={() => this.setState({modal: ModalStates.COUNT})}>
+                      {t('Custom')}
+                    </a>
+                  </ActionSubMenu>
+                </DropdownMenuItem>
               </DropdownLink>
-            </li>
-            <li className="dropdown-submenu">
+            </DropdownMenuItem>
+            <DropdownMenuItem>
               <DropdownLink
-                title={t('Until this affects an additional\u2026')}
+                title={
+                  <ActionSubMenu>
+                    {t('Until this affects an additional\u2026')}
+                    <SubMenuChevron>
+                      <IconChevron direction="right" size="xs" />
+                    </SubMenuChevron>
+                  </ActionSubMenu>
+                }
                 caret={false}
                 isNestedDropdown
                 alwaysRenderMenu
               >
                 {IGNORE_COUNTS.map(count => (
-                  <li className="dropdown-submenu" key={count}>
+                  <DropdownMenuItem key={count}>
                     <DropdownLink
-                      title={tn('one user\u2026', '%s users\u2026', count)}
+                      title={
+                        <ActionSubMenu>
+                          {tn('one user\u2026', '%s users\u2026', count)}
+                          <SubMenuChevron>
+                            <IconChevron direction="right" size="xs" />
+                          </SubMenuChevron>
+                        </ActionSubMenu>
+                      }
                       caret={false}
                       isNestedDropdown
                       alwaysRenderMenu
                     >
-                      <MenuItem noAnchor>
-                        <ActionLink
+                      <DropdownMenuItem>
+                        <StyledActionLink
                           {...actionLinkProps}
                           onAction={() => this.onIgnore({ignoreUserCount: count})}
                         >
                           {t('from now')}
-                        </ActionLink>
-                      </MenuItem>
+                        </StyledActionLink>
+                      </DropdownMenuItem>
                       {IGNORE_WINDOWS.map(([hours, label]) => (
-                        <MenuItem noAnchor key={hours}>
-                          <ActionLink
+                        <DropdownMenuItem key={hours}>
+                          <StyledActionLink
                             {...actionLinkProps}
                             onAction={() =>
                               this.onIgnore({
@@ -276,26 +313,110 @@ export default class IgnoreActions extends React.Component<Props, State> {
                             }
                           >
                             {label}
-                          </ActionLink>
-                        </MenuItem>
+                          </StyledActionLink>
+                        </DropdownMenuItem>
                       ))}
                     </DropdownLink>
-                  </li>
+                  </DropdownMenuItem>
                 ))}
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.USERS})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
+                <DropdownMenuItem>
+                  <ActionSubMenu>
+                    <a onClick={() => this.setState({modal: ModalStates.USERS})}>
+                      {t('Custom')}
+                    </a>
+                  </ActionSubMenu>
+                </DropdownMenuItem>
               </DropdownLink>
-            </li>
+            </DropdownMenuItem>
           </StyledDropdownLink>
-        </div>
-      </div>
+        </IgnoredButtonActionWrapper>
+      </IgnoreWrapper>
     );
   }
 }
+
+// currently needed when the button is disabled on the issue stream (no issues are selected)
+// colors can probably be updated to use theme colors based on design
+const disabledCss = css`
+  color: #ced3d6;
+  border-color: #e3e5e6;
+  box-shadow: none;
+  cursor: default;
+  opacity: 0.65;
+  pointer-events: none;
+`;
+
+const actionLinkCss = props => css`
+  color: ${props.theme.subText};
+  &:hover {
+    border-radius: ${props.theme.borderRadius};
+    background: ${props.theme.bodyBackground} !important;
+  }
+`;
+
+const dropdownTipCss = props => css`
+  & ul {
+    padding: 0;
+    border-radius: ${props.theme.borderRadius};
+    top: 40px;
+    & :after {
+      border-bottom: 8px solid ${props.theme.bodyBackground};
+    }
+`;
+
+const IgnoreWrapper = styled('div')`
+  display: inline-block;
+  ${dropdownTipCss}
+  & span {
+    position: relative;
+  }
+`;
+
+const IgnoredButtonActionWrapper = styled('div')`
+  margin-right: 5px;
+  display: inline-block;
+`;
+
+const StyledButton = styled(Button)`
+  display: inline-flex;
+  vertical-align: middle;
+  color: ${p => p.theme.white};
+  background: ${p => p.theme.purple300};
+  border: 1px solid #4538a1;
+  & span {
+    padding: 6px 4.5px;
+  }
+  &:hover {
+    background: ${p => p.theme.purple300};
+    color: ${p => p.theme.white};
+    border: 1px solid #4538a1;
+  }
+`;
+
+const StyledIgnoreActionLink = styled(ActionLink)`
+  float: left;
+  color: #493e54;
+  background-image: linear-gradient(to bottom, ${p => p.theme.white} 0%, #fcfbfc 100%);
+  background-repeat: repeat-x;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding: ${space(0.5)} 9px;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 3px 0 0 3px !important;
+  border-right: 0;
+  font-weight: 600;
+  line-height: 1.5;
+  user-select: none;
+  transition: none;
+  ${p => (p.disabled ? disabledCss : null)}
+  &:hover {
+    background-color: #e6e6e6;
+    border-radius: 3px;
+    color: ${p => p.theme.button.default.color};
+    border-color: #afa3bb;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
+  }
+`;
 
 const StyledIconNot = styled(IconNot)`
   margin-right: ${space(0.5)};
@@ -304,20 +425,77 @@ const StyledIconNot = styled(IconNot)`
   }
 `;
 
-// The icon with no text label needs positioning tweaks
-// inside the bootstrap button. Hopefully this can be removed
-// bootstrap buttons are converted.
-const SoloIconNot = styled(IconNot)`
-  position: relative;
-  top: 1px;
+const StyledActionLink = styled(ActionLink)`
+  padding: 7px 10px !important;
+  ${actionLinkCss}
 `;
 
-const StyledActionLink = styled(ActionLink)`
-  display: flex;
-  align-items: center;
-  transition: none;
+const StyledForActionLink = styled(ActionLink)`
+  padding: ${space(0.5)} 0;
+  ${actionLinkCss}
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+`;
+
+const DropdownMenuItem = styled('li')`
+  :not(:first-child) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+  > span {
+    border-radius: ${p => p.theme.borderRadius};
+    display: block;
+    > ul {
+      border-radius: ${p => p.theme.borderRadius};
+      top: 0;
+      left: 100%;
+      margin-top: -5px;
+      margin-left: -1px;
+      &:after,
+      &:before {
+        display: none !important;
+      }
+    }
+  }
+  &:hover > span {
+    background: ${p => p.theme.bodyBackground};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  text-transform: uppercase;
+  padding: ${space(1)} 0 ${space(1)} 10px;
+  font-weight: 600;
+  color: ${p => p.theme.subText};
+  background: ${p => p.theme.bodyBackground};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const ActionSubMenu = styled('span')`
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-column-start: 1;
+  grid-column-end: 4;
+  gap: ${space(1)};
+  padding: ${space(0.5)} 0;
+  color: ${p => p.theme.textColor};
+  a {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const SubMenuChevron = styled('span')`
+  display: grid;
+  align-self: center;
+  color: ${p => p.theme.gray300};
+  transition: 0.1s color linear;
+
+  &:hover,
+  &:active {
+    color: ${p => p.theme.subText};
+  }
 `;
