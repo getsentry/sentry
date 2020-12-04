@@ -12,7 +12,6 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 
-import {PREBUILT_DASHBOARDS} from './data';
 import {DashboardListItem, OrgDashboard, OrgDashboardResponse} from './types';
 
 type OrgDashboardsChildrenProps = {
@@ -80,24 +79,22 @@ class OrgDashboards extends AsyncComponent<Props, State> {
       });
     }
 
-    return PREBUILT_DASHBOARDS[0];
+    return undefined;
   }
 
-  getDashboardsList(): DashboardListItem[] {
+  getDashboardsList(): OrgDashboard[] {
     const {dashboards} = this.state;
 
     if (!Array.isArray(dashboards)) {
-      return PREBUILT_DASHBOARDS;
+      return [];
     }
 
-    const normalizedOrgDashboards: OrgDashboard[] = dashboards.map(dashboard => {
+    return dashboards.map(dashboard => {
       return {
         type: 'org',
         ...dashboard,
       };
     });
-
-    return [...PREBUILT_DASHBOARDS, ...normalizedOrgDashboards];
   }
 
   renderBody() {
