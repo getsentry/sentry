@@ -76,7 +76,7 @@ function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
   }
 
   return (
-    <ButtonBar className="btn-group">
+    <div className="btn-group">
       <LinkWithConfirmation
         className="group-remove btn btn-default btn-sm"
         title={t('Delete')}
@@ -94,7 +94,7 @@ function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
           <span>{t('Delete and discard future events')}</span>
         </MenuItem>
       </DropdownLink>
-    </ButtonBar>
+    </div>
   );
 }
 
