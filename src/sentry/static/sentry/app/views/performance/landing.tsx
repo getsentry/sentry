@@ -317,7 +317,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
       : this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
-    const filterString = getTransactionSearchQuery(location);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
     const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
