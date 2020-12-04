@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import uniq from 'lodash/uniq';
@@ -416,7 +417,7 @@ class IssueListActions extends React.Component<Props, State> {
     const mergeDisabled = !(multiSelected && selectedProjectSlug);
 
     return (
-      <ActionSet>
+      <ActionSet hasInbox={hasInbox}>
         {hasInbox && (
           <div className="btn-group hidden-sm hidden-xs">
             <StyledActionLink
@@ -779,7 +780,7 @@ const ActionSetPlaceholder = styled(IssueToolbarHeader)`
   white-space: nowrap;
 `;
 
-const ActionSet = styled('div')`
+const ActionSet = styled('div')<{hasInbox?: boolean}>`
   @media (min-width: ${theme.breakpoints[0]}) {
     width: 66.66%;
   }
@@ -790,7 +791,11 @@ const ActionSet = styled('div')`
   margin-left: ${space(1)};
   margin-right: ${space(1)};
   display: flex;
-  animation: 0.15s linear ZoomUp forwards;
+  ${p =>
+    p.hasInbox &&
+    css`
+      animation: 0.15s linear ZoomUp forwards;
+    `};
 
   .btn-group {
     display: flex;
