@@ -79,7 +79,6 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && python -m pip install --upgrade 'pip>=20.3.0' \
   && pip install -r /tmp/dist/requirements.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
