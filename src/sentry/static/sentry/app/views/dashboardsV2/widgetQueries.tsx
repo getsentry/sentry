@@ -19,17 +19,18 @@ import {parsePeriodToHours} from 'app/utils/dates';
 
 import {Widget} from './types';
 
-// Don't fetch more than 2000 bin as we're plotting on fewer pixels.
-const MAX_BIN_COUNT = 2000;
+// Don't fetch more than 4000 bins as we're plotting on a small area.
+const MAX_BIN_COUNT = 4000;
 
 function getWidgetInterval(
   desired: string,
   datetimeObj: Partial<GlobalSelection['datetime']>
 ): string {
+  const desiredPeriod = parsePeriodToHours(desired);
   const selectedRange = getDiffInMinutes(datetimeObj);
-  const desiredPeriod = parsePeriodToHours(desired) * 60;
+
   if (selectedRange / desiredPeriod > MAX_BIN_COUNT) {
-    return getInterval(datetimeObj);
+    return getInterval(datetimeObj, true);
   }
   return desired;
 }
@@ -107,6 +108,7 @@ class WidgetQueries extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     const {selection, widget} = this.props;
     if (
+      !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
       !isEqual(selection, prevProps.selection)
     ) {

@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
@@ -172,11 +171,9 @@ class GroupEventDetails extends React.Component<Props, State> {
           <div className="primary">
             {evt && (
               <GroupEventToolbar
-                organization={organization}
                 group={group}
                 event={evt}
                 orgId={organization.slug}
-                projectId={project.slug}
                 location={location}
               />
             )}

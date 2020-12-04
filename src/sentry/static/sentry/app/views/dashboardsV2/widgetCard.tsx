@@ -39,9 +39,8 @@ type Props = ReactRouter.WithRouterProps & {
 class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
     if (
-      !isEqual(nextProps.widget.queries, this.props.widget.queries) ||
-      !isEqual(nextProps.selection, this.props.selection) ||
-      nextProps.widget.title !== this.props.widget.title
+      !isEqual(nextProps.widget, this.props.widget) ||
+      !isEqual(nextProps.selection, this.props.selection)
     ) {
       return true;
     }
@@ -220,6 +219,7 @@ const WidgetHeader = styled('div')`
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
+  width: 100%;
 `;
 
 const StyledPanelBody = styled(PanelBody)`

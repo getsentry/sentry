@@ -7,6 +7,7 @@ import Reflux from 'reflux';
 import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
+import SuggestedAvatarStack from 'app/components/avatar/suggestedAvatarStack';
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -23,7 +24,7 @@ import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
-import {User} from 'app/types';
+import {SuggestedAssignee, SuggestedOwner, Team, User} from 'app/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
 
 type Props = {
@@ -36,6 +37,14 @@ type State = {
   loading: boolean;
   assignedTo?: User;
   memberList?: User[];
+  suggestedOwners?: SuggestedOwner[] | null;
+};
+
+type AssignableTeam = {
+  id: string;
+  display: string;
+  email: string;
+  team: Team;
 };
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
@@ -72,11 +81,13 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
     const memberList = MemberListStore.loaded ? MemberListStore.getAll() : undefined;
     const loading = GroupStore.hasStatus(this.props.id, 'assignTo');
+    const suggestedOwners = group && group.owners;
 
     return {
       assignedTo: group && group.assignedTo,
       memberList,
       loading,
+      suggestedOwners,
     };
   },
 
@@ -87,6 +98,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
       this.setState({
         loading,
         assignedTo: group && group.assignedTo,
+        suggestedOwners: group && group.owners,
       });
     }
   },
@@ -119,7 +131,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     return this.props.memberList ? this.props.memberList : this.state.memberList;
   },
 
-  assignableTeams() {
+  assignableTeams(): AssignableTeam[] {
     if (!this.props.id) {
       return [];
     }
@@ -149,6 +161,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
+      suggestedOwners: group && group.owners,
       loading: this.props.id && GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   },
@@ -182,11 +195,10 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     e.stopPropagation();
   },
 
-  renderNewMemberNodes() {
+  renderMemberNode(member: User, suggestedReason: string) {
     const {size} = this.props;
-    const members = putSessionUserFirst(this.memberList());
 
-    return members.map(member => ({
+    return {
       value: {type: 'member', assignee: member},
       searchKey: `${member.email} ${member.name}`,
       label: ({inputValue}) => (
@@ -200,16 +212,22 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
       ),
-    }));
+    };
   },
 
-  renderNewTeamNodes() {
-    const {size} = this.props;
+  renderNewMemberNodes() {
+    const members = putSessionUserFirst(this.memberList());
+    return members.map(member => this.renderMemberNode(member));
+  },
 
-    return this.assignableTeams().map(({id, display, team}) => ({
+  renderTeamNode(assignableTeam: AssignableTeam, suggestedReason: string) {
+    const {size} = this.props;
+    const {id, display, team} = assignableTeam;
+    return {
       value: {type: 'team', assignee: team},
       searchKey: team.slug,
       label: ({inputValue}) => (
@@ -223,26 +241,104 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>{display}</Highlight>
+            {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
       ),
-    }));
+    };
+  },
+
+  renderNewTeamNodes() {
+    return this.assignableTeams().map(team => this.renderTeamNode(team));
+  },
+
+  renderSuggestedAssigneeNodes() {
+    return this.getSuggestedAssignees()?.map(({type, suggestedReason, assignee}) => {
+      const reason =
+        suggestedReason === 'suspectCommit' ? t('(Suspect Commit)') : t('(Issue Owner)');
+      if (type === 'user') {
+        return this.renderMemberNode(assignee, reason);
+      } else if (type === 'team') {
+        return this.renderTeamNode(assignee, reason);
+      }
+      return null;
+    });
+  },
+
+  renderDropdownGroupLabel(label: string) {
+    return <GroupHeader>{label}</GroupHeader>;
   },
 
   renderNewDropdownItems() {
     const teams = this.renderNewTeamNodes();
     const members = this.renderNewMemberNodes();
 
-    return [
-      {id: 'team-header', hideGroupLabel: true, items: teams},
-      {id: 'members-header', items: members},
+    const dropdownItems = [
+      {label: this.renderDropdownGroupLabel(t('Teams')), id: 'team-header', items: teams},
+      {
+        label: this.renderDropdownGroupLabel(t('People')),
+        id: 'members-header',
+        items: members,
+      },
     ];
+
+    const suggestedAssignees = this.renderSuggestedAssigneeNodes()?.filter(
+      assignee => !!assignee
+    );
+    if (suggestedAssignees && suggestedAssignees.length) {
+      dropdownItems.unshift({
+        label: this.renderDropdownGroupLabel(t('Suggested')),
+        id: 'suggested-header',
+        items: suggestedAssignees,
+      });
+    }
+    return dropdownItems;
+  },
+
+  getSuggestedAssignees(): SuggestedAssignee[] | null {
+    const {suggestedOwners} = this.state;
+    if (!suggestedOwners) {
+      return null;
+    }
+    return suggestedOwners
+      .map(owner => {
+        // converts a backend suggested owner to a suggested assignee
+        const [ownerType, id] = owner.owner.split(':');
+        if (ownerType === 'user') {
+          const member = this.memberList()?.find(user => user.id === id);
+          if (member) {
+            return {
+              type: 'user',
+              id,
+              name: member.name,
+              suggestedReason: owner.type,
+              assignee: member,
+            };
+          }
+        } else if (ownerType === 'team') {
+          const matchingTeam = this.assignableTeams().find(
+            assignableTeam => assignableTeam.id === owner.owner
+          );
+          if (matchingTeam) {
+            return {
+              type: 'team',
+              id,
+              name: matchingTeam.team.name,
+              suggestedReason: owner.type,
+              assignee: matchingTeam,
+            };
+          }
+        }
+        return null;
+      })
+      .filter((owner): owner is SuggestedAssignee => !!owner);
   },
 
   render() {
     const {className} = this.props;
     const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
+    const suggestedActors = this.getSuggestedAssignees();
 
     return (
       <div className={className}>
@@ -301,6 +397,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                ) : suggestedActors ? (
+                  <SuggestedAvatarStack size={24} owners={suggestedActors} />
                 ) : (
                   <StyledIconUser size="20px" color="gray400" />
                 )}
@@ -403,4 +501,16 @@ const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
   font-size: 20px;
+`;
+
+const GroupHeader = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  margin: ${space(1)} 0;
+  color: ${p => p.theme.gray500};
+`;
+
+const SuggestedReason = styled('span')`
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.gray300};
 `;
