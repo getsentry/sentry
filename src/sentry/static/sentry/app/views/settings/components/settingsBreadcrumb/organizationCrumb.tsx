@@ -81,7 +81,8 @@ const OrganizationCrumb = ({
       onSelect={handleSelect}
       hasMenu={hasMenu}
       route={route}
-      items={organizations.map(org => ({
+      items={organizations.map((org, index) => ({
+        index,
         value: org.slug,
         label: (
           <MenuItem>
