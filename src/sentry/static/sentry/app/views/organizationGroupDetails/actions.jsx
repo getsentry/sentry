@@ -32,7 +32,7 @@ import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import ReprocessingForm from 'app/views/organizationGroupDetails/reprocessingForm';
+import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
 import SubscribeAction from './subscribeAction';
 
@@ -209,7 +209,7 @@ const GroupDetailsActions = createReactClass({
   onReprocess() {
     const {group, organization} = this.props;
     openModal(({closeModal, Header, Body}) => (
-      <ReprocessingForm
+      <ReprocessingDialogForm
         group={group}
         orgSlug={organization.slug}
         closeModal={closeModal}
