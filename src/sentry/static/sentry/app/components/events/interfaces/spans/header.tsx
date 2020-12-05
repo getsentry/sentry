@@ -8,6 +8,7 @@ import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import MeasurementsPanel from './measurementsPanel';
+import * as ScrollbarManager from './scrollbarManager';
 import {zIndex} from './styles';
 import {
   ParsedTraceType,
@@ -38,6 +39,7 @@ export const MINIMAP_CONTAINER_HEIGHT =
 
 type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
   event: SentryTransactionEvent;
@@ -297,12 +299,27 @@ class TraceViewHeader extends React.Component<PropType> {
 
           return (
             <SecondaryHeader>
-              <div
+              <ScrollBarContainer
+                ref={this.props.virtualScrollBarContainerRef}
                 style={{
                   // the width of this component is shrunk to compensate for half of the width of the divider line
                   width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                 }}
-              />
+              >
+                <ScrollbarManager.Consumer>
+                  {({virtualScrollbarRef, onDragStart}) => {
+                    return (
+                      <VirtualScrollBar
+                        data-type="virtual-scrollbar"
+                        ref={virtualScrollbarRef}
+                        onMouseDown={onDragStart}
+                      >
+                        <VirtualScrollBarGrip />
+                      </VirtualScrollBar>
+                    );
+                  }}
+                </ScrollbarManager.Consumer>
+              </ScrollBarContainer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -749,6 +766,38 @@ const SecondaryHeader = styled('div')`
 
 const DividerSpacer = styled('div')`
   width: 1px;
+`;
+
+const ScrollBarContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: ${SECONDARY_HEADER_HEIGHT}px;
+  left: 0;
+  bottom: 0;
+  & > div[data-type='virtual-scrollbar'].dragging > div {
+    background-color: ${p => p.theme.gray500};
+    cursor: grabbing;
+  }
+`;
+
+const VirtualScrollBar = styled('div')`
+  height: 8px;
+  width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  position: relative;
+  top: 0;
+  left: 0;
+  cursor: grab;
+`;
+
+const VirtualScrollBarGrip = styled('div')`
+  height: 8px;
+  width: 100%;
+  border-radius: 20px 20px 20px 20px;
+  transition: background-color 150ms ease;
+  background-color: rgba(48, 40, 57, 0.5);
 `;
 
 export default TraceViewHeader;

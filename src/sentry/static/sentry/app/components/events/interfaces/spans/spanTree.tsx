@@ -8,10 +8,9 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
-import * as ScrollbarManager from './scrollbarManager';
-import {DividerLine, DividerLineGhostContainer} from './spanBar';
+import {DividerLine} from './spanBar';
 import SpanGroup from './spanGroup';
-import {SPAN_ROW_HEIGHT, SpanRowMessage} from './styles';
+import {SpanRowMessage} from './styles';
 import {FilterSpans} from './traceView';
 import {
   GapSpanType,
@@ -34,7 +33,6 @@ import {
   pickSpanBarColour,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 type RenderedSpanTree = {
@@ -64,8 +62,6 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
-
-  virtualScrollBarContainerRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -431,83 +427,11 @@ class SpanTree extends React.Component<PropType> {
     const limitExceededMessage = this.generateLimitExceededMessage();
 
     return (
-      <DividerHandlerManager.Consumer>
-        {dividerHandlerChildrenProps => {
-          return (
-            <ScrollbarManager.Provider
-              dividerPosition={dividerHandlerChildrenProps.dividerPosition}
-              interactiveLayerRef={this.virtualScrollBarContainerRef}
-              dragProps={this.props.dragProps}
-            >
-              <FooContainer>
-                <TraceViewContainer ref={this.props.traceViewRef}>
-                  {spanTree}
-                  {infoMessage}
-                  {limitExceededMessage}
-                </TraceViewContainer>
-                <ScrollbarManager.Consumer>
-                  {({virtualScrollbarRef, onDragStart}) => {
-                    return (
-                      <React.Fragment>
-                        <VirtualScrollBarSpanRow>
-                          <ScrollBarContainer
-                            style={{
-                              width: `calc(${toPercent(
-                                dividerHandlerChildrenProps.dividerPosition
-                              )} - 0.5px)`,
-                            }}
-                          />
-                          {this.renderDivider(dividerHandlerChildrenProps)}
-                          {
-                            <DividerLineGhostContainer
-                              style={{
-                                width: `calc(${toPercent(
-                                  dividerHandlerChildrenProps.dividerPosition
-                                )} + 0.5px)`,
-                                display: 'none',
-                              }}
-                            >
-                              <DividerLine
-                                ref={dividerHandlerChildrenProps.addGhostDividerLineRef()}
-                                style={{
-                                  right: 0,
-                                }}
-                                className="hovering"
-                                onClick={event => {
-                                  // the ghost divider line should not be interactive.
-                                  // we prevent the propagation of the clicks from this component to prevent
-                                  // the span detail from being opened.
-                                  event.stopPropagation();
-                                }}
-                              />
-                            </DividerLineGhostContainer>
-                          }
-                        </VirtualScrollBarSpanRow>
-                        <ScrollBarContainer
-                          ref={this.virtualScrollBarContainerRef}
-                          style={{
-                            width: `calc(${toPercent(
-                              dividerHandlerChildrenProps.dividerPosition
-                            )} - 0.5px)`,
-                          }}
-                        >
-                          <VirtualScrollBar
-                            data-type="virtual-scrollbar"
-                            ref={virtualScrollbarRef}
-                            onMouseDown={onDragStart}
-                          >
-                            <VirtualScrollBarGrip />
-                          </VirtualScrollBar>
-                        </ScrollBarContainer>
-                      </React.Fragment>
-                    );
-                  }}
-                </ScrollbarManager.Consumer>
-              </FooContainer>
-            </ScrollbarManager.Provider>
-          );
-        }}
-      </DividerHandlerManager.Consumer>
+      <TraceViewContainer ref={this.props.traceViewRef}>
+        {spanTree}
+        {infoMessage}
+        {limitExceededMessage}
+      </TraceViewContainer>
     );
   }
 }
@@ -516,51 +440,6 @@ const TraceViewContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
-`;
-
-// TODO: rename this
-const FooContainer = styled('div')`
-  &:hover div[data-type='virtual-scrollbar'] > div {
-    background-color: rgba(48, 40, 57, 0.5);
-  }
-`;
-
-const VirtualScrollBarSpanRow = styled('div')`
-  display: flex;
-  position: relative;
-  height: ${SPAN_ROW_HEIGHT}px;
-`;
-
-const ScrollBarContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  position: sticky;
-  height: 20px;
-  margin-top: -20px;
-  left: 0;
-  bottom: 0;
-  z-index: 999;
-  & > div[data-type='virtual-scrollbar'].dragging > div {
-    background-color: ${p => p.theme.gray500};
-  }
-`;
-
-const VirtualScrollBar = styled('div')`
-  height: 8px;
-  width: 0;
-  padding-left: 4px;
-  padding-right: 4px;
-  position: relative;
-  top: 0;
-  left: 0;
-`;
-
-const VirtualScrollBarGrip = styled('div')`
-  height: 8px;
-  width: 100%;
-  border-radius: 20px 20px 20px 20px;
-  transition: background-color 150ms ease;
 `;
 
 /**
