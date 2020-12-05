@@ -8,7 +8,6 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
-import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
 import {DividerLine, DividerLineGhostContainer} from './spanBar';
 import SpanGroup from './spanGroup';
@@ -385,44 +384,6 @@ class SpanTree extends React.Component<PropType> {
     });
   };
 
-  renderSecondaryPanel() {
-    const {event} = this.props;
-
-    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
-
-    // only display the secondary header if there are any measurements
-    if (!hasMeasurements) {
-      return null;
-    }
-
-    return (
-      <DividerHandlerManager.Consumer>
-        {(
-          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-        ) => {
-          const {dividerPosition} = dividerHandlerChildrenProps;
-
-          return (
-            <SecondaryHeader>
-              <div
-                style={{
-                  // the width of this component is shrunk to compensate for half of the width of the divider line
-                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                }}
-              />
-              <DividerSpacer />
-              <MeasurementsPanel
-                event={event}
-                generateBounds={this.generateBounds()}
-                dividerPosition={dividerPosition}
-              />
-            </SecondaryHeader>
-          );
-        }}
-      </DividerHandlerManager.Consumer>
-    );
-  }
-
   renderDivider(
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
   ) {
@@ -479,7 +440,6 @@ class SpanTree extends React.Component<PropType> {
               dragProps={this.props.dragProps}
             >
               <FooContainer>
-                {this.renderSecondaryPanel()}
                 <TraceViewContainer ref={this.props.traceViewRef}>
                   {spanTree}
                   {infoMessage}
@@ -601,17 +561,6 @@ const VirtualScrollBarGrip = styled('div')`
   width: 100%;
   border-radius: 20px 20px 20px 20px;
   transition: background-color 150ms ease;
-`;
-
-const SecondaryHeader = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  display: flex;
-
-  border-bottom: 1px solid ${p => p.theme.gray200};
-`;
-
-const DividerSpacer = styled('div')`
-  width: 1px;
 `;
 
 /**

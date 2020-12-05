@@ -173,6 +173,7 @@ class TraceView extends React.PureComponent<Props, State> {
       minimapInteractiveRef={this.minimapInteractiveRef}
       dragProps={dragProps}
       trace={parsedTrace}
+      event={this.props.event}
     />
   );
 

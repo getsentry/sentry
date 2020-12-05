@@ -2,9 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import {SentryTransactionEvent} from 'app/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
+import MeasurementsPanel from './measurementsPanel';
 import {zIndex} from './styles';
 import {
   ParsedTraceType,
@@ -37,6 +40,7 @@ type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
+  event: SentryTransactionEvent;
 };
 
 class TraceViewHeader extends React.Component<PropType> {
@@ -268,6 +272,52 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   }
 
+  generateBounds() {
+    const {dragProps, trace} = this.props;
+
+    return boundsGenerator({
+      traceStartTimestamp: trace.traceStartTimestamp,
+      traceEndTimestamp: trace.traceEndTimestamp,
+      viewStart: dragProps.viewWindowStart,
+      viewEnd: dragProps.viewWindowEnd,
+    });
+  }
+
+  renderSecondaryHeader() {
+    const {event} = this.props;
+
+    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
+
+    return (
+      <DividerHandlerManager.Consumer>
+        {(
+          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+        ) => {
+          const {dividerPosition} = dividerHandlerChildrenProps;
+
+          return (
+            <SecondaryHeader>
+              <div
+                style={{
+                  // the width of this component is shrunk to compensate for half of the width of the divider line
+                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                }}
+              />
+              <DividerSpacer />
+              {hasMeasurements ? (
+                <MeasurementsPanel
+                  event={event}
+                  generateBounds={this.generateBounds()}
+                  dividerPosition={dividerPosition}
+                />
+              ) : null}
+            </SecondaryHeader>
+          );
+        }}
+      </DividerHandlerManager.Consumer>
+    );
+  }
+
   render() {
     return (
       <HeaderContainer>
@@ -324,7 +374,7 @@ class TraceViewHeader extends React.Component<PropType> {
             </div>
           )}
         </CursorGuideHandler.Consumer>
-        <SecondaryHeader>hello</SecondaryHeader>
+        {this.renderSecondaryHeader()}
       </HeaderContainer>
     );
   }
@@ -692,8 +742,13 @@ const SecondaryHeader = styled('div')`
   left: 0;
   height: ${TIME_AXIS_HEIGHT}px;
   width: 100%;
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.backgroundSecondary};
+  display: flex;
   border-top: 1px solid ${p => p.theme.border};
+`;
+
+const DividerSpacer = styled('div')`
+  width: 1px;
 `;
 
 export default TraceViewHeader;
