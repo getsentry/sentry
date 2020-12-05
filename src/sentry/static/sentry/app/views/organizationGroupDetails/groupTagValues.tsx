@@ -149,7 +149,7 @@ class GroupTagValues extends AsyncComponent<
             />
           </HeaderButtons>
         </Header>
-        <table className="table table-striped">
+        <StyledTable className="table">
           <thead>
             <tr>
               <TableHeader width={20}>%</TableHeader>
@@ -158,7 +158,7 @@ class GroupTagValues extends AsyncComponent<
             </tr>
           </thead>
           <tbody>{children}</tbody>
-        </table>
+        </StyledTable>
         <Pagination pageLinks={tagValueListPageLinks} />
         <p>
           <small>
@@ -169,6 +169,13 @@ class GroupTagValues extends AsyncComponent<
     );
   }
 }
+
+const StyledTable = styled('table')`
+  > tbody > tr:nth-of-type(odd) {
+    background-color: ${p => p.theme.bodyBackground};
+  }
+`;
+
 const Header = styled('div')`
   display: flex;
   align-items: center;
