@@ -29,7 +29,9 @@ const MINIMAP_HEIGHT = 120;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 20;
 const VIEW_HANDLE_HEIGHT = 18;
-export const MINIMAP_CONTAINER_HEIGHT = MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1;
+const SECONDARY_HEADER_HEIGHT = 20;
+export const MINIMAP_CONTAINER_HEIGHT =
+  MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
@@ -322,6 +324,7 @@ class TraceViewHeader extends React.Component<PropType> {
             </div>
           )}
         </CursorGuideHandler.Consumer>
+        <SecondaryHeader>hello</SecondaryHeader>
       </HeaderContainer>
     );
   }
@@ -484,7 +487,7 @@ const TimeAxis = styled('div')`
   width: 100%;
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: ${MINIMAP_HEIGHT}px;
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
@@ -681,6 +684,16 @@ const WindowSelection = styled('div')`
   top: 0;
   height: ${MINIMAP_HEIGHT}px;
   background-color: rgba(69, 38, 80, 0.1);
+`;
+
+const SecondaryHeader = styled('div')`
+  position: absolute;
+  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  left: 0;
+  height: ${TIME_AXIS_HEIGHT}px;
+  width: 100%;
+  background-color: ${p => p.theme.background};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 export default TraceViewHeader;
