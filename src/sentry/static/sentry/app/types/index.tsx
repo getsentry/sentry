@@ -555,6 +555,14 @@ export type User = Omit<AvatarUser, 'options'> & {
   experiments: Partial<UserExperiments>;
 };
 
+// XXX(epurkhiser): we should understand how this is diff from User['emails]
+// above
+export type UserEmail = {
+  email: string;
+  isPrimary: boolean;
+  isVerified: boolean;
+};
+
 export type CommitAuthor = {
   email?: string;
   name?: string;
