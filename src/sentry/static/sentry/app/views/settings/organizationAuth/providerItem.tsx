@@ -150,7 +150,7 @@ const ProviderName = styled('div')`
 `;
 
 const ProviderDescription = styled('div')`
-  margin-top: 6px;
+  margin-top: ${space(0.75)};
   font-size: 0.8em;
 `;
 
