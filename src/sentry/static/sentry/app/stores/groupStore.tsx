@@ -486,7 +486,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
     }, {});
 
     this.items.forEach((item, idx) => {
-      if (itemIds.indexOf(item.id) !== -1) {
+      if (itemIds.includes(item.id)) {
         this.items[idx] = {
           ...item,
           ...groupStatsMap[item.id],
