@@ -1808,3 +1808,10 @@ export type AuthConfig = {
   githubLoginLink: string;
   vstsLoginLink: string;
 };
+
+export type AuthProvider = {
+  key: string;
+  name: string;
+  requiredFeature: string;
+  disables2FA: boolean;
+};
