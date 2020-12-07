@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import isArray from 'lodash/isArray';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
-import PropTypes from 'prop-types';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconAdd, IconOpen, IconSubtract} from 'app/icons';
+import {Meta} from 'app/types';
 import {isUrl} from 'app/utils';
 
-function looksLikeObjectRepr(value) {
+function looksLikeObjectRepr(value: string) {
   const a = value[0];
   const z = value[value.length - 1];
   if (a === '<' && z === '>') {
@@ -25,19 +25,19 @@ function looksLikeObjectRepr(value) {
   return false;
 }
 
-function looksLikeMultiLineString(value) {
+function looksLikeMultiLineString(value: string) {
   return !!value.match(/[\r\n]/);
 }
 
-function padNumbersInString(string) {
-  return string.replace(/(\d+)/g, function (num) {
+function padNumbersInString(string: string) {
+  return string.replace(/(\d+)/g, (num: string) => {
     let isNegative = false;
-    num = parseInt(num, 10);
-    if (num < 0) {
-      num *= -1;
+    let realNum = parseInt(num, 10);
+    if (realNum < 0) {
+      realNum *= -1;
       isNegative = true;
     }
-    let s = '0000000000000' + num;
+    let s = '0000000000000' + realNum;
     s = s.substr(s.length - (isNegative ? 11 : 12));
     if (isNegative) {
       s = '-' + s;
@@ -46,13 +46,13 @@ function padNumbersInString(string) {
   });
 }
 
-function naturalCaseInsensitiveSort(a, b) {
+function naturalCaseInsensitiveSort(a: string, b: string) {
   a = padNumbersInString(a).toLowerCase();
   b = padNumbersInString(b).toLowerCase();
   return a === b ? 0 : a < b ? -1 : 1;
 }
 
-function analyzeStringForRepr(value) {
+function analyzeStringForRepr(value: string) {
   const rv = {
     repr: value,
     isString: true,
@@ -75,13 +75,17 @@ function analyzeStringForRepr(value) {
   return rv;
 }
 
-class ToggleWrap extends React.Component {
-  static propTypes = {
-    highUp: PropTypes.bool,
-    wrapClassName: PropTypes.string,
-  };
+type ToggleWrapProps = {
+  highUp: boolean;
+  wrapClassName: string;
+};
 
-  state = {toggled: false};
+type ToggleWrapState = {
+  toggled: boolean;
+};
+
+class ToggleWrap extends React.Component<ToggleWrapProps, ToggleWrapState> {
+  state: ToggleWrapState = {toggled: false};
 
   render() {
     if (React.Children.count(this.props.children) === 0) {
@@ -117,22 +121,29 @@ class ToggleWrap extends React.Component {
   }
 }
 
-class ContextData extends React.Component {
-  static propTypes = {
-    data: PropTypes.any,
-    preserveQuotes: PropTypes.bool,
-    withAnnotatedText: PropTypes.bool,
-    maxDefaultDepth: PropTypes.number,
-    meta: PropTypes.any,
-    jsonConsts: PropTypes.bool,
-  };
+type Value = null | string | boolean | number | {[key: string]: Value} | Value[];
 
+type Props = React.HTMLAttributes<HTMLPreElement> & {
+  data: Value;
+  preserveQuotes?: boolean;
+  withAnnotatedText?: boolean;
+  maxDefaultDepth?: number;
+  meta?: Meta;
+  jsonConsts?: boolean;
+};
+
+type State = {
+  data: Value;
+  withAnnotatedText: boolean;
+};
+
+class ContextData extends React.Component<Props, State> {
   static defaultProps = {
     data: null,
     withAnnotatedText: false,
   };
 
-  renderValue(value) {
+  renderValue(value: Value) {
     const {
       preserveQuotes,
       meta,
@@ -142,23 +153,27 @@ class ContextData extends React.Component {
     } = this.props;
     const maxDepth = maxDefaultDepth ?? 2;
 
-    function getValueWithAnnotatedText(v, meta) {
+    function getValueWithAnnotatedText(v: Value, meta?: Meta) {
       return <AnnotatedText value={v} meta={meta} />;
     }
 
     /*eslint no-shadow:0*/
-    function walk(value, depth) {
+    function walk(value: Value, depth: number) {
       let i = 0;
-      const children = [];
+      const children: React.ReactNode[] = [];
       if (value === null) {
         return <span className="val-null">{jsonConsts ? 'null' : 'None'}</span>;
-      } else if (value === true || value === false) {
+      }
+
+      if (value === true || value === false) {
         return (
           <span className="val-bool">
             {jsonConsts ? (value ? 'true' : 'false') : value ? 'True' : 'False'}
           </span>
         );
-      } else if (isString(value)) {
+      }
+
+      if (isString(value)) {
         const valueInfo = analyzeStringForRepr(value);
 
         const valueToBeReturned = withAnnotatedText
@@ -187,11 +202,15 @@ class ContextData extends React.Component {
         }
 
         return out;
-      } else if (isNumber(value)) {
+      }
+
+      if (isNumber(value)) {
         const valueToBeReturned =
           withAnnotatedText && meta ? getValueWithAnnotatedText(value, meta) : value;
         return <span>{valueToBeReturned}</span>;
-      } else if (isArray(value)) {
+      }
+
+      if (isArray(value)) {
         for (i = 0; i < value.length; i++) {
           children.push(
             <span className="val-array-item" key={i}>
@@ -211,38 +230,38 @@ class ContextData extends React.Component {
             <span className="val-array-marker">{']'}</span>
           </span>
         );
-      } else if (React.isValidElement(value)) {
+      }
+
+      if (React.isValidElement(value)) {
         return value;
-      } else {
-        const keys = Object.keys(value);
-        keys.sort(naturalCaseInsensitiveSort);
-        for (i = 0; i < keys.length; i++) {
-          const key = keys[i];
-          children.push(
-            <span className="val-dict-pair" key={key}>
-              <span className="val-dict-key">
-                <span className="val-string">{preserveQuotes ? `"${key}"` : key}</span>
-              </span>
-              <span className="val-dict-col">{': '}</span>
-              <span className="val-dict-value">
-                {walk(value[key], depth + 1)}
-                {i < keys.length - 1 ? (
-                  <span className="val-dict-sep">{', '}</span>
-                ) : null}
-              </span>
+      }
+
+      const keys = Object.keys(value);
+      keys.sort(naturalCaseInsensitiveSort);
+      for (i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        children.push(
+          <span className="val-dict-pair" key={key}>
+            <span className="val-dict-key">
+              <span className="val-string">{preserveQuotes ? `"${key}"` : key}</span>
             </span>
-          );
-        }
-        return (
-          <span className="val-dict">
-            <span className="val-dict-marker">{'{'}</span>
-            <ToggleWrap highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
-              {children}
-            </ToggleWrap>
-            <span className="val-dict-marker">{'}'}</span>
+            <span className="val-dict-col">{': '}</span>
+            <span className="val-dict-value">
+              {walk(value[key], depth + 1)}
+              {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
+            </span>
           </span>
         );
       }
+      return (
+        <span className="val-dict">
+          <span className="val-dict-marker">{'{'}</span>
+          <ToggleWrap highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
+            {children}
+          </ToggleWrap>
+          <span className="val-dict-marker">{'}'}</span>
+        </span>
+      );
     }
     return walk(value, 0);
   }
@@ -266,14 +285,12 @@ class ContextData extends React.Component {
   }
 }
 
-ContextData.displayName = 'ContextData';
-
 const StyledIconOpen = styled(IconOpen)`
   position: relative;
   top: 1px;
 `;
 
-const ToggleIcon = styled('a')`
+const ToggleIcon = styled('a')<{isOpen?: boolean}>`
   display: inline-block;
   position: relative;
   top: 1px;
