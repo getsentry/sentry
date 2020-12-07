@@ -34,6 +34,11 @@ class RuleProcessor(object):
         self.grouped_futures = {}
 
     def get_rules(self):
+        """
+        Get all of the rules for this project from the DB (or cache).
+
+        :return: a list of `Rule`s
+        """
         return Rule.get_for_project(self.project.id)
 
     def get_rule_status(self, rule):
@@ -81,6 +86,12 @@ class RuleProcessor(object):
         return None
 
     def apply_rule(self, rule):
+        """
+        If all conditions and filters pass, execute every action.
+
+        :param rule: `Rule` object
+        :return: void
+        """
         condition_match = rule.data.get("action_match") or Rule.DEFAULT_CONDITION_MATCH
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         rule_condition_list = rule.data.get("conditions", ())
