@@ -12,7 +12,7 @@ type Props = {
 
 const DeviceInterface = ({event}: Props) => {
   const data = event.device || {};
-  const extras = Object.entries(data.data || {}).map(([key, value]) => {
+  const extras = Object.entries<any>(data.data || {}).map(([key, value]) => {
     return (
       <tr key={key}>
         <td className="key">{key}</td>
