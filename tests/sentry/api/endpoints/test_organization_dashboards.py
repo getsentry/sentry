@@ -5,7 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.utils.compat import zip
-from sentry.models import Dashboard
+from sentry.models import Dashboard, DashboardTombstone
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -34,6 +34,14 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert "default-overview" == response.data[0]["id"]
         self.assert_equal_dashboards(self.dashboard, response.data[1])
         self.assert_equal_dashboards(self.dashboard_2, response.data[2])
+
+    def test_get_with_tombstone(self):
+        DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
+        response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        assert "default-overview" not in [r["id"] for r in response.data]
 
     def test_get_query(self):
         dashboard = Dashboard.objects.create(

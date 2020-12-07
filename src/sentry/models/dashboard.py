@@ -30,7 +30,7 @@ class Dashboard(Model):
         query = list(
             DashboardTombstone.objects.filter(organization=organization).values_list("slug")
         )
-        tombstones = [v["slug"] for v in query]
+        tombstones = [v[0] for v in query]
         results = []
         for data in PREBUILT_DASHBOARDS.values():
             if title_query and title_query.lower() not in data["title"].lower():

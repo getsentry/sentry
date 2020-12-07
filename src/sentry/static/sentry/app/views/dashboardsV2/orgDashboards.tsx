@@ -70,13 +70,20 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
   getCurrentDashboard(): DashboardListItem | undefined {
     const {params} = this.props;
-    const dashboardId = params.dashboardId as string | undefined;
+    const dashboardId = params.dashboardId ?? 'default-overview';
     const orgDashboards = this.getOrgDashboards();
 
     if (typeof dashboardId === 'string') {
-      return orgDashboards.find(dashboard => {
+      const selected = orgDashboards.find(dashboard => {
         return dashboard.id === dashboardId;
       });
+      if (selected) {
+        return selected;
+      }
+    }
+
+    if (orgDashboards.length > 0) {
+      return orgDashboards[0];
     }
 
     return undefined;
