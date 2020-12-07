@@ -44,7 +44,7 @@ function ProjectIssues({organization, location}: Props) {
       <Panel>
         <PanelBody>
           <EmptyStateWarning small withIcon={false}>
-            {tct('No issues for for the [timePeriod].', {
+            {tct('No issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
           </EmptyStateWarning>
