@@ -494,7 +494,8 @@ const SearchInputWrapper = styled('div')`
     margin-top: ${space(1)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) and (max-width: ${p =>
+      p.theme.breakpoints[3]}) {
     max-width: 180px;
     display: inline-block;
   }
