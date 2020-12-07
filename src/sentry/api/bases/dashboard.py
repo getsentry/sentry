@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Dashboard, get_prebuilt_dashboard
+from sentry.models import Dashboard
 
 
 class OrganizationDashboardEndpoint(OrganizationEndpoint):
@@ -19,7 +19,7 @@ class OrganizationDashboardEndpoint(OrganizationEndpoint):
         return (args, kwargs)
 
     def _get_dashboard(self, request, organization, dashboard_id):
-        prebuilt = get_prebuilt_dashboard(dashboard_id)
+        prebuilt = Dashboard.get_prebuilt(dashboard_id)
         if prebuilt:
             return prebuilt
         return Dashboard.objects.get(id=dashboard_id, organization_id=organization.id)

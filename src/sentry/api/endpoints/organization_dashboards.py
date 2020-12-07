@@ -6,7 +6,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardSerializer
-from sentry.models import Dashboard, get_prebuilt_dashboards
+from sentry.models import Dashboard
 from rest_framework.response import Response
 
 
@@ -30,7 +30,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if query:
             dashboards = dashboards.filter(title__icontains=query)
         dashboards = dashboards.order_by("title")
-        prebuilt = get_prebuilt_dashboards(organization, query)
+        prebuilt = Dashboard.get_prebuilt_list(organization, query)
 
         def handle_results(results):
             serialized = []

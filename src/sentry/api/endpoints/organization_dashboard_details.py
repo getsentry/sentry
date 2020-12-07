@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
-from sentry.models.dashboard import create_tombstone
+from sentry.models.dashboard import DashboardTombstone
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
@@ -40,7 +40,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
         :auth: required
         """
         if isinstance(dashboard, dict):
-            create_tombstone(organization, dashboard["id"])
+            DashboardTombstone.objects.get_or_create(
+                organization=organization, slug=dashboard["id"]
+            )
         else:
             dashboard.delete()
 
@@ -78,7 +80,9 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
             with transaction.atomic():
                 serializer.save()
                 if tombstone:
-                    create_tombstone(organization, tombstone)
+                    DashboardTombstone.objects.get_or_create(
+                        organization=organization, slug=tombstone
+                    )
         except IntegrityError:
             return self.respond({"Dashboard with that title already exists."}, status=409)
 
