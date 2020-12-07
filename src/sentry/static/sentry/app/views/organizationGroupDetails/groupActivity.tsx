@@ -1,5 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
 import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
 import {
@@ -14,15 +15,22 @@ import Note from 'app/components/activity/note';
 import NoteInputWithStorage from 'app/components/activity/note/inputWithStorage';
 import {CreateError} from 'app/components/activity/note/types';
 import ErrorBoundary from 'app/components/errorBoundary';
+import ReprocessedBox from 'app/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'app/constants';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
+import space from 'app/styles/space';
 import {Group, Organization, User} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import GroupActivityItem from './groupActivityItem';
+import {
+  getGroupMostRecentActivity,
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from './utils';
 
 type Props = {
   api: Client;
@@ -111,7 +119,12 @@ class GroupActivity extends React.Component<Props, State> {
   };
 
   render() {
-    const {group} = this.props;
+    const {group, organization} = this.props;
+    const {activity: activities, count} = group;
+    const groupCount = Number(count);
+    const mostRecentActivity = getGroupMostRecentActivity(activities);
+    const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
+
     const me = ConfigStore.get('user');
     const projectSlugs = group && group.project ? [group.project.slug] : [];
     const noteProps = {
@@ -124,71 +137,86 @@ class GroupActivity extends React.Component<Props, State> {
     };
 
     return (
-      <div className="row">
-        <div className="col-md-9">
-          <div>
-            <ActivityItem author={{type: 'user', user: me}}>
-              {() => (
-                <NoteInputWithStorage
-                  key={this.state.inputId}
-                  storageKey="groupinput:latest"
-                  itemKey={group.id}
-                  onCreate={this.handleNoteCreate}
-                  busy={this.state.createBusy}
-                  error={this.state.error}
-                  errorJSON={this.state.errorJSON}
-                  {...noteProps}
-                />
-              )}
-            </ActivityItem>
+      <React.Fragment>
+        {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
+          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
+          <StyledReprocessedBox
+            reprocessActivity={mostRecentActivity}
+            groupCount={groupCount}
+            orgSlug={organization.slug}
+          />
+        )}
+        <div className="row">
+          <div className="col-md-9">
+            <div>
+              <ActivityItem author={{type: 'user', user: me}}>
+                {() => (
+                  <NoteInputWithStorage
+                    key={this.state.inputId}
+                    storageKey="groupinput:latest"
+                    itemKey={group.id}
+                    onCreate={this.handleNoteCreate}
+                    busy={this.state.createBusy}
+                    error={this.state.error}
+                    errorJSON={this.state.errorJSON}
+                    {...noteProps}
+                  />
+                )}
+              </ActivityItem>
 
-            {group.activity.map(item => {
-              const authorName = item.user ? item.user.name : 'Sentry';
+              {group.activity.map(item => {
+                const authorName = item.user ? item.user.name : 'Sentry';
 
-              if (item.type === 'note') {
-                return (
-                  <ErrorBoundary mini key={`note-${item.id}`}>
-                    <Note
-                      showTime={false}
-                      text={item.data.text ?? ''}
-                      modelId={item.id}
-                      user={item.user as User}
-                      dateCreated={item.dateCreated}
-                      authorName={authorName}
-                      onDelete={this.handleNoteDelete}
-                      onUpdate={this.handleNoteUpdate}
-                      {...noteProps}
-                    />
-                  </ErrorBoundary>
-                );
-              } else {
-                return (
-                  <ErrorBoundary mini key={`item-${item.id}`}>
-                    <ActivityItem
-                      author={{
-                        type: item.user ? 'user' : 'system',
-                        user: item.user ?? undefined,
-                      }}
-                      date={item.dateCreated}
-                      header={
-                        <GroupActivityItem
-                          author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                          activity={item}
-                          orgSlug={this.props.params.orgId}
-                          projectId={group.project.id}
-                        />
-                      }
-                    />
-                  </ErrorBoundary>
-                );
-              }
-            })}
+                if (item.type === 'note') {
+                  return (
+                    <ErrorBoundary mini key={`note-${item.id}`}>
+                      <Note
+                        showTime={false}
+                        text={item.data.text ?? ''}
+                        modelId={item.id}
+                        user={item.user as User}
+                        dateCreated={item.dateCreated}
+                        authorName={authorName}
+                        onDelete={this.handleNoteDelete}
+                        onUpdate={this.handleNoteUpdate}
+                        {...noteProps}
+                      />
+                    </ErrorBoundary>
+                  );
+                } else {
+                  return (
+                    <ErrorBoundary mini key={`item-${item.id}`}>
+                      <ActivityItem
+                        author={{
+                          type: item.user ? 'user' : 'system',
+                          user: item.user ?? undefined,
+                        }}
+                        date={item.dateCreated}
+                        header={
+                          <GroupActivityItem
+                            author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                            activity={item}
+                            orgSlug={this.props.params.orgId}
+                            projectId={group.project.id}
+                          />
+                        }
+                      />
+                    </ErrorBoundary>
+                  );
+                }
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      </React.Fragment>
     );
   }
 }
 
 export {GroupActivity};
 export default withApi(withOrganization(GroupActivity));
+
+const StyledReprocessedBox = styled(ReprocessedBox)`
+  margin: -${space(3)} -${space(4)} ${space(4)} -${space(4)};
+  z-index: 1;
+`;

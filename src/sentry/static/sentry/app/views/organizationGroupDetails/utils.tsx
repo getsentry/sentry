@@ -1,8 +1,9 @@
 import React from 'react';
+import orderBy from 'lodash/orderBy';
 
 import {Client} from 'app/api';
 import {t, tct} from 'app/locale';
-import {Event, Group} from 'app/types';
+import {Event, Group, GroupActivity} from 'app/types';
 
 /**
  * Fetches group data and mark as seen
@@ -126,4 +127,43 @@ export function getSubscriptionReason(group: Group, removeLinks = false) {
       link: removeLinks ? <span /> : <a href="/account/settings/notifications/" />,
     }
   );
+}
+
+export function getGroupMostRecentActivity(activities: GroupActivity[]) {
+  // Most recent activity
+  return orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0];
+}
+
+export enum ReprocessingStatus {
+  FULLY_REPROCESSED = 'fully_reprocessed',
+  PARTIALLY_REPROCESSED = 'partially_reprocessed',
+  REPROCESSING = 'reprocessing',
+  NO_STATUS = 'no_status',
+}
+
+// Reprocessing Checks
+export function getGroupReprocessingStatus(
+  group: Group,
+  mostRecentActivity?: GroupActivity
+) {
+  const {status, count, activity: activities} = group;
+  const groupCount = Number(count);
+
+  switch (status) {
+    case 'reprocessing':
+      return ReprocessingStatus.REPROCESSING;
+    case 'unresolved': {
+      const groupMostRecentActivity =
+        mostRecentActivity ?? getGroupMostRecentActivity(activities);
+      if (groupMostRecentActivity?.type === 'reprocess') {
+        if (groupCount === 0) {
+          return ReprocessingStatus.FULLY_REPROCESSED;
+        }
+        return ReprocessingStatus.PARTIALLY_REPROCESSED;
+      }
+      return ReprocessingStatus.NO_STATUS;
+    }
+    default:
+      return ReprocessingStatus.NO_STATUS;
+  }
 }

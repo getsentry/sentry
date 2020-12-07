@@ -51,6 +51,7 @@ function ReprocessingDialogForm({
     const hasReprocessingV2Feature = !!project.features?.includes('reprocessing-v2');
 
     if (hasReprocessingV2Feature) {
+      closeModal();
       window.location.reload();
       return;
     }
