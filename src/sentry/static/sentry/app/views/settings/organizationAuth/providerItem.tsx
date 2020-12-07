@@ -160,7 +160,7 @@ const FeatureBadge = styled('div')`
 
 const ActiveIndicator = styled('div')`
   background: ${p => p.theme.green300};
-  color: #fff;
+  color: ${p => p.theme.white};
   padding: ${space(1)} ${space(1.5)};
   border-radius: 2px;
   font-size: 0.8em;
