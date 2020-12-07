@@ -24,9 +24,9 @@ type Props = {
   value: number[];
   projects: Project[];
   nonMemberProjects: Project[];
-  isGlobalSelectionReady?: boolean;
   onChange: (selected: number[]) => unknown;
   onUpdate: () => unknown;
+  isGlobalSelectionReady?: boolean;
   multi?: boolean;
   shouldForceProject?: boolean;
   forceProject?: MinimalProject | null;
