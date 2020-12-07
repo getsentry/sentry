@@ -73,7 +73,7 @@ class VersionHoverCard extends React.Component<Props, State> {
 
   getBody() {
     const {releaseVersion, release, deploys} = this.props;
-    if (release === undefined || deploys === undefined) {
+    if (release === undefined || !deploys) {
       return {header: null, body: null};
     }
 
