@@ -9,40 +9,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
-
-SAMPLE_SEARCH_RESPONSE = """
-{
-  "expand": "names,schema",
-  "startAt": 0,
-  "maxResults": 50,
-  "total": 1,
-  "issues": [
-    {
-      "expand": "",
-      "id": "10001",
-      "self": "http://www.example.com/jira/rest/api/2/issue/10001",
-      "key": "HSP-1",
-      "fields": {
-        "summary": "this is a test issue summary"
-      }
-    }
-  ],
-  "warningMessages": [
-    "The value 'splat' does not exist for the field 'Foo'."
-  ]
-}
-"""
-
-SAMPLE_USER_SEARCH_RESPONSE = """
-[
-    {
-        "accountId": "deadbeef123",
-        "displayName": "Bobby",
-        "emailAddress": "bob@example.org"
-    }
-]
-"""
+from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraSearchEndpointTest(APITestCase):
@@ -66,7 +33,7 @@ class JiraSearchEndpointTest(APITestCase):
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/search/",
-            body=SAMPLE_SEARCH_RESPONSE,
+            body=StubService.get_stub_json("jira", "search_response.json"),
             content_type="json",
             match_querystring=False,
         )
@@ -84,7 +51,8 @@ class JiraSearchEndpointTest(APITestCase):
         def responder(request):
             query = parse_qs(urlparse(request.url).query)
             assert 'id="hsp-1"' == query["jql"][0]
-            return (200, {}, SAMPLE_SEARCH_RESPONSE)
+            data = StubService.get_stub_json("jira", "search_response.json")
+            return 200, {}, data
 
         responses.add_callback(
             responses.GET,
@@ -133,7 +101,8 @@ class JiraSearchEndpointTest(APITestCase):
             query = parse_qs(urlparse(request.url).query)
             assert "HSP" == query["project"][0]
             assert "bob" == query["query"][0]
-            return (200, {}, SAMPLE_USER_SEARCH_RESPONSE)
+            data = StubService.get_stub_json("jira", "user_search_response.json")
+            return 200, {}, data
 
         responses.add_callback(
             responses.GET,
