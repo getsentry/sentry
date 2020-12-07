@@ -18,6 +18,7 @@ import Link from 'app/components/links/link';
 import MenuItem from 'app/components/menuItem';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {PanelItem} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
 import GroupRowActions from 'app/components/stream/groupRowActions';
@@ -265,33 +266,104 @@ class StreamGroup extends React.Component<Props, State> {
               </InboxReasonWrapper>
             )}
             <div>
-              <TimesTag
-                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-              />
+              {!data.lifetime && !data.lastSeen ? (
+                <Placeholder height="14px" />
+              ) : (
+                <TimesTag
+                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+                />
+              )}
             </div>
           </ReasonAndTimesContainer>
         )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
-            <GroupChart
-              statsPeriod={statsPeriod!}
-              data={data}
-              showSecondaryPoints={showSecondaryPoints}
-            />
+            {!data.filtered?.stats && !data.stats ? (
+              <Placeholder height="24px" />
+            ) : (
+              <GroupChart
+                statsPeriod={statsPeriod!}
+                data={data}
+                showSecondaryPoints={showSecondaryPoints}
+              />
+            )}
           </Box>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <DropdownMenu isNestedDropdown>
-            {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-              const topLevelCx = classNames('dropdown', {
-                'anchor-middle': true,
-                open: isOpen,
-              });
+          {primaryCount === undefined ? (
+            <Placeholder height="18px" />
+          ) : (
+            <DropdownMenu isNestedDropdown>
+              {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+                const topLevelCx = classNames('dropdown', {
+                  'anchor-middle': true,
+                  open: isOpen,
+                });
 
-              return (
-                <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+                return (
+                  <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+                    <span
+                      {...getRootProps({
+                        className: topLevelCx,
+                      })}
+                    >
+                      <span {...getActorProps({})}>
+                        <div className="dropdown-actor-title">
+                          <PrimaryCount value={primaryCount} />
+                          {secondaryCount !== undefined && (
+                            <SecondaryCount value={secondaryCount} />
+                          )}
+                        </div>
+                      </span>
+                      <StyledDropdownList
+                        {...getMenuProps({className: 'dropdown-menu inverted'})}
+                      >
+                        {data.filtered && (
+                          <React.Fragment>
+                            <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                              <MenuItemText>{t('Matching search filters')}</MenuItemText>
+                              <MenuItemCount value={data.filtered.count} />
+                            </StyledMenuItem>
+                            <MenuItem divider />
+                          </React.Fragment>
+                        )}
+
+                        <StyledMenuItem to={this.getDiscoverUrl()}>
+                          <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                          <MenuItemCount value={data.count} />
+                        </StyledMenuItem>
+
+                        {data.lifetime && (
+                          <React.Fragment>
+                            <MenuItem divider />
+                            <StyledMenuItem>
+                              <MenuItemText>{t('Since issue began')}</MenuItemText>
+                              <MenuItemCount value={data.lifetime.count} />
+                            </StyledMenuItem>
+                          </React.Fragment>
+                        )}
+                      </StyledDropdownList>
+                    </span>
+                  </GuideAnchor>
+                );
+              }}
+            </DropdownMenu>
+          )}
+        </Flex>
+        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
+          {primaryUserCount === undefined ? (
+            <Placeholder height="18px" />
+          ) : (
+            <DropdownMenu isNestedDropdown>
+              {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+                const topLevelCx = classNames('dropdown', {
+                  'anchor-middle': true,
+                  open: isOpen,
+                });
+
+                return (
                   <span
                     {...getRootProps({
                       className: topLevelCx,
@@ -299,9 +371,9 @@ class StreamGroup extends React.Component<Props, State> {
                   >
                     <span {...getActorProps({})}>
                       <div className="dropdown-actor-title">
-                        <PrimaryCount value={primaryCount} />
-                        {secondaryCount !== undefined && (
-                          <SecondaryCount value={secondaryCount} />
+                        <PrimaryCount value={primaryUserCount} />
+                        {secondaryUserCount !== undefined && (
+                          <SecondaryCount dark value={secondaryUserCount} />
                         )}
                       </div>
                     </span>
@@ -312,7 +384,7 @@ class StreamGroup extends React.Component<Props, State> {
                         <React.Fragment>
                           <StyledMenuItem to={this.getDiscoverUrl(true)}>
                             <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                            <MenuItemCount value={data.filtered.count} />
+                            <MenuItemCount value={data.filtered.userCount} />
                           </StyledMenuItem>
                           <MenuItem divider />
                         </React.Fragment>
@@ -320,7 +392,7 @@ class StreamGroup extends React.Component<Props, State> {
 
                       <StyledMenuItem to={this.getDiscoverUrl()}>
                         <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                        <MenuItemCount value={data.count} />
+                        <MenuItemCount value={data.userCount} />
                       </StyledMenuItem>
 
                       {data.lifetime && (
@@ -328,71 +400,16 @@ class StreamGroup extends React.Component<Props, State> {
                           <MenuItem divider />
                           <StyledMenuItem>
                             <MenuItemText>{t('Since issue began')}</MenuItemText>
-                            <MenuItemCount value={data.lifetime.count} />
+                            <MenuItemCount value={data.lifetime.userCount} />
                           </StyledMenuItem>
                         </React.Fragment>
                       )}
                     </StyledDropdownList>
                   </span>
-                </GuideAnchor>
-              );
-            }}
-          </DropdownMenu>
-        </Flex>
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <DropdownMenu isNestedDropdown>
-            {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-              const topLevelCx = classNames('dropdown', {
-                'anchor-middle': true,
-                open: isOpen,
-              });
-
-              return (
-                <span
-                  {...getRootProps({
-                    className: topLevelCx,
-                  })}
-                >
-                  <span {...getActorProps({})}>
-                    <div className="dropdown-actor-title">
-                      <PrimaryCount value={primaryUserCount} />
-                      {secondaryUserCount !== undefined && (
-                        <SecondaryCount dark value={secondaryUserCount} />
-                      )}
-                    </div>
-                  </span>
-                  <StyledDropdownList
-                    {...getMenuProps({className: 'dropdown-menu inverted'})}
-                  >
-                    {data.filtered && (
-                      <React.Fragment>
-                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                          <MenuItemCount value={data.filtered.userCount} />
-                        </StyledMenuItem>
-                        <MenuItem divider />
-                      </React.Fragment>
-                    )}
-
-                    <StyledMenuItem to={this.getDiscoverUrl()}>
-                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                      <MenuItemCount value={data.userCount} />
-                    </StyledMenuItem>
-
-                    {data.lifetime && (
-                      <React.Fragment>
-                        <MenuItem divider />
-                        <StyledMenuItem>
-                          <MenuItemText>{t('Since issue began')}</MenuItemText>
-                          <MenuItemCount value={data.lifetime.userCount} />
-                        </StyledMenuItem>
-                      </React.Fragment>
-                    )}
-                  </StyledDropdownList>
-                </span>
-              );
-            }}
-          </DropdownMenu>
+                );
+              }}
+            </DropdownMenu>
+          )}
         </Flex>
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
