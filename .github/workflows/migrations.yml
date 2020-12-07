@@ -11,7 +11,10 @@ jobs:
     timeout-minutes: 8
 
     steps:
+      # Checkout master to run all merged migrations.
       - uses: actions/checkout@v1
+        with:
+          ref: master
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -39,6 +42,9 @@ jobs:
       - name: Apply migrations
         run: |
           sentry upgrade --noinput
+
+      # Checkout the current ref
+      - uses: actions/checkout@v1
 
       - name: Get changed migration files
         id: file
