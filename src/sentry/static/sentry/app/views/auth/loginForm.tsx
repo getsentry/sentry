@@ -2,8 +2,8 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import Form from 'app/components/forms/form';
 import PasswordField from 'app/components/forms/passwordField';
@@ -11,14 +11,22 @@ import TextField from 'app/components/forms/textField';
 import Link from 'app/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import {AuthConfig} from 'app/types';
 import {formFooterClass} from 'app/views/auth/login';
+
+type LoginProvidersProps = Partial<
+  Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
+>;
 
 // TODO(epurkhiser): The abstraction here would be much nicer if we just
 // exposed a configuration object telling us what auth providers there are.
-const LoginProviders = ({vstsLoginLink, githubLoginLink, googleLoginLink}) => (
+const LoginProviders = ({
+  vstsLoginLink,
+  githubLoginLink,
+  googleLoginLink,
+}: LoginProvidersProps) => (
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
     {googleLoginLink && (
@@ -54,24 +62,23 @@ const LoginProviders = ({vstsLoginLink, githubLoginLink, googleLoginLink}) => (
   </ProviderWrapper>
 );
 
-LoginProviders.propTypes = {
-  githubLoginLink: PropTypes.string,
-  vstsLoginLink: PropTypes.string,
-  googleLoginLink: PropTypes.string,
+type Props = {
+  api: Client;
+  authConfig: AuthConfig;
 };
 
-class LoginForm extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    authConfig: SentryTypes.AuthConfig,
-  };
+type State = {
+  errorMessage: null | string;
+  errors: Record<string, string>;
+};
 
-  state = {
+class LoginForm extends React.Component<Props, State> {
+  state: State = {
     errorMessage: null,
     errors: {},
   };
 
-  handleSubmit = async (data, onSuccess, onError) => {
+  handleSubmit: Form['props']['onSubmit'] = async (data, onSuccess, onError) => {
     try {
       const response = await this.props.api.requestPromise('/auth/login/', {
         method: 'POST',
@@ -111,7 +118,7 @@ class LoginForm extends React.Component {
     const {errorMessage, errors} = this.state;
     const {githubLoginLink, vstsLoginLink} = this.props.authConfig;
 
-    const hasLoginProvider = githubLoginLink || vstsLoginLink;
+    const hasLoginProvider = !!(githubLoginLink || vstsLoginLink);
 
     return (
       <ClassNames>
@@ -153,7 +160,7 @@ class LoginForm extends React.Component {
   }
 }
 
-const FormWrapper = styled('div')`
+const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
   display: grid;
   grid-gap: 60px;
   grid-template-columns: ${p => (p.hasLoginProvider ? '1fr 0.8fr' : '1fr')};
