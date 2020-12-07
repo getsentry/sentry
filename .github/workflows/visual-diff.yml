@@ -1,0 +1,21 @@
+name: visual diff
+on:
+  workflow_run:
+    workflows:
+      - acceptance
+    types:
+      - completed
+
+jobs:
+  visual-diff:
+    runs-on: ubuntu-16.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@v2
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

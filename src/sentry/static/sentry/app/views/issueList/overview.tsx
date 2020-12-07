@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -361,8 +360,15 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const orgFeatures = new Set(this.props.organization.features);
+    const expandParams: string[] = [];
     if (orgFeatures.has('inbox')) {
-      requestParams.expand = 'inbox';
+      expandParams.push('inbox');
+    }
+    if (orgFeatures.has('workflow-owners')) {
+      expandParams.push('owners');
+    }
+    if (expandParams.length) {
+      requestParams.expand = expandParams;
     }
 
     if (this._lastRequest) {
@@ -720,6 +726,8 @@ class IssueListOverview extends React.Component<Props, State> {
                 query={query}
                 queryCount={queryCount}
                 queryMaxCount={queryMaxCount}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={this.onRealtimeChange}
                 onTabChange={this.handleTabClick}
               />
             )}
@@ -746,16 +754,18 @@ class IssueListOverview extends React.Component<Props, State> {
                 <Panel>
                   <IssueListActions
                     orgId={organization.slug}
-                    organization={organization}
                     selection={selection}
                     query={query}
                     queryCount={queryCount}
+                    queryMaxCount={queryMaxCount}
+                    pageCount={pageCount}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
                     allResultsVisible={this.allResultsVisible()}
+                    hasInbox={hasFeature}
                   />
                   <PanelBody>
                     <ProcessingIssueList
@@ -770,10 +780,14 @@ class IssueListOverview extends React.Component<Props, State> {
                   {hasFeature && groupIds?.length > 0 && (
                     <div>
                       {/* total includes its own space */}
-                      {tct('Showing [count] of[total] issues', {
+                      {tct('Showing [count] of [total] issues', {
                         count: <React.Fragment>{pageCount}</React.Fragment>,
                         total: (
-                          <QueryCount hideParens count={queryCount} max={queryMaxCount} />
+                          <StyledQueryCount
+                            hideParens
+                            count={queryCount}
+                            max={queryMaxCount}
+                          />
                         ),
                       })}
                     </div>
@@ -862,4 +876,8 @@ const PaginationWrapper = styled('div')`
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
   margin-left: ${space(2)};
+`;
+
+const StyledQueryCount = styled(QueryCount)`
+  margin-left: 0;
 `;

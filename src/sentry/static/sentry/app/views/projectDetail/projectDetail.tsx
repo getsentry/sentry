@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
@@ -20,6 +20,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
 import ProjectCharts from './projectCharts';
+import ProjectIssues from './projectIssues';
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
 import ProjectQuickLinks from './projectQuickLinks';
@@ -124,6 +125,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     index={id}
                   />
                 ))}
+                <ProjectIssues organization={organization} location={location} />
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />

@@ -186,7 +186,7 @@ const ReleaseChartControls = ({
           )}
         </Feature>
         <OptionSelector
-          title={t('Y-Axis')}
+          title={t('Display')}
           selected={yAxis}
           options={yAxisOptions}
           onChange={onYAxisChange as (value: string) => void}

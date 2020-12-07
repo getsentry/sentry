@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {createNote, deleteNote, updateNote} from 'app/actionCreators/group';
 import {
@@ -17,7 +17,7 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import {DEFAULT_ERROR_JSON} from 'app/constants';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {Activity, Group, Organization, User} from 'app/types';
+import {Group, Organization, User} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -142,7 +142,7 @@ class GroupActivity extends React.Component<Props, State> {
               )}
             </ActivityItem>
 
-            {group.activity.map((item: Activity) => {
+            {group.activity.map(item => {
               const authorName = item.user ? item.user.name : 'Sentry';
 
               if (item.type === 'note') {
@@ -150,7 +150,7 @@ class GroupActivity extends React.Component<Props, State> {
                   <ErrorBoundary mini key={`note-${item.id}`}>
                     <Note
                       showTime={false}
-                      text={item.data.text}
+                      text={item.data.text ?? ''}
                       modelId={item.id}
                       user={item.user as User}
                       dateCreated={item.dateCreated}
@@ -165,7 +165,10 @@ class GroupActivity extends React.Component<Props, State> {
                 return (
                   <ErrorBoundary mini key={`item-${item.id}`}>
                     <ActivityItem
-                      author={{type: item.user ? 'user' : 'system', user: item.user}}
+                      author={{
+                        type: item.user ? 'user' : 'system',
+                        user: item.user ?? undefined,
+                      }}
                       date={item.dateCreated}
                       header={
                         <GroupActivityItem

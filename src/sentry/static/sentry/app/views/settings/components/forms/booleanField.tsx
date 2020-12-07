@@ -52,6 +52,7 @@ export default class BooleanField extends React.Component<Props> {
 
           const switchProps = {
             ...props,
+            size: 'lg' as React.ComponentProps<typeof Switch>['size'],
             isActive: !!value,
             isDisabled: disabled,
             toggle: handleChange,
@@ -66,7 +67,6 @@ export default class BooleanField extends React.Component<Props> {
                 {({open}) => (
                   <Switch
                     {...switchProps}
-                    size="lg"
                     toggle={(e: React.MouseEvent) => {
                       // If we have a `confirm` prop and enabling switch
                       // Then show confirm dialog, otherwise propagate change as normal

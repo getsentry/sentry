@@ -23,6 +23,8 @@ class GlobInput(object):
     [
         [GlobInput("hello.py", "*.py"), True],
         [GlobInput("hello.py", "*.js"), False],
+        [GlobInput(None, "*.js"), False],
+        [GlobInput(None, "*"), True],
         [GlobInput("foo/hello.py", "*.py"), True],
         [GlobInput("foo/hello.py", "*.py", doublestar=True), False],
         [GlobInput("foo/hello.py", "**/*.py", doublestar=True), True],

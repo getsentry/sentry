@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import set from 'lodash/set';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
@@ -10,14 +10,16 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
+import {DISPLAY_TYPE_CHOICES, INTERVAL_CHOICES} from 'app/views/dashboardsV2/data';
 import {DashboardListItem, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
@@ -47,19 +49,6 @@ type State = {
   errors?: Record<string, any>;
   loading: boolean;
 };
-
-const DISPLAY_TYPE_CHOICES = [
-  {label: t('Area chart'), value: 'area'},
-  {label: t('Bar chart'), value: 'bar'},
-  {label: t('Line chart'), value: 'line'},
-];
-
-const INTERVAL_CHOICES = [
-  {label: t('1 Minute'), value: '1m'},
-  {label: t('5 Minutes'), value: '5m'},
-  {label: t('1 Hour'), value: '1h'},
-  {label: t('1 Day'), value: '1d'},
-];
 
 const newQuery = {
   name: '',
@@ -102,7 +91,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const {api, closeModal, organization, onAddWidget} = this.props;
     this.setState({loading: true});
     try {
-      const widgetData: Widget = omit(this.state, ['errors', 'loading']);
+      const widgetData: Widget = pick(this.state, [
+        'title',
+        'displayType',
+        'interval',
+        'queries',
+      ]);
       await validateWidget(api, organization.slug, widgetData);
       onAddWidget(widgetData);
       addSuccessMessage(t('Added widget.'));
@@ -235,6 +229,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                   {t('Add Query')}
                 </Button>
               </AddQueryContainer>
+            </Panel>
+            <Panel>
+              <PanelHeader>{t('Preview')}</PanelHeader>
+              <PanelItem>
+                <WidgetCard
+                  api={api}
+                  organization={organization}
+                  selection={selection}
+                  widget={this.state}
+                />
+              </PanelItem>
             </Panel>
             <FooterButtons>
               <Button

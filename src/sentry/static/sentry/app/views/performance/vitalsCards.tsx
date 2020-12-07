@@ -10,6 +10,7 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
+import {decodeList} from 'app/utils/queryString';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {
@@ -29,13 +30,7 @@ export default function VitalsCards(props: Props) {
   const {eventView, organization, location} = props;
   const vitalsView = eventView.clone();
 
-  const shownVitals = [
-    WebVital.FP,
-    WebVital.FCP,
-    WebVital.LCP,
-    WebVital.FID,
-    WebVital.CLS,
-  ];
+  const shownVitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
   return (
     <VitalsCardsDiscoverQuery
@@ -151,7 +146,7 @@ type VitalLinkProps = Props & {
 };
 
 const VitalLink = (props: VitalLinkProps) => {
-  const {organization, eventView, vitalName, children} = props;
+  const {organization, eventView, vitalName, children, location} = props;
 
   const view = eventView.clone();
 
@@ -159,6 +154,7 @@ const VitalLink = (props: VitalLinkProps) => {
     orgSlug: organization.slug,
     query: view.generateQueryStringObject(),
     vitalName,
+    projectID: decodeList(location.query.project),
   });
 
   return (

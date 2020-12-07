@@ -11,14 +11,12 @@ export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
 }
 
 export const vitalsThresholdFields = {
-  [WebVital.FP]: 'count_at_least(measurements.fp, 3000)',
   [WebVital.FCP]: 'count_at_least(measurements.fcp, 3000)',
   [WebVital.LCP]: 'count_at_least(measurements.lcp, 4000)',
   [WebVital.FID]: 'count_at_least(measurements.fid, 300)',
   [WebVital.CLS]: 'count_at_least(measurements.cls, 0.25)',
 };
 export const vitalsBaseFields = {
-  [WebVital.FP]: 'count_at_least(measurements.fp, 0)',
   [WebVital.FCP]: 'count_at_least(measurements.fcp, 0)',
   [WebVital.LCP]: 'count_at_least(measurements.lcp, 0)',
   [WebVital.FID]: 'count_at_least(measurements.fid, 0)',
@@ -75,7 +73,6 @@ export function getVitalDetailTableStatusFunction(vitalName: WebVital): string {
 }
 
 export const vitalMap: Partial<Record<WebVital, string>> = {
-  [WebVital.FP]: 'First Paint',
   [WebVital.FCP]: 'First Contentful Paint',
   [WebVital.CLS]: 'Cumulative Layout Shift',
   [WebVital.FID]: 'First Input Delay',
@@ -85,8 +82,6 @@ export const vitalMap: Partial<Record<WebVital, string>> = {
 export const vitalChartTitleMap = vitalMap;
 
 export const vitalDescription: Partial<Record<WebVital, string>> = {
-  [WebVital.FP]:
-    'First Paint (FP) measures the amount of time the first pixel takes to appear in the viewport, rendering any visual change from what was previously displayed. This may be in the subtle form of a background color, canvas, or image.',
   [WebVital.FCP]:
     'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.',
   [WebVital.CLS]:
@@ -98,7 +93,6 @@ export const vitalDescription: Partial<Record<WebVital, string>> = {
 };
 
 export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
-  [WebVital.FP]: 'FP',
   [WebVital.FCP]: 'FCP',
   [WebVital.CLS]: 'CLS',
   [WebVital.FID]: 'FID',
