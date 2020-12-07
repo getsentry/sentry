@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import ProgressBar from 'app/components/progressBar';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {IconRefresh} from 'app/icons';
+import Button from 'app/components/button';
 
 type Props = {
   totalEvents: number;
@@ -14,6 +16,11 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
   const remainingEventsToReprocess = totalEvents - pendingEvents;
   const remainingEventsToReprocessPercent =
     (remainingEventsToReprocess / totalEvents) * 100;
+
+  // this is a temp solution
+  function handleRefresh() {
+    window.location.reload();
+  }
 
   return (
     <Wrapper>
@@ -31,6 +38,9 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
             totalEvents,
             event: tn('event', 'events', totalEvents),
           })}
+          <Button icon={<IconRefresh />} onClick={handleRefresh}>
+            {t('Refresh')}
+          </Button>
         </Content>
       </Inner>
     </Wrapper>
@@ -53,6 +63,7 @@ const Content = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: grid;
   grid-gap: ${space(1.5)};
+  justify-items: center;
   max-width: 402px;
   width: 100%;
 `;
