@@ -7,6 +7,7 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
+import ProjectAlertsEditor from 'app/views/settings/projectAlerts/edit';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 
 jest.unmock('app/utils/recreateRoute');
@@ -74,14 +75,22 @@ describe('ProjectAlerts -> IssueEditor', function () {
 
   const createWrapper = (props = {}) => {
     const {organization, project, routerContext} = initializeOrg(props);
+    const rule = TestStubs.ProjectAlertRule();
     const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
     const wrapper = mountWithTheme(
       <ProjectAlerts organization={organization} params={params}>
-        <IssueEditor
+        <ProjectAlertsEditor
+          location={{pathname: `/projects/${organization.slug}/${project.slug}/rules/1`}}
+          rule={rule}
+          project={project}
           params={params}
-          location={{pathname: ''}}
-          routes={projectAlertRuleDetailsRoutes}
-        />
+        >
+          <IssueEditor
+            params={params}
+            location={{pathname: ''}}
+            routes={projectAlertRuleDetailsRoutes}
+          />
+        </ProjectAlertsEditor>
       </ProjectAlerts>,
       routerContext
     );

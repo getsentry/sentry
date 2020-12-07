@@ -1,7 +1,9 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
+import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {
@@ -88,6 +90,7 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
@@ -120,20 +123,58 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {ruleId, projectId, orgId} = this.props.params;
-
-    const endpoints = [
-      ['environments', `/projects/${orgId}/${projectId}/environments/`],
-      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
-    ];
-
-    if (ruleId) {
-      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
-    }
-
-    return endpoints as [string, string][];
+  componentDidMount() {
+    this.getEnvironment();
   }
+
+  static getDerivedStateFromProps(props: Props, state: State) {
+    if (props.rule) {
+      if (!isEqual(state.rule, props.rule) && !isEqual(state.rule, defaultRule)) {
+        return {
+          ...state,
+          rule: state.rule,
+          loading: false,
+        };
+      }
+      return {
+        ...state,
+        rule: props.rule,
+        loading: false,
+      };
+    }
+    return {
+      ...state,
+      loading: false,
+    };
+  }
+
+  getEnvironment = async () => {
+    const {project, organization} = this.props;
+
+    const environmentsEndpoint = `/projects/${organization.slug}/${project.slug}/environments/`;
+    const configsEndpoint = `/projects/${organization.slug}/${project.slug}/rules/configuration/`;
+
+    try {
+      const environments = await this.api.requestPromise(environmentsEndpoint, {
+        method: 'GET',
+      });
+      const configs = await this.api.requestPromise(configsEndpoint, {
+        method: 'GET',
+      });
+      this.setState({
+        detailedError: null,
+        loading: true,
+        environments,
+        configs,
+      });
+    } catch (err) {
+      this.setState({
+        detailedError: err.responseJSON || {__all__: 'Unknown error'},
+        loading: false,
+      });
+      addErrorMessage(t('An error occurred'));
+    }
+  };
 
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
