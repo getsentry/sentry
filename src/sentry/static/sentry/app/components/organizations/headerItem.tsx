@@ -14,12 +14,12 @@ type DefaultProps = {
 };
 
 type Props = {
-  icon: React.ReactElement;
-  hasChanges: boolean;
-  hasSelected: boolean;
-  isOpen: boolean;
-  locked: boolean;
-  loading: boolean;
+  icon: React.ReactNode;
+  hasChanges?: boolean;
+  hasSelected?: boolean;
+  isOpen?: boolean;
+  locked?: boolean;
+  loading?: boolean;
   hint?: string;
   settingsLink?: string;
   lockedMessage?: React.ReactNode;
@@ -45,7 +45,7 @@ class HeaderItem extends React.Component<Props> {
     allowClear: true,
   };
 
-  handleClear = e => {
+  handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
     this.props.onClear?.();
   };
@@ -75,7 +75,7 @@ class HeaderItem extends React.Component<Props> {
     return (
       <StyledHeaderItem
         ref={forwardRef}
-        loading={loading}
+        loading={!!loading}
         {...omit(props, 'onClear')}
         {...textColorProps}
       >
@@ -126,9 +126,9 @@ const getColor = p => {
 };
 
 type ColorProps = {
-  locked: boolean;
-  isOpen: boolean;
-  hasSelected: boolean;
+  locked?: boolean;
+  isOpen?: boolean;
+  hasSelected?: boolean;
 };
 
 const StyledHeaderItem = styled('div', {
