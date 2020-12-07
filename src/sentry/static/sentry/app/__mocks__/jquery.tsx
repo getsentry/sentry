@@ -7,7 +7,7 @@ const jq = {
   simpleSlider: () => jq,
   addClass: () => jq,
   find: () => jq,
-};
+} as Partial<JQuery>;
 
 const jqMock = () => jq;
 
