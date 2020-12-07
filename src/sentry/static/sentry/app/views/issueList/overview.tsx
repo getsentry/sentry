@@ -341,6 +341,10 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   fetchStats = async (groups: string[]) => {
+    // If we have no groups to fetch, just skip stats
+    if (!groups.length) {
+      return;
+    }
     const requestParams: StatEndpointParams = {
       ...this.getEndpointParams(),
       groups,
