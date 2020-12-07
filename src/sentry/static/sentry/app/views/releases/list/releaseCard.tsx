@@ -57,6 +57,7 @@ const ReleaseCard = ({
           activeDisplay={activeDisplay}
           location={location}
           showPlaceholders={showHealthPlaceholders}
+          reloading={reloading}
           selection={selection}
         />
       </ReleaseProjects>
