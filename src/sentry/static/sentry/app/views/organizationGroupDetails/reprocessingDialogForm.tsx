@@ -51,11 +51,7 @@ function ReprocessingDialogForm({
     const hasReprocessingV2Feature = !!project.features?.includes('reprocessing-v2');
 
     if (hasReprocessingV2Feature) {
-      browserHistory.push({
-        pathname: `/organizations/${orgSlug}/issues/${group.id}/`,
-        query: {project: project.id},
-      });
-
+      window.location.reload();
       return;
     }
 
