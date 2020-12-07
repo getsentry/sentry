@@ -293,4 +293,4 @@ def pytest_collection_modifyitems(config, items):
         config.hook.pytest_deselected(items=discard)
 
     for item in items:
-        item.add_marker(pytest.mark.sentry_client({"traces_sample_rate": "0.1"}))
+        item.add_marker(pytest.mark.sentry_client({"traces_sample_rate": 0.1}))
