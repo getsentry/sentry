@@ -95,7 +95,9 @@ class GroupEventDetails extends React.Component<Props, State> {
     ) {
       const shouldRedirect =
         environments.length > 0 &&
-        !environments.find(env => env.name === getEventEnvironment(prevProps.event));
+        !environments.find(
+          env => env.name === getEventEnvironment(prevProps.event as Event)
+        );
 
       if (shouldRedirect) {
         browserHistory.replace({
@@ -169,11 +171,9 @@ class GroupEventDetails extends React.Component<Props, State> {
           <div className="primary">
             {evt && (
               <GroupEventToolbar
-                organization={organization}
                 group={group}
                 event={evt}
                 orgId={organization.slug}
-                projectId={project.slug}
                 location={location}
               />
             )}

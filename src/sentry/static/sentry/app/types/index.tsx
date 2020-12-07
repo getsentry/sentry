@@ -225,7 +225,7 @@ export type Project = {
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
-  latestRelease?: {version: string};
+  latestRelease?: Release;
   groupingEnhancementsBase: string;
   groupingConfig: string;
   options?: Record<string, boolean | string>;
@@ -343,9 +343,27 @@ type RuntimeContext = {
   name?: string;
 };
 
+type DeviceContext = {
+  arch: string;
+  family: string;
+  model: string;
+  type: string;
+};
+
+type OSContext = {
+  kernel_version: string;
+  version: string;
+  type: string;
+  build: string;
+  name: string;
+};
+
 type EventContexts = {
   runtime?: RuntimeContext;
   trace?: TraceContextType;
+  device?: DeviceContext;
+  os?: OSContext;
+  client_os?: OSContext;
 };
 
 type EnableIntegrationSuggestion = {
@@ -809,11 +827,26 @@ type GroupFiltered = {
   userCount: number;
 };
 
+type GroupActivityData = {
+  eventCount?: number;
+  newGroupId?: number;
+  oldGroupId?: number;
+  text?: string;
+};
+
+type GroupActivity = {
+  data: GroupActivityData;
+  dateCreated: string;
+  id: string;
+  type: string;
+  user?: null | User;
+};
+
 // TODO(ts): incomplete
 export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
-  activity: any[]; // TODO(ts)
+  activity: GroupActivity[];
   annotations: string[];
   assignedTo: User;
   culprit: string;
@@ -1325,7 +1358,7 @@ export type SentryAppComponent = {
   };
 };
 
-type SavedQueryVersions = 1 | 2;
+export type SavedQueryVersions = 1 | 2;
 
 export type NewQuery = {
   id: string | undefined;

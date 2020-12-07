@@ -1,9 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
-import {addErrorMessage, addMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
+import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -16,6 +15,7 @@ import {
 } from 'app/components/panels';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
+import {Organization} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -28,7 +28,7 @@ const Important = styled('div')`
   font-size: 1.2em;
 `;
 
-const GoodbyeModalContent = ({Header, Body, Footer}) => (
+const GoodbyeModalContent = ({Header, Body, Footer}: ModalRenderProps) => (
   <div>
     <Header>{t('Closing Account')}</Header>
     <Body>
@@ -45,29 +45,44 @@ const GoodbyeModalContent = ({Header, Body, Footer}) => (
   </div>
 );
 
-GoodbyeModalContent.propTypes = {
-  Header: PropTypes.node,
-  Body: PropTypes.node,
-  Footer: PropTypes.node,
+type OwnedOrg = {
+  organization: Organization;
+  singleOwner: boolean;
 };
 
-class AccountClose extends AsyncView {
-  getEndpoints() {
+type Props = AsyncView['props'];
+
+type State = AsyncView['state'] & {
+  organizations: OwnedOrg[] | null;
+  /**
+   * Org slugs that will be removed
+   */
+  orgsToRemove: Set<string> | null;
+};
+
+class AccountClose extends AsyncView<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['organizations', '/organizations/?owner=1']];
   }
 
-  constructor(...args) {
-    super(...args);
-    this.state.orgsToRemove = null;
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      orgsToRemove: null,
+    };
   }
 
-  // Returns an array of single owners
-  getSingleOwners = () =>
-    this.state.organizations
-      .filter(({singleOwner}) => singleOwner)
-      .map(({organization}) => organization.slug);
+  get singleOwnerOrgs() {
+    return this.state.organizations
+      ?.filter(({singleOwner}) => singleOwner)
+      ?.map(({organization}) => organization.slug);
+  }
 
-  handleChange = ({slug}, isSingle, event) => {
+  handleChange = (
+    {slug}: Organization,
+    isSingle: boolean,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const checked = event.target.checked;
 
     // Can't unselect an org where you are the single owner
@@ -76,44 +91,38 @@ class AccountClose extends AsyncView {
     }
 
     this.setState(state => {
-      const set = state.orgsToRemove || new Set(this.getSingleOwners());
+      const set = state.orgsToRemove || new Set(this.singleOwnerOrgs);
       if (checked) {
         set.add(slug);
       } else {
         set.delete(slug);
       }
 
-      return {
-        orgsToRemove: set,
-      };
+      return {orgsToRemove: set};
     });
   };
 
-  handleRemoveAccount = () => {
+  handleRemoveAccount = async () => {
     const {orgsToRemove} = this.state;
-    const orgs =
-      orgsToRemove === null ? this.getSingleOwners() : Array.from(orgsToRemove);
+    const orgs = orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove);
 
-    addMessage('Closing account...');
+    addLoadingMessage('Closing account\u2026');
 
-    this.api
-      .requestPromise('/users/me/', {
+    try {
+      await this.api.requestPromise('/users/me/', {
         method: 'DELETE',
         data: {organizations: orgs},
-      })
-      .then(
-        () => {
-          openModal(GoodbyeModalContent, {
-            onClose: leaveRedirect,
-          });
+      });
 
-          // Redirect after 10 seconds
-          setTimeout(leaveRedirect, 10000);
-        },
-        () => {
-          addErrorMessage('Error closing account');
-        }
-      );
+      openModal(GoodbyeModalContent, {
+        onClose: leaveRedirect,
+      });
+
+      // Redirect after 10 seconds
+      setTimeout(leaveRedirect, 10000);
+    } catch {
+      addErrorMessage('Error closing account');
+    }
   };
 
   renderBody() {
@@ -147,7 +156,7 @@ class AccountClose extends AsyncView {
               )}
             </PanelAlert>
 
-            {organizations.map(({organization, singleOwner}) => (
+            {organizations?.map(({organization, singleOwner}) => (
               <PanelItem key={organization.slug}>
                 <label>
                   <input

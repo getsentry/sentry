@@ -211,7 +211,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                 key={member.id}
                 member={member}
                 status={this.state.invited[member.id]}
-                orgId={params.orgId}
                 orgName={orgName}
                 memberCanLeave={!isOnlyOwner}
                 currentUser={currentUser}

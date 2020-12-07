@@ -1,6 +1,6 @@
 import React from 'react';
+import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
@@ -10,30 +10,36 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'app/icons';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {AvatarUser, Member} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
 
-export default class OrganizationMemberRow extends React.PureComponent {
-  static propTypes = {
-    routes: PropTypes.array,
-    // XXX: Spreading this does not work :(
-    member: SentryTypes.Member,
-    onRemove: PropTypes.func.isRequired,
-    onLeave: PropTypes.func.isRequired,
-    onSendInvite: PropTypes.func.isRequired,
-    orgName: PropTypes.string.isRequired,
-    memberCanLeave: PropTypes.bool,
-    requireLink: PropTypes.bool,
-    canRemoveMembers: PropTypes.bool,
-    canAddMembers: PropTypes.bool,
-    currentUser: SentryTypes.User,
-    status: PropTypes.oneOf(['', 'loading', 'success', 'error']),
+type Props = {
+  params: Record<string, string>;
+  routes: PlainRoute[];
+  member: Member;
+  onRemove: (member: Member) => void;
+  onLeave: (member: Member) => void;
+  onSendInvite: (member: Member) => void;
+  orgName: string;
+  memberCanLeave: boolean;
+  requireLink: boolean;
+  canRemoveMembers: boolean;
+  canAddMembers: boolean;
+  currentUser: AvatarUser;
+  status: '' | 'loading' | 'success' | 'error' | null;
+};
+
+type State = {
+  busy: boolean;
+};
+
+export default class OrganizationMemberRow extends React.PureComponent<Props, State> {
+  state: State = {
+    busy: false,
   };
 
-  state = {busy: false};
-
-  handleRemove = e => {
+  handleRemove = () => {
     const {onRemove} = this.props;
 
     if (typeof onRemove !== 'function') {
@@ -41,10 +47,10 @@ export default class OrganizationMemberRow extends React.PureComponent {
     }
 
     this.setState({busy: true});
-    onRemove(this.props.member, e);
+    onRemove(this.props.member);
   };
 
-  handleLeave = e => {
+  handleLeave = () => {
     const {onLeave} = this.props;
 
     if (typeof onLeave !== 'function') {
@@ -52,17 +58,17 @@ export default class OrganizationMemberRow extends React.PureComponent {
     }
 
     this.setState({busy: true});
-    onLeave(this.props.member, e);
+    onLeave(this.props.member);
   };
 
-  handleSendInvite = e => {
+  handleSendInvite = () => {
     const {onSendInvite, member} = this.props;
 
     if (typeof onSendInvite !== 'function') {
       return;
     }
 
-    onSendInvite(member, e);
+    onSendInvite(member);
   };
 
   render() {
@@ -98,7 +104,7 @@ export default class OrganizationMemberRow extends React.PureComponent {
     return (
       <StyledPanelItem data-test-id={email}>
         <MemberHeading>
-          <UserAvatar size={32} user={user ? user : {id: email, email}} />
+          <UserAvatar size={32} user={user ?? {id: email, email}} />
           <MemberDescription to={detailsUrl}>
             <h5 style={{margin: '0 0 3px'}}>
               <UserName>{name}</UserName>
@@ -159,14 +165,6 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   orgName,
                 })}
                 onConfirm={this.handleRemove}
-                onSuccess={tct('Removed [name] from [orgName]', {
-                  name,
-                  orgName,
-                })}
-                onError={tct('Error removing [name] from [orgName]', {
-                  name,
-                  orgName,
-                })}
               >
                 <Button
                   data-test-id="remove"
@@ -196,12 +194,6 @@ export default class OrganizationMemberRow extends React.PureComponent {
                   orgName,
                 })}
                 onConfirm={this.handleLeave}
-                onSuccess={tct('Left [orgName]', {
-                  orgName,
-                })}
-                onError={tct('Error leaving [orgName]', {
-                  orgName,
-                })}
               >
                 <Button priority="danger" size="small" icon={<IconClose size="xs" />}>
                   {t('Leave')}
