@@ -397,16 +397,18 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
-        <Feature organization={organization} features={['organizations:inbox']}>
-          <Box width={120} mx={2} className="hidden-xs hidden-sm">
-            <GroupRowActions
-              group={data}
-              orgId={organization.slug}
-              selection={selection}
-              query={query}
-            />
-          </Box>
-        </Feature>
+        {canSelect && (
+          <Feature organization={organization} features={['organizations:inbox']}>
+            <Box width={120} mx={2} className="hidden-xs hidden-sm">
+              <GroupRowActions
+                group={data}
+                orgId={organization.slug}
+                selection={selection}
+                query={query}
+              />
+            </Box>
+          </Feature>
+        )}
       </Wrapper>
     );
   }
