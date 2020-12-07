@@ -75,12 +75,17 @@ class JiraIssueHookView(JiraBaseHook):
         else:
             last_release = None
 
-        first_release_url = get_release_url(first_release)
-        last_release_url = get_release_url(last_release)
+        first_release_url = None
+        if first_release:
+            first_release_url = get_release_url(first_release)
+
+        last_release_url = None
+        if last_release:
+            last_release_url = get_release_url(last_release)
 
         context = {
-            "type": result["metadata"]["type"],
-            "title": result["title"],
+            "type": result.get("metadata", {}).get("type", "Unkown Error"),
+            "title": group.title,
             "first_seen": result["firstSeen"],
             "last_seen": result["lastSeen"],
             "first_release": first_release,

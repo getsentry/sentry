@@ -68,12 +68,14 @@
               <span class="left-grid">{% trans "Date:" %}</span>
               <span class="right-grid">{{ first_seen }} UTC</span>
             </div>
+            {% if first_release %}
             <div class="seen-grid">
               <span class="left-grid">{% trans "Release:" %}</span>
               <span class="right-grid"
                 ><a href="{{ first_release_url}}">{{first_release}}</a></span
               >
             </div>
+            {% endif %}
           </div>
           <br />
           <div class="seen-header">{% trans "Last Seen" %}</div>
@@ -82,12 +84,14 @@
               <span class="left-grid">{% trans "Date:" %}</span>
               <span class="right-grid">{{ last_seen }} UTC</span>
             </div>
+            {% if last_release %}
             <div class="seen-grid">
               <span class="left-grid">{% trans "Release:" %}</span>
               <span class="right-grid"
                 ><a href="{{ last_release_url}}">{{last_release}}</a></span
               >
             </div>
+            {% endif %}
           </div>
         </div>
       </div>
