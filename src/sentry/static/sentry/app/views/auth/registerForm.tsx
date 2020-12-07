@@ -2,16 +2,16 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Form from 'app/components/forms/form';
 import PasswordField from 'app/components/forms/passwordField';
 import RadioBooleanField from 'app/components/forms/radioBooleanField';
 import TextField from 'app/components/forms/textField';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
+import {AuthConfig} from 'app/types';
 import {formFooterClass} from 'app/views/auth/login';
 
 const SubscribeField = () => (
@@ -31,18 +31,23 @@ const SubscribeField = () => (
   />
 );
 
-class RegisterForm extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    authConfig: SentryTypes.AuthConfig,
-  };
+type Props = {
+  api: Client;
+  authConfig: AuthConfig;
+};
 
-  state = {
+type State = {
+  errorMessage: null | string;
+  errors: Record<string, string>;
+};
+
+class RegisterForm extends React.Component<Props, State> {
+  state: State = {
     errorMessage: null,
     errors: {},
   };
 
-  handleSubmit = async (data, onSuccess, onError) => {
+  handleSubmit: Form['props']['onSubmit'] = async (data, onSuccess, onError) => {
     const {api} = this.props;
 
     try {
