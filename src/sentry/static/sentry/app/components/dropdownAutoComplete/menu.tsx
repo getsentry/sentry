@@ -292,7 +292,11 @@ const Menu = ({
         typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
       return (
-        <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
+        <AutoCompleteRoot
+          {...getRootProps()}
+          className={rootClassName}
+          disabled={disabled}
+        >
           {children({
             getInputProps,
             getActorProps,
@@ -409,6 +413,7 @@ export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
 ))`
   position: relative;
   display: inline-block;
+  ${p => p.disabled && 'pointer-events: none;'}
 `;
 
 const BubbleWithMinWidth = styled(DropdownBubble)`

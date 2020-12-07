@@ -41,6 +41,7 @@ type Props = {
   group: Group;
   project: Project;
   organization: Organization;
+  disabled: boolean;
 };
 
 type State = {
@@ -199,24 +200,44 @@ class Actions extends React.Component<Props, State> {
     });
   };
 
+  handleClick(
+    disabled: boolean,
+    onClick: (event: React.MouseEvent<HTMLDivElement>) => void
+  ) {
+    return function (event: React.MouseEvent<HTMLDivElement>) {
+      if (disabled) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      onClick(event);
+    };
+  }
+
   render() {
-    const {group, project, organization} = this.props;
+    const {group, project, organization, disabled} = this.props;
     const {status, isBookmarked} = group;
 
     const orgFeatures = new Set(organization.features);
     const projectFeatures = new Set(project.features);
 
-    const buttonClassName = 'btn btn-default btn-sm';
+    let buttonClassName = 'btn btn-default btn-sm';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
 
+    if (disabled) {
+      buttonClassName = `${buttonClassName} disabled`;
+    }
+
     return (
       <div className="group-actions">
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
+            disabled={disabled}
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
             onUpdate={this.onUpdate}
@@ -227,9 +248,14 @@ class Actions extends React.Component<Props, State> {
           />
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>
-          <IgnoreActions isIgnored={isIgnored} onUpdate={this.onUpdate} />
+          <IgnoreActions
+            isIgnored={isIgnored}
+            onUpdate={this.onUpdate}
+            disabled={disabled}
+          />
         </GuideAnchor>
         <DeleteAction
+          disabled={disabled}
           organization={organization}
           project={project}
           onDelete={this.onDelete}
@@ -238,6 +264,7 @@ class Actions extends React.Component<Props, State> {
         {orgFeatures.has('shared-issues') && (
           <div className="btn-group">
             <ShareIssue
+              disabled={disabled}
               loading={this.state.shareBusy}
               isShared={group.isPublic}
               shareUrl={this.getShareUrl(group.shareId)}
@@ -251,7 +278,7 @@ class Actions extends React.Component<Props, State> {
             <Link
               className={buttonClassName}
               title={t('Open in Discover')}
-              to={this.getDiscoverUrl()}
+              to={disabled ? '' : this.getDiscoverUrl()}
             >
               {t('Open in Discover')}
             </Link>
@@ -264,18 +291,25 @@ class Actions extends React.Component<Props, State> {
             isActive={group.isBookmarked}
             title={bookmarkTitle}
             aria-label={bookmarkTitle}
-            onClick={this.onToggleBookmark}
+            onClick={this.handleClick(disabled, this.onToggleBookmark)}
           >
             <IconWrapper>
               <IconStar isSolid size="xs" />
             </IconWrapper>
           </BookmarkButton>
         </div>
-        <SubscribeAction group={group} onClick={this.onToggleSubscribe} />
+        <SubscribeAction
+          group={group}
+          onClick={this.handleClick(disabled, this.onToggleSubscribe)}
+          className={buttonClassName}
+        />
         {projectFeatures.has('reprocessing-v2') && (
           <div className="btn-group">
             <Tooltip title={t('Reprocess this issue')}>
-              <div className={buttonClassName} onClick={this.onReprocess}>
+              <div
+                className={buttonClassName}
+                onClick={this.handleClick(disabled, this.onReprocess)}
+              >
                 <IconWrapper>
                   <IconRefresh size="xs" />
                 </IconWrapper>

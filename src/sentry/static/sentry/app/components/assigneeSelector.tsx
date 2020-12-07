@@ -31,6 +31,7 @@ type Props = {
   id: string | null;
   size?: number;
   memberList?: User[];
+  disabled?: boolean;
 };
 
 type State = {
@@ -58,6 +59,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     // store contains more/different users than you need to show
     // in an individual component, eg. Org Issue list
     memberList: PropTypes.array,
+    disabled: PropTypes.bool,
   },
 
   contextTypes: {
@@ -335,7 +337,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   render() {
-    const {className} = this.props;
+    const {className, disabled} = this.props;
     const {loading, assignedTo} = this.state;
     const memberList = this.memberList();
     const suggestedActors = this.getSuggestedAssignees();
@@ -347,6 +349,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
         )}
         {!loading && (
           <DropdownAutoComplete
+            disabled={disabled}
             maxHeight={400}
             onOpen={e => {
               // This can be called multiple times and does not always have `event`

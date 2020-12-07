@@ -19,9 +19,10 @@ type Props = {
   project: Project;
   onDelete: () => void;
   onDiscard: () => void;
+  disabled: boolean;
 };
 
-function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
+function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Props) {
   function renderDiscardDisabled({children, ...props}) {
     return children({
       ...props,
@@ -83,12 +84,18 @@ function DeleteAction({project, organization, onDiscard, onDelete}: Props) {
           'Deleting this issue is permanent. Are you sure you wish to continue?'
         )}
         onConfirm={onDelete}
+        disabled={disabled}
       >
         <IconWrapper>
           <IconDelete size="xs" />
         </IconWrapper>
       </LinkWithConfirmation>
-      <DropdownLink title="" caret className="group-delete btn btn-default btn-sm">
+      <DropdownLink
+        title=""
+        caret
+        className="group-delete btn btn-default btn-sm"
+        disabled={disabled}
+      >
         <MenuItem onClick={openDiscardModal}>
           <span>{t('Delete and discard future events')}</span>
         </MenuItem>
