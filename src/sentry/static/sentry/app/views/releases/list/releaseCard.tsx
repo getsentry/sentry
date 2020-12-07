@@ -8,7 +8,7 @@ import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {GlobalSelection, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
