@@ -2016,6 +2016,31 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "Field names" in six.text_type(err)
 
+    def test_tag_fields(self):
+        fields = ["tags[test.foo:bar-123]"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            "tags[test.foo:bar-123]",
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
+    def test_invalid_tag_fields(self):
+        for fields in [
+            ["t[a]gs[test]"],
+            ["t(a)gstest"],
+            ["tags[te[s]t]"],
+            ["tags[test]tags[test]"],
+        ]:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list(fields, eventstore.Filter())
+            assert "Invalid character" in six.text_type(err)
+
     def test_blank_field_ignored(self):
         fields = ["", "title", "   "]
         result = resolve_field_list(fields, eventstore.Filter())

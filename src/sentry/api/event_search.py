@@ -1417,6 +1417,8 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
     return snuba_json
 
 
+# Based on general/src/protocol/tags.rs in relay
+VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>.*)\)$")
 ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
 
@@ -2569,7 +2571,14 @@ def resolve_field(field, params=None, functions_acl=None):
     if field in FIELD_ALIASES:
         special_field = FIELD_ALIASES[field]
         return ResolvedFunction(None, special_field.get_field(params), None)
-    return ResolvedFunction(None, field, None)
+
+    tag_match = TAG_KEY_RE.search(field)
+    tag_field = tag_match.group("tag") if tag_match else field
+
+    if VALID_FIELD_PATTERN.match(tag_field):
+        return ResolvedFunction(None, field, None)
+    else:
+        raise InvalidSearchQuery("Invalid characters in field {}".format(field))
 
 
 def resolve_field_list(
@@ -2702,4 +2711,4 @@ def resolve_field_list(
     }
 
 
-TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
+TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
