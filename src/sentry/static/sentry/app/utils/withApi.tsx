@@ -22,8 +22,8 @@ type OptionProps = {
 };
 
 /**
- * HoC that provides "api" client when mounted, and clears API requests when
- * component is unmounted
+ * React Higher-Order Component (HoC) that provides "api" client when mounted,
+ * and clears API requests when component is unmounted.
  */
 const withApi = <P extends InjectedApiProps>(
   WrappedComponent: React.ComponentType<P>,

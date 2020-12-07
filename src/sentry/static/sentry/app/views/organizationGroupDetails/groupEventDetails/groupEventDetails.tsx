@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -134,7 +135,17 @@ class GroupEventDetails extends React.Component<Props, State> {
       `/projects/${orgSlug}/${projSlug}/releases/completion/`
     );
     fetchSentryAppInstallations(api, orgSlug);
-    fetchSentryAppComponents(api, orgSlug, projectId);
+
+    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    if (projectId) {
+      fetchSentryAppComponents(api, orgSlug, projectId);
+    } else {
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('Project ID was not set');
+      });
+    }
 
     const releasesCompletion = await releasesCompletionPromise;
     this.setState({releasesCompletion});
