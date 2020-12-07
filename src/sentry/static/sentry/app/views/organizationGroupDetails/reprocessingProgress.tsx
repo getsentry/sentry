@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import ProgressBar from 'app/components/progressBar';
+import {IconRefresh} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {IconRefresh} from 'app/icons';
-import Button from 'app/components/button';
 
 type Props = {
   totalEvents: number;
