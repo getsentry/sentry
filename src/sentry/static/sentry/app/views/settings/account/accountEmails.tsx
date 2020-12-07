@@ -32,7 +32,7 @@ class AccountEmails extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return 'Emails';
+    return t('Emails');
   }
 
   handleSubmitSuccess: Form['props']['onSubmitSuccess'] = (_change, model, id) => {
@@ -84,7 +84,7 @@ class AccountEmails extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title="Emails" />
+        <SettingsPageHeader title={t('Emails')} />
 
         <Panel>
           <PanelHeader>{t('Emails')}</PanelHeader>
