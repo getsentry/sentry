@@ -82,7 +82,12 @@ class GroupHeader extends React.Component<Props, State> {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
-    const isReprocessing = group.status === 'reprocessing';
+
+    const hasReprocessingV2Feature = projectFeatures.has('reprocessing-v2');
+    const hasSimilarView = projectFeatures.has('similarity-view');
+    const hasEventAttachments = organizationFeatures.has('event-attachments');
+
+    const isReprocessing = hasReprocessingV2Feature && group.status === 'reprocessing';
 
     let className = 'group-detail';
 
@@ -101,9 +106,6 @@ class GroupHeader extends React.Component<Props, State> {
     const {memberList} = this.state;
     const orgId = organization.slug;
     const message = getMessage(group);
-
-    const hasSimilarView = projectFeatures.has('similarity-view');
-    const hasEventAttachments = organizationFeatures.has('event-attachments');
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
