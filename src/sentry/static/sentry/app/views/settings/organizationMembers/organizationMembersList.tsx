@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import {ClassNames} from '@emotion/core';
 import styled from '@emotion/styled';
 
@@ -211,7 +211,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                 key={member.id}
                 member={member}
                 status={this.state.invited[member.id]}
-                orgId={params.orgId}
                 orgName={orgName}
                 memberCanLeave={!isOnlyOwner}
                 currentUser={currentUser}

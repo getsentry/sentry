@@ -1,3 +1,5 @@
+import u2f from 'u2f-api';
+
 import {Props as AlertProps} from 'app/components/alert';
 import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
@@ -87,6 +89,11 @@ export type Actor = {
   id: string;
   name: string;
   email?: string;
+};
+
+export type SuggestedAssignee = Actor & {
+  suggestedReason: SuggestedOwnerReason;
+  assignee: Team | User;
 };
 
 /**
@@ -218,7 +225,7 @@ export type Project = {
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
-  latestRelease?: {version: string};
+  latestRelease?: Release;
   groupingEnhancementsBase: string;
   groupingConfig: string;
   options?: Record<string, boolean | string>;
@@ -304,6 +311,7 @@ export type EventAttachment = {
   id: string;
   dateCreated: string;
   headers: Object;
+  mimetype: string;
   name: string;
   sha1: string;
   size: number;
@@ -335,9 +343,27 @@ type RuntimeContext = {
   name?: string;
 };
 
+type DeviceContext = {
+  arch: string;
+  family: string;
+  model: string;
+  type: string;
+};
+
+type OSContext = {
+  kernel_version: string;
+  version: string;
+  type: string;
+  build: string;
+  name: string;
+};
+
 type EventContexts = {
   runtime?: RuntimeContext;
   trace?: TraceContextType;
+  device?: DeviceContext;
+  os?: OSContext;
+  client_os?: OSContext;
 };
 
 type EnableIntegrationSuggestion = {
@@ -376,6 +402,7 @@ type SentryEventBase = {
   title: string;
   culprit: string;
   dateCreated: string;
+  dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
   context?: {[key: string]: any};
@@ -421,7 +448,7 @@ type SentryEventBase = {
 
   measurements?: Record<string, Measurement>;
 
-  release?: ReleaseData;
+  release?: Release;
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
@@ -703,8 +730,13 @@ export type Authenticator = {
 
   phone?: string;
 
-  challenge?: Record<string, any>;
+  challenge?: ChallengeData;
 } & Partial<EnrolledAuthenticator>;
+
+export type ChallengeData = {
+  authenticateRequests: u2f.SignRequest;
+  registerRequests: u2f.RegisterRequest;
+};
 
 export type EnrolledAuthenticator = {
   lastUsedAt: string | null;
@@ -778,6 +810,15 @@ export type InboxDetails = {
   };
 };
 
+export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
+
+// Received from the backend to denote suggested owners of an issue
+export type SuggestedOwner = {
+  type: SuggestedOwnerReason;
+  owner: string;
+  date_added: string;
+};
+
 type GroupFiltered = {
   count: string;
   stats: Record<string, TimeseriesValue[]>;
@@ -786,11 +827,26 @@ type GroupFiltered = {
   userCount: number;
 };
 
+type GroupActivityData = {
+  eventCount?: number;
+  newGroupId?: number;
+  oldGroupId?: number;
+  text?: string;
+};
+
+type GroupActivity = {
+  data: GroupActivityData;
+  dateCreated: string;
+  id: string;
+  type: string;
+  user?: null | User;
+};
+
 // TODO(ts): incomplete
 export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
-  activity: any[]; // TODO(ts)
+  activity: GroupActivity[];
   annotations: string[];
   assignedTo: User;
   culprit: string;
@@ -826,6 +882,7 @@ export type Group = GroupFiltered & {
   filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
+  owners?: SuggestedOwner[] | null;
 };
 
 export type GroupTombstone = {
@@ -1301,7 +1358,7 @@ export type SentryAppComponent = {
   };
 };
 
-type SavedQueryVersions = 1 | 2;
+export type SavedQueryVersions = 1 | 2;
 
 export type NewQuery = {
   id: string | undefined;
@@ -1491,7 +1548,7 @@ export type Meta = {
   err: Array<MetaError>;
 };
 
-export type MetaError = [string, any];
+export type MetaError = string | [string, any];
 export type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
@@ -1668,6 +1725,7 @@ export type Frame = {
   function: string | null;
   inApp: boolean;
   instructionAddr: string | null;
+  addrMode?: string;
   lineNo: number | null;
   module: string | null;
   package: string | null;
@@ -1741,4 +1799,12 @@ export type InternetProtocol = {
   firstSeen: string;
   countryCode: string | null;
   regionCode: string | null;
+};
+
+export type AuthConfig = {
+  canRegister: boolean;
+  serverHostname: string;
+  hasNewsletter: boolean;
+  githubLoginLink: string;
+  vstsLoginLink: string;
 };

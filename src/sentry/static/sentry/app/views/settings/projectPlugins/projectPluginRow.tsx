@@ -1,6 +1,5 @@
 import React from 'react';
-import {Link} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {Link, RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';

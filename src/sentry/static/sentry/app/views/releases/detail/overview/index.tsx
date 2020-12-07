@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import {restoreRelease} from 'app/actionCreators/release';
@@ -35,6 +34,7 @@ import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
+import ReleaseStats from './releaseStats';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
@@ -196,6 +196,7 @@ class ReleaseOverview extends AsyncView<Props> {
       version: 2,
       name: `Release ${formatVersion(version)}`,
       fields: ['transaction'],
+      query: 'tpm():>0.01 trend_percentage():>0%',
       range: period,
       environment: environments,
       projects: [projectId],
@@ -246,6 +247,15 @@ class ReleaseOverview extends AsyncView<Props> {
             releaseMeta.released
           );
 
+          const generateLink = {
+            transaction: generateTransactionLink(
+              version,
+              project.id,
+              selection,
+              location.query.showTransactions
+            ),
+          };
+
           return (
             <ReleaseStatsRequest
               api={api}
@@ -295,9 +305,8 @@ class ReleaseOverview extends AsyncView<Props> {
                       version={version}
                       location={location}
                     />
-                    <Feature features={['release-performance-views']}>
+                    <Feature features={['performance-view', 'release-performance-views']}>
                       <TransactionsList
-                        api={api}
                         location={location}
                         organization={organization}
                         eventView={releaseEventView}
@@ -306,16 +315,18 @@ class ReleaseOverview extends AsyncView<Props> {
                         options={sortOptions}
                         handleDropdownChange={this.handleTransactionsListSortChange}
                         titles={titles}
-                        generateFirstLink={generateTransactionLinkFn(
-                          version,
-                          project.id,
-                          selection,
-                          location.query.showTransactions
-                        )}
+                        generateLink={generateLink}
                       />
                     </Feature>
                   </Main>
                   <Side>
+                    <ReleaseStats
+                      organization={organization}
+                      release={release}
+                      project={project}
+                      location={location}
+                      selection={selection}
+                    />
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}
@@ -361,7 +372,7 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 }
 
-function generateTransactionLinkFn(
+function generateTransactionLink(
   version: string,
   projectId: number,
   selection: GlobalSelection,
@@ -417,14 +428,14 @@ function getDropdownOptions(): DropdownOption[] {
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
+      query: [['t_test()', '<-6']],
       trendType: TrendChangeType.REGRESSION,
       value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: 'tpm():>0.01 trend_percentage():>0% t_test():>6',
+      query: [['t_test()', '>6']],
       trendType: TrendChangeType.IMPROVED,
       value: TransactionsListOption.IMPROVEMENT,
       label: t('Trending Improvements'),

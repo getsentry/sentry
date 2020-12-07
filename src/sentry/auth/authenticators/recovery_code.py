@@ -37,7 +37,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
             h = hmac.new(key=force_bytes(self.config["salt"]), msg=None, digestmod=sha1)
             for x in range(10):
                 h.update(("%s|" % x).encode("utf-8"))
-                rv.append(b32encode(h.digest())[:8])
+                rv.append(b32encode(h.digest())[:8].decode("utf-8"))
         return rv
 
     def generate_new_config(self):

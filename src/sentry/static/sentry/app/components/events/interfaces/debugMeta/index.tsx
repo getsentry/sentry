@@ -55,6 +55,10 @@ type State = {
   panelBodyHeight?: number;
 };
 
+function normalizeId(id: string | undefined): string {
+  return id ? id.trim().toLowerCase().replace(/[- ]/g, '') : '';
+}
+
 const cache = new CellMeasurerCache({
   fixedWidth: true,
   defaultHeight: 81,
@@ -159,19 +163,24 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     // When searching for an address, check for the address range of the image
-    // instead of an exact match.
+    // instead of an exact match.  Note that images cannot be found by index
+    // if they are at 0x0.  For those relative addressing has to be used.
     if (searchTerm.indexOf('0x') === 0) {
       const needle = parseAddress(searchTerm);
-      if (needle > 0) {
+      if (needle > 0 && image.image_addr !== '0x0') {
         const [startAddress, endAddress] = getImageRange(image);
         return needle >= startAddress && needle < endAddress;
       }
     }
 
+    // the searchTerm ending at "!" is the end of the ID search.
+    const relMatch = searchTerm.match(/^\s*(.*?)!/); // debug_id!address
+    const idSearchTerm = normalizeId(relMatch?.[1] || searchTerm);
+
     return (
       // Prefix match for identifiers
-      (image.code_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
-      (image.debug_id?.toLowerCase() || '').indexOf(searchTerm) === 0 ||
+      normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
+      normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
       // Any match for file paths
       (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
       (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
@@ -214,7 +223,24 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return undefined;
     }
 
-    const searchTerm = this.state.filter.toLowerCase();
+    const searchTerm = normalizeId(this.state.filter);
+    const relMatch = searchTerm.match(/^\s*(.*?)!(.*)$/); // debug_id!address
+
+    if (relMatch) {
+      const debugImages = this.getDebugImages().map(
+        (image, idx) => [idx, image] as [number, Image]
+      );
+      const filteredImages = debugImages.filter(([_, image]) => this.filterImage(image));
+      if (filteredImages.length === 1) {
+        return frames.find(
+          frame =>
+            frame.addrMode === `rel:${filteredImages[0][0]}` &&
+            frame.instructionAddr?.toLowerCase() === relMatch[2]
+        );
+      }
+
+      return undefined;
+    }
 
     return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
   }
@@ -428,6 +454,7 @@ const Label = styled('label')`
   font-weight: normal;
   margin-right: 1em;
   margin-bottom: 0;
+  white-space: nowrap;
 
   > input {
     margin-right: 1ex;
@@ -459,12 +486,27 @@ const ToolbarWrapper = styled('div')`
   }
 `;
 const SearchInputWrapper = styled('div')`
-  max-width: 180px;
-  display: inline-block;
+  width: 100%;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     max-width: 100%;
     margin-top: ${space(1)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) and (max-width: ${p =>
+      p.theme.breakpoints[3]}) {
+    max-width: 180px;
+    display: inline-block;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+    width: 330px;
+    max-width: none;
+  }
+
+  @media (min-width: 1550px) {
+    width: 510px;
   }
 `;
 // TODO(matej): remove this once we refactor SearchBar to not use css classes

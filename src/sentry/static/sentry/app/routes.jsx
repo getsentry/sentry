@@ -675,17 +675,6 @@ function routes() {
         </Route>
 
         <Route
-          path="new/"
-          name="Invite"
-          componentPromise={() =>
-            import(
-              /* webpackChunkName: "InviteMember" */ 'app/views/settings/organizationMembers/inviteMember'
-            )
-          }
-          component={errorHandler(LazyLoad)}
-        />
-
-        <Route
           path=":memberId/"
           name="Details"
           componentPromise={() =>
@@ -1773,6 +1762,24 @@ function routes() {
             />
           </Route>
           <Route
+            path="/organizations/:orgId/performance/vitaldetail/"
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "PerformanceContainer" */ 'app/views/performance'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "PerformanceVitalDetail" */ 'app/views/performance/vitalDetail'
+                )
+              }
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+          <Route
             path="/organizations/:orgId/performance/:eventSlug/"
             componentPromise={() =>
               import(
@@ -2064,10 +2071,6 @@ function routes() {
               <Redirect
                 path="/organizations/:orgId/members/"
                 to="/settings/:orgId/members/"
-              />
-              <Redirect
-                path="/organizations/:orgId/members/new/"
-                to="/settings/:orgId/members/new/"
               />
               <Redirect
                 path="/organizations/:orgId/members/:memberId/"

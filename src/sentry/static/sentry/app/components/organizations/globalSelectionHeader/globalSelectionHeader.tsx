@@ -57,7 +57,7 @@ const defaultProps = {
    * Reset these URL params when we fire actions
    * (custom routing only)
    */
-  resetParamsOnChange: [],
+  resetParamsOnChange: [] as string[],
 
   /**
    * Remove ability to select multiple projects even if organization has feature 'global-views'
@@ -399,6 +399,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
                     projects={loadingProjects ? projects : memberProjects}
+                    selectedProjects={selectedProjects}
                     isGlobalSelectionReady={isGlobalSelectionReady}
                     isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}

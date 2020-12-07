@@ -4,6 +4,13 @@ import {TrendFunctionField} from '../trends/types';
 
 import {DisplayModes} from './charts';
 
+export enum TransactionFilterOptions {
+  FASTEST = 'fastest',
+  SLOW = 'slow',
+  OUTLIER = 'outlier',
+  RECENT = 'recent',
+}
+
 export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
 }
@@ -16,6 +23,7 @@ export function transactionSummaryRouteWithQuery({
   unselectedSeries = 'p100()',
   display,
   trendDisplay,
+  showTransactions,
 }: {
   orgSlug: string;
   transaction: string;
@@ -24,6 +32,7 @@ export function transactionSummaryRouteWithQuery({
   trendDisplay?: TrendFunctionField;
   unselectedSeries?: string | string[];
   projectID?: string | string[];
+  showTransactions?: TransactionFilterOptions;
 }) {
   const pathname = generateTransactionSummaryRoute({
     orgSlug,
@@ -40,6 +49,7 @@ export function transactionSummaryRouteWithQuery({
       end: query.end,
       query: query.query,
       unselectedSeries,
+      showTransactions,
       display,
       trendDisplay,
     },

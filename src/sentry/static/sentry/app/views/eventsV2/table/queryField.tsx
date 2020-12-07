@@ -5,8 +5,8 @@ import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Badge from 'app/components/badge';
 import SelectControl from 'app/components/forms/selectControl';
+import Tag from 'app/components/tag';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
@@ -61,6 +61,10 @@ type Props = {
    * used for the metric alert builder.
    */
   inFieldLabels?: boolean;
+  /**
+   * Whether or not to add the tag explaining the FieldValueKind of each field
+   */
+  shouldRenderTag?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
   disabled?: boolean;
 };
@@ -359,6 +363,35 @@ class QueryField extends React.Component<Props> {
     return inputs;
   }
 
+  renderTag(kind) {
+    const {shouldRenderTag} = this.props;
+    if (shouldRenderTag === false) {
+      return null;
+    }
+    let text, tagType;
+    switch (kind) {
+      case FieldValueKind.FUNCTION:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
+      case FieldValueKind.MEASUREMENT:
+        text = 'measure';
+        tagType = 'info';
+        break;
+      case FieldValueKind.TAG:
+        text = kind;
+        tagType = 'warning';
+        break;
+      case FieldValueKind.FIELD:
+        text = kind;
+        tagType = 'highlight';
+        break;
+      default:
+        text = kind;
+    }
+    return <Tag type={tagType}>{text}</Tag>;
+  }
+
   render() {
     const {
       className,
@@ -418,13 +451,13 @@ class QueryField extends React.Component<Props> {
             Option: ({label, data, ...props}: OptionProps<OptionType>) => (
               <components.Option label={label} {...(props as any)}>
                 <span data-test-id="label">{label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderTag(data.value.kind)}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
               <components.SingleValue data={data} {...(props as any)}>
                 <span data-test-id="label">{data.label}</span>
-                {data.value.kind === FieldValueKind.TAG && <Badge text="tag" />}
+                {this.renderTag(data.value.kind)}
               </components.SingleValue>
             ),
           }}

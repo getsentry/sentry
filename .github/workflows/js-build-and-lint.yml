@@ -69,27 +69,19 @@ jobs:
           yarn lint -c .eslintrc.relax.js
           yarn lint:css
 
-      - name: eslint (forks)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          yarn eslint ${{ steps.changes.outputs.frontend_modified_lintable_files }}
-
       # Otherwise if it's not main branch, only lint modified files
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
-      # Otherwise if it's not main branch, only lint modified files
-      - name: Commit any eslint fixed files
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions@sentry.io"
-          git add -A
-          git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
-          git push origin
+      # Apply fixed files via pull request review comments
+      - name: Apply any eslint fixed files as Pull Request review comments
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        uses: getsentry/action-git-diff-suggestions@main
+        with:
+          message: eslint made this change
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'

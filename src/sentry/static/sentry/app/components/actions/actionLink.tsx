@@ -12,7 +12,7 @@ type DefaultProps = {
 
 type ActionLinkProps = DefaultProps & {
   title: string;
-  message: React.ReactNode;
+  message?: React.ReactNode;
   onAction: () => void;
   confirmLabel?: string;
 } & React.HTMLAttributes<HTMLDivElement>;

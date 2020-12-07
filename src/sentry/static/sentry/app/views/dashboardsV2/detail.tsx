@@ -231,21 +231,15 @@ class DashboardDetail extends React.Component<Props, State> {
                     dashboardState={this.state.dashboardState}
                   />
                 </StyledPageHeader>
-                {this.state.changesDashboard ? (
-                  <Dashboard
-                    dashboard={this.state.changesDashboard}
-                    organization={organization}
-                    isEditing={this.state.dashboardState === 'edit'}
-                    onUpdate={this.onWidgetChange}
-                  />
-                ) : (
-                  <Dashboard
-                    dashboard={dashboard}
-                    organization={organization}
-                    isEditing={this.state.dashboardState === 'edit'}
-                    onUpdate={this.onWidgetChange}
-                  />
-                )}
+                <Dashboard
+                  dashboard={this.state.changesDashboard || dashboard}
+                  organization={organization}
+                  isEditing={
+                    this.state.dashboardState === 'edit' ||
+                    this.state.dashboardState === 'create'
+                  }
+                  onUpdate={this.onWidgetChange}
+                />
               </React.Fragment>
             );
           }}

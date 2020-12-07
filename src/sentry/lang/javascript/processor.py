@@ -16,6 +16,7 @@ from os.path import splitext
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urlsplit
 from symbolic import SourceMapView
+import sentry_sdk
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -542,11 +543,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
             return False
 
-        self.release = self.get_release(create=True)
-        if self.data.get("dist") and self.release:
-            self.dist = self.release.get_dist(self.data["dist"])
+        with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
+            self.release = self.get_release(create=True)
+            if self.data.get("dist") and self.release:
+                self.dist = self.release.get_dist(self.data["dist"])
 
-        self.populate_source_cache(frames)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
+        ):
+            self.populate_source_cache(frames)
         return True
 
     def handles_frame(self, frame, stacktrace_info):
@@ -819,13 +824,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         logger.debug("Attempting to cache source %r", filename)
         try:
             # this both looks in the database and tries to scrape the internet
-            result = fetch_file(
-                filename,
-                project=self.project,
-                release=self.release,
-                dist=self.dist,
-                allow_scraping=self.allow_scraping,
-            )
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.cache_source.fetch_file"
+            ) as span:
+                span.set_data("filename", filename)
+                result = fetch_file(
+                    filename,
+                    project=self.project,
+                    release=self.release,
+                    dist=self.dist,
+                    allow_scraping=self.allow_scraping,
+                )
         except http.BadSource as exc:
             # most people don't upload release artifacts for their third-party libraries,
             # so ignore missing node_modules files
@@ -853,13 +862,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # pull down sourcemap
         try:
-            sourcemap_view = fetch_sourcemap(
-                sourcemap_url,
-                project=self.project,
-                release=self.release,
-                dist=self.dist,
-                allow_scraping=self.allow_scraping,
-            )
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
+            ) as span:
+                span.set_data("sourcemap_url", sourcemap_url)
+                sourcemap_view = fetch_sourcemap(
+                    sourcemap_url,
+                    project=self.project,
+                    release=self.release,
+                    dist=self.dist,
+                    allow_scraping=self.allow_scraping,
+                )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
             # uploaded a node_modules file, which has a sourceMappingURL, they
@@ -900,7 +913,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             pending_file_list.add(f["abs_path"])
 
         for idx, filename in enumerate(pending_file_list):
-            self.cache_source(filename=filename)
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.populate_source_cache.cache_source"
+            ) as span:
+                span.set_data("filename", filename)
+                self.cache_source(filename=filename)
 
     def close(self):
         StacktraceProcessor.close(self)

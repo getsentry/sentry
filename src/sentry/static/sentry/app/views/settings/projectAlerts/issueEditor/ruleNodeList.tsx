@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {
@@ -30,6 +31,7 @@ type Props = {
   placeholder: string;
   disabled: boolean;
   error: React.ReactNode;
+  selectType?: 'grouped';
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
@@ -59,17 +61,47 @@ class RuleNodeList extends React.Component<Props> {
       project,
       disabled,
       error,
+      selectType,
     } = this.props;
 
     const shouldUsePrompt = project.features?.includes?.('issue-alerts-targeting');
-    const options = nodes
-      ? nodes
-          .filter(({enabled}) => enabled)
-          .map(node => ({
-            value: node.id,
-            label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
-          }))
-      : [];
+    const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
+
+    const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
+      actions.map(node => ({
+        value: node.id,
+        label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
+      }));
+
+    let options: any = !selectType ? createSelectOptions(enabledNodes) : [];
+
+    if (selectType === 'grouped') {
+      const grouped = enabledNodes.reduce(
+        (acc, curr) => {
+          if (curr.actionType === 'ticket') {
+            acc.ticket.push(curr);
+          } else {
+            acc.notify.push(curr);
+          }
+          return acc;
+        },
+        {
+          notify: [] as IssueAlertRuleActionTemplate[],
+          ticket: [] as IssueAlertRuleActionTemplate[],
+        }
+      );
+
+      options = Object.entries(grouped)
+        .filter(([_, values]) => values.length)
+        .map(([key, values]) => {
+          const label =
+            key === 'ticket'
+              ? t('Create new\u{2026}')
+              : t('Send notification to\u{2026}');
+
+          return {label, options: createSelectOptions(values)};
+        });
+    }
 
     return (
       <React.Fragment>
