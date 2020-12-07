@@ -45,6 +45,8 @@ jobs:
 
       # Checkout the current ref
       - uses: actions/checkout@v1
+        with:
+          clean: false
 
       - name: Get changed migration files
         id: file
