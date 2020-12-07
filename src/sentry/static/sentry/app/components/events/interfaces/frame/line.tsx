@@ -61,11 +61,11 @@ function makeFilter(
   addrMode: string | undefined,
   image?: React.ComponentProps<typeof DebugImage>['image']
 ): string {
-  let filter = addr;
   if (!(!addrMode || addrMode === 'abs') && image) {
-    filter = image.debug_id + '!' + filter;
+    return `${image.debug_id}!${addr}`;
   }
-  return filter;
+
+  return addr;
 }
 
 export class Line extends React.Component<Props, State> {

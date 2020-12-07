@@ -87,9 +87,9 @@ export default class StacktraceContent extends React.Component<Props, State> {
           if (!addrMode || addrMode === 'abs') {
             const [startAddress, endAddress] = getImageRange(img);
             return address >= startAddress && address < endAddress;
-          } else {
-            return addrMode === `rel:${idx}`;
           }
+
+          return addrMode === `rel:${idx}`;
         })
       : null;
   }
