@@ -231,7 +231,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
-export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {

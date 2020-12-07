@@ -28,11 +28,11 @@ type Props = {
   /**
    * Allow selecting multiple projects
    */
-  multi: boolean;
+  multi?: boolean;
   /**
    * Represents if a search is taking place
    */
-  searching: boolean;
+  searching?: boolean;
   /**
    * Represents if the current project selector is paginated or fully loaded.
    * Currently only used to ensure that in an empty state the input is not
@@ -40,7 +40,7 @@ type Props = {
    * does not exist. If we hide the input due to no results, the user cannot
    * recover
    */
-  paginated: boolean;
+  paginated?: boolean;
   /**
    * Callback when a project is selected
    */
@@ -48,7 +48,7 @@ type Props = {
   /**
    * Callback when the input filter changes
    */
-  onFilterChange: () => void;
+  onFilterChange?: () => void;
   /**
    * Callback when projects are selected via the multiple project selector
    * Calls back with (projects[], event)

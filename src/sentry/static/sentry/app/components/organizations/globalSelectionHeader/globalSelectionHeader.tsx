@@ -372,7 +372,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
               limit={PROJECTS_PER_PAGE}
               slugs={specificProjectSlugs}
             >
-              {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
+              {({projects, hasMore, onSearch, fetching}) => {
                 const paginatedProjectSelectorCallbacks = {
                   onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
                     // check if no new projects are being fetched and the user has
@@ -398,10 +398,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     organization={organization}
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
-                    projects={loadingProjects ? projects : memberProjects}
-                    selectedProjects={selectedProjects}
+                    projects={loadingProjects ? (projects as Project[]) : memberProjects}
                     isGlobalSelectionReady={isGlobalSelectionReady}
-                    isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}
