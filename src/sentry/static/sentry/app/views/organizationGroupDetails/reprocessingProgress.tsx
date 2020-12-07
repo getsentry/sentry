@@ -21,7 +21,7 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
         <Header>
           <Title>{t('Reprocessing\u2026')}</Title>
           {t(
-            'Once the events in this issue have been reprocessed, you’ll be able to make changes and view any new issues that might be created.'
+            'Once the events in this issue have been reprocessed, you’ll be able to make changes and view any new issues that may have been created.'
           )}
         </Header>
         <Content>
