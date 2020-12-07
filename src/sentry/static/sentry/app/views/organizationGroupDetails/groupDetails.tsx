@@ -226,7 +226,7 @@ class GroupDetails extends React.Component<Props, State> {
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
     if (itemIds.has(id)) {
-      const group = GroupStore.get(id);
+      const group = GroupStore.get(id) as Group;
       if (group) {
         // TODO(ts) This needs a better approach. issueActions is splicing attributes onto
         // group objects to cheat here.
