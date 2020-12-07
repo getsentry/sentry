@@ -16,6 +16,7 @@ import {IconCopy} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Deploy, Release, Repository} from 'app/types';
+import {defined} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withRelease from 'app/utils/withRelease';
 import withRepositories from 'app/utils/withRepositories';
@@ -73,7 +74,7 @@ class VersionHoverCard extends React.Component<Props, State> {
 
   getBody() {
     const {releaseVersion, release, deploys} = this.props;
-    if (release === undefined || deploys === undefined) {
+    if (release === undefined || !defined(deploys)) {
       return {header: null, body: null};
     }
 
