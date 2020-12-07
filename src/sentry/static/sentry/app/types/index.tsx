@@ -1528,6 +1528,8 @@ type Topvalue = {
   lastSeen: string;
   name: string;
   value: string;
+  // Might not actually exist.
+  query?: string;
 };
 
 export type TagWithTopValues = {
