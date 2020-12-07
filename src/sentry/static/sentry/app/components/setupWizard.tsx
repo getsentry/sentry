@@ -2,9 +2,21 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
+import Button from 'app/components/button';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import withApi from 'app/utils/withApi';
 
-class SetupWizard extends React.Component {
+type Props = {
+  api: Client;
+  hash?: boolean | string;
+};
+
+type State = {
+  finished: boolean;
+};
+
+class SetupWizard extends React.Component<Props, State> {
   static propTypes = {
     hash: PropTypes.string.isRequired,
   };
@@ -13,36 +25,24 @@ class SetupWizard extends React.Component {
     hash: false,
   };
 
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = this.getDefaultState();
-  }
+  state: State = {
+    finished: false,
+  };
 
   UNSAFE_componentWillMount() {
-    this.api = new Client();
     this.pollFinished();
-  }
-
-  getDefaultState() {
-    return {
-      log: [],
-      finished: false,
-    };
   }
 
   pollFinished() {
     return new Promise(resolve => {
-      this.api.request(`/wizard/${this.props.hash}/`, {
+      this.props.api.request(`/wizard/${this.props.hash}/`, {
         method: 'GET',
         success: () => {
           setTimeout(() => this.pollFinished(), 1000);
         },
         error: () => {
           resolve();
-          this.setState({
-            finished: true,
-          });
+          this.setState({finished: true});
           setTimeout(() => window.close(), 10000);
         },
       });
@@ -52,11 +52,9 @@ class SetupWizard extends React.Component {
   renderSuccess() {
     return (
       <div className="row">
-        <h5>Return to your terminal to complete your setup</h5>
-        <h5>(This window will close in 10 sec)</h5>
-        <button className="btn btn-default" onClick={() => window.close()}>
-          Close browser tab
-        </button>
+        <h5>{t('Return to your terminal to complete your setup')}</h5>
+        <h5>{t('(This window will close in 10 seconds)')}</h5>
+        <Button onClick={() => window.close()}>{t('Close browser tab')}</Button>
       </div>
     );
   }
@@ -64,20 +62,22 @@ class SetupWizard extends React.Component {
   renderLoading() {
     return (
       <div className="row">
-        <h5>Waiting for wizard to connect</h5>
+        <h5>{t('Waiting for wizard to connect')}</h5>
       </div>
     );
   }
 
   render() {
+    const {finished} = this.state;
+
     return (
       <div className="container">
-        <LoadingIndicator style={{margin: '2em auto'}} finished={this.state.finished}>
-          {this.state.finished ? this.renderSuccess() : this.renderLoading()}
+        <LoadingIndicator style={{margin: '2em auto'}} finished={finished}>
+          {finished ? this.renderSuccess() : this.renderLoading()}
         </LoadingIndicator>
       </div>
     );
   }
 }
 
-export default SetupWizard;
+export default withApi(SetupWizard);

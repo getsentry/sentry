@@ -231,7 +231,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
-export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
@@ -555,6 +555,14 @@ export type User = Omit<AvatarUser, 'options'> & {
   experiments: Partial<UserExperiments>;
 };
 
+// XXX(epurkhiser): we should understand how this is diff from User['emails]
+// above
+export type UserEmail = {
+  email: string;
+  isPrimary: boolean;
+  isVerified: boolean;
+};
+
 export type CommitAuthor = {
   email?: string;
   name?: string;
@@ -819,14 +827,6 @@ export type SuggestedOwner = {
   date_added: string;
 };
 
-type GroupFiltered = {
-  count: string;
-  stats: Record<string, TimeseriesValue[]>;
-  lastSeen: string;
-  firstSeen: string;
-  userCount: number;
-};
-
 type GroupActivityData = {
   eventCount?: number;
   newGroupId?: number;
@@ -842,8 +842,22 @@ type GroupActivity = {
   user?: null | User;
 };
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
+export type GroupStats = GroupFiltered & {
+  lifetime?: GroupFiltered;
+  filtered: GroupFiltered | null;
+  id: string;
+};
+
 // TODO(ts): incomplete
-export type Group = GroupFiltered & {
+export type BaseGroup = {
   id: string;
   latestEvent: Event;
   activity: GroupActivity[];
@@ -879,11 +893,11 @@ export type Group = GroupFiltered & {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered: GroupFiltered | null;
-  lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
   owners?: SuggestedOwner[] | null;
 };
+
+export type Group = BaseGroup & GroupStats;
 
 export type GroupTombstone = {
   id: string;
@@ -1807,4 +1821,11 @@ export type AuthConfig = {
   hasNewsletter: boolean;
   githubLoginLink: string;
   vstsLoginLink: string;
+};
+
+export type AuthProvider = {
+  key: string;
+  name: string;
+  requiredFeature: string;
+  disables2FA: boolean;
 };

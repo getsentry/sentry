@@ -1,20 +1,28 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {AuthProvider, Organization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 
-class OrganizationAuth extends AsyncView {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
+type Props = AsyncView['props'] &
+  RouteComponentProps<{orgId: string}, {}> & {
+    organization: Organization;
   };
 
-  UNSAFE_componentWillUpdate(_nextProps, nextState) {
-    const access = this.context.organization.access;
+type State = AsyncView['state'] & {
+  providerList: AuthProvider[] | null;
+  provider: AuthProvider | null;
+};
+
+class OrganizationAuth extends AsyncView<Props, State> {
+  UNSAFE_componentWillUpdate(_nextProps: Props, nextState: State) {
+    const access = this.props.organization.access;
 
     if (nextState.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
@@ -23,7 +31,7 @@ class OrganizationAuth extends AsyncView {
     }
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [
       ['providerList', `/organizations/${this.props.params.orgId}/auth-providers/`],
       ['provider', `/organizations/${this.props.params.orgId}/auth-provider/`],
@@ -31,10 +39,14 @@ class OrganizationAuth extends AsyncView {
   }
 
   getTitle() {
-    return routeTitleGen(t('Auth Settings'), this.context.organization.slug, false);
+    return routeTitleGen(t('Auth Settings'), this.props.organization.slug, false);
   }
 
-  handleSendReminders = _provider => {
+  /**
+   * TODO(epurkhiser): This does not work right now as we still fallback to the
+   * old SSO auth configuration page
+   */
+  handleSendReminders = (_provider: AuthProvider) => {
     this.setState({sendRemindersBusy: true});
 
     this.api.request(
@@ -49,11 +61,12 @@ class OrganizationAuth extends AsyncView {
     );
   };
 
-  // Configure auth provider
-  handleConfigure = provider => {
-    this.setState({
-      busy: true,
-    });
+  /**
+   * TODO(epurkhiser): This does not work right now as we still fallback to the
+   * old SSO auth configuration page
+   */
+  handleConfigure = (provider: AuthProvider) => {
+    this.setState({busy: true});
 
     this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
       method: 'POST',
@@ -70,49 +83,44 @@ class OrganizationAuth extends AsyncView {
     });
   };
 
-  // Disable auth provider
-  handleDisableProvider = provider => {
-    this.setState({
-      disableBusy: true,
-    });
+  /**
+   * TODO(epurkhiser): This does not work right now as we still fallback to the
+   * old SSO auth configuration page
+   */
+  handleDisableProvider = (provider: AuthProvider) => {
+    this.setState({busy: true});
 
     this.api.request(`/organizations/${this.props.params.orgId}/auth-provider/`, {
       method: 'DELETE',
       data: {provider},
       success: () => {
-        this.setState({
-          provider: null,
-          disableBusy: false,
-        });
+        this.setState({provider: null, busy: false});
       },
       error: () => {
-        this.setState({disableBusy: false});
+        this.setState({busy: false});
       },
     });
   };
 
   renderBody() {
     const {providerList, provider} = this.state;
-    const access = this.context.organization.access;
 
-    if (access.includes('org:write') && provider) {
+    if (providerList === null) {
+      return null;
+    }
+
+    if (this.props.organization.access.includes('org:write') && provider) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
       return this.renderLoading();
     }
 
-    const activeProvider = providerList.find(
-      p => provider && p.key === provider.provider_name
-    );
+    const activeProvider = providerList?.find(p => p.key === provider?.key);
 
     return (
-      <OrganizationAuthList
-        activeProvider={activeProvider}
-        providerList={providerList}
-        onConfigure={this.handleConfigure}
-      />
+      <OrganizationAuthList activeProvider={activeProvider} providerList={providerList} />
     );
   }
 }
 
-export default OrganizationAuth;
+export default withOrganization(OrganizationAuth);
