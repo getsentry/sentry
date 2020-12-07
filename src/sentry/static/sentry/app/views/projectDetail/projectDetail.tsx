@@ -20,6 +20,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
 import ProjectCharts from './projectCharts';
+import ProjectIssues from './projectIssues';
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
 import ProjectQuickLinks from './projectQuickLinks';
@@ -124,6 +125,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     index={id}
                   />
                 ))}
+                <ProjectIssues organization={organization} location={location} />
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
