@@ -1,7 +1,6 @@
-import React from 'react';
+import React, {CSSProperties} from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
@@ -13,7 +12,7 @@ const Wrapper = styled('div')`
   display: flex;
 `;
 
-const StyledInput = styled('input')`
+const StyledInput = styled('input')<{rtl?: boolean}>`
   ${inputStyles};
   background-color: ${p => p.theme.backgroundSecondary};
   border-right-width: 0;
@@ -39,43 +38,33 @@ const StyledCopyButton = styled(Button)`
   box-shadow: none;
 `;
 
-class TextCopyInput extends React.Component {
-  static propTypes = {
-    /**
-     * Text to copy
-     */
-    children: PropTypes.string.isRequired,
-    /**
-     * CSS style object
-     */
-    style: PropTypes.object,
-    onCopy: PropTypes.func,
-    /**
-     * Always show the ending of a long overflowing text in input
-     */
-    rtl: PropTypes.bool,
-  };
+type Props = {
+  /**
+   * Text to copy
+   */
+  children: string;
+  style?: CSSProperties;
+  onCopy?: (value: string, event: React.MouseEvent) => void;
+  /**
+   * Always show the ending of a long overflowing text in input
+   */
+  rtl?: boolean;
+};
 
-  static defaultProps = {
-    onCopy: () => {},
-  };
-
-  constructor(props) {
-    super(props);
-    this.textRef = React.createRef();
-  }
+class TextCopyInput extends React.Component<Props> {
+  textRef = React.createRef<HTMLInputElement>();
 
   // Select text when copy button is clicked
-  handleCopyClick = e => {
+  handleCopyClick = (e: React.MouseEvent) => {
     if (!this.textRef.current) {
       return;
     }
 
-    const {onCopy} = this.props;
+    const {onCopy, children} = this.props;
 
     this.handleSelectText();
 
-    onCopy(this.props.children, e);
+    onCopy?.(children, e);
 
     e.stopPropagation();
   };
@@ -90,8 +79,11 @@ class TextCopyInput extends React.Component {
     // We use findDOMNode here because `this.textRef` is not a dom node,
     // it's a ref to AutoSelectText
     const node = ReactDOM.findDOMNode(this.textRef.current); // eslint-disable-line react/no-find-dom-node
+    if (!node || !(node instanceof HTMLElement)) {
+      return;
+    }
 
-    if (rtl) {
+    if (rtl && node instanceof HTMLInputElement) {
       // we don't want to select the first character - \u202A, nor the last - \u202C
       node.setSelectionRange(1, node.value.length - 1);
     } else {
@@ -124,7 +116,7 @@ class TextCopyInput extends React.Component {
             rtl={rtl}
           />
         </OverflowContainer>
-        <Clipboard hideUnsupported onClick={this.handleCopyClick} value={children}>
+        <Clipboard hideUnsupported value={children}>
           <StyledCopyButton type="button" size="xsmall" onClick={this.handleCopyClick}>
             <IconCopy />
           </StyledCopyButton>
