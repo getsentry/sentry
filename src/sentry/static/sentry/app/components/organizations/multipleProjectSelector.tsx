@@ -312,12 +312,12 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
 
 type ControlProps = {
   organization: Organization;
-  selected?: Set<number>;
-  multi?: boolean;
-  hasChanges?: boolean;
   onApply: (e: React.MouseEvent) => void;
   onShowAllProjects: (e: React.MouseEvent) => void;
   onShowMyProjects: (e: React.MouseEvent) => void;
+  selected?: Set<number>;
+  multi?: boolean;
+  hasChanges?: boolean;
   message?: React.ReactNode;
 };
 
