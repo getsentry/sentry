@@ -67,6 +67,12 @@ describe('withIssueTags HoC', function () {
       'joe@example.com',
       '#best-team-na',
     ]);
+    expect(tagsProp.owner.values).toEqual([
+      'me',
+      'foo@example.com',
+      'joe@example.com',
+      '#best-team-na',
+    ]);
     expect(tagsProp.bookmarks.values).toEqual([
       'me',
       'foo@example.com',

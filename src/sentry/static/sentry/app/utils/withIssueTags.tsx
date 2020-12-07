@@ -101,6 +101,10 @@ const withIssueTags = <P extends InjectedTagsProps>(
             ...tags.bookmarks,
             values: usernames,
           },
+          owner: {
+            ...tags.owner,
+            values: allAssigned,
+          },
         },
       });
     },

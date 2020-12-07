@@ -516,6 +516,34 @@ class ParseQueryTest(TestCase):
         assert result["query"] == ":unresolved"
         assert result["tags"]["country"] == "canada"
 
+    def test_owner_me(self):
+        result = self.parse_query("owner:me")
+        assert result == {"owner": self.user, "tags": {}, "query": ""}
+
+    def test_owner_email(self):
+        result = self.parse_query("owner:%s" % (self.user.email,))
+        assert result == {"owner": self.user, "tags": {}, "query": ""}
+
+    def test_owner_unknown_user(self):
+        result = self.parse_query("owner:fake@example.com")
+        assert isinstance(result["owner"], User)
+        assert result["owner"].id == 0
+
+    def test_owner_valid_team(self):
+        result = self.parse_query(u"owner:#{}".format(self.team.slug))
+        assert result["owner"] == self.team
+
+    def test_owner_unassociated_team(self):
+        team2 = self.create_team(organization=self.organization)
+        result = self.parse_query(u"owner:#{}".format(team2.slug))
+        assert isinstance(result["owner"], Team)
+        assert result["owner"].id == 0
+
+    def test_owner_invalid_team(self):
+        result = self.parse_query("owner:#invalid")
+        assert isinstance(result["owner"], Team)
+        assert result["owner"].id == 0
+
 
 class GetLatestReleaseTest(TestCase):
     def test(self):

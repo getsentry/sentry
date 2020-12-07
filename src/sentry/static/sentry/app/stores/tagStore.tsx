@@ -138,6 +138,13 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
         values: [],
         predefined: true,
       },
+      owner: {
+        key: 'owner',
+        name: 'Owner',
+        isInput: true,
+        values: [],
+        predefined: true,
+      },
     };
   },
 
