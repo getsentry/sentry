@@ -8,6 +8,7 @@ import TextOverflow from 'app/components/textOverflow';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import space from 'app/styles/space';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {GlobalSelection, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
@@ -38,7 +39,9 @@ const ReleaseCard = ({
     <StyledPanel reloading={reloading ? 1 : 0}>
       <ReleaseInfo>
         <ReleaseInfoHeader>
-          <Version version={version} tooltipRawVersion truncate anchor={false} />
+          <VersionWrapper>
+            <StyledVersion version={version} tooltipRawVersion anchor={false} />
+          </VersionWrapper>
           {commitCount > 0 && <ReleaseStats release={release} withHeading={false} />}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
@@ -63,6 +66,15 @@ const ReleaseCard = ({
     </StyledPanel>
   );
 };
+
+const VersionWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledVersion = styled(Version)`
+  ${overflowEllipsis};
+`;
 
 const StyledPanel = styled(Panel)<{reloading: number}>`
   opacity: ${p => (p.reloading ? 0.5 : 1)};
@@ -108,10 +120,11 @@ const ReleaseProjects = styled('div')`
 `;
 
 const ReleaseInfoHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-gap: ${space(2)};
+  align-items: center;
 `;
 
 export default ReleaseCard;
