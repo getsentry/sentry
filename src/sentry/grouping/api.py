@@ -67,7 +67,7 @@ def _get_project_enhancements_config(project):
         return rv
 
     try:
-        rv = Enhancements.from_config_string(enhancements, bases=[enhancements_base]).dumps()
+        rv = Enhancements.from_config_string(enhancements, base=enhancements_base).dumps()
     except InvalidEnhancerConfig:
         rv = get_default_enhancements()
     cache.set(cache_key, rv)
@@ -77,7 +77,7 @@ def _get_project_enhancements_config(project):
 def get_default_enhancements():
     from sentry.projectoptions.defaults import DEFAULT_GROUPING_ENHANCEMENTS_BASE
 
-    return Enhancements(rules=[], bases=[DEFAULT_GROUPING_ENHANCEMENTS_BASE]).dumps()
+    return Enhancements(rules=[], base=DEFAULT_GROUPING_ENHANCEMENTS_BASE).dumps()
 
 
 def get_default_grouping_config_dict(id=None):

@@ -37,7 +37,7 @@ family:javascript path:*/test.js                -app
 family:javascript app:1 path:*/test.js          -app
 family:native                                   max-frames=3
 """,
-        bases=["common:v1"],
+        base="common:v1",
     )
 
     dumped = enhancement.dumps()

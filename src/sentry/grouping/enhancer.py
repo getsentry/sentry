@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import io
 import os
+import re
 import six
 import zlib
 import base64
@@ -21,6 +22,9 @@ from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.compat import zip
 from sentry.utils.strings import unescape_string
+
+
+_directive_re = re.compile(r"^\s*@(extends)\s+(.*?)\s*$")
 
 
 # Grammar is defined in EBNF syntax.
@@ -331,16 +335,14 @@ class StacktraceState(object):
 
 
 class Enhancements(object):
-    def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
+    def __init__(self, rules, changelog=None, version=None, base=None, id=None):
         self.id = id
         self.rules = rules
         self.changelog = changelog
         if version is None:
             version = VERSION
         self.version = version
-        if bases is None:
-            bases = []
-        self.bases = bases
+        self.base = base
 
     def apply_modifications_to_frame(self, frames, platform):
         """This applies the frame modifications to the frames itself.  This
@@ -414,7 +416,7 @@ class Enhancements(object):
         rv = {
             "id": self.id,
             "changelog": self.changelog,
-            "bases": self.bases,
+            "base": self.base,
             "latest": projectoptions.lookup_well_known_key(
                 "sentry:grouping_enhancements_base"
             ).get_default(epoch=projectoptions.LATEST_EPOCH)
@@ -425,7 +427,7 @@ class Enhancements(object):
         return rv
 
     def _to_config_structure(self):
-        return [self.version, self.bases, [x._to_config_structure() for x in self.rules]]
+        return [self.version, self.base, [x._to_config_structure() for x in self.rules]]
 
     def dumps(self):
         return (
@@ -435,8 +437,8 @@ class Enhancements(object):
         )
 
     def iter_rules(self):
-        for base in self.bases:
-            base = ENHANCEMENT_BASES.get(base)
+        if self.base is not None:
+            base = ENHANCEMENT_BASES.get(self.base)
             if base:
                 for rule in base.iter_rules():
                     yield rule
@@ -445,11 +447,14 @@ class Enhancements(object):
 
     @classmethod
     def _from_config_structure(cls, data):
-        version, bases, rules = data
+        version, base, rules = data
         if version != VERSION:
             raise ValueError("Unknown version")
+        # This used to be a list.
+        if isinstance(base, list):
+            base = base and base[0] or None
         return cls(
-            rules=[Rule._from_config_structure(x) for x in rules], version=version, bases=bases
+            rules=[Rule._from_config_structure(x) for x in rules], version=version, base=base
         )
 
     @classmethod
@@ -465,7 +470,7 @@ class Enhancements(object):
             raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
-    def from_config_string(self, s, bases=None, id=None):
+    def from_config_string(self, s, base=None, id=None, allow_directives=False):
         try:
             tree = enhancements_grammar.parse(s)
         except ParseError as e:
@@ -475,7 +480,10 @@ class Enhancements(object):
             raise InvalidEnhancerConfig(
                 'Invalid syntax near "%s" (line %s, column %s)' % (context, e.line(), e.column())
             )
-        return EnhancmentsVisitor(bases, id).visit(tree)
+        rv = EnhancmentsVisitor(id, allow_directives=allow_directives).visit(tree)
+        if base is not None:
+            rv.base = base
+        return rv
 
 
 class Rule(object):
@@ -521,9 +529,9 @@ class EnhancmentsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
-    def __init__(self, bases, id=None):
-        self.bases = bases
+    def __init__(self, id=None, allow_directives=False):
         self.id = id
+        self.allow_directives = allow_directives
 
     def visit_comment(self, node, children):
         return node.text
@@ -532,20 +540,26 @@ class EnhancmentsVisitor(NodeVisitor):
         changelog = []
         rules = []
         in_header = True
+        base = None
         for child in children:
             if isinstance(child, six.string_types):
                 if in_header and child[:2] == "##":
-                    changelog.append(child[2:].rstrip())
+                    rest = child[2:].rstrip()
+                    if self.allow_directives:
+                        match = _directive_re.match(rest)
+                        if match is not None:
+                            directive, arg = match.groups()
+                            if directive == "extends":
+                                base = arg
+                            continue
+                    changelog.append(rest)
                 else:
                     in_header = False
             elif child is not None:
                 rules.append(child)
                 in_header = False
         return Enhancements(
-            rules,
-            inspect.cleandoc("\n".join(changelog)).rstrip() or None,
-            bases=self.bases,
-            id=self.id,
+            rules, inspect.cleandoc("\n".join(changelog)).rstrip() or None, base=base, id=self.id,
         )
 
     def visit_line(self, node, children):
@@ -629,7 +643,9 @@ def _load_configs():
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")
-                rv[fn[:-4]] = Enhancements.from_config_string(f.read(), id=fn[:-4])
+                rv[fn[:-4]] = Enhancements.from_config_string(
+                    f.read(), id=fn[:-4], allow_directives=True,
+                )
     return rv
 
 

@@ -1666,7 +1666,7 @@ export type GroupingEnhancementBase = {
   latest: boolean;
   id: string;
   changelog: string;
-  bases: any[]; // TODO(ts): not sure what this is
+  base?: string | null;
 };
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';

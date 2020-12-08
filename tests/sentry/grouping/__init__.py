@@ -37,8 +37,7 @@ class GroupingInput(object):
         enhancement_base = grouping_info.get("enhancement_base")
         enhancements = grouping_info.get("enhancements")
         if enhancement_base or enhancements:
-            enhancement_bases = [enhancement_base] if enhancement_base else []
-            e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
+            e = Enhancements.from_config_string(enhancements or "", base=enhancement_base)
             grouping_config["enhancements"] = e.dumps()
 
         # Normalize the event

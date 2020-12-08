@@ -14,14 +14,15 @@ export function getGroupingChanges(
   latestGroupingConfig: EventGroupingConfig | null;
   latestEnhancementsBase: GroupingEnhancementBase | null;
 } {
-  const byId: Record<string, EventGroupingConfig> = {};
+  const configById: Record<string, EventGroupingConfig> = {};
+  const baseById: Record<string, GroupingEnhancementBase> = {};
   let updateNotes: string = '';
   let riskLevel: number = 0;
   let latestGroupingConfig: EventGroupingConfig | null = null;
   let latestEnhancementsBase: GroupingEnhancementBase | null = null;
 
   groupingConfigs.forEach(cfg => {
-    byId[cfg.id] = cfg;
+    configById[cfg.id] = cfg;
     if (cfg.latest && project.groupingConfig !== cfg.id) {
       updateNotes = cfg.changelog;
       latestGroupingConfig = cfg;
@@ -29,10 +30,21 @@ export function getGroupingChanges(
     }
   });
 
+  groupingEnhancementBases.forEach(base => {
+    baseById[base.id] = base;
+    if (base.latest && project.groupingConfig !== base.id) {
+      updateNotes = base.changelog;
+      latestEnhancementsBase = base;
+      // enhancements bump the risk level to medium (1) always as
+      // low risk changes are done implicitly
+      riskLevel = Math.max(riskLevel, 1);
+    }
+  });
+
   if (latestGroupingConfig) {
     let next = (latestGroupingConfig as EventGroupingConfig).base ?? '';
     while (next !== project.groupingConfig) {
-      const cfg = byId[next];
+      const cfg = configById[next];
       if (!cfg) {
         break;
       }
@@ -42,12 +54,17 @@ export function getGroupingChanges(
     }
   }
 
-  groupingEnhancementBases.forEach(base => {
-    if (base.latest && project.groupingEnhancementsBase !== base.id) {
-      updateNotes += '\n\n' + base.changelog;
-      latestEnhancementsBase = base;
+  if (latestEnhancementsBase) {
+    let next = (latestEnhancementsBase as GroupingEnhancementBase).base ?? '';
+    while (next !== project.groupingEnhancementsBase) {
+      const cfg = baseById[next];
+      if (!cfg) {
+        break;
+      }
+      updateNotes = cfg.changelog + '\n' + updateNotes;
+      next = cfg.base ?? '';
     }
-  });
+  }
 
   return {updateNotes, riskLevel, latestGroupingConfig, latestEnhancementsBase};
 }
