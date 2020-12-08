@@ -1,6 +1,6 @@
 beautifulsoup4>=4.7.1,<4.8
-boto3>=1.4.1,<1.4.6
-botocore<1.5.71
+boto3>=1.10.1,<1.11
+botocore<1.14.0
 celery==4.4.7
 click>=7.0,<8.0
 confluent-kafka==1.5.0
