@@ -23,8 +23,7 @@ import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
-// forwarded from src/sentry/static/sentry/app/actionCreators/modal.tsx
-type DashboardWidgetModalOptions = {
+export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
   selection: GlobalSelection;
