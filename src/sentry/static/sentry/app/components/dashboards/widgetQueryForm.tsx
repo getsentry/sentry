@@ -22,8 +22,8 @@ import SearchBar from 'app/views/events/searchBar';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import Field from 'app/views/settings/components/forms/field';
-import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
 
 type Props = {
   api: Client;
@@ -123,6 +123,24 @@ function WidgetQueryForm({
         </RemoveButtonWrapper>
       )}
       <Field
+        data-test-id="source"
+        label="Source"
+        inline={false}
+        flexibleControlStateSize
+        stacked
+      >
+        <RadioGroup
+          orientInline
+          value=""
+          label=""
+          onChange={onRemove}
+          choices={[
+            ['new', t('New Query')],
+            ['existing', t('Existing Discover Query')],
+          ]}
+        />
+      </Field>
+      <Field
         data-test-id="new-query"
         label="New Query"
         inline={false}
@@ -167,7 +185,14 @@ function WidgetQueryForm({
         )}
       </Feature>
       {canRemove && (
-        <div>
+        <Field
+          data-test-id="Query Name"
+          label="Y-Axis"
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          error={errors?.name}
+        >
           <Input
             type="text"
             name="name"
@@ -175,8 +200,7 @@ function WidgetQueryForm({
             value={widgetQuery.name}
             onChange={event => handleFieldChange('name')(event.target.value)}
           />
-          {errors?.name && <FieldErrorReason>{errors.name}</FieldErrorReason>}
-        </div>
+        </Field>
       )}
       <Field
         data-test-id="y-axis"
@@ -184,6 +208,7 @@ function WidgetQueryForm({
         inline={false}
         flexibleControlStateSize
         stacked
+        error={errors?.fields}
       >
         {widgetQuery.fields.map((field, i) => (
           <QueryFieldWrapper key={`${field}:${i}`}>
@@ -204,7 +229,6 @@ function WidgetQueryForm({
             )}
           </QueryFieldWrapper>
         ))}
-        {errors?.fields && <FieldErrorReason>{errors.fields}</FieldErrorReason>}
         <div>
           <Button
             data-test-id="add-field"
