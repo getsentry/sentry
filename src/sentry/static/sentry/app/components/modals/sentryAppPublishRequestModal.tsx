@@ -1,5 +1,5 @@
 import React from 'react';
-import {Body, Header} from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 import PropTypes from 'prop-types';
@@ -159,8 +159,8 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     ];
     return (
       <React.Fragment>
-        <Header>{t('Publish Request Questionnaire')}</Header>
-        <Body>
+        <Modal.Header>{t('Publish Request Questionnaire')}</Modal.Header>
+        <Modal.Body>
           <Explanation>
             {t(
               `Please fill out this questionnaire in order to get your integration evaluated for publication.
@@ -179,7 +179,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
           >
             <JsonForm forms={forms} />
           </Form>
-        </Body>
+        </Modal.Body>
       </React.Fragment>
     );
   }

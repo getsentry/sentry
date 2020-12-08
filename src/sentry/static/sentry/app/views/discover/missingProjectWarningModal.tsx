@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal, {Body, Footer, Header} from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
@@ -32,16 +32,16 @@ export default class MissingProjectWarningModal extends React.Component<
 
     return (
       <Modal show onHide={() => {}}>
-        <Header>{t('Project access')}</Header>
-        <Body>
+        <Modal.Header>{t('Project access')}</Modal.Header>
+        <Modal.Body>
           <p>{text}</p>
           <ul>{invalidProjects.map(id => this.renderProject(id))}</ul>
-        </Body>
-        <Footer>
+        </Modal.Body>
+        <Modal.Footer>
           <Button priority="primary" onClick={this.props.closeModal}>
             {t('View results')}
           </Button>
-        </Footer>
+        </Modal.Footer>
       </Modal>
     );
   }

@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';

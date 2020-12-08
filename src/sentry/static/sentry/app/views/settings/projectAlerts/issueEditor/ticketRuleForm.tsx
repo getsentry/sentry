@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
