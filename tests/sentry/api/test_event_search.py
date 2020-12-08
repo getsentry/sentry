@@ -2708,9 +2708,9 @@ class ResolveFieldListTest(unittest.TestCase):
             "count() as 1",
         ]
         for function in bad_function_aliases:
-            result = resolve_field_list([function], eventstore.Filter())
-            # the failed alias should end up being a column
-            assert function in result["selected_columns"], function
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([function], eventstore.Filter())
+            assert "Invalid characters in field" in six.text_type(err)
 
     def test_valid_alias(self):
         function_aliases = [
