@@ -52,38 +52,23 @@ class GroupRowActions extends React.Component<Props> {
 
   handleAcknowledge() {
     // Optimistically clear inbox status
-    const itemIds = [this.props.group.id];
-    // Optimistically clear inbox status
-    const {selection, query, orgId} = this.props;
+    const {query, group} = this.props;
+    const {id: itemId} = group;
+    const itemIds = [itemId];
 
-    GroupActions.update(null, itemIds, {inbox: false});
-    GroupActions.updateSuccess(null, itemIds, {inbox: false});
-    addLoadingMessage(t('Saving changes\u2026'));
-    const projectConstraints = {project: selection.projects};
-    this.props.api.bulkUpdate(
-      {
-        orgId,
-        itemIds,
-        data: {inbox: false},
-        query,
-        environment: selection.environments,
-        ...projectConstraints,
-        ...selection.datetime,
-      },
-      {
-        complete: () => {
-          clearIndicators();
-          // On inbox, issues collapse on acknowledge and should be removed from results
-          // after animation
-          if (query === 'is:inbox is:unresolved') {
-            setTimeout(() => {
-              GroupStore.remove(this.props.group.id);
-              SelectedGroupStore.prune();
-            }, 200);
-          }
-        },
-      }
-    );
+    // Optimistically clear inbox status
+    const groupChange = {inbox: false};
+    GroupActions.update(null, itemIds, groupChange);
+    GroupActions.updateSuccess(null, itemIds, groupChange);
+    // On inbox, issues collapse on acknowledge and should be removed from results
+    // after animation
+    if (query === 'is:inbox is:unresolved') {
+      setTimeout(() => {
+        GroupActions.remove(itemId);
+        SelectedGroupStore.prune();
+      }, 250);
+    }
+    this.handleUpdate(groupChange);
   }
 
   handleDelete = () => {

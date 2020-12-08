@@ -279,39 +279,16 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleAcknowledge() {
-    // Optimistically clear inbox status
-    const {selection, query, orgId} = this.props;
-
     this.actionSelectedGroups(itemIds => {
-      GroupActions.update(null, itemIds, {inbox: false});
-      GroupActions.updateSuccess(null, itemIds, {inbox: false});
-      this.deselectAll();
-      addLoadingMessage(t('Saving changes\u2026'));
-      const projectConstraints = {project: selection.projects};
-      this.props.api.bulkUpdate(
-        {
-          orgId,
-          itemIds,
-          data: {inbox: false},
-          query,
-          environment: selection.environments,
-          ...projectConstraints,
-          ...selection.datetime,
-        },
-        {
-          complete: () => {
-            clearIndicators();
-            // On inbox, issues collapse on acknowledge and should be removed from results
-            // after animation
-            if (query === 'is:inbox is:unresolved') {
-              setTimeout(() => {
-                itemIds?.forEach(itemId => GroupStore.remove(itemId));
-                SelectedGroupStore.prune();
-              }, 200);
-            }
-          },
-        }
-      );
+      // Optimistically clear inbox status
+      const groupChange = {inbox: false};
+      GroupActions.update(null, itemIds, groupChange);
+      GroupActions.updateSuccess(null, itemIds, groupChange);
+      setTimeout(() => {
+        itemIds?.forEach(itemId => GroupActions.remove(itemId));
+        SelectedGroupStore.prune();
+      }, 250);
+      this.handleUpdate(groupChange);
     });
   }
 
