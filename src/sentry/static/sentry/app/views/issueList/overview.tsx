@@ -16,7 +16,6 @@ import {
   resetSavedSearches,
 } from 'app/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
-import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import LoadingError from 'app/components/loadingError';
@@ -33,7 +32,6 @@ import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
-  BaseGroup,
   GlobalSelection,
   Member,
   Organization,
@@ -108,10 +106,6 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   groupStatsPeriod?: string;
   cursor?: string;
   page?: number | string;
-};
-
-type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
-  groups: string[];
 };
 
 class IssueListOverview extends React.Component<Props, State> {
@@ -340,32 +334,6 @@ class IssueListOverview extends React.Component<Props, State> {
     );
   }
 
-  fetchStats = async (groups: string[]) => {
-    // If we have no groups to fetch, just skip stats
-    if (!groups.length) {
-      return;
-    }
-    const requestParams: StatEndpointParams = {
-      ...this.getEndpointParams(),
-      groups,
-    };
-    // If no stats period values are set, use default
-    if (!requestParams.statsPeriod && !requestParams.start) {
-      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-    try {
-      const response = await this.props.api.requestPromise(this.getGroupStatsEndpoint(), {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-      });
-      GroupActions.populateStats(groups, response);
-    } catch (e) {
-      this.setState({
-        error: parseApiError(e),
-      });
-    }
-  };
-
   fetchData = () => {
     GroupStore.loadInitialData([]);
 
@@ -402,7 +370,6 @@ class IssueListOverview extends React.Component<Props, State> {
     if (expandParams.length) {
       requestParams.expand = expandParams;
     }
-    requestParams.collapse = 'stats';
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
@@ -438,7 +405,6 @@ class IssueListOverview extends React.Component<Props, State> {
         }
 
         this._streamManager.push(data);
-        this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const queryCount = jqXHR.getResponseHeader('X-Hits');
         const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
@@ -489,12 +455,6 @@ class IssueListOverview extends React.Component<Props, State> {
     const params = this.props.params;
 
     return `/organizations/${params.orgId}/issues/`;
-  }
-
-  getGroupStatsEndpoint(): string {
-    const {orgId} = this.props.params;
-
-    return `/organizations/${orgId}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
