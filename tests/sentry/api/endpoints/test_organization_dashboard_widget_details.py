@@ -13,7 +13,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     def test_valid_widget(self):
         data = {
-            "name": "Errors over time",
+            "title": "Errors over time",
             "displayType": "line",
             "queries": [
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
@@ -24,7 +24,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     def test_invalid_query_conditions(self):
         data = {
-            "name": "Invalid query",
+            "title": "Invalid query",
             "displayType": "line",
             "queries": [
                 {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
@@ -37,7 +37,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     def test_invalid_query_fields(self):
         data = {
-            "name": "Invalid query",
+            "title": "Invalid query",
             "displayType": "line",
             "queries": [
                 {"name": "errors", "conditions": "event.type:error", "fields": ["p95(user)"]}
@@ -50,7 +50,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     def test_invalid_display_type(self):
         data = {
-            "name": "Invalid query",
+            "title": "Invalid query",
             "displayType": "cats",
             "queries": [
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}

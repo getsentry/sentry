@@ -96,8 +96,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
         return interval
 
     def validate(self, data):
-        if not data.get("id") and not data.get("queries"):
-            raise serializers.ValidationError("One or more queries are required to create a widget")
+        if not data.get("id"):
+            if not data.get("queries"):
+                raise serializers.ValidationError(
+                    {"queries": "One or more queries are required to create a widget"}
+                )
+            if not data.get("title"):
+                raise serializers.ValidationError({"title": "Title is required during creation."})
+            if data.get("display_type") is None:
+                raise serializers.ValidationError(
+                    {"displayType": "displayType is required during creation."}
+                )
         return data
 
 
@@ -108,6 +117,24 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     widgets = DashboardWidgetSerializer(many=True, required=False)
 
     validate_id = validate_id
+
+    def create(self, validated_data):
+        """
+        Create a dashboard, and create any widgets and their queries
+
+        Only call save() on this serializer from within a transaction or
+        bad things will happen
+        """
+        self.instance = Dashboard.objects.create(
+            organization=self.context.get("organization"),
+            title=validated_data["title"],
+            created_by=self.context.get("request").user,
+        )
+
+        if "widgets" in validated_data:
+            self.update_widgets(self.instance, validated_data["widgets"])
+
+        return self.instance
 
     def update(self, instance, validated_data):
         """
@@ -206,7 +233,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             query_id = query_data.get("id")
             if query_id and query_id in existing_map:
                 self.update_widget_query(existing_map[query_id], query_data, next_order + i)
-            if not query_id:
+            elif not query_id:
                 new_queries.append(
                     DashboardWidgetQuery(
                         widget=widget,
@@ -216,6 +243,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                         order=next_order + i,
                     )
                 )
+            else:
+                raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget_query(self, query, data, order):
@@ -231,21 +260,3 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(required=True)
-
-    def create(self, validated_data):
-        """
-        Create a dashboard, and create any widgets and their queries
-
-        Only call save() on this serializer from within a transaction or
-        bad things will happen
-        """
-        self.instance = Dashboard.objects.create(
-            organization_id=self.context.get("organization_id"),
-            title=validated_data["title"],
-            created_by=self.context.get("request").user,
-        )
-
-        if "widgets" in validated_data:
-            self.update_widgets(self.instance, validated_data["widgets"])
-
-        return self.instance

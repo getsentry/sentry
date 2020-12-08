@@ -5,6 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 from sentry.models import (
     Dashboard,
+    DashboardTombstone,
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
@@ -88,6 +89,20 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 404
         assert response.data == {u"detail": "The requested resource does not exist"}
 
+    def test_get_prebuilt_dashboard(self):
+        # Pre-built dashboards should be accessible
+        response = self.client.get(self.url("default-overview"))
+        assert response.status_code == 200
+        assert response.data["id"] == "default-overview"
+
+    def test_get_prebuilt_dashboard_tombstoned(self):
+        DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
+        # Pre-built dashboards should be accessible even when tombstoned
+        # This is to preserve behavior around bookmarks
+        response = self.client.get(self.url("default-overview"))
+        assert response.status_code == 200
+        assert response.data["id"] == "default-overview"
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
@@ -106,6 +121,12 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
         assert response.data == {u"detail": "The requested resource does not exist"}
+
+    def test_delete_prebuilt_dashboard(self):
+        slug = "default-overview"
+        response = self.client.delete(self.url(slug))
+        assert response.status_code == 204
+        assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
 
 
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
@@ -192,6 +213,38 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
+
+    def test_add_widget_missing_title(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Title is required during creation" in response.content
+
+    def test_add_widget_display_type(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": six.text_type(self.widget_1.id)},
+                {
+                    "title": "Errors",
+                    "interval": "5m",
+                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"displayType is required during creation" in response.content
 
     def test_add_widget_invalid_query(self):
         data = {
@@ -377,6 +430,21 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert queries[0].id == self.widget_1_data_2.id
         assert queries[1].id == self.widget_1_data_1.id
 
+    def test_update_widget_use_other_query(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "title": "New title",
+                    "queries": [{"id": six.text_type(self.widget_2_data_1.id)}],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "You cannot use a query not owned by this widget"
+
     def test_remove_widget_and_add_new(self):
         # Remove a widget from the middle of the set and put a new widget there
         data = {
@@ -469,6 +537,46 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_dashboard_and_widgets(
             [self.widget_3.id, self.widget_2.id, self.widget_1.id, self.widget_4.id]
         )
+
+    def test_update_prebuilt_dashboard(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "New title",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "transactions",
+                            "fields": ["count()"],
+                            "conditions": "event.type:transaction",
+                        },
+                    ],
+                },
+            ],
+        }
+        slug = "default-overview"
+        response = self.client.put(self.url(slug), data=data)
+        assert response.status_code == 200, response.data
+        dashboard_id = response.data["id"]
+        assert dashboard_id != slug
+
+        # Ensure widget and query were saved
+        widgets = self.get_widgets(dashboard_id)
+        assert len(widgets) == 1
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = self.get_widget_queries(widgets[0])
+        assert len(queries) == 1
+        assert DashboardTombstone.objects.filter(slug=slug).exists()
+
+    def test_update_unknown_prebuilt(self):
+        data = {
+            "title": "First dashboard",
+        }
+        slug = "nope-not-real"
+        response = self.client.put(self.url(slug), data=data)
+        assert response.status_code == 404
 
     def test_partial_reordering_deletes_widgets(self):
         response = self.client.put(
