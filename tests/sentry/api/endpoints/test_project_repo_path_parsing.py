@@ -7,13 +7,29 @@ from sentry.models import Integration
 from sentry.testutils import APITestCase
 
 
-class ProjectStacktraceLinkTest(APITestCase):
+class BaseStacktraceLinkTest(APITestCase):
     def setUp(self):
         self.org = self.create_organization(owner=self.user, name="blap")
         self.project = self.create_project(
             name="foo", organization=self.org, teams=[self.create_team(organization=self.org)]
         )
 
+    def make_post(self, source_url, stack_path, project=None):
+        self.login_as(user=self.user)
+        if not project:
+            project = self.project
+
+        url = reverse(
+            "sentry-api-0-project-repo-path-parsing",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
+
+
+class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
+    def setUp(self):
+        super(ProjectStacktraceLinkGithubTest, self).setUp()
         self.integration = Integration.objects.create(
             provider="github",
             name="getsentry",
@@ -38,18 +54,6 @@ class ProjectStacktraceLinkTest(APITestCase):
             integration_id=self.integration.id,
             url="https://github.com/getsentry/getsentry",
         )
-
-    def make_post(self, source_url, stack_path, project=None):
-        self.login_as(user=self.user)
-        if not project:
-            project = self.project
-
-        url = reverse(
-            "sentry-api-0-project-repo-path-parsing",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
-        return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
 
     def test_bad_source_url(self):
         source_url = "github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
@@ -128,5 +132,42 @@ class ProjectStacktraceLinkTest(APITestCase):
             "provider": "github",
             "stackRoot": "stuff/hey/here",
             "sourceRoot": "src",
+            "defaultBranch": "master",
+        }
+
+
+class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
+    def setUp(self):
+        super(ProjectStacktraceLinkGitlabTest, self).setUp()
+
+        self.integration = Integration.objects.create(
+            provider="gitlab",
+            name="getsentry",
+            external_id="1234",
+            metadata={"domain_name": "gitlab.com/getsentry"},
+        )
+
+        self.oi = self.integration.add_organization(self.org, self.user)
+
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+            url="https://gitlab.com/getsentry/sentry",
+        )
+
+    def test_basic(self):
+        source_url = "https://gitlab.com/getsentry/sentry/-/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py"
+        stack_path = "sentry/api/endpoints/project_stacktrace_link.py"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "gitlab",
+            "stackRoot": "",
+            "sourceRoot": "src/",
             "defaultBranch": "master",
         }
