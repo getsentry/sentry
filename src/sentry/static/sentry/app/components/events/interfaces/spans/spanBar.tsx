@@ -899,9 +899,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         data-test-id="span-row"
       >
         <ScrollbarManager.Consumer>
-          {(
-            scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
-          ) => {
+          {scrollbarManagerChildrenProps => {
             return (
               <DividerHandlerManager.Consumer>
                 {(

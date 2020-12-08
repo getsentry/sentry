@@ -292,9 +292,7 @@ class TraceViewHeader extends React.Component<PropType> {
 
     return (
       <DividerHandlerManager.Consumer>
-        {(
-          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-        ) => {
+        {dividerHandlerChildrenProps => {
           const {dividerPosition} = dividerHandlerChildrenProps;
 
           return (
