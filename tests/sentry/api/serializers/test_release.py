@@ -412,19 +412,29 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         release.add_project(project)
         serialize(release)
 
+    def test_get_user_for_authors_simple(self):
+        user = User.objects.create(email="chrib@sentry.io")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        assert len(users) == 1
+        assert users[six.text_type(user.id)]["email"] == user.email
+
+    def test_get_user_for_authors_no_user(self):
+        user = User(email="notactuallyauser@sentry.io")
+        project = self.create_project()
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        assert len(users) == 1
+        assert users[six.text_type(user.id)]["email"] == user.email
+
     @patch("sentry.api.serializers.models.release.serialize")
-    def test_get_user_for_authors(self, patched_serialize_base):
+    def test_get_user_for_authors_caching(self, patched_serialize_base):
         # Ensure the fetched/miss caching logic works.
         user = User.objects.create(email="chrib@sentry.io")
         user2 = User.objects.create(email="alsochrib@sentry.io")
-        UserEmail.objects.get(email="chrib@sentry.io", user=user)
-        UserEmail.objects.create(email="alsochrib@sentry.io", user=user)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
-        release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
-        )
-        release.add_project(project)
+        self.create_member(user=user2, organization=project.organization)
         users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
         assert len(users) == 1
         assert users[six.text_type(user.id)]["email"] == user.email
