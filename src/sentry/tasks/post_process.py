@@ -139,7 +139,6 @@ def post_process_group(
         set_current_project(event.project_id)
 
         is_reprocessed = is_reprocessed_event(event.data)
-        processed_suspect_commits = False
 
         # NOTE: we must pass through the full Event object, and not an
         # event_id since the Event object may not actually have been stored
@@ -220,8 +219,7 @@ def post_process_group(
             if commit_data["has_commits"] and features.has(
                 "projects:workflow-owners-ingestion", event.project
             ):
-                processed_suspect_commits = True
-                process_suspect_commits.delay(group_id=group_id, cache_key=cache_key)
+                process_suspect_commits(event=event)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
@@ -268,9 +266,9 @@ def post_process_group(
                 event=event,
                 primary_hash=kwargs.get("primary_hash"),
             )
-        if not processed_suspect_commits:
-            with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
 
 
 def process_snoozes(group):
