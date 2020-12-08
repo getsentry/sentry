@@ -880,6 +880,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
+    # Enables aws lambda integration
+    "organizations:integrations-aws_lambda": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)

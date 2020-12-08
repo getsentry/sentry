@@ -99,7 +99,6 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
         template_url = options.get("aws-lambda.cloudformation-url")
         aws_external_id = uuid.uuid4()
-        aws_external_id = "0fe88434-f339-4690-9903-929fe4369831"
 
         cloudformation_url = (
             "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
