@@ -64,7 +64,7 @@ class GroupRowActions extends React.Component<Props> {
     // after animation
     if (query === 'is:inbox is:unresolved') {
       setTimeout(() => {
-        GroupActions.remove(itemId);
+        GroupStore.remove(itemId);
         SelectedGroupStore.prune();
       }, 250);
     }

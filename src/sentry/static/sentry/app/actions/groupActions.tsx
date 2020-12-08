@@ -12,7 +12,6 @@ const GroupActions = Reflux.createActions([
   'discard',
   'discardError',
   'discardSuccess',
-  'remove',
   'update',
   'updateError',
   'updateSuccess',

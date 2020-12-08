@@ -285,7 +285,7 @@ class IssueListActions extends React.Component<Props, State> {
       GroupActions.update(null, itemIds, groupChange);
       GroupActions.updateSuccess(null, itemIds, groupChange);
       setTimeout(() => {
-        itemIds?.forEach(itemId => GroupActions.remove(itemId));
+        itemIds?.forEach(itemId => GroupStore.remove(itemId));
         SelectedGroupStore.prune();
       }, 250);
       this.handleUpdate(groupChange);
