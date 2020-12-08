@@ -18,6 +18,7 @@ PREFERRED_GROUP_OWNER_AGE = timedelta(days=1)
 GROUP_PROCESSING_DELAY = timedelta(
     minutes=60
 )  # Minimum time between processing the same group id again
+MIN_COMMIT_SCORE = 2
 
 logger = logging.getLogger("tasks.groupowner")
 
@@ -25,12 +26,6 @@ logger = logging.getLogger("tasks.groupowner")
 def process_suspect_commits(event, **kwargs):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     with metrics.timer("sentry.tasks.process_suspect_commits"):
-        if not event.group_id:
-            metrics.incr(
-                "sentry.tasks.process_suspect_commits.skipped", tags={"detail": "no_group_id"}
-            )
-            return
-
         can_process = True
         cache_key = "workflow-owners-ingestion:group-{}".format(event.group_id)
         owner_data = cache.get(cache_key)
@@ -81,12 +76,20 @@ def process_suspect_commits(event, **kwargs):
                         "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
                     ):
                         committers = get_event_file_committers(project, event)
-                    # TODO(Chris F.) We would like to store this commit information so that we can get perf gains
-                    # and synced information on the Issue details page.
-                    # There are issues with this...like mutable commits and commits coming in after events.
+                    new_owners = []
                     for committer in committers:
                         if "id" in committer["author"]:
-                            owner_id = committer["author"]["id"]
+                            author_id = committer["author"]["id"]
+                            for commit, score in committer["commits"]:
+                                if score >= MIN_COMMIT_SCORE and not [
+                                    aid for aid, score in new_owners if aid == author_id
+                                ]:
+                                    new_owners.append((author_id, score))
+
+                    if new_owners:
+                        for owner_id, score in sorted(new_owners, key=lambda a: a[1])[
+                            :PREFERRED_GROUP_OWNERS
+                        ]:
                             go, created = GroupOwner.objects.update_or_create(
                                 group_id=event.group_id,
                                 type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -95,15 +98,12 @@ def process_suspect_commits(event, **kwargs):
                                 organization_id=project.organization_id,
                                 defaults={
                                     "date_added": timezone.now()
-                                },  # Updates date of an existing owner, since we just matched them with this new event,
+                                },  # Updates date of an existing owner, since we just matched them with this new event
                             )
                             if created:
                                 owner_count += 1
                                 if owner_count > PREFERRED_GROUP_OWNERS:
                                     owners.first().delete()
-                        else:
-                            # TODO(Chris F.) We actually need to store and display these too, somehow. In the future.
-                            pass
                 except Release.DoesNotExist:
                     logger.info(
                         "process_suspect_commits.skipped",

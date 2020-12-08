@@ -23,7 +23,9 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.utils import metrics
 from sentry.utils.compat import zip
+from sentry.utils.hashlib import md5_text
 
 
 def expose_version_info(info):
@@ -50,8 +52,8 @@ def expose_version_info(info):
 
 
 def _user_to_author_cache_key(organization_id, author):
-    # TODO: Hash email for cache key?
-    return "get_users_for_authors:{}:{}".format(organization_id, author.email.lower())
+    author_hash = md5_text(author.email.lower()).hexdigest()
+    return "get_users_for_authors:{}:{}".format(organization_id, author_hash)
 
 
 def get_users_for_authors(organization_id, authors, user=None):
@@ -74,13 +76,11 @@ def get_users_for_authors(organization_id, authors, user=None):
     fetched = cache.get_many(cache_keys)
     if fetched:
         missed = []
-        for serialized_user, author in zip(fetched, authors):
-            if serialized_user is None:
+        for cache_key, author in zip(fetched, authors):
+            if cache_key is None:
                 missed.append(author)
             else:
-                results[six.text_type(author.id)] = fetched.get(
-                    serialized_user, {"name": author.name, "email": author.email}
-                )
+                results[six.text_type(author.id)] = fetched[cache_key]
     else:
         missed = authors
 
@@ -112,19 +112,18 @@ def get_users_for_authors(organization_id, authors, user=None):
                 # with user_email in separate organization
                 if user:
                     users_by_email[lower_email] = user
-
+        to_cache = {}
         for author in missed:
             results[six.text_type(author.id)] = users_by_email.get(
                 author.email.lower(), {"name": author.name, "email": author.email}
             )
-        # TODO: Cache results tied to author name/email so you're not constnatly querying for authors with no actual user connection
-        cache.set_many(
-            {
-                _user_to_author_cache_key(organization_id, author): serialized_user
-                for serialized_user, author in zip(users, missed)
-            }
-        )
+            to_cache[_user_to_author_cache_key(organization_id, author)] = results[
+                six.text_type(author.id)
+            ]
+        cache.set_many(to_cache)
 
+    metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
+    metrics.incr("sentry.tasks.process_suspect_commits.total", amount=len(results))
     return results
 
 
