@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
-import {PanelBody, PanelItem} from 'app/components/panels';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -23,8 +22,8 @@ import SearchBar from 'app/views/events/searchBar';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
+import Field from 'app/views/settings/components/forms/field';
 import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 
 type Props = {
   api: Client;
@@ -109,7 +108,7 @@ function WidgetQueryForm({
   }
 
   return (
-    <StyledPanelBody>
+    <div>
       {canRemove && (
         <RemoveButtonWrapper>
           <Button
@@ -125,8 +124,13 @@ function WidgetQueryForm({
       )}
       <Feature organization={organization} features={['discover-query']}>
         {({hasFeature}) => (
-          <VerticalPanelItem>
-            <Heading>{t('Use a discover query')}</Heading>
+          <Field
+            data-test-id="discover-query"
+            label="Existing Discover Query"
+            inline={false}
+            flexibleControlStateSize
+            stacked
+          >
             <SelectControl
               async
               defaultOptions
@@ -141,12 +145,11 @@ function WidgetQueryForm({
               onCloseResetsInput={false}
               onBlurResetsInput={false}
             />
-          </VerticalPanelItem>
+          </Field>
         )}
       </Feature>
       {canRemove && (
-        <VerticalPanelItem>
-          <Heading>{t('Name')}</Heading>
+        <div>
           <Input
             type="text"
             name="name"
@@ -155,11 +158,15 @@ function WidgetQueryForm({
             onChange={event => handleFieldChange('name')(event.target.value)}
           />
           {errors?.name && <FieldErrorReason>{errors.name}</FieldErrorReason>}
-          <FieldHelp>{t('Used to disambiguate results from multiple queries')}</FieldHelp>
-        </VerticalPanelItem>
+        </div>
       )}
-      <VerticalPanelItem>
-        <Heading>{t('Conditions')}</Heading>
+      <Field
+        data-test-id="new-query"
+        label="New Query"
+        inline={false}
+        flexibleControlStateSize
+        stacked
+      >
         <ConditionContainer>
           <SearchBar
             organization={organization}
@@ -172,9 +179,14 @@ function WidgetQueryForm({
           />
           {errors?.conditions && <FieldErrorReason>{errors.conditions}</FieldErrorReason>}
         </ConditionContainer>
-      </VerticalPanelItem>
-      <VerticalPanelItem>
-        <Heading>{t('Fields')}</Heading>
+      </Field>
+      <Field
+        data-test-id="y-axis"
+        label="Y-Axis"
+        inline={false}
+        flexibleControlStateSize
+        stacked
+      >
         {widgetQuery.fields.map((field, i) => (
           <QueryFieldWrapper key={`${field}:${i}`}>
             <QueryField
@@ -195,44 +207,23 @@ function WidgetQueryForm({
           </QueryFieldWrapper>
         ))}
         {errors?.fields && <FieldErrorReason>{errors.fields}</FieldErrorReason>}
-        <div>
-          <Button
-            data-test-id="add-field"
-            priority="default"
-            size="zero"
-            borderless
-            onClick={handleAddField}
-            icon={<IconAdd />}
-            title={t('Add a field')}
-          />
-        </div>
-      </VerticalPanelItem>
-    </StyledPanelBody>
+        <Button
+          data-test-id="add-field"
+          priority="default"
+          size="zero"
+          borderless
+          onClick={handleAddField}
+          icon={<IconAdd />}
+        >
+          {t('Add an overlay')}
+        </Button>
+      </Field>
+    </div>
   );
 }
 
-const StyledPanelBody = styled(PanelBody)`
-  position: relative;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
-
 const ConditionContainer = styled('div')`
   position: relative;
-`;
-
-const Heading = styled('h3')`
-  display: flex;
-  justify-content: space-between;
-
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 0 ${space(1)} 0;
-  line-height: 1.3;
-`;
-
-const VerticalPanelItem = styled(PanelItem)`
-  flex-direction: column;
-  border: none;
 `;
 
 const QueryFieldWrapper = styled('div')`

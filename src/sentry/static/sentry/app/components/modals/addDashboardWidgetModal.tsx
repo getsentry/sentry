@@ -158,72 +158,70 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         <Header closeButton onHide={closeModal}>
           <h3>{t('Add Widget')}</h3>
         </Header>
-        <form>
-          <Body>
-            <TextField
-              name="title"
-              label={t('Title')}
-              required
-              value={state.title}
-              onChange={this.handleFieldChange('title')}
-              error={errors?.title}
-            />
-            <SelectField
-              deprecatedSelectControl
-              required
-              options={DISPLAY_TYPE_CHOICES.slice()}
-              name="displayType"
-              label={t('Chart Style')}
-              value={state.displayType}
-              onChange={this.handleFieldChange('displayType')}
-              error={errors?.displayType}
-            />
-            <SelectField
-              name="interval"
-              label={t('Interval')}
-              options={INTERVAL_CHOICES.slice()}
-              value={state.interval}
-              onChange={this.handleFieldChange('interval')}
-              error={errors?.interval}
-            />
-            {state.queries.map((query, i) => {
-              return (
-                <WidgetQueryForm
-                  key={i}
-                  api={api}
-                  organization={organization}
-                  selection={selection}
-                  fieldOptions={fieldOptions}
-                  widgetQuery={query}
-                  canRemove={state.queries.length > 1}
-                  onRemove={() => this.handleQueryRemove(i)}
-                  onChange={(widgetQuery: WidgetQuery) =>
-                    this.handleQueryChange(widgetQuery, i)
-                  }
-                  errors={errors?.queries?.[i]}
-                />
-              );
-            })}
-            <WidgetCard
-              api={api}
-              organization={organization}
-              selection={selection}
-              widget={this.state}
-            />
-          </Body>
-          <Footer>
-            <Button
-              data-test-id="add-widget"
-              priority="primary"
-              type="button"
-              onClick={this.handleSubmit}
-              disabled={state.loading}
-              busy={state.loading}
-            >
-              {t('Add Widget')}
-            </Button>
-          </Footer>
-        </form>
+        <Body>
+          <TextField
+            name="title"
+            label={t('Title')}
+            required
+            value={state.title}
+            onChange={this.handleFieldChange('title')}
+            error={errors?.title}
+          />
+          <SelectField
+            deprecatedSelectControl
+            required
+            options={DISPLAY_TYPE_CHOICES.slice()}
+            name="displayType"
+            label={t('Chart Style')}
+            value={state.displayType}
+            onChange={this.handleFieldChange('displayType')}
+            error={errors?.displayType}
+          />
+          <SelectField
+            name="interval"
+            label={t('Interval')}
+            options={INTERVAL_CHOICES.slice()}
+            value={state.interval}
+            onChange={this.handleFieldChange('interval')}
+            error={errors?.interval}
+          />
+          {state.queries.map((query, i) => {
+            return (
+              <WidgetQueryForm
+                key={i}
+                api={api}
+                organization={organization}
+                selection={selection}
+                fieldOptions={fieldOptions}
+                widgetQuery={query}
+                canRemove={state.queries.length > 1}
+                onRemove={() => this.handleQueryRemove(i)}
+                onChange={(widgetQuery: WidgetQuery) =>
+                  this.handleQueryChange(widgetQuery, i)
+                }
+                errors={errors?.queries?.[i]}
+              />
+            );
+          })}
+          <WidgetCard
+            api={api}
+            organization={organization}
+            selection={selection}
+            widget={this.state}
+          />
+        </Body>
+        <Footer>
+          <Button
+            data-test-id="add-widget"
+            priority="primary"
+            type="button"
+            onClick={this.handleSubmit}
+            disabled={state.loading}
+            busy={state.loading}
+          >
+            {t('Add Widget')}
+          </Button>
+        </Footer>
       </React.Fragment>
     );
   }
