@@ -23,7 +23,7 @@ const selection = {
 const organization = {
   id: '1',
   slug: 'test-org',
-  features: [],
+  features: ['unhandled-issue-flag'],
 };
 
 function loadGroups() {
@@ -254,7 +254,10 @@ export const Default = withInfo('default')(() => {
 });
 
 export const WithInbox = withInfo('withInbox')(() => {
-  const inboxOrganization = {...organization, features: ['inbox']};
+  const inboxOrganization = {
+    ...organization,
+    features: ['inbox', 'unhandled-issue-flag'],
+  };
   loadGroups();
   return (
     <LocationContext>

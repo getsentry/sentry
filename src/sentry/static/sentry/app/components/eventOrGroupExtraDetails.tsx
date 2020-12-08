@@ -41,7 +41,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {isUnhandled && hasInbox && <UnhandledTag />}
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
       {shortId && !hasInbox && (
         <GroupShortId
           shortId={shortId}
