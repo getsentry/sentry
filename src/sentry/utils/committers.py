@@ -56,12 +56,15 @@ def _get_commits(releases):
     cached_release_commits = cache.get_many([release_cache_key(release) for release in releases])
     missed_releases = []
     commit_list = []
-    for release in releases:
-        cached_commits = cached_release_commits.get(release_cache_key(release))
-        if cached_commits is None:
-            missed_releases.append(release)
-        else:
-            commit_list += [c for c in cached_commits if c not in commit_list]
+    if cached_release_commits:
+        for release in releases:
+            cached_commits = cached_release_commits.get(release_cache_key(release))
+            if cached_commits is None:
+                missed_releases.append(release)
+            else:
+                commit_list += [c for c in cached_commits if c not in commit_list]
+    else:
+        missed_releases = releases
 
     if missed_releases:
         release_commits = ReleaseCommit.objects.filter(release__in=missed_releases).select_related(
