@@ -1,11 +1,11 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Box, Flex} from 'reflexbox';
 
-import Feature from 'app/components/acl/feature';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
@@ -13,7 +13,9 @@ import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
 import TimesTag from 'app/components/group/inboxBadges/timesTag';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Link from 'app/components/links/link';
 import MenuItem from 'app/components/menuItem';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
@@ -69,6 +71,7 @@ type Props = {
 
 type State = {
   data: Group;
+  collapse: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -128,7 +131,13 @@ class StreamGroup extends React.Component<Props, State> {
     }
 
     const data = GroupStore.get(id) as Group;
-    this.setState({data});
+    this.setState(state => {
+      console.log(state);
+      return {
+        data,
+        collapse: state.data.inbox && data.inbox === false,
+      };
+    });
   }
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -207,7 +216,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data} = this.state;
+    const {data, collapse} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -237,11 +246,44 @@ class StreamGroup extends React.Component<Props, State> {
     const hasInbox = organization.features.includes('inbox');
 
     return (
-      <Wrapper data-test-id="group" onClick={this.toggleSelect}>
+      <Wrapper data-test-id="group" onClick={this.toggleSelect} collapse={collapse}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
+        )}
+        {hasInbox && (
+          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
+            {data.inbox && (
+              <InboxReasonWrapper>
+                <InboxReason inbox={data.inbox} />
+              </InboxReasonWrapper>
+            )}
+            <div style={{marginBottom: '6px'}}>
+              {!data.lifetime && !data.lastSeen ? (
+                <Placeholder height="14px" />
+              ) : (
+                <TimesTag
+                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+                />
+              )}
+            </div>
+            {data.shortId && (
+              <InboxShortId
+                shortId={data.shortId}
+                avatar={
+                  data.project && (
+                    <ShadowlessProjectBadge
+                      project={data.project}
+                      avatarSize={12}
+                      hideName
+                    />
+                  )
+                }
+              />
+            )}
+          </ReasonAndTimesContainer>
         )}
         <GroupSummary
           width={[8 / 12, 8 / 12, 6 / 12]}
@@ -258,25 +300,6 @@ class StreamGroup extends React.Component<Props, State> {
           />
           <EventOrGroupExtraDetails organization={organization} data={data} />
         </GroupSummary>
-        {hasInbox && (
-          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
-            {data.inbox && (
-              <InboxReasonWrapper>
-                <InboxReason inbox={data.inbox} />
-              </InboxReasonWrapper>
-            )}
-            <div>
-              {!data.lifetime && !data.lastSeen ? (
-                <Placeholder height="14px" />
-              ) : (
-                <TimesTag
-                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-                />
-              )}
-            </div>
-          </ReasonAndTimesContainer>
-        )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <Box width={160} mx={2} className="hidden-xs hidden-sm">
@@ -414,17 +437,15 @@ class StreamGroup extends React.Component<Props, State> {
         <Box width={80} mx={2} className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </Box>
-        {canSelect && (
-          <Feature organization={organization} features={['organizations:inbox']}>
-            <Box width={120} mx={2} className="hidden-xs hidden-sm">
-              <GroupRowActions
-                group={data}
-                orgId={organization.slug}
-                selection={selection}
-                query={query}
-              />
-            </Box>
-          </Feature>
+        {canSelect && hasInbox && (
+          <Box width={120} mx={2} className="visible-lg">
+            <GroupRowActions
+              group={data}
+              orgId={organization.slug}
+              selection={selection}
+              query={query}
+            />
+          </Box>
         )}
       </Wrapper>
     );
@@ -432,11 +453,17 @@ class StreamGroup extends React.Component<Props, State> {
 }
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)`
+const Wrapper = styled(PanelItem)<{collapse: boolean}>`
   position: relative;
   padding: ${space(1)} 0;
   align-items: center;
   line-height: 1.1;
+
+  ${p =>
+    p.collapse &&
+    css`
+      display: none;
+    `};
 `;
 
 const GroupSummary = styled(Box)`
@@ -509,13 +536,20 @@ const MenuItemText = styled('div')`
 
 const ReasonAndTimesContainer = styled('div')`
   display: flex;
-  width: 160px;
+  width: 125px;
   flex-direction: column;
-  margin: 0 ${space(2)};
+  margin: -6px ${space(1)} 0 ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const InboxReasonWrapper = styled('div')`
   margin-bottom: ${space(0.75)};
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
