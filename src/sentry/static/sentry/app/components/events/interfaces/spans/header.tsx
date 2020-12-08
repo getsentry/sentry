@@ -795,7 +795,7 @@ const VirtualScrollBar = styled('div')`
 const VirtualScrollBarGrip = styled('div')`
   height: 8px;
   width: 100%;
-  border-radius: 20px 20px 20px 20px;
+  border-radius: 20px;
   transition: background-color 150ms ease;
   background-color: rgba(48, 40, 57, 0.5);
 `;
