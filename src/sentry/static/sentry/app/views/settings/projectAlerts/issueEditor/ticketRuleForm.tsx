@@ -19,18 +19,23 @@ import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 type Props = {
   formFields: {[key: string]: any};
   instance?: IssueAlertRuleAction | IssueAlertRuleCondition;
-  onSubmitAction: (data: {[key: string]: string}) => void;
+  onSubmitAction: (
+    data: {[key: string]: string},
+    dynamicFieldChoices: {[key: string]: string[]}
+  ) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
   index: number;
 };
 
 type State = {
   showModal: boolean;
+  dynamicFieldChoices: any;
 };
 
 class TicketRuleForm extends React.Component<Props, State> {
   state = {
     showModal: false,
+    dynamicFieldChoices: {},
   };
 
   openModal = (event: React.MouseEvent) => {
@@ -94,7 +99,7 @@ class TicketRuleForm extends React.Component<Props, State> {
     e.stopPropagation();
 
     const formData = this.cleanData(data);
-    this.props.onSubmitAction(formData);
+    this.props.onSubmitAction(formData, this.state.dynamicFieldChoices);
     addSuccessMessage(t('Changes applied.'));
     this.closeModal();
   };
@@ -107,10 +112,20 @@ class TicketRuleForm extends React.Component<Props, State> {
         const options = choices.map(([value, label]) => ({value, label}));
         return resolve({options});
       }
+
       return this.debouncedOptionLoad(field, input, (err, result) => {
         if (err) {
           reject(err);
         } else {
+          const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
+          this.setState(state => {
+            return {
+              dynamicFieldChoices: {
+                ...state.dynamicFieldChoices,
+                [field.name]: dynamicFieldChoices,
+              },
+            };
+          });
           resolve(result);
         }
       });
