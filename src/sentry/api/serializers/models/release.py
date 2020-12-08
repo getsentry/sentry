@@ -69,7 +69,6 @@ def get_users_for_authors(organization_id, authors, user=None):
         ...
     }
     """
-
     results = {}
 
     fetched = cache.get_many(
@@ -77,10 +76,10 @@ def get_users_for_authors(organization_id, authors, user=None):
     )
     if fetched:
         missed = []
-        for authors in authors:
+        for author in authors:
             fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
             if fetched_user is None:
-                missed.append(authors)
+                missed.append(author)
             else:
                 results[six.text_type(author.id)] = fetched_user
     else:
@@ -99,10 +98,8 @@ def get_users_for_authors(organization_id, authors, user=None):
             is_active=True,
             sentry_orgmember_set__organization_id=organization_id,
         )
-
         users = serialize(list(users), user)
         users_by_id = {user["id"]: user for user in users}
-
         # Figure out which email address matches to a user
         users_by_email = {}
         for email in user_emails:

@@ -4,11 +4,13 @@ from __future__ import absolute_import
 
 import six
 
+from mock import patch
 from uuid import uuid4
 
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -409,6 +411,42 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
         release.add_project(project)
         serialize(release)
+
+    @patch("sentry.api.serializers.models.release.serialize")
+    def test_get_user_for_authors(self, patched_serialize_base):
+        # Ensure the fetched/miss caching logic works.
+        user = User.objects.create(email="chrib@sentry.io")
+        user2 = User.objects.create(email="alsochrib@sentry.io")
+        UserEmail.objects.get(email="chrib@sentry.io", user=user)
+        UserEmail.objects.create(email="alsochrib@sentry.io", user=user)
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+        )
+        release.add_project(project)
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        assert len(users) == 1
+        assert users[six.text_type(user.id)]["email"] == user.email
+        patched_serialize_base.call_count = 1
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        assert len(users) == 1
+        assert users[six.text_type(user.id)]["email"] == user.email
+        patched_serialize_base.call_count = 1
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[user, user2]
+        )
+        assert len(users) == 2
+        assert users[six.text_type(user.id)]["email"] == user.email
+        assert users[six.text_type(user2.id)]["email"] == user2.email
+        patched_serialize_base.call_count = 2
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[user, user2]
+        )
+        assert len(users) == 2
+        assert users[six.text_type(user.id)]["email"] == user.email
+        assert users[six.text_type(user2.id)]["email"] == user2.email
+        patched_serialize_base.call_count = 2
 
 
 class ReleaseRefsSerializerTest(TestCase):
