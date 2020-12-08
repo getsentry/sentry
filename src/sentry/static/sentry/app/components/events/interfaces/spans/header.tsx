@@ -764,6 +764,7 @@ const SecondaryHeader = styled('div')`
 
 const DividerSpacer = styled('div')`
   width: 1px;
+  background-color: ${p => p.theme.gray200};
 `;
 
 const ScrollBarContainer = styled('div')`

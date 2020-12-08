@@ -82,8 +82,12 @@ export class Provider extends React.Component<Props, State> {
         return;
       }
 
-      const spanBarDOM: HTMLDivElement = this.scrollableSpanBar.values().next().value;
-      this.syncVirtualScrollbar(spanBarDOM);
+      const spanBarDOM = this.getReferenceSpanBar();
+      if (spanBarDOM) {
+        this.syncVirtualScrollbar(spanBarDOM);
+      }
+
+      return;
     }
 
     // If the window was selected via the minimap, then re-initialize the scroll state.
@@ -107,7 +111,23 @@ export class Provider extends React.Component<Props, State> {
   isDragging: boolean = false;
   previousUserSelect: UserSelectValues | null = null;
 
-  initializeScrollState = () => {
+  getReferenceSpanBar() {
+    for (const currentSpanBar of this.scrollableSpanBar) {
+      const isHidden = currentSpanBar.offsetParent === null;
+      if (!document.body.contains(currentSpanBar) || isHidden) {
+        continue;
+      }
+      return currentSpanBar;
+    }
+
+    return undefined;
+  }
+
+  initializeScrollState() {
+    if (this.scrollableSpanBar.size === 0 || this.contentSpanBar.size === 0) {
+      return;
+    }
+
     // set initial scroll state for all scrollable spanbars
     selectRefs(this.scrollableSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.scrollLeft = 0;
@@ -148,7 +168,7 @@ export class Provider extends React.Component<Props, State> {
       this.unregisterEventListeners(currentSpanBarRef);
     });
 
-    const spanBarDOM: HTMLDivElement = this.scrollableSpanBar.values().next().value;
+    const spanBarDOM = this.getReferenceSpanBar();
 
     if (spanBarDOM) {
       this.syncVirtualScrollbar(spanBarDOM);
@@ -157,7 +177,7 @@ export class Provider extends React.Component<Props, State> {
     this.scrollableSpanBar.forEach(currentSpanBarRef => {
       this.registerEventListeners(currentSpanBarRef);
     });
-  };
+  }
 
   registerEventListeners = (spanbar: HTMLDivElement) => {
     spanbar.onscroll = this.handleScroll.bind(this, spanbar);
@@ -249,7 +269,9 @@ export class Provider extends React.Component<Props, State> {
     );
     const virtualScrollbarPosition = virtualScrollPercentage * maxVirtualScrollableArea;
 
-    virtualScrollbarDOM.style.left = toPercent(virtualScrollbarPosition);
+    virtualScrollbarDOM.style.left = `clamp(0%, calc(${toPercent(
+      virtualScrollbarPosition
+    )}), calc(100% - max(50px, ${toPercent(virtualScrollbarWidth)})))`;
   };
 
   generateScrollableSpanBarRef = () => {
