@@ -53,10 +53,11 @@ def release_cache_key(release):
 
 
 def _get_commits(releases):
-    fetched = cache.get_many([release_cache_key(release) for release in releases])
-    missed = []
     commits = []
+
+    fetched = cache.get_many([release_cache_key(release) for release in releases])
     if fetched:
+        missed = []
         for release in releases:
             cached_commits = fetched.get(release_cache_key(release))
             if cached_commits is None:
