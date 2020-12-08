@@ -56,6 +56,10 @@ class ProjectAlertsEditor extends AsyncView<Props, State> {
     this.getRuleEndpoint();
   }
 
+  componentWillUnmount() {
+    this.api.clear();
+  }
+
   getRuleEndpoint = async () => {
     const {location, params, organization, project} = this.props;
 
@@ -69,7 +73,7 @@ class ProjectAlertsEditor extends AsyncView<Props, State> {
       );
     }
     try {
-      const rule = await this.api.requestPromise(endpoint.toString(), {
+      const rule = await this.api.requestPromise(endpoint[0], {
         method: 'GET',
       });
       this.setState({

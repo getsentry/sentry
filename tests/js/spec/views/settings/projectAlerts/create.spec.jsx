@@ -204,6 +204,7 @@ describe('ProjectAlertsCreate', function () {
 
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         // Change target environment
+        await tick();
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
         // Change actionMatch and filterMatch dropdown
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
@@ -213,7 +214,6 @@ describe('ProjectAlertsCreate', function () {
         wrapper
           .find('input[name="name"]')
           .simulate('change', {target: {value: 'My Rule Name'}});
-
         // Add a condition and remove it
         selectByValue(
           wrapper,

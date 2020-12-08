@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import {RouteComponentProps} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {
@@ -90,7 +89,7 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
@@ -124,31 +123,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
-    this.getEnvironment();
+    this.getEnvironmentsConfigs();
   }
 
-  static getDerivedStateFromProps(props: Props, state: State) {
-    if (props.rule) {
-      if (!isEqual(state.rule, props.rule) && !isEqual(state.rule, defaultRule)) {
-        return {
-          ...state,
-          rule: state.rule,
-          loading: false,
-        };
-      }
-      return {
-        ...state,
-        rule: props.rule,
-        loading: false,
-      };
-    }
-    return {
-      ...state,
-      loading: false,
-    };
+  UNSAFE_componentWillReceiveProps(_newProps, _newContext) {
+    this.setState(_newProps);
   }
 
-  getEnvironment = async () => {
+  componentWillUnmount() {
+    this.api.clear();
+  }
+
+  getEnvironmentsConfigs = async () => {
     const {project, organization} = this.props;
 
     const environmentsEndpoint = `/projects/${organization.slug}/${project.slug}/environments/`;
@@ -163,7 +149,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       });
       this.setState({
         detailedError: null,
-        loading: true,
         environments,
         configs,
       });
@@ -453,7 +438,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {project, organization} = this.props;
+    const {project, organization, params} = this.props;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -474,6 +459,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         {({hasAccess}) => (
           <StyledForm
             key={isSavedAlertRule(rule) ? rule.id : undefined}
+            // key={rule.id}
             onCancel={this.handleCancel}
             onSubmit={this.handleSubmit}
             initialData={{
@@ -484,7 +470,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             submitDisabled={!hasAccess}
             submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Create Alert Rule')}
             extraButton={
-              isSavedAlertRule(rule) ? (
+              params.ruleId ? (
                 <Confirm
                   disabled={!hasAccess}
                   priority="danger"

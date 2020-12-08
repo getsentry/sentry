@@ -81,14 +81,16 @@ describe('ProjectAlerts -> IssueEditor', function () {
       <ProjectAlerts organization={organization} params={params}>
         <ProjectAlertsEditor
           location={{pathname: `/projects/${organization.slug}/${project.slug}/rules/1`}}
-          rule={rule}
           project={project}
           params={params}
+          routes={projectAlertRuleDetailsRoutes}
+          rule={rule}
         >
           <IssueEditor
             params={params}
             location={{pathname: ''}}
             routes={projectAlertRuleDetailsRoutes}
+            rule={rule}
           />
         </ProjectAlertsEditor>
       </ProjectAlerts>,
@@ -119,6 +121,8 @@ describe('ProjectAlerts -> IssueEditor', function () {
         body: {},
       });
       const {wrapper} = createWrapper();
+      await tick();
+      wrapper.update();
       wrapper.find('button[aria-label="Delete Rule"]').simulate('click');
       await tick();
       wrapper.find('Modal button[aria-label="Delete Rule"]').simulate('click');
@@ -129,9 +133,20 @@ describe('ProjectAlerts -> IssueEditor', function () {
       );
     });
 
-    it('sends correct environment value', function () {
+    it('sends correct environment value', async function () {
+      const getEnv = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/environments/',
+        method: 'GET',
+        body: TestStubs.Environments(),
+      });
       const {wrapper} = createWrapper();
+      expect(getEnv).toHaveBeenCalledTimes(1);
+      await tick();
+      wrapper.update();
       selectByValue(wrapper, 'production', {name: 'environment'});
+
+      await tick();
+      wrapper.update();
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledWith(
@@ -144,7 +159,10 @@ describe('ProjectAlerts -> IssueEditor', function () {
 
     it('strips environment value if "All environments" is selected', async function () {
       const {wrapper} = createWrapper();
+      await tick();
+      wrapper.update();
       selectByValue(wrapper, '__all_environments__', {name: 'environment'});
+      await tick();
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledTimes(1);
