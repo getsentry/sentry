@@ -208,15 +208,21 @@ def post_process_group(
             has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
                 event.project.organization_id
             )
-            org_has_commit = cache.get(has_commit_key)
-            if org_has_commit is None:
-                org_has_commit = Commit.objects.filter(
-                    organization_id=event.project.organization_id
-                ).exists()
-                cache.set(has_commit_key, org_has_commit, 3600)
 
-            if org_has_commit and features.has("projects:workflow-owners-ingestion", event.project):
-                process_suspect_commits(event=event)
+            try:
+                org_has_commit = cache.get(has_commit_key)
+                if org_has_commit is None:
+                    org_has_commit = Commit.objects.filter(
+                        organization_id=event.project.organization_id
+                    ).exists()
+                    cache.set(has_commit_key, org_has_commit, 3600)
+
+                if org_has_commit and features.has(
+                    "projects:workflow-owners-ingestion", event.project
+                ):
+                    process_suspect_commits(event=event)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
