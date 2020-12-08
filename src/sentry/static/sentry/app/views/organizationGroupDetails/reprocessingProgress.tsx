@@ -70,7 +70,8 @@ const Header = styled('div')`
   max-width: 557px;
 `;
 
-const Title = styled('div')`
+const Title = styled('h3')`
   font-size: ${p => p.theme.headerFontSize};
   font-weight: 600;
+  margin-bottom: 0;
 `;
