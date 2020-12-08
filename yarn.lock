@@ -1720,16 +1720,16 @@
     react-lifecycles-compat "^3.0.4"
     warning "^3.0.0"
 
-"@sentry-internal/global-search@^0.0.30":
-  version "0.0.30"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.30.tgz#a437ea93c3b63b988f36d5286d8175ffac87ed9a"
-  integrity sha512-DbZ8wwipssri5lxA+7GkSbBt3hSNtD1lB1PgYVN7o1KbBOP7iRSssdaq8bbuFfQQv/jwh+qQ6FappNgBfRQfiw==
+"@sentry-internal/global-search@^0.0.31":
+  version "0.0.31"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.31.tgz#b0e5b0d40b43a93a8d1a1b5f2fb1636db5c360f4"
+  integrity sha512-UhNJmjiJVuZmW4PCeYDTk+UULnaFWb0qUjT7SUwnYSLhXAe1zLN1pvXaLdwgCkdbDnmJh5H49pGnECbwRzBkVw==
   dependencies:
     "@types/dompurify" "^2.0.4"
     "@types/react" "^16.9.49"
     "@types/react-dom" "^16.9.8"
     algoliasearch "^4.3.1"
-    dompurify "^2.0.12"
+    dompurify "^2.2.3"
     htmlparser2 "^4.1.0"
     title-case "^3.0.2"
 
@@ -6292,10 +6292,10 @@ domhandler@^3.0.0, domhandler@^3.2.0:
   dependencies:
     domelementtype "^2.0.1"
 
-dompurify@^2.0.12, dompurify@^2.0.7:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.1.1.tgz#b5aa988676b093a9c836d8b855680a8598af25fe"
-  integrity sha512-NijiNVkS/OL8mdQL1hUbCD6uty/cgFpmNiuFxrmJ5YPH2cXrPKIewoixoji56rbZ6XBPmtM8GA8/sf9unlSuwg==
+dompurify@^2.2.3:
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.2.3.tgz#ec653ba521b39f397c2ca045769438d593ea8a9f"
+  integrity sha512-8Hv7Q0FuwD9rWoB6qI2eZsfKbGXfoUVuGHHrE15vgk4ReOKwOkSgbqb2OMFtc0d5besOEkoLkcyuV10zQ2X5gw==
 
 domready@1.0.8:
   version "1.0.8"
