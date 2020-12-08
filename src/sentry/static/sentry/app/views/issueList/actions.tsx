@@ -5,6 +5,7 @@ import capitalize from 'lodash/capitalize';
 import uniq from 'lodash/uniq';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import ActionLink from 'app/components/actions/actionLink';
 import IgnoreActions from 'app/components/actions/ignore';
@@ -23,6 +24,7 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
 import {GlobalSelection, Group, Project, ResolutionStatus} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import {uniqueId} from 'app/utils/guid';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -277,6 +279,14 @@ class IssueListActions extends React.Component<Props, State> {
     });
   };
 
+  handleAcknowledge() {
+    // Optimistically clear inbox status
+    const itemIds = [...SelectedGroupStore.getSelectedIds()];
+    GroupActions.update(null, itemIds, {inbox: false});
+    GroupActions.updateSuccess(null, itemIds, {inbox: false});
+    this.handleUpdate({inbox: false});
+  }
+
   handleDelete = () => {
     const {selection} = this.props;
 
@@ -424,7 +434,7 @@ class IssueListActions extends React.Component<Props, State> {
               className="btn btn-default btn-sm action-merge"
               data-test-id="button-acknowledge"
               disabled={!anySelected}
-              onAction={() => this.handleUpdate({inbox: false})}
+              onAction={() => this.handleAcknowledge()}
               shouldConfirm={this.shouldConfirm('acknowledge')}
               message={confirm('acknowledge', false)}
               confirmLabel={label('acknowledge')}
@@ -514,7 +524,7 @@ class IssueListActions extends React.Component<Props, State> {
                   <ActionLink
                     className="action-acknowledge hidden-md hidden-lg hidden-xl"
                     disabled={!anySelected}
-                    onAction={() => this.handleUpdate({inbox: false})}
+                    onAction={() => this.handleAcknowledge()}
                     shouldConfirm={this.shouldConfirm('acknowledge')}
                     message={confirm('acknowledge', false)}
                     confirmLabel={label('acknowledge')}

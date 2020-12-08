@@ -89,6 +89,7 @@ class StreamGroup extends React.Component<Props, State> {
         ...data,
         filtered: useFilteredStats ? data.filtered : null,
       },
+      collapse: false,
     };
   }
 
@@ -134,7 +135,10 @@ class StreamGroup extends React.Component<Props, State> {
     this.setState(state => {
       return {
         data,
-        collapse: state.data.inbox && data.inbox === false,
+        collapse:
+          this.props.query === 'is:inbox is:unresolved' &&
+          !!state.data.inbox?.reason &&
+          data.inbox === false,
       };
     });
   }
