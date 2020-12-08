@@ -396,7 +396,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             menuWithArrow
             emptyHidesInput
           >
-            {({getActorProps}) => (
+            {({getActorProps, isOpen}) => (
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
@@ -405,7 +405,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 ) : (
                   <StyledIconUser size="20px" color="gray400" />
                 )}
-                <StyledChevron direction="down" size="xs" />
+                <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
