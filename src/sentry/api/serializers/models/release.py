@@ -72,15 +72,17 @@ def get_users_for_authors(organization_id, authors, user=None):
 
     results = {}
 
-    cache_keys = [_user_to_author_cache_key(organization_id, author) for author in authors]
-    fetched = cache.get_many(cache_keys)
+    fetched = cache.get_many(
+        [_user_to_author_cache_key(organization_id, author) for author in authors]
+    )
     if fetched:
         missed = []
-        for cache_key, author in zip(fetched, authors):
-            if cache_key is None:
-                missed.append(author)
+        for authors in authors:
+            fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
+            if fetched_user is None:
+                missed.append(authors)
             else:
-                results[six.text_type(author.id)] = fetched[cache_key]
+                results[six.text_type(author.id)] = fetched_user
     else:
         missed = authors
 
