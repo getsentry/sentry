@@ -1,7 +1,7 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
+import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 
@@ -18,7 +18,6 @@ type MessageRenderProps = {
 
 type ChildrenRenderProps = {
   open: () => void;
-  close: () => void;
 };
 
 const defaultProps = {
@@ -38,7 +37,9 @@ const defaultProps = {
    * Text to show in the confirmation button
    */
   confirmText: t('Confirm') as React.ReactNode,
-  // Stop event propagation when opening the confirm modal
+  /**
+   * Stop event propagation when opening the confirm modal
+   */
   stopPropagation: false,
 };
 
@@ -47,12 +48,10 @@ type Props = {
    * Callback when user confirms
    */
   onConfirm: () => void;
-
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
   bypass?: boolean;
-
   /**
    * Message to display to user when asking for confirmation
    */
@@ -63,30 +62,25 @@ type Props = {
    * `close`: Allows renderer to toggle confirm modal
    */
   renderMessage?: (renderProps: MessageRenderProps) => React.ReactNode;
-
   /**
    * Render props to control rendering of the modal in its entirety
    */
   children?:
     | ((renderProps: ChildrenRenderProps) => React.ReactNode)
     | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
-
   /**
    * Passed to `children` render function
    */
   disabled?: boolean;
-
   /**
    * Callback function when user is in the confirming state
    * called when the confirm modal is opened
    */
   onConfirming?: () => void;
-
   /**
    * User cancels the modal
    */
   onCancel?: () => void;
-
   /**
    * Header of modal
    */
@@ -94,11 +88,6 @@ type Props = {
 } & typeof defaultProps;
 
 type State = {
-  /**
-   * Is modal open
-   */
-  isModalOpen: boolean;
-
   /**
    * Is confirm button disabled
    */
@@ -135,73 +124,27 @@ class Confirm extends React.PureComponent<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
-    isModalOpen: false,
     disableConfirmButton: this.props.disableConfirmButton,
   };
 
   static getDerivedStateFromProps(props: Props, state: State) {
     // Reset the state to handle prop changes from ConfirmDelete
-    if (props.disableConfirmButton !== state.disableConfirmButton) {
-      return {
-        disableConfirmButton: props.disableConfirmButton,
-      };
-    }
-    return null;
+    return props.disableConfirmButton !== state.disableConfirmButton
+      ? {disableConfirmButton: props.disableConfirmButton}
+      : null;
   }
 
   confirming: boolean = false;
 
-  openModal = () => {
-    const {onConfirming, disableConfirmButton} = this.props;
-    if (typeof onConfirming === 'function') {
-      onConfirming();
-    }
-
-    this.setState({
-      isModalOpen: true,
-      disableConfirmButton: disableConfirmButton || false,
-    });
-
-    // always reset `confirming` when modal visibility changes
-    this.confirming = false;
-  };
-
-  closeModal = () => {
-    const {onCancel, disableConfirmButton} = this.props;
-    if (typeof onCancel === 'function') {
-      onCancel();
-    }
-    this.setState({
-      isModalOpen: false,
-      disableConfirmButton: disableConfirmButton || false,
-    });
-
-    // always reset `confirming` when modal visibility changes
-    this.confirming = false;
-  };
-
-  handleConfirm = () => {
-    // `confirming` is used to make sure `onConfirm` is only called once
-    if (!this.confirming) {
-      this.props.onConfirm();
-    }
-
-    // Close modal
-    this.setState({
-      isModalOpen: false,
-      disableConfirmButton: true,
-    });
-    this.confirming = true;
-  };
-
-  handleToggle = (e: React.MouseEvent): void => {
+  openModal = (e?: React.MouseEvent) => {
     const {disabled, bypass, stopPropagation, onConfirm} = this.props;
+
+    if (stopPropagation) {
+      e?.stopPropagation();
+    }
+
     if (disabled) {
       return;
-    }
-
-    if (e && stopPropagation) {
-      e.stopPropagation();
     }
 
     if (bypass) {
@@ -209,75 +152,94 @@ class Confirm extends React.PureComponent<Props, State> {
       return;
     }
 
-    // Current state is closed, means it will toggle open
-    if (!this.state.isModalOpen) {
-      this.openModal();
-    } else {
-      this.closeModal();
-    }
+    const {onConfirming, disableConfirmButton} = this.props;
+
+    onConfirming?.();
+    this.setState({disableConfirmButton: disableConfirmButton || false});
+
+    // always reset `confirming` when modal visibility changes
+    this.confirming = false;
+
+    this.activateModal();
   };
 
-  render() {
-    const {
-      disabled,
-      message,
-      renderMessage,
-      priority,
-      confirmText,
-      cancelText,
-      children,
-      header,
-    } = this.props;
+  activateModal = () =>
+    openModal(({Header, Body, Footer, closeModal}) => {
+      const {
+        priority,
+        renderMessage,
+        message,
+        confirmText,
+        cancelText,
+        header,
+        onConfirm,
+        onCancel,
+        disableConfirmButton,
+      } = this.props;
 
-    let confirmMessage: React.ReactNode;
+      const handleClose = () => {
+        onCancel?.();
+        this.setState({disableConfirmButton: disableConfirmButton || false});
 
-    if (typeof renderMessage === 'function') {
-      confirmMessage = renderMessage({
-        confirm: this.handleConfirm,
-        close: this.handleToggle,
-      });
-    } else {
-      confirmMessage = React.isValidElement(message) ? (
-        message
-      ) : (
-        <p>
-          <strong>{message}</strong>
-        </p>
-      );
-    }
+        // always reset `confirming` when modal visibility changes
+        this.confirming = false;
+        closeModal();
+      };
 
-    return (
-      <React.Fragment>
-        {typeof children === 'function'
-          ? children({
-              close: this.closeModal,
-              open: this.openModal,
-            })
-          : React.isValidElement(children) &&
-            React.cloneElement(children, {
-              disabled,
-              onClick: this.handleToggle,
-            })}
-        <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
-          {header && <Modal.Header>{header}</Modal.Header>}
-          <Modal.Body>{confirmMessage}</Modal.Body>
-          <Modal.Footer>
-            <Button style={{marginRight: 10}} onClick={this.handleToggle}>
+      const handleConfirm = () => {
+        // `confirming` is used to make sure `onConfirm` is only called once
+        if (!this.confirming) {
+          onConfirm();
+        }
+
+        this.setState({disableConfirmButton: true});
+        this.confirming = true;
+        closeModal();
+      };
+
+      const confirmMessage =
+        typeof renderMessage === 'function' ? (
+          renderMessage({
+            confirm: handleConfirm,
+            close: handleClose,
+          })
+        ) : React.isValidElement(message) ? (
+          message
+        ) : (
+          <p>
+            <strong>{message}</strong>
+          </p>
+        );
+
+      return (
+        <React.Fragment>
+          {header && <Header>{header}</Header>}
+          <Body>{confirmMessage}</Body>
+          <Footer>
+            <Button style={{marginRight: 10}} onClick={handleClose}>
               {cancelText}
             </Button>
             <Button
               data-test-id="confirm-button"
               disabled={this.state.disableConfirmButton}
               priority={priority}
-              onClick={this.handleConfirm}
+              onClick={handleConfirm}
               autoFocus
             >
               {confirmText}
             </Button>
-          </Modal.Footer>
-        </Modal>
-      </React.Fragment>
-    );
+          </Footer>
+        </React.Fragment>
+      );
+    });
+
+  render() {
+    const {disabled, children} = this.props;
+
+    return typeof children === 'function'
+      ? children({open: this.openModal})
+      : React.isValidElement(children) &&
+          React.cloneElement(children, {disabled, onClick: this.openModal});
   }
 }
 
