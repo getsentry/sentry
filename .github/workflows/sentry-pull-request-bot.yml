@@ -21,6 +21,12 @@ jobs:
       github.repository == 'getsentry/sentry'
 
     steps:
+      - name: debug
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          echo "$GITHUB_CONTEXT"
+
       - name: Check getsentry membership
         id: org
         uses: actions/github-script@v3
