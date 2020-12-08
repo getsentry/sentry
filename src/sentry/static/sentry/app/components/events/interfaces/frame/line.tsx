@@ -187,11 +187,7 @@ export class Line extends React.Component<Props, State> {
           title={t('Toggle Context')}
           onClick={this.toggleContext}
         >
-          <StyledIconChevron
-            isExpanded={!!isExpanded}
-            direction={isExpanded ? 'up' : 'down'}
-            size="8px"
-          />
+          <IconChevron direction={isExpanded ? 'down' : 'up'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
@@ -439,13 +435,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 const LeadHint = styled('div')<{width?: string}>`
   ${overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
-`;
-
-const StyledIconChevron = styled(IconChevron, {
-  shouldForwardProp: prop => prop !== 'isExpanded',
-})<{isExpanded: boolean}>`
-  transform: rotate(${p => (p.isExpanded ? '180deg' : '0deg')});
-  transition: 0.1s all;
 `;
 
 const ToggleContextButtonWrapper = styled('span')`
