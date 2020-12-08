@@ -262,7 +262,7 @@ class StreamGroup extends React.Component<Props, State> {
                 <InboxReason inbox={data.inbox} />
               </InboxReasonWrapper>
             )}
-            <div style={{marginBottom: '6px'}}>
+            <FirstSeenLastSeenWrapper>
               {!data.lifetime && !data.lastSeen ? (
                 <Placeholder height="14px" />
               ) : (
@@ -271,7 +271,7 @@ class StreamGroup extends React.Component<Props, State> {
                   firstSeen={data.lifetime?.firstSeen || data.firstSeen}
                 />
               )}
-            </div>
+            </FirstSeenLastSeenWrapper>
             {data.shortId && (
               <InboxShortId
                 shortId={data.shortId}
@@ -305,7 +305,7 @@ class StreamGroup extends React.Component<Props, State> {
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
-          <Box width={160} mx={2} className="hidden-xs hidden-sm">
+          <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
               <Placeholder height="24px" />
             ) : (
@@ -315,7 +315,7 @@ class StreamGroup extends React.Component<Props, State> {
                 showSecondaryPoints={showSecondaryPoints}
               />
             )}
-          </Box>
+          </ChartWrapper>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
           {primaryCount === undefined ? (
@@ -437,18 +437,18 @@ class StreamGroup extends React.Component<Props, State> {
             </DropdownMenu>
           )}
         </Flex>
-        <Box width={80} mx={2} className="hidden-xs hidden-sm">
+        <AssigneeWrapper className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
-        </Box>
+        </AssigneeWrapper>
         {canSelect && hasInbox && (
-          <Box width={120} mx={2} className="visible-lg">
+          <ActionsWrapper className="visible-lg">
             <GroupRowActions
               group={data}
               orgId={organization.slug}
               selection={selection}
               query={query}
             />
-          </Box>
+          </ActionsWrapper>
         )}
       </Wrapper>
     );
@@ -459,7 +459,6 @@ class StreamGroup extends React.Component<Props, State> {
 const Wrapper = styled(PanelItem)<{collapse: boolean}>`
   position: relative;
   padding: ${space(1)} 0;
-  align-items: center;
   line-height: 1.1;
 
   ${p =>
@@ -557,18 +556,42 @@ const ReasonAndTimesContainer = styled('div')`
   display: flex;
   width: 125px;
   flex-direction: column;
-  margin: -6px ${space(1)} 0 ${space(1)};
+  margin: 0 ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const InboxReasonWrapper = styled('div')`
-  margin-bottom: ${space(0.75)};
+  margin-top: -2px;
+  margin-bottom: ${space(0.5)};
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`
   * > img {
     box-shadow: none;
   }
+`;
+
+const FirstSeenLastSeenWrapper = styled('div')`
+  margin-top: ${space(0.25)};
+  margin-bottom: ${space(1)};
+`;
+
+const ChartWrapper = styled('div')`
+  width: 160px;
+  margin: 0 ${space(2)};
+  align-self: center;
+`;
+
+const AssigneeWrapper = styled('div')`
+  width: 80px;
+  margin: 0 ${space(2)};
+  align-self: center;
+`;
+
+const ActionsWrapper = styled('div')`
+  width: 120px;
+  margin: 0 ${space(2)};
+  align-self: center;
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
