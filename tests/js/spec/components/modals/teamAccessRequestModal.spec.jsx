@@ -1,5 +1,4 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -16,9 +15,9 @@ describe('TeamAccessRequestModal', function () {
   const teamId = TestStubs.Team().slug;
 
   const modalRenderProps = {
-    Body: Modal.Body,
-    Footer: Modal.Footer,
-    Header: Modal.Header,
+    Body: p => p.children,
+    Footer: p => p.children,
+    Header: p => p.children,
     closeModal,
     onClose,
   };
@@ -42,7 +41,7 @@ describe('TeamAccessRequestModal', function () {
   });
 
   it('renders', function () {
-    expect(wrapper.find('div[className="modal-body"]').text()).toBe(
+    expect(wrapper.find('Body').text()).toBe(
       `You do not have permission to add members to the #${teamId} team, but we will send a request to your organization admins for approval.`
     );
   });
