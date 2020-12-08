@@ -36,15 +36,15 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
-        "p50": "percentile_range(transaction.duration, 0.5, {start}, {end}, {query_alias})",
-        "p75": "percentile_range(transaction.duration, 0.75, {start}, {end}, {query_alias})",
-        "p95": "percentile_range(transaction.duration, 0.95, {start}, {end}, {query_alias})",
-        "p99": "percentile_range(transaction.duration, 0.99, {start}, {end}, {query_alias})",
-        "avg": "avg_range(transaction.duration, {start}, {end}, {query_alias})",
-        "variance": "variance_range(transaction.duration, {start}, {end}, {query_alias})",
-        "count_range": "count_range({start}, {end}, {query_alias})",
-        "percentage": "percentage({alias}_2, {alias}_1, {query_alias})",
-        "difference": "minus({alias}_2,{alias}_1, {query_alias})",
+        "p50": "percentile_range(transaction.duration, 0.5, {start}, {end}) as {query_alias}",
+        "p75": "percentile_range(transaction.duration, 0.75, {start}, {end}) as {query_alias}",
+        "p95": "percentile_range(transaction.duration, 0.95, {start}, {end}) as {query_alias}",
+        "p99": "percentile_range(transaction.duration, 0.99, {start}, {end}) as {query_alias}",
+        "avg": "avg_range(transaction.duration, {start}, {end}) as {query_alias}",
+        "variance": "variance_range(transaction.duration, {start}, {end}) as {query_alias}",
+        "count_range": "count_range({start}, {end}) as {query_alias}",
+        "percentage": "percentage({alias}_2, {alias}_1) as {query_alias}",
+        "difference": "minus({alias}_2,{alias}_1) as {query_alias}",
         "t_test": "t_test({avg}_1, {avg}_2, variance_range_1, variance_range_2, count_range_1, count_range_2)",
     }
 
@@ -180,7 +180,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         params["aliases"] = self.get_function_aliases(trend_type)
 
         trend_function = request.GET.get("trendFunction", "p50()")
-        function, columns = parse_function(trend_function)
+        function, columns, alias = parse_function(trend_function)
         trend_columns = self.get_trend_columns(function, columns, start, middle, end)
 
         selected_columns = request.GET.getlist("field")[:]
