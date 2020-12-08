@@ -132,7 +132,6 @@ class StreamGroup extends React.Component<Props, State> {
 
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
-      console.log(state);
       return {
         data,
         collapse: state.data.inbox && data.inbox === false,
@@ -462,7 +461,23 @@ const Wrapper = styled(PanelItem)<{collapse: boolean}>`
   ${p =>
     p.collapse &&
     css`
-      display: none;
+      overflow: hidden;
+      animation: hideRow 0.2s linear forwards;
+      will-change: max-height;
+      max-height: 90px;
+
+      @keyframes hideRow {
+        0% {
+          padding: ${space(1)} 0;
+          opacity: 1;
+          max-height: 100px;
+        }
+        100% {
+          padding: 0;
+          opacity: 0;
+          max-height: 0;
+        }
+      }
     `};
 `;
 
