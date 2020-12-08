@@ -44,9 +44,6 @@ VOLUME ["/workspace/node_modules", "/workspace/build"]
 COPY docker/builder.sh /builder.sh
 ENTRYPOINT [ "/builder.sh" ]
 
-# TODO: Remove this once PY3 becomes stable
-ENV SENTRY_PYTHON3=1
-
 ARG SOURCE_COMMIT
 ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT

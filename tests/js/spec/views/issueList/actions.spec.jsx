@@ -11,6 +11,10 @@ describe('IssueListActions', function () {
   let actions;
   let wrapper;
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('Bulk', function () {
     describe('Total results greater than bulk limit', function () {
       beforeAll(function () {
@@ -236,12 +240,8 @@ describe('IssueListActions', function () {
   });
 
   describe('actionSelectedGroups()', function () {
-    beforeAll(function () {
-      jest.spyOn(SelectedGroupStore, 'deselectAll');
-    });
-
     beforeEach(function () {
-      SelectedGroupStore.deselectAll.mockReset();
+      jest.spyOn(SelectedGroupStore, 'deselectAll');
       actions = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
@@ -261,10 +261,6 @@ describe('IssueListActions', function () {
           statsPeriod="24h"
         />
       ).instance();
-    });
-
-    afterAll(function () {
-      SelectedGroupStore.deselectAll.mockRestore();
     });
 
     describe('for all items', function () {
@@ -342,8 +338,8 @@ describe('IssueListActions', function () {
 
   describe('with inbox feature', function () {
     beforeEach(() => {
+      SelectedGroupStore.records = {};
       const {organization} = TestStubs.routerContext().context;
-      organization.features = ['inbox'];
       wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
@@ -360,21 +356,33 @@ describe('IssueListActions', function () {
           onSelectStatsPeriod={function () {}}
           realtimeActive={false}
           statsPeriod="24h"
+          queryCount={100}
+          queryMaxCount={100}
+          pageCount={3}
+          hasInbox
         />,
         TestStubs.routerContext()
       );
     });
 
-    it('renders backlog action', function () {
-      expect(wrapper.find('[data-test-id="button-backlog"]').exists()).toBeTruthy();
+    it('hides actions when no issues are selected', async function () {
+      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(false);
     });
 
-    it('moves group to backlog', async function () {
+    it('displays actions on issue selection', async function () {
+      wrapper.setState({anySelected: true});
+      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(true);
+    });
+
+    it('acknowledges group', async function () {
+      wrapper.setState({anySelected: true});
+      SelectedGroupStore.add([1, 2, 3]);
+      SelectedGroupStore.toggleSelectAll();
       const apiMock = MockApiClient.addMockResponse({
         url: '/organizations/1337/issues/',
         method: 'PUT',
       });
-      wrapper.find('[data-test-id="button-backlog"]').first().simulate('click');
+      wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');
 
       expect(wrapper.find('ModalDialog')).toSnapshot();
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -384,9 +392,6 @@ describe('IssueListActions', function () {
           data: {inbox: false},
         })
       );
-
-      await tick();
-      wrapper.update();
     });
   });
 });

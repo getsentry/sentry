@@ -1,7 +1,7 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -96,7 +96,9 @@ class GroupEventDetails extends React.Component<Props, State> {
     ) {
       const shouldRedirect =
         environments.length > 0 &&
-        !environments.find(env => env.name === getEventEnvironment(prevProps.event));
+        !environments.find(
+          env => env.name === getEventEnvironment(prevProps.event as Event)
+        );
 
       if (shouldRedirect) {
         browserHistory.replace({
@@ -133,7 +135,17 @@ class GroupEventDetails extends React.Component<Props, State> {
       `/projects/${orgSlug}/${projSlug}/releases/completion/`
     );
     fetchSentryAppInstallations(api, orgSlug);
-    fetchSentryAppComponents(api, orgSlug, projectId);
+
+    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    if (projectId) {
+      fetchSentryAppComponents(api, orgSlug, projectId);
+    } else {
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('Project ID was not set');
+      });
+    }
 
     const releasesCompletion = await releasesCompletionPromise;
     this.setState({releasesCompletion});
@@ -170,11 +182,9 @@ class GroupEventDetails extends React.Component<Props, State> {
           <div className="primary">
             {evt && (
               <GroupEventToolbar
-                organization={organization}
                 group={group}
                 event={evt}
                 orgId={organization.slug}
-                projectId={project.slug}
                 location={location}
               />
             )}

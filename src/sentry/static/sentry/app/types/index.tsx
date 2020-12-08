@@ -91,6 +91,11 @@ export type Actor = {
   email?: string;
 };
 
+export type SuggestedAssignee = Actor & {
+  suggestedReason: SuggestedOwnerReason;
+  assignee: Team | User;
+};
+
 /**
  * Organization summaries are sent when you request a
  * list of all organizations
@@ -220,13 +225,13 @@ export type Project = {
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
-  latestRelease?: {version: string};
+  latestRelease?: Release;
   groupingEnhancementsBase: string;
   groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
-export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
@@ -338,9 +343,27 @@ type RuntimeContext = {
   name?: string;
 };
 
+type DeviceContext = {
+  arch: string;
+  family: string;
+  model: string;
+  type: string;
+};
+
+type OSContext = {
+  kernel_version: string;
+  version: string;
+  type: string;
+  build: string;
+  name: string;
+};
+
 type EventContexts = {
   runtime?: RuntimeContext;
   trace?: TraceContextType;
+  device?: DeviceContext;
+  os?: OSContext;
+  client_os?: OSContext;
 };
 
 type EnableIntegrationSuggestion = {
@@ -530,6 +553,14 @@ export type User = Omit<AvatarUser, 'options'> & {
   hasPasswordAuth: boolean;
   permissions: Set<string>;
   experiments: Partial<UserExperiments>;
+};
+
+// XXX(epurkhiser): we should understand how this is diff from User['emails]
+// above
+export type UserEmail = {
+  email: string;
+  isPrimary: boolean;
+  isVerified: boolean;
 };
 
 export type CommitAuthor = {
@@ -787,6 +818,15 @@ export type InboxDetails = {
   };
 };
 
+export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
+
+// Received from the backend to denote suggested owners of an issue
+export type SuggestedOwner = {
+  type: SuggestedOwnerReason;
+  owner: string;
+  date_added: string;
+};
+
 type GroupFiltered = {
   count: string;
   stats: Record<string, TimeseriesValue[]>;
@@ -795,11 +835,26 @@ type GroupFiltered = {
   userCount: number;
 };
 
+type GroupActivityData = {
+  eventCount?: number;
+  newGroupId?: number;
+  oldGroupId?: number;
+  text?: string;
+};
+
+type GroupActivity = {
+  data: GroupActivityData;
+  dateCreated: string;
+  id: string;
+  type: string;
+  user?: null | User;
+};
+
 // TODO(ts): incomplete
 export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
-  activity: any[]; // TODO(ts)
+  activity: GroupActivity[];
   annotations: string[];
   assignedTo: User;
   culprit: string;
@@ -835,6 +890,7 @@ export type Group = GroupFiltered & {
   filtered: GroupFiltered | null;
   lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
+  owners?: SuggestedOwner[] | null;
 };
 
 export type GroupTombstone = {
@@ -1310,7 +1366,7 @@ export type SentryAppComponent = {
   };
 };
 
-type SavedQueryVersions = 1 | 2;
+export type SavedQueryVersions = 1 | 2;
 
 export type NewQuery = {
   id: string | undefined;
@@ -1753,10 +1809,22 @@ export type InternetProtocol = {
   regionCode: string | null;
 };
 
+/**
+ * XXX(ts): This actually all comes from getsentry. We should definitely
+ * refactor this into a more proper 'hook' mechanism in the future
+ */
 export type AuthConfig = {
   canRegister: boolean;
   serverHostname: string;
   hasNewsletter: boolean;
   githubLoginLink: string;
   vstsLoginLink: string;
+  googleLoginLink: string;
+};
+
+export type AuthProvider = {
+  key: string;
+  name: string;
+  requiredFeature: string;
+  disables2FA: boolean;
 };

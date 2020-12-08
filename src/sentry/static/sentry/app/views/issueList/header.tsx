@@ -1,8 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
+import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -10,16 +12,25 @@ type Props = {
   query: string;
   queryCount: number;
   queryMaxCount: number;
+  realtimeActive: boolean;
+  onRealtimeChange: (realtime: boolean) => void;
   onTabChange: (query: string) => void;
 };
 
 const queries = [
-  ['is:inbox is:unresolved', t('Inbox')],
+  ['is:inbox is:unresolved', t('Unacknowledged')],
   ['is:unresolved', t('Unresolved')],
   ['is:ignored', t('Ignored')],
 ];
 
-function IssueListHeader({query, queryCount, queryMaxCount, onTabChange}: Props) {
+function IssueListHeader({
+  query,
+  queryCount,
+  queryMaxCount,
+  realtimeActive,
+  onTabChange,
+  onRealtimeChange,
+}: Props) {
   const count = <StyledQueryCount count={queryCount} max={queryMaxCount} />;
 
   return (
@@ -28,6 +39,15 @@ function IssueListHeader({query, queryCount, queryMaxCount, onTabChange}: Props)
         <StyledHeaderContent>
           <StyledLayoutTitle>{t('Issues')}</StyledLayoutTitle>
         </StyledHeaderContent>
+        <Layout.HeaderActions>
+          <Button
+            size="small"
+            title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
+            onClick={() => onRealtimeChange(!realtimeActive)}
+          >
+            {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+          </Button>
+        </Layout.HeaderActions>
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>

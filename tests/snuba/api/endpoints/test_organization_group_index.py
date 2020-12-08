@@ -21,13 +21,13 @@ from sentry.models import (
     GroupInbox,
     GroupInboxReason,
     GroupLink,
+    GroupOwner,
+    GroupOwnerType,
+    GROUP_OWNER_TYPE,
     GroupSeen,
     GroupShare,
     GroupSnooze,
     GroupStatus,
-    GroupOwner,
-    GroupOwnerType,
-    GROUP_OWNER_TYPE,
     GroupResolution,
     GroupSubscription,
     GroupTombstone,
@@ -694,6 +694,79 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["inbox"] is not None
             assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
+    def test_owner_search(self):
+        with self.feature("organizations:workflow-owners"):
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            event = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-2"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-3"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+
+            self.login_as(user=self.user)
+            response = self.get_response(sort_by="date", limit=10, query="owner:me")
+            assert response.status_code == 200
+            assert len(response.data) == 0
+
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.group.project,
+                organization=event.group.project.organization,
+                type=0,
+                team_id=None,
+                user_id=self.user.id,
+            )
+
+            response = self.get_response(sort_by="date", limit=10, query="owner:me")
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+
+            response = self.get_response(
+                sort_by="date", limit=10, query="owner:{}".format(self.user.email)
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+
+            response = self.get_response(
+                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 0
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.group.project,
+                organization=event.group.project.organization,
+                type=0,
+                team_id=self.team.id,
+                user_id=None,
+            )
+            response = self.get_response(
+                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
+            )
+            assert response.status_code == 200
+            assert len(response.data) == 1
+            assert int(response.data[0]["id"]) == event.group.id
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -803,7 +876,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is None
 
-            # Test with owner
+            # Test with owners
             GroupOwner.objects.create(
                 group=event.group,
                 project=event.project,
@@ -811,15 +884,28 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
                 user=self.user,
             )
+            GroupOwner.objects.create(
+                group=event.group,
+                project=event.project,
+                organization=event.project.organization,
+                type=GroupOwnerType.OWNERSHIP_RULE.value,
+                team=self.team,
+            )
             response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is not None
-            assert response.data[0]["owners"]["owner"] == "user:{}".format(self.user.id)
+            assert len(response.data[0]["owners"]) == 2
+            assert response.data[0]["owners"][0]["owner"] == "user:{}".format(self.user.id)
+            assert response.data[0]["owners"][1]["owner"] == "team:{}".format(self.team.id)
             assert (
-                response.data[0]["owners"]["type"]
+                response.data[0]["owners"][0]["type"]
                 == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+            )
+            assert (
+                response.data[0]["owners"][1]["type"]
+                == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
             )
 
     @patch(

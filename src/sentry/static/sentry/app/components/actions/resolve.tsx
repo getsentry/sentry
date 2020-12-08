@@ -149,7 +149,7 @@ class ResolveActions extends React.Component<Props, State> {
       <StyledDropdownLink
         caret={!hasInbox}
         className={hasInbox ? undefined : buttonClass}
-        title={hasInbox ? 'Resolve In...' : ''}
+        title={hasInbox ? t('Resolve In\u2026') : ''}
         alwaysRenderMenu
         disabled={disableDropdown || disabled}
         anchorRight={hasInbox}

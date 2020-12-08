@@ -84,7 +84,8 @@ const ProjectCrumb = ({
         </ProjectName>
       }
       onSelect={handleSelect}
-      items={projects.map(project => ({
+      items={projects.map((project, index) => ({
+        index,
         value: project.slug,
         label: (
           <MenuItem>
