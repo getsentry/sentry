@@ -2981,6 +2981,17 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
+    def test_redundant_grouping_errors(self):
+        fields = [
+            ["last_seen()", "timestamp"],
+            ["avg(measurements.lcp)", "measurements.lcp"],
+            ["p95()", "transaction.duration"],
+        ]
+        with pytest.raises(InvalidSearchQuery) as error:
+            resolve_field_list(fields, eventstore.Filter())
+
+        assert "would not have stacking" in error
+
 
 def with_type(type, argument):
     argument.get_type = lambda *_: type
