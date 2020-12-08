@@ -12,6 +12,8 @@ import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
+import GroupStore from 'app/stores/groupStore';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import {GlobalSelection, Group, Project, Release, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
@@ -51,9 +53,37 @@ class GroupRowActions extends React.Component<Props> {
   handleAcknowledge() {
     // Optimistically clear inbox status
     const itemIds = [this.props.group.id];
+    // Optimistically clear inbox status
+    const {selection, query, orgId} = this.props;
+
     GroupActions.update(null, itemIds, {inbox: false});
     GroupActions.updateSuccess(null, itemIds, {inbox: false});
-    this.handleUpdate({inbox: false});
+    addLoadingMessage(t('Saving changes\u2026'));
+    const projectConstraints = {project: selection.projects};
+    this.props.api.bulkUpdate(
+      {
+        orgId,
+        itemIds,
+        data: {inbox: false},
+        query,
+        environment: selection.environments,
+        ...projectConstraints,
+        ...selection.datetime,
+      },
+      {
+        complete: () => {
+          clearIndicators();
+          // On inbox, issues collapse on acknowledge and should be removed from results
+          // after animation
+          if (query === 'is:inbox is:unresolved') {
+            setTimeout(() => {
+              GroupStore.remove(this.props.group.id);
+              SelectedGroupStore.prune();
+            }, 200);
+          }
+        },
+      }
+    );
   }
 
   handleDelete = () => {
