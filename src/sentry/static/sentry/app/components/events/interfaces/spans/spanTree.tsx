@@ -8,8 +8,7 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
-import * as MeasurementsManager from './measurementsManager';
-import MeasurementsPanel from './measurementsPanel';
+import {DividerLine} from './spanBar';
 import SpanGroup from './spanGroup';
 import {SpanRowMessage} from './styles';
 import {FilterSpans} from './traceView';
@@ -34,7 +33,6 @@ import {
   pickSpanBarColour,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 type RenderedSpanTree = {
@@ -53,6 +51,7 @@ type PropType = {
   event: SentryTransactionEvent;
   spansWithErrors: TableData | null | undefined;
   operationNameFilters: ActiveOperationFilter;
+  traceViewRef: React.RefObject<HTMLDivElement>;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -63,8 +62,6 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
-
-  traceViewRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -383,41 +380,33 @@ class SpanTree extends React.Component<PropType> {
     });
   };
 
-  renderSecondaryPanel() {
-    const {event} = this.props;
-
-    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
-
-    // only display the secondary header if there are any measurements
-    if (!hasMeasurements) {
-      return null;
-    }
+  renderDivider(
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+  ) {
+    const {addDividerLineRef} = dividerHandlerChildrenProps;
 
     return (
-      <DividerHandlerManager.Consumer>
-        {(
-          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-        ) => {
-          const {dividerPosition} = dividerHandlerChildrenProps;
-
-          return (
-            <SecondaryHeader>
-              <div
-                style={{
-                  // the width of this component is shrunk to compensate for half of the width of the divider line
-                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                }}
-              />
-              <DividerSpacer />
-              <MeasurementsPanel
-                event={event}
-                generateBounds={this.generateBounds()}
-                dividerPosition={dividerPosition}
-              />
-            </SecondaryHeader>
-          );
+      <DividerLine
+        ref={addDividerLineRef()}
+        style={{
+          position: 'relative',
         }}
-      </DividerHandlerManager.Consumer>
+        onMouseEnter={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseLeave={() => {
+          dividerHandlerChildrenProps.setHover(false);
+        }}
+        onMouseOver={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseDown={dividerHandlerChildrenProps.onDragStart}
+        onClick={event => {
+          // we prevent the propagation of the clicks from this component to prevent
+          // the span detail from being opened.
+          event.stopPropagation();
+        }}
+      />
     );
   }
 
@@ -438,16 +427,11 @@ class SpanTree extends React.Component<PropType> {
     const limitExceededMessage = this.generateLimitExceededMessage();
 
     return (
-      <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <MeasurementsManager.Provider>
-          {this.renderSecondaryPanel()}
-          <TraceViewContainer ref={this.traceViewRef}>
-            {spanTree}
-            {infoMessage}
-            {limitExceededMessage}
-          </TraceViewContainer>
-        </MeasurementsManager.Provider>
-      </DividerHandlerManager.Provider>
+      <TraceViewContainer ref={this.props.traceViewRef}>
+        {spanTree}
+        {infoMessage}
+        {limitExceededMessage}
+      </TraceViewContainer>
     );
   }
 }
@@ -456,17 +440,6 @@ const TraceViewContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
-`;
-
-const SecondaryHeader = styled('div')`
-  background-color: ${p => p.theme.backgroundSecondary};
-  display: flex;
-
-  border-bottom: 1px solid ${p => p.theme.gray200};
-`;
-
-const DividerSpacer = styled('div')`
-  width: 1px;
 `;
 
 /**
