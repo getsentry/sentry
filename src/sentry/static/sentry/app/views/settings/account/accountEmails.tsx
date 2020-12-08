@@ -167,6 +167,7 @@ const EmailRow = ({
       )}
       {!hideRemove && !isPrimary && (
         <Button
+          label={t('Remove email')}
           data-test-id="remove"
           priority="danger"
           size="small"
