@@ -123,7 +123,7 @@ class FeatureDisabled extends React.Component<Props, State> {
                   e.stopPropagation();
                   e.preventDefault();
                 }}
-                icon={<IconCopy />}
+                icon={<IconCopy size="xs" />}
               >
                 {t('Copy to Clipboard')}
               </Button>
