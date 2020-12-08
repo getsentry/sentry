@@ -1,7 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 
-import {DashboardListItem} from './types';
+import {DashboardDetails} from './types';
 
-export function cloneDashboard(dashboard: DashboardListItem): DashboardListItem {
+export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
 }

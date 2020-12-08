@@ -5,6 +5,7 @@ from django.db import IntegrityError, transaction
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
 from rest_framework.response import Response
@@ -32,13 +33,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         dashboards = dashboards.order_by("title")
         prebuilt = Dashboard.get_prebuilt_list(organization, query)
 
+        list_serializer = DashboardListSerializer()
+
         def handle_results(results):
             serialized = []
             for item in results:
                 if isinstance(item, dict):
                     serialized.append(item)
                 else:
-                    serialized.append(serialize(item, request.user))
+                    serialized.append(serialize(item, request.user, serializer=list_serializer))
             return serialized
 
         return self.paginate(

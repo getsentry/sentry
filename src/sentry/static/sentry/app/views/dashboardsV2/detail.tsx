@@ -12,6 +12,8 @@ import {
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
+import NotFound from 'app/components/errors/notFound';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -24,7 +26,7 @@ import Dashboard from './dashboard';
 import {EMPTY_DASHBOARD} from './data';
 import OrgDashboards from './orgDashboards';
 import Title from './title';
-import {DashboardListItem, DashboardState, OrgDashboardResponse, Widget} from './types';
+import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
 
 type Props = {
@@ -36,32 +38,19 @@ type Props = {
 
 type State = {
   dashboardState: DashboardState;
-  changesDashboard: DashboardListItem | undefined;
+  changesDashboard: DashboardDetails | null;
 };
+
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
     dashboardState: 'view',
-    changesDashboard: undefined,
+    changesDashboard: null,
   };
 
-  static getDerivedStateFromProps(props: Props, state: State): State {
-    if (state.changesDashboard && state.changesDashboard.type === 'org') {
-      const {params} = props;
-      const dashboardId = params.dashboardId as string | undefined;
-
-      if (typeof dashboardId === 'string' && state.changesDashboard.id !== dashboardId) {
-        return {
-          ...state,
-          dashboardState: 'view',
-          changesDashboard: undefined,
-        };
-      }
+  onEdit = (dashboard: State['changesDashboard']) => () => {
+    if (!dashboard) {
+      return;
     }
-
-    return state;
-  }
-
-  onEdit = (dashboard: DashboardListItem) => () => {
     this.setState({
       dashboardState: 'edit',
       changesDashboard: cloneDashboard(dashboard),
@@ -78,29 +67,31 @@ class DashboardDetail extends React.Component<Props, State> {
   onCancel = () => {
     this.setState({
       dashboardState: 'view',
-      changesDashboard: undefined,
+      changesDashboard: null,
     });
   };
 
-  onDelete = (dashboard: DashboardListItem) => () => {
+  onDelete = (dashboard: State['changesDashboard']) => () => {
     const {api, organization} = this.props;
-    if (dashboard.type === 'org') {
-      deleteDashboard(api, organization.slug, dashboard.id).then(() => {
-        addSuccessMessage(t('Dashboard deleted'));
-
-        browserHistory.replace({
-          pathname: `/organizations/${organization.slug}/dashboards/`,
-          query: {},
-        });
-      });
+    if (!dashboard?.id) {
+      return;
     }
+
+    deleteDashboard(api, organization.slug, dashboard.id).then(() => {
+      addSuccessMessage(t('Dashboard deleted'));
+
+      browserHistory.replace({
+        pathname: `/organizations/${organization.slug}/dashboards/`,
+        query: {},
+      });
+    });
   };
 
   onCommit = ({
     dashboard,
     reloadData,
   }: {
-    dashboard: DashboardListItem;
+    dashboard: State['changesDashboard'];
     reloadData: () => void;
   }) => () => {
     const {api, organization, location} = this.props;
@@ -110,14 +101,14 @@ class DashboardDetail extends React.Component<Props, State> {
       case 'create': {
         if (changesDashboard) {
           createDashboard(api, organization.slug, changesDashboard).then(
-            (newDashboard: OrgDashboardResponse) => {
+            (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
 
               // redirect to new dashboard
 
               this.setState({
                 dashboardState: 'view',
-                changesDashboard: undefined,
+                changesDashboard: null,
               });
 
               browserHistory.replace({
@@ -133,13 +124,13 @@ class DashboardDetail extends React.Component<Props, State> {
         break;
       }
       case 'edit': {
-        if (changesDashboard && changesDashboard.type === 'org') {
+        if (changesDashboard) {
           // only update the dashboard if there are changes
 
           if (isEqual(dashboard, changesDashboard)) {
             this.setState({
               dashboardState: 'view',
-              changesDashboard: undefined,
+              changesDashboard: null,
             });
             return;
           }
@@ -149,7 +140,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
             this.setState({
               dashboardState: 'view',
-              changesDashboard: undefined,
+              changesDashboard: null,
             });
 
             reloadData();
@@ -160,7 +151,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
         this.setState({
           dashboardState: 'view',
-          changesDashboard: undefined,
+          changesDashboard: null,
         });
         break;
       }
@@ -168,7 +159,7 @@ class DashboardDetail extends React.Component<Props, State> {
       default: {
         this.setState({
           dashboardState: 'view',
-          changesDashboard: undefined,
+          changesDashboard: null,
         });
         break;
       }
@@ -177,7 +168,7 @@ class DashboardDetail extends React.Component<Props, State> {
 
   onWidgetChange = (widgets: Widget[]) => {
     const {changesDashboard} = this.state;
-    if (changesDashboard === undefined) {
+    if (changesDashboard === null) {
       return;
     }
 
@@ -192,7 +183,7 @@ class DashboardDetail extends React.Component<Props, State> {
     });
   };
 
-  setChangesDashboard = (dashboard: DashboardListItem) => {
+  setChangesDashboard = (dashboard: DashboardDetails) => {
     this.setState({
       changesDashboard: dashboard,
     });
@@ -200,6 +191,8 @@ class DashboardDetail extends React.Component<Props, State> {
 
   render() {
     const {api, location, params, organization} = this.props;
+    const {changesDashboard, dashboardState} = this.state;
+    console.log('render', changesDashboard, dashboardState);
 
     return (
       <GlobalSelectionHeader
@@ -211,12 +204,12 @@ class DashboardDetail extends React.Component<Props, State> {
           params={params}
           organization={organization}
         >
-          {({dashboard, dashboards, reloadData}) => {
+          {({dashboard, dashboards, error, reloadData}) => {
             return (
               <React.Fragment>
                 <StyledPageHeader>
                   <Title
-                    changesDashboard={this.state.changesDashboard}
+                    changesDashboard={changesDashboard}
                     setChangesDashboard={this.setChangesDashboard}
                   />
                   <Controls
@@ -228,18 +221,21 @@ class DashboardDetail extends React.Component<Props, State> {
                     onCancel={this.onCancel}
                     onCommit={this.onCommit({dashboard, reloadData})}
                     onDelete={this.onDelete(dashboard)}
-                    dashboardState={this.state.dashboardState}
+                    dashboardState={dashboardState}
                   />
                 </StyledPageHeader>
-                <Dashboard
-                  dashboard={this.state.changesDashboard || dashboard}
-                  organization={organization}
-                  isEditing={
-                    this.state.dashboardState === 'edit' ||
-                    this.state.dashboardState === 'create'
-                  }
-                  onUpdate={this.onWidgetChange}
-                />
+                {error ? (
+                  <NotFound />
+                ) : dashboard ? (
+                  <Dashboard
+                    dashboard={changesDashboard || dashboard}
+                    organization={organization}
+                    isEditing={dashboardState === 'edit' || dashboardState === 'create'}
+                    onUpdate={this.onWidgetChange}
+                  />
+                ) : (
+                  <LoadingIndicator />
+                )}
               </React.Fragment>
             );
           }}

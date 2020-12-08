@@ -4,7 +4,7 @@ import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
 import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
-import {DashboardListItem, Widget} from 'app/views/dashboardsV2/types';
+import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -208,7 +208,7 @@ export async function openInviteMembersModal(options = {}) {
 
 type DashboardWidgetModalOptions = {
   organization: Organization;
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails;
   onAddWidget: (data: Widget) => void;
 };
 
