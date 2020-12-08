@@ -141,11 +141,6 @@ function WidgetQueryForm({
               onCloseResetsInput={false}
               onBlurResetsInput={false}
             />
-            <FieldHelp>
-              {t(
-                'Use an existing discover saved query to define your widget, or build a new query.'
-              )}
-            </FieldHelp>
           </VerticalPanelItem>
         )}
       </Feature>
