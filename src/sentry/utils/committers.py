@@ -53,31 +53,31 @@ def release_cache_key(release):
 
 
 def _get_commits(releases):
-    cached_release_commits = cache.get_many([release_cache_key(release) for release in releases])
-    missed_releases = []
-    commit_list = []
-    if cached_release_commits:
+    fetched = cache.get_many([release_cache_key(release) for release in releases])
+    missed = []
+    commits = []
+    if fetched:
         for release in releases:
-            cached_commits = cached_release_commits.get(release_cache_key(release))
+            cached_commits = fetched.get(release_cache_key(release))
             if cached_commits is None:
-                missed_releases.append(release)
+                missed.append(release)
             else:
-                commit_list += [c for c in cached_commits if c not in commit_list]
+                commits += [c for c in cached_commits if c not in commits]
     else:
-        missed_releases = releases
+        missed = releases
 
-    if missed_releases:
-        release_commits = ReleaseCommit.objects.filter(release__in=missed_releases).select_related(
+    if missed:
+        release_commits = ReleaseCommit.objects.filter(release__in=missed).select_related(
             "commit", "release", "commit__author"
         )
         to_cache = defaultdict(list)
         for rc in release_commits:
             to_cache[release_cache_key(rc.release)].append(rc.commit)
-            if rc.commit not in commit_list:
-                commit_list.append(rc.commit)
+            if rc.commit not in commits:
+                commits.append(rc.commit)
         cache.set_many(to_cache)
 
-    return commit_list
+    return commits
 
 
 def _get_commit_file_changes(commits, path_name_set):
