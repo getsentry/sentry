@@ -19,7 +19,6 @@ from six.moves.urllib.parse import urlencode
 from sentry import roles
 from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT
 from sentry.db.models import (
-    BaseManager,
     BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
@@ -86,8 +85,6 @@ class OrganizationMember(Model):
     """
 
     __core__ = True
-
-    objects = BaseManager(cache_fields=("organization_id", "user"))
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
