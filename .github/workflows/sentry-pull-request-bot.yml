@@ -27,8 +27,7 @@ jobs:
     # Ensure this bot only responds for pull requests and only for the main repository
     if: >-
       (github.event.issue.pull_request.url != '' || github.event.pull_request.id != '') &&
-      (contains(github.event.comment.body, '#test-getsentry') || contains(github.event.pull_request.body, '#test-getsentry')) &&
-      github.repository == 'getsentry/sentry'
+      (contains(github.event.comment.body, '#test-getsentry') || contains(github.event.pull_request.body, '#test-getsentry'))
 
     steps:
       - name: Check getsentry membership
