@@ -48,14 +48,33 @@ def _get_frame_paths(event):
     return get_path(data, "exception", "values", 0, "stacktrace", "frames", filter=True) or []
 
 
+def release_cache_key(release):
+    return "release_commits:{}".format(release.id)
+
+
 def _get_commits(releases):
-    return list(
-        Commit.objects.filter(
-            releasecommit__in=ReleaseCommit.objects.get_many_from_cache(
-                [r.id for r in releases], key="release"
-            ),
-        ).select_related("author")
-    )
+    cached_release_commits = cache.get_many([release_cache_key(release) for release in releases])
+    missed_releases = []
+    commit_list = []
+    for release in releases:
+        cached_commits = cached_release_commits.get(release_cache_key(release))
+        if cached_commits is None:
+            missed_releases.append(release)
+        else:
+            commit_list += [c for c in cached_commits if c not in commit_list]
+
+    if missed_releases:
+        release_commits = ReleaseCommit.objects.filter(release__in=missed_releases).select_related(
+            "commit", "release", "commit__author"
+        )
+        to_cache = defaultdict(list)
+        for rc in release_commits:
+            to_cache[release_cache_key(rc.release)].append(rc.commit)
+            if rc.commit not in commit_list:
+                commit_list.append(rc.commit)
+        cache.set_many(to_cache)
+
+    return commit_list
 
 
 def _get_commit_file_changes(commits, path_name_set):

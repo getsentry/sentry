@@ -205,20 +205,17 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            commit_cache_key = "workflow-owners-ingestion:org-{}-has-commits".format(
+            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
                 event.project.organization_id
             )
-            commit_data = cache.get(commit_cache_key)
-            if commit_data is None:
-                org_has_commits = Commit.objects.filter(
+            org_has_commit = cache.get(has_commit_key)
+            if org_has_commit is None:
+                org_has_commit = Commit.objects.filter(
                     organization_id=event.project.organization_id
                 ).exists()
-                commit_data = {"has_commits": org_has_commits}
-                cache.set(commit_cache_key, commit_data, 3600)
+                cache.set(has_commit_key, org_has_commit, 3600)
 
-            if commit_data["has_commits"] and features.has(
-                "projects:workflow-owners-ingestion", event.project
-            ):
+            if org_has_commit and features.has("projects:workflow-owners-ingestion", event.project):
                 process_suspect_commits(event=event)
 
             if features.has("projects:servicehooks", project=event.project):
