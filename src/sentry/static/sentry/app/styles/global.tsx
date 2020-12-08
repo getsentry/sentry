@@ -89,9 +89,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
             &.is-expandable .title:hover {
               background-color: ${theme.background};
             }
-            .btn-toggle {
-              background: transparent;
-            }
             .context {
               background-color: ${theme.background};
             }

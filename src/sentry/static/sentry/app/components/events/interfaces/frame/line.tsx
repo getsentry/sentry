@@ -182,8 +182,7 @@ export class Line extends React.Component<Props, State> {
     return (
       <ToggleContextButtonWrapper>
         <ToggleContextButton
-          className="btn-toggle"
-          css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
+          css={this.getPlatform() === 'csharp' && {display: 'block'}}
           title={t('Toggle Context')}
           onClick={this.toggleContext}
         >
