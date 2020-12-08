@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import ActionLink from 'app/components/actions/actionLink';
 import IgnoreActions from 'app/components/actions/ignore';
@@ -47,6 +48,14 @@ class GroupRowActions extends React.Component<Props> {
     );
   };
 
+  handleAcknowledge() {
+    // Optimistically clear inbox status
+    const itemIds = [this.props.group.id];
+    GroupActions.update(null, itemIds, {inbox: false});
+    GroupActions.updateSuccess(null, itemIds, {inbox: false});
+    this.handleUpdate({inbox: false});
+  }
+
   handleDelete = () => {
     const {api, group, orgId, query, selection} = this.props;
 
@@ -77,7 +86,7 @@ class GroupRowActions extends React.Component<Props> {
         <Tooltip title={t('Acknowledge')}>
           <ActionLink
             className="btn btn-default btn-sm"
-            onAction={() => this.handleUpdate({inbox: false})}
+            onAction={() => this.handleAcknowledge()}
             shouldConfirm={false}
             title={t('Acknowledge')}
           >

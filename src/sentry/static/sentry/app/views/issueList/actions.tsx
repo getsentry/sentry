@@ -24,7 +24,6 @@ import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
 import {GlobalSelection, Group, Project, ResolutionStatus} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import {uniqueId} from 'app/utils/guid';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
