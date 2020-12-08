@@ -122,6 +122,24 @@ function WidgetQueryForm({
           />
         </RemoveButtonWrapper>
       )}
+      <Field
+        data-test-id="new-query"
+        label="New Query"
+        inline={false}
+        flexibleControlStateSize
+        stacked
+        error={errors?.conditions}
+      >
+        <SearchBar
+          organization={organization}
+          projectIds={selection.projects}
+          query={widgetQuery.conditions}
+          fields={[]}
+          onSearch={handleFieldChange('conditions')}
+          onBlur={handleFieldChange('conditions')}
+          useFormWrapper={false}
+        />
+      </Field>
       <Feature organization={organization} features={['discover-query']}>
         {({hasFeature}) => (
           <Field
@@ -161,26 +179,6 @@ function WidgetQueryForm({
         </div>
       )}
       <Field
-        data-test-id="new-query"
-        label="New Query"
-        inline={false}
-        flexibleControlStateSize
-        stacked
-      >
-        <ConditionContainer>
-          <SearchBar
-            organization={organization}
-            projectIds={selection.projects}
-            query={widgetQuery.conditions}
-            fields={[]}
-            onSearch={handleFieldChange('conditions')}
-            onBlur={handleFieldChange('conditions')}
-            useFormWrapper={false}
-          />
-          {errors?.conditions && <FieldErrorReason>{errors.conditions}</FieldErrorReason>}
-        </ConditionContainer>
-      </Field>
-      <Field
         data-test-id="y-axis"
         label="Y-Axis"
         inline={false}
@@ -207,24 +205,22 @@ function WidgetQueryForm({
           </QueryFieldWrapper>
         ))}
         {errors?.fields && <FieldErrorReason>{errors.fields}</FieldErrorReason>}
-        <Button
-          data-test-id="add-field"
-          priority="default"
-          size="zero"
-          borderless
-          onClick={handleAddField}
-          icon={<IconAdd />}
-        >
-          {t('Add an overlay')}
-        </Button>
+        <div>
+          <Button
+            data-test-id="add-field"
+            priority="default"
+            size="zero"
+            borderless
+            onClick={handleAddField}
+            icon={<IconAdd />}
+          >
+            {t('Add an overlay')}
+          </Button>
+        </div>
       </Field>
     </div>
   );
 }
-
-const ConditionContainer = styled('div')`
-  position: relative;
-`;
 
 const QueryFieldWrapper = styled('div')`
   display: flex;

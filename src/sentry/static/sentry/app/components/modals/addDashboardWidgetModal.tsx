@@ -9,17 +9,18 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
+import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
-import {DISPLAY_TYPE_CHOICES, INTERVAL_CHOICES} from 'app/views/dashboardsV2/data';
+import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
 import {DashboardListItem, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextField from 'app/views/settings/components/forms/textField';
+import Input from 'app/views/settings/components/forms/controls/input';
+import Field from 'app/views/settings/components/forms/field';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -156,35 +157,45 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          <h3>{t('Add Widget')}</h3>
+          <h2>{t('Add Widget')}</h2>
         </Header>
         <Body>
-          <TextField
-            name="title"
-            label={t('Title')}
-            required
-            value={state.title}
-            onChange={this.handleFieldChange('title')}
+          <Field
+            data-test-id="widget-name"
+            label="Widget Name"
+            inline={false}
+            flexibleControlStateSize
+            stacked
             error={errors?.title}
-          />
-          <SelectField
-            deprecatedSelectControl
-            required
-            options={DISPLAY_TYPE_CHOICES.slice()}
-            name="displayType"
-            label={t('Chart Style')}
-            value={state.displayType}
-            onChange={this.handleFieldChange('displayType')}
+          >
+            <Input
+              type="text"
+              name="title"
+              required
+              value={state.title}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                this.handleFieldChange('title')(event.target.value);
+              }}
+            />
+          </Field>
+          <Field
+            data-test-id="chart-type"
+            label="Chart Type"
+            inline={false}
+            flexibleControlStateSize
+            stacked
             error={errors?.displayType}
-          />
-          <SelectField
-            name="interval"
-            label={t('Interval')}
-            options={INTERVAL_CHOICES.slice()}
-            value={state.interval}
-            onChange={this.handleFieldChange('interval')}
-            error={errors?.interval}
-          />
+          >
+            <SelectControl
+              deprecatedSelectControl
+              required
+              options={DISPLAY_TYPE_CHOICES.slice()}
+              name="displayType"
+              label={t('Chart Style')}
+              value={state.displayType}
+              onChange={this.handleFieldChange('displayType')}
+            />
+          </Field>
           {state.queries.map((query, i) => {
             return (
               <WidgetQueryForm
