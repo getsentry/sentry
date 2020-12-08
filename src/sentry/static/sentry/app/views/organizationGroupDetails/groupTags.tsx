@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Count from 'app/components/count';
 import DeviceName from 'app/components/deviceName';
@@ -12,33 +12,36 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Version from 'app/components/version';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Group, TagWithTopValues} from 'app/types';
 import {percent} from 'app/utils';
 import withApi from 'app/utils/withApi';
 
-class GroupTags extends React.Component {
-  static propTypes = {
-    baseUrl: PropTypes.string.isRequired,
-    group: SentryTypes.Group.isRequired,
-    api: PropTypes.object.isRequired,
-    environments: PropTypes.arrayOf(PropTypes.string).isRequired,
-  };
+type Props = {
+  baseUrl: string;
+  group: Group;
+  api: Client;
+  environments: string[];
+};
 
-  constructor() {
-    super();
-    this.state = {
-      tagList: null,
-      loading: true,
-      error: false,
-    };
-  }
+type State = {
+  tagList: null | TagWithTopValues[];
+  loading: boolean;
+  error: boolean;
+};
+
+class GroupTags extends React.Component<Props, State> {
+  state: State = {
+    tagList: null,
+    loading: true,
+    error: false,
+  };
 
   componentDidMount() {
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (!isEqual(prevProps.environments, this.props.environments)) {
       this.fetchData();
     }
@@ -76,7 +79,7 @@ class GroupTags extends React.Component {
   render() {
     const {baseUrl} = this.props;
 
-    let children = [];
+    let children: React.ReactNode[] = [];
 
     if (this.state.loading) {
       return <LoadingIndicator />;
@@ -87,7 +90,7 @@ class GroupTags extends React.Component {
     if (this.state.tagList) {
       children = this.state.tagList.map((tag, tagIdx) => {
         const valueChildren = tag.topValues.map((tagValue, tagValueIdx) => {
-          let label;
+          let label: React.ReactNode = null;
           const pct = percent(tagValue.count, tag.totalValues);
           const query = tagValue.query || `${tag.key}:"${tagValue.value}"`;
 

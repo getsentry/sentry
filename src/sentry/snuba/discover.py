@@ -77,7 +77,7 @@ def is_real_column(col):
 # calculate the entire bucket width. If we could do that in a smarter way,
 # we could avoid this whole calculation.
 def find_histogram_buckets(field, params, conditions):
-    _, columns = parse_function(
+    _, columns, _ = parse_function(
         field, err_msg=u"received {}, expected histogram function".format(field)
     )
 
