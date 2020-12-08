@@ -49,6 +49,16 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
+function getPointerPosition<T>(
+  event: MouseEvent | React.MouseEvent<T> | TouchEvent,
+  property: 'pageX' | 'pageY'
+): number {
+  if (event instanceof TouchEvent) {
+    return event.targetTouches[0][property];
+  }
+  return event[property];
+}
+
 class ColumnEditCollection extends React.Component<Props, State> {
   state = {
     isDragging: false,
@@ -116,7 +126,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   cleanUpListeners() {
     if (this.state.isDragging) {
       window.removeEventListener('mousemove', this.onDragMove);
+      window.removeEventListener('touchmove', this.onDragMove);
       window.removeEventListener('mouseup', this.onDragEnd);
+      window.removeEventListener('touchend', this.onDragEnd);
     }
   }
 
@@ -138,11 +150,13 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange(newColumns);
   }
 
-  startDrag(event: React.MouseEvent<HTMLButtonElement>, index: number) {
+  startDrag(event: React.MouseEvent<HTMLButtonElement> | TouchEvent, index: number) {
     const isDragging = this.state.isDragging;
-    if (isDragging || event.type !== 'mousedown') {
+    if (isDragging || !['mousedown', 'touchstart'].includes(event.type)) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
 
     // prevent the user from selecting things when dragging a column.
     this.previousUserSelect = setBodyUserSelect({
@@ -154,38 +168,45 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // attach event listeners so that the mouse cursor can drag anywhere
     window.addEventListener('mousemove', this.onDragMove);
+    window.addEventListener('touchmove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
+    window.addEventListener('touchend', this.onDragEnd);
 
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
-      top: event.pageY,
-      left: event.pageX,
+      top: getPointerPosition<HTMLButtonElement>(event, 'pageY'),
+      left: getPointerPosition<HTMLButtonElement>(event, 'pageX'),
     });
   }
 
-  onDragMove = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mousemove') {
+  onDragMove = (event: MouseEvent | TouchEvent) => {
+    if (!this.state.isDragging || !['mousemove', 'touchmove'].includes(event.type)) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pointerX = getPointerPosition(event, 'pageX');
+    const pointerY = getPointerPosition(event, 'pageY');
 
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
       // Adjust so cursor is over the grab handle.
-      ghostDOM.style.left = `${event.pageX - GRAB_HANDLE_FUDGE}px`;
-      ghostDOM.style.top = `${event.pageY - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.left = `${pointerX - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.top = `${pointerY - GRAB_HANDLE_FUDGE}px`;
     }
 
     const dragItems = document.querySelectorAll(`.${DRAG_CLASS}`);
     // Find the item that the ghost is currently over.
     const targetIndex = Array.from(dragItems).findIndex(dragItem => {
       const rects = dragItem.getBoundingClientRect();
-      const top = event.clientY;
+      const top = pointerY;
 
-      const thresholdStart = rects.top;
-      const thresholdEnd = rects.top + rects.height;
+      const thresholdStart = window.scrollY + rects.top;
+      const thresholdEnd = window.scrollY + rects.top + rects.height;
 
       return top >= thresholdStart && top <= thresholdEnd;
     });
@@ -195,8 +216,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
     }
   };
 
-  onDragEnd = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mouseup') {
+  onDragEnd = (event: MouseEvent | TouchEvent) => {
+    if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
       return;
     }
 
@@ -293,6 +314,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
+              onTouchStart={event => this.startDrag(event, i)}
               icon={<IconGrabbable size="xs" color="gray500" />}
               size="zero"
               borderless
@@ -375,6 +397,7 @@ const RowContainer = styled('div')`
   grid-template-columns: 24px auto 24px;
   align-items: center;
   width: 100%;
+  touch-action: none;
   padding-bottom: ${space(1)};
 `;
 
