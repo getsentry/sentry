@@ -1655,6 +1655,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
+    "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
 )
 
 
