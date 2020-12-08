@@ -42,7 +42,7 @@ const selectRefs = (
   });
 };
 
-// simple linear interpolation between start and end such that needle in [0, 1]
+// simple linear interpolation between start and end such that needle is between [0, 1]
 const lerp = (start: number, end: number, needle: number) => {
   return start + needle * (end - start);
 };
