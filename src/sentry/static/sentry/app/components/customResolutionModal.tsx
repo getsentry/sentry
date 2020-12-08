@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal, {Body, Footer, Header} from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
@@ -70,8 +70,8 @@ class CustomResolutionModal extends React.Component<Props, State> {
     return (
       <Modal show={show} animation={false} onHide={onCanceled}>
         <form onSubmit={this.onSubmit}>
-          <Header>{t('Resolved In')}</Header>
-          <Body>
+          <Modal.Header>{t('Resolved In')}</Modal.Header>
+          <Modal.Body>
             <SelectAsyncField
               deprecatedSelectControl
               label={t('Version')}
@@ -83,15 +83,15 @@ class CustomResolutionModal extends React.Component<Props, State> {
               onResults={this.onAsyncFieldResults}
               onQuery={query => ({query})}
             />
-          </Body>
-          <Footer>
+          </Modal.Body>
+          <Modal.Footer>
             <Button type="button" css={{marginRight: space(1.5)}} onClick={onCanceled}>
               {t('Cancel')}
             </Button>
             <Button type="submit" priority="primary">
               {t('Save Changes')}
             </Button>
-          </Footer>
+          </Modal.Footer>
         </form>
       </Modal>
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
