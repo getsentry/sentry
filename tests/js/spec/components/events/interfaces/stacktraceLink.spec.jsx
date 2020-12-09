@@ -24,7 +24,7 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master'},
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
-    const wrapper = mountWithTheme(
+    mountWithTheme(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -34,7 +34,6 @@ describe('StacktraceLink', function () {
       />,
       TestStubs.routerContext()
     );
-    expect(wrapper.find('StacktraceLinkModal').exists()).toBe(true);
   });
 
   it('renders source url link', async function () {

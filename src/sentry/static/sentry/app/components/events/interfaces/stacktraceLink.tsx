@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
@@ -131,7 +132,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     }
   }
 
-  onClose() {
+  handleSubmit() {
     this.reloadData();
   }
 
@@ -151,13 +152,29 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 
     if (this.project && this.integrations.length > 0 && filename) {
       return (
-        <StacktraceLinkModal
-          filename={filename}
-          project={this.project}
-          organization={organization}
-          integrations={this.integrations}
-          onClose={() => this.onClose()}
-        />
+        <CodeMappingButtonContainer columnQuantity={2}>
+          {t('Enable source code stack trace linking by setting up a code mapping.')}
+          <Button
+            onClick={() =>
+              openModal(
+                deps =>
+                  this.project && (
+                    <StacktraceLinkModal
+                      onSubmit={() => this.handleSubmit()}
+                      filename={filename}
+                      project={this.project}
+                      organization={organization}
+                      integrations={this.integrations}
+                      {...deps}
+                    />
+                  )
+              )
+            }
+            size="xsmall"
+          >
+            {t('Setup Stack Trace Linking')}
+          </Button>
+        </CodeMappingButtonContainer>
       );
     }
     return null;
@@ -193,11 +210,12 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {config, sourceUrl} = this.match || {};
     if (config && sourceUrl) {
       return this.renderMatchWithUrl(config, sourceUrl);
-    } else if (config) {
-      return this.renderMatchNoUrl();
-    } else {
-      return this.renderNoMatch();
     }
+    if (config) {
+      return this.renderMatchNoUrl();
+    }
+
+    return this.renderNoMatch();
   }
 }
 
