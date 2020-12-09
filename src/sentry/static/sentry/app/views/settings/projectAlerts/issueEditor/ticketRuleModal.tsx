@@ -1,42 +1,60 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
-import set from 'lodash/set';
 import * as queryString from 'query-string';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExternalIssueForm';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IssueConfigField} from 'app/types';
+import {IssueConfigField, Organization} from 'app/types';
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = ModalRenderProps & {
   formFields: {[key: string]: any};
+  index: number;
   instance: IssueAlertRuleAction | IssueAlertRuleCondition;
   link?: string;
-  ticketType?: string;
   onSubmitAction: (
     data: {[key: string]: string},
     dynamicFieldChoices: {[key: string]: string[]}
   ) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
-  index: number;
-};
+  organization: Organization;
+  ticketType?: string;
+} & AbstractExternalIssueForm['props'];
 
 type State = {
   dynamicFieldChoices: {[key: string]: string[]};
-};
+} & AbstractExternalIssueForm['state'];
 
-class TicketRuleModal extends React.Component<Props, State> {
-  state: State = {
-    dynamicFieldChoices: {},
-  };
+class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
+  constructor(props: Props, context: any) {
+    super(props, context);
+  }
+
+  getDefaultState(): State {
+    return {
+      ...super.getDefaultState(),
+      dynamicFieldValues: {},
+      dynamicFieldChoices: {},
+    };
+  }
+
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {instance, organization} = this.props;
+    return [
+      [
+        'integrationDetails',
+        `/organizations/${organization.slug}/integrations/${instance.integration}/?action=create`,
+      ],
+    ];
+  }
 
   getNames = (): string[] => {
     const {formFields} = this.props;
@@ -48,6 +66,11 @@ class TicketRuleModal extends React.Component<Props, State> {
       }
     }
     return names;
+  };
+
+  getEndPointString = () => {
+    const {instance, organization} = this.props;
+    return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
   };
 
   cleanData = (data: {
@@ -75,12 +98,13 @@ class TicketRuleModal extends React.Component<Props, State> {
 
   onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e) => {
     const {onSubmitAction, closeModal} = this.props;
+    const {dynamicFieldChoices} = this.state;
 
     e.preventDefault();
     e.stopPropagation();
 
     const formData = this.cleanData(data);
-    onSubmitAction(formData, this.state.dynamicFieldChoices);
+    onSubmitAction(formData, dynamicFieldChoices);
     addSuccessMessage(t('Changes applied.'));
     closeModal();
   };
@@ -114,29 +138,17 @@ class TicketRuleModal extends React.Component<Props, State> {
     {trailing: true}
   );
 
-  getOptions = (field: IssueConfigField, input: string) =>
-    new Promise((resolve, reject) => {
-      if (!input) {
-        const choices =
-          (field.choices as Array<[number | string, number | string]>) || [];
-        const options = choices.map(([value, label]) => ({value, label}));
-        return resolve({options});
-      }
+  getFormProps = (): Form['props'] => {
+    const {closeModal} = this.props;
 
-      return this.debouncedOptionLoad(field, input, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
-          this.setState(prevState => {
-            const newState = cloneDeep(prevState);
-            set(newState, `dynamicFieldChoices[${field.name}]`, dynamicFieldChoices);
-            return newState;
-          });
-          resolve(result);
-        }
-      });
-    });
+    return {
+      ...this.getDefaultFormProps(),
+      cancelLabel: t('Close'),
+      onCancel: closeModal,
+      onSubmit: this.onFormSubmit,
+      submitLabel: t('Apply Changes'),
+    };
+  };
 
   getFieldProps = (field: IssueConfigField) =>
     field.url
@@ -170,16 +182,23 @@ class TicketRuleModal extends React.Component<Props, State> {
     fields.unshift(title);
   };
 
-  render() {
-    const {Header, Body, formFields, closeModal, link, ticketType, instance} = this.props;
-
-    const text = t(
-      'When this alert is triggered %s will be created with the following fields. ',
-      ticketType
+  renderBodyText = () => {
+    const {ticketType, link} = this.props;
+    return (
+      <BodyText>
+        {t(
+          'When this alert is triggered a %s will be created with the following fields. ',
+          ticketType
+        )}
+        {tct("It'll also [linkToDocs] with the new Sentry Issue.", {
+          linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
+        })}
+      </BodyText>
     );
+  };
 
-    const submitLabel = t('Apply Changes');
-    const cancelLabel = t('Close');
+  render() {
+    const {formFields, instance} = this.props;
     const fields = Object.values(formFields);
     this.addFields(fields);
     const initialData = instance || {};
@@ -191,40 +210,7 @@ class TicketRuleModal extends React.Component<Props, State> {
       }
     });
 
-    return (
-      <React.Fragment>
-        <Header closeButton>{t('Issue Link Settings')}</Header>
-        <Body>
-          <BodyText>
-            {text}
-            {tct("It'll also [linkToDocs] with the new Sentry Issue.", {
-              linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-            })}
-          </BodyText>
-          <Form
-            onSubmit={this.onFormSubmit}
-            initialData={initialData}
-            submitLabel={submitLabel}
-            cancelLabel={cancelLabel}
-            footerClass="modal-footer"
-            onCancel={closeModal}
-          >
-            {fields
-              .filter((field: FormField) => field.hasOwnProperty('name'))
-              .map((field: IssueConfigField) => (
-                <FieldFromConfig
-                  key={`${field.name}-${field.default}-${field.required}`}
-                  field={field}
-                  inline={false}
-                  stacked
-                  flexibleControlStateSize
-                  {...this.getFieldProps(field)}
-                />
-              ))}
-          </Form>
-        </Body>
-      </React.Fragment>
-    );
+    return this.renderForm(fields, instance);
   }
 }
 
