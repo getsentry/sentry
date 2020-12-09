@@ -150,7 +150,11 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 
   remove(itemId) {
-    this.items = this.items.filter(item => item.id !== itemId);
+    this.items.forEach((item, idx) => {
+      if (item.id === itemId) {
+        this.items.splice(idx, idx + 1);
+      }
+    });
 
     this.trigger(new Set([itemId]));
   },
