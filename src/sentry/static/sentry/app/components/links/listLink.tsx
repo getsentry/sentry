@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -8,6 +9,7 @@ import PropTypes from 'prop-types';
 type DefaultProps = {
   index: boolean;
   activeClassName: string;
+  disabled: boolean;
 };
 
 type Props = DefaultProps &
@@ -29,6 +31,7 @@ class ListLink extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     activeClassName: 'active',
     index: false,
+    disabled: false,
   };
 
   isActive = () => {
@@ -53,17 +56,31 @@ class ListLink extends React.Component<Props> {
   };
 
   render() {
-    const {index, children} = this.props;
+    const {index, children, to, disabled} = this.props;
     const carriedProps = omit(this.props, 'activeClassName', 'isActive', 'index');
 
     return (
       <li className={this.getClassName()}>
-        <Link {...carriedProps} onlyActiveOnIndex={index}>
+        <StyledLink {...carriedProps} onlyActiveOnIndex={index} to={disabled ? '' : to}>
           {children}
-        </Link>
+        </StyledLink>
       </li>
     );
   }
 }
 
 export default ListLink;
+
+const StyledLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'disabled',
+})<{disabled?: boolean}>`
+  ${p =>
+    p.disabled &&
+    `
+  color:${p.theme.disabled} !important;
+  pointer-events: none;
+  :hover {
+    color: ${p.theme.disabled} !important;
+  }
+  `};
+`;

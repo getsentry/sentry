@@ -241,39 +241,40 @@ class GroupHeader extends React.Component<Props, State> {
             <StyledListLink
               to={`${baseUrl}attachments/${location.search}`}
               isActive={() => currentTab === TAB.ATTACHMENTS}
+              disabled={isReprocessing}
             >
               {t('Attachments')}
             </StyledListLink>
           )}
-          {!isReprocessing && (
-            <React.Fragment>
-              <StyledListLink
-                to={`${baseUrl}tags/${location.search}`}
-                isActive={() => currentTab === TAB.TAGS}
-              >
-                {t('Tags')}
-              </StyledListLink>
-              <StyledListLink
-                to={eventRouteToObject}
-                isActive={() => currentTab === 'events'}
-              >
-                {t('Events')}
-              </StyledListLink>
-              <StyledListLink
-                to={`${baseUrl}merged/${location.search}`}
-                isActive={() => currentTab === TAB.MERGED}
-              >
-                {t('Merged Issues')}
-              </StyledListLink>
-              {hasSimilarView && (
-                <StyledListLink
-                  to={`${baseUrl}similar/${location.search}`}
-                  isActive={() => currentTab === TAB.SIMILAR_ISSUES}
-                >
-                  {t('Similar Issues')}
-                </StyledListLink>
-              )}
-            </React.Fragment>
+          <StyledListLink
+            to={`${baseUrl}tags/${location.search}`}
+            isActive={() => currentTab === TAB.TAGS}
+            disabled={isReprocessing}
+          >
+            {t('Tags')}
+          </StyledListLink>
+          <StyledListLink
+            to={eventRouteToObject}
+            isActive={() => currentTab === 'events'}
+            disabled={isReprocessing}
+          >
+            {t('Events')}
+          </StyledListLink>
+          <StyledListLink
+            to={`${baseUrl}merged/${location.search}`}
+            isActive={() => currentTab === TAB.MERGED}
+            disabled={isReprocessing}
+          >
+            {t('Merged Issues')}
+          </StyledListLink>
+          {hasSimilarView && (
+            <StyledListLink
+              to={`${baseUrl}similar/${location.search}`}
+              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+              disabled={isReprocessing}
+            >
+              {t('Similar Issues')}
+            </StyledListLink>
           )}
         </NavTabs>
       </div>
