@@ -30,7 +30,6 @@ describe('IssueList', function () {
   let organization;
   let project;
   let group;
-  let groupStats;
   let savedSearch;
 
   let fetchTagsRequest;
@@ -67,11 +66,6 @@ describe('IssueList', function () {
       headers: {
         Link: DEFAULT_LINKS_HEADER,
       },
-    });
-    groupStats = TestStubs.GroupStats();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-stats/',
-      body: [groupStats],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
@@ -1269,7 +1263,7 @@ describe('IssueList', function () {
         '/organizations/org-slug/issues/',
         expect.objectContaining({
           data:
-            'collapse=stats&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+            'limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });

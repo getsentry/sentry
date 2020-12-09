@@ -99,9 +99,9 @@ class HeaderItem extends React.Component<Props> {
           <StyledClose {...textColorProps} onClick={this.handleClear} />
         )}
         {!locked && !loading && (
-          <StyledChevron isOpen={isOpen}>
+          <StyledChevron>
             <IconChevron
-              direction="down"
+              direction={isOpen ? 'up' : 'down'}
               color={isOpen ? 'gray500' : 'gray300'}
               size="sm"
             />
@@ -183,10 +183,7 @@ const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorPro
   margin: -${space(1)} 0px -${space(1)} -${space(1)};
 `;
 
-type StyledChevronProps = Pick<ColorProps, 'isOpen'>;
-const StyledChevron = styled('div')<StyledChevronProps>`
-  transform: rotate(${p => (p.isOpen ? '180deg' : '0deg')});
-  transition: 0.1s all;
+const StyledChevron = styled('div')`
   width: ${space(2)};
   height: ${space(2)};
   display: flex;
