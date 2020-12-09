@@ -1665,18 +1665,15 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 
-def get_sentry_sdk_config():
-    return {
-        "release": sentry.__build__,
-        "environment": ENVIRONMENT,
-        "in_app_include": ["sentry", "sentry_plugins"],
-        "_experiments": {"smart_transaction_trimming": True},
-        "debug": True,
-        "send_default_pii": True,
-    }
-
-
-SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+SENTRY_SDK_CONFIG = {
+    "release": sentry.__build__,
+    "environment": ENVIRONMENT,
+    "in_app_include": ["sentry", "sentry_plugins"],
+    "_experiments": {"smart_transaction_trimming": True},
+    "debug": True,
+    "send_default_pii": True,
+    "auto_enabling_integrations": False,
+}
 
 # Callable to bind additional context for the Sentry SDK
 #
