@@ -219,68 +219,72 @@ class GroupHeader extends React.Component<Props, State> {
         />
         <GroupActions group={group} project={project} disabled={isReprocessing} />
         <NavTabs>
-          <StyledListLink
+          <ListLink
             to={`${baseUrl}${location.search}`}
             isActive={() => currentTab === TAB.DETAILS}
           >
             {t('Details')}
-          </StyledListLink>
-          <StyledListLink
+          </ListLink>
+          <ListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.COMMENTS}
           >
             {t('Activity')} <Badge text={group.numComments} />
-          </StyledListLink>
-          <StyledListLink
+          </ListLink>
+          <ListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
-          </StyledListLink>
+          </ListLink>
           {hasEventAttachments && (
-            <StyledListLink
+            <ListLink
               to={`${baseUrl}attachments/${location.search}`}
               isActive={() => currentTab === TAB.ATTACHMENTS}
               disabled={isReprocessing}
             >
               {t('Attachments')}
-            </StyledListLink>
+            </ListLink>
           )}
-          <StyledListLink
+          <ListLink
             to={`${baseUrl}tags/${location.search}`}
             isActive={() => currentTab === TAB.TAGS}
             disabled={isReprocessing}
           >
             {t('Tags')}
-          </StyledListLink>
-          <StyledListLink
+          </ListLink>
+          <ListLink
             to={eventRouteToObject}
             isActive={() => currentTab === 'events'}
             disabled={isReprocessing}
           >
             {t('Events')}
-          </StyledListLink>
-          <StyledListLink
+          </ListLink>
+          <ListLink
             to={`${baseUrl}merged/${location.search}`}
             isActive={() => currentTab === TAB.MERGED}
             disabled={isReprocessing}
           >
             {t('Merged Issues')}
-          </StyledListLink>
+          </ListLink>
           {hasSimilarView && (
-            <StyledListLink
+            <ListLink
               to={`${baseUrl}similar/${location.search}`}
               isActive={() => currentTab === TAB.SIMILAR_ISSUES}
               disabled={isReprocessing}
             >
               {t('Similar Issues')}
-            </StyledListLink>
+            </ListLink>
           )}
         </NavTabs>
       </div>
     );
   }
 }
+
+export {GroupHeader, TAB};
+
+export default withApi(GroupHeader);
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -294,19 +298,4 @@ const StyledProjectBadge = styled(ProjectBadge)`
 
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
-`;
-
-export {GroupHeader, TAB};
-
-export default withApi(GroupHeader);
-
-const StyledListLink = styled(ListLink)`
-  ${p =>
-    !p.to &&
-    `
-    &.active a, &.active a:focus &.active a:hover, a:hover, a.active {
-      color: #7c6a8e !important;
-      cursor: not-allowed !important;
-    }
-`}
 `;

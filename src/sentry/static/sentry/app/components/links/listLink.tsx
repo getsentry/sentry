@@ -56,31 +56,33 @@ class ListLink extends React.Component<Props> {
   };
 
   render() {
-    const {index, children, to, disabled} = this.props;
-    const carriedProps = omit(this.props, 'activeClassName', 'isActive', 'index');
+    const {index, children, to, disabled, ...props} = this.props;
+    const carriedProps = omit(props, 'activeClassName', 'isActive', 'index');
 
     return (
-      <li className={this.getClassName()}>
-        <StyledLink {...carriedProps} onlyActiveOnIndex={index} to={disabled ? '' : to}>
+      <StyledLi className={this.getClassName()} disabled={disabled}>
+        <Link {...carriedProps} onlyActiveOnIndex={index} to={disabled ? '' : to}>
           {children}
-        </StyledLink>
-      </li>
+        </Link>
+      </StyledLi>
     );
   }
 }
 
 export default ListLink;
 
-const StyledLink = styled(Link, {
+const StyledLi = styled('li', {
   shouldForwardProp: prop => prop !== 'disabled',
 })<{disabled?: boolean}>`
   ${p =>
     p.disabled &&
     `
-  color:${p.theme.disabled} !important;
-  pointer-events: none;
-  :hover {
-    color: ${p.theme.disabled} !important;
-  }
-  `};
+   a {
+    color:${p.theme.disabled} !important;
+    pointer-events: none;
+    :hover {
+      color: ${p.theme.disabled}  !important;
+    }
+   }
+`}
 `;
