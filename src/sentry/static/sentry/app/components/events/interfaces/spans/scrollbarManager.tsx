@@ -137,6 +137,7 @@ export class Provider extends React.Component<Props, State> {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.removeProperty('width');
       spanBarDOM.style.removeProperty('max-width');
+      spanBarDOM.style.removeProperty('overflow');
     });
 
     // Find the maximum content width. We set each content spanbar to be this maximum width,
@@ -162,6 +163,7 @@ export class Provider extends React.Component<Props, State> {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.width = `${maxContentWidth}px`;
       spanBarDOM.style.maxWidth = `${maxContentWidth}px`;
+      spanBarDOM.style.overflow = 'hidden';
     });
 
     this.scrollableSpanBar.forEach(currentSpanBarRef => {
