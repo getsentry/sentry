@@ -6,7 +6,7 @@ export function Project(params) {
     hasAccess: true,
     isMember: true,
     isBookmarked: false,
-    teams: [],
+    teams: [TestStubs.Team()],
     environments: [],
     ...params,
   };
