@@ -8,11 +8,14 @@ import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
-from sentry.utils.compat.mock import patch
+from sentry.utils.compat.mock import patch, ANY, call
 from requests.exceptions import RequestException
 
 from sentry import http, options
 from sentry.lang.javascript.processor import (
+    cache,
+    get_release_file_cache_key,
+    get_release_file_cache_key_meta,
     JavaScriptStacktraceProcessor,
     discover_sourcemap,
     fetch_sourcemap,
@@ -213,6 +216,124 @@ class FetchReleaseFileTest(TestCase):
         new_result = fetch_release_file("file.min.js", release)
 
         assert result == new_result
+
+    @patch("sentry.lang.javascript.processor.compress_file")
+    def test_compression(self, mock_compress_file):
+        """
+        For files larger than max memcached payload size we want to avoid
+        pointless compression and  caching attempt since it fails silently.
+
+        Tests scenarios:
+
+        - happy path where compressed file is successfully cached
+        - compressed payload is too large to cache and we will avoid
+          compression and caching while the metadata cache exists
+
+        """
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        filename = "file.min.js"
+        file = File.objects.create(
+            name=filename,
+            type="release.file",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+
+        binary_body = unicode_body.encode("utf-8")
+        file.putfile(six.BytesIO(binary_body))
+
+        ReleaseFile.objects.create(
+            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+        )
+
+        mock_compress_file.return_value = (binary_body, binary_body)
+
+        releasefile_ident = ReleaseFile.get_ident(filename, None)
+        cache_key = get_release_file_cache_key(
+            release_id=release.id, releasefile_ident=releasefile_ident
+        )
+        cache_key_meta = get_release_file_cache_key_meta(
+            release_id=release.id, releasefile_ident=releasefile_ident
+        )
+
+        fetch_release_file(filename, release)
+
+        # Here the ANY is File() retrieved from cache/db
+        assert mock_compress_file.mock_calls == [call(ANY)]
+        assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
+        assert cache.get(cache_key)
+
+        # Remove cache and check that calling fetch_release_file will do the
+        # compression and caching again
+
+        cache.set(cache_key, None)
+        mock_compress_file.reset_mock()
+
+        fetch_release_file(filename, release)
+
+        assert mock_compress_file.mock_calls == [call(ANY)]
+        assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
+        assert cache.get(cache_key)
+
+        # If the file is bigger than the max cache value threshold, avoid
+        # compression and caching
+        cache.set(cache_key, None)
+        mock_compress_file.reset_mock()
+        with patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", len(binary_body) - 1):
+            result = fetch_release_file(filename, release)
+
+        assert result == http.UrlResult(
+            filename,
+            {"content-type": "application/json; charset=utf-8"},
+            binary_body,
+            200,
+            "utf-8",
+        )
+
+        assert mock_compress_file.mock_calls == []
+        assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
+        assert cache.get(cache_key) is None
+
+        # If the file is bigger than the max cache value threshold, but the
+        # metadata cache is empty as well, compress and attempt to cache anyway
+        cache.set(cache_key, None)
+        cache.set(cache_key_meta, None)
+        mock_compress_file.reset_mock()
+        with patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", len(binary_body) - 1):
+            result = fetch_release_file(filename, release)
+
+        assert result == http.UrlResult(
+            filename,
+            {"content-type": "application/json; charset=utf-8"},
+            binary_body,
+            200,
+            "utf-8",
+        )
+
+        assert mock_compress_file.mock_calls == [call(ANY)]
+        assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
+        assert cache.get(cache_key)
+
+        # If the file is smaller than the max cache value threshold, but the
+        # cache is empty, compress and cache
+        cache.set(cache_key, None)
+        mock_compress_file.reset_mock()
+        with patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", len(binary_body) + 1):
+            result = fetch_release_file(filename, release)
+
+        assert result == http.UrlResult(
+            filename,
+            {"content-type": "application/json; charset=utf-8"},
+            binary_body,
+            200,
+            "utf-8",
+        )
+
+        assert mock_compress_file.mock_calls == [call(ANY)]
+        assert cache.get(cache_key_meta)["compressed_size"] == len(binary_body)
+        assert cache.get(cache_key)
 
 
 class FetchFileTest(TestCase):
