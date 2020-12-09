@@ -23,14 +23,22 @@ import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
-type Props = ModalRenderProps & {
-  api: Client;
+export type DashboardWidgetModalOptions = {
   organization: Organization;
   dashboard: DashboardDetails;
   selection: GlobalSelection;
+  widget?: Widget;
   onAddWidget: (data: Widget) => void;
-  tags: TagCollection;
+  onUpdateWidget?: (nextWidget: Widget) => void;
 };
+
+type Props = ModalRenderProps &
+  DashboardWidgetModalOptions & {
+    api: Client;
+    organization: Organization;
+    selection: GlobalSelection;
+    tags: TagCollection;
+  };
 
 type ValidationError = {
   [key: string]: string[] | ValidationError[] | ValidationError;
@@ -75,19 +83,44 @@ function mapErrors(
 }
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
-  state: State = {
-    title: '',
-    displayType: 'line',
-    interval: '5m',
-    queries: [{...newQuery}],
-    errors: undefined,
-    loading: false,
-  };
+  constructor(props: Props) {
+    super(props);
+
+    const {widget} = props;
+
+    if (!widget) {
+      this.state = {
+        title: '',
+        displayType: 'line',
+        interval: '5m',
+        queries: [{...newQuery}],
+        errors: undefined,
+        loading: false,
+      };
+      return;
+    }
+
+    this.state = {
+      title: widget.title,
+      displayType: widget.displayType,
+      interval: widget.interval,
+      queries: widget.queries,
+      errors: undefined,
+      loading: false,
+    };
+  }
 
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, closeModal, organization, onAddWidget} = this.props;
+    const {
+      api,
+      closeModal,
+      organization,
+      onAddWidget,
+      onUpdateWidget,
+      widget: previousWidget,
+    } = this.props;
     this.setState({loading: true});
     try {
       const widgetData: Widget = pick(this.state, [
@@ -97,8 +130,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         'queries',
       ]);
       await validateWidget(api, organization.slug, widgetData);
-      onAddWidget(widgetData);
-      addSuccessMessage(t('Added widget.'));
+
+      if (typeof onUpdateWidget === 'function' && !!previousWidget) {
+        onUpdateWidget({
+          id: previousWidget?.id,
+          ...widgetData,
+        });
+        addSuccessMessage(t('Updated widget.'));
+      } else {
+        onAddWidget(widgetData);
+        addSuccessMessage(t('Added widget.'));
+      }
+
       closeModal();
     } catch (err) {
       const errors = mapErrors(err?.responseJSON ?? {}, {});
@@ -144,6 +187,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       organization,
       selection,
       tags,
+      onUpdateWidget,
+      widget: previousWidget,
     } = this.props;
     const state = this.state;
     const errors = state.errors;
@@ -155,10 +200,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       measurementKeys: [],
     });
 
+    const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
+
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          <h2>{t('Add Widget')}</h2>
+          <h2>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h2>
         </Header>
         <Body>
           <Field
@@ -220,6 +267,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             organization={organization}
             selection={selection}
             widget={this.state}
+            isEditing={false}
+            onDelete={() => undefined}
+            onEdit={() => undefined}
           />
         </Body>
         <Footer>
@@ -238,7 +288,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               disabled={state.loading}
               busy={state.loading}
             >
-              {t('Add Widget')}
+              {isUpdatingWidget ? t('Update Widget') : t('Add Widget')}
             </Button>
           </ButtonBar>
         </Footer>
