@@ -132,11 +132,13 @@ class StreamGroup extends React.Component<Props, State> {
 
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
-      const collapse =
-        this.props.query === 'is:inbox is:unresolved' &&
-        !!state.data.inbox?.reason &&
-        data.inbox === false;
-      return {data, reviewed: collapse};
+      // On the inbox tab and the inbox reason is removed
+      const reviewed =
+        state.reviewed ||
+        (this.props.query === 'is:inbox is:unresolved' &&
+          state.data.inbox?.reason !== undefined &&
+          data.inbox === false);
+      return {data, reviewed};
     });
   }
 

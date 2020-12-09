@@ -249,9 +249,9 @@ class ResolveActions extends React.Component<Props, State> {
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
           {hasInbox ? (
             <div style={{width: '100%'}}>
-              <li className="dropdown-submenu flex expand-left">
+              <div className="dropdown-submenu flex expand-left">
                 {this.renderDropdownMenu()}
-              </li>
+              </div>
             </div>
           ) : (
             <div className="btn-group">
