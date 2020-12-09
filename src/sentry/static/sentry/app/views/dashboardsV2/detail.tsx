@@ -1,8 +1,6 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, PlainRoute, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -27,17 +25,19 @@ import Title from './title';
 import {DashboardListItem, DashboardState, OrgDashboardResponse, Widget} from './types';
 import {cloneDashboard} from './utils';
 
+const UNSAVED_MESSAGE = t('You have unsaved changes are you sure you want to leave?');
+
 type Props = {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
-};
+  route: PlainRoute;
+} & WithRouterProps<{orgId: string; dashboardId: string}, {}>;
 
 type State = {
   dashboardState: DashboardState;
   changesDashboard: DashboardListItem | undefined;
 };
+
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
     dashboardState: 'view',
@@ -60,6 +60,32 @@ class DashboardDetail extends React.Component<Props, State> {
 
     return state;
   }
+
+  componentDidMount() {
+    const {route, router} = this.props;
+    router.setRouteLeaveHook(route, this.onRouteLeave);
+    window.addEventListener('beforeunload', this.onUnload);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  onRouteLeave = (): string | undefined => {
+    if (this.state.dashboardState !== 'view') {
+      return UNSAVED_MESSAGE;
+    }
+    // eslint-disable-next-line consistent-return
+    return;
+  };
+
+  onUnload = (event: BeforeUnloadEvent) => {
+    if (this.state.dashboardState === 'view') {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = UNSAVED_MESSAGE;
+  };
 
   onEdit = (dashboard: DashboardListItem) => () => {
     this.setState({
@@ -260,4 +286,4 @@ const StyledPageHeader = styled('div')`
   white-space: nowrap;
 `;
 
-export default withOrganization(withApi(DashboardDetail));
+export default withApi(withOrganization(DashboardDetail));

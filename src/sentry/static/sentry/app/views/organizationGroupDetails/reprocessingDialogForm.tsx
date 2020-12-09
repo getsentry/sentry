@@ -9,7 +9,7 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 
 const impacts = [
   tct(
@@ -32,16 +32,31 @@ const impacts = [
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   group: Group;
+  project: Project;
   orgSlug: Organization['slug'];
 };
 
-function ReprocessingDialogForm({orgSlug, group, Header, Body, closeModal}: Props) {
-  const title = t('Reprocess Events');
+function ReprocessingDialogForm({
+  orgSlug,
+  group,
+  project,
+  Header,
+  Body,
+  closeModal,
+}: Props) {
   const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
+  const title = t('Reprocess Events');
 
   function handleSuccess() {
+    const hasReprocessingV2Feature = !!project.features?.includes('reprocessing-v2');
+
+    if (hasReprocessingV2Feature) {
+      window.location.reload();
+      return;
+    }
+
     browserHistory.push(
-      `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${group.id}`
+      `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${group.id}/`
     );
   }
 
