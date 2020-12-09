@@ -860,8 +860,10 @@ export enum GroupActivityType {
 type GroupActivityBase = {
   dateCreated: string;
   id: string;
+  project: Project;
   user?: null | User;
   assignee?: string;
+  issue?: Group;
 };
 
 type GroupActivityNote = GroupActivityBase & {
@@ -1021,6 +1023,8 @@ export type GroupActivity =
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
   | GroupActivityCreateIssue;
+
+export type Activity = GroupActivity;
 
 // TODO(ts): incomplete
 export type Group = GroupFiltered & {
@@ -1801,16 +1805,6 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
-
-export type Activity = {
-  data: any;
-  dateCreated: string;
-  type: string;
-  id: string;
-  project: Project;
-  issue?: Group;
-  user?: User;
-};
 
 export type PlatformIntegration = {
   id: string;
