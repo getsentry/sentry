@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.integrations.jira.utils import (
     transform_jira_fields_to_form_fields,
     transform_jira_choices_to_strings,
+    get_name_for_jira,
 )
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
@@ -16,7 +17,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
-from .utils import get_name_for_jira
 
 logger = logging.getLogger("sentry.rules")
 
