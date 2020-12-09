@@ -269,14 +269,10 @@ describe('EventsErrors', function () {
       await tick();
       wrapper.update();
 
-      chartRender = jest.spyOn(wrapper.find('AreaChart').instance(), 'render');
-
       doZoom(wrapper.find('EventsChart').first(), chart);
       await tick();
       wrapper.update();
 
-      // After zooming, line chart should re-render once, but table does
-      expect(chartRender).toHaveBeenCalledTimes(1);
       expect(tableRender).toHaveBeenCalledTimes(2);
 
       newParams = {

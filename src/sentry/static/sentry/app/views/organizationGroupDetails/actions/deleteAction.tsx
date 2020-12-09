@@ -32,7 +32,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
     });
   }
 
-  function renderDiscardModal({Body, closeModal}: ModalRenderProps) {
+  function renderDiscardModal({Body, Footer, closeModal}: ModalRenderProps) {
     return (
       <Feature
         features={['projects:discard-groups']}
@@ -51,7 +51,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
                 `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
               )}
             </Body>
-            <div className="modal-footer">
+            <Footer>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
                 style={{marginLeft: space(1)}}
@@ -61,7 +61,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
               >
                 {t('Discard Future Events')}
               </Button>
-            </div>
+            </Footer>
           </React.Fragment>
         )}
       </Feature>

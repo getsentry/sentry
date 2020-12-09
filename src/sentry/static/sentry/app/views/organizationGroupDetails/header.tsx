@@ -241,6 +241,7 @@ class GroupHeader extends React.Component<Props, State> {
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
               isActive={() => currentTab === TAB.ATTACHMENTS}
+              disabled={isReprocessing}
             >
               {t('Attachments')}
             </ListLink>
@@ -248,15 +249,21 @@ class GroupHeader extends React.Component<Props, State> {
           <ListLink
             to={`${baseUrl}tags/${location.search}`}
             isActive={() => currentTab === TAB.TAGS}
+            disabled={isReprocessing}
           >
             {t('Tags')}
           </ListLink>
-          <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
+          <ListLink
+            to={eventRouteToObject}
+            isActive={() => currentTab === 'events'}
+            disabled={isReprocessing}
+          >
             {t('Events')}
           </ListLink>
           <ListLink
             to={`${baseUrl}merged/${location.search}`}
             isActive={() => currentTab === TAB.MERGED}
+            disabled={isReprocessing}
           >
             {t('Merged Issues')}
           </ListLink>
@@ -264,6 +271,7 @@ class GroupHeader extends React.Component<Props, State> {
             <ListLink
               to={`${baseUrl}similar/${location.search}`}
               isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+              disabled={isReprocessing}
             >
               {t('Similar Issues')}
             </ListLink>
@@ -273,6 +281,10 @@ class GroupHeader extends React.Component<Props, State> {
     );
   }
 }
+
+export {GroupHeader, TAB};
+
+export default withApi(GroupHeader);
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -287,7 +299,3 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
-
-export {GroupHeader, TAB};
-
-export default withApi(GroupHeader);
