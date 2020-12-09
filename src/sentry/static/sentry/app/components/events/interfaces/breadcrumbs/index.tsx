@@ -28,8 +28,6 @@ import {
   BreadcrumbType,
 } from './types';
 
-const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
-
 type FilterProps = React.ComponentProps<typeof Filter>;
 type FilterOptions = FilterProps['options'];
 
