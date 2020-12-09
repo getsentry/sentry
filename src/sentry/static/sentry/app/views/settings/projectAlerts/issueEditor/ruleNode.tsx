@@ -287,7 +287,7 @@ class RuleNode extends React.Component<Props> {
       this.props.onPropertyChange(this.props.index, name, value);
 
       // We only know the choices after the form loads.
-      if (name in ['assignee', 'reporter'] && dynamicFieldChoices[name]) {
+      if (['assignee', 'reporter'].includes(name) && dynamicFieldChoices[name]) {
         const dynamicFormFieldsCopy: any = this.props.node?.formFields || {};
         // Overwrite the choices because the user's pick is in this list.
         dynamicFormFieldsCopy[name].choices = dynamicFieldChoices[name];
