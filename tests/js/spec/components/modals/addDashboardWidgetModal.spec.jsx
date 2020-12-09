@@ -185,6 +185,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         widget = data;
       },
     });
+    // Choose existing query source
+    wrapper.find('RadioGroup input[aria-label="existing"]').simulate('change');
+    await wrapper.update();
 
     openMenu(wrapper, {name: 'discoverQuery', control: true});
 
