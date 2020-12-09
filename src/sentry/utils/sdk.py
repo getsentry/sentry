@@ -179,6 +179,7 @@ def configure_sdk():
 
     sentry_sdk.init(
         transport=MultiplexingTransport(),
+        auto_enabling_integrations=False,
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
