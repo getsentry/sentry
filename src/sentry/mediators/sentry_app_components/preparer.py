@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.utils.encoding import force_str
+
 from six.moves.urllib.parse import urlparse, urlencode, urlunparse
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests import SelectRequester
@@ -20,7 +22,7 @@ class Preparer(Mediator):
         schema = self.component.schema
         uri = schema.get("uri")
 
-        urlparts = list(urlparse(self.install.sentry_app.webhook_url))
+        urlparts = list(urlparse(force_str(self.install.sentry_app.webhook_url)))
         urlparts[2] = uri
 
         query = {"installationId": self.install.uuid}

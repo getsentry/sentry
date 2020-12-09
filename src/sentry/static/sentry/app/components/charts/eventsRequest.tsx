@@ -148,6 +148,7 @@ type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
+  fetchedWithPrevious: boolean;
 };
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
@@ -207,6 +208,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     reloading: !!this.props.loading,
     errored: false,
     timeseriesData: null,
+    fetchedWithPrevious: false,
   };
 
   componentDidMount() {
@@ -260,6 +262,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.setState({
       reloading: false,
       timeseriesData,
+      fetchedWithPrevious: props.includePrevious,
     });
   };
 
@@ -273,9 +276,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   getData = (
     data: EventsStatsData
   ): {previous: EventsStatsData | null; current: EventsStatsData} => {
+    const {fetchedWithPrevious} = this.state;
     const {period, includePrevious} = this.props;
 
-    const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
+    const hasPreviousPeriod =
+      fetchedWithPrevious || canIncludePreviousPeriod(includePrevious, period);
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(data.length / 2);
     return {

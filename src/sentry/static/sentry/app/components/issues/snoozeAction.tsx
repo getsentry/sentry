@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
@@ -64,7 +64,7 @@ class SnoozeAction extends React.Component<SnoozeActionProps> {
           onHide={this.closeModal}
           bsSize="sm"
         >
-          <div className="modal-body">
+          <Modal.Body>
             <h5>{t('How long should we ignore this issue?')}</h5>
             <ul className="nav nav-stacked nav-pills">
               <li>
@@ -87,12 +87,12 @@ class SnoozeAction extends React.Component<SnoozeActionProps> {
                 <a onClick={this.onSnooze.bind(this, undefined)}>{t('Forever')}</a>
               </li>
             </ul>
-          </div>
-          <div className="modal-footer">
+          </Modal.Body>
+          <Modal.Footer>
             <button type="button" className="btn btn-default" onClick={this.closeModal}>
               {t('Cancel')}
             </button>
-          </div>
+          </Modal.Footer>
         </Modal>
       </React.Fragment>
     );

@@ -75,6 +75,8 @@ CACHE_CONTROL_MIN = 60
 # fetched
 MAX_RESOURCE_FETCHES = 100
 
+CACHE_MAX_VALUE_SIZE = settings.SENTRY_CACHE_MAX_VALUE_SIZE
+
 logger = logging.getLogger(__name__)
 
 
@@ -212,6 +214,14 @@ def discover_sourcemap(result):
     return force_text(sourcemap) if sourcemap is not None else None
 
 
+def get_release_file_cache_key(release_id, releasefile_ident):
+    return "releasefile:v1:%s:%s" % (release_id, releasefile_ident)
+
+
+def get_release_file_cache_key_meta(release_id, releasefile_ident):
+    return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -220,7 +230,17 @@ def fetch_release_file(filename, release, dist=None):
     """
 
     dist_name = dist and dist.name or None
-    cache_key = "releasefile:v1:%s:%s" % (release.id, ReleaseFile.get_ident(filename, dist_name))
+    releasefile_ident = ReleaseFile.get_ident(filename, dist_name)
+    cache_key = get_release_file_cache_key(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
+    # Cache key to store file metadata, currently only the size of the
+    # compressed version of file. We cannot use the cache_key because large
+    # payloads (silently) fail to cache due to e.g. memcached payload size
+    # limitation and we use the meta data to avoid compression of such a files.
+    cache_key_meta = get_release_file_cache_key_meta(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
@@ -258,13 +278,27 @@ def fetch_release_file(filename, release, dist=None):
                 (rf for ident in filename_idents for rf in possible_files if rf.ident == ident)
             )
 
+        # If the release file is not in cache, check if we can retrieve at
+        # least the size metadata from cache and prevent compression and
+        # caching if payload exceeds the backend limit.
+        z_body = None
+        z_body_size = None
+
+        if CACHE_MAX_VALUE_SIZE:
+            cache_meta = cache.get(cache_key_meta)
+            if cache_meta:
+                z_body_size = int(cache_meta.get("compressed_size"))
+
         logger.debug(
             "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
         )
         try:
             with metrics.timer("sourcemaps.release_file_read"):
                 with ReleaseFile.cache.getfile(releasefile) as fp:
-                    z_body, body = compress_file(fp)
+                    if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
+                        body = fp.read()
+                    else:
+                        z_body, body = compress_file(fp)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None
@@ -272,9 +306,19 @@ def fetch_release_file(filename, release, dist=None):
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
             result = http.UrlResult(filename, headers, body, 200, encoding)
-            # This will implicitly skip too large payloads. Those will be cached
-            # on the file system by `ReleaseFile.cache`, instead.
-            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+
+            # If we don't have the compressed body for caching because the
+            # cached metadata said it is too large payload for the cache
+            # backend, do not attempt to cache.
+            if z_body:
+                # This will implicitly skip too large payloads. Those will be cached
+                # on the file system by `ReleaseFile.cache`, instead.
+                cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+
+                # In case the previous call to cache implicitly fails, we use
+                # the meta data to avoid pointless compression which is done
+                # only for caching.
+                cache.set(cache_key_meta, {"compressed_size": len(z_body)}, 3600)
 
     # in the cache as an unsuccessful attempt
     elif result == -1:

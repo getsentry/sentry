@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
@@ -18,6 +18,8 @@ import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = {
   formFields: {[key: string]: any};
+  link?: string;
+  ticketType?: string;
   instance?: IssueAlertRuleAction | IssueAlertRuleCondition;
   onSubmitAction: (data: {[key: string]: string}) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
@@ -63,23 +65,17 @@ class TicketRuleForm extends React.Component<Props, State> {
   cleanData = (data: {
     [key: string]: string;
   }): {
-    jira_integration?: any;
-    vsts_integration?: any;
+    integration?: string | number;
     [key: string]: any;
   } => {
     const names: string[] = this.getNames();
     const formData: {
-      jira_integration?: any;
-      vsts_integration?: any;
+      integration?: string | number;
       [key: string]: any;
     } = {};
-    if (this.props.instance?.hasOwnProperty('jira_integration')) {
-      formData.jira_integration = this.props.instance?.jira_integration;
+    if (this.props.instance?.hasOwnProperty('integration')) {
+      formData.integration = this.props.instance?.integration;
     }
-    if (this.props.instance?.hasOwnProperty('vsts_integration')) {
-      formData.vsts_integration = this.props.instance?.vsts_integration;
-    }
-
     for (const [key, value] of Object.entries(data)) {
       if (names.includes(key)) {
         formData[key] = value;
@@ -158,20 +154,6 @@ class TicketRuleForm extends React.Component<Props, State> {
         }
       : {};
 
-  buildText = (): {
-    ticketType: string;
-    link: string;
-  } => {
-    return {
-      ticketType: this.props.instance?.hasOwnProperty('jira_integration')
-        ? 'Jira issue'
-        : 'Azure DevOps work item',
-      link: this.props.instance?.hasOwnProperty('jira_integration')
-        ? 'https://docs.sentry.io/product/integrations/jira/#issue-sync'
-        : 'https://docs.sentry.io/product/integrations/azure-devops/#issue-sync',
-    };
-  };
-
   addFields = (formFields: FormField[]): void => {
     const title = {
       name: 'title',
@@ -192,9 +174,10 @@ class TicketRuleForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {ticketType, link} = this.buildText();
+    const {ticketType, link} = this.props;
+
     const text = t(
-      'When this alert is triggered a %s will be created with the following fields. ',
+      'When this alert is triggered %s will be created with the following fields. ',
       ticketType
     );
     const submitLabel = t('Apply Changes');

@@ -637,3 +637,63 @@ class CombinedQuerysetPaginator(object):
             is_desc=self.desc,
             on_results=self.on_results,
         )
+
+
+class ChainPaginator(object):
+    """
+    Chain multiple datasources together and paginate them as one source.
+    The datasources should be provided in the order they should be used.
+
+    The `sources` should be a list of sliceable collections. It is also
+    assumed that sources have their data sorted already.
+    """
+
+    def __init__(self, sources, max_limit=MAX_LIMIT, max_offset=None, on_results=None):
+        self.sources = sources
+        self.max_limit = max_limit
+        self.max_offset = max_offset
+        self.on_results = on_results
+
+    def get_result(self, limit=100, cursor=None):
+        # offset is page #
+        # value is page limit
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        results = []
+        # Get an addition item so we can check for a next page.
+        remaining = limit + 1
+        for source in self.sources:
+            source_results = list(source[offset:remaining])
+            results.extend(source_results)
+            result_count = len(results)
+            if result_count == 0 and result_count < remaining:
+                # Advance the offset based on the rows we skipped.
+                offset = offset - len(source)
+            elif result_count > 0 and result_count < remaining:
+                # Start at the beginning of the next source
+                offset = 0
+                remaining = remaining - result_count
+            elif result_count >= limit:
+                break
+
+        next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        if next_cursor.has_results:
+            results.pop()
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)

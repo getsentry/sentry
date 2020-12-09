@@ -426,12 +426,12 @@ class IssueListActions extends React.Component<Props, State> {
               disabled={!anySelected}
               onAction={() => this.handleUpdate({inbox: false})}
               shouldConfirm={this.shouldConfirm('acknowledge')}
-              message={confirm('acknowledge', false)}
-              confirmLabel={label('acknowledge')}
-              title={t('Acknowledge')}
+              message={confirm('mark', false, ' as reviewed')}
+              confirmLabel={label('Mark', ' as reviewed')}
+              title={t('Mark Reviewed')}
             >
               <StyledIconIssues size="xs" />
-              {t('Acknowledge')}
+              {t('Mark Reviewed')}
             </StyledActionLink>
           </div>
         )}
@@ -632,11 +632,6 @@ class IssueListActions extends React.Component<Props, State> {
                 ),
               })}
             </ActionSetPlaceholder>
-            <TimesSpacerLabel className="hidden-xs hidden-sm">
-              <FirstSeenLastSeenHeader>
-                {t('Last Seen')} &nbsp;|&nbsp; {t('First Seen')}
-              </FirstSeenLastSeenHeader>
-            </TimesSpacerLabel>
           </React.Fragment>
         )}
         <GraphHeaderWrapper className="hidden-xs hidden-sm">
@@ -664,7 +659,7 @@ class IssueListActions extends React.Component<Props, State> {
           <IssueToolbarHeader>{t('Assignee')}</IssueToolbarHeader>
         </AssigneesLabel>
         {hasInbox && (
-          <ActionsLabel className="hidden-xs hidden-sm">
+          <ActionsLabel className="visible-lg">
             <IssueToolbarHeader>{t('Actions')}</IssueToolbarHeader>
           </ActionsLabel>
         )}
@@ -888,10 +883,6 @@ const EventsOrUsersLabel = styled(IssueToolbarHeader)`
   }
 `;
 
-const FirstSeenLastSeenHeader = styled(IssueToolbarHeader)`
-  white-space: nowrap;
-`;
-
 const AssigneesLabel = styled('div')`
   justify-content: flex-end;
   text-align: right;
@@ -903,14 +894,9 @@ const AssigneesLabel = styled('div')`
 const ActionsLabel = styled('div')`
   justify-content: flex-end;
   text-align: right;
-  width: 120px;
+  width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
-`;
-
-const TimesSpacerLabel = styled('div')`
-  width: 160px;
-  margin: 0 ${space(2)};
 `;
 
 // New icons are misaligned inside bootstrap buttons.

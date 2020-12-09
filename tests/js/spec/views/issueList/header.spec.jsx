@@ -9,7 +9,7 @@ describe('IssueListHeader', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader query="is:inbox is:unresolved" queryCount={1} />
     );
-    expect(wrapper.find('.active').text()).toBe('Unacknowledged (1)');
+    expect(wrapper.find('.active').text()).toBe('Needs Review (1)');
   });
 
   it("renders all tabs inactive when query doesn't match", () => {

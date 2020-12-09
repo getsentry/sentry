@@ -272,3 +272,6 @@ register("processing.can-use-scrubbers", default=True)
 #
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
+
+# Mock out integrations and services for tests
+register("mocks.jira", default=False)

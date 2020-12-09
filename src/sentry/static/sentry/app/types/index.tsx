@@ -827,6 +827,14 @@ export type SuggestedOwner = {
   date_added: string;
 };
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
 type GroupActivityData = {
   eventCount?: number;
   newGroupId?: number;
@@ -842,22 +850,8 @@ type GroupActivity = {
   user?: null | User;
 };
 
-type GroupFiltered = {
-  count: string;
-  stats: Record<string, TimeseriesValue[]>;
-  lastSeen: string;
-  firstSeen: string;
-  userCount: number;
-};
-
-export type GroupStats = GroupFiltered & {
-  lifetime?: GroupFiltered;
-  filtered: GroupFiltered | null;
-  id: string;
-};
-
 // TODO(ts): incomplete
-export type BaseGroup = {
+export type Group = GroupFiltered & {
   id: string;
   latestEvent: Event;
   activity: GroupActivity[];
@@ -886,18 +880,18 @@ export type BaseGroup = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: string;
+  status: 'reprocessing' | ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  filtered: GroupFiltered | null;
+  lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
   owners?: SuggestedOwner[] | null;
 };
-
-export type Group = BaseGroup & GroupStats;
 
 export type GroupTombstone = {
   id: string;
@@ -1542,6 +1536,8 @@ type Topvalue = {
   lastSeen: string;
   name: string;
   value: string;
+  // Might not actually exist.
+  query?: string;
 };
 
 export type TagWithTopValues = {
@@ -1590,6 +1586,7 @@ export type ResolutionStatusDetails = {
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
+  pendingEvents?: number;
 };
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
@@ -1637,8 +1634,8 @@ export type Activity = {
   dateCreated: string;
   type: string;
   id: string;
-  issue?: Group;
   project: Project;
+  issue?: Group;
   user?: User;
 };
 

@@ -5,7 +5,7 @@ import Reflux from 'reflux';
 import GroupActions from 'app/actions/groupActions';
 import {t} from 'app/locale';
 import IndicatorStore from 'app/stores/indicatorStore';
-import {Activity, BaseGroup, Group, GroupStats} from 'app/types';
+import {Activity, Group} from 'app/types';
 
 function showAlert(msg, type) {
   IndicatorStore.addMessage(msg, type, {
@@ -52,15 +52,15 @@ type Internals = {
 type GroupStoreInterface = Reflux.StoreDefinition & {
   init: () => void;
   reset: () => void;
-  loadInitialData: (items: BaseGroup[] | Group[]) => void;
-  add: (items: BaseGroup[] | Group[]) => void;
+  loadInitialData: (items: Group[]) => void;
+  add: (items: Group[]) => void;
   remove: (itemId: string) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
   hasStatus: (id: string, status: string) => boolean;
-  get: (id: string) => BaseGroup | Group | undefined;
+  get: (id: string) => Group | undefined;
   getAllItemIds: () => string[];
-  getAllItems: () => BaseGroup[] | Group[];
+  getAllItems: () => Group[];
   onAssignTo: (changeId: string, itemId: string, data: any) => void;
   onAssignToError: (changeId: string, itemId: string, error: Error) => void;
   onAssignToSuccess: (changeId: string, itemId: string, response: any) => void;
@@ -85,7 +85,6 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
     error: Error,
     silent: boolean
   ) => void;
-  onPopulateStats: (itemIds: string[], response: GroupStats[]) => void;
 };
 
 type GroupStore = Reflux.Store & GroupStoreInterface;
@@ -475,24 +474,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
       }
     });
     this.pendingChanges.remove(changeId);
-    this.trigger(new Set(itemIds));
-  },
-
-  onPopulateStats(itemIds: string[], response: GroupStats[]) {
-    // Organize stats by id
-    const groupStatsMap = response.reduce((map, stats) => {
-      map[stats.id] = stats;
-      return map;
-    }, {});
-
-    this.items.forEach((item, idx) => {
-      if (itemIds.includes(item.id)) {
-        this.items[idx] = {
-          ...item,
-          ...groupStatsMap[item.id],
-        };
-      }
-    });
     this.trigger(new Set(itemIds));
   },
 };
