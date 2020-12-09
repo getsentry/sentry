@@ -29,7 +29,7 @@ type Props = {
 
 type State = {
   showModal: boolean;
-  dynamicFieldChoices: any;
+  dynamicFieldChoices: {[key: string]: string[]};
 };
 
 class TicketRuleForm extends React.Component<Props, State> {
