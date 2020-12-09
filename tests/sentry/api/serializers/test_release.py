@@ -435,9 +435,11 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=user2, organization=project.organization)
-
         commit_author = CommitAuthor.objects.create(
             email="chrib@sentry.io", name="Chrib", organization_id=project.organization_id
+        )
+        CommitAuthor.objects.create(
+            email="chrib1@sentry.io", name="Chrib", organization_id=project.organization_id
         )
         commit_author2 = CommitAuthor.objects.create(
             email="alsochrib@sentry.io", name="Also Chrib", organization_id=project.organization_id
@@ -447,27 +449,27 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             organization_id=project.organization_id, authors=[commit_author]
         )
         assert len(users) == 1
-        assert users[six.text_type(user.id)]["email"] == user.email
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
         patched_serialize_base.call_count = 1
         users = get_users_for_authors(
             organization_id=project.organization_id, authors=[commit_author]
         )
         assert len(users) == 1
-        assert users[six.text_type(user.id)]["email"] == user.email
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
         patched_serialize_base.call_count = 1
         users = get_users_for_authors(
             organization_id=project.organization_id, authors=[commit_author, commit_author2]
         )
         assert len(users) == 2
-        assert users[six.text_type(user.id)]["email"] == user.email
-        assert users[six.text_type(user2.id)]["email"] == user2.email
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        assert users[six.text_type(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
         users = get_users_for_authors(
             organization_id=project.organization_id, authors=[commit_author, commit_author2]
         )
         assert len(users) == 2
-        assert users[six.text_type(user.id)]["email"] == user.email
-        assert users[six.text_type(user2.id)]["email"] == user2.email
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        assert users[six.text_type(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
 
 
