@@ -130,10 +130,11 @@ class Actions extends React.Component<Props, State> {
   };
 
   onReprocess = () => {
-    const {group, organization} = this.props;
+    const {group, organization, project} = this.props;
     openModal(({closeModal, Header, Body}) => (
       <ReprocessingDialogForm
         group={group}
+        project={project}
         orgSlug={organization.slug}
         closeModal={closeModal}
         Header={Header}
