@@ -82,7 +82,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                         {
                             "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
                             "issuetype": "1",
-                            "jira_integration": self.integration.id,
+                            "integration": self.integration.id,
                             "name": "Create a Jira ticket in the Jira Cloud account",
                             "project": "10000",
                         }

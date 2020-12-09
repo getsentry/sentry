@@ -46,7 +46,7 @@ def transform_jira_fields_to_form_fields(fields_list):
 def transform_jira_choices_to_strings(fields, data):
     choices = {}
     for key, value in data.items():
-        if key in ["jira_integration", "dynamic_form_fields"] or not value:
+        if key in ["integration", "dynamic_form_fields"] or not value:
             continue
         if key in fields and fields[key]["type"] == "choice":
             temp_dict = {k: v for (k, v) in fields[key]["choices"]}
@@ -57,3 +57,8 @@ def transform_jira_choices_to_strings(fields, data):
         else:
             choices[key] = value
     return choices
+
+
+def get_name_for_jira(integration):
+    name = integration.metadata.get("domain_name", integration.name)
+    return name.replace(".atlassian.net", "")

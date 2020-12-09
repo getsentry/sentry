@@ -45,7 +45,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
                 "description": "Fix this.",
                 "project": "0987654321",
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-                "vsts_integration": self.integration.model.id,
+                "integration": self.integration.model.id,
             }
         )
         azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
@@ -95,7 +95,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
                 "description": "Fix this.",
                 "project": "0987654321",
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-                "vsts_integration": self.integration.model.id,
+                "integration": self.integration.model.id,
             }
         )
         azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
