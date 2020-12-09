@@ -752,7 +752,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "status",
         "bookmarked_by",
         "assigned_to",
-        "inbox",
+        "needs_review",
         "owner",
         "unassigned",
         "linked",

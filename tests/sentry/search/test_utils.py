@@ -405,8 +405,8 @@ class ParseQueryTest(TestCase):
         assert result == {"unassigned": False, "tags": {}, "query": ""}
 
     def test_is_inbox(self):
-        result = self.parse_query("is:inbox")
-        assert result == {"inbox": True, "tags": {}, "query": ""}
+        result = self.parse_query("is:needs_review")
+        assert result == {"needs_review": True, "tags": {}, "query": ""}
 
     def test_is_unlinked(self):
         result = self.parse_query("is:unlinked")

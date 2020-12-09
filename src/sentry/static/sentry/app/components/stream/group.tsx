@@ -135,7 +135,7 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        (this.props.query === 'is:inbox is:unresolved' &&
+        (this.props.query === 'is:needs_review is:unresolved' &&
           state.data.inbox?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};

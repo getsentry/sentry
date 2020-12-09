@@ -7,7 +7,7 @@ import IssueListHeader from 'app/views/issueList/header';
 describe('IssueListHeader', () => {
   it('renders active tab with count when query matches inbox', () => {
     const wrapper = mountWithTheme(
-      <IssueListHeader query="is:inbox is:unresolved" queryCount={1} />
+      <IssueListHeader query="is:needs_review is:unresolved" queryCount={1} />
     );
     expect(wrapper.find('.active').text()).toBe('Needs Review (1)');
   });
@@ -21,6 +21,6 @@ describe('IssueListHeader', () => {
     const handleTabChange = jest.fn();
     const wrapper = mountWithTheme(<IssueListHeader onTabChange={handleTabChange} />);
     wrapper.find('a').at(0).simulate('click');
-    expect(handleTabChange).toHaveBeenCalledWith('is:inbox is:unresolved');
+    expect(handleTabChange).toHaveBeenCalledWith('is:needs_review is:unresolved');
   });
 });

@@ -66,7 +66,7 @@ describe('StreamGroup', function () {
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
-        query="is:inbox is:unresolved"
+        query="is:needs_review is:unresolved"
         organization={organization}
         {...routerContext}
       />,
