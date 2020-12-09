@@ -51,10 +51,11 @@ class Dashboard extends React.Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard} = this.props;
+    const {organization, dashboard, selection} = this.props;
     openAddDashboardWidgetModal({
       organization,
       dashboard,
+      selection,
       onAddWidget: this.handleAddComplete,
     });
   };
@@ -63,11 +64,41 @@ class Dashboard extends React.Component<Props, State> {
     this.props.onUpdate([...this.props.dashboard.widgets, widget]);
   };
 
-  renderWidget(widget: Widget, i: number) {
+  handleUpdateComplete = (index: number) => (nextWidget: Widget) => {
+    const nextList = [...this.props.dashboard.widgets];
+    nextList[index] = nextWidget;
+    this.props.onUpdate(nextList);
+  };
+
+  handleDeleteWidget = (index: number) => () => {
+    const nextList = [...this.props.dashboard.widgets];
+    nextList.splice(index, 1);
+    this.props.onUpdate(nextList);
+  };
+
+  handleEditWidget = (widget: Widget, index: number) => () => {
+    const {organization, dashboard, selection} = this.props;
+    openAddDashboardWidgetModal({
+      organization,
+      dashboard,
+      widget,
+      selection,
+      onAddWidget: this.handleAddComplete,
+      onUpdateWidget: this.handleUpdateComplete(index),
+    });
+  };
+
+  renderWidget(widget: Widget, index: number) {
+    const {isEditing} = this.props;
     // TODO add drag state and drag re-sorting.
     return (
-      <WidgetWrapper key={`${widget.id}:${i}`}>
-        <WidgetCard widget={widget} />
+      <WidgetWrapper key={`${widget.id}:${index}`}>
+        <WidgetCard
+          widget={widget}
+          isEditing={isEditing}
+          onDelete={this.handleDeleteWidget(index)}
+          onEdit={this.handleEditWidget(widget, index)}
+        />
       </WidgetWrapper>
     );
   }
