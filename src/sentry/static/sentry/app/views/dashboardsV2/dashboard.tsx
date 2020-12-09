@@ -51,10 +51,11 @@ class Dashboard extends React.Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {organization, dashboard} = this.props;
+    const {organization, dashboard, selection} = this.props;
     openAddDashboardWidgetModal({
       organization,
       dashboard,
+      selection,
       onAddWidget: this.handleAddComplete,
     });
   };
@@ -76,11 +77,12 @@ class Dashboard extends React.Component<Props, State> {
   };
 
   handleEditWidget = (widget: Widget, index: number) => () => {
-    const {organization, dashboard} = this.props;
+    const {organization, dashboard, selection} = this.props;
     openAddDashboardWidgetModal({
       organization,
       dashboard,
       widget,
+      selection,
       onAddWidget: this.handleAddComplete,
       onUpdateWidget: this.handleUpdateComplete(index),
     });
