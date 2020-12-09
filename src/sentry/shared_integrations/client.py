@@ -116,25 +116,7 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-class BaseApiClient(object):
-    base_url = None
-
-    allow_text = False
-
-    allow_redirects = None
-
-    integration_type = None
-
-    log_path = None
-
-    datadog_prefix = None
-
-    cache_time = 900
-
-    def __init__(self, verify_ssl=True, logging_context=None):
-        self.verify_ssl = verify_ssl
-        self.logging_context = logging_context
-
+class TrackResponseMixin(object):
     @cached_property
     def logger(self):
         return logging.getLogger(self.log_path)
@@ -146,9 +128,6 @@ class BaseApiClient(object):
     @classproperty
     def name(cls):
         return getattr(cls, cls.name_field)
-
-    def get_cache_prefix(self):
-        return u"%s.%s.client:" % (self.integration_type, self.name)
 
     def track_response_data(self, code, span, error=None, resp=None):
         metrics.incr(
@@ -171,6 +150,29 @@ class BaseApiClient(object):
         }
         extra.update(getattr(self, "logging_context", None) or {})
         self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
+
+
+class BaseApiClient(TrackResponseMixin):
+    base_url = None
+
+    allow_text = False
+
+    allow_redirects = None
+
+    integration_type = None
+
+    log_path = None
+
+    datadog_prefix = None
+
+    cache_time = 900
+
+    def __init__(self, verify_ssl=True, logging_context=None):
+        self.verify_ssl = verify_ssl
+        self.logging_context = logging_context
+
+    def get_cache_prefix(self):
+        return u"%s.%s.client:" % (self.integration_type, self.name)
 
     def build_url(self, path):
         if path.startswith("/"):
@@ -313,45 +315,12 @@ class BaseApiClient(object):
         return result
 
 
-class BaseInternalApiClient(ApiClient):
+class BaseInternalApiClient(ApiClient, TrackResponseMixin):
     integration_type = None
 
     log_path = None
 
     datadog_prefix = None
-
-    @cached_property
-    def logger(self):
-        return logging.getLogger(self.log_path)
-
-    @classproperty
-    def name_field(cls):
-        return u"%s_name" % cls.integration_type
-
-    @classproperty
-    def name(cls):
-        return getattr(cls, cls.name_field)
-
-    def track_response_data(self, code, span, error=None, resp=None):
-        metrics.incr(
-            u"%s.http_response" % (self.datadog_prefix),
-            sample_rate=1.0,
-            tags={self.integration_type: self.name, "status": code},
-        )
-        try:
-            span.set_http_status(int(code))
-        except ValueError:
-            span.set_status(code)
-
-        span.set_tag(self.integration_type, self.name)
-
-        extra = {
-            self.integration_type: self.name,
-            "status_string": six.text_type(code),
-            "error": six.text_type(error)[:256] if error else None,
-        }
-        extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
 
     def request(self, *args, **kwargs):
 
