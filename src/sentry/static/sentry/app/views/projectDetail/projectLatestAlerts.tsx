@@ -5,10 +5,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import {SectionHeading} from 'app/components/charts/styles';
-import CreateAlertButton from 'app/components/createAlertButton';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
@@ -23,7 +20,7 @@ import {Theme} from 'app/utils/theme';
 
 import {Incident, IncidentStatus} from '../alerts/types';
 
-const DOCS_URL = 'https://docs.sentry.io/workflow/alerts-notifications/alerts/';
+import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -151,22 +148,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
     if (!hasAlertRule) {
       return (
-        <StyledButtonBar gap={1}>
-          <CreateAlertButton
-            organization={organization}
-            iconProps={{size: 'xs'}}
-            size="small"
-            priority="primary"
-            referrer="project_detail"
-            projectSlug={projectSlug}
-            hideIcon
-          >
-            {t('Create Alert Rule')}
-          </CreateAlertButton>
-          <Button size="small" external href={DOCS_URL}>
-            {t('Learn More')}
-          </Button>
-        </StyledButtonBar>
+        <MissingAlertsButtons organization={organization} projectSlug={projectSlug} />
       );
     }
 
@@ -193,10 +175,6 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
 const Section = styled('section')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
 `;
 
 const AlertRowLink = styled(Link)`
