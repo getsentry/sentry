@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
-import {Box, Flex} from 'reflexbox';
+import {Box} from 'reflexbox';
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -308,7 +308,7 @@ class StreamGroup extends React.Component<Props, State> {
             />
           </ChartWrapper>
         )}
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
+        <EventUserWrapper>
           <DropdownMenu isNestedDropdown>
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
@@ -364,8 +364,8 @@ class StreamGroup extends React.Component<Props, State> {
               );
             }}
           </DropdownMenu>
-        </Flex>
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
+        </EventUserWrapper>
+        <EventUserWrapper>
           <DropdownMenu isNestedDropdown>
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
@@ -419,7 +419,7 @@ class StreamGroup extends React.Component<Props, State> {
               );
             }}
           </DropdownMenu>
-        </Flex>
+        </EventUserWrapper>
         <AssigneeWrapper className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
         </AssigneeWrapper>
@@ -556,6 +556,25 @@ const ChartWrapper = styled('div')`
   width: 160px;
   margin: 0 ${space(2)};
   align-self: center;
+`;
+
+const EventUserWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 ${space(2)};
+  align-self: center;
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    width: 80px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 80px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    width: 60px;
+  }
 `;
 
 const AssigneeWrapper = styled('div')`
