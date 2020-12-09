@@ -8,9 +8,7 @@ import ProjectLatestReleases from 'app/views/projectDetail/projectLatestReleases
 
 describe('ProjectDetail > ProjectLatestReleases', function () {
   let endpointMock;
-  const {organization, project, router} = initializeOrg({
-    organization: {features: ['performance-view']},
-  });
+  const {organization, project, router} = initializeOrg();
 
   beforeEach(async function () {
     endpointMock = MockApiClient.addMockResponse({
