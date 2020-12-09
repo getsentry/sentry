@@ -2,18 +2,14 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import ActionLink from 'app/components/actions/actionLink';
-import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import {GlobalSelection, Group, Project, Release, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
@@ -50,27 +46,6 @@ class GroupRowActions extends React.Component<Props> {
     );
   };
 
-  handleAcknowledge() {
-    // Optimistically clear inbox status
-    const {query, group} = this.props;
-    const {id: itemId} = group;
-    const itemIds = [itemId];
-
-    // Optimistically clear inbox status
-    const groupChange = {inbox: false};
-    GroupActions.update(null, itemIds, groupChange);
-    GroupActions.updateSuccess(null, itemIds, groupChange);
-    // On inbox, issues collapse on acknowledge and should be removed from results
-    // after animation
-    if (query === 'is:inbox is:unresolved') {
-      setTimeout(() => {
-        GroupStore.remove(itemId);
-        SelectedGroupStore.prune();
-      }, 250);
-    }
-    this.handleUpdate(groupChange);
-  }
-
   handleDelete = () => {
     const {api, group, orgId, query, selection} = this.props;
 
@@ -101,22 +76,18 @@ class GroupRowActions extends React.Component<Props> {
         <Tooltip title={t('Acknowledge')}>
           <ActionLink
             className="btn btn-default btn-sm"
-            onAction={() => this.handleAcknowledge()}
+            onAction={() => this.handleUpdate({inbox: false})}
             shouldConfirm={false}
             title={t('Acknowledge')}
           >
-            <IconIssues size="xs" color="gray300" />
+            <IconIssues size="sm" color="gray300" />
           </ActionLink>
-        </Tooltip>
-
-        <Tooltip title={t('Ignore')}>
-          <IgnoreActions onUpdate={this.handleUpdate} shouldConfirm={false} hasInbox />
         </Tooltip>
 
         <StyledDropdownLink
           caret={false}
           className="btn btn-sm btn-default action-more"
-          customTitle={<IconEllipsis size="xs" />}
+          customTitle={<IconEllipsis size="sm" color="gray300" />}
           title=""
           anchorRight
         >
@@ -159,17 +130,6 @@ class GroupRowActions extends React.Component<Props> {
                 );
               }}
             </Projects>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-remove-bookmark"
-              onAction={() => this.handleUpdate({isBookmarked: false})}
-              shouldConfirm={false}
-              title={t('Remove from Bookmarks')}
-            >
-              {t('Remove from Bookmarks')}
-            </ActionLink>
           </MenuItem>
           <MenuItem divider />
           <MenuItem noAnchor>

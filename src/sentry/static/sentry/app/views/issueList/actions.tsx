@@ -5,7 +5,6 @@ import capitalize from 'lodash/capitalize';
 import uniq from 'lodash/uniq';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import ActionLink from 'app/components/actions/actionLink';
 import IgnoreActions from 'app/components/actions/ignore';
@@ -278,20 +277,6 @@ class IssueListActions extends React.Component<Props, State> {
     });
   };
 
-  handleAcknowledge() {
-    this.actionSelectedGroups(itemIds => {
-      // Optimistically clear inbox status
-      const groupChange = {inbox: false};
-      GroupActions.update(null, itemIds, groupChange);
-      GroupActions.updateSuccess(null, itemIds, groupChange);
-      setTimeout(() => {
-        itemIds?.forEach(itemId => GroupStore.remove(itemId));
-        SelectedGroupStore.prune();
-      }, 250);
-      this.handleUpdate(groupChange);
-    });
-  }
-
   handleDelete = () => {
     const {selection} = this.props;
 
@@ -439,7 +424,7 @@ class IssueListActions extends React.Component<Props, State> {
               className="btn btn-default btn-sm action-merge"
               data-test-id="button-acknowledge"
               disabled={!anySelected}
-              onAction={() => this.handleAcknowledge()}
+              onAction={() => this.handleUpdate({inbox: false})}
               shouldConfirm={this.shouldConfirm('acknowledge')}
               message={confirm('acknowledge', false)}
               confirmLabel={label('acknowledge')}
@@ -529,7 +514,7 @@ class IssueListActions extends React.Component<Props, State> {
                   <ActionLink
                     className="action-acknowledge hidden-md hidden-lg hidden-xl"
                     disabled={!anySelected}
-                    onAction={() => this.handleAcknowledge()}
+                    onAction={() => this.handleUpdate({inbox: false})}
                     shouldConfirm={this.shouldConfirm('acknowledge')}
                     message={confirm('acknowledge', false)}
                     confirmLabel={label('acknowledge')}
@@ -909,7 +894,7 @@ const AssigneesLabel = styled('div')`
 const ActionsLabel = styled('div')`
   justify-content: flex-end;
   text-align: right;
-  width: 120px;
+  width: 80px;
   margin-left: ${space(2)};
   margin-right: ${space(2)};
 `;

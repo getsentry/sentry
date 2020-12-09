@@ -128,6 +128,7 @@ function loadGroups() {
     culprit: '',
     isBookmarked: true,
     logger: 'sentry.incidents.tasks',
+    shortId: 'JAVASCRIPT-LONGNAME-6QS',
     inbox: {
       date_added: '2020-11-24T13:17:42.248751Z',
       reason: 3,

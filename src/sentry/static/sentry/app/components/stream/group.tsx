@@ -71,7 +71,7 @@ type Props = {
 
 type State = {
   data: Group;
-  collapse: boolean;
+  acknowledge: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -89,7 +89,7 @@ class StreamGroup extends React.Component<Props, State> {
         ...data,
         filtered: useFilteredStats ? data.filtered : null,
       },
-      collapse: false,
+      acknowledge: false,
     };
   }
 
@@ -137,7 +137,7 @@ class StreamGroup extends React.Component<Props, State> {
         this.props.query === 'is:inbox is:unresolved' &&
         !!state.data.inbox?.reason &&
         data.inbox === false;
-      return {data, collapse};
+      return {data, acknowledge: collapse};
     });
   }
 
@@ -217,7 +217,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, collapse} = this.state;
+    const {data, acknowledge} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -247,7 +247,7 @@ class StreamGroup extends React.Component<Props, State> {
     const hasInbox = organization.features.includes('inbox');
 
     return (
-      <Wrapper data-test-id="group" onClick={this.toggleSelect} collapse={collapse}>
+      <Wrapper data-test-id="group" onClick={this.toggleSelect} acknowledge={acknowledge}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -454,29 +454,22 @@ class StreamGroup extends React.Component<Props, State> {
 }
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{collapse: boolean}>`
+const Wrapper = styled(PanelItem)<{acknowledge: boolean}>`
   position: relative;
   padding: ${space(1)} 0;
   line-height: 1.1;
 
   ${p =>
-    p.collapse &&
+    p.acknowledge &&
     css`
-      overflow: hidden;
       animation: hideRow 0.2s linear forwards;
-      will-change: max-height;
-      max-height: 90px;
 
       @keyframes hideRow {
         0% {
-          padding: ${space(1)} 0;
-          opacity: 1;
-          max-height: 100px;
+          background-color: ${p.theme.bodyBackground};
         }
         100% {
-          padding: 0;
-          opacity: 0;
-          max-height: 0;
+          background-color: ${p.theme.backgroundSecondary};
         }
       }
     `};
@@ -587,7 +580,7 @@ const AssigneeWrapper = styled('div')`
 `;
 
 const ActionsWrapper = styled('div')`
-  width: 120px;
+  width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
 `;
