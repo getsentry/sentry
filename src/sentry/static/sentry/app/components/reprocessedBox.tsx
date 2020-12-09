@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {BannerContainer, BannerSummary} from 'app/components/events/styles';
 import Link from 'app/components/links/link';
 import {IconCheckmark, IconClose} from 'app/icons';
-import {tct, tn} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {GroupActivity, Organization} from 'app/types';
 import {defined} from 'app/utils';
@@ -69,6 +69,7 @@ class ReprocessedBox extends React.Component<Props, State> {
           </span>
           <StyledIconClose
             color="green300"
+            aria-label={t('Dismiss')}
             isCircled
             onClick={this.handleBannerDismiss}
           />

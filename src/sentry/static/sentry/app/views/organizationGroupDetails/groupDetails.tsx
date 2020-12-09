@@ -233,7 +233,6 @@ class GroupDetails extends React.Component<Props, State> {
             pathname: baseUrl,
             query: params,
           });
-          return;
         }
 
         if (
@@ -244,7 +243,6 @@ class GroupDetails extends React.Component<Props, State> {
             pathname: `${baseUrl}${TAB.ACTIVITY}/`,
             query: params,
           });
-          return;
         }
       }
 
