@@ -4,7 +4,6 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
-import InboxShortId from 'app/components/group/inboxBadges/shortId';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -42,36 +41,25 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {isUnhandled && hasInbox && <UnhandledTag />}
-      {shortId &&
-        (hasInbox ? (
-          <InboxShortId
-            shortId={shortId}
-            avatar={
-              project && (
-                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
-              )
-            }
-          />
-        ) : (
-          <GroupShortId
-            shortId={shortId}
-            avatar={
-              project && <ProjectBadge project={project} avatarSize={14} hideName />
-            }
-            onClick={e => {
-              // prevent the clicks from propagating so that the short id can be selected
-              e.stopPropagation();
-            }}
-          />
-        ))}
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {shortId && !hasInbox && (
+        <GroupShortId
+          shortId={shortId}
+          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
+          onClick={e => {
+            // prevent the clicks from propagating so that the short id can be selected
+            e.stopPropagation();
+          }}
+        />
+      )}
       {!hasInbox && (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
-      {numComments > 0 && (
+      {/* Always display comment count on inbox */}
+      {(hasInbox || numComments > 0) && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
             size="xs"
@@ -162,12 +150,6 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));
