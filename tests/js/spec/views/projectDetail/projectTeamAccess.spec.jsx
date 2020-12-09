@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectTeamAccess from 'app/views/projectDetail/projectTeamAccess';
 
-describe('ProjectTeamAccess', function () {
+describe('ProjectDetail > ProjectTeamAccess', function () {
   const {organization, routerContext} = initializeOrg();
 
   it('renders a list', function () {
