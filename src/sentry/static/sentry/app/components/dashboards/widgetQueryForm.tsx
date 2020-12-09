@@ -37,213 +37,250 @@ type Props = {
   errors?: Record<string, any>;
 };
 
-type SavedQueryOption = SelectValue<SavedQuery>;
+type State = {
+  selectedQuery: string | null;
+  source: string;
+};
+
+type SavedQueryOption = SelectValue<string> & {query: SavedQuery};
 
 /**
  * Contain widget query interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
-function WidgetQueryForm({
-  api,
-  canRemove,
-  errors,
-  fieldOptions,
-  onChange,
-  onRemove,
-  organization,
-  selection,
-  widgetQuery,
-}: Props) {
+class WidgetQueryForm extends React.Component<Props, State> {
+  state: State = {
+    selectedQuery: null,
+    source: 'new',
+  };
+
   // Handle scalar field values changing.
-  function handleFieldChange(field: string) {
+  handleFieldChange = (field: string) => {
+    const {widgetQuery, onChange} = this.props;
+
     return function handleChange(value: string) {
       const newQuery = {...widgetQuery, [field]: value};
       onChange(newQuery);
     };
-  }
+  };
 
   // Handle new fields being added.
-  function handleAddField(event: React.MouseEvent) {
+  handleAddField = (event: React.MouseEvent) => {
+    const {widgetQuery, onChange} = this.props;
     event.preventDefault();
 
     const newQuery = {...widgetQuery, fields: [...widgetQuery.fields, '']};
     onChange(newQuery);
-  }
+  };
 
   // Remove fields from the field list and signal an update.
-  function handleRemoveField(event: React.MouseEvent, fieldIndex: number) {
+  handleRemoveField = (event: React.MouseEvent, fieldIndex: number) => {
+    const {widgetQuery, onChange} = this.props;
     event.preventDefault();
 
     const newQuery = cloneDeep(widgetQuery);
     newQuery.fields.splice(fieldIndex, fieldIndex + 1);
     onChange(newQuery);
-  }
+  };
 
-  function handleQueryField(fieldIndex: number, value: QueryFieldValue) {
+  handleQueryField = (fieldIndex: number, value: QueryFieldValue) => {
+    const {widgetQuery, onChange} = this.props;
     const newQuery = cloneDeep(widgetQuery);
     set(newQuery, `fields.${fieldIndex}`, generateFieldAsString(value));
     onChange(newQuery);
-  }
+  };
 
-  function handleSavedQueryChange({value}: SavedQueryOption) {
+  handleSavedQueryChange = ({query, value}: SavedQueryOption) => {
+    const {onChange, widgetQuery} = this.props;
+
     const newQuery = cloneDeep(widgetQuery);
-    newQuery.fields = [value.yAxis ?? 'count()'];
-    newQuery.conditions = value.query ?? '';
-    newQuery.name = value.name;
+    newQuery.fields = [query.yAxis ?? 'count()'];
+    newQuery.conditions = query.query ?? '';
+    newQuery.name = query.name;
     onChange(newQuery);
-  }
 
-  function handleLoadOptions(inputValue: string) {
+    this.setState({selectedQuery: value});
+  };
+
+  handleLoadOptions = (inputValue: string) => {
+    const {api, organization} = this.props;
     return new Promise((resolve, reject) => {
       fetchSavedQueries(api, organization.slug, inputValue)
         .then((queries: SavedQuery[]) => {
           const results = queries.map(query => ({
             label: query.name,
-            value: query,
+            value: query.id,
+            query,
           }));
           resolve(results);
         })
         .catch(reject);
     });
-  }
+  };
 
-  return (
-    <div>
-      {canRemove && (
-        <RemoveButtonWrapper>
-          <Button
-            data-test-id="remove-query"
-            priority="default"
-            size="zero"
-            borderless
-            onClick={onRemove}
-            icon={<IconDelete />}
-            title={t('Remove this query')}
+  handleSourceChange = (value: string) => {
+    this.setState(prevState => {
+      return {
+        ...prevState,
+        source: value,
+        selectedQuery: value === 'new' ? null : prevState.selectedQuery,
+      };
+    });
+  };
+
+  render() {
+    const {
+      canRemove,
+      errors,
+      fieldOptions,
+      organization,
+      selection,
+      widgetQuery,
+    } = this.props;
+    const {selectedQuery, source} = this.state;
+
+    return (
+      <div>
+        {canRemove && (
+          <RemoveButtonWrapper>
+            <Button
+              data-test-id="remove-query"
+              priority="default"
+              size="zero"
+              borderless
+              onClick={this.props.onRemove}
+              icon={<IconDelete />}
+              title={t('Remove this query')}
+            />
+          </RemoveButtonWrapper>
+        )}
+        <Field
+          data-test-id="source"
+          label="Source"
+          inline={false}
+          flexibleControlStateSize
+          stacked
+        >
+          <RadioGroup
+            orientInline
+            value={this.state.source}
+            label=""
+            onChange={this.handleSourceChange}
+            choices={[
+              ['new', t('New Query')],
+              ['existing', t('Existing Discover Query')],
+            ]}
           />
-        </RemoveButtonWrapper>
-      )}
-      <Field
-        data-test-id="source"
-        label="Source"
-        inline={false}
-        flexibleControlStateSize
-        stacked
-      >
-        <RadioGroup
-          orientInline
-          value=""
-          label=""
-          onChange={onRemove}
-          choices={[
-            ['new', t('New Query')],
-            ['existing', t('Existing Discover Query')],
-          ]}
-        />
-      </Field>
-      <Field
-        data-test-id="new-query"
-        label="New Query"
-        inline={false}
-        flexibleControlStateSize
-        stacked
-        error={errors?.conditions}
-      >
-        <SearchBar
-          organization={organization}
-          projectIds={selection.projects}
-          query={widgetQuery.conditions}
-          fields={[]}
-          onSearch={handleFieldChange('conditions')}
-          onBlur={handleFieldChange('conditions')}
-          useFormWrapper={false}
-        />
-      </Field>
-      <Feature organization={organization} features={['discover-query']}>
-        {({hasFeature}) => (
+        </Field>
+        {source === 'new' && (
           <Field
-            data-test-id="discover-query"
-            label="Existing Discover Query"
+            data-test-id="new-query"
+            label="New Query"
             inline={false}
             flexibleControlStateSize
             stacked
+            error={errors?.conditions}
           >
-            <SelectControl
-              async
-              defaultOptions
-              value=""
-              name="discoverQuery"
-              loadOptions={handleLoadOptions}
-              onChange={handleSavedQueryChange}
-              options={[]}
-              disabled={!hasFeature}
-              cache
-              onSelectResetsInput={false}
-              onCloseResetsInput={false}
-              onBlurResetsInput={false}
+            <SearchBar
+              organization={organization}
+              projectIds={selection.projects}
+              query={widgetQuery.conditions}
+              fields={[]}
+              onSearch={this.handleFieldChange('conditions')}
+              onBlur={this.handleFieldChange('conditions')}
+              useFormWrapper={false}
             />
           </Field>
         )}
-      </Feature>
-      {canRemove && (
+        {source === 'existing' && (
+          <Feature organization={organization} features={['discover-query']}>
+            {({hasFeature}) => (
+              <Field
+                data-test-id="discover-query"
+                label="Existing Discover Query"
+                inline={false}
+                flexibleControlStateSize
+                stacked
+              >
+                <SelectControl
+                  async
+                  defaultOptions
+                  value={selectedQuery}
+                  name="discoverQuery"
+                  loadOptions={this.handleLoadOptions}
+                  onChange={this.handleSavedQueryChange}
+                  options={[]}
+                  disabled={!hasFeature}
+                  cache
+                  onSelectResetsInput={false}
+                  onCloseResetsInput={false}
+                  onBlurResetsInput={false}
+                />
+              </Field>
+            )}
+          </Feature>
+        )}
+        {canRemove && (
+          <Field
+            data-test-id="Query Name"
+            label="Y-Axis"
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            error={errors?.name}
+          >
+            <Input
+              type="text"
+              name="name"
+              required
+              value={widgetQuery.name}
+              onChange={event => this.handleFieldChange('name')(event.target.value)}
+            />
+          </Field>
+        )}
         <Field
-          data-test-id="Query Name"
+          data-test-id="y-axis"
           label="Y-Axis"
           inline={false}
           flexibleControlStateSize
           stacked
-          error={errors?.name}
+          error={errors?.fields}
         >
-          <Input
-            type="text"
-            name="name"
-            required
-            value={widgetQuery.name}
-            onChange={event => handleFieldChange('name')(event.target.value)}
-          />
-        </Field>
-      )}
-      <Field
-        data-test-id="y-axis"
-        label="Y-Axis"
-        inline={false}
-        flexibleControlStateSize
-        stacked
-        error={errors?.fields}
-      >
-        {widgetQuery.fields.map((field, i) => (
-          <QueryFieldWrapper key={`${field}:${i}`}>
-            <QueryField
-              fieldValue={explodeField({field})}
-              fieldOptions={fieldOptions}
-              onChange={value => handleQueryField(i, value)}
-            />
-            {widgetQuery.fields.length > 1 && (
-              <Button
-                priority="default"
-                size="zero"
-                borderless
-                onClick={event => handleRemoveField(event, i)}
-                icon={<IconDelete />}
-                title={t('Remove this field')}
+          {widgetQuery.fields.map((field, i) => (
+            <QueryFieldWrapper key={`${field}:${i}`}>
+              <QueryField
+                fieldValue={explodeField({field})}
+                fieldOptions={fieldOptions}
+                onChange={value => this.handleQueryField(i, value)}
               />
-            )}
-          </QueryFieldWrapper>
-        ))}
-        <div>
-          <Button
-            data-test-id="add-field"
-            priority="default"
-            size="zero"
-            borderless
-            onClick={handleAddField}
-            icon={<IconAdd />}
-          >
-            {t('Add an overlay')}
-          </Button>
-        </div>
-      </Field>
-    </div>
-  );
+              {widgetQuery.fields.length > 1 && (
+                <Button
+                  priority="default"
+                  size="zero"
+                  borderless
+                  onClick={event => this.handleRemoveField(event, i)}
+                  icon={<IconDelete />}
+                  title={t('Remove this field')}
+                />
+              )}
+            </QueryFieldWrapper>
+          ))}
+          <div>
+            <Button
+              data-test-id="add-field"
+              priority="default"
+              size="zero"
+              borderless
+              onClick={this.handleAddField}
+              icon={<IconAdd />}
+            >
+              {t('Add an overlay')}
+            </Button>
+          </div>
+        </Field>
+      </div>
+    );
+  }
 }
 
 const QueryFieldWrapper = styled('div')`
