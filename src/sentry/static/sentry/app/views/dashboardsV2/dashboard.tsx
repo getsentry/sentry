@@ -10,13 +10,13 @@ import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {DashboardListItem, Widget} from './types';
+import {DashboardDetails, Widget} from './types';
 import WidgetCard from './widgetCard';
 
 type Props = {
   api: Client;
   organization: Organization;
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails;
   selection: GlobalSelection;
   isEditing: boolean;
   /**

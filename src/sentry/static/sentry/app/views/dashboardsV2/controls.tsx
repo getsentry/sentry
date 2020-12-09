@@ -9,7 +9,7 @@ import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardDetails, DashboardListItem, DashboardState} from './types';
 
 type OptionType = {
   label: string;
@@ -19,7 +19,7 @@ type OptionType = {
 type Props = {
   organization: Organization;
   dashboards: DashboardListItem[];
-  dashboard: DashboardListItem;
+  dashboard: null | DashboardDetails;
   onEdit: () => void;
   onCreate: () => void;
   onCancel: () => void;
@@ -106,10 +106,15 @@ class Controls extends React.Component<Props> {
       };
     });
 
-    const currentOption: OptionType = {
-      label: dashboard.title,
-      value: dashboard,
-    };
+    let currentOption: OptionType | undefined = undefined;
+    if (dashboard) {
+      currentOption = {
+        label: dashboard.title,
+        value: dashboard,
+      };
+    } else if (dropdownOptions.length) {
+      currentOption = dropdownOptions[0];
+    }
 
     return (
       <ButtonBar gap={1} key="controls">
@@ -132,17 +137,9 @@ class Controls extends React.Component<Props> {
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
               const {organization} = this.props;
-
-              if (value.type === 'prebuilt') {
-                browserHistory.push({
-                  pathname: `/organizations/${organization.slug}/dashboards/`,
-                  query: {},
-                });
-                return;
-              }
-
               browserHistory.push({
                 pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                // TODO(mark) should this retain global selection?
                 query: {},
               });
             }}

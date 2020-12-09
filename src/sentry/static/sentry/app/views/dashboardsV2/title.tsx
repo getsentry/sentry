@@ -6,11 +6,11 @@ import InlineInput from 'app/components/inputInline';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {DashboardListItem} from './types';
+import {DashboardDetails} from './types';
 
 type Props = {
-  changesDashboard: DashboardListItem | undefined;
-  setChangesDashboard: (dashboard: DashboardListItem) => void;
+  changesDashboard: DashboardDetails | null;
+  setChangesDashboard: (dashboard: DashboardDetails) => void;
 };
 
 class DashboardTitle extends React.Component<Props> {
