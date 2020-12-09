@@ -16,7 +16,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
 import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
-import {DashboardListItem, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {DashboardDetails, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
@@ -25,7 +25,7 @@ import Field from 'app/views/settings/components/forms/field';
 type Props = ModalRenderProps & {
   api: Client;
   organization: Organization;
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails;
   selection: GlobalSelection;
   onAddWidget: (data: Widget) => void;
   tags: TagCollection;

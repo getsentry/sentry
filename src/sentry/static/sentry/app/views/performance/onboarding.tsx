@@ -28,7 +28,7 @@ const docsLink = (
   </Button>
 );
 
-const TOUR_STEPS: TourStep[] = [
+export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   {
     title: t('Track Application Metrics'),
     image: <TourImage src={tourMetrics} />,
@@ -113,7 +113,7 @@ function Onboarding({organization}: Props) {
       </p>
       <ButtonList gap={1}>
         <FeatureTourModal
-          steps={TOUR_STEPS}
+          steps={PERFORMANCE_TOUR_STEPS}
           onAdvance={handleAdvance}
           onCloseModal={handleClose}
           doneUrl={performanceSetupUrl}
