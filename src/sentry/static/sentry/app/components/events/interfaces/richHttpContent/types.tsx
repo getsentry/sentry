@@ -3,6 +3,7 @@ export type RichHttpContentData = {
 };
 
 export type Data = {
+  method?: string;
   headers: Array<[string, string]>;
   query: Array<[string, string] | null> | {[key: string]: any};
   env: {[key: string]: any} | null;
