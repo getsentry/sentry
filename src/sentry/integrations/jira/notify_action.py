@@ -18,6 +18,8 @@ from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
+INTEGRATION_KEY = "integration"
+
 
 class JiraNotifyServiceForm(forms.Form):
     jira_integration = forms.ChoiceField(choices=(), widget=forms.Select())
@@ -27,28 +29,30 @@ class JiraNotifyServiceForm(forms.Form):
         super(JiraNotifyServiceForm, self).__init__(*args, **kwargs)
 
         if integrations:
-            self.fields["jira_integration"].initial = integrations[0][0]
+            self.fields[INTEGRATION_KEY].initial = integrations[0][0]
 
-        self.fields["jira_integration"].choices = integrations
-        self.fields["jira_integration"].widget.choices = self.fields["jira_integration"].choices
+        self.fields[INTEGRATION_KEY].choices = integrations
+        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
 
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"""Create a Jira issue in {jira_integration} with these """
+    label = u"""Create a Jira issue in {integration} with these """
     prompt = "Create a Jira issue"
     provider = "jira"
-    integration_key = "jira_integration"
+    integration_key = INTEGRATION_KEY
 
     def __init__(self, *args, **kwargs):
         super(JiraCreateTicketAction, self).__init__(*args, **kwargs)
-        integration_choices = [(i.id, i.name) for i in self.get_integrations()]
+        integration_choices = [
+            (i.id, i.metadata.get("domain_name", i.name)) for i in self.get_integrations()
+        ]
 
         if not self.get_integration_id() and integration_choices:
             self.data[self.integration_key] = integration_choices[0][0]
 
         self.form_fields = {
-            "jira_integration": {
+            self.integration_key: {
                 "choices": integration_choices,
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
@@ -65,7 +69,7 @@ class JiraCreateTicketAction(TicketEventAction):
         kwargs = transform_jira_choices_to_strings(self.form_fields, self.data)
 
         # Replace with "removed" if the integration was uninstalled.
-        kwargs.update({"jira_integration": self.get_integration_name()})
+        kwargs.update({self.integration_key: self.get_integration_name()})
 
         # Only add values when they exist.
         return self.label.format(**kwargs)
@@ -102,7 +106,7 @@ class JiraCreateTicketAction(TicketEventAction):
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
 
-        jira_integration = cleaned_data.get("jira_integration")
+        jira_integration = cleaned_data.get(self.integration_key)
         try:
             Integration.objects.get(id=jira_integration)
         except Integration.DoesNotExist:

@@ -63,18 +63,19 @@ class TicketRuleForm extends React.Component<Props, State> {
   cleanData = (data: {
     [key: string]: string;
   }): {
-    jira_integration?: any;
-    vsts_integration?: any;
+    integration?: string | number;
+    vsts_integration?: string | number; //TODO: Update
     [key: string]: any;
   } => {
     const names: string[] = this.getNames();
     const formData: {
-      jira_integration?: any;
-      vsts_integration?: any;
+      integration?: string | number;
+      vsts_integration?: string | number;
       [key: string]: any;
     } = {};
-    if (this.props.instance?.hasOwnProperty('jira_integration')) {
-      formData.jira_integration = this.props.instance?.jira_integration;
+    //TODO simplify
+    if (this.integrationType === 'jira') {
+      formData.integration = this.props.instance?.integration;
     }
     if (this.props.instance?.hasOwnProperty('vsts_integration')) {
       formData.vsts_integration = this.props.instance?.vsts_integration;
@@ -158,19 +159,31 @@ class TicketRuleForm extends React.Component<Props, State> {
         }
       : {};
 
-  buildText = (): {
-    ticketType: string;
-    link: string;
-  } => {
-    return {
-      ticketType: this.props.instance?.hasOwnProperty('jira_integration')
-        ? 'Jira issue'
-        : 'Azure DevOps work item',
-      link: this.props.instance?.hasOwnProperty('jira_integration')
-        ? 'https://docs.sentry.io/product/integrations/jira/#issue-sync'
-        : 'https://docs.sentry.io/product/integrations/azure-devops/#issue-sync',
-    };
-  };
+  get integrationType() {
+    //ex: "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
+    return this.props.instance?.id.split('.')[2];
+  }
+
+  get ticketType() {
+    switch (this.integrationType) {
+      case 'jira':
+        return 'Jira issue';
+      case 'vsts':
+        return 'Azure DevOps work item';
+      default:
+        throw new Error(`Unexpected integration type ${this.integrationType}`);
+    }
+  }
+  get link() {
+    switch (this.integrationType) {
+      case 'jira':
+        return 'https://docs.sentry.io/product/integrations/jira/#issue-sync';
+      case 'vsts':
+        return 'https://docs.sentry.io/product/integrations/azure-devops/#issue-sync';
+      default:
+        throw new Error(`Unexpected integration type ${this.integrationType}`);
+    }
+  }
 
   addFields = (formFields: FormField[]): void => {
     const title = {
@@ -192,7 +205,9 @@ class TicketRuleForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {ticketType, link} = this.buildText();
+    const ticketType = this.ticketType;
+    const link = this.link;
+
     const text = t(
       'When this alert is triggered a %s will be created with the following fields. ',
       ticketType
