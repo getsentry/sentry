@@ -113,6 +113,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         gridIndex: 2,
         splitNumber: 4,
         interval: 0.5,
+        max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
           color: theme.chartLabel,
