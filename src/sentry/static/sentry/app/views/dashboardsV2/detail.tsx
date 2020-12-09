@@ -192,7 +192,6 @@ class DashboardDetail extends React.Component<Props, State> {
   render() {
     const {api, location, params, organization} = this.props;
     const {changesDashboard, dashboardState} = this.state;
-    console.log('render', changesDashboard, dashboardState);
 
     return (
       <GlobalSelectionHeader
