@@ -564,10 +564,6 @@ const EventUserWrapper = styled('div')`
   margin: 0 ${space(2)};
   align-self: center;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    width: 80px;
-  }
-
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     width: 80px;
   }
