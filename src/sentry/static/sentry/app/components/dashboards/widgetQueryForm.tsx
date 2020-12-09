@@ -37,12 +37,12 @@ type Props = {
   errors?: Record<string, any>;
 };
 
+type SavedQueryOption = SelectValue<string> & {query: SavedQuery};
+
 type State = {
-  selectedQuery: string | null;
+  selectedQuery: SavedQueryOption | null;
   source: string;
 };
-
-type SavedQueryOption = SelectValue<string> & {query: SavedQuery};
 
 /**
  * Contain widget query interactions and signal changes via the onChange
@@ -90,16 +90,16 @@ class WidgetQueryForm extends React.Component<Props, State> {
     onChange(newQuery);
   };
 
-  handleSavedQueryChange = ({query, value}: SavedQueryOption) => {
+  handleSavedQueryChange = (option: SavedQueryOption) => {
     const {onChange, widgetQuery} = this.props;
 
     const newQuery = cloneDeep(widgetQuery);
-    newQuery.fields = [query.yAxis ?? 'count()'];
-    newQuery.conditions = query.query ?? '';
-    newQuery.name = query.name;
+    newQuery.fields = [option.query.yAxis ?? 'count()'];
+    newQuery.conditions = option.query.query ?? '';
+    newQuery.name = option.query.name;
     onChange(newQuery);
 
-    this.setState({selectedQuery: value});
+    this.setState({selectedQuery: option});
   };
 
   handleLoadOptions = (inputValue: string) => {
