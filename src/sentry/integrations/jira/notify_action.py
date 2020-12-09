@@ -110,9 +110,9 @@ class JiraCreateTicketAction(TicketEventAction):
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
 
-        jira_integration = cleaned_data.get(self.integration_key)
+        integration = cleaned_data.get(self.integration_key)
         try:
-            Integration.objects.get(id=jira_integration)
+            Integration.objects.get(id=integration)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
                 _("Jira integration is a required field.",), code="invalid",

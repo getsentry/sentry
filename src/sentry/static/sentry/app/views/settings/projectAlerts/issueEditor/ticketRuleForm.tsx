@@ -64,23 +64,16 @@ class TicketRuleForm extends React.Component<Props, State> {
     [key: string]: string;
   }): {
     integration?: string | number;
-    vsts_integration?: string | number; //TODO: Update
     [key: string]: any;
   } => {
     const names: string[] = this.getNames();
     const formData: {
       integration?: string | number;
-      vsts_integration?: string | number;
       [key: string]: any;
     } = {};
-    //TODO simplify
-    if (this.integrationType === 'jira') {
+    if (this.props.instance?.hasOwnProperty('integration')) {
       formData.integration = this.props.instance?.integration;
     }
-    if (this.props.instance?.hasOwnProperty('vsts_integration')) {
-      formData.vsts_integration = this.props.instance?.vsts_integration;
-    }
-
     for (const [key, value] of Object.entries(data)) {
       if (names.includes(key)) {
         formData[key] = value;

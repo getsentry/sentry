@@ -10,6 +10,8 @@ from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
+INTEGRATION_KEY = "integration"
+
 
 class AzureDevopsNotifyServiceForm(forms.Form):
     # TODO 2.0 Add form fields.
@@ -27,7 +29,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
     ticket_type = "Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/azure-devops/#issue-sync"
     provider = "vsts"
-    integration_key = "vsts_integration"
+    integration_key = INTEGRATION_KEY
 
     def __init__(self, *args, **kwargs):
         super(AzureDevopsCreateTicketAction, self).__init__(*args, **kwargs)
