@@ -27,7 +27,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             )
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
@@ -40,7 +40,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             )
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
@@ -51,7 +51,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             u"{}?response_type=code&redirect_uri={}".format(self.path, "https://example.com")
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
@@ -76,7 +76,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             )
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
 
@@ -280,7 +280,7 @@ class OAuthAuthorizeTokenTest(TestCase):
             )
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
@@ -293,7 +293,7 @@ class OAuthAuthorizeTokenTest(TestCase):
             )
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
@@ -304,7 +304,7 @@ class OAuthAuthorizeTokenTest(TestCase):
             u"{}?response_type=token&redirect_uri={}".format(self.path, "https://example.com")
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
         assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 

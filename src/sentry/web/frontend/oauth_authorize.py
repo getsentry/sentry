@@ -65,6 +65,7 @@ class OAuthAuthorizeView(AuthLoginView):
                         "Missing or invalid <em>{}</em> parameter.".format(err_response)
                     )
                 },
+                status=400,
             )
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
