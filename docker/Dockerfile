@@ -20,6 +20,7 @@ RUN set -x \
   dirmngr \
   gnupg \
   wget \
+  git \
   " \
   && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
