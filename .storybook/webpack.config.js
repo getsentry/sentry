@@ -102,6 +102,9 @@ module.exports = ({config} = {config: emptyConfig}) => {
         ...appConfig.resolve.alias,
         app: staticPath,
       },
+      fallback: {
+        ...appConfig.resolve.fallback,
+      },
     },
   };
 

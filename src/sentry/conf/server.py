@@ -1516,9 +1516,9 @@ SENTRY_WATCHERS = (
         "webpack",
         [
             os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            "serve",
             "--color",
-            "--output-pathinfo",
-            "--watch",
+            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
