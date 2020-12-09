@@ -426,12 +426,12 @@ class IssueListActions extends React.Component<Props, State> {
               disabled={!anySelected}
               onAction={() => this.handleUpdate({inbox: false})}
               shouldConfirm={this.shouldConfirm('acknowledge')}
-              message={confirm('acknowledge', false)}
-              confirmLabel={label('acknowledge')}
-              title={t('Acknowledge')}
+              message={confirm('mark', false, ' as reviewed')}
+              confirmLabel={label('Mark', ' as reviewed')}
+              title={t('Mark Reviewed')}
             >
               <StyledIconIssues size="xs" />
-              {t('Acknowledge')}
+              {t('Mark Reviewed')}
             </StyledActionLink>
           </div>
         )}
