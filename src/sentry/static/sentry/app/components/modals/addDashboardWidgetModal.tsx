@@ -8,6 +8,7 @@ import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
@@ -222,16 +223,24 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           />
         </Body>
         <Footer>
-          <Button
-            data-test-id="add-widget"
-            priority="primary"
-            type="button"
-            onClick={this.handleSubmit}
-            disabled={state.loading}
-            busy={state.loading}
-          >
-            {t('Add Widget')}
-          </Button>
+          <ButtonBar gap={1}>
+            <Button
+              external
+              href="https://docs.sentry.io/product/error-monitoring/dashboards/"
+            >
+              {t('Read the docs')}
+            </Button>
+            <Button
+              data-test-id="add-widget"
+              priority="primary"
+              type="button"
+              onClick={this.handleSubmit}
+              disabled={state.loading}
+              busy={state.loading}
+            >
+              {t('Add Widget')}
+            </Button>
+          </ButtonBar>
         </Footer>
       </React.Fragment>
     );
