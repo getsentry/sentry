@@ -21,7 +21,7 @@ describe('ResolveActions', function () {
         />,
         TestStubs.routerContext()
       );
-      button = component.find('a.btn.btn-default').first();
+      button = component.find('StyledActionLink').first();
     });
 
     it('has disabled prop', function () {
@@ -86,13 +86,13 @@ describe('ResolveActions', function () {
     });
 
     it('displays resolved view', function () {
-      const button = component.find('a.btn.active');
+      const button = component.find('StyledResolveButton').first();
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function () {
-      component.find('a.btn.active').simulate('click');
+      component.find('StyledResolveButton').last().simulate('click');
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
@@ -113,7 +113,7 @@ describe('ResolveActions', function () {
         TestStubs.routerContext()
       );
 
-      component.find('a.btn').simulate('click');
+      component.find('StyledResolveButton').simulate('click');
       expect(spy).not.toHaveBeenCalled();
     });
   });
@@ -138,7 +138,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('a.btn.btn-default').first();
+      const button = component.find('StyledResolveActionLink');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -161,7 +161,7 @@ describe('ResolveActions', function () {
         />,
         TestStubs.routerContext()
       );
-      button = component.find('a.btn.btn-default').first();
+      button = component.find('StyledResolveActionLink').first();
     });
 
     it('renders', function () {

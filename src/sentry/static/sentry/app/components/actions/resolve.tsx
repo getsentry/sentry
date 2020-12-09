@@ -91,10 +91,9 @@ class ResolveActions extends React.Component<Props, State> {
               'This event is resolved due to the Auto Resolve configuration for this project'
             )}
           >
-            <StyledButton
+            <StyledResolveButton
               data-test-id="button-unresolve"
               icon={<IconCheckmark size="xs" />}
-              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
             />
           </Tooltip>
         </ResolvedActionWrapper>
@@ -103,10 +102,10 @@ class ResolveActions extends React.Component<Props, State> {
       return (
         <ResolvedActionWrapper>
           <Tooltip title={t('Unresolve')}>
-            <StyledButton
+            <StyledResolveButton
               data-test-id="button-unresolve"
-              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
               icon={<IconCheckmark size="xs" />}
+              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
             />
           </Tooltip>
         </ResolvedActionWrapper>
@@ -169,14 +168,13 @@ class ResolveActions extends React.Component<Props, State> {
               <StyledIconCheckmark size="xs" />
               {t('Resolve')}
             </StyledResolveActionLink>
-
             <StyledDropdownLink
               key="resolve-dropdown"
               caret
               className={buttonClass}
               title=""
               alwaysRenderMenu
-              disabled={disableDropdown || disabled}
+              disabled={!projectId ? disabled : disableDropdown}
             >
               <StyledMenuItem header>{t('Resolved In')}</StyledMenuItem>
               <StyledTooltip title={actionTitle} containerDisplayMode="block">
@@ -244,22 +242,23 @@ const disabledCss = css`
   pointer-events: none;
 `;
 
-const dropdownTipCss = props => css`
+const dropdownTipCss = p => css`
   & ul {
     padding: 0;
-    border-radius: ${props.theme.borderRadius};
+    border-radius: ${p.theme.borderRadius};
     top: 40px;
-    & :after {
-      border-bottom: 8px solid ${props.theme.bodyBackground};
+    &:after {
+      border-bottom: 8px solid ${p.theme.bodyBackground};
     }
+  }
 `;
 
-const actionLinkCss = props => css`
-  color: ${props.theme.subText};
+const actionLinkCss = p => css`
+  color: ${p.theme.subText};
   &:hover {
-    border-radius: ${props.theme.borderRadius};
-    background: ${props.theme.bodyBackground};
-    color: ${props.theme.textColor};
+    border-radius: ${p.theme.borderRadius};
+    background: ${p.theme.bodyBackground};
+    color: ${p.theme.textColor};
   }
 `;
 
@@ -270,7 +269,7 @@ const ResolvedActionWrapper = styled('div')`
 
 const ResolveWrapper = styled('div')`
   display: inline-block;
-  ${dropdownTipCss}
+  ${dropdownTipCss};
   & span {
     position: relative;
   }
@@ -278,12 +277,13 @@ const ResolveWrapper = styled('div')`
 
 const StyledIconCheckmark = styled(IconCheckmark)`
   margin-right: ${space(0.5)};
+  align-self: center;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
 `;
 
-const StyledButton = styled(Button)`
+const StyledResolveButton = styled(Button)`
   display: inline-flex;
   vertical-align: middle;
   color: ${p => p.theme.white};
@@ -297,9 +297,11 @@ const StyledButton = styled(Button)`
     color: ${p => p.theme.white};
     border: 1px solid #4538a1;
   }
+  ${p => (!p.onClick ? 'pointer-events: none' : null)};
 `;
 
 const StyledResolveActionLink = styled(ActionLink)`
+  display: flex;
   float: left;
   color: #493e54;
   background-image: linear-gradient(to bottom, ${p => p.theme.white} 0%, #fcfbfc 100%);
@@ -314,7 +316,7 @@ const StyledResolveActionLink = styled(ActionLink)`
   line-height: 1.5;
   user-select: none;
   transition: none;
-  ${p => (p.disabled ? disabledCss : null)}
+  ${p => (p.disabled ? disabledCss : null)};
   &:hover {
     background-color: #e6e6e6;
     border-radius: 3px;
@@ -356,7 +358,7 @@ const StyledActionLink = styled(ActionLink)`
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  ${actionLinkCss}
+  ${actionLinkCss};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`

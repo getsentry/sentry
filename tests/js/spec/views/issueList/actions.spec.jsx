@@ -191,7 +191,7 @@ describe('IssueListActions', function () {
         );
       });
 
-      it('ignores selected items', function () {
+      it('ignores selected items', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/1337/issues/',
           method: 'PUT',
@@ -201,8 +201,7 @@ describe('IssueListActions', function () {
           .mockImplementation(() => new Set([3, 6, 9]));
 
         wrapper.setState({allInQuerySelected: false, anySelected: true});
-        wrapper.find('IgnoreActions MenuItem a').last().simulate('click');
-
+        wrapper.find('DropdownMenuItem ActionSubMenu a').last().simulate('click');
         wrapper
           .find('CustomIgnoreCountModal input[label="Number of users"]')
           .simulate('change', {target: {value: 300}});

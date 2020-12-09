@@ -107,7 +107,7 @@ export default class IgnoreActions extends React.Component<Props, State> {
       return (
         <IgnoredButtonActionWrapper>
           <Tooltip title={t('Change status to unresolved')}>
-            <StyledButton
+            <StyledIgnoreButton
               data-test-id="button-unresolve"
               onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
               icon={<IconNot size="xs" />}
@@ -346,27 +346,28 @@ const disabledCss = css`
   pointer-events: none;
 `;
 
-const actionLinkCss = props => css`
-  color: ${props.theme.subText};
+const actionLinkCss = p => css`
+  color: ${p.theme.subText};
   &:hover {
-    border-radius: ${props.theme.borderRadius};
-    background: ${props.theme.bodyBackground} !important;
+    border-radius: ${p.theme.borderRadius};
+    background: ${p.theme.bodyBackground} !important;
   }
 `;
 
-const dropdownTipCss = props => css`
+const dropdownTipCss = p => css`
   & ul {
     padding: 0;
-    border-radius: ${props.theme.borderRadius};
+    border-radius: ${p.theme.borderRadius};
     top: 40px;
-    & :after {
-      border-bottom: 8px solid ${props.theme.bodyBackground};
+    &:after {
+      border-bottom: 8px solid ${p.theme.bodyBackground};
     }
+  }
 `;
 
 const IgnoreWrapper = styled('div')`
   display: inline-block;
-  ${dropdownTipCss}
+  ${dropdownTipCss};
   & span {
     position: relative;
   }
@@ -377,7 +378,7 @@ const IgnoredButtonActionWrapper = styled('div')`
   display: inline-block;
 `;
 
-const StyledButton = styled(Button)`
+const StyledIgnoreButton = styled(Button)`
   display: inline-flex;
   vertical-align: middle;
   color: ${p => p.theme.white};
@@ -394,6 +395,7 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledIgnoreActionLink = styled(ActionLink)`
+  display: flex;
   float: left;
   color: #493e54;
   background-image: linear-gradient(to bottom, ${p => p.theme.white} 0%, #fcfbfc 100%);
@@ -408,7 +410,7 @@ const StyledIgnoreActionLink = styled(ActionLink)`
   line-height: 1.5;
   user-select: none;
   transition: none;
-  ${p => (p.disabled ? disabledCss : null)}
+  ${p => (p.disabled ? disabledCss : null)};
   &:hover {
     background-color: #e6e6e6;
     border-radius: 3px;
@@ -420,6 +422,7 @@ const StyledIgnoreActionLink = styled(ActionLink)`
 
 const StyledIconNot = styled(IconNot)`
   margin-right: ${space(0.5)};
+  align-self: center;
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
@@ -427,12 +430,12 @@ const StyledIconNot = styled(IconNot)`
 
 const StyledActionLink = styled(ActionLink)`
   padding: 7px 10px !important;
-  ${actionLinkCss}
+  ${actionLinkCss};
 `;
 
 const StyledForActionLink = styled(ActionLink)`
   padding: ${space(0.5)} 0;
-  ${actionLinkCss}
+  ${actionLinkCss};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
