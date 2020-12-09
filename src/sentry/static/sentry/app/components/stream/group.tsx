@@ -563,13 +563,20 @@ const EventUserWrapper = styled('div')`
   justify-content: flex-end;
   margin: 0 ${space(2)};
   align-self: center;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    width: 80px;
-  }
+  margin-left: ${space(1.5)};
+  margin-right: ${space(1.5)};
+  width: 40px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     width: 60px;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 60px;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    width: 80px;
+    margin-left: ${space(2)};
+    margin-right: ${space(2)};
   }
 `;
 
