@@ -221,6 +221,14 @@ def parse_actor_value(projects, value, user):
     return parse_user_value(value, user)
 
 
+def parse_owner_value(projects, value, user):
+    if value.startswith("#"):
+        return parse_team_value(projects, value, user)
+    elif value == "me_or_none":
+        return "me_or_none"
+    return parse_user_value(value, user)
+
+
 def parse_user_value(value, user):
     if value == "me":
         return user
@@ -450,7 +458,7 @@ def parse_query(projects, query, user, environments):
             elif key == "assigned":
                 results["assigned_to"] = parse_actor_value(projects, value, user)
             elif key == "owner":
-                results["owner"] = parse_actor_value(projects, value, user)
+                results["owner"] = parse_owner_value(projects, value, user)
             elif key == "bookmarks":
                 results["bookmarked_by"] = parse_user_value(value, user)
             elif key == "subscribed":

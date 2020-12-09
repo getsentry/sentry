@@ -696,14 +696,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_owner_search(self):
         with self.feature("organizations:workflow-owners"):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
             event = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(seconds=200)),
@@ -712,10 +704,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 },
                 project_id=self.project.id,
             )
-            self.store_event(
+            event1 = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(seconds=200)),
                     "fingerprint": ["group-3"],
+                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            event2 = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=200)),
+                    "fingerprint": ["group-1"],
                     "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
                 },
                 project_id=self.project.id,
@@ -766,6 +766,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
+
+            response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
+            assert response.status_code == 200
+            assert len(response.data) == 3
+            assert int(response.data[0]["id"]) == event.group.id
+            assert int(response.data[1]["id"]) == event1.group.id
+            assert int(response.data[2]["id"]) == event2.group.id
 
     def test_aggregate_stats_regression_test(self):
         self.store_event(

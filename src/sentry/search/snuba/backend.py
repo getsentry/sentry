@@ -150,12 +150,14 @@ def owner_filter(owner, projects):
         relevant_owners = GroupOwner.objects.filter(
             project_id__in=project_ids, organization_id=organization_id
         )
+        filter_query = Q(team__in=teams) | Q(user=owner)
         return Q(
-            id__in=relevant_owners.filter(Q(team__in=teams) | Q(user=owner),)
+            id__in=relevant_owners.filter(filter_query)
             .values_list("group_id", flat=True)
             .distinct()
         )
     elif owner == "me_or_none":
+        # TODO: Tricky bit here.
         pass
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
