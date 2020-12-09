@@ -90,9 +90,9 @@ class GroupHeader extends React.Component<Props, State> {
 
     // Reprocessing
     const reprocessingStatus = getGroupReprocessingStatus(group);
-    const hasGroupBeenFullyReprocessed =
+    const hasGroupBeenReprocessedAndHasntEvent =
       hasReprocessingV2Feature &&
-      reprocessingStatus === ReprocessingStatus.FULLY_REPROCESSED;
+      reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT;
     const isGroupBeingReprocessing =
       hasReprocessingV2Feature && reprocessingStatus === ReprocessingStatus.REPROCESSING;
 
@@ -233,19 +233,21 @@ class GroupHeader extends React.Component<Props, State> {
           <ListLink
             to={`${baseUrl}${location.search}`}
             isActive={() => currentTab === TAB.DETAILS}
-            disabled={hasGroupBeenFullyReprocessed}
+            disabled={hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Details')}
           </ListLink>
           <ListLink
             to={`${baseUrl}activity/${location.search}`}
             isActive={() => currentTab === TAB.ACTIVITY}
+            disabled={isGroupBeingReprocessing}
           >
             {t('Activity')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
+            disabled={isGroupBeingReprocessing}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
@@ -253,7 +255,7 @@ class GroupHeader extends React.Component<Props, State> {
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
               isActive={() => currentTab === TAB.ATTACHMENTS}
-              disabled={isGroupBeingReprocessing || hasGroupBeenFullyReprocessed}
+              disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
             >
               {t('Attachments')}
             </ListLink>
@@ -261,21 +263,21 @@ class GroupHeader extends React.Component<Props, State> {
           <ListLink
             to={`${baseUrl}tags/${location.search}`}
             isActive={() => currentTab === TAB.TAGS}
-            disabled={isGroupBeingReprocessing || hasGroupBeenFullyReprocessed}
+            disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Tags')}
           </ListLink>
           <ListLink
             to={eventRouteToObject}
             isActive={() => currentTab === 'events'}
-            disabled={isGroupBeingReprocessing || hasGroupBeenFullyReprocessed}
+            disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Events')}
           </ListLink>
           <ListLink
             to={`${baseUrl}merged/${location.search}`}
             isActive={() => currentTab === TAB.MERGED}
-            disabled={isGroupBeingReprocessing || hasGroupBeenFullyReprocessed}
+            disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Merged Issues')}
           </ListLink>
@@ -283,7 +285,7 @@ class GroupHeader extends React.Component<Props, State> {
             <ListLink
               to={`${baseUrl}similar/${location.search}`}
               isActive={() => currentTab === TAB.SIMILAR_ISSUES}
-              disabled={isGroupBeingReprocessing || hasGroupBeenFullyReprocessed}
+              disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
             >
               {t('Similar Issues')}
             </ListLink>

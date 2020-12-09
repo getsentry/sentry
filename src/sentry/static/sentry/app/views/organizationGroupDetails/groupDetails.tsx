@@ -203,7 +203,7 @@ class GroupDetails extends React.Component<Props, State> {
         if (hasReprocessingV2Feature) {
           // Redirects to the Activities tab
           if (
-            reprocessingStatus === ReprocessingStatus.FULLY_REPROCESSED &&
+            reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
             currentTab !== TAB.ACTIVITY
           ) {
             ReactRouter.browserHistory.push({
@@ -227,24 +227,24 @@ class GroupDetails extends React.Component<Props, State> {
       if (hasReprocessingV2Feature) {
         if (
           reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-          (currentTab !== TAB.ACTIVITY ||
-            currentTab !== TAB.USER_FEEDBACK ||
-            currentTab !== TAB.DETAILS)
+          currentTab !== TAB.DETAILS
         ) {
           ReactRouter.browserHistory.push({
             pathname: baseUrl,
             query: params,
           });
+          return;
         }
 
         if (
-          reprocessingStatus === ReprocessingStatus.FULLY_REPROCESSED &&
+          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
           (currentTab !== TAB.ACTIVITY || currentTab !== TAB.USER_FEEDBACK)
         ) {
           ReactRouter.browserHistory.push({
             pathname: `${baseUrl}${TAB.ACTIVITY}/`,
             query: params,
           });
+          return;
         }
       }
 

@@ -135,8 +135,8 @@ export function getGroupMostRecentActivity(activities: GroupActivity[]) {
 }
 
 export enum ReprocessingStatus {
-  FULLY_REPROCESSED = 'fully_reprocessed',
-  PARTIALLY_REPROCESSED = 'partially_reprocessed',
+  REPROCESSED_AND_HASNT_EVENT = 'reprocessed_and_hasnt_event',
+  REPROCESSED_AND_HAS_EVENT = 'reprocessed_and_has_event',
   REPROCESSING = 'reprocessing',
   NO_STATUS = 'no_status',
 }
@@ -157,9 +157,9 @@ export function getGroupReprocessingStatus(
         mostRecentActivity ?? getGroupMostRecentActivity(activities);
       if (groupMostRecentActivity?.type === 'reprocess') {
         if (groupCount === 0) {
-          return ReprocessingStatus.FULLY_REPROCESSED;
+          return ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT;
         }
-        return ReprocessingStatus.PARTIALLY_REPROCESSED;
+        return ReprocessingStatus.REPROCESSED_AND_HAS_EVENT;
       }
       return ReprocessingStatus.NO_STATUS;
     }
