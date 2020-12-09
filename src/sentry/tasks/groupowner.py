@@ -87,7 +87,7 @@ def process_suspect_commits(event, **kwargs):
                                     new_owners.append((author_id, score))
 
                     if new_owners:
-                        for owner_id, score in sorted(new_owners, key=lambda a: a[1])[
+                        for owner_id, score in sorted(new_owners, key=lambda a: a[1], reverse=True)[
                             :PREFERRED_GROUP_OWNERS
                         ]:
                             go, created = GroupOwner.objects.update_or_create(
