@@ -20,7 +20,6 @@ RUN set -x \
   dirmngr \
   gnupg \
   wget \
-  git \
   " \
   && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
   && rm -rf /var/lib/apt/lists/* \
@@ -63,6 +62,10 @@ ENV PIP_NO_CACHE_DIR=off \
 COPY /dist/requirements.txt /tmp/dist/requirements.txt
 RUN set -x \
   && buildDeps="" \
+  # ability to install git dependencies
+  && buildDeps="$buildDeps \
+  git \
+  " \
   # uwsgi
   && buildDeps="$buildDeps \
   gcc \
