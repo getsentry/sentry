@@ -28,7 +28,7 @@ class VstsIssueSync(IssueSyncMixin):
         project = self.get_client().get_project(self.instance, default_repo)
         return (project["id"], project["name"])
 
-    def get_project_choices(self, group, **kwargs):
+    def get_project_choices(self, group=None, **kwargs):
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)
@@ -38,28 +38,31 @@ class VstsIssueSync(IssueSyncMixin):
         project_choices = [(project["id"], project["name"]) for project in projects]
 
         params = kwargs.get("params", {})
-        defaults = self.get_project_defaults(group.project_id)
-        try:
-            default_project = params.get(
-                "project", defaults.get("project") or project_choices[0][0]
-            )
-        except IndexError:
-            return None, project_choices
-
-        # If a project has been selected outside of the default list of
-        # projects, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in project_choices if r[0] == default_project)
-        except StopIteration:
+        if group:
+            defaults = self.get_project_defaults(group.project_id)
             try:
-                project_choices.insert(0, self.create_default_repo_choice(default_project))
-            except (ApiError, ApiUnauthorized):
+                default_project = params.get(
+                    "project", defaults.get("project") or project_choices[0][0]
+                )
+            except IndexError:
                 return None, project_choices
+
+            # If a project has been selected outside of the default list of
+            # projects, stick it onto the front of the list so that it can be
+            # selected.
+            try:
+                next(True for r in project_choices if r[0] == default_project)
+            except StopIteration:
+                try:
+                    project_choices.insert(0, self.create_default_repo_choice(default_project))
+                except (ApiError, ApiUnauthorized):
+                    return None, project_choices
+        else:
+            default_project = project_choices[0][0]
 
         return default_project, project_choices
 
-    def get_work_item_choices(self, project, group):
+    def get_work_item_choices(self, project, group=None):
         client = self.get_client()
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
@@ -79,7 +82,9 @@ class VstsIssueSync(IssueSyncMixin):
         item_tuples = list(item_type_map.items())
 
         # try to get the default from either the last value used or from the first item on the list
-        defaults = self.get_project_defaults(group.project_id)
+        defaults = {}
+        if group:
+            defaults = self.get_project_defaults(group.project_id)
         try:
             default_item_type = defaults.get("work_item_type") or item_tuples[0][0]
         except IndexError:
@@ -87,19 +92,29 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_item_type, item_tuples
 
+    def get_create_issue_config_no_params(self):
+        return self.get_create_issue_config(None, None, params={})
+
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"
-        fields = super(VstsIssueSync, self).get_create_issue_config(group, user, **kwargs)
-        # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
-        # Workitems (issues) are associated with the project not the repository.
-        default_project, project_choices = self.get_project_choices(group, **kwargs)
+        fields = []
+        if group:
+            fields = super(VstsIssueSync, self).get_create_issue_config(group, user, **kwargs)
+            # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
+            # Workitems (issues) are associated with the project not the repository.
+            default_project, project_choices = self.get_project_choices(group, **kwargs)
+        else:
+            default_project, project_choices = self.get_project_choices(**kwargs)
 
         work_item_choices = []
         default_work_item = None
         if default_project:
-            default_work_item, work_item_choices = self.get_work_item_choices(
-                default_project, group
-            )
+            if group:
+                default_work_item, work_item_choices = self.get_work_item_choices(
+                    default_project, group
+                )
+            else:
+                default_work_item, work_item_choices = self.get_work_item_choices(default_project)
 
         return [
             {

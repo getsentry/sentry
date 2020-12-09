@@ -104,3 +104,19 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
         assert len(results) == 1
         results[0].callback(event, futures=[])
         assert len(responses.calls) == 0
+
+    def test_render_label(self):
+        azuredevops_rule = self.get_rule(
+            data={
+                "title": "Hello",
+                "description": "Fix this.",
+                "project": "0987654321",
+                "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
+                "vsts_integration": self.integration.model.id,
+            }
+        )
+
+        assert (
+            azuredevops_rule.rule.render_label()
+            == """Create an Azure DevOps work item in fabrikam-fiber-inc with these """
+        )
