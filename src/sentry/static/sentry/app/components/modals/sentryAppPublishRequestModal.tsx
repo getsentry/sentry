@@ -1,10 +1,10 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -57,9 +57,8 @@ class PublishRequestFormModel extends FormModel {
   }
 }
 
-type Props = {
+type Props = ModalRenderProps & {
   app: SentryApp;
-  closeModal: () => void;
 };
 
 export default class SentryAppPublishRequestModal extends React.Component<Props> {
@@ -149,7 +148,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
   };
 
   render() {
-    const {app} = this.props;
+    const {app, Header, Body} = this.props;
     const endpoint = `/sentry-apps/${app.slug}/publish-request/`;
     const forms = [
       {
@@ -159,8 +158,8 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     ];
     return (
       <React.Fragment>
-        <Modal.Header>{t('Publish Request Questionnaire')}</Modal.Header>
-        <Modal.Body>
+        <Header>{t('Publish Request Questionnaire')}</Header>
+        <Body>
           <Explanation>
             {t(
               `Please fill out this questionnaire in order to get your integration evaluated for publication.
@@ -179,7 +178,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
           >
             <JsonForm forms={forms} />
           </Form>
-        </Modal.Body>
+        </Body>
       </React.Fragment>
     );
   }

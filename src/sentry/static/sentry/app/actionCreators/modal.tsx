@@ -120,7 +120,7 @@ export async function openCommandPalette(options: ModalOptions = {}) {
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal Body={deps.Body} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type RecoveryModalOptions = {

@@ -120,11 +120,11 @@ class CreateSavedSearchButton extends React.Component<Props, State> {
         </Button>
         <Modal show={isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
-            <div className="modal-header">
+            <Modal.Header>
               <h4>{t('Save Current Search')}</h4>
-            </div>
+            </Modal.Header>
 
-            <div className="modal-body">
+            <Modal.Body>
               {this.state.error && (
                 <div className="alert alert-error alert-block">{error}</div>
               )}
@@ -146,8 +146,8 @@ class CreateSavedSearchButton extends React.Component<Props, State> {
                 required
                 onChange={this.handleChangeQuery}
               />
-            </div>
-            <div className="modal-footer">
+            </Modal.Body>
+            <Modal.Footer>
               <Button
                 priority="default"
                 size="small"
@@ -160,7 +160,7 @@ class CreateSavedSearchButton extends React.Component<Props, State> {
               <Button priority="primary" size="small" disabled={isSaving}>
                 {t('Save')}
               </Button>
-            </div>
+            </Modal.Footer>
           </form>
         </Modal>
       </Access>
