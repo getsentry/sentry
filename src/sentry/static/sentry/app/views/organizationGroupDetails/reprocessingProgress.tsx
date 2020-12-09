@@ -39,7 +39,7 @@ function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
 export default ReprocessingProgress;
 
 const Wrapper = styled('div')`
-  margin: 30px 40px;
+  margin: ${space(4)} 40px;
   flex: 1;
   text-align: center;
 
