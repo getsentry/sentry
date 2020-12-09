@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
+import {openModal} from 'app/actionCreators/modal';
 import ActionLink from 'app/components/actions/actionLink';
 import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
@@ -19,12 +19,6 @@ import {
   UpdateResolutionStatus,
 } from 'app/types';
 
-enum ModalStates {
-  COUNT,
-  DURATION,
-  USERS,
-}
-
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
 const IGNORE_WINDOWS: [number, string][] = [
@@ -33,282 +27,257 @@ const IGNORE_WINDOWS: [number, string][] = [
   [24 * 7 * 60, t('per week')],
 ];
 
-const defaultProps = {
-  isIgnored: false,
-  confirmLabel: t('Ignore'),
-  hasInbox: false,
-};
-
 type Props = {
   onUpdate: (params: UpdateResolutionStatus) => void;
   disabled?: boolean;
   shouldConfirm?: boolean;
   confirmMessage?: React.ReactNode;
+  confirmLabel?: string;
+  isIgnored?: boolean;
   hasInbox?: boolean;
-} & typeof defaultProps;
-
-type State = {
-  modal: ModalStates | null;
 };
 
-export default class IgnoreActions extends React.Component<Props, State> {
-  static propTypes = {
-    isIgnored: PropTypes.bool,
-    onUpdate: PropTypes.func.isRequired,
-    disabled: PropTypes.bool,
-    shouldConfirm: PropTypes.bool,
-    confirmMessage: PropTypes.node,
-    confirmLabel: PropTypes.string,
-  };
-
-  static defaultProps = defaultProps;
-
-  state = {
-    modal: null,
-  };
-
-  onCustomIgnore(statusDetails: ResolutionStatusDetails) {
-    this.setState({
-      modal: null,
-    });
-    this.onIgnore(statusDetails);
-  }
-
-  onIgnore(statusDetails: ResolutionStatusDetails) {
-    return this.props.onUpdate({
+const IgnoreActions = ({
+  onUpdate,
+  disabled,
+  shouldConfirm,
+  confirmMessage,
+  confirmLabel = t('Ignore'),
+  isIgnored = false,
+  hasInbox = false,
+}: Props) => {
+  const onIgnore = (statusDetails: ResolutionStatusDetails) => {
+    return onUpdate({
       status: ResolutionStatus.IGNORED,
       statusDetails: statusDetails || {},
     });
-  }
+  };
 
-  render() {
-    const {
-      isIgnored,
-      onUpdate,
-      disabled,
-      shouldConfirm,
-      confirmMessage,
-      confirmLabel,
-      hasInbox,
-    } = this.props;
+  const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
+    onIgnore(statusDetails);
+  };
 
-    const linkClassName = classNames('btn btn-default btn-sm', {
-      active: isIgnored,
-    });
+  const linkClassName = classNames('btn btn-default btn-sm', {
+    active: isIgnored,
+  });
 
-    const submenuClassName = classNames('dropdown-submenu', {
-      flex: hasInbox,
-      'expand-left': hasInbox,
-    });
+  const submenuClassName = classNames('dropdown-submenu', {
+    flex: hasInbox,
+    'expand-left': hasInbox,
+  });
 
-    const actionLinkProps = {
-      shouldConfirm,
-      title: t('Ignore'),
-      message: confirmMessage,
-      confirmLabel,
-      disabled,
-    };
+  const actionLinkProps = {
+    shouldConfirm,
+    title: t('Ignore'),
+    message: confirmMessage,
+    confirmLabel,
+    disabled,
+  };
 
-    if (isIgnored) {
-      return (
-        <div className="btn-group">
-          <Tooltip title={t('Change status to unresolved')}>
-            <a
-              className={linkClassName}
-              data-test-id="button-unresolve"
-              onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-            >
-              <SoloIconNot size="xs" />
-            </a>
-          </Tooltip>
-        </div>
-      );
-    }
-
+  if (isIgnored) {
     return (
-      <div style={{display: 'inline-block'}}>
-        <CustomIgnoreDurationModal
-          show={this.state.modal === ModalStates.DURATION}
-          onSelected={details => this.onCustomIgnore(details)}
-          onCanceled={() => this.setState({modal: null})}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.modal === ModalStates.COUNT}
-          onSelected={details => this.onCustomIgnore(details)}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it occurs again\u2026')}
-          countLabel={t('Number of times')}
-          countName="ignoreCount"
-          windowName="ignoreWindow"
-          windowChoices={IGNORE_WINDOWS}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.modal === ModalStates.USERS}
-          onSelected={details => this.onCustomIgnore(details)}
-          onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it affects an additional\u2026')}
-          countLabel={t('Number of users')}
-          countName="ignoreUserCount"
-          windowName="ignoreUserWindow"
-          windowChoices={IGNORE_WINDOWS}
-        />
-        <div className="btn-group">
-          {!hasInbox && (
-            <StyledActionLink
-              {...actionLinkProps}
-              title={t('Ignore')}
-              className={linkClassName}
-              onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-            >
-              <StyledIconNot size="xs" />
-              {t('Ignore')}
-            </StyledActionLink>
-          )}
-
-          <StyledDropdownLink
-            caret={!hasInbox}
+      <div className="btn-group">
+        <Tooltip title={t('Change status to unresolved')}>
+          <a
             className={linkClassName}
-            customTitle={hasInbox ? <IconMute size="xs" color="gray300" /> : undefined}
-            title=""
-            alwaysRenderMenu
-            disabled={disabled}
-            anchorRight={hasInbox}
-            hasInbox
+            data-test-id="button-unresolve"
+            onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
           >
-            <MenuItem header>Ignore</MenuItem>
-            <li className={submenuClassName}>
-              <DropdownLink
-                title={t('For\u2026')}
-                caret={false}
-                isNestedDropdown
-                alwaysRenderMenu
-              >
-                {IGNORE_DURATIONS.map(duration => (
-                  <MenuItem noAnchor key={duration}>
-                    <ActionLink
-                      {...actionLinkProps}
-                      onAction={() => this.onIgnore({ignoreDuration: duration})}
-                    >
-                      <Duration seconds={duration * 60} />
-                    </ActionLink>
-                  </MenuItem>
-                ))}
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.DURATION})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-            <li className={submenuClassName}>
-              <DropdownLink
-                title={t('Until this occurs again\u2026')}
-                caret={false}
-                isNestedDropdown
-                alwaysRenderMenu
-              >
-                {IGNORE_COUNTS.map(count => (
-                  <li className={submenuClassName} key={count}>
-                    <DropdownLink
-                      title={
-                        count === 1
-                          ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
-                          : tn('%s time\u2026', '%s times\u2026', count)
-                      }
-                      caret={false}
-                      isNestedDropdown
-                      alwaysRenderMenu
-                    >
-                      <MenuItem noAnchor>
-                        <ActionLink
-                          {...actionLinkProps}
-                          onAction={() => this.onIgnore({ignoreCount: count})}
-                        >
-                          {t('from now')}
-                        </ActionLink>
-                      </MenuItem>
-                      {IGNORE_WINDOWS.map(([hours, label]) => (
-                        <MenuItem noAnchor key={hours}>
-                          <ActionLink
-                            {...actionLinkProps}
-                            onAction={() =>
-                              this.onIgnore({
-                                ignoreCount: count,
-                                ignoreWindow: hours,
-                              })
-                            }
-                          >
-                            {label}
-                          </ActionLink>
-                        </MenuItem>
-                      ))}
-                    </DropdownLink>
-                  </li>
-                ))}
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.COUNT})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-            <li className={submenuClassName}>
-              <DropdownLink
-                title={t('Until this affects an additional\u2026')}
-                caret={false}
-                isNestedDropdown
-                alwaysRenderMenu
-              >
-                {IGNORE_COUNTS.map(count => (
-                  <li className={submenuClassName} key={count}>
-                    <DropdownLink
-                      title={tn('one user\u2026', '%s users\u2026', count)}
-                      caret={false}
-                      isNestedDropdown
-                      alwaysRenderMenu
-                    >
-                      <MenuItem noAnchor>
-                        <ActionLink
-                          {...actionLinkProps}
-                          onAction={() => this.onIgnore({ignoreUserCount: count})}
-                        >
-                          {t('from now')}
-                        </ActionLink>
-                      </MenuItem>
-                      {IGNORE_WINDOWS.map(([hours, label]) => (
-                        <MenuItem noAnchor key={hours}>
-                          <ActionLink
-                            {...actionLinkProps}
-                            onAction={() =>
-                              this.onIgnore({
-                                ignoreUserCount: count,
-                                ignoreUserWindow: hours,
-                              })
-                            }
-                          >
-                            {label}
-                          </ActionLink>
-                        </MenuItem>
-                      ))}
-                    </DropdownLink>
-                  </li>
-                ))}
-                <MenuItem divider />
-                <MenuItem noAnchor>
-                  <a onClick={() => this.setState({modal: ModalStates.USERS})}>
-                    {t('Custom')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>
-            </li>
-          </StyledDropdownLink>
-        </div>
+            <SoloIconNot size="xs" />
+          </a>
+        </Tooltip>
       </div>
     );
   }
-}
+
+  const openCustomIgnoreDuration = () =>
+    openModal(deps => (
+      <CustomIgnoreDurationModal
+        {...deps}
+        onSelected={details => onCustomIgnore(details)}
+      />
+    ));
+
+  const openCustomIngoreCount = () =>
+    openModal(deps => (
+      <CustomIgnoreCountModal
+        {...deps}
+        onSelected={details => onCustomIgnore(details)}
+        label={t('Ignore this issue until it occurs again\u2026')}
+        countLabel={t('Number of times')}
+        countName="ignoreCount"
+        windowName="ignoreWindow"
+        windowChoices={IGNORE_WINDOWS}
+      />
+    ));
+
+  const openCustomIgnoreUserCount = () =>
+    openModal(deps => (
+      <CustomIgnoreCountModal
+        {...deps}
+        onSelected={details => onCustomIgnore(details)}
+        label={t('Ignore this issue until it affects an additional\u2026')}
+        countLabel={t('Number of users')}
+        countName="ignoreUserCount"
+        windowName="ignoreUserWindow"
+        windowChoices={IGNORE_WINDOWS}
+      />
+    ));
+
+  return (
+    <div style={{display: 'inline-block'}}>
+      <div className="btn-group">
+        {!hasInbox && (
+          <StyledActionLink
+            {...actionLinkProps}
+            title={t('Ignore')}
+            className={linkClassName}
+            onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+          >
+            <StyledIconNot size="xs" />
+            {t('Ignore')}
+          </StyledActionLink>
+        )}
+
+        <StyledDropdownLink
+          caret={!hasInbox}
+          className={linkClassName}
+          customTitle={hasInbox ? <IconMute size="xs" color="gray300" /> : undefined}
+          title=""
+          alwaysRenderMenu
+          disabled={disabled}
+          anchorRight={hasInbox}
+          hasInbox
+        >
+          <MenuItem header>Ignore</MenuItem>
+          <li className={submenuClassName}>
+            <DropdownLink
+              title={t('For\u2026')}
+              caret={false}
+              isNestedDropdown
+              alwaysRenderMenu
+            >
+              {IGNORE_DURATIONS.map(duration => (
+                <MenuItem noAnchor key={duration}>
+                  <ActionLink
+                    {...actionLinkProps}
+                    onAction={() => onIgnore({ignoreDuration: duration})}
+                  >
+                    <Duration seconds={duration * 60} />
+                  </ActionLink>
+                </MenuItem>
+              ))}
+              <MenuItem divider />
+              <MenuItem noAnchor>
+                <a onClick={openCustomIgnoreDuration}>{t('Custom')}</a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li className={submenuClassName}>
+            <DropdownLink
+              title={t('Until this occurs again\u2026')}
+              caret={false}
+              isNestedDropdown
+              alwaysRenderMenu
+            >
+              {IGNORE_COUNTS.map(count => (
+                <li className={submenuClassName} key={count}>
+                  <DropdownLink
+                    title={
+                      count === 1
+                        ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+                        : tn('%s time\u2026', '%s times\u2026', count)
+                    }
+                    caret={false}
+                    isNestedDropdown
+                    alwaysRenderMenu
+                  >
+                    <MenuItem noAnchor>
+                      <ActionLink
+                        {...actionLinkProps}
+                        onAction={() => onIgnore({ignoreCount: count})}
+                      >
+                        {t('from now')}
+                      </ActionLink>
+                    </MenuItem>
+                    {IGNORE_WINDOWS.map(([hours, label]) => (
+                      <MenuItem noAnchor key={hours}>
+                        <ActionLink
+                          {...actionLinkProps}
+                          onAction={() =>
+                            onIgnore({
+                              ignoreCount: count,
+                              ignoreWindow: hours,
+                            })
+                          }
+                        >
+                          {label}
+                        </ActionLink>
+                      </MenuItem>
+                    ))}
+                  </DropdownLink>
+                </li>
+              ))}
+              <MenuItem divider />
+              <MenuItem noAnchor>
+                <a onClick={openCustomIngoreCount}>{t('Custom')}</a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li className={submenuClassName}>
+            <DropdownLink
+              title={t('Until this affects an additional\u2026')}
+              caret={false}
+              isNestedDropdown
+              alwaysRenderMenu
+            >
+              {IGNORE_COUNTS.map(count => (
+                <li className={submenuClassName} key={count}>
+                  <DropdownLink
+                    title={tn('one user\u2026', '%s users\u2026', count)}
+                    caret={false}
+                    isNestedDropdown
+                    alwaysRenderMenu
+                  >
+                    <MenuItem noAnchor>
+                      <ActionLink
+                        {...actionLinkProps}
+                        onAction={() => onIgnore({ignoreUserCount: count})}
+                      >
+                        {t('from now')}
+                      </ActionLink>
+                    </MenuItem>
+                    {IGNORE_WINDOWS.map(([hours, label]) => (
+                      <MenuItem noAnchor key={hours}>
+                        <ActionLink
+                          {...actionLinkProps}
+                          onAction={() =>
+                            onIgnore({
+                              ignoreUserCount: count,
+                              ignoreUserWindow: hours,
+                            })
+                          }
+                        >
+                          {label}
+                        </ActionLink>
+                      </MenuItem>
+                    ))}
+                  </DropdownLink>
+                </li>
+              ))}
+              <MenuItem divider />
+              <MenuItem noAnchor>
+                <a onClick={openCustomIgnoreUserCount}>{t('Custom')}</a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+        </StyledDropdownLink>
+      </div>
+    </div>
+  );
+};
+
+export default IgnoreActions;
 
 const StyledIconNot = styled(IconNot)`
   margin-right: ${space(0.5)};
