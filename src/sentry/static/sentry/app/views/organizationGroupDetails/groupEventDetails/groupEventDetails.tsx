@@ -175,7 +175,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     );
   }
 
-  renderContent(eventWithMeta: Event) {
+  renderContent(eventWithMeta?: Event) {
     const {
       group,
       project,
@@ -192,7 +192,9 @@ class GroupEventDetails extends React.Component<Props, State> {
     }
 
     if (eventError) {
-      <GroupEventDetailsLoadingError environments={environments} onRetry={onRetry} />;
+      return (
+        <GroupEventDetailsLoadingError environments={environments} onRetry={onRetry} />
+      );
     }
 
     return (
