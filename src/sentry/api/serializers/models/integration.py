@@ -38,8 +38,9 @@ class IntegrationSerializer(Serializer):
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
-    def __init__(self, organization_id=None):
+    def __init__(self, organization_id=None, params=None):
         self.organization_id = organization_id
+        self.params = params or {}
 
     def serialize(self, obj, attrs, user, include_config=True):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
@@ -63,6 +64,9 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
+    def __init__(self, params=None):
+        self.params = params
+
     def serialize(self, obj, attrs, user, include_config=True):
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
@@ -71,7 +75,7 @@ class OrganizationIntegrationSerializer(Serializer):
         integration = serialize(
             objects=obj.integration,
             user=user,
-            serializer=IntegrationConfigSerializer(obj.organization.id),
+            serializer=IntegrationConfigSerializer(obj.organization.id, params=self.params),
             include_config=include_config,
         )
 
