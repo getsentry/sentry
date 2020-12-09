@@ -122,7 +122,7 @@ class Promo extends React.Component<PromoProps> {
       eventKey: 'releases.landing_card_viewed',
       eventName: 'Releases: Landing Card Viewed',
       organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      project_id: project && parseInt(project.id, 10),
     });
   }
 
@@ -133,7 +133,7 @@ class Promo extends React.Component<PromoProps> {
       eventKey: 'releases.tour.advance',
       eventName: 'Releases: Tour Advance',
       organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      project_id: project && parseInt(project.id, 10),
       step,
       duration,
     });
@@ -146,7 +146,7 @@ class Promo extends React.Component<PromoProps> {
       eventKey: 'releases.tour.close',
       eventName: 'Releases: Tour Close',
       organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
+      project_id: project && parseInt(project.id, 10),
       step,
       duration,
     });
