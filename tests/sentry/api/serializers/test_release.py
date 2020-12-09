@@ -438,9 +438,6 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         commit_author = CommitAuthor.objects.create(
             email="chrib@sentry.io", name="Chrib", organization_id=project.organization_id
         )
-        CommitAuthor.objects.create(
-            email="chrib1@sentry.io", name="Chrib", organization_id=project.organization_id
-        )
         commit_author2 = CommitAuthor.objects.create(
             email="alsochrib@sentry.io", name="Also Chrib", organization_id=project.organization_id
         )
