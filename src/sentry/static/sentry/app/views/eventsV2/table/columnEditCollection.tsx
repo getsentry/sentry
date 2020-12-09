@@ -49,8 +49,13 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
+/**
+ * Handle getting position out of both React and Raw DOM events
+ * as both are handled here due to mousedown/mousemove events
+ * working differently.
+ */
 function getPointerPosition<T>(
-  event: MouseEvent | React.MouseEvent<T> | TouchEvent,
+  event: MouseEvent | TouchEvent | React.MouseEvent<T> | React.TouchEvent<T>,
   property: 'pageX' | 'pageY'
 ): number {
   if (event instanceof TouchEvent) {
@@ -150,7 +155,10 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange(newColumns);
   }
 
-  startDrag(event: React.MouseEvent<HTMLButtonElement> | TouchEvent, index: number) {
+  startDrag(
+    event: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>,
+    index: number
+  ) {
     const isDragging = this.state.isDragging;
     if (isDragging || !['mousedown', 'touchstart'].includes(event.type)) {
       return;
