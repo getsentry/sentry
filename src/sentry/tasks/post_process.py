@@ -221,8 +221,8 @@ def post_process_group(
                     "projects:workflow-owners-ingestion", event.project
                 ):
                     process_suspect_commits(event=event)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
+            except Exception:
+                logger.exception("Failed to process suspect commits")
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])
