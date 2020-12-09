@@ -18,9 +18,9 @@ import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = ModalRenderProps & {
   formFields: {[key: string]: any};
+  instance: IssueAlertRuleAction | IssueAlertRuleCondition;
   link?: string;
   ticketType?: string;
-  instance?: IssueAlertRuleAction | IssueAlertRuleCondition;
   onSubmitAction: (
     data: {[key: string]: string},
     dynamicFieldChoices: {[key: string]: string[]}
