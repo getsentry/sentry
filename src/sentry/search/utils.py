@@ -225,7 +225,7 @@ def parse_owner_value(projects, value, user):
     if value.startswith("#"):
         return parse_team_value(projects, value, user)
     elif value == "me_or_none":
-        return "me_or_none"
+        return ["me_or_none", user]
     return parse_user_value(value, user)
 
 

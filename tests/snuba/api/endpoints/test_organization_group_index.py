@@ -770,9 +770,40 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
             assert response.status_code == 200
             assert len(response.data) == 3
-            assert int(response.data[0]["id"]) == event.group.id
+            assert int(response.data[0]["id"]) == event2.group.id
             assert int(response.data[1]["id"]) == event1.group.id
-            assert int(response.data[2]["id"]) == event2.group.id
+            assert int(response.data[2]["id"]) == event.group.id
+
+            not_me = self.create_user(email="notme@sentry.io")
+            GroupOwner.objects.create(
+                group=event2.group,
+                project=event2.group.project,
+                organization=event2.group.project.organization,
+                type=0,
+                team_id=None,
+                user_id=not_me.id,
+            )
+            response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
+            assert response.status_code == 200
+            assert len(response.data) == 2
+            assert int(response.data[0]["id"]) == event1.group.id
+            assert int(response.data[1]["id"]) == event.group.id
+
+            GroupOwner.objects.create(
+                group=event2.group,
+                project=event2.group.project,
+                organization=event2.group.project.organization,
+                type=0,
+                team_id=None,
+                user_id=self.user.id,
+            )
+            # Should now include event2 as it has shared ownership.
+            response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
+            assert response.status_code == 200
+            assert len(response.data) == 3
+            assert int(response.data[0]["id"]) == event2.group.id
+            assert int(response.data[1]["id"]) == event1.group.id
+            assert int(response.data[2]["id"]) == event.group.id
 
     def test_aggregate_stats_regression_test(self):
         self.store_event(
