@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.models import ApiKey, User, ProjectOption, Repository
 from sentry_plugins.client import InternalApiClient
 
 

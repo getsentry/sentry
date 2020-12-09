@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.api import client
-
 from sentry.models import ApiKey, User, ProjectOption, Repository
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry_plugins.base import CorePluginMixin
