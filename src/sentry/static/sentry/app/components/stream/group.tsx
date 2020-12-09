@@ -71,7 +71,7 @@ type Props = {
 
 type State = {
   data: Group;
-  acknowledge: boolean;
+  reviewed: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -89,7 +89,7 @@ class StreamGroup extends React.Component<Props, State> {
         ...data,
         filtered: useFilteredStats ? data.filtered : null,
       },
-      acknowledge: false,
+      reviewed: false,
     };
   }
 
@@ -137,7 +137,7 @@ class StreamGroup extends React.Component<Props, State> {
         this.props.query === 'is:inbox is:unresolved' &&
         !!state.data.inbox?.reason &&
         data.inbox === false;
-      return {data, acknowledge: collapse};
+      return {data, reviewed: collapse};
     });
   }
 
@@ -217,7 +217,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data, acknowledge} = this.state;
+    const {data, reviewed} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -247,7 +247,7 @@ class StreamGroup extends React.Component<Props, State> {
     const hasInbox = organization.features.includes('inbox');
 
     return (
-      <Wrapper data-test-id="group" onClick={this.toggleSelect} acknowledge={acknowledge}>
+      <Wrapper data-test-id="group" onClick={this.toggleSelect} reviewed={reviewed}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -454,17 +454,17 @@ class StreamGroup extends React.Component<Props, State> {
 }
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{acknowledge: boolean}>`
+const Wrapper = styled(PanelItem)<{reviewed: boolean}>`
   position: relative;
   padding: ${space(1)} 0;
   line-height: 1.1;
 
   ${p =>
-    p.acknowledge &&
+    p.reviewed &&
     css`
-      animation: hideRow 0.2s linear forwards;
+      animation: tintRow 0.2s linear forwards;
 
-      @keyframes hideRow {
+      @keyframes tintRow {
         0% {
           background-color: ${p.theme.bodyBackground};
         }
