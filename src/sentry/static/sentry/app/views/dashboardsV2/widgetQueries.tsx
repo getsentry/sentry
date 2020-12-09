@@ -17,7 +17,7 @@ import {
 import {Series} from 'app/types/echarts';
 import {parsePeriodToHours} from 'app/utils/dates';
 
-import {Widget} from './types';
+import {Widget, WidgetQuery} from './types';
 
 // Don't fetch more than 4000 bins as we're plotting on a small area.
 const MAX_BIN_COUNT = 4000;
@@ -35,7 +35,7 @@ function getWidgetInterval(
   return desired;
 }
 
-type RawResults = (EventsStats | MultiSeriesEventsStats)[];
+type RawResult = EventsStats | MultiSeriesEventsStats;
 
 function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
@@ -47,36 +47,34 @@ function transformSeries(stats: EventsStats, seriesName: string): Series {
   };
 }
 
-function transformResults(widget: Widget, results: RawResults): Series[] {
+function transformResult(query: WidgetQuery, result: RawResult): Series[] {
   let output: Series[] = [];
-  for (let i = 0; i < results.length; i++) {
-    const series = results[i];
-    const seriesNamePrefix = widget.queries[i]?.name ?? '';
-    if (isMultiSeriesStats(series)) {
-      // Convert multi-series results into chartable series. Multi series results
-      // are created when multiple yAxis are used. Convert the timeseries
-      // data into a multi-series result set.  As the server will have
-      // replied with a map like: {[titleString: string]: EventsStats}
-      const result: Series[] = Object.keys(series)
-        .map((seriesName: string): [number, Series] => {
-          const prefixedName = seriesNamePrefix
-            ? `${seriesNamePrefix} : ${seriesName}`
-            : seriesName;
-          const seriesData: EventsStats = series[seriesName];
-          const transformed = transformSeries(seriesData, prefixedName);
-          return [seriesData.order || 0, transformed];
-        })
-        .sort((a, b) => a[0] - b[0])
-        .map(item => item[1]);
 
-      output = output.concat(result);
-    } else {
-      const field = widget.queries[i].fields[0];
-      const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
-      const transformed = transformSeries(series, prefixedName);
-      output.push(transformed);
-    }
+  const seriesNamePrefix = query.name;
+  if (isMultiSeriesStats(result)) {
+    // Convert multi-series results into chartable series. Multi series results
+    // are created when multiple yAxis are used. Convert the timeseries
+    // data into a multi-series result set.  As the server will have
+    // replied with a map like: {[titleString: string]: EventsStats}
+    const transformed: Series[] = Object.keys(result)
+      .map((seriesName: string): [number, Series] => {
+        const prefixedName = seriesNamePrefix
+          ? `${seriesNamePrefix} : ${seriesName}`
+          : seriesName;
+        const seriesData: EventsStats = result[seriesName];
+        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
+      })
+      .sort((a, b) => a[0] - b[0])
+      .map(item => item[1]);
+
+    output = output.concat(transformed);
+  } else {
+    const field = query.fields[0];
+    const prefixedName = seriesNamePrefix ? `${seriesNamePrefix} : ${field}` : field;
+    const transformed = transformSeries(result, prefixedName);
+    output.push(transformed);
   }
+
   return output;
 }
 
@@ -150,18 +148,25 @@ class WidgetQueries extends React.Component<Props, State> {
       }
     );
 
-    try {
-      // Use Promise.all() to get this working. Ideally as results become available
-      // they are added to the component state and incrementally exposed to children.
-      const rawResults = await Promise.all(promises);
-      this.setState({
-        results: transformResults(widget, rawResults),
-        loading: false,
-        error: false,
-      });
-    } catch (e) {
-      this.setState({loading: false, error: true});
-    }
+    let completed = 0;
+    promises.forEach(async (promise, i) => {
+      try {
+        const rawResults = await promise;
+        completed++;
+        this.setState(prevState => {
+          const results = prevState.results.concat(
+            transformResult(widget.queries[i], rawResults)
+          );
+          return {
+            ...prevState,
+            results,
+            loading: completed === promises.length ? false : true,
+          };
+        });
+      } catch (e) {
+        this.setState({error: true});
+      }
+    });
   }
 
   render() {

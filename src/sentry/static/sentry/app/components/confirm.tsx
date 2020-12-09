@@ -259,9 +259,9 @@ class Confirm extends React.PureComponent<Props, State> {
               onClick: this.handleToggle,
             })}
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
-          {header && <div className="modal-header">{header}</div>}
-          <div className="modal-body">{confirmMessage}</div>
-          <div className="modal-footer">
+          {header && <Modal.Header>{header}</Modal.Header>}
+          <Modal.Body>{confirmMessage}</Modal.Body>
+          <Modal.Footer>
             <Button style={{marginRight: 10}} onClick={this.handleToggle}>
               {cancelText}
             </Button>
@@ -274,7 +274,7 @@ class Confirm extends React.PureComponent<Props, State> {
             >
               {confirmText}
             </Button>
-          </div>
+          </Modal.Footer>
         </Modal>
       </React.Fragment>
     );

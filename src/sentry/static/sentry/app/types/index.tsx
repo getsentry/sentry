@@ -880,7 +880,7 @@ export type Group = GroupFiltered & {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: string;
+  status: 'reprocessing' | ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
@@ -1586,6 +1586,7 @@ export type ResolutionStatusDetails = {
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
+  pendingEvents?: number;
 };
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
@@ -1633,8 +1634,8 @@ export type Activity = {
   dateCreated: string;
   type: string;
   id: string;
-  issue?: Group;
   project: Project;
+  issue?: Group;
   user?: User;
 };
 

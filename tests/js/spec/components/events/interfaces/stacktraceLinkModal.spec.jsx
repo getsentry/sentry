@@ -12,22 +12,30 @@ describe('StacktraceLinkModal', function () {
   const repo = TestStubs.Repository({integrationId: integration.id});
   const config = TestStubs.RepositoryProjectPathConfig(project, repo, integration);
 
+  const closeModal = jest.fn();
+  const modalElements = {
+    Header: p => p.children,
+    Body: p => p.children,
+    Footer: p => p.children,
+  };
+
   beforeEach(function () {
+    closeModal.mockReset();
     MockApiClient.clearMockResponses();
   });
 
   it('renders manual setup option', async function () {
     const wrapper = mountWithTheme(
       <StacktraceLinkModal
+        {...modalElements}
         project={project}
         organization={org}
         integrations={[integration]}
         filename={filename}
-        onClose={() => {}}
+        closeModal={closeModal}
       />,
       TestStubs.routerContext()
     );
-    wrapper.find('Button').simulate('click');
     expect(wrapper.find('IntegrationName').text()).toEqual('Test Integration');
   });
 
@@ -60,16 +68,15 @@ describe('StacktraceLinkModal', function () {
 
     const wrapper = mountWithTheme(
       <StacktraceLinkModal
+        {...modalElements}
         project={project}
         organization={org}
         integrations={[integration]}
         filename={filename}
-        onClose={() => {}}
+        closeModal={closeModal}
       />,
       TestStubs.routerContext()
     );
-    // open the modal
-    wrapper.find('Button').simulate('click');
     wrapper.find('input').simulate('change', {target: {value: sourceUrl}});
     // submit quick setup input
     wrapper.find('Button[data-test-id="quick-setup-button"]').simulate('click');
@@ -77,7 +84,7 @@ describe('StacktraceLinkModal', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.state('showModal')).toBe(false);
+    expect(closeModal).toHaveBeenCalled();
   });
 
   it('keeps modal open on unsuccessful quick setup', async function () {
@@ -110,16 +117,15 @@ describe('StacktraceLinkModal', function () {
 
     const wrapper = mountWithTheme(
       <StacktraceLinkModal
+        {...modalElements}
         project={project}
         organization={org}
         integrations={[integration]}
         filename={filename}
-        onClose={() => {}}
+        closeModal={closeModal}
       />,
       TestStubs.routerContext()
     );
-    // open the modal
-    wrapper.find('Button').simulate('click');
     wrapper.find('input').simulate('change', {target: {value: sourceUrl}});
     // submit quick setup input
     wrapper.find('Button[data-test-id="quick-setup-button"]').simulate('click');
@@ -127,6 +133,6 @@ describe('StacktraceLinkModal', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.state('showModal')).toBe(true);
+    expect(closeModal).not.toHaveBeenCalled();
   });
 });

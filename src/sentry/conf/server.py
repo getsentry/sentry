@@ -1248,6 +1248,13 @@ SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
 # Maximum content length for source files before we abort fetching
 SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
 
+# Maximum content length for cache value.  Currently used only to avoid
+# pointless compression of sourcemaps and other release files because we
+# silently fail to cache the compressed result anyway.  Defaults to None which
+# disables the check and allows different backends for unlimited payload.
+# e.g. memcached defaults to 1MB  = 1024 * 1024
+SENTRY_CACHE_MAX_VALUE_SIZE = None
+
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
