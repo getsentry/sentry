@@ -260,12 +260,10 @@ class StreamGroup extends React.Component<Props, State> {
               </InboxReasonWrapper>
             )}
             <FirstSeenLastSeenWrapper>
-              {!data.lifetime && !data.lastSeen && (
-                <TimesTag
-                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-                />
-              )}
+              <TimesTag
+                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
+                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+              />
             </FirstSeenLastSeenWrapper>
             {data.shortId && (
               <InboxShortId
@@ -301,13 +299,11 @@ class StreamGroup extends React.Component<Props, State> {
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
           <ChartWrapper className="hidden-xs hidden-sm">
-            {!data.filtered?.stats && !data.stats && (
-              <GroupChart
-                statsPeriod={statsPeriod!}
-                data={data}
-                showSecondaryPoints={showSecondaryPoints}
-              />
-            )}
+            <GroupChart
+              statsPeriod={statsPeriod!}
+              data={data}
+              showSecondaryPoints={showSecondaryPoints}
+            />
           </ChartWrapper>
         )}
         <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
