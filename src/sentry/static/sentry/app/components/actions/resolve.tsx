@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
+import {openModal} from 'app/actionCreators/modal';
 import ActionLink from 'app/components/actions/actionLink';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import DropdownLink from 'app/components/dropdownLink';
@@ -40,11 +41,7 @@ type Props = {
   hasInbox?: boolean;
 } & typeof defaultProps;
 
-type State = {
-  modal: boolean;
-};
-
-class ResolveActions extends React.Component<Props, State> {
+class ResolveActions extends React.Component<Props> {
   static propTypes = {
     hasRelease: PropTypes.bool.isRequired,
     latestRelease: PropTypes.object,
@@ -63,13 +60,7 @@ class ResolveActions extends React.Component<Props, State> {
 
   static defaultProps = defaultProps;
 
-  state = {modal: false};
-
   onCustomResolution(statusDetails: ResolutionStatusDetails) {
-    this.setState({
-      modal: false,
-    });
-
     this.props.onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
@@ -197,7 +188,7 @@ class ResolveActions extends React.Component<Props, State> {
             <ActionLink
               {...actionLinkProps}
               title={t('Another version')}
-              onAction={() => hasRelease && this.setState({modal: true})}
+              onAction={() => hasRelease && this.openCustomReleaseModal()}
               shouldConfirm={false}
             >
               {t('Another version\u2026')}
@@ -208,12 +199,25 @@ class ResolveActions extends React.Component<Props, State> {
     );
   }
 
+  openCustomReleaseModal() {
+    const {orgId, projectId} = this.props;
+
+    openModal(deps => (
+      <CustomResolutionModal
+        {...deps}
+        onSelected={(statusDetails: ResolutionStatusDetails) =>
+          this.onCustomResolution(statusDetails)
+        }
+        orgId={orgId}
+        projectId={projectId}
+      />
+    ));
+  }
+
   render() {
     const {
       isResolved,
       onUpdate,
-      orgId,
-      projectId,
       confirmMessage,
       shouldConfirm,
       disabled,
@@ -237,15 +241,6 @@ class ResolveActions extends React.Component<Props, State> {
 
     return (
       <Wrapper hasInbox={hasInbox}>
-        <CustomResolutionModal
-          show={this.state.modal}
-          onSelected={(statusDetails: ResolutionStatusDetails) =>
-            this.onCustomResolution(statusDetails)
-          }
-          onCanceled={() => this.setState({modal: false})}
-          orgId={orgId}
-          projectId={projectId}
-        />
         <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
           {hasInbox ? (
             <div style={{width: '100%'}}>

@@ -17,11 +17,13 @@ describe('CustomResolutionModal', function () {
     const onSelected = jest.fn();
     const wrapper = mountWithTheme(
       <CustomResolutionModal
+        Header={p => p.children}
+        Body={p => p.children}
+        Footer={p => p.children}
         orgId="org-slug"
         projectId="project-slug"
-        onCanceled={() => false}
         onSelected={onSelected}
-        show
+        closeModal={jest.fn()}
       />,
       TestStubs.routerContext()
     );
@@ -49,6 +51,7 @@ describe('CustomResolutionModal', function () {
       value: 'sentry-android-shop@1.2.0',
       label: expect.anything(),
     });
+
     wrapper.find('form').simulate('submit');
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: 'sentry-android-shop@1.2.0',
