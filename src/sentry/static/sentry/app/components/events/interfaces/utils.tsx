@@ -1,17 +1,20 @@
 import * as Sentry from '@sentry/react';
 import isEmpty from 'lodash/isEmpty';
 import isString from 'lodash/isString';
-import * as queryString from 'query-string';
+import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'app/constants';
 import {defined} from 'app/utils';
 
-export function escapeQuotes(v) {
+import {DebugImage} from './debugMeta/types';
+import {RichHttpContentData} from './richHttpContent/types';
+
+export function escapeQuotes(v: string) {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 // TODO(dcramer): support cookies
-export function getCurlCommand(data) {
+export function getCurlCommand(data: RichHttpContentData['data']) {
   let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
@@ -41,7 +44,10 @@ export function getCurlCommand(data) {
         result += ' \\\n --data "' + escapeQuotes(JSON.stringify(data.data)) + '"';
         break;
       case 'application/x-www-form-urlencoded':
-        result += ' \\\n --data "' + escapeQuotes(queryString.stringify(data.data)) + '"';
+        result +=
+          ' \\\n --data "' +
+          escapeQuotes(qs.stringify(data.data as {[key: string]: any})) +
+          '"';
         break;
 
       default:
@@ -62,12 +68,12 @@ export function getCurlCommand(data) {
   return result;
 }
 
-export function stringifyQueryList(query) {
+export function stringifyQueryList(query: string | [key: string, value: string][]) {
   if (isString(query)) {
     return query;
   }
 
-  const queryObj = {};
+  const queryObj: Record<string, string> = {};
   for (const kv of query) {
     if (kv !== null && kv.length === 2) {
       const [k, v] = kv;
@@ -76,10 +82,11 @@ export function stringifyQueryList(query) {
       }
     }
   }
-  return queryString.stringify(queryObj);
+  return qs.stringify(queryObj);
 }
 
-export function getFullUrl(data) {
+// TODO(ts): This should be converted with the request interface
+export function getFullUrl(data: any): unknown {
   let fullUrl = data && data.url;
   if (!fullUrl) {
     return fullUrl;
@@ -106,14 +113,14 @@ export function getFullUrl(data) {
  *
  * By converting them to [['foo', 'bar'], ['foo', 'baz']]
  */
-export function objectToSortedTupleArray(obj) {
+export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
   return Object.keys(obj)
-    .reduce((out, k) => {
+    .reduce<[string, string][]>((out, k) => {
       const val = obj[k];
       return out.concat(
-        {}.toString.call(val) === '[object Array]'
+        Array.isArray(val)
           ? val.map(v => [k, v]) // key has multiple values (array)
-          : [[k, val]] // key has single value
+          : ([[k, val]] as [string, string][]) // key has single value
       );
     }, [])
     .sort(function ([keyA, valA], [keyB, valB]) {
@@ -127,21 +134,25 @@ export function objectToSortedTupleArray(obj) {
 }
 
 // for context summaries and avatars
-export function removeFilterMaskedEntries(rawData) {
-  const cleanedData = {};
+export function removeFilterMaskedEntries<T extends Record<string, any>>(rawData: T): T {
+  const cleanedData: Record<string, any> = {};
   for (const key of Object.getOwnPropertyNames(rawData)) {
     if (rawData[key] !== FILTER_MASK) {
       cleanedData[key] = rawData[key];
     }
   }
-  return cleanedData;
+  return cleanedData as T;
 }
 
-export function formatAddress(address, imageAddressLength) {
-  return `0x${address.toString(16).padStart(imageAddressLength, '0')}`;
+export function formatAddress(address: number, imageAddressLength: number | undefined) {
+  return `0x${address.toString(16).padStart(imageAddressLength ?? 0, '0')}`;
 }
 
-export function parseAddress(address) {
+export function parseAddress(address: string | null) {
+  if (address === null) {
+    return 0;
+  }
+
   try {
     return parseInt(address, 16) || 0;
   } catch (_e) {
@@ -149,7 +160,7 @@ export function parseAddress(address) {
   }
 }
 
-export function getImageRange(image) {
+export function getImageRange(image: DebugImage) {
   // The start address is normalized to a `0x` prefixed hex string. The event
   // schema also allows ingesting plain numbers, but this is converted during
   // ingestion.
@@ -162,8 +173,12 @@ export function getImageRange(image) {
   return [startAddress, endAddress];
 }
 
-export function parseAssembly(assembly) {
-  let name, version, culture, publicKeyToken;
+export function parseAssembly(assembly: string | null) {
+  let name: string | undefined;
+  let version: string | undefined;
+  let culture: string | undefined;
+  let publicKeyToken: string | undefined;
+
   const pieces = assembly ? assembly.split(',') : [];
 
   if (pieces.length === 4) {

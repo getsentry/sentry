@@ -9,11 +9,11 @@ import theme from 'app/utils/theme';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 
 interface Props {
-  name: string;
-  version: string;
-  culture: string;
-  publicKeyToken: string;
-  filePath: string | null;
+  name?: string;
+  version?: string;
+  culture?: string;
+  publicKeyToken?: string;
+  filePath?: string | null;
 }
 
 const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => (
