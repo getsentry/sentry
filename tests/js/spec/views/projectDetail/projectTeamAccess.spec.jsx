@@ -10,7 +10,10 @@ describe('ProjectTeamAccess', function () {
 
   it('renders a list', function () {
     const wrapper = mountWithTheme(
-      <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
+      <ProjectTeamAccess
+        organization={organization}
+        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+      />,
       routerContext
     );
 
@@ -21,7 +24,10 @@ describe('ProjectTeamAccess', function () {
 
   it('links to a team settings', function () {
     const wrapper = mountWithTheme(
-      <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
+      <ProjectTeamAccess
+        organization={organization}
+        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+      />,
       routerContext
     );
 
@@ -32,10 +38,7 @@ describe('ProjectTeamAccess', function () {
 
   it('displays the right empty state', function () {
     const wrapper = mountWithTheme(
-      <ProjectTeamAccess
-        organization={organization}
-        project={TestStubs.Project({teams: []})}
-      />,
+      <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
       routerContext
     );
 
