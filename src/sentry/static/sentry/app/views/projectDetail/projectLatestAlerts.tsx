@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -15,7 +16,6 @@ import TimeSince from 'app/components/timeSince';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import styled from 'app/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
