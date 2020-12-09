@@ -23,7 +23,9 @@ class AzureDevopsNotifyServiceForm(forms.Form):
 class AzureDevopsCreateTicketAction(TicketEventAction):
     form_cls = AzureDevopsNotifyServiceForm
     label = u"TODO Create an Azure DevOps work item in {name} with these "
-    prompt = "Create an Azure DevOps work item"
+    prompt = "Create a Azure DevOps work item"
+    ticket_type = "Azure DevOps work item"
+    link = "https://docs.sentry.io/product/integrations/azure-devops/#issue-sync"
     provider = "vsts"
     integration_key = "vsts_integration"
 

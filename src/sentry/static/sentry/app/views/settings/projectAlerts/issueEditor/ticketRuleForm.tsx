@@ -159,32 +159,6 @@ class TicketRuleForm extends React.Component<Props, State> {
         }
       : {};
 
-  get integrationType() {
-    //ex: "sentry.integrations.jira.notify_action.JiraCreateTicketAction"
-    return this.props.instance?.id.split('.')[2];
-  }
-
-  get ticketType() {
-    switch (this.integrationType) {
-      case 'jira':
-        return 'Jira issue';
-      case 'vsts':
-        return 'Azure DevOps work item';
-      default:
-        throw new Error(`Unexpected integration type ${this.integrationType}`);
-    }
-  }
-  get link() {
-    switch (this.integrationType) {
-      case 'jira':
-        return 'https://docs.sentry.io/product/integrations/jira/#issue-sync';
-      case 'vsts':
-        return 'https://docs.sentry.io/product/integrations/azure-devops/#issue-sync';
-      default:
-        throw new Error(`Unexpected integration type ${this.integrationType}`);
-    }
-  }
-
   addFields = (formFields: FormField[]): void => {
     const title = {
       name: 'title',
@@ -205,8 +179,7 @@ class TicketRuleForm extends React.Component<Props, State> {
   };
 
   render() {
-    const ticketType = this.ticketType;
-    const link = this.link;
+    const {ticketType, link} = this.props.instance || {};
 
     const text = t(
       'When this alert is triggered a %s will be created with the following fields. ',

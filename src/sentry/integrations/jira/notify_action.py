@@ -21,6 +21,11 @@ logger = logging.getLogger("sentry.rules")
 INTEGRATION_KEY = "integration"
 
 
+def get_name_for_jira(integration):
+    name = integration.metadata.get("domain_name", integration.name)
+    return name.replace(".atlassian.net", "")
+
+
 class JiraNotifyServiceForm(forms.Form):
     integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
@@ -38,14 +43,14 @@ class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
     label = u"""Create a Jira issue in {integration} with these """
     prompt = "Create a Jira issue"
+    ticket_type = "Jira issue"
+    link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
     integration_key = INTEGRATION_KEY
 
     def __init__(self, *args, **kwargs):
         super(JiraCreateTicketAction, self).__init__(*args, **kwargs)
-        integration_choices = [
-            (i.id, i.metadata.get("domain_name", i.name)) for i in self.get_integrations()
-        ]
+        integration_choices = [(i.id, get_name_for_jira(i)) for i in self.get_integrations()]
 
         if not self.get_integration_id() and integration_choices:
             self.data[self.integration_key] = integration_choices[0][0]
