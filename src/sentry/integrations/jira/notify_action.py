@@ -22,12 +22,11 @@ INTEGRATION_KEY = "integration"
 
 
 class JiraNotifyServiceForm(forms.Form):
-    jira_integration = forms.ChoiceField(choices=(), widget=forms.Select())
+    integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args, **kwargs):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(JiraNotifyServiceForm, self).__init__(*args, **kwargs)
-
         if integrations:
             self.fields[INTEGRATION_KEY].initial = integrations[0][0]
 
