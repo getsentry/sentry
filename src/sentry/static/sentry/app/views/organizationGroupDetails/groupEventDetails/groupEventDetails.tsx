@@ -16,8 +16,14 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
-import {Environment, Event, Group, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
+import {
+  Environment,
+  Event,
+  Group,
+  GroupActivityReprocess,
+  Organization,
+  Project,
+} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
@@ -193,10 +199,9 @@ class GroupEventDetails extends React.Component<Props, State> {
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
           status === 'reprocessing' &&
-          type === 'reprocess' &&
-          defined(data.eventCount) ? (
+          type === 'reprocess' ? (
             <ReprocessingProgress
-              totalEvents={data.eventCount}
+              totalEvents={(data as GroupActivityReprocess['data']).eventCount}
               pendingEvents={pendingEvents ?? 0}
             />
           ) : (
