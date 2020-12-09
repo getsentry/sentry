@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from copy import deepcopy
 from datetime import datetime
 
@@ -2602,7 +2602,7 @@ def resolve_field_list(
     aggregate to a field.
     """
     aggregations = []
-    aggregate_fields = {}
+    aggregate_fields = defaultdict(set)
     columns = []
     groupby = []
     project_key = ""
@@ -2632,10 +2632,8 @@ def resolve_field_list(
             aggregations.append(function.aggregate)
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
-                # This will result in later aggregates overwriting the first,
-                # but to keep the error message short we'd only want to show one anyways
                 if function.details.instance.redundant_grouping:
-                    aggregate_fields[function.aggregate[1]] = field
+                    aggregate_fields[function.aggregate[1]].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -2650,7 +2648,7 @@ def resolve_field_list(
                         functions[function.aggregate[-1]] = function.details
 
                         if function.details.instance.redundant_grouping:
-                            aggregate_fields[function.aggregate[1]] = field
+                            aggregate_fields[function.aggregate[1]].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -2714,11 +2712,16 @@ def resolve_field_list(
                 groupby.append(column[2])
             else:
                 if column in aggregate_fields:
-                    # We call grouping "stacking" in the column editor
+                    conflicting_functions = list(aggregate_fields[column])
                     raise InvalidSearchQuery(
-                        # TODO(wmak): Waiting on a better error message
-                        "{field} is in an function, and is a field. The result would not have stacking. Either remove {function}, or {field}.".format(
-                            field=column, function=aggregate_fields[column]
+                        "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
+                            field=column,
+                            function_msg=", ".join(conflicting_functions[:2])
+                            + (
+                                " and {} more.".format(len(conflicting_functions) - 2)
+                                if len(conflicting_functions) > 2
+                                else ""
+                            ),
                         )
                     )
                 groupby.append(column)

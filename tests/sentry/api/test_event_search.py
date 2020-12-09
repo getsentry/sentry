@@ -2987,10 +2987,35 @@ class ResolveFieldListTest(unittest.TestCase):
             ["avg(measurements.lcp)", "measurements.lcp"],
             ["p95()", "transaction.duration"],
         ]
-        with pytest.raises(InvalidSearchQuery) as error:
-            resolve_field_list(fields, eventstore.Filter())
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as error:
+                resolve_field_list(field, eventstore.Filter())
 
-        assert "would not have stacking" in error
+            assert "you must first remove the function(s)" in six.text_type(error)
+
+        with pytest.raises(InvalidSearchQuery) as error:
+            resolve_field_list(
+                ["avg(transaction.duration)", "p95()", "transaction.duration"], eventstore.Filter()
+            )
+
+        assert "avg(transaction.duration)" in six.text_type(error)
+        assert "p95" in six.text_type(error)
+        assert " more." not in six.text_type(error)
+
+        with pytest.raises(InvalidSearchQuery) as error:
+            resolve_field_list(
+                [
+                    "avg(transaction.duration)",
+                    "p50()",
+                    "p75()",
+                    "p95()",
+                    "p99()",
+                    "transaction.duration",
+                ],
+                eventstore.Filter(),
+            )
+
+        assert "and 3 more" in six.text_type(error)
 
 
 def with_type(type, argument):
