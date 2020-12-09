@@ -15,6 +15,7 @@ from sentry.http import build_session
 from sentry.utils import metrics, json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.decorators import classproperty
+from sentry.api.client import ApiClient
 
 from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
 
@@ -310,3 +311,71 @@ class BaseApiClient(object):
             result = self.head(path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
+
+
+class BaseInternalApiClient(ApiClient):
+    integration_type = None
+
+    log_path = None
+
+    datadog_prefix = None
+
+    @cached_property
+    def logger(self):
+        return logging.getLogger(self.log_path)
+
+    @classproperty
+    def name_field(cls):
+        return u"%s_name" % cls.integration_type
+
+    @classproperty
+    def name(cls):
+        return getattr(cls, cls.name_field)
+
+    def track_response_data(self, code, span, error=None, resp=None):
+        metrics.incr(
+            u"%s.http_response" % (self.datadog_prefix),
+            sample_rate=1.0,
+            tags={self.integration_type: self.name, "status": code},
+        )
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(code)
+
+        span.set_tag(self.integration_type, self.name)
+
+        extra = {
+            self.integration_type: self.name,
+            "status_string": six.text_type(code),
+            "error": six.text_type(error)[:256] if error else None,
+        }
+        extra.update(getattr(self, "logging_context", None) or {})
+        self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
+
+    def request(self, *args, **kwargs):
+
+        metrics.incr(
+            u"%s.http_request" % self.datadog_prefix,
+            sample_rate=1.0,
+            tags={self.integration_type: self.name},
+        )
+
+        try:
+            with sentry_sdk.configure_scope() as scope:
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
+
+        with sentry_sdk.start_transaction(
+            op=u"{}.http".format(self.integration_type),
+            name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            parent_span_id=parent_span_id,
+            trace_id=trace_id,
+            sampled=True,
+        ) as span:
+            resp = ApiClient.request(self, *args, **kwargs)
+            self.track_response_data(resp.status_code, span, None, resp)
+            return resp
