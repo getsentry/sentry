@@ -46,7 +46,7 @@ class OAuthAuthorizeView(AuthLoginView):
         name,
         state=None,
         client_id=None,
-        err_redirect=False,
+        err_response=None,
     ):
         logging.error(
             "oauth.authorize-error",
@@ -57,10 +57,14 @@ class OAuthAuthorizeView(AuthLoginView):
                 "redirect_uri": redirect_uri,
             },
         )
-        if err_redirect:
+        if err_response:
             return self.respond(
                 "sentry/oauth-error.html",
-                {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
+                {
+                    "error": mark_safe(
+                        "Missing or invalid <em>{}</em> parameter.".format(err_response)
+                    )
+                },
             )
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
@@ -84,7 +88,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name="unauthorized_client",
-                err_redirect=True,
+                err_response="client_id",
             )
 
         try:
@@ -98,7 +102,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name="unauthorized_client",
-                err_redirect=True,
+                err_response="client_id",
             )
 
         if not redirect_uri:
@@ -110,7 +114,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name="invalid_request",
-                err_redirect=True,
+                err_response="redirect_uri",
             )
 
         if not application.is_allowed_response_type(response_type):
@@ -120,7 +124,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name="unsupported_response_type",
-                err_redirect=True,
+                err_response="client_id",
             )
 
         if scopes:
