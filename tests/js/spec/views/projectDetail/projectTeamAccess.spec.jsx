@@ -58,7 +58,7 @@ describe('ProjectTeamAccess', function () {
     expect(wrapperNoPermissions.find('Button').prop('disabled')).toBeTruthy();
   });
 
-  it('collapses more than 5 teams', async function () {
+  it('collapses more than 5 teams', function () {
     const wrapper = mountWithTheme(
       <ProjectTeamAccess
         organization={organization}
