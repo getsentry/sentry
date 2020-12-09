@@ -1,7 +1,9 @@
 import React from 'react';
 import {Modal} from 'react-bootstrap';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
+import set from 'lodash/set';
 import * as queryString from 'query-string';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
@@ -118,13 +120,10 @@ class TicketRuleForm extends React.Component<Props, State> {
           reject(err);
         } else {
           const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
-          this.setState(state => {
-            return {
-              dynamicFieldChoices: {
-                ...state.dynamicFieldChoices,
-                [field.name]: dynamicFieldChoices,
-              },
-            };
+          this.setState(prevState => {
+            const newState = cloneDeep(prevState);
+            set(newState, `dynamicFieldChoices[${field.name}]`, dynamicFieldChoices);
+            return newState;
           });
           resolve(result);
         }
