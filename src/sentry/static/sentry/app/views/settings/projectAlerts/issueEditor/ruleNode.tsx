@@ -294,9 +294,11 @@ class RuleNode extends React.Component<Props> {
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && (
+            {ticketRule && node && (
               <TicketRuleForm
-                formFields={node?.formFields || {}}
+                formFields={node.formFields || {}}
+                link={node.link}
+                ticketType={node.ticketType}
                 instance={data}
                 index={this.props.index}
                 onSubmitAction={this.updateParent}

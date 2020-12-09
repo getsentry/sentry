@@ -18,6 +18,8 @@ import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = {
   formFields: {[key: string]: any};
+  link?: string;
+  ticketType?: string;
   instance?: IssueAlertRuleAction | IssueAlertRuleCondition;
   onSubmitAction: (data: {[key: string]: string}) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
@@ -172,10 +174,10 @@ class TicketRuleForm extends React.Component<Props, State> {
   };
 
   render() {
-    const {ticketType, link} = this.props.instance || {};
+    const {ticketType, link} = this.props;
 
     const text = t(
-      'When this alert is triggered a %s will be created with the following fields. ',
+      'When this alert is triggered %s will be created with the following fields. ',
       ticketType
     );
     const submitLabel = t('Apply Changes');

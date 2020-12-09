@@ -57,3 +57,8 @@ def transform_jira_choices_to_strings(fields, data):
         else:
             choices[key] = value
     return choices
+
+
+def get_name_for_jira(integration):
+    name = integration.metadata.get("domain_name", integration.name)
+    return name.replace(".atlassian.net", "")

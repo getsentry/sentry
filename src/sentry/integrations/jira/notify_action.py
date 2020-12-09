@@ -16,14 +16,11 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
+from .utils import get_name_for_jira
+
 logger = logging.getLogger("sentry.rules")
 
 INTEGRATION_KEY = "integration"
-
-
-def get_name_for_jira(integration):
-    name = integration.metadata.get("domain_name", integration.name)
-    return name.replace(".atlassian.net", "")
 
 
 class JiraNotifyServiceForm(forms.Form):
@@ -42,8 +39,7 @@ class JiraNotifyServiceForm(forms.Form):
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
     label = u"""Create a Jira issue in {integration} with these """
-    prompt = "Create a Jira issue"
-    ticket_type = "Jira issue"
+    ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
     integration_key = INTEGRATION_KEY
