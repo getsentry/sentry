@@ -27,8 +27,9 @@ class OAuthAuthorizeCodeTest(TestCase):
             )
         )
 
-        assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=unsupported_response_type"
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
     def test_invalid_response_type(self):
         self.login_as(self.user)
@@ -39,8 +40,9 @@ class OAuthAuthorizeCodeTest(TestCase):
             )
         )
 
-        assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=unsupported_response_type"
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
     def test_missing_client_id(self):
         self.login_as(self.user)
@@ -278,8 +280,9 @@ class OAuthAuthorizeTokenTest(TestCase):
             )
         )
 
-        assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=unsupported_response_type"
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
     def test_invalid_response_type(self):
         self.login_as(self.user)
@@ -290,8 +293,9 @@ class OAuthAuthorizeTokenTest(TestCase):
             )
         )
 
-        assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=unsupported_response_type"
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert resp.context["error"] == "Missing or invalid <em>client_id</em> parameter."
 
     def test_missing_client_id(self):
         self.login_as(self.user)
