@@ -49,19 +49,29 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
+function isReactEvent(
+  maybe: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent
+): maybe is React.MouseEvent | React.TouchEvent {
+  return 'nativeEvent' in maybe;
+}
+
 /**
  * Handle getting position out of both React and Raw DOM events
  * as both are handled here due to mousedown/mousemove events
  * working differently.
  */
-function getPointerPosition<T>(
-  event: MouseEvent | TouchEvent | React.MouseEvent<T> | React.TouchEvent<T>,
+function getPointerPosition(
+  event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent,
   property: 'pageX' | 'pageY'
 ): number {
-  if (event instanceof TouchEvent) {
-    return event.targetTouches[0][property];
+  const actual = isReactEvent(event) ? event.nativeEvent : event;
+  if (window.TouchEvent && actual instanceof TouchEvent) {
+    return actual.targetTouches[0][property];
   }
-  return event[property];
+  if (actual instanceof MouseEvent) {
+    return actual[property];
+  }
+  return 0;
 }
 
 class ColumnEditCollection extends React.Component<Props, State> {
@@ -184,8 +194,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
-      top: getPointerPosition<HTMLButtonElement>(event, 'pageY'),
-      left: getPointerPosition<HTMLButtonElement>(event, 'pageX'),
+      top: getPointerPosition(event, 'pageY'),
+      left: getPointerPosition(event, 'pageX'),
     });
   }
 
@@ -416,7 +426,7 @@ const Ghost = styled('div')`
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
-  width: 600px;
+  width: max-content;
   opacity: 0.8;
   cursor: grabbing;
 
