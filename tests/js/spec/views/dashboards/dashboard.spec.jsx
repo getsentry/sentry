@@ -109,7 +109,7 @@ describe('OrganizationDashboard', function () {
           limit: 1000,
           orderby: '-time',
           groupby: ['time'],
-          rollup: 86400,
+          rollup: 3600,
         }),
       })
     );
