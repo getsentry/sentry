@@ -91,6 +91,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       {
         // apdex
         gridIndex: 0,
+        interval: 0.2,
         axisLabel: {
           formatter: (value: number) => formatFloat(value, 1),
           color: theme.chartLabel,
@@ -100,6 +101,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       {
         // throughput
         gridIndex: 1,
+        splitNumber: 4,
         axisLabel: {
           formatter: formatAbbreviatedNumber,
           color: theme.chartLabel,
@@ -109,6 +111,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       {
         // failure rate
         gridIndex: 2,
+        splitNumber: 4,
+        interval: 0.5,
+        max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
           color: theme.chartLabel,
@@ -183,7 +188,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             environment={[...environment]}
             start={start}
             end={end}
-            interval={getInterval(datetimeSelection, true)}
+            interval={getInterval(datetimeSelection)}
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
