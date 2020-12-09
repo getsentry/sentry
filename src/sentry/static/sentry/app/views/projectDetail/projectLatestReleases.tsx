@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -14,7 +15,6 @@ import TextOverflow from 'app/components/textOverflow';
 import Version from 'app/components/version';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import styled from 'app/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release} from 'app/types';
