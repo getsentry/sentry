@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectQuickLinks from 'app/views/projectDetail/projectQuickLinks';
 
-describe('ProjectQuickLinks', function () {
+describe('ProjectDetail > ProjectQuickLinks', function () {
   const {organization, router} = initializeOrg({
     organization: {features: ['performance-view']},
   });
