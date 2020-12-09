@@ -11,7 +11,7 @@ from sentry.api.serializers.models.release import get_users_for_authors, CommitA
 
 def get_users_for_commits(item_list, user=None):
     authors = list(
-        CommitAuthor.objects.filter(id__in=[i.author_id for i in item_list if i.author_id])
+        CommitAuthor.objects.get_many_from_cache([i.author_id for i in item_list if i.author_id])
     )
 
     if authors:

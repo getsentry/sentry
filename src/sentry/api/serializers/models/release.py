@@ -4,6 +4,7 @@ import six
 
 from collections import defaultdict
 
+from django.core.cache import cache
 from django.db.models import Sum
 
 from sentry import tagstore
@@ -22,7 +23,9 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.utils import metrics
 from sentry.utils.compat import zip
+from sentry.utils.hashlib import md5_text
 
 
 def expose_version_info(info):
@@ -48,6 +51,11 @@ def expose_version_info(info):
     }
 
 
+def _user_to_author_cache_key(organization_id, author):
+    author_hash = md5_text(author.email.lower()).hexdigest()
+    return "get_users_for_authors:{}:{}".format(organization_id, author_hash)
+
+
 def get_users_for_authors(organization_id, authors, user=None):
     """
     Returns a dictionary of author_id => user, if a Sentry
@@ -61,39 +69,60 @@ def get_users_for_authors(organization_id, authors, user=None):
         ...
     }
     """
-    # Filter users based on the emails provided in the commits
-    user_emails = list(
-        UserEmail.objects.filter(in_iexact("email", [a.email for a in authors])).order_by("id")
-    )
-
-    # Filter users belonging to the organization associated with
-    # the release
-    users = User.objects.filter(
-        id__in={ue.user_id for ue in user_emails},
-        is_active=True,
-        sentry_orgmember_set__organization_id=organization_id,
-    )
-    users = serialize(list(users), user)
-    users_by_id = {user["id"]: user for user in users}
-
-    # Figure out which email address matches to a user
-    users_by_email = {}
-    for email in user_emails:
-        # force emails to lower case so we can do case insensitive matching
-        lower_email = email.email.lower()
-        if lower_email not in users_by_email:
-            user = users_by_id.get(six.text_type(email.user_id), None)
-            # user can be None if there's a user associated
-            # with user_email in separate organization
-            if user:
-                users_by_email[lower_email] = user
-
     results = {}
-    for author in authors:
-        results[six.text_type(author.id)] = users_by_email.get(
-            author.email.lower(), {"name": author.name, "email": author.email}
+
+    fetched = cache.get_many(
+        [_user_to_author_cache_key(organization_id, author) for author in authors]
+    )
+    if fetched:
+        missed = []
+        for author in authors:
+            fetched_user = fetched.get(_user_to_author_cache_key(organization_id, author))
+            if fetched_user is None:
+                missed.append(author)
+            else:
+                results[six.text_type(author.id)] = fetched_user
+    else:
+        missed = authors
+
+    if missed:
+        # Filter users based on the emails provided in the commits
+        user_emails = list(
+            UserEmail.objects.filter(in_iexact("email", [a.email for a in missed])).order_by("id")
         )
 
+        # Filter users belonging to the organization associated with
+        # the release
+        users = User.objects.filter(
+            id__in={ue.user_id for ue in user_emails},
+            is_active=True,
+            sentry_orgmember_set__organization_id=organization_id,
+        )
+        users = serialize(list(users), user)
+        users_by_id = {user["id"]: user for user in users}
+        # Figure out which email address matches to a user
+        users_by_email = {}
+        for email in user_emails:
+            # force emails to lower case so we can do case insensitive matching
+            lower_email = email.email.lower()
+            if lower_email not in users_by_email:
+                user = users_by_id.get(six.text_type(email.user_id), None)
+                # user can be None if there's a user associated
+                # with user_email in separate organization
+                if user:
+                    users_by_email[lower_email] = user
+        to_cache = {}
+        for author in missed:
+            results[six.text_type(author.id)] = users_by_email.get(
+                author.email.lower(), {"name": author.name, "email": author.email}
+            )
+            to_cache[_user_to_author_cache_key(organization_id, author)] = results[
+                six.text_type(author.id)
+            ]
+        cache.set_many(to_cache)
+
+    metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
+    metrics.incr("sentry.tasks.process_suspect_commits.total", amount=len(results))
     return results
 
 

@@ -1,6 +1,11 @@
 from __future__ import absolute_import, print_function
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 
 
 class ReleaseCommit(Model):
