@@ -12,11 +12,12 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 
-import {DashboardListItem, OrgDashboard, OrgDashboardResponse} from './types';
+import {DashboardDetails, DashboardListItem} from './types';
 
 type OrgDashboardsChildrenProps = {
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
+  error: boolean;
   reloadData: () => void;
 };
 
@@ -30,7 +31,11 @@ type Props = {
 
 type State = {
   // endpoint response
-  dashboards: OrgDashboardResponse[] | null;
+  dashboards: DashboardListItem[] | null;
+  /**
+   * The currently selected dashboard.
+   */
+  selectedDashboard: DashboardDetails | null;
 } & AsyncComponent['state'];
 
 class OrgDashboards extends AsyncComponent<Props, State> {
@@ -41,77 +46,57 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     error: false,
     errors: [],
 
-    // endpoint response
     dashboards: [],
+    selectedDashboard: null,
   };
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-
+    const {organization, params} = this.props;
     const url = `/organizations/${organization.slug}/dashboards/`;
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [['dashboards', url]];
 
-    return [['dashboards', url]];
+    if (params.dashboardId) {
+      endpoints.push(['selectedDashboard', `${url}/${params.dashboardId}/`]);
+    }
+
+    return endpoints;
   }
 
-  getOrgDashboards(): OrgDashboard[] {
+  getDashboards(): DashboardListItem[] {
     const {dashboards} = this.state;
 
-    if (!Array.isArray(dashboards)) {
-      return [];
-    }
-
-    return dashboards.map(dashboard => {
-      return {
-        type: 'org',
-        ...dashboard,
-      };
-    });
+    return Array.isArray(dashboards) ? dashboards : [];
   }
 
-  getCurrentDashboard(): DashboardListItem | undefined {
-    const {params} = this.props;
-    const dashboardId = params.dashboardId ?? 'default-overview';
-    const orgDashboards = this.getOrgDashboards();
-
-    if (typeof dashboardId === 'string') {
-      const selected = orgDashboards.find(dashboard => {
-        return dashboard.id === dashboardId;
-      });
-      if (selected) {
-        return selected;
-      }
+  onRequestSuccess({stateKey, data}) {
+    const {params, organization} = this.props;
+    if (params.dashboardId || stateKey === 'selectedDashboard') {
+      return;
     }
 
-    if (orgDashboards.length > 0) {
-      return orgDashboards[0];
-    }
-
-    return undefined;
-  }
-
-  getDashboardsList(): OrgDashboard[] {
-    const {dashboards} = this.state;
-
-    if (!Array.isArray(dashboards)) {
-      return [];
-    }
-
-    return dashboards.map(dashboard => {
-      return {
-        type: 'org',
-        ...dashboard,
-      };
-    });
+    // If we don't have a selected dashboard, and one isn't going to arrive
+    // we can redirect to the first dashboard in the list.
+    const dashboardId = data.length ? data[0].id : 'default-overview';
+    const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
+    browserHistory.replace({pathname: url});
   }
 
   renderBody() {
-    const dashboard = this.getCurrentDashboard();
+    const {organization, children} = this.props;
+    const {selectedDashboard, error} = this.state;
 
-    if (!dashboard) {
-      return <NotFound />;
-    }
-
-    return this.renderContent(dashboard);
+    return (
+      <PageContent>
+        <LightWeightNoProjectMessage organization={organization}>
+          {children({
+            error,
+            dashboard: selectedDashboard,
+            dashboards: this.getDashboards(),
+            reloadData: this.reloadData.bind(this),
+          })}
+        </LightWeightNoProjectMessage>
+      </PageContent>
+    );
   }
 
   renderError(error: Error) {
@@ -124,22 +109,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     }
 
     return super.renderError(error, true, true);
-  }
-
-  renderContent(dashboard: DashboardListItem) {
-    const {organization, children} = this.props;
-
-    return (
-      <PageContent>
-        <LightWeightNoProjectMessage organization={organization}>
-          {children({
-            dashboard,
-            dashboards: this.getDashboardsList(),
-            reloadData: this.reloadData.bind(this),
-          })}
-        </LightWeightNoProjectMessage>
-      </PageContent>
-    );
   }
 
   renderComponent() {

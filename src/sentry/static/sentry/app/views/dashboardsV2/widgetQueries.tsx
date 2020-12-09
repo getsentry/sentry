@@ -117,7 +117,7 @@ class WidgetQueries extends React.Component<Props, State> {
   async fetchData() {
     const {selection, api, organization, widget} = this.props;
 
-    this.setState({loading: true});
+    this.setState({loading: true, results: []});
 
     const statsPeriod = selection.datetime.period;
     const {start, end} = selection.datetime;
