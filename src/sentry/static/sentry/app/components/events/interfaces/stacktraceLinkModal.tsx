@@ -88,7 +88,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
             <div>
               <h6>{t('Quick Setup')}</h6>
               {tct(
-                'Enter in your source code url that corresponds to stack trace filename [filename]. We will use this information to automatically set up your stack trace linking configuration.',
+                'Enter the source code URL corresponding to the stack trace filename [filename] so we can automatically set up the configuration for your stack trace linking.',
                 {
                   filename: <code>{filename}</code>,
                 }
@@ -121,11 +121,11 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
               <h6>{t('Manual Setup')}</h6>
               <Alert type="warning">
                 {t(
-                  'Recommended for more complicated configurations such as having multiple repositories for the same Sentry project.'
+                  'We recommend this for more complicated configurations, like projects with multiple repositories.'
                 )}
               </Alert>
               {t(
-                'To configure stack trace linking manually, select which of your following integrations you want to set up the mapping for:'
+                'To manually configure stack trace linking, select the integrations you’d like to use for mapping:'
               )}
             </div>
             <ManualSetup>
@@ -145,7 +145,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
         <Footer>
           <Alert type="info" icon={<IconInfo />}>
             {tct(
-              'Stack trace linking is still in Beta. If you have feedback, please email [email:ecosystem-feedback@sentry.io].',
+              "Stack trace linking is in Beta. We'd welcome your feedback, emailed to [email:ecosystem-feedback@sentry.io].",
               {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
             )}
           </Alert>
