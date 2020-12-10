@@ -85,20 +85,31 @@ jobs:
           yarn lint:css
 
       # Otherwise if it's not main branch, only lint modified files
+      # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
+      # Check (and error) for dirty working tree for forks
+      # Reason being we need a different token to auto commit changes and
+      # forks do not have access to said token
+      - name: Check for dirty git working tree (forks)
+        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        run: |
+          git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
+
+      # If working tree is dirty, commit and update
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
-        continue-on-error: true
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions@sentry.io"
-          git add -A
-          git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
-          git push origin
+          if [ -n $(git status -s) ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions@sentry.io"
+            git add -A
+            git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})"
+            git push origin
+          fi
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
