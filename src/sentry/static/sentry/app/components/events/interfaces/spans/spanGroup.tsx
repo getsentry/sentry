@@ -3,11 +3,12 @@ import React from 'react';
 import {Organization, SentryTransactionEvent} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
+import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
 import {getSpanID, isGapSpan, SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 
-type PropType = {
+type PropType = ScrollbarManagerChildrenProps & {
   orgId: string;
   organization: Organization;
   event: Readonly<SentryTransactionEvent>;
@@ -35,6 +36,14 @@ class SpanGroup extends React.Component<PropType, State> {
   state: State = {
     showSpanTree: true,
   };
+
+  componentDidUpdate(_prevProps: PropType, prevState: State) {
+    if (prevState.showSpanTree !== this.state.showSpanTree) {
+      // Update horizontal scroll states after this subtree was either hidden or
+      // revealed.
+      this.props.updateScrollState();
+    }
+  }
 
   toggleSpanTree = () => {
     this.setState(state => ({
@@ -124,4 +133,4 @@ class SpanGroup extends React.Component<PropType, State> {
   }
 }
 
-export default SpanGroup;
+export default withScrollbarManager(SpanGroup);

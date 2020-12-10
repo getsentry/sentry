@@ -1,5 +1,7 @@
 import React from 'react';
 
+import getDisplayName from 'app/utils/getDisplayName';
+
 import {DragManagerChildrenProps} from './dragManager';
 import {
   clamp,
@@ -14,6 +16,7 @@ export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  updateScrollState: () => void;
 };
 
 const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
@@ -21,6 +24,7 @@ const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProp
   generateContentSpanBarRef: () => () => undefined,
   virtualScrollbarRef: React.createRef<HTMLDivElement>(),
   onDragStart: () => {},
+  updateScrollState: () => {},
 });
 
 const selectRefs = (
@@ -123,7 +127,7 @@ export class Provider extends React.Component<Props, State> {
     return undefined;
   }
 
-  initializeScrollState() {
+  initializeScrollState = () => {
     if (this.scrollableSpanBar.size === 0 || this.contentSpanBar.size === 0) {
       return;
     }
@@ -137,6 +141,7 @@ export class Provider extends React.Component<Props, State> {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.removeProperty('width');
       spanBarDOM.style.removeProperty('max-width');
+      spanBarDOM.style.removeProperty('overflow');
     });
 
     // Find the maximum content width. We set each content spanbar to be this maximum width,
@@ -162,6 +167,7 @@ export class Provider extends React.Component<Props, State> {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.width = `${maxContentWidth}px`;
       spanBarDOM.style.maxWidth = `${maxContentWidth}px`;
+      spanBarDOM.style.overflow = 'hidden';
     });
 
     this.scrollableSpanBar.forEach(currentSpanBarRef => {
@@ -177,7 +183,7 @@ export class Provider extends React.Component<Props, State> {
     this.scrollableSpanBar.forEach(currentSpanBarRef => {
       this.registerEventListeners(currentSpanBarRef);
     });
-  }
+  };
 
   registerEventListeners = (spanbar: HTMLDivElement) => {
     spanbar.onscroll = this.handleScroll.bind(this, spanbar);
@@ -438,6 +444,7 @@ export class Provider extends React.Component<Props, State> {
       generateContentSpanBarRef: this.generateContentSpanBarRef,
       onDragStart: this.onDragStart,
       virtualScrollbarRef: this.virtualScrollbar,
+      updateScrollState: this.initializeScrollState,
     };
 
     return (
@@ -449,3 +456,27 @@ export class Provider extends React.Component<Props, State> {
 }
 
 export const Consumer = ScrollbarManagerContext.Consumer;
+
+export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
+  WrappedComponent: React.ComponentType<P>
+) =>
+  class extends React.Component<
+    Omit<P, keyof ScrollbarManagerChildrenProps> & Partial<ScrollbarManagerChildrenProps>
+  > {
+    static displayName = `withScrollbarManager(${getDisplayName(WrappedComponent)})`;
+
+    render() {
+      return (
+        <ScrollbarManagerContext.Consumer>
+          {context => {
+            const props = {
+              ...this.props,
+              ...context,
+            } as P;
+
+            return <WrappedComponent {...props} />;
+          }}
+        </ScrollbarManagerContext.Consumer>
+      );
+    }
+  };
