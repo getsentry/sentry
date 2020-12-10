@@ -4,7 +4,7 @@ import {SectionHeading as BaseSectionHeading} from 'app/components/charts/styles
 import space from 'app/styles/space';
 
 export const Wrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
 
 export const SectionHeading = styled(BaseSectionHeading)`

@@ -72,9 +72,8 @@ const TotalCrashFreeUsers = ({crashFreeTimeBreakdown}: Props) => {
 };
 
 const Timeline = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  line-height: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.2;
 `;
 
 const DOT_SIZE = 10;
@@ -110,9 +109,8 @@ const InnerRow = styled('div')`
 `;
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
-  font-weight: ${p => (p.bold ? 600 : 400)};
   text-align: ${p => (p.right ? 'right' : 'left')};
-  color: ${p => (p.bold ? p.theme.gray400 : p.theme.gray300)};
+  color: ${p => (p.bold ? p.theme.textColor : p.theme.gray300)};
   padding-bottom: ${space(0.25)};
   ${overflowEllipsis};
 `;
