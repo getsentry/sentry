@@ -4,6 +4,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
+import Feature from 'app/components/acl/feature';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
@@ -299,17 +300,19 @@ class VitalCard extends React.Component<Props, State> {
         {zoomRenderProps => (
           <Container>
             <TransparentLoadingMask visible={isLoading} />
-            <PercentContainer>
-              <VitalInfo
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                vitalName={vital}
-                hideDescription
-                hideBar
-                hideVitalPercentNames
-              />
-            </PercentContainer>
+            <Feature features={['organizations:performance-vitals-overview']}>
+              <PercentContainer>
+                <VitalInfo
+                  eventView={eventView}
+                  organization={organization}
+                  location={location}
+                  vitalName={vital}
+                  hideDescription
+                  hideBar
+                  hideVitalPercentNames
+                />
+              </PercentContainer>
+            </Feature>
             <BarChart
               series={allSeries}
               xAxis={xAxis}
