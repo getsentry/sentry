@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'app/actionCreators/organizations';
 import AlertActions from 'app/actions/alertActions';
@@ -11,48 +10,45 @@ import Footer from 'app/components/footer';
 import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {Organization} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import OrganizationContext from 'app/views/organizationContext';
 
-class DeletionInProgress extends Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
+type InProgressProps = {
+  organization: Organization;
+};
 
-  render() {
-    const {organization} = this.props;
-    return (
-      <NarrowLayout>
-        <p>
-          {tct(
-            'The [organization] organization is currently in the process of being deleted from Sentry.',
-            {
-              organization: <strong>{organization.slug}</strong>,
-            }
-          )}
-        </p>
-      </NarrowLayout>
-    );
-  }
+function DeletionInProgress({organization}: InProgressProps) {
+  return (
+    <NarrowLayout>
+      <p>
+        {tct(
+          'The [organization] organization is currently in the process of being deleted from Sentry.',
+          {
+            organization: <strong>{organization.slug}</strong>,
+          }
+        )}
+      </p>
+    </NarrowLayout>
+  );
 }
 
-class DeletionPending extends Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
+type PendingProps = {
+  organization: Organization;
+};
 
-  constructor(...args) {
-    super(...args);
-    this.state = {submitInProgress: false};
-  }
+type PendingState = {
+  submitInProgress: boolean;
+};
 
-  UNSAFE_componentWillMount() {
-    this.api = new Client();
-  }
+class DeletionPending extends Component<PendingProps, PendingState> {
+  state: PendingState = {submitInProgress: false};
 
   componentWillUnmount() {
     this.api.clear();
   }
+
+  api = new Client();
 
   onRestore = () => {
     if (this.state.submitInProgress) {
@@ -148,11 +144,11 @@ class OrganizationDetailsBody extends Component {
   }
 }
 
-export default class OrganizationDetails extends Component {
-  static propTypes = {
-    routes: PropTypes.array,
-  };
+type Props = {
+  detailed: boolean;
+} & RouteComponentProps<{orgId: string}, {}>;
 
+export default class OrganizationDetails extends Component<Props> {
   componentDidMount() {
     const {routes} = this.props;
     const isOldRoute = getRouteStringFromRoutes(routes) === '/:orgId/';
@@ -162,13 +158,13 @@ export default class OrganizationDetails extends Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (
       prevProps.params &&
       this.props.params &&
       prevProps.params.orgId !== this.props.params.orgId
     ) {
-      switchOrganization(prevProps.params.orgId, this.props.params.orgId);
+      switchOrganization();
     }
   }
   render() {
@@ -182,6 +178,6 @@ export default class OrganizationDetails extends Component {
   }
 }
 
-export function LightWeightOrganizationDetails(props) {
+export function LightWeightOrganizationDetails(props: Omit<Props, 'detailed'>) {
   return <OrganizationDetails detailed={false} {...props} />;
 }
