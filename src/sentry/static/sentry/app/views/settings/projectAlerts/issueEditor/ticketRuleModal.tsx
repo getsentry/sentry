@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import * as queryString from 'query-string';
+import cloneDeep from 'lodash/cloneDeep';
+import set from 'lodash/set';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -109,34 +109,14 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     closeModal();
   };
 
-  debouncedOptionLoad = debounce(
-    async (
-      field: IssueConfigField,
-      input: string,
-      cb: (err: Error | null, result?: any) => void
-    ) => {
-      const options = this.props.instance;
-      const query = queryString.stringify({
-        project: options?.project,
-        issuetype: options?.issuetype,
-        field: field.name,
-        query: input,
-      });
-
-      const url = field.url || '';
-      const separator = url.includes('?') ? '&' : '?';
-      // We can't use the API client here since the URL is not scoped under the
-      // API endpoints (which the client prefixes)
-      try {
-        const response = await fetch(url + separator + query);
-        cb(null, {options: response.ok ? await response.json() : []});
-      } catch (err) {
-        cb(err);
-      }
-    },
-    200,
-    {trailing: true}
-  );
+  updateDynamicFieldChoices = (field: IssueConfigField, result: any): void => {
+    const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, `dynamicFieldChoices[${field.name}]`, dynamicFieldChoices);
+      return newState;
+    });
+  };
 
   getFormProps = (): Form['props'] => {
     const {closeModal} = this.props;
