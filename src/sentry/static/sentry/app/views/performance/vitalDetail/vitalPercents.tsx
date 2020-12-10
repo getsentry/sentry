@@ -48,7 +48,7 @@ export default function VitalPercents(props: Props) {
 const Container = styled('div')`
   display: flex;
   gap: ${space(2)};
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const Vital = styled('div')`

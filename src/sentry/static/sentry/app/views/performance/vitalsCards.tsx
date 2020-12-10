@@ -6,6 +6,7 @@ import Card from 'app/components/card';
 import Link from 'app/components/links/link';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
@@ -357,8 +358,10 @@ const VitalLink = (props: VitalLinkProps) => {
 
 const CardTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${space(0.25)};
+  ${overflowEllipsis};
 `;
+
 const CardValue = styled('div')`
   font-size: 32px;
   margin-top: ${space(1)};

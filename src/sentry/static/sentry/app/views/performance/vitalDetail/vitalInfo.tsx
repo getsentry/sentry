@@ -60,8 +60,7 @@ export default function vitalInfo(props: Props) {
 const Container = styled('div')`
   display: grid;
   gap: ${space(3)};
-  padding-top: ${space(1)};
-  padding-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
 
 const Description = styled('div')``;
