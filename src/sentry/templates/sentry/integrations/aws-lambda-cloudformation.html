@@ -1,0 +1,54 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+
+{% block title %}{% trans "AWS Lambda Setup" %} | {{ block.super }}{% endblock %}
+
+{% block css %}
+<style>
+  #arn-input {
+    width: 100%;
+  }
+</style>
+{% endblock %}
+
+{% block main %}
+<h3>{% trans "Install Sentry to your AWS account" %}</h3>
+<ol>
+  <li>
+    <a target="_blank" href="{{ cloudformation_url }}">Add Sentry's Cloudfromation stack to your AWS</a>
+  </li>
+  <li>
+    Mark "<strong>I Acknowledge that AWS CloudFormation might create IAM resources</strong
+    >"
+  </li>
+  <li>
+    Press "<strong>Create</strong>"
+  </li>
+  <li>
+    It might take a minute or two for the CloudFormation stack to set up. Find the stack
+    in list of stacks and copy the "<strong>ARN</strong>" value of
+    "<strong>SentryMonitoringStack</strong>" into the input below:
+  </li>
+</ol>
+
+<form class="form-stacked" action="" method="post" autocomplete="off">
+  {% csrf_token %}
+
+  <input
+    type="text"
+    name="arn"
+    id="arn-input"
+    placeholder="arn:aws:iam::XXXXXXXXXXXX:role/SentryMonitoringStack-XXXXXXXXXXXXX"
+  />
+  <input name="aws_external_id" type="hidden" value="{{ aws_external_id }}" />
+  <fieldset class="form-actions">
+    <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+  </fieldset>
+</form>
+{% endblock %}
