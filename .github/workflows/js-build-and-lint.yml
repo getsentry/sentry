@@ -13,7 +13,23 @@ jobs:
     name: typescript and lint
     runs-on: ubuntu-16.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Internal github app token
+        id: token
+        if: secrets.SENTRY_INTERNAL_APP_ID
+        uses: getsentry/action-github-app-token@v1
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      # Checkout depends if we have the above app token which will allow us to apply lint fix commits
+      # with a non-github-actions token so that GHA worklows can trigger off the commit
+      - name: Checkout sentry (fork)
+        uses: actions/checkout@v2
+        if: steps.token.outcome != 'success'
+
+      - name: Checkout sentry
+        uses: actions/checkout@v2
+        if: steps.token.outcome == 'success'
         with:
           # because we want to lint + fix + commit, we need to checkout the HEAD sha (otherwise
           # it checks out the merge commit and we will not be able to commit to it)
@@ -74,13 +90,15 @@ jobs:
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
-      # Apply fixed files via pull request review comments
-      - name: Apply any eslint fixed files as Pull Request review comments
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
-        uses: getsentry/action-git-diff-suggestions@main
-        with:
-          message: eslint made this change
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit any eslint fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions@sentry.io"
+          git add -A
+          git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
+          git push origin
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
