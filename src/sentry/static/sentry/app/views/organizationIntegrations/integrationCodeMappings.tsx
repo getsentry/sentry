@@ -23,6 +23,7 @@ import {
   Organization,
   Repository,
   RepositoryProjectPathConfig,
+} from 'app/types';
 import {getIntegrationIcon} from 'app/utils/integrationUtil';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
