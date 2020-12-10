@@ -41,7 +41,7 @@ const Content = styled('span')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  gap: ${space(0.5)};
+  grid-gap: ${space(0.5)};
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
   text-decoration: underline;
