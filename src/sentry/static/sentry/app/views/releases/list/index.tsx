@@ -220,7 +220,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
@@ -266,7 +266,9 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return <ReleaseLanding organization={organization} />;
+    return (
+      <ReleaseLanding organization={organization} projectId={selection.projects[0]} />
+    );
   }
 
   renderInnerBody(activeDisplay: DisplayOption) {
