@@ -82,13 +82,13 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <Header closeButton>{t('Link Your Stack Trace To Your Source Code')}</Header>
+        <Header closeButton>{t('Link Stack Trace To Source Code')}</Header>
         <Body>
           <ModalContainer>
             <div>
               <h6>{t('Automatic Setup')}</h6>
               {tct(
-                'Enter the source code url corresponding to stack trace filename [filename] so we can automatically set up the configuration for your stack trace linking.',
+                'Enter the source code URL corresponding to stack trace filename [filename] so we can automatically set up stack trace linking for this project.',
                 {
                   filename: <code>{filename}</code>,
                 }
@@ -145,7 +145,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
         <Footer>
           <Alert type="info" icon={<IconInfo />}>
             {tct(
-              "Stack trace linking is in Beta. We'd welcome your feedback emailed to [email:ecosystem-feedback@sentry.io].",
+              'Stack trace linking is in Beta. Got feedback? Email [email:ecosystem-feedback@sentry.io].',
               {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
             )}
           </Alert>
