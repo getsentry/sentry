@@ -67,6 +67,7 @@ dataset_valid_event_types = {
     ),
     QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
 }
+unsupported_queries = {"release:latest"}
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
@@ -324,6 +325,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
+
+    def validate_query(self, query):
+        query_terms = query.split()
+        for query_term in query_terms:
+            if query_term in unsupported_queries:
+                raise serializers.ValidationError(
+                    "Unsupported Query: We do not currently support the {} query".format(query_term)
+                )
+        return query
 
     def validate_aggregate(self, aggregate):
         try:

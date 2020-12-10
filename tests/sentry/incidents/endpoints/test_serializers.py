@@ -485,6 +485,12 @@ class TestAlertRuleSerializer(TestCase):
         alert_rule = serializer.save()
         assert set(alert_rule.snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
 
+    def test_unsupported_query(self):
+        self.run_fail_validation_test(
+            {"name": "Aun1qu3n4m3", "query": "release:latest1"},
+            {"query": ["Unsupported Query: We do not currently support the release:latest query"]},
+        )
+
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture
