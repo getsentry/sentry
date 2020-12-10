@@ -39,6 +39,14 @@ class Main extends React.Component<Props, State> {
     }
   }
 
+  renderCore() {
+    const {children} = this.props;
+    if (children) {
+      return children;
+    }
+    return <Router history={browserHistory}>{routes()}</Router>;
+  }
+
   render() {
     return (
       <ThemeProvider<Theme> theme={this.state.theme}>
@@ -46,9 +54,7 @@ class Main extends React.Component<Props, State> {
           isDark={this.props.config.theme === 'dark'}
           theme={this.state.theme}
         />
-        <CacheProvider value={cache}>
-          <Router history={browserHistory}>{routes()}</Router>
-        </CacheProvider>
+        <CacheProvider value={cache}>{this.renderCore()}</CacheProvider>
       </ThemeProvider>
     );
   }

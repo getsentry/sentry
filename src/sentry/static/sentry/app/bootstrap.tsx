@@ -19,6 +19,7 @@ import Reflux from 'reflux';
 
 import {DISABLE_RR_WEB, NODE_ENV, SPA_DSN} from 'app/constants';
 import Main from 'app/main';
+import Pipeline from 'app/pipeline';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
 import ConfigStore from 'app/stores/configStore';
@@ -121,8 +122,10 @@ jQuery.ajaxSetup({
   },
 });
 
+const ROOT_ELEMENT = 'blk_router';
+
 const render = (Component: React.ComponentType) => {
-  const rootEl = document.getElementById('blk_router');
+  const rootEl = document.getElementById(ROOT_ELEMENT);
 
   try {
     ReactDOM.render(<Component />, rootEl);
@@ -137,6 +140,11 @@ const render = (Component: React.ComponentType) => {
       window.location.assign(window.location.pathname);
     }
   }
+};
+
+const RenderPipelineView = (pipelineName: string, props: Object) => {
+  const rootEl = document.getElementById(ROOT_ELEMENT);
+  ReactDOM.render(<Pipeline pipelineName={pipelineName} {...props} />, rootEl);
 };
 
 // setup darkmode + favicon
@@ -159,6 +167,8 @@ async function loadPasswordStrength(callback: Function) {
 const globals = {
   // This is the primary entrypoint for rendering the sentry app.
   SentryRenderApp: () => render(Main),
+
+  RenderPipelineView,
 
   // The following globals are used in sentry-plugins webpack externals
   // configuration.
