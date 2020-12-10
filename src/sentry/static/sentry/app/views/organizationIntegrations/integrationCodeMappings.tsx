@@ -142,7 +142,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       <React.Fragment>
         <Alert type="info" icon={<IconInfo />}>
           {tct(
-            'Stack trace linking is still in Beta. If you have feedback, please email [email:ecosystem-feedback@sentry.io].',
+            "Stack trace linking is in Beta. We'd welcome your feedback emailed to [email:ecosystem-feedback@sentry.io].",
             {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
           )}
         </Alert>
@@ -169,7 +169,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                 icon={getIntegrationIcon(integration.provider.key, 'lg')}
                 action={
                   <Button
-                    href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stacktrace-linking`}
+                    href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
                   >
                     View Documentation
