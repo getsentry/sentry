@@ -327,7 +327,11 @@ class Endpoint(APIView):
             results = cursor_result.results
 
         response = Response(results)
-        self.add_cursor_headers(request, response, cursor_result)
+
+        # Don't include cursor headers if the client won't be using them
+        if not request.GET.get("no_cursor_headers"):
+            self.add_cursor_headers(request, response, cursor_result)
+
         return response
 
 

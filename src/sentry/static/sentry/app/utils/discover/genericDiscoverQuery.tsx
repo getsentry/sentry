@@ -32,6 +32,10 @@ export type DiscoverQueryProps = {
    * multiple paginated results on the page.
    */
   cursor?: string;
+  /**
+   * Include this whenever pagination won't be used
+   */
+  noCursorHeaders?: boolean;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
@@ -136,6 +140,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       limit,
       cursor,
       setError,
+      noCursorHeaders,
     } = this.props;
 
     if (!eventView.isValid()) {
@@ -152,6 +157,9 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     if (limit) {
       apiPayload.per_page = limit;
+    }
+    if (noCursorHeaders) {
+      apiPayload.no_cursor_headers = noCursorHeaders;
     }
     if (cursor) {
       apiPayload.cursor = cursor;
