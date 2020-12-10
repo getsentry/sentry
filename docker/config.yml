@@ -13,6 +13,7 @@
 # mail.username: ''
 # mail.password: ''
 # mail.use-tls: false
+# mail.use-ssl: false
 # The email address to send on behalf of
 # mail.from: 'root@localhost'
 
