@@ -1,8 +1,5 @@
 from __future__ import absolute_import
 
-from datetime import timedelta
-
-from django.core.cache import cache
 from django.utils import timezone
 
 from sentry.tasks.groupowner import process_suspect_commits, PREFERRED_GROUP_OWNER_AGE
@@ -103,7 +100,7 @@ class TestGroupOwners(TestCase):
         process_suspect_commits(self.event_1)
         assert not GroupOwner.objects.filter(group=self.event_1.group).exists()
 
-    @patch("sentry.tasks.groupowner.GROUP_PROCESSING_DELAY", timedelta(minutes=0))
+    @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     def test_delete_old_entries(self):
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
@@ -213,19 +210,10 @@ class TestGroupOwners(TestCase):
         # Won't be processed because the cache is present and this group has owners
         assert GroupOwner.objects.filter(group=self.event_1.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event_1.group, user=self.user).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
-        assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
-
-        cache.delete(
-            "workflow-owners-ingestion:group-{}".format(self.event_2.group_id)
-        )  # Deleting the cache will cause us to process this group
-        process_suspect_commits(self.event_3)
-        assert GroupOwner.objects.filter(group=self.event_1.group).count() == 2
-        assert GroupOwner.objects.filter(group=self.event_1.group, user=self.user).exists()
         assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
         assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
 
-    @patch("sentry.tasks.groupowner.GROUP_PROCESSING_DELAY", timedelta(minutes=0))
+    @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
