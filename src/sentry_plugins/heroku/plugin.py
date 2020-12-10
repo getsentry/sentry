@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from sentry.api import client
-
 from sentry.models import ApiKey, User, ProjectOption, Repository
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry_plugins.base import CorePluginMixin
@@ -11,11 +9,21 @@ from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases import ReleaseTrackingPlugin
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
+from .client import HerokuApiClient
 
 logger = logging.getLogger("sentry.plugins.heroku")
 
 
 class HerokuReleaseHook(ReleaseHook):
+    def get_auth(self):
+        try:
+            return ApiKey(organization=self.project.organization, scope_list=["project:write"])
+        except ApiKey.DoesNotExist:
+            return None
+
+    def get_client(self):
+        return HerokuApiClient()
+
     def handle(self, request):
         email = None
         if "user" in request.POST:
@@ -77,8 +85,8 @@ class HerokuReleaseHook(ReleaseHook):
         endpoint = u"/organizations/{}/releases/{}/deploys/".format(
             self.project.organization.slug, release.version
         )
-        auth = ApiKey(organization=self.project.organization, scope_list=["project:write"])
-        client.post(endpoint, data={"environment": deploy_project_option}, auth=auth)
+        client = self.get_client()
+        client.post(endpoint, data={"environment": deploy_project_option}, auth=self.get_auth())
 
 
 class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
