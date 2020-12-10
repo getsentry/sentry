@@ -262,7 +262,7 @@ class GroupEventDetails extends React.Component<Props, State> {
                   (reprocessStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
                     reprocessStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
                     <ReprocessedBox
-                      reprocessActivity={mostRecentActivity}
+                      reprocessActivity={mostRecentActivity as GroupActivityReprocess}
                       groupCount={groupCount}
                       orgSlug={organization.slug}
                     />

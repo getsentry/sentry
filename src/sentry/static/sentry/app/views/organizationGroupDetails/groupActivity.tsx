@@ -20,7 +20,7 @@ import {DEFAULT_ERROR_JSON} from 'app/constants';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Group, Organization, User} from 'app/types';
+import {Group, GroupActivityReprocess, Organization, User} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -141,7 +141,7 @@ class GroupActivity extends React.Component<Props, State> {
         {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
           reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
           <StyledReprocessedBox
-            reprocessActivity={mostRecentActivity}
+            reprocessActivity={mostRecentActivity as GroupActivityReprocess}
             groupCount={groupCount}
             orgSlug={organization.slug}
           />

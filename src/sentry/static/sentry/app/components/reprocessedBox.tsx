@@ -6,12 +6,12 @@ import Link from 'app/components/links/link';
 import {IconCheckmark, IconClose} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {GroupActivity, Organization} from 'app/types';
+import {GroupActivityReprocess, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 
 type Props = {
-  reprocessActivity: GroupActivity;
+  reprocessActivity: GroupActivityReprocess;
   groupCount: number;
   orgSlug: Organization['slug'];
   className?: string;
