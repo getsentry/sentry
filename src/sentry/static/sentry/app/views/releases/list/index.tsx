@@ -13,6 +13,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -267,7 +268,10 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <ReleaseLanding organization={organization} projectId={selection.projects[0]} />
+      <ReleaseLanding
+        organization={organization}
+        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+      />
     );
   }
 
