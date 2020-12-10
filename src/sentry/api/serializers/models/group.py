@@ -245,7 +245,6 @@ class GroupSerializerBase(Serializer):
         resolved_assignees = Actor.resolve_dict(assignees)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
-
         resolved_item_list = [i for i in item_list if i.status == GroupStatus.RESOLVED]
         if resolved_item_list:
             release_resolutions = {
@@ -411,18 +410,19 @@ class GroupSerializerBase(Serializer):
         if attrs["ignore_until"]:
             snooze = attrs["ignore_until"]
             if snooze.is_valid(group=obj):
-                # counts return the delta remaining when window is not set
                 status_details.update(
                     {
                         "ignoreCount": (
                             snooze.count - (obj.times_seen - snooze.state["times_seen"])
-                            if snooze.count and not snooze.window
+                            if snooze.count and not snooze.window and not self._collapse("stats")
                             else snooze.count
                         ),
                         "ignoreUntil": snooze.until,
                         "ignoreUserCount": (
                             snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
-                            if snooze.user_count and not snooze.user_window
+                            if snooze.user_count
+                            and not snooze.user_window
+                            and not self._collapse("stats")
                             else snooze.user_count
                         ),
                         "ignoreUserWindow": snooze.user_window,
