@@ -144,7 +144,8 @@ class Button extends React.Component<ButtonProps, {}> {
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.
     // *Note* you must still handle tabindex manually.
-    const button = (
+    const button = 
+      (
       <StyledButton
         aria-label={screenReaderLabel}
         aria-disabled={disabled}
@@ -158,19 +159,17 @@ class Button extends React.Component<ButtonProps, {}> {
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel
-          align={align}
-          size={size}
-          priority={priority}
-          borderless={borderless}
-        >
-          {icon && (
-            <Icon size={size} hasChildren={!!children}>
-              {icon}
-            </Icon>
-          )}
-          {children}
-        </ButtonLabel>
+            <ButtonLabel
+              align={align}
+              size={size}
+              priority={priority}
+              borderless={borderless}
+            > {icon && (
+                <Icon size={size} hasChildren={!!children}>
+                  {icon}
+                </Icon>
+              )} {children}
+            </ButtonLabel>
       </StyledButton>
     );
 
