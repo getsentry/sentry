@@ -14,7 +14,7 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import {IconAdd} from 'app/icons';
+import {IconAdd, IconGithub} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -25,6 +25,7 @@ import {
 } from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
@@ -135,6 +136,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     const {organization, integration} = this.props;
     const {showModal, configInEdit} = this.state;
     const pathConfigs = this.pathConfigs;
+
     return (
       <React.Fragment>
         <Panel>
@@ -156,7 +158,19 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           </PanelHeader>
           <PanelBody>
             {pathConfigs.length === 0 && (
-              <EmptyMessage description={t('No code path mappings')} />
+              <EmptyMessage
+                icon={getIntegrationIcon(integration.provider.key, 'lg')}
+                action={
+                  <Button
+                    href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stacktrace-linking`}
+                    size="small"
+                  >
+                    View Documentation
+                  </Button>
+                }
+              >
+                Set up stack trace linking by adding a code mapping.
+              </EmptyMessage>
             )}
             {pathConfigs
               .map(pathConfig => {
