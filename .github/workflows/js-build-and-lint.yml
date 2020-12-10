@@ -94,22 +94,15 @@ jobs:
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
       # forks do not have access to said token
-      - name: Check for dirty git working tree (forks)
-        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
-        run: |
-          git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
+      # - name: Check for dirty git working tree (forks)
+        # if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        # run: |
+          # git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
 
       # If working tree is dirty, commit and update
       - name: Commit any eslint fixed files
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
-        run: |
-          if [[ $(git diff --stat) != '' ]]; then
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions@sentry.io"
-            git add -A
-            git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})"
-            git push origin
-          fi
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        uses: getsentry/action-github-commit@main
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
