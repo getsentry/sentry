@@ -108,15 +108,10 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
         <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
         {sortedAuthorsByNumberOfCommits.map(({commitCount, author}) => (
           <AuthorLine key={author?.email}>
-            <Author>
-              <StyledUserAvatar user={author} size={20} hasTooltip />
-              <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
-            </Author>
-
-            <Stats>
-              <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
-              <Percent>{this.getDisplayPercent(commitCount)}</Percent>
-            </Stats>
+            <UserAvatar user={author} size={20} hasTooltip />
+            <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
+            <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
+            <Percent>{this.getDisplayPercent(commitCount)}</Percent>
           </AuthorLine>
         ))}
         {collapsedNumberOfAuthors > 0 && (
@@ -139,44 +134,26 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 }
 
 const AuthorLine = styled('div')`
-  display: flex;
-  justify-content: space-between;
+  display: inline-grid;
+  grid-template-columns: 30px 2fr 1fr 40px;
+  width: 100%;
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const Author = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  overflow: hidden;
-`;
-
-const StyledUserAvatar = styled(UserAvatar)`
-  margin-right: ${space(1)};
-`;
-
 const AuthorName = styled('div')`
   color: ${p => p.theme.textColor};
-  padding-right: ${space(0.5)};
   ${overflowEllipsis};
 `;
 
-const Stats = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 115px;
-`;
-
 const Commits = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
+  text-align: right;
 `;
 
 const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
-  color: ${p => p.theme.subText};
 `;
 
 export default CommitAuthorBreakdown;
