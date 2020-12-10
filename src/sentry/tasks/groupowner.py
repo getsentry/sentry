@@ -13,11 +13,8 @@ from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
 
 PREFERRED_GROUP_OWNERS = 2
-OWNER_CACHE_LIFE = 3600  # seconds
-PREFERRED_GROUP_OWNER_AGE = timedelta(days=1)
-GROUP_PROCESSING_DELAY = timedelta(
-    minutes=60
-)  # Minimum time between processing the same group id again
+OWNER_CACHE_LIFE = 604800  # 1 week in seconds
+PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 
 logger = logging.getLogger("tasks.groupowner")
@@ -30,16 +27,10 @@ def process_suspect_commits(event, **kwargs):
         cache_key = "workflow-owners-ingestion:group-{}".format(event.group_id)
         owner_data = cache.get(cache_key)
 
-        if owner_data and owner_data["count"] >= PREFERRED_GROUP_OWNERS:
-            # Only process once per OWNER_CACHE_LIFE seconds for groups already populated with owenrs.
+        if owner_data:
+            # Only process once per OWNER_CACHE_LIFE seconds.
             metrics.incr(
                 "sentry.tasks.process_suspect_commits.skipped", tags={"detail": "too_many_owners"}
-            )
-            can_process = False
-        elif owner_data and owner_data["time"] > timezone.now() - GROUP_PROCESSING_DELAY:
-            # Smaller delay for groups without PREFERRED_GROUP_OWNERS owners yet
-            metrics.incr(
-                "sentry.tasks.process_suspect_commits.skipped", tags={"detail": "group_delay"}
             )
             can_process = False
         else:
@@ -52,8 +43,6 @@ def process_suspect_commits(event, **kwargs):
             )
             owner_count = owners.count()
             if owner_count >= PREFERRED_GROUP_OWNERS:
-                # We have enough owners already - so see if any are old.
-                # If so, we can delete it and replace with a fresh one.
                 owners = owners.filter(
                     date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
                 ).order_by("-date_added")
@@ -71,25 +60,26 @@ def process_suspect_commits(event, **kwargs):
             with metrics.timer("sentry.tasks.process_suspect_commits.process_loop"):
                 metrics.incr("sentry.tasks.process_suspect_commits.calculated")
                 try:
-
                     with metrics.timer(
                         "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
                     ):
                         committers = get_event_file_committers(project, event)
-                    new_owners = []
+                    unsorted_owners = {}
                     for committer in committers:
                         if "id" in committer["author"]:
                             author_id = committer["author"]["id"]
                             for commit, score in committer["commits"]:
-                                if score >= MIN_COMMIT_SCORE and not [
-                                    aid for aid, score in new_owners if aid == author_id
-                                ]:
-                                    new_owners.append((author_id, score))
+                                if score >= MIN_COMMIT_SCORE:
+                                    unsorted_owners[author_id] = max(
+                                        score, unsorted_owners.get(author_id, 0)
+                                    )
 
-                    if new_owners:
-                        for owner_id, score in sorted(new_owners, key=lambda a: a[1], reverse=True)[
-                            :PREFERRED_GROUP_OWNERS
-                        ]:
+                    if unsorted_owners:
+                        sorted_owners = {
+                            author_id: unsorted_owners[author_id]
+                            for author_id in sorted(unsorted_owners, key=unsorted_owners.get)
+                        }
+                        for owner_id, score in sorted_owners[:PREFERRED_GROUP_OWNERS]:
                             go, created = GroupOwner.objects.update_or_create(
                                 group_id=event.group_id,
                                 type=GroupOwnerType.SUSPECT_COMMIT.value,
