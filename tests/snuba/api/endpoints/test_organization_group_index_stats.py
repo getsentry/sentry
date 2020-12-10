@@ -54,6 +54,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "count" in response.data[0]
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
+        assert "status" in response.data[0]
+        assert "statusDetails" in response.data[0]
 
     def test_no_matching_groups(self):
         self.login_as(user=self.user)

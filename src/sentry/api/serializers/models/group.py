@@ -212,38 +212,7 @@ class GroupSerializerBase(Serializer):
 
         return results
 
-    def get_attrs(self, item_list, user):
-        from sentry.plugins.base import plugins
-        from sentry.integrations import IntegrationFeatures
-        from sentry.models import PlatformExternalIssue
-
-        GroupMeta.objects.populate_cache(item_list)
-
-        attach_foreignkey(item_list, Group.project)
-
-        if user.is_authenticated() and item_list:
-            bookmarks = set(
-                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
-                    "group_id", flat=True
-                )
-            )
-            seen_groups = dict(
-                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
-                    "group_id", "last_seen"
-                )
-            )
-            subscriptions = self._get_subscriptions(item_list, user)
-        else:
-            bookmarks = set()
-            seen_groups = {}
-            subscriptions = defaultdict(lambda: (False, None))
-
-        assignees = {
-            a.group_id: a.assigned_actor()
-            for a in GroupAssignee.objects.filter(group__in=item_list)
-        }
-        resolved_assignees = Actor.resolve_dict(assignees)
-
+    def _get_resolution_attrs(self, item_list, user):
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
         resolved_item_list = [i for i in item_list if i.status == GroupStatus.RESOLVED]
@@ -286,6 +255,66 @@ class GroupSerializerBase(Serializer):
             actors = {u.id: d for u, d in zip(users, serialize(users, user))}
         else:
             actors = {}
+
+        result = {}
+        for item in item_list:
+            resolution_actor = None
+            resolution_type = None
+            resolution = release_resolutions.get(item.id)
+            if resolution:
+                resolution_type = "release"
+                resolution_actor = actors.get(resolution[-1])
+            if not resolution:
+                resolution = commit_resolutions.get(item.id)
+                if resolution:
+                    resolution_type = "commit"
+
+            ignore_item = ignore_items.get(item.id)
+            if ignore_item:
+                ignore_actor = actors.get(ignore_item.actor_id)
+            else:
+                ignore_actor = None
+            result[item] = {
+                "ignore_until": ignore_item,
+                "ignore_actor": ignore_actor,
+                "resolution": resolution,
+                "resolution_type": resolution_type,
+                "resolution_actor": resolution_actor,
+            }
+
+        return result
+
+    def get_attrs(self, item_list, user):
+        from sentry.plugins.base import plugins
+        from sentry.integrations import IntegrationFeatures
+        from sentry.models import PlatformExternalIssue
+
+        GroupMeta.objects.populate_cache(item_list)
+
+        attach_foreignkey(item_list, Group.project)
+
+        if user.is_authenticated() and item_list:
+            bookmarks = set(
+                GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
+                    "group_id", flat=True
+                )
+            )
+            seen_groups = dict(
+                GroupSeen.objects.filter(user=user, group__in=item_list).values_list(
+                    "group_id", "last_seen"
+                )
+            )
+            subscriptions = self._get_subscriptions(item_list, user)
+        else:
+            bookmarks = set()
+            seen_groups = {}
+            subscriptions = defaultdict(lambda: (False, None))
+
+        assignees = {
+            a.group_id: a.assigned_actor()
+            for a in GroupAssignee.objects.filter(group__in=item_list)
+        }
+        resolved_assignees = Actor.resolve_dict(assignees)
 
         share_ids = dict(
             GroupShare.objects.filter(group__in=item_list).values_list("group_id", "uuid")
@@ -350,6 +379,11 @@ class GroupSerializerBase(Serializer):
         if has_unhandled_flag:
             snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        resolution_details = None
+        # snooze stats requires seen_stats and resolution_details, so only fetch resolution details if we have the seen_stats
+        if seen_stats:
+            resolution_details = self._get_resolution_attrs(item_list, user)
+
         for item in item_list:
             active_date = item.active_at or item.first_seen
 
@@ -366,23 +400,6 @@ class GroupSerializerBase(Serializer):
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
-            resolution_actor = None
-            resolution_type = None
-            resolution = release_resolutions.get(item.id)
-            if resolution:
-                resolution_type = "release"
-                resolution_actor = actors.get(resolution[-1])
-            if not resolution:
-                resolution = commit_resolutions.get(item.id)
-                if resolution:
-                    resolution_type = "commit"
-
-            ignore_item = ignore_items.get(item.id)
-            if ignore_item:
-                ignore_actor = actors.get(ignore_item.actor_id)
-            else:
-                ignore_actor = None
-
             result[item] = {
                 "id": item.id,
                 "assigned_to": resolved_assignees.get(item.id),
@@ -390,13 +407,11 @@ class GroupSerializerBase(Serializer):
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
                 "annotations": annotations,
-                "ignore_until": ignore_item,
-                "ignore_actor": ignore_actor,
-                "resolution": resolution,
-                "resolution_type": resolution_type,
-                "resolution_actor": resolution_actor,
                 "share_id": share_ids.get(item.id),
             }
+
+            if resolution_details:
+                result[item].update(resolution_details.get(item, {}))
 
             if has_unhandled_flag:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
@@ -502,7 +517,6 @@ class GroupSerializerBase(Serializer):
         return is_subscribed, subscription_details
 
     def serialize(self, obj, attrs, user):
-        status_details, status_label = self._get_status(attrs, obj)
         permalink = self._get_permalink(obj, user)
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
@@ -515,8 +529,6 @@ class GroupSerializerBase(Serializer):
             "permalink": permalink,
             "logger": obj.logger or None,
             "level": LOG_LEVELS.get(obj.level, "unknown"),
-            "status": status_label,
-            "statusDetails": status_details,
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
@@ -541,6 +553,9 @@ class GroupSerializerBase(Serializer):
             group_dict["isUnhandled"] = attrs["is_unhandled"]
         if "times_seen" in attrs:
             group_dict.update(self._convert_seen_stats(attrs))
+            status_details, status_label = self._get_status(attrs, obj)
+            group_dict.update({"status": status_label, "statusDetails": status_details})
+
         return group_dict
 
     def _convert_seen_stats(self, stats):
@@ -979,10 +994,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if self.conditions and not self._collapse("filtered")
                 else None
             )
+            resolution_details = self._get_resolution_attrs(item_list, user)
             for item in item_list:
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
+                attrs[item].update(resolution_details.get(item, {}))
 
         if self._expand("inbox"):
             inbox_stats = get_inbox_details(item_list)
@@ -1005,6 +1022,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             }
             if "times_seen" in attrs:
                 result.update(self._convert_seen_stats(attrs))
+                status_details, status_label = self._get_status(attrs, obj)
+                result.update({"status": status_label, "statusDetails": status_details})
 
         if self.matching_event_id:
             result["matchingEventId"] = self.matching_event_id

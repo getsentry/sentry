@@ -934,6 +934,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "count" not in response.data[0]
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
+        assert "status" not in response.data[0]
+        assert "statusDetails" not in response.data[0]
 
     def test_collapse_lifetime(self):
         event = self.store_event(
