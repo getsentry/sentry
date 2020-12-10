@@ -8,6 +8,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {CrashFreeTimeBreakdown} from 'app/types';
 import {defined} from 'app/utils';
+
 import {displayCrashFreePercent} from '../../utils';
 
 import {SectionHeading, Wrapper} from './styles';
