@@ -4,6 +4,9 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -34,6 +37,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
     project,
     lifetime,
     isUnhandled,
+    inbox,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
@@ -41,8 +45,16 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
-      {shortId && !hasInbox && (
+      {shortId && hasInbox ? (
+        <InboxShortId
+          shortId={shortId}
+          avatar={
+            project && (
+              <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+            )
+          }
+        />
+      ) : (
         <GroupShortId
           shortId={shortId}
           avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
@@ -52,14 +64,21 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
           }}
         />
       )}
-      {!hasInbox && (
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {hasInbox ? (
+        <TimesTag
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      ) : (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
       {/* Always display comment count on inbox */}
-      {(hasInbox || numComments > 0) && (
+      {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
             size="xs"
@@ -113,6 +132,12 @@ const GroupExtra = styled('div')<{hasInbox: boolean}>`
 
   a {
     color: inherit;
+  }
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
   }
 `;
 
