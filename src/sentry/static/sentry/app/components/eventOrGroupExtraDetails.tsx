@@ -45,25 +45,28 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {shortId && hasInbox ? (
-        <InboxShortId
-          shortId={shortId}
-          avatar={
-            project && (
-              <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
-            )
-          }
-        />
-      ) : (
-        <GroupShortId
-          shortId={shortId}
-          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
-          onClick={e => {
-            // prevent the clicks from propagating so that the short id can be selected
-            e.stopPropagation();
-          }}
-        />
-      )}
+      {shortId &&
+        (hasInbox ? (
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+              )
+            }
+          />
+        ) : (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && <ProjectBadge project={project} avatarSize={14} hideName />
+            }
+            onClick={e => {
+              // prevent the clicks from propagating so that the short id can be selected
+              e.stopPropagation();
+            }}
+          />
+        ))}
       {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
       {hasInbox ? (
