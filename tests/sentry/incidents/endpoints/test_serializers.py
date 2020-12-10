@@ -487,7 +487,7 @@ class TestAlertRuleSerializer(TestCase):
 
     def test_unsupported_query(self):
         self.run_fail_validation_test(
-            {"name": "Aun1qu3n4m3", "query": "release:latest1"},
+            {"name": "Aun1qu3n4m3", "query": "release:latest"},
             {"query": ["Unsupported Query: We do not currently support the release:latest query"]},
         )
 
