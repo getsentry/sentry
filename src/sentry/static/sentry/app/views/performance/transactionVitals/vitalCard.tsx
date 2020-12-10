@@ -639,6 +639,7 @@ const PercentContainer = styled('div')`
   position: absolute;
   top: ${space(1)};
   right: ${space(2)};
+  z-index: 2;
 `;
 
 const StyledTag = styled(Tag)`
