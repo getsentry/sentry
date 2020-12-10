@@ -120,22 +120,18 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
           </AuthorLine>
         ))}
         {collapsedNumberOfAuthors > 0 && (
-          <div>
-            <Button priority="link" onClick={this.onCollapseToggle}>
-              {tn(
-                'Show %s collapsed author',
-                'Show %s collapsed authors',
-                collapsedNumberOfAuthors
-              )}
-            </Button>
-          </div>
+          <Button priority="link" onClick={this.onCollapseToggle}>
+            {tn(
+              'Show %s collapsed author',
+              'Show %s collapsed authors',
+              collapsedNumberOfAuthors
+            )}
+          </Button>
         )}
         {collapsedNumberOfAuthors === 0 && canExpand && (
-          <div>
-            <Button priority="link" onClick={this.onCollapseToggle}>
-              {t('Collapse authors')}
-            </Button>
-          </div>
+          <Button priority="link" onClick={this.onCollapseToggle}>
+            {t('Collapse authors')}
+          </Button>
         )}
       </Wrapper>
     );
