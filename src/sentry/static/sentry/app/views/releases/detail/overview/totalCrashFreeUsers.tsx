@@ -3,27 +3,26 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import Count from 'app/components/count';
-import { t, tn } from 'app/locale';
+import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import { CrashFreeTimeBreakdown } from 'app/types';
-import { defined } from 'app/utils';
+import {CrashFreeTimeBreakdown} from 'app/types';
+import {defined} from 'app/utils';
+import {displayCrashFreePercent} from '../../utils';
 
-import { displayCrashFreePercent } from '../../utils';
-
-import { SectionHeading, Wrapper } from './styles';
+import {SectionHeading, Wrapper} from './styles';
 
 type Props = {
   crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
 };
 
-const TotalCrashFreeUsers = ({ crashFreeTimeBreakdown }: Props) => {
+const TotalCrashFreeUsers = ({crashFreeTimeBreakdown}: Props) => {
   if (!crashFreeTimeBreakdown?.length) {
     return null;
   }
 
   const timeline = crashFreeTimeBreakdown
-    .map(({ date, crashFreeUsers, totalUsers }, index, data) => {
+    .map(({date, crashFreeUsers, totalUsers}, index, data) => {
       // count number of crash free users from knowing percent and total
       const crashFreeUserCount = Math.round(((crashFreeUsers ?? 0) * totalUsers) / 100);
       // first item of timeline is release creation date, then we want to have relative date label
@@ -32,7 +31,7 @@ const TotalCrashFreeUsers = ({ crashFreeTimeBreakdown }: Props) => {
           ? t('Release created')
           : `${moment(data[0].date).from(date, true)} ${t('later')}`;
 
-      return { date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount };
+      return {date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount};
     })
     // remove those timeframes that are in the future
     .filter(item => item.date.isBefore())
@@ -108,7 +107,7 @@ const InnerRow = styled('div')`
   padding-bottom: ${space(0.5)};
 `;
 
-const Text = styled('div') <{ bold?: boolean; right?: boolean }>`
+const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
   color: ${p => (p.bold ? p.theme.textColor : p.theme.gray300)};
   padding-bottom: ${space(0.25)};
