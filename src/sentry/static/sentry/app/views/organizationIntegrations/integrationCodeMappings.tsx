@@ -1,9 +1,9 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
@@ -36,8 +36,6 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   pathConfigs: RepositoryProjectPathConfig[];
   repos: Repository[];
-  showModal: boolean;
-  configInEdit?: RepositoryProjectPathConfig;
 };
 
 class IntegrationCodeMappings extends AsyncComponent<Props, State> {
@@ -46,7 +44,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       pathConfigs: [],
       repos: [],
-      showModal: false,
     };
   }
 
@@ -88,24 +85,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.projects.find(project => project.id === pathConfig.projectId);
   }
 
-  openModal = (pathConfig?: RepositoryProjectPathConfig) => {
-    this.setState({
-      showModal: true,
-      configInEdit: pathConfig,
-    });
-  };
-
-  closeModal = () => {
-    this.setState({
-      showModal: false,
-      pathConfig: undefined,
-    });
-  };
-
-  handleEdit = (pathConfig: RepositoryProjectPathConfig) => {
-    this.openModal(pathConfig);
-  };
-
   handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
     const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig.id}/`;
@@ -130,13 +109,32 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     // our getter handles the order of the configs
     pathConfigs = pathConfigs.concat([pathConfig]);
     this.setState({pathConfigs});
-    this.closeModal();
+    this.setState({pathConfig: undefined});
+  };
+
+  openModal = (pathConfig?: RepositoryProjectPathConfig) => {
+    const {organization, integration} = this.props;
+
+    openModal(({Body, closeModal}) => (
+      <Body>
+        <RepositoryProjectPathConfigForm
+          organization={organization}
+          integration={integration}
+          projects={this.projects}
+          repos={this.repos}
+          onSubmitSuccess={config => {
+            this.handleSubmitSuccess(config);
+            closeModal();
+          }}
+          existingConfig={pathConfig}
+        />
+      </Body>
+    ));
   };
 
   renderBody() {
-    const {organization, integration} = this.props;
-    const {showModal, configInEdit} = this.state;
     const pathConfigs = this.pathConfigs;
+    const {integration} = this.props;
 
     return (
       <React.Fragment>
@@ -193,7 +191,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                       <RepositoryProjectPathConfigRow
                         pathConfig={pathConfig}
                         project={project}
-                        onEdit={this.handleEdit}
+                        onEdit={this.openModal}
                         onDelete={this.handleDelete}
                       />
                     </Layout>
@@ -203,26 +201,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               .filter(item => !!item)}
           </PanelBody>
         </Panel>
-
-        <Modal
-          show={showModal}
-          onHide={this.closeModal}
-          enforceFocus={false}
-          backdrop="static"
-          animation={false}
-        >
-          <Modal.Header closeButton />
-          <Modal.Body>
-            <RepositoryProjectPathConfigForm
-              organization={organization}
-              integration={integration}
-              projects={this.projects}
-              repos={this.repos}
-              onSubmitSuccess={this.handleSubmitSuccess}
-              existingConfig={configInEdit}
-            />
-          </Modal.Body>
-        </Modal>
       </React.Fragment>
     );
   }
@@ -242,8 +220,9 @@ const Layout = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout)`
-  align-items: flex-end;
-  margin: ${space(1)};
+  align-items: center;
+  margin: 0;
+  margin-left: ${space(2)};
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;
