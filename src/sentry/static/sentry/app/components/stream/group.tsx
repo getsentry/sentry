@@ -504,22 +504,12 @@ const ChartWrapper = styled('div')`
 const EventUserWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin: 0 ${space(2)};
   align-self: center;
-  margin-left: ${space(1.5)};
-  margin-right: ${space(1.5)};
-  width: 40px;
+  width: 60px;
+  margin: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    width: 60px;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    width: 60px;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     width: 80px;
-    margin-left: ${space(2)};
-    margin-right: ${space(2)};
   }
 `;
 
