@@ -138,7 +138,7 @@ class VitalChart extends React.Component<Props> {
           label: {
             show: true,
             position: 'insideEndBottom',
-            formatter: 'Poor',
+            formatter: t('Poor'),
           },
           data: [
             {
@@ -161,7 +161,7 @@ class VitalChart extends React.Component<Props> {
           label: {
             show: true,
             position: 'insideEndBottom',
-            formatter: 'Meh',
+            formatter: t('Meh'),
           },
           data: [
             {
