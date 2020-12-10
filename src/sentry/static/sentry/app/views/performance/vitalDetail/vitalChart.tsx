@@ -96,7 +96,7 @@ class VitalChart extends React.Component<Props> {
     const vitalName = vitalNameFromLocation(location);
     const chartTitle = vitalChartTitleMap[vitalName];
 
-    const yAxis = [`p50(${vitalName})`, `p75(${vitalName})`];
+    const yAxis = [`p75(${vitalName})`];
 
     const legend = {
       right: 10,
@@ -229,7 +229,7 @@ class VitalChart extends React.Component<Props> {
               includePrevious={false}
               yAxis={yAxis}
             >
-              {({results: _results, errored, loading, reloading}) => {
+              {({timeseriesData: results, errored, loading, reloading}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -237,11 +237,6 @@ class VitalChart extends React.Component<Props> {
                     </ErrorPanel>
                   );
                 }
-
-                const singleSeries = _results?.find(
-                  r => r.seriesName === `p75(${vitalName})`
-                );
-                const results = _results ? (singleSeries ? [singleSeries] : []) : []; // TODO: Fix this multiseries hack
 
                 const colors =
                   (results && theme.charts.getColorPalette(results.length - 2)) || [];
