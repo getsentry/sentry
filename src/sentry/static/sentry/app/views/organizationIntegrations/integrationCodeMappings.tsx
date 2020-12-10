@@ -14,8 +14,8 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import {IconAdd, IconGithub} from 'app/icons';
-import {t} from 'app/locale';
+import {IconAdd, IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   Integration,
@@ -26,6 +26,7 @@ import {
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import Alert from 'app/components/alert';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
@@ -139,6 +140,12 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
+        <Alert type="info" icon={<IconInfo />}>
+          {tct(
+            'Stack trace linking is still in Beta. If you have feedback, please email [email:ecosystem-feedback@sentry.io].',
+            {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
+          )}
+        </Alert>
         <Panel>
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
