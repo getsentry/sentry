@@ -166,7 +166,7 @@ type FeatureDisabledHook = (opts: {
   /**
    * The project that is associated to this feature.
    */
-  project: Project;
+  project?: Project;
   /**
    * The list of features that are controlled by this hook.
    */
