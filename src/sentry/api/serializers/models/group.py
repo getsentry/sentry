@@ -414,7 +414,7 @@ class GroupSerializerBase(Serializer):
                     {
                         "ignoreCount": (
                             snooze.count - (obj.times_seen - snooze.state["times_seen"])
-                            if snooze.count and not snooze.window and not self._collapse("stats")
+                            if snooze.count and not snooze.window
                             else snooze.count
                         ),
                         "ignoreUntil": snooze.until,
