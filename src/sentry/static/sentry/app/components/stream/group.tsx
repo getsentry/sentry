@@ -424,7 +424,7 @@ class StreamGroup extends React.Component<Props, State> {
           <AssigneeSelector id={data.id} memberList={memberList} />
         </AssigneeWrapper>
         {canSelect && hasInbox && (
-          <ActionsWrapper className="visible-lg">
+          <ActionsWrapper>
             <GroupRowActions
               group={data}
               orgId={organization.slug}
@@ -590,6 +590,10 @@ const ActionsWrapper = styled('div')`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    display: none;
+  }
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));
