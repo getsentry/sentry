@@ -18,7 +18,7 @@ type Props = {
 };
 
 const queries = [
-  ['is:inbox is:unresolved', t('Needs Review')],
+  ['is:needs_review is:unresolved', t('Needs Review')],
   ['is:unresolved', t('Unresolved')],
   ['is:ignored', t('Ignored')],
 ];
