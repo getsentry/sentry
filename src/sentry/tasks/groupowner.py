@@ -24,7 +24,8 @@ def process_suspect_commits(event, **kwargs):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     with metrics.timer("sentry.tasks.process_suspect_commits"):
         can_process = True
-        cache_key = "workflow-owners-ingestion:group-{}".format(event.group_id)
+        # Abbreviation for "workflow-owners-ingestion:group-{}"
+        cache_key = "w-o-i:g-{}".format(event.group_id)
 
         if cache.get(cache_key):
             # Only process once per OWNER_CACHE_LIFE seconds.
@@ -62,20 +63,20 @@ def process_suspect_commits(event, **kwargs):
                         "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
                     ):
                         committers = get_event_file_committers(project, event)
-                    unsorted_owners = {}
+                    owner_scores = {}
                     for committer in committers:
                         if "id" in committer["author"]:
                             author_id = committer["author"]["id"]
                             for commit, score in committer["commits"]:
                                 if score >= MIN_COMMIT_SCORE:
-                                    unsorted_owners[author_id] = max(
-                                        score, unsorted_owners.get(author_id, 0)
+                                    owner_scores[author_id] = max(
+                                        score, owner_scores.get(author_id, 0)
                                     )
 
-                    if unsorted_owners:
-                        for owner_id in sorted(
-                            unsorted_owners, reverse=True, key=unsorted_owners.get
-                        )[:PREFERRED_GROUP_OWNERS]:
+                    if owner_scores:
+                        for owner_id in sorted(owner_scores, reverse=True, key=owner_scores.get)[
+                            :PREFERRED_GROUP_OWNERS
+                        ]:
                             go, created = GroupOwner.objects.update_or_create(
                                 group_id=event.group_id,
                                 type=GroupOwnerType.SUSPECT_COMMIT.value,
