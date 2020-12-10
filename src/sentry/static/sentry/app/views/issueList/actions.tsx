@@ -659,7 +659,7 @@ class IssueListActions extends React.Component<Props, State> {
           <IssueToolbarHeader>{t('Assignee')}</IssueToolbarHeader>
         </AssigneesLabel>
         {hasInbox && (
-          <ActionsLabel className="visible-lg">
+          <ActionsLabel>
             <IssueToolbarHeader>{t('Actions')}</IssueToolbarHeader>
           </ActionsLabel>
         )}
@@ -867,19 +867,11 @@ const EventsOrUsersLabel = styled(IssueToolbarHeader)`
   align-items: center;
   justify-content: flex-end;
   text-align: right;
+  width: 60px;
+  margin: 0 ${space(2)};
 
-  margin-left: ${space(1.5)};
-  margin-right: ${space(1.5)};
-  @media (min-width: ${theme.breakpoints[0]}) {
-    width: 60px;
-  }
-  @media (min-width: ${theme.breakpoints[1]}) {
-    width: 60px;
-  }
-  @media (min-width: ${theme.breakpoints[2]}) {
+  @media (min-width: ${theme.breakpoints[3]}) {
     width: 80px;
-    margin-left: ${space(2)};
-    margin-right: ${space(2)};
   }
 `;
 
@@ -895,8 +887,11 @@ const ActionsLabel = styled('div')`
   justify-content: flex-end;
   text-align: right;
   width: 80px;
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
+  margin: 0 ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    display: none;
+  }
 `;
 
 // New icons are misaligned inside bootstrap buttons.

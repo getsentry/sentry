@@ -36,6 +36,7 @@ def test_bootstrap_options_simple(settings, config_yml):
     settings.EMAIL_HOST_USER = "xxx"
     settings.EMAIL_HOST_PASSWORD = "xxx"
     settings.EMAIL_USE_TLS = False
+    settings.EMAIL_USE_SSL = False
     settings.SERVER_EMAIL = "xxx"
     settings.EMAIL_SUBJECT_PREFIX = "xxx"
     settings.SENTRY_OPTIONS = {"something.else": True}
@@ -50,6 +51,7 @@ mail.port: 123
 mail.username: my-mail-username
 mail.password: my-mail-password
 mail.use-tls: true
+mail.use-ssl: false
 mail.from: my-mail-from
 mail.subject-prefix: my-mail-subject-prefix
 """
@@ -66,6 +68,7 @@ mail.subject-prefix: my-mail-subject-prefix
         "mail.username": "my-mail-username",
         "mail.password": "my-mail-password",
         "mail.use-tls": True,
+        "mail.use-ssl": False,
         "mail.from": "my-mail-from",
         "mail.subject-prefix": "my-mail-subject-prefix",
     }
@@ -76,6 +79,7 @@ mail.subject-prefix: my-mail-subject-prefix
     assert settings.EMAIL_HOST_USER == "my-mail-username"
     assert settings.EMAIL_HOST_PASSWORD == "my-mail-password"
     assert settings.EMAIL_USE_TLS is True
+    assert settings.EMAIL_USE_SSL is False
     assert settings.SERVER_EMAIL == "my-mail-from"
     assert settings.EMAIL_SUBJECT_PREFIX == "my-mail-subject-prefix"
 
@@ -99,6 +103,7 @@ def test_bootstrap_options_no_config(settings):
     settings.EMAIL_HOST_USER = "my-mail-username"
     settings.EMAIL_HOST_PASSWORD = "my-mail-password"
     settings.EMAIL_USE_TLS = True
+    settings.EMAIL_USE_SSL = False
     settings.SERVER_EMAIL = "my-mail-from"
     settings.EMAIL_SUBJECT_PREFIX = "my-mail-subject-prefix"
     settings.FOO_BAR = "lol"
@@ -112,6 +117,7 @@ def test_bootstrap_options_no_config(settings):
         "mail.username": "my-mail-username",
         "mail.password": "my-mail-password",
         "mail.use-tls": True,
+        "mail.use-ssl": False,
         "mail.from": "my-mail-from",
         "mail.subject-prefix": "my-mail-subject-prefix",
     }
@@ -127,6 +133,7 @@ def test_bootstrap_options_no_config_only_sentry_options(settings):
         "mail.username": "my-mail-username",
         "mail.password": "my-mail-password",
         "mail.use-tls": True,
+        "mail.use-ssl": False,
         "mail.from": "my-mail-from",
         "mail.subject-prefix": "my-mail-subject-prefix",
     }
@@ -139,6 +146,7 @@ def test_bootstrap_options_no_config_only_sentry_options(settings):
     assert settings.EMAIL_HOST_USER == "my-mail-username"
     assert settings.EMAIL_HOST_PASSWORD == "my-mail-password"
     assert settings.EMAIL_USE_TLS is True
+    assert settings.EMAIL_USE_SSL is False
     assert settings.SERVER_EMAIL == "my-mail-from"
     assert settings.EMAIL_SUBJECT_PREFIX == "my-mail-subject-prefix"
 
