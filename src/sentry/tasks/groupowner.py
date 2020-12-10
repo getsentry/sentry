@@ -75,11 +75,9 @@ def process_suspect_commits(event, **kwargs):
                                     )
 
                     if unsorted_owners:
-                        sorted_owners = {
-                            author_id: unsorted_owners[author_id]
-                            for author_id in sorted(unsorted_owners, key=unsorted_owners.get)
-                        }
-                        for owner_id, score in sorted_owners[:PREFERRED_GROUP_OWNERS]:
+                        for owner_id in sorted(
+                            unsorted_owners, reverse=True, key=unsorted_owners.get
+                        )[:PREFERRED_GROUP_OWNERS]:
                             go, created = GroupOwner.objects.update_or_create(
                                 group_id=event.group_id,
                                 type=GroupOwnerType.SUSPECT_COMMIT.value,
