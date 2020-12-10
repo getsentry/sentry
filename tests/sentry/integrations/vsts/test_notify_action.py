@@ -11,10 +11,11 @@ from sentry.integrations.vsts.integration import VstsIntegration
 
 from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, Integration, Rule
 
-from .testutils import WORK_ITEM_RESPONSE
+from .test_issues import VstsIssueBase
+from .testutils import WORK_ITEM_RESPONSE, GET_PROJECTS_RESPONSE
 
 
-class AzureDevopsCreateTicketActionTest(RuleTestCase):
+class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
     def setUp(self):
@@ -38,7 +39,14 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
 
     @responses.activate
     def test_create_issue(self):
+        self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
         event = self.get_event()
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects?stateFilter=WellFormed&%24skip=0&%24top=100",
+            body=GET_PROJECTS_RESPONSE,
+            content_type="application/json",
+        )
         azuredevops_rule = self.get_rule(
             data={
                 "title": "Hello",
@@ -61,7 +69,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].response.text)
+        data = json.loads(responses.calls[2].response.text)
 
         assert data["fields"]["System.Title"] == "Hello"
         assert data["fields"]["System.Description"] == "Fix this."
@@ -73,6 +81,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
     def test_doesnt_create_issue(self):
         """Don't create an issue if one already exists on the event"""
 
+        self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
         event = self.get_event()
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -89,6 +98,12 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
             relationship=GroupLink.Relationship.references,
             data={"provider": self.integration.model.provider},
         )
+        responses.add(
+            responses.GET,
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects?stateFilter=WellFormed&%24skip=0&%24top=100",
+            body=GET_PROJECTS_RESPONSE,
+            content_type="application/json",
+        )
         azuredevops_rule = self.get_rule(
             data={
                 "title": "Hello",
@@ -103,20 +118,52 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase):
         results = list(azuredevops_rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
         results[0].callback(event, futures=[])
-        assert len(responses.calls) == 0
+        assert len(responses.calls) == 2
 
     def test_render_label(self):
         azuredevops_rule = self.get_rule(
             data={
-                "title": "Hello",
-                "description": "Fix this.",
-                "project": "0987654321",
+                "integration": self.integration.model.id,
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
-                "vsts_integration": self.integration.model.id,
+                "project": "0987654321",
+                "dynamic_form_fields": [
+                    {
+                        "name": "project",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10", "Fabrikam-Fiber-Git")],
+                        "defaultValue": "ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+                        "label": "Project",
+                        "placeholder": "ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+                        "updatesForm": True,
+                    },
+                    {
+                        "name": "work_item_type",
+                        "required": True,
+                        "type": "choice",
+                        "choices": [
+                            ("Microsoft.VSTS.WorkItemTypes.Bug", "Bug"),
+                            ("Some-Thing.GIssue", "G Issue"),
+                            ("Microsoft.VSTS.WorkItemTypes.Task", "Task"),
+                            ("Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"),
+                        ],
+                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
+                        "label": "Work Item Type",
+                        "placeholder": "Bug",
+                    },
+                ],
             }
         )
 
         assert (
-            azuredevops_rule.rule.render_label()
+            azuredevops_rule.render_label()
             == """Create an Azure DevOps work item in fabrikam-fiber-inc with these """
         )
+
+    def test_render_label_without_integration(self):
+        deleted_id = self.integration.model.id
+        self.integration.model.delete()
+
+        rule = self.get_rule(data={"integration": deleted_id})
+
+        assert rule.render_label() == "Create an Azure DevOps work item in [removed] with these "
