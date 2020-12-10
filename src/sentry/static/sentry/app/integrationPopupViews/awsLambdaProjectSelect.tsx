@@ -7,28 +7,21 @@ import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
-type Props = {
-  projects: Project[];
-};
-
-export default class AwsLambdaProjectSelect extends React.Component<Props> {
-  get formFields(): JsonFormObject {
-    const {projects} = this.props;
-    return {
-      title: t('Select a project to use for your AWS Lambda functions'),
-      fields: [
-        {
-          name: 'projectId',
-          type: 'sentry_project_selector',
-          required: true,
-          label: t('Project'),
-          inline: false,
-          projects,
-        },
-      ],
-    };
-  }
-  handleSubmit = ({projectId}: {projectId: string}) => {
+export default function AwsLambdaProjectSelect({projects}: {projects: Project[]}) {
+  const formFields: JsonFormObject = {
+    title: t('Select a project to use for your AWS Lambda functions'),
+    fields: [
+      {
+        name: 'projectId',
+        type: 'sentry_project_selector',
+        required: true,
+        label: t('Project'),
+        inline: false,
+        projects,
+      },
+    ],
+  };
+  const handleSubmit = ({projectId}: {projectId: string}) => {
     // redirect to the same URL but with the project_id set
     const {
       location: {origin, pathname},
@@ -36,13 +29,11 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     const newUrl = `${origin}${pathname}?project_id=${projectId}`;
     window.location.replace(newUrl);
   };
-  render() {
-    return (
-      <StyledForm onSubmit={this.handleSubmit}>
-        <JsonForm forms={[this.formFields]} />
-      </StyledForm>
-    );
-  }
+  return (
+    <StyledForm onSubmit={handleSubmit}>
+      <JsonForm forms={[formFields]} />
+    </StyledForm>
+  );
 }
 
 const StyledForm = styled(Form)`

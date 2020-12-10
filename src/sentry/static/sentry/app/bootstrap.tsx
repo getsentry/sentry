@@ -168,6 +168,7 @@ const globals = {
   // This is the primary entrypoint for rendering the sentry app.
   SentryRenderApp: () => render(Main),
 
+  // This is used to render pipeline views (such as the integration popup)
   RenderPipelineView,
 
   // The following globals are used in sentry-plugins webpack externals
