@@ -7,7 +7,6 @@ import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import RepositoryProjectPathConfigForm from 'app/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
@@ -17,7 +16,6 @@ import RepositoryProjectPathConfigRow, {
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
 import {IconAdd, IconInfo} from 'app/icons';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -25,8 +23,8 @@ import {
   Organization,
   Repository,
   RepositoryProjectPathConfig,
-} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
