@@ -355,9 +355,19 @@ class File(Model):
             f = self._get_chunked_blob(
                 prefetch=True, prefetch_to=base, delete=False
             ).detach_tempfile()
-            os.rename(f.name, path)
-            f.close()
-            f = None
+
+            # pre-emptively check if the file already exists.
+            # this can happen as a race condition if two processes/threads
+            # are trying to cache the same file and both try to write
+            # at the same time, overwriting each other. Normally this is fine,
+            # but can cause an issue if another process has opened the file
+            # for reading, then the file that was being read gets clobbered.
+            # I don't know if this affects normal filesystems, but it
+            # definitely has an issue if the filesystem is NFS.
+            if not os.path.exists(path):
+                os.rename(f.name, path)
+                f.close()
+                f = None
         finally:
             if f is not None:
                 f.close()
