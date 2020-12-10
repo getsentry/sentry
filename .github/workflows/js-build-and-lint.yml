@@ -103,6 +103,8 @@ jobs:
       - name: Commit any eslint fixed files
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         uses: getsentry/action-github-commit@main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
