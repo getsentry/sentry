@@ -103,7 +103,8 @@ jobs:
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
-          if [ -n $(git status -s) ]; then
+          git status -s
+          if [[ $(git diff --stat) != '' ]]; then
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions@sentry.io"
             git add -A
