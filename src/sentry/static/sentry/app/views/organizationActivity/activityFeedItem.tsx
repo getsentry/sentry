@@ -305,7 +305,11 @@ class ActivityItem extends React.Component<Props, State> {
     const {className, item} = this.props;
 
     const avatar = (
-      <ActivityAvatar type={!item.user ? 'system' : 'user'} user={item.user} size={36} />
+      <ActivityAvatar
+        type={!item.user ? 'system' : 'user'}
+        user={item.user ?? undefined}
+        size={36}
+      />
     );
     const author = {
       name: item.user ? item.user.name : 'Sentry',

@@ -173,7 +173,7 @@ class GroupActivity extends React.Component<Props, State> {
                       header={
                         <GroupActivityItem
                           author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                          item={item}
+                          activity={item}
                           orgSlug={this.props.params.orgId}
                           projectId={group.project.id}
                         />
