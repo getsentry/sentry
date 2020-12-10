@@ -3,7 +3,6 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import orderBy from 'lodash/orderBy';
 import PropTypes from 'prop-types';
 
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
@@ -14,16 +13,28 @@ import {withMeta} from 'app/components/events/meta/metaProxy';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
+import ReprocessedBox from 'app/components/reprocessedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
-import {Environment, Event, Group, Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
+import {
+  Environment,
+  Event,
+  Group,
+  GroupActivityReprocess,
+  Organization,
+  Project,
+} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
-import {getEventEnvironment} from '../utils';
+import {
+  getEventEnvironment,
+  getGroupMostRecentActivity,
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from '../utils';
 
 type Props = RouteComponentProps<
   {orgId: string; groupId: string; eventId?: string},
@@ -164,6 +175,39 @@ class GroupEventDetails extends React.Component<Props, State> {
     );
   }
 
+  renderContent(eventWithMeta?: Event) {
+    const {
+      group,
+      project,
+      organization,
+      environments,
+      location,
+      loadingEvent,
+      onRetry,
+      eventError,
+    } = this.props;
+
+    if (loadingEvent) {
+      return <LoadingIndicator />;
+    }
+
+    if (eventError) {
+      return (
+        <GroupEventDetailsLoadingError environments={environments} onRetry={onRetry} />
+      );
+    }
+
+    return (
+      <EventEntries
+        group={group}
+        event={eventWithMeta}
+        organization={organization}
+        project={project}
+        location={location}
+        showExampleCommit={this.showExampleCommit}
+      />
+    );
+  }
   render() {
     const {
       className,
@@ -173,39 +217,34 @@ class GroupEventDetails extends React.Component<Props, State> {
       environments,
       location,
       event,
-      loadingEvent,
-      eventError,
-      onRetry,
     } = this.props;
 
-    const evt = withMeta(event);
+    const eventWithMeta = withMeta(event) as Event;
 
     // reprocessing
     const hasReprocessingV2Feature = project.features?.includes('reprocessing-v2');
-    const {activity, statusDetails, status} = group;
+    const {activity: activities, statusDetails, count} = group;
+    const groupCount = Number(count);
     const {pendingEvents} = statusDetails;
-
-    const {data, type} =
-      orderBy([...activity], ({dateCreated}) => new Date(dateCreated), ['desc'])[0] || {};
+    const mostRecentActivity = getGroupMostRecentActivity(activities);
+    const reprocessStatus = getGroupReprocessingStatus(group, mostRecentActivity);
 
     return (
       <div className={className}>
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
-          status === 'reprocessing' &&
-          type === 'reprocess' &&
-          defined(data.eventCount) ? (
+          reprocessStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
-              totalEvents={data.eventCount}
+              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
               pendingEvents={pendingEvents ?? 0}
             />
           ) : (
             <React.Fragment>
               <div className="primary">
-                {evt && (
+                {eventWithMeta && (
                   <GroupEventToolbar
                     group={group}
-                    event={evt}
+                    event={eventWithMeta}
                     orgId={organization.slug}
                     location={location}
                   />
@@ -219,30 +258,23 @@ class GroupEventDetails extends React.Component<Props, State> {
                     projectId={project.id}
                   />
                 )}
-                {loadingEvent ? (
-                  <LoadingIndicator />
-                ) : eventError ? (
-                  <GroupEventDetailsLoadingError
-                    environments={environments}
-                    onRetry={onRetry}
-                  />
-                ) : (
-                  <EventEntries
-                    group={group}
-                    event={evt}
-                    organization={organization}
-                    project={project}
-                    location={location}
-                    showExampleCommit={this.showExampleCommit}
-                  />
-                )}
+                {hasReprocessingV2Feature &&
+                  (reprocessStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
+                    reprocessStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
+                    <ReprocessedBox
+                      reprocessActivity={mostRecentActivity as GroupActivityReprocess}
+                      groupCount={groupCount}
+                      orgSlug={organization.slug}
+                    />
+                  )}
+                {this.renderContent(eventWithMeta)}
               </div>
               <div className="secondary">
                 <GroupSidebar
                   organization={organization}
                   project={project}
                   group={group}
-                  event={evt}
+                  event={eventWithMeta}
                   environments={environments}
                 />
               </div>

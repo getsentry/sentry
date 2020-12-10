@@ -422,7 +422,9 @@ class GroupSerializerBase(Serializer):
                         "ignoreUntil": snooze.until,
                         "ignoreUserCount": (
                             snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
-                            if snooze.user_count and not snooze.user_window
+                            if snooze.user_count
+                            and not snooze.user_window
+                            and not self._collapse("stats")
                             else snooze.user_count
                         ),
                         "ignoreUserWindow": snooze.user_window,
