@@ -5,10 +5,11 @@ import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
 import DropdownLink from 'app/components/dropdownLink';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
-import SnoozeAction from 'app/components/issues/snoozeAction';
+import SnoozeActionModal from 'app/components/issues/snoozeActionModal';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import GroupChart from 'app/components/stream/groupChart';
@@ -214,11 +215,15 @@ const CompactIssue = createReactClass({
                 </IconLink>
               </li>
               <li>
-                <SnoozeAction
-                  orgId={organization.slug}
-                  groupId={id}
-                  onSnooze={this.onSnooze}
-                />
+                <a
+                  onClick={() =>
+                    openModal(deps => (
+                      <SnoozeActionModal {...deps} onSnooze={this.onSnooze} />
+                    ))
+                  }
+                >
+                  <span>{t('zZz')}</span>
+                </a>
               </li>
             </DropdownLink>
           </div>
