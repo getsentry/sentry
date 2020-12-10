@@ -130,36 +130,29 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     };
   };
 
-  getFieldProps = (field: IssueConfigField) =>
-    field.url
-      ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
-          async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
-          autoload: true,
-        }
-      : {};
-
-  addFields = (fields: FormField[]): void => {
-    const title = {
-      name: 'title',
-      label: 'Title',
-      type: 'string',
-      default: 'This will be the same as the Sentry Issue.',
-      disabled: true,
-    };
-    const description = {
-      name: 'description',
-      label: 'Description',
-      type: 'string',
-      default: 'This will be generated from the Sentry Issue details.',
-      disabled: true,
-    };
-    fields.unshift(description);
-    fields.unshift(title);
+  /**
+   * Set the order of the fields for the modal and replace `title` and `description`.
+   */
+  cleanFields = (): FormField[] => {
+    const {formFields} = this.props;
+    return [
+      {
+        name: 'title',
+        label: 'Title',
+        type: 'string',
+        default: 'This will be the same as the Sentry Issue.',
+        disabled: true,
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'string',
+        default: 'This will be generated from the Sentry Issue details.',
+        disabled: true,
+      },
+    ].concat(
+      Object.values(formFields).filter(f => !['title', 'description'].includes(f.name))
+    );
   };
 
   renderBodyText = () => {
@@ -178,19 +171,8 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   render() {
-    const {formFields, instance} = this.props;
-    const fields = Object.values(formFields);
-    this.addFields(fields);
-    const initialData = instance || {};
-    fields.forEach((field: FormField) => {
-      // passing an empty array breaks multi select
-      // TODO(jess): figure out why this is breaking and fix
-      if (!initialData.hasOwnProperty(field.name)) {
-        initialData[field.name] = field.multiple ? '' : field.default;
-      }
-    });
-
-    return this.renderForm(fields, instance);
+    const {instance} = this.props;
+    return this.renderForm(this.cleanFields(), instance);
   }
 }
 
