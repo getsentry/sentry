@@ -17,8 +17,7 @@ logger = logging.getLogger("sentry.plugins.heroku")
 class HerokuReleaseHook(ReleaseHook):
     def get_auth(self):
         try:
-            auth = ApiKey(organization=self.project.organization, scope_list=["project:write"])
-            return auth
+            return ApiKey(organization=self.project.organization, scope_list=["project:write"])
         except ApiKey.DoesNotExist:
             return None
 
