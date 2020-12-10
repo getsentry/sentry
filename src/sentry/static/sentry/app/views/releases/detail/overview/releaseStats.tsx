@@ -153,7 +153,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-row-gap: ${space(2)};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
 
 const DateStatWrapper = styled('div')`

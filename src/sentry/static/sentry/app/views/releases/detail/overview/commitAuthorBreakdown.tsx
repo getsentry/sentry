@@ -120,18 +120,22 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
           </AuthorLine>
         ))}
         {collapsedNumberOfAuthors > 0 && (
-          <StyledButton priority="link" onClick={this.onCollapseToggle}>
-            {tn(
-              'Show %s collapsed author',
-              'Show %s collapsed authors',
-              collapsedNumberOfAuthors
-            )}
-          </StyledButton>
+          <div>
+            <Button priority="link" onClick={this.onCollapseToggle}>
+              {tn(
+                'Show %s collapsed author',
+                'Show %s collapsed authors',
+                collapsedNumberOfAuthors
+              )}
+            </Button>
+          </div>
         )}
         {collapsedNumberOfAuthors === 0 && canExpand && (
-          <StyledButton priority="link" onClick={this.onCollapseToggle}>
-            {t('Collapse')}
-          </StyledButton>
+          <div>
+            <Button priority="link" onClick={this.onCollapseToggle}>
+              {t('Collapse authors')}
+            </Button>
+          </div>
         )}
       </Wrapper>
     );
@@ -141,8 +145,8 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 const AuthorLine = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Author = styled('div')`
@@ -157,7 +161,6 @@ const StyledUserAvatar = styled(UserAvatar)`
 `;
 
 const AuthorName = styled('div')`
-  font-weight: 600;
   color: ${p => p.theme.textColor};
   padding-right: ${space(0.5)};
   ${overflowEllipsis};
@@ -178,10 +181,6 @@ const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
   color: ${p => p.theme.subText};
-`;
-
-const StyledButton = styled(Button)`
-  width: 100%;
 `;
 
 export default CommitAuthorBreakdown;
