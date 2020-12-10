@@ -22,7 +22,7 @@ const UnhandledTag = ({organization}: {organization: Organization}) => (
 export default UnhandledTag;
 
 const UnhandledTagWrapper = styled('div')`
-  display: inline-flex;
+  display: flex;
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.red300};
