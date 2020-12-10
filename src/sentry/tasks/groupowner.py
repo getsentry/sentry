@@ -25,9 +25,8 @@ def process_suspect_commits(event, **kwargs):
     with metrics.timer("sentry.tasks.process_suspect_commits"):
         can_process = True
         cache_key = "workflow-owners-ingestion:group-{}".format(event.group_id)
-        owner_data = cache.get(cache_key)
 
-        if owner_data:
+        if cache.get(cache_key):
             # Only process once per OWNER_CACHE_LIFE seconds.
             metrics.incr(
                 "sentry.tasks.process_suspect_commits.skipped", tags={"detail": "too_many_owners"}
@@ -53,8 +52,7 @@ def process_suspect_commits(event, **kwargs):
                     )
                     can_process = False
 
-            owner_data = {"count": owner_count, "time": timezone.now()}
-            cache.set(cache_key, owner_data, OWNER_CACHE_LIFE)
+            cache.set(cache_key, True, OWNER_CACHE_LIFE)
 
         if can_process:
             with metrics.timer("sentry.tasks.process_suspect_commits.process_loop"):
