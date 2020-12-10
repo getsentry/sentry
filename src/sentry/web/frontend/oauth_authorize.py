@@ -38,7 +38,16 @@ class OAuthAuthorizeView(AuthLoginView):
         parts[4] = urlencode(query)
         return self.redirect(urlunparse(parts))
 
-    def error(self, request, response_type, redirect_uri, name, state=None, client_id=None):
+    def error(
+        self,
+        request,
+        response_type,
+        redirect_uri,
+        name,
+        state=None,
+        client_id=None,
+        err_response=None,
+    ):
         logging.error(
             "oauth.authorize-error",
             extra={
@@ -48,6 +57,17 @@ class OAuthAuthorizeView(AuthLoginView):
                 "redirect_uri": redirect_uri,
             },
         )
+        if err_response:
+            return self.respond(
+                "sentry/oauth-error.html",
+                {
+                    "error": mark_safe(
+                        "Missing or invalid <em>{}</em> parameter.".format(err_response)
+                    )
+                },
+                status=400,
+            )
+
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
     def respond_login(self, request, context, application, **kwargs):
@@ -63,18 +83,13 @@ class OAuthAuthorizeView(AuthLoginView):
         force_prompt = request.GET.get("force_prompt")
 
         if not client_id:
-            logging.error(
-                "oauth.authorize-error",
-                extra={
-                    "error_name": "unauthorized_client",
-                    "response_type": response_type,
-                    "client_id": client_id,
-                    "redirect_uri": redirect_uri,
-                },
-            )
-            return self.respond(
-                "sentry/oauth-error.html",
-                {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="unauthorized_client",
+                err_response="client_id",
             )
 
         try:
@@ -82,35 +97,25 @@ class OAuthAuthorizeView(AuthLoginView):
                 client_id=client_id, status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
-            logging.error(
-                "oauth.authorize-error",
-                extra={
-                    "error_name": "unauthorized_client",
-                    "response_type": response_type,
-                    "client_id": client_id,
-                    "redirect_uri": redirect_uri,
-                },
-            )
-            return self.respond(
-                "sentry/oauth-error.html",
-                {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="unauthorized_client",
+                err_response="client_id",
             )
 
         if not redirect_uri:
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
-            logging.error(
-                "oauth.authorize-error",
-                extra={
-                    "error_name": "invalid_request",
-                    "response_type": response_type,
-                    "client_id": client_id,
-                    "redirect_uri": redirect_uri,
-                },
-            )
-            return self.respond(
-                "sentry/oauth-error.html",
-                {"error": mark_safe("Missing or invalid <em>redirect_uri</em> parameter.")},
+            return self.error(
+                request=request,
+                client_id=client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name="invalid_request",
+                err_response="redirect_uri",
             )
 
         if not application.is_allowed_response_type(response_type):
@@ -120,7 +125,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name="unsupported_response_type",
-                state=state,
+                err_response="client_id",
             )
 
         if scopes:
