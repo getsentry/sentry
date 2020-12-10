@@ -77,7 +77,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         account_id = parsed_arn["account"]
         region = parsed_arn["region"]
 
-        external_id = f"{account_id}-{region}"
+        external_id = u"{}-{}".format(account_id, region)
 
         integration = {
             "name": integration_name,
@@ -101,8 +101,8 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         aws_external_id = uuid.uuid4()
 
         cloudformation_url = (
-            "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
-            f"stackName=Sentry-Monitoring-Stack-Filter&templateURL={template_url}&param_ExternalId={aws_external_id}"
+            "stackName=Sentry-Monitoring-Stack-Filter&templateURL=%s&param_ExternalId=%s"
+            % (template_url, aws_external_id)
         )
 
         return render_to_response(
