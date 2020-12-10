@@ -105,26 +105,16 @@ class MessageContainsFilter(logging.Filter):
     contains -- a string or list of strings to match
     """
 
-    def __init__(self, contains, or_is_level=None):
+    def __init__(self, contains):
         if not isinstance(contains, list):
             contains = [contains]
         if not all(isinstance(c, six.string_types) for c in contains):
             raise TypeError("'contains' must be a string or list of strings")
         self.contains = contains
-        if or_is_level is not None:
-            self.or_is_level = logging._levelToName[or_is_level]
-        else:
-            self.or_is_level = None
 
     def filter(self, record):
-        if self.or_is_level is not None and record.levelno >= self.or_is_level:
-            return True
-
         message = record.getMessage()
-        if any(c in message for c in self.contains):
-            return True
-
-        return False
+        return any(c in message for c in self.contains)
 
 
 whitespace_re = re.compile("\s+")

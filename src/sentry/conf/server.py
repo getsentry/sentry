@@ -747,21 +747,12 @@ LOGGING = {
             "filters": ["important_django_request"],
             "class": "sentry_sdk.integrations.logging.EventHandler",
         },
-        "sdk_internal": {
-            "class": "sentry.logging.handlers.StructLogHandler",
-            "filters": ["important_sdk_message"],
-        },
     },
     "filters": {
         "important_django_request": {
             "()": "sentry.logging.handlers.MessageContainsFilter",
             "contains": ["CSRF"],
-        },
-        "important_sdk_message": {
-            "()": "sentry.logging.handlers.MessageContainsFilter",
-            "contains": "dropping event",
-            "or_is_level": "INFO",
-        },
+        }
     },
     "root": {"level": "NOTSET", "handlers": ["console", "internal"]},
     # LOGGING.overridable is a list of loggers including root that will change
@@ -778,7 +769,7 @@ LOGGING = {
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
         "sentry.errors": {"handlers": ["console"], "propagate": False},
-        "sentry_sdk.errors": {"handlers": ["sdk_internal"], "level": "DEBUG", "propagate": False},
+        "sentry_sdk.errors": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "multiprocessing": {
             "handlers": ["console"],
