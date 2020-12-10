@@ -12,6 +12,10 @@ const COLORS = {
     background: theme.alert.error.backgroundLight,
     border: theme.alert.error.border,
   },
+  success: {
+    background: theme.alert.success.backgroundLight,
+    border: theme.alert.success.border,
+  },
 } as const;
 
 export const DataSection = styled('div')`
@@ -24,7 +28,7 @@ export const DataSection = styled('div')`
 `;
 
 type BannerProps = {
-  priority: 'default' | 'danger';
+  priority: 'default' | 'danger' | 'success';
 };
 
 export const BannerContainer = styled('div')<BannerProps>`
