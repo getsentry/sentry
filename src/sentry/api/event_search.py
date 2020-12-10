@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from copy import deepcopy
 from datetime import datetime
 
@@ -1697,6 +1697,7 @@ class Function(object):
         transform=None,
         result_type_fn=None,
         default_result_type=None,
+        redundant_grouping=False,
         private=False,
     ):
         """
@@ -1721,6 +1722,8 @@ class Function(object):
             be tried first as the source of truth if available.
         :param str default_result_type: The default resulting type of this function. Must be a type
             defined by RESULTS_TYPES.
+        :param bool redundant_grouping: This function will result in redundant grouping if its column
+            is included as a field as well.
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
@@ -1733,6 +1736,7 @@ class Function(object):
         self.transform = transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
+        self.redundant_grouping = redundant_grouping
         self.private = private
 
         self.validate()
@@ -1902,6 +1906,7 @@ FUNCTIONS = {
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p50",
@@ -1909,6 +1914,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p75",
@@ -1916,6 +1922,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p95",
@@ -1923,6 +1930,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p99",
@@ -1930,6 +1938,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p100",
@@ -1937,6 +1946,7 @@ FUNCTIONS = {
             aggregate=[u"max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "eps",
@@ -1951,7 +1961,10 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "last_seen", aggregate=["max", "timestamp", "last_seen"], default_result_type="date"
+            "last_seen",
+            aggregate=["max", "timestamp", "last_seen"],
+            default_result_type="date",
+            redundant_grouping=True,
         ),
         Function(
             "latest_event",
@@ -2120,6 +2133,7 @@ FUNCTIONS = {
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "sum",
@@ -2593,6 +2607,7 @@ def resolve_field_list(
     aggregate to a field.
     """
     aggregations = []
+    aggregate_fields = defaultdict(set)
     columns = []
     groupby = []
     project_key = ""
@@ -2622,6 +2637,8 @@ def resolve_field_list(
             aggregations.append(function.aggregate)
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
+                if function.details.instance.redundant_grouping:
+                    aggregate_fields[function.aggregate[1]].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -2634,6 +2651,9 @@ def resolve_field_list(
                         function.aggregate, (list, tuple)
                     ):
                         functions[function.aggregate[-1]] = function.details
+
+                        if function.details.instance.redundant_grouping:
+                            aggregate_fields[function.aggregate[1]].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -2696,6 +2716,19 @@ def resolve_field_list(
                     continue
                 groupby.append(column[2])
             else:
+                if column in aggregate_fields:
+                    conflicting_functions = list(aggregate_fields[column])
+                    raise InvalidSearchQuery(
+                        "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
+                            field=column,
+                            function_msg=", ".join(conflicting_functions[:2])
+                            + (
+                                " and {} more.".format(len(conflicting_functions) - 2)
+                                if len(conflicting_functions) > 2
+                                else ""
+                            ),
+                        )
+                    )
                 groupby.append(column)
 
     return {
