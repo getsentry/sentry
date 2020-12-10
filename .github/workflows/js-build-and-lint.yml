@@ -15,8 +15,8 @@ jobs:
     steps:
       - name: Internal github app token
         id: token
-        if: secrets.SENTRY_INTERNAL_APP_ID
         uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
