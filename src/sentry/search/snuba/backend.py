@@ -171,7 +171,7 @@ def owner_filter(owner, projects):
         no_owner = Q(groupowner__isnull=True)
         return Q(
             no_owner
-            | Q(
+            | (
                 Q(
                     groupowner__project_id__in=project_ids,
                     groupowner__organization_id=organization_id,
