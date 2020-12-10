@@ -114,6 +114,16 @@ def get_project_key():
     return key
 
 
+def _override_on_full_queue(transport, metric_name):
+    if transport is None:
+        return
+
+    def on_full_queue(*args, **kwargs):
+        metrics.incr(metric_name, tags={"reason": "queue_full"})
+
+    transport._worker.on_full_queue = on_full_queue
+
+
 def configure_sdk():
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -141,6 +151,9 @@ def configure_sdk():
         )
     else:
         relay_transport = None
+
+    _override_on_full_queue(relay_transport, "internal.uncaptured.events.relay")
+    _override_on_full_queue(upstream_transport, "internal.uncaptured.events.upstream")
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
