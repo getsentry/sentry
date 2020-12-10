@@ -20,23 +20,18 @@ type State = AsyncComponent['state'] & {
 type Stat = {name: string; value: number};
 
 export default class MonitorStats extends AsyncComponent<Props, State> {
-  getDefaultState() {
-    const until = Math.floor(new Date().getTime() / 1000);
-    const since = until - 3600 * 24 * 30;
-
-    return {...super.getDefaultState(), since, until};
-  }
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {monitor} = this.props;
+    const until = Math.floor(new Date().getTime() / 1000);
+    const since = until - 3600 * 24 * 30;
     return [
       [
         'stats',
         `/monitors/${monitor.id}/stats/`,
         {
           query: {
-            since: this.state.since,
-            until: this.state.until,
+            since,
+            until,
             resolution: '1d',
           },
         },
