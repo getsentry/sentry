@@ -198,6 +198,8 @@ class GroupList extends React.Component<Props, State> {
       );
     }
 
+    console.log('groups', groups);
+
     return (
       <React.Fragment>
         <Panel>

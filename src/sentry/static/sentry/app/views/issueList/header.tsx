@@ -17,10 +17,18 @@ type Props = {
   onTabChange: (query: string) => void;
 };
 
+export enum IssueListQuery {
+  NEEDS_REVIEW = 'is:needs_review is:unresolved',
+  UNRESOLVED = 'is:unresolved',
+  IGNORED = 'is:ignored',
+  REPROCESSING = 'is:reprocessing',
+}
+
 const queries = [
-  ['is:needs_review is:unresolved', t('Needs Review')],
-  ['is:unresolved', t('Unresolved')],
-  ['is:ignored', t('Ignored')],
+  [IssueListQuery.NEEDS_REVIEW, t('Needs Review')],
+  [IssueListQuery.UNRESOLVED, t('Unresolved')],
+  [IssueListQuery.IGNORED, t('Ignored')],
+  [IssueListQuery.REPROCESSING, t('Reprocessing')],
 ];
 
 function IssueListHeader({

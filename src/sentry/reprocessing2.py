@@ -270,6 +270,10 @@ def _get_sync_counter_key(group_id):
     return "re2:count:{}".format(group_id)
 
 
+def _get_total_reprocessed_key(group_id):
+    return "re2:total:{}".format(group_id)
+
+
 def mark_event_reprocessed(data):
     """
     This function is supposed to be unconditionally called when an event has
@@ -353,6 +357,7 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
 
     client = _get_sync_redis_client()
     client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, event_count)
+    client.setex(_get_total_reprocessed_key(group_id), _REDIS_SYNC_TTL, event_count)
 
     return new_group.id
 
@@ -362,13 +367,17 @@ def is_group_finished(group_id):
     Checks whether a group has finished reprocessing.
     """
 
-    pending = get_num_pending_events(group_id)
+    pending, _ = get_progress(group_id)
     return pending <= 0
 
 
-def get_num_pending_events(group_id):
-    rv = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
-    if rv is None:
+def get_progress(group_id):
+    pending = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
+    total = _get_sync_redis_client().get(_get_total_reprocessed_key(group_id))
+    if pending is None:
         logger.error("reprocessing2.missing_counter")
-        return 0
-    return int(rv)
+        return 0 , 0
+    if total is None:
+        logger.error("reprocessing2.missing_total")
+        return 0 , 0
+    return int(pending), int(total)
