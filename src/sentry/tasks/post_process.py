@@ -218,9 +218,7 @@ def post_process_group(
                     cache.set(has_commit_key, org_has_commit, 3600)
 
                 if org_has_commit and features.has(
-                    "projects:workflow-owners-ingestion",
-                    organization=event.project.organization,
-                    project=event.project,
+                    "projects:workflow-owners-ingestion", event.project,
                 ):
                     process_suspect_commits(event=event)
             except Exception:

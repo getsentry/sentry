@@ -19,6 +19,7 @@ class InternalMailEndpoint(Endpoint):
             "mailUsername": options.get("mail.username"),
             "mailPort": options.get("mail.port"),
             "mailUseTls": options.get("mail.use-tls"),
+            "mailUseSsl": options.get("mail.use-ssl"),
             "mailFrom": options.get("mail.from"),
             "mailListNamespace": options.get("mail.list-namespace"),
             "testMailEmail": request.user.email,
