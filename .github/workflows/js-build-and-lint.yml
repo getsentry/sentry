@@ -11,7 +11,6 @@ on:
 jobs:
   typescript-and-lint:
     name: typescript and lint
-    if: github.ref != 'refs/heads/master'
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
@@ -89,7 +88,7 @@ jobs:
           yarn tsc -p config/tsconfig.build.json
 
       - name: storybook
-        if: steps.changes.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         env:
           STORYBOOK_BUILD: 1
         run: |
