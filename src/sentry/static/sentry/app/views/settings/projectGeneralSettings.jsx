@@ -282,7 +282,7 @@ class ProjectGeneralSettings extends AsyncView {
             priority="info"
           >
             {tct(
-              "psst. Looking for the Grouping Settings? You'll find that under [underline: Issue Grouping].",
+              "Looking for Grouping Settings? You'll find those in [underline: Issue Grouping].",
               {
                 underline: <u />,
               }

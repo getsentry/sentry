@@ -12,10 +12,6 @@ import Count from 'app/components/count';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import InboxReason from 'app/components/group/inboxBadges/inboxReason';
-import InboxShortId from 'app/components/group/inboxBadges/shortId';
-import TimesTag from 'app/components/group/inboxBadges/timesTag';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
 import Link from 'app/components/links/link';
 import MenuItem from 'app/components/menuItem';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
@@ -254,35 +250,6 @@ class StreamGroup extends React.Component<Props, State> {
             <GroupCheckBox id={data.id} />
           </GroupCheckbox>
         )}
-        {hasInbox && (
-          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
-            {data.inbox && (
-              <InboxReasonWrapper>
-                <InboxReason inbox={data.inbox} />
-              </InboxReasonWrapper>
-            )}
-            <FirstSeenLastSeenWrapper>
-              <TimesTag
-                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-              />
-            </FirstSeenLastSeenWrapper>
-            {data.shortId && (
-              <InboxShortId
-                shortId={data.shortId}
-                avatar={
-                  data.project && (
-                    <ShadowlessProjectBadge
-                      project={data.project}
-                      avatarSize={12}
-                      hideName
-                    />
-                  )
-                }
-              />
-            )}
-          </ReasonAndTimesContainer>
-        )}
         <GroupSummary
           width={[8 / 12, 8 / 12, 6 / 12]}
           ml={canSelect ? 1 : 2}
@@ -424,7 +391,7 @@ class StreamGroup extends React.Component<Props, State> {
           <AssigneeSelector id={data.id} memberList={memberList} />
         </AssigneeWrapper>
         {canSelect && hasInbox && (
-          <ActionsWrapper className="visible-lg">
+          <ActionsWrapper>
             <GroupRowActions
               group={data}
               orgId={organization.slug}
@@ -528,30 +495,6 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const ReasonAndTimesContainer = styled('div')`
-  display: flex;
-  width: 125px;
-  flex-direction: column;
-  margin: 0 ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const InboxReasonWrapper = styled('div')`
-  margin-top: -2px;
-  margin-bottom: ${space(0.5)};
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
-`;
-
-const FirstSeenLastSeenWrapper = styled('div')`
-  margin-top: ${space(0.25)};
-  margin-bottom: ${space(1)};
-`;
-
 const ChartWrapper = styled('div')`
   width: 160px;
   margin: 0 ${space(2)};
@@ -561,22 +504,12 @@ const ChartWrapper = styled('div')`
 const EventUserWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  margin: 0 ${space(2)};
   align-self: center;
-  margin-left: ${space(1.5)};
-  margin-right: ${space(1.5)};
-  width: 40px;
+  width: 60px;
+  margin: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    width: 60px;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    width: 60px;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     width: 80px;
-    margin-left: ${space(2)};
-    margin-right: ${space(2)};
   }
 `;
 
@@ -590,6 +523,10 @@ const ActionsWrapper = styled('div')`
   width: 80px;
   margin: 0 ${space(2)};
   align-self: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    display: none;
+  }
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

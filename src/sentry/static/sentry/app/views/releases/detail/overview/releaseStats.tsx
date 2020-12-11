@@ -6,6 +6,7 @@ import Feature from 'app/components/acl/feature';
 import {SectionHeading} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -103,13 +104,22 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                         return '\u2014';
                       }
                       return (
-                        <Count
-                          value={
-                            tableData.data[0][
-                              getAggregateAlias(`apdex(${organization.apdexThreshold})`)
-                            ]
-                          }
-                        />
+                        <GlobalSelectionLink
+                          to={{
+                            pathname: `/organizations/${organization.slug}/performance/`,
+                            query: {
+                              query: `release:${release?.version}`,
+                            },
+                          }}
+                        >
+                          <Count
+                            value={
+                              tableData.data[0][
+                                getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                              ]
+                            }
+                          />
+                        </GlobalSelectionLink>
                       );
                     }}
                   </DiscoverQuery>
@@ -153,7 +163,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-row-gap: ${space(2)};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
 
 const DateStatWrapper = styled('div')`
