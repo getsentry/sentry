@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
-
 from sentry.utils.compat import mock
 import os
 from hashlib import md5
@@ -244,7 +242,6 @@ def pytest_collection_modifyitems(config, items):
 
     - Filter tests that subclass SnubaTestCase as tests in `tests/acceptance` are not being marked as `snuba`
     - Select tests based on group and group strategy
-    - Configure pytest-sentry
 
     """
 
@@ -291,6 +288,3 @@ def pytest_collection_modifyitems(config, items):
     if len(discard) > 0:
         items[:] = keep
         config.hook.pytest_deselected(items=discard)
-
-    for item in items:
-        item.add_marker(pytest.mark.sentry_client({"traces_sample_rate": 0.1}))
