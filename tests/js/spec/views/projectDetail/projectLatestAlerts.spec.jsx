@@ -9,7 +9,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock, rulesEndpointMock;
   const {organization, project, router} = initializeOrg();
 
-  beforeEach(async function () {
+  beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
@@ -122,7 +122,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     const createRuleButton = wrapper.find('Button').at(0);
     const learnMoreButton = wrapper.find('Button').at(1);
 
-    expect(createRuleButton.text()).toBe('Create Alert Rule');
+    expect(createRuleButton.text()).toBe('Create Alert');
     expect(createRuleButton.prop('to')).toBe(
       `/organizations/${organization.slug}/alerts/${project.slug}/new/`
     );
