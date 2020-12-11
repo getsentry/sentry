@@ -90,7 +90,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return formData;
   };
 
-  onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e) => {
+  onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e, model) => {
     const {onSubmitAction, closeModal} = this.props;
     const {dynamicFieldChoices} = this.state;
 
@@ -98,9 +98,11 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     e.preventDefault();
     e.stopPropagation();
 
-    onSubmitAction(this.cleanData(data), dynamicFieldChoices);
-    addSuccessMessage(t('Changes applied.'));
-    closeModal();
+    if (model.validateForm()) {
+      onSubmitAction(this.cleanData(data), dynamicFieldChoices);
+      addSuccessMessage(t('Changes applied.'));
+      closeModal();
+    }
   };
 
   updateDynamicFieldChoices = (field: IssueConfigField, result: any): void => {
