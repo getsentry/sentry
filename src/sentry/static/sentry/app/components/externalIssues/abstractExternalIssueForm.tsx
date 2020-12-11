@@ -18,8 +18,8 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  integrationDetails?: IntegrationIssueConfig;
-  dynamicFieldValues?: {[key: string]: FieldValue};
+  integrationDetails: IntegrationIssueConfig | null;
+  dynamicFieldValues: {[key: string]: FieldValue | null} | null;
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
@@ -36,9 +36,9 @@ export default class AbstractExternalIssueForm<
     return {
       ...super.getDefaultState(),
       // This is derived from integrationDetails when it loads.
-      dynamicFieldValues: undefined,
+      dynamicFieldValues: null,
       // This is fetched by AsyncComponent.getEndpoints.
-      integrationDetails: undefined,
+      integrationDetails: null,
     };
   }
 
@@ -75,7 +75,7 @@ export default class AbstractExternalIssueForm<
 
   getDynamicFields(
     integrationDetails?: IntegrationIssueConfig
-  ): {[key: string]: string | undefined} {
+  ): {[key: string]: FieldValue | null} {
     const config: IssueConfigField[] = (integrationDetails ||
       this.state.integrationDetails ||
       {})[this.getConfigName()];
@@ -83,7 +83,7 @@ export default class AbstractExternalIssueForm<
     return Object.fromEntries(
       config
         .filter((field: IssueConfigField) => field.updatesForm)
-        .map((field: IssueConfigField) => [field.name, field.default])
+        .map((field: IssueConfigField) => [field.name, field.default || null])
     );
   }
 
