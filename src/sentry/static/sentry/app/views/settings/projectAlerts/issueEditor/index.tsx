@@ -139,7 +139,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   onRequestSuccess({stateKey, data}) {
     if (stateKey === 'rule' && data.name) {
-      this.props.onChangeTitle(data.name);
+      this.props.onChangeTitle?.(data.name);
     }
   }
 
