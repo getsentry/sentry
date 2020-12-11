@@ -1,7 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {getQuerySource} from 'app/views/alerts/utils';
 import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
-import {Dataset} from 'app/views/settings/incidentRules/types';
+import {Dataset, Datasource} from 'app/views/settings/incidentRules/types';
 
 describe('Alert utils', function () {
   const {org, projects} = initializeOrg();
@@ -78,6 +79,53 @@ describe('Alert utils', function () {
           yAxis: 'p90()',
         }),
         pathname: '/organizations/org-slug/discover/results/',
+      });
+    });
+  });
+
+  describe('getQuerySource', () => {
+    it('should parse event type error or default', () => {
+      expect(getQuerySource('event.type:default OR event.type:error')).toEqual({
+        source: Datasource.ERROR_DEFAULT,
+        query: '',
+      });
+      expect(
+        getQuerySource('event.type:error OR event.type:default transaction.duration:<30s')
+      ).toEqual({
+        source: Datasource.ERROR_DEFAULT,
+        query: 'transaction.duration:<30s',
+      });
+      expect(
+        getQuerySource('event.type:error OR (event.type:default event.level:fatal)')
+      ).toEqual({
+        source: Datasource.ERROR_DEFAULT,
+        query: 'event.level:fatal)',
+      });
+    });
+    it('should not allow event type transaction with anything else', () => {
+      expect(getQuerySource('event.type:error OR event.type:transaction')).toBeNull();
+      expect(getQuerySource('event.type:transaction OR event.type:default')).toBeNull();
+    });
+    it('should allow error, transaction, default alone', () => {
+      expect(getQuerySource('event.type:error test')).toEqual({
+        source: Datasource.ERROR,
+        query: 'test',
+      });
+      expect(getQuerySource('event.type:default test')).toEqual({
+        source: Datasource.DEFAULT,
+        query: 'test',
+      });
+      expect(getQuerySource('event.type:transaction test')).toEqual({
+        source: Datasource.TRANSACTION,
+        query: 'test',
+      });
+      expect(
+        getQuerySource(
+          'event.type:error explode OR (event.type:default event.level:fatal)'
+        )
+      ).toEqual({
+        source: Datasource.ERROR,
+        query: 'explode OR (event.type:default event.level:fatal)',
       });
     });
   });
