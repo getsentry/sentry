@@ -1,5 +1,5 @@
 ---
-created: '2020-08-11T09:15:00.149980Z'
+created: '2020-12-08T17:25:10.426520Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -169,6 +169,7 @@ app:
 --------------------------------------------------------------------------
 custom-fingerprint:
   hash: "f30afa00b85f5cac5ee0bce01b31f08d"
+  info: null
   values: ["celery","SoftTimeLimitExceeded","sentry.tasks.store.process_event"]
 --------------------------------------------------------------------------
 system:

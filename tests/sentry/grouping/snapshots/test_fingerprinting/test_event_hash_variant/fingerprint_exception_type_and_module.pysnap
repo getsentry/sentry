@@ -1,5 +1,5 @@
 ---
-created: '2020-10-13T10:09:31.951732Z'
+created: '2020-12-08T17:25:05.043711Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -25,6 +25,10 @@ variants:
       hint: custom fingerprint takes precedence
     type: component
   custom-fingerprint:
+    client_values:
+    - my-route
+    - '{{ default }}'
+    matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable"
     type: custom-fingerprint
     values:
     - database-unavailable
