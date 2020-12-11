@@ -127,7 +127,6 @@ const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-gap: ${space(2)};
-  align-items: stretch;
 `;
 
 const WidgetWrapper = styled('div')`
@@ -137,10 +136,10 @@ const WidgetWrapper = styled('div')`
 const AddWidgetWrapper = styled('a')`
   width: 100%;
   height: 100%;
+  min-height: 200px;
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 250px;
 `;

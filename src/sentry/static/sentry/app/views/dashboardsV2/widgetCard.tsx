@@ -245,7 +245,7 @@ class WidgetCard extends React.Component<Props, State> {
           }}
         >
           <WidgetHeader>{widget.title}</WidgetHeader>
-          <StyledPanelBody>{this.renderVisual()}</StyledPanelBody>
+          {this.renderVisual()}
           {this.renderEditPanel()}
         </StyledPanel>
       </ErrorBoundary>
@@ -283,10 +283,6 @@ const StyledPanel = styled(Panel)`
   width: 100%;
   position: relative;
   overflow: hidden;
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  height: 250px;
 `;
 
 const EditPanel = styled('div')`
