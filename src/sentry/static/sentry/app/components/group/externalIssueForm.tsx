@@ -30,9 +30,9 @@ const SUBMIT_LABEL_BY_ACTION = {
 };
 
 type Props = {
+  action: 'create' | 'link';
   group: Group;
   integration: Integration;
-  action: 'create' | 'link';
   onSubmitSuccess: (
     externalIssue: IntegrationExternalIssue,
     onSucess: () => void
@@ -85,10 +85,10 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     this.submitTransaction = this.startTransaction('submit');
   };
 
-  onSubmitSuccess = (data: IntegrationExternalIssue) => {
-    this.props.onSubmitSuccess(data, () =>
-      addSuccessMessage(MESSAGES_BY_ACTION[this.props.action])
-    );
+  onSubmitSuccess = (data: IntegrationExternalIssue): void => {
+    const {action, onSubmitSuccess} = this.props;
+
+    onSubmitSuccess(data, () => addSuccessMessage(MESSAGES_BY_ACTION[action]));
     this.submitTransaction?.finish();
   };
 
