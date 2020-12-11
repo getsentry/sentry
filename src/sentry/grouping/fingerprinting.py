@@ -184,7 +184,7 @@ class FingerprintingRules(object):
         for rule in self.iter_rules():
             new_values = rule.get_fingerprint_values_for_event_access(access)
             if new_values is not None:
-                return new_values
+                return (rule,) + new_values
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -339,6 +339,10 @@ class Match(object):
             negated = False
         return cls(key, obj[1], negated)
 
+    @property
+    def text(self):
+        return '%s%s:"%s"' % (self.negated and "!" or "", self.key, self.pattern,)
+
 
 class Rule(object):
     def __init__(self, matchers, fingerprint, attributes):
@@ -374,6 +378,24 @@ class Rule(object):
             obj["fingerprint"],
             obj.get("attributes") or {},
         )
+
+    def to_json(self):
+        return self._to_config_structure()
+
+    @classmethod
+    def from_json(cls, json):
+        return cls._from_config_structure(json)
+
+    @property
+    def text(self):
+        return (
+            '%s -> "%s" %s'
+            % (
+                " ".join(x.text for x in self.matchers),
+                "".join(x for x in self.fingerprint),
+                " ".join('%s="%s"' % (k, v) for (k, v) in sorted(self.attributes.items())),
+            )
+        ).rstrip()
 
 
 class FingerprintingVisitor(NodeVisitor):

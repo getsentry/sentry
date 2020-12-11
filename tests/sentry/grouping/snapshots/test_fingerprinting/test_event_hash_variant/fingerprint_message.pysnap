@@ -1,5 +1,5 @@
 ---
-created: '2020-10-13T10:09:31.856405Z'
+created: '2020-12-08T17:25:04.989714Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -17,6 +17,7 @@ fingerprint:
 title: Hello my sweet Love
 variants:
   custom-fingerprint:
+    matched_rule: message:"*love*" -> "what-is-love"
     type: custom-fingerprint
     values:
     - what-is-love

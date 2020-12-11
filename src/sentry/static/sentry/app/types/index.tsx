@@ -1853,7 +1853,9 @@ export type EventGroupVariant = {
   hashMismatch: boolean;
   key: EventGroupVariantKey;
   type: EventGroupVariantType;
-  values?: string;
+  values?: Array<string>;
+  client_values?: Array<string>;
+  matched_rule?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
 };
