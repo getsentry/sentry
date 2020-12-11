@@ -13,7 +13,6 @@ import {IssueConfigField, Organization} from 'app/types';
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
-import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = ModalRenderProps & {
   formFields: {[key: string]: any};
@@ -59,13 +58,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getNames = (): string[] => {
     const {formFields} = this.props;
 
-    const names: string[] = [];
-    for (const name in formFields) {
-      if (formFields[name].hasOwnProperty('name')) {
-        names.push(formFields[name].name);
-      }
-    }
-    return names;
+    return formFields.values().filter(field => field.hasOwnProperty('name')).map(field => field.name);
   };
 
   getEndPointString = () => {
@@ -100,11 +93,11 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const {onSubmitAction, closeModal} = this.props;
     const {dynamicFieldChoices} = this.state;
 
+    // This is a "fake form", so don't actually POST to an endpoint.
     e.preventDefault();
     e.stopPropagation();
 
-    const formData = this.cleanData(data);
-    onSubmitAction(formData, dynamicFieldChoices);
+    onSubmitAction(this.cleanData(data), dynamicFieldChoices);
     addSuccessMessage(t('Changes applied.'));
     closeModal();
   };
