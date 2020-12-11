@@ -97,7 +97,7 @@ jobs:
           pre-commit run --files ${{ steps.files.outputs.all_files }}
 
       # If working tree is dirty, commit and update if we have a token
-      - name: Commit any eslint fixed files
+      - name: Apply any pre-commit fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
         uses: getsentry/action-github-commit@main
         with:
