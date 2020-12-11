@@ -394,7 +394,7 @@ const StyledMenuItemHeader = styled(MenuItem)`
   text-transform: uppercase;
   padding: ${space(1)} 0 ${space(1)} 10px;
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.gray400};
   background: ${p => p.theme.bodyBackground};
   border-bottom: 1px solid ${p => p.theme.border};
   border-top-left-radius: ${p => p.theme.borderRadius};

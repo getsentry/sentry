@@ -446,7 +446,7 @@ const StyledDropdownLink = styled(DropdownLink)`
 
 const DropdownMenuItem = styled('li')`
   :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.border};
+    border-top: 1px solid ${p => p.theme.innerBorder};
   }
   > span {
     border-radius: ${p => p.theme.borderRadius};
@@ -473,7 +473,7 @@ const StyledMenuItem = styled(MenuItem)`
   text-transform: uppercase;
   padding: ${space(1)} 0 ${space(1)} 10px;
   font-weight: 600;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.gray400};
   background: ${p => p.theme.bodyBackground};
   border-radius: ${p => p.theme.borderRadius};
 `;
