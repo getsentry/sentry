@@ -164,12 +164,11 @@ class Button extends React.Component<ButtonProps, {}> {
           priority={priority}
           borderless={borderless}
         >
-          {' '}
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               {icon}
             </Icon>
-          )}{' '}
+          )}
           {children}
         </ButtonLabel>
       </StyledButton>
