@@ -12,7 +12,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import ErrorBoundary from 'app/components/errorBoundary';
-import {Panel, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
