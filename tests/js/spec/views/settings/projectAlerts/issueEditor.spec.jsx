@@ -7,7 +7,6 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
-import ProjectAlertsEditor from 'app/views/settings/projectAlerts/edit';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 
 jest.unmock('app/utils/recreateRoute');
@@ -75,24 +74,16 @@ describe('ProjectAlerts -> IssueEditor', function () {
 
   const createWrapper = (props = {}) => {
     const {organization, project, routerContext} = initializeOrg(props);
-    const rule = TestStubs.ProjectAlertRule();
     const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
+    const onChangeTitleMock = jest.fn();
     const wrapper = mountWithTheme(
       <ProjectAlerts organization={organization} params={params}>
-        <ProjectAlertsEditor
-          location={{pathname: `/projects/${organization.slug}/${project.slug}/rules/1`}}
-          project={project}
+        <IssueEditor
           params={params}
+          location={{pathname: ''}}
           routes={projectAlertRuleDetailsRoutes}
-          rule={rule}
-        >
-          <IssueEditor
-            params={params}
-            location={{pathname: ''}}
-            routes={projectAlertRuleDetailsRoutes}
-            rule={rule}
-          />
-        </ProjectAlertsEditor>
+          onChangeTitle={onChangeTitleMock}
+        />
       </ProjectAlerts>,
       routerContext
     );
@@ -121,8 +112,6 @@ describe('ProjectAlerts -> IssueEditor', function () {
         body: {},
       });
       const {wrapper} = createWrapper();
-      await tick();
-      wrapper.update();
       wrapper.find('button[aria-label="Delete Rule"]').simulate('click');
       await tick();
       wrapper.find('Modal button[aria-label="Delete Rule"]').simulate('click');
@@ -134,19 +123,8 @@ describe('ProjectAlerts -> IssueEditor', function () {
     });
 
     it('sends correct environment value', async function () {
-      const getEnv = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/environments/',
-        method: 'GET',
-        body: TestStubs.Environments(),
-      });
       const {wrapper} = createWrapper();
-      expect(getEnv).toHaveBeenCalledTimes(1);
-      await tick();
-      wrapper.update();
       selectByValue(wrapper, 'production', {name: 'environment'});
-
-      await tick();
-      wrapper.update();
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledWith(
@@ -159,10 +137,7 @@ describe('ProjectAlerts -> IssueEditor', function () {
 
     it('strips environment value if "All environments" is selected', async function () {
       const {wrapper} = createWrapper();
-      await tick();
-      wrapper.update();
       selectByValue(wrapper, '__all_environments__', {name: 'environment'});
-      await tick();
       wrapper.find('form').simulate('submit');
 
       expect(mock).toHaveBeenCalledTimes(1);

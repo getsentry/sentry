@@ -44,6 +44,7 @@ describe('Incident Rules Details', function () {
   it('renders and edits trigger', async function () {
     const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
+    const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
@@ -70,6 +71,7 @@ describe('Incident Rules Details', function () {
             ruleId: rule.id,
           }}
           organization={organization}
+          onChangeTitle={onChangeTitleMock}
         />
       </React.Fragment>,
       routerContext

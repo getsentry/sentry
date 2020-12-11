@@ -89,11 +89,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
-  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
+  onChangeTitle: ({ruleName: string}) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -122,44 +122,26 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     };
   }
 
-  componentDidMount() {
-    this.getEnvironmentsConfigs();
-  }
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {ruleId, projectId, orgId} = this.props.params;
 
-  UNSAFE_componentWillReceiveProps(_newProps, _newContext) {
-    this.setState(_newProps);
-  }
+    const endpoints = [
+      ['environments', `/projects/${orgId}/${projectId}/environments/`],
+      ['configs', `/projects/${orgId}/${projectId}/rules/configuration/`],
+    ];
 
-  componentWillUnmount() {
-    this.api.clear();
-  }
-
-  getEnvironmentsConfigs = async () => {
-    const {project, organization} = this.props;
-
-    const environmentsEndpoint = `/projects/${organization.slug}/${project.slug}/environments/`;
-    const configsEndpoint = `/projects/${organization.slug}/${project.slug}/rules/configuration/`;
-
-    try {
-      const environments = await this.api.requestPromise(environmentsEndpoint, {
-        method: 'GET',
-      });
-      const configs = await this.api.requestPromise(configsEndpoint, {
-        method: 'GET',
-      });
-      this.setState({
-        detailedError: null,
-        environments,
-        configs,
-      });
-    } catch (err) {
-      this.setState({
-        detailedError: err.responseJSON || {__all__: 'Unknown error'},
-        loading: false,
-      });
-      addErrorMessage(t('An error occurred'));
+    if (ruleId) {
+      endpoints.push(['rule', `/projects/${orgId}/${projectId}/rules/${ruleId}/`]);
     }
-  };
+
+    return endpoints as [string, string][];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle(data.name);
+    }
+  }
 
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
@@ -438,7 +420,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {project, organization, params} = this.props;
+    const {project, organization} = this.props;
     const {environments} = this.state;
     const environmentChoices = [
       [ALL_ENVIRONMENTS_KEY, t('All Environments')],
@@ -459,7 +441,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         {({hasAccess}) => (
           <StyledForm
             key={isSavedAlertRule(rule) ? rule.id : undefined}
-            // key={rule.id}
             onCancel={this.handleCancel}
             onSubmit={this.handleSubmit}
             initialData={{
@@ -470,7 +451,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
             submitDisabled={!hasAccess}
             submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Create Alert Rule')}
             extraButton={
-              params.ruleId ? (
+              isSavedAlertRule(rule) ? (
                 <Confirm
                   disabled={!hasAccess}
                   priority="danger"
