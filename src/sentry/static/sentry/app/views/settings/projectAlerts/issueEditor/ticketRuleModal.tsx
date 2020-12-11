@@ -57,8 +57,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getNames = (): string[] => {
     const {formFields} = this.props;
 
-    return formFields
-      .values()
+    return Object.values(formFields)
       .filter(field => field.hasOwnProperty('name'))
       .map(field => field.name);
   };
@@ -154,7 +153,11 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
           if (instance.hasOwnProperty(field.name)) {
             field.default = instance[field.name];
           }
-          if (['assignee', 'reporter'].includes(field.name)) {
+          if (
+            ['assignee', 'reporter'].includes(field.name) &&
+            instance.dynamic_form_fields &&
+            instance.dynamic_form_fields[field.name]
+          ) {
             field.choices = instance.dynamic_form_fields[field.name].choices;
           }
           return field;
