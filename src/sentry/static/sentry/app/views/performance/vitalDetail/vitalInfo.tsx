@@ -33,8 +33,8 @@ export default function vitalInfo(props: Props) {
   } = props;
   const description = vitalDescription[vitalName];
   return (
-    <Container>
-      {!hideDescription && <Description>{description}</Description>}
+    <VitalDetails>
+      {!hideDescription && <div>{description}</div>}
       <VitalsCardDiscoverQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -53,14 +53,12 @@ export default function vitalInfo(props: Props) {
           </React.Fragment>
         )}
       </VitalsCardDiscoverQuery>
-    </Container>
+    </VitalDetails>
   );
 }
 
-const Container = styled('div')`
+const VitalDetails = styled('div')`
   display: grid;
   gap: ${space(3)};
   margin-bottom: ${space(3)};
 `;
-
-const Description = styled('div')``;

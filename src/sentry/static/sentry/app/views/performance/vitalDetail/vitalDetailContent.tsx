@@ -161,12 +161,6 @@ class VitalDetailContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <VitalInfo
-              eventView={eventView}
-              organization={organization}
-              location={location}
-              vitalName={vital}
-            />
             <StyledSearchContainer>
               <StyledSearchBar
                 organization={organization}
@@ -176,6 +170,12 @@ class VitalDetailContent extends React.Component<Props, State> {
                 onSearch={this.handleSearch}
               />
             </StyledSearchContainer>
+            <VitalInfo
+              eventView={eventView}
+              organization={organization}
+              location={location}
+              vitalName={vital}
+            />
             <VitalChart
               organization={organization}
               query={eventView.query}

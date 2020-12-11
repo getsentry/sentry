@@ -104,7 +104,7 @@ const NonPanel = styled('div')`
 
 const StyledVitalCard = styled(Card)`
   color: ${p => p.theme.textColor};
-  padding: ${space(1.5)} ${space(2)} ${space(2)} ${space(2)};
+  padding: ${space(1.5)} ${space(2)} ${space(1.5)} ${space(2)};
 
   &:focus,
   &:hover {
@@ -290,7 +290,7 @@ function VitalsCardContent(props: CardContentProps) {
     <Container interactive>
       {noBorder || (
         <CardTitle>
-          <StyledTitle>{t(`${title}`)}</StyledTitle>
+          {t(`${title}`)}
           <QuestionTooltip size="sm" position="top" title={titleDescription} />
         </CardTitle>
       )}
@@ -311,10 +311,6 @@ function VitalsCardContent(props: CardContentProps) {
 }
 
 const CardBreakdown = styled('div')``;
-
-const StyledTitle = styled('span')`
-  margin-right: ${space(0.5)};
-`;
 
 const CardPercents = styled('div')`
   width: 100%;
@@ -365,13 +361,13 @@ const VitalLink = (props: VitalLinkProps) => {
 };
 
 const CardTitle = styled('div')`
+  display: inline-grid;
+  margin-bottom: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
   ${overflowEllipsis};
 `;
 
 const CardValue = styled('div')`
   font-size: 32px;
-  margin-top: ${space(1)};
   margin-bottom: ${space(2)};
 `;

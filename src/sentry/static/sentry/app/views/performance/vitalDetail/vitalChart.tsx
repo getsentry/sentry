@@ -94,7 +94,6 @@ class VitalChart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const vitalName = vitalNameFromLocation(location);
-    const chartTitle = vitalChartTitleMap[vitalName];
 
     const yAxis = [`p75(${vitalName})`];
 
@@ -201,7 +200,7 @@ class VitalChart extends React.Component<Props> {
     return (
       <ChartBody>
         <HeaderTitleLegend>
-          {t(chartTitle || '')}
+          {t('Duration p75')}
           <QuestionTooltip
             size="sm"
             position="top"
@@ -246,7 +245,7 @@ class VitalChart extends React.Component<Props> {
                 const smoothedSeries = smoothedResults
                   ? smoothedResults.map(({seriesName, ...rest}, i: number) => {
                       return {
-                        seriesName: replaceSeriesName(seriesName) || 'Current',
+                        seriesName: replaceSeriesName(seriesName) || 'p75',
                         ...rest,
                         color: colors[i],
                         lineStyle: {
