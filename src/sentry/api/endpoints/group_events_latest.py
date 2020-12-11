@@ -22,7 +22,10 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
         event = group.get_latest_event_for_environments(environments)
 
         if not event:
-            return Response({"detail": "No events found for group"}, status=404)
+            return Response(
+                {"detail": "No events found for group"},
+
+                status=404)
 
         try:
             return client.get(
