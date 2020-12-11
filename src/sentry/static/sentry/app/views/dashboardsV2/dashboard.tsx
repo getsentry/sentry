@@ -35,6 +35,7 @@ class Dashboard extends React.Component<Props, State> {
       this.fetchTags();
     }
   }
+
   componentDidUpdate(prevProps: Props) {
     const {isEditing} = this.props;
 
