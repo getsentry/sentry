@@ -95,7 +95,9 @@ const Alert = styled(
     ...props
   }: AlertProps) => {
     return (
-      <div className={classNames(type ? `ref-${type}` : '', className)} {...props}>
+      <div
+      className={classNames(type ? `ref-${type}` : '', className)} {...props}
+      >
         {icon && <IconWrapper>{icon}</IconWrapper>}
         <StyledTextBlock>{children}</StyledTextBlock>
       </div>

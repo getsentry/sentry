@@ -14,7 +14,9 @@ class SidebarTest(AcceptanceTestCase):
 
     def test_new_sidebar(self):
         self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
+        self.browser.wait_until_not(
+                ".loading"
+                )
         self.browser.click('[data-test-id="sidebar-dropdown"]')
         self.browser.move_to('[data-test-id="sidebar-switch-org"]')
         self.browser.wait_until_test_id("sidebar-switch-org-menu")
