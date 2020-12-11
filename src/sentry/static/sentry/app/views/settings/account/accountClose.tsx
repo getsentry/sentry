@@ -2,10 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
+import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {
   Panel,
   PanelAlert,

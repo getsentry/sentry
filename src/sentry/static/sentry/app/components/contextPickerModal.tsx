@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import SelectControl from 'app/components/forms/selectControl';
+import {ModalRenderProps} from 'app/components/globalModal';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';

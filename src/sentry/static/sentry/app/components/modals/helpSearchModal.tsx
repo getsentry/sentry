@@ -2,7 +2,7 @@ import React from 'react';
 import {ClassNames, css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps} from 'app/components/globalModal';
 import HelpSearch from 'app/components/helpSearch';
 import Hook from 'app/components/hook';
 import {t} from 'app/locale';

@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
+import {openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
+import {ModalRenderProps} from 'app/components/globalModal';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
 import {IconDelete} from 'app/icons';

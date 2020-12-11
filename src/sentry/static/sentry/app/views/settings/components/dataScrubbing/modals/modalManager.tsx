@@ -3,8 +3,8 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 

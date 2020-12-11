@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import {ModalRenderProps} from 'app/components/globalModal';
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps} from 'app/components/globalModal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';

@@ -3,10 +3,10 @@ import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import {ModalRenderProps} from 'app/components/globalModal';
 import U2fContainer from 'app/components/u2f/u2fContainer';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';

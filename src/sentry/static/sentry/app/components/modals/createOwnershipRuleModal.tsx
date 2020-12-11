@@ -1,7 +1,7 @@
 import React from 'react';
 import {css} from '@emotion/core';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 import theme from 'app/utils/theme';
 import ProjectOwnershipModal from 'app/views/settings/project/projectOwnership/modal';

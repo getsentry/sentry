@@ -2,9 +2,9 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {ModalRenderProps} from 'app/components/globalModal';
 import ExternalLink from 'app/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'app/constants';
 import {t, tct} from 'app/locale';

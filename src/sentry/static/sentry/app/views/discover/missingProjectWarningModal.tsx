@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 

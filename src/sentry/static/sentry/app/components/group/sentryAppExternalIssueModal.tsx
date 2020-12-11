@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import {ModalRenderProps} from 'app/components/globalModal';
 import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';

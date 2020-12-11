@@ -2,11 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';

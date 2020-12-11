@@ -2,7 +2,7 @@ import React from 'react';
 import {ClassNames, css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps} from 'app/components/globalModal';
 import Search from 'app/components/search';
 import {t} from 'app/locale';
 import space from 'app/styles/space';

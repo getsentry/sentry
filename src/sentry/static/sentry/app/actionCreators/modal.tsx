@@ -1,17 +1,10 @@
 import React from 'react';
-import {Modal as BoostrapModal} from 'react-bootstrap';
 import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
+import {ModalRenderProps} from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
-
-export type ModalRenderProps = {
-  closeModal: () => void;
-  Header: typeof BoostrapModal.Header;
-  Body: typeof BoostrapModal.Body;
-  Footer: typeof BoostrapModal.Footer;
-};
 
 export type ModalOptions = {
   onClose?: () => void;

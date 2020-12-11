@@ -5,9 +5,16 @@ import {ClassNames} from '@emotion/core';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {closeModal, ModalOptions, ModalRenderProps} from 'app/actionCreators/modal';
+import {closeModal, ModalOptions} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
+
+export type ModalRenderProps = {
+  closeModal: () => void;
+  Header: typeof Modal.Header;
+  Body: typeof Modal.Body;
+  Footer: typeof Modal.Footer;
+};
 
 type DefaultProps = {
   options: ModalOptions;

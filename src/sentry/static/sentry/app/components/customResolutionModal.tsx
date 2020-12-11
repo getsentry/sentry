@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import {SelectAsyncField} from 'app/components/forms';
+import {ModalRenderProps} from 'app/components/globalModal';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import {t} from 'app/locale';

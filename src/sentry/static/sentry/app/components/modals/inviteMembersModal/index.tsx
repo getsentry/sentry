@@ -2,9 +2,9 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import {ModalRenderProps} from 'app/components/globalModal';
 import HookOrDefault from 'app/components/hookOrDefault';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import QuestionTooltip from 'app/components/questionTooltip';

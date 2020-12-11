@@ -1,11 +1,11 @@
 import React from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {TextField} from 'app/components/forms';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';

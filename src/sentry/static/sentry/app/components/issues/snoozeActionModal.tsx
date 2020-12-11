@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 
 enum SnoozeTimes {

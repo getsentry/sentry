@@ -2,9 +2,9 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import ApiForm from 'app/components/forms/apiForm';
 import NumberField from 'app/components/forms/numberField';
+import {ModalRenderProps} from 'app/components/globalModal';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';

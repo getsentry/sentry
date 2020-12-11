@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 
 type Props = {

@@ -4,7 +4,7 @@ import intersection from 'lodash/intersection';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';

@@ -1,9 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
+import {openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';

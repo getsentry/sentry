@@ -5,12 +5,12 @@ import set from 'lodash/set';
 
 import {validateWidget} from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
+import {ModalRenderProps} from 'app/components/globalModal';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import withApi from 'app/utils/withApi';
