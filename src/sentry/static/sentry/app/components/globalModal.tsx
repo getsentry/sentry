@@ -1,19 +1,28 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
+import Modal from 'react-modal';
 import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {ClassNames, css as emotionCss} from '@emotion/core';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {closeModal, ModalOptions} from 'app/actionCreators/modal';
+import {closeModal} from 'app/actionCreators/modal';
 import Confirm from 'app/components/confirm';
 import ModalStore from 'app/stores/modalStore';
+import theme from 'app/utils/theme';
 
 export type ModalRenderProps = {
   closeModal: () => void;
-  Header: typeof Modal.Header;
-  Body: typeof Modal.Body;
-  Footer: typeof Modal.Footer;
+  Header: React.ComponentType<any>;
+  Body: React.ComponentType<any>;
+  Footer: React.ComponentType<any>;
+};
+
+export type ModalOptions = {
+  onClose?: () => void;
+  modalCss?: ReturnType<typeof emotionCss>;
+  modalClassName?: string;
+  dialogClassName?: string;
+  type?: string;
 };
 
 type DefaultProps = {
@@ -69,9 +78,9 @@ class GlobalModal extends React.Component<Props> {
       typeof children === 'function'
         ? children({
             closeModal,
-            Header: Modal.Header,
-            Body: Modal.Body,
-            Footer: Modal.Footer,
+            Header: p => p.children,
+            Body: p => p.children,
+            Footer: p => p.children,
           })
         : undefined;
 
@@ -80,22 +89,38 @@ class GlobalModal extends React.Component<Props> {
     }
 
     return (
-      <ClassNames>
-        {({css, cx}) => (
-          <Modal
-            className={cx(
-              options?.modalClassName,
-              options?.modalCss && css(options.modalCss)
-            )}
-            dialogClassName={options && options.dialogClassName}
-            show={visible}
-            animation={false}
-            onHide={this.handleCloseModal}
-          >
-            {renderedChild}
-          </Modal>
-        )}
-      </ClassNames>
+      <div className="modal">
+        <ClassNames>
+          {({css, cx}) => (
+            <Modal
+              bodyOpenClassName="modal-open"
+              overlayClassName={css`
+                background: rgba(0, 0, 0, 0.2);
+                z-index: ${theme.zIndex.modal};
+                height: 100vh;
+                width: 100vw;
+                position: fixed;
+                top: 0;
+                left: 0;
+              `}
+              className={cx(
+                'modal-dialog',
+                options?.modalClassName,
+                options?.dialogClassName,
+                options?.modalCss && css(options.modalCss),
+                css`
+                  outline: none;
+                `
+              )}
+              portalClassName="modal-portal"
+              isOpen={visible}
+              onRequestClose={this.handleCloseModal}
+            >
+              {renderedChild}
+            </Modal>
+          )}
+        </ClassNames>
+      </div>
     );
   }
 }
@@ -134,4 +159,5 @@ const GlobalModalContainer = createReactClass<Partial<Props>>({
     );
   },
 });
+
 export default GlobalModalContainer;

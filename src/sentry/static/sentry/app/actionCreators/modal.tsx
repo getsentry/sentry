@@ -1,18 +1,9 @@
 import React from 'react';
-import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
-import {ModalRenderProps} from 'app/components/globalModal';
+import {ModalOptions, ModalRenderProps} from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
-
-export type ModalOptions = {
-  onClose?: () => void;
-  modalCss?: ReturnType<typeof css>;
-  modalClassName?: string;
-  dialogClassName?: string;
-  type?: string;
-};
 
 /**
  * Show a modal
