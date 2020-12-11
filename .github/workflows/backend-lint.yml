@@ -99,7 +99,7 @@ jobs:
 
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true'
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
         uses: getsentry/action-github-commit@main
         with:
           github-token: ${{ steps.token.outputs.token }}
