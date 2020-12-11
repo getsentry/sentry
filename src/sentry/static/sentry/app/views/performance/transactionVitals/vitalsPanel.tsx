@@ -169,7 +169,7 @@ class VitalsPanel extends React.Component<Props> {
           orgSlug={organization.slug}
           eventView={eventView}
           limit={1}
-          noCursorHeaders
+          noPagination
         >
           {results => (
             <React.Fragment>

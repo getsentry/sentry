@@ -275,6 +275,20 @@ class Endpoint(APIView):
     def respond(self, context=None, **kwargs):
         return Response(context, **kwargs)
 
+    def get_per_page(self, request, default_per_page=100, max_per_page=100):
+        try:
+            per_page = int(request.GET.get("per_page", default_per_page))
+        except ValueError:
+            raise ParseError(detail="Invalid per_page parameter.")
+
+        max_per_page = max(max_per_page, default_per_page)
+        if per_page > max_per_page:
+            raise ParseError(
+                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
+            )
+
+        return per_page
+
     def paginate(
         self,
         request,
@@ -287,10 +301,7 @@ class Endpoint(APIView):
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
-        try:
-            per_page = int(request.GET.get("per_page", default_per_page))
-        except ValueError:
-            raise ParseError(detail="Invalid per_page parameter.")
+        per_page = self.get_per_page(request, default_per_page, max_per_page)
 
         input_cursor = None
         if request.GET.get("cursor"):
@@ -298,12 +309,6 @@ class Endpoint(APIView):
                 input_cursor = Cursor.from_string(request.GET.get("cursor"))
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
-
-        max_per_page = max(max_per_page, default_per_page)
-        if per_page > max_per_page:
-            raise ParseError(
-                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
-            )
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
@@ -328,9 +333,7 @@ class Endpoint(APIView):
 
         response = Response(results)
 
-        # Don't include cursor headers if the client won't be using them
-        if not request.GET.get("no_cursor_headers"):
-            self.add_cursor_headers(request, response, cursor_result)
+        self.add_cursor_headers(request, response, cursor_result)
 
         return response
 

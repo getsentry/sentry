@@ -97,7 +97,7 @@ export type EventQuery = {
   per_page?: number;
   referrer?: string;
   environment?: string[];
-  no_cursor_headers?: boolean;
+  no_pagination?: boolean;
 };
 
 export type TagSegment = {

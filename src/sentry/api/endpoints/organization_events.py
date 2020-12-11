@@ -108,10 +108,21 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             )
 
         with self.handle_query_errors():
-            return self.paginate(
-                request=request,
-                paginator=GenericOffsetPaginator(data_fn=data_fn),
-                on_results=lambda results: self.handle_results_with_meta(
-                    request, organization, params["project_id"], results
-                ),
-            )
+            # Don't include cursor headers if the client won't be using them
+            if request.GET.get("no_pagination"):
+                return Response(
+                    self.handle_results_with_meta(
+                        request,
+                        organization,
+                        params["project_id"],
+                        data_fn(0, self.get_per_page(request)),
+                    )
+                )
+            else:
+                return self.paginate(
+                    request=request,
+                    paginator=GenericOffsetPaginator(data_fn=data_fn),
+                    on_results=lambda results: self.handle_results_with_meta(
+                        request, organization, params["project_id"], results
+                    ),
+                )
