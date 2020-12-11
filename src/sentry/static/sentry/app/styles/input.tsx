@@ -21,6 +21,7 @@ const inputStyles = (props: Props) =>
     padding: 0.5em;
     transition: border 0.1s linear;
     resize: vertical;
+    min-height: 40px;
 
     ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
 

@@ -140,7 +140,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
     const {selectedQuery, source} = this.state;
 
     return (
-      <div>
+      <QueryWrapper>
         {canRemove && (
           <RemoveButtonWrapper>
             <Button
@@ -160,6 +160,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
           inline={false}
           flexibleControlStateSize
           stacked
+          required
         >
           <RadioGroup
             orientInline
@@ -175,11 +176,12 @@ class WidgetQueryForm extends React.Component<Props, State> {
         {source === 'new' && (
           <Field
             data-test-id="new-query"
-            label="New Query"
+            label={t('Query')}
             inline={false}
             flexibleControlStateSize
             stacked
             error={errors?.conditions}
+            required
           >
             <SearchBar
               organization={organization}
@@ -197,10 +199,11 @@ class WidgetQueryForm extends React.Component<Props, State> {
             {({hasFeature}) => (
               <Field
                 data-test-id="discover-query"
-                label="Existing Discover Query"
+                label={t('Query')}
                 inline={false}
                 flexibleControlStateSize
                 stacked
+                required
               >
                 <SelectControl
                   async
@@ -245,6 +248,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
           flexibleControlStateSize
           stacked
           error={errors?.fields}
+          required
         >
           {widgetQuery.fields.map((field, i) => (
             <QueryFieldWrapper key={`${field}:${i}`}>
@@ -255,7 +259,6 @@ class WidgetQueryForm extends React.Component<Props, State> {
               />
               {widgetQuery.fields.length > 1 && (
                 <Button
-                  priority="default"
                   size="zero"
                   borderless
                   onClick={event => this.handleRemoveField(event, i)}
@@ -268,20 +271,22 @@ class WidgetQueryForm extends React.Component<Props, State> {
           <div>
             <Button
               data-test-id="add-field"
-              priority="default"
-              size="zero"
-              borderless
+              size="small"
               onClick={this.handleAddField}
-              icon={<IconAdd />}
+              icon={<IconAdd isCircled />}
             >
               {t('Add an overlay')}
             </Button>
           </div>
         </Field>
-      </div>
+      </QueryWrapper>
     );
   }
 }
+
+const QueryWrapper = styled('div')`
+  padding-bottom: ${space(2)};
+`;
 
 const QueryFieldWrapper = styled('div')`
   display: flex;
