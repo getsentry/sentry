@@ -33,10 +33,6 @@ type State = {
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
-  constructor(props: Props, context: any) {
-    super(props, context);
-  }
-
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
