@@ -128,6 +128,15 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
    */
   cleanFields = (): IssueConfigField[] => {
     const {formFields, instance} = this.props;
+    const {integrationDetails} = this.state;
+
+    const fields = (integrationDetails || {})[this.getConfigName()] || [];
+    console.log('- cleanFields ----------------------------------');
+    console.log('formFields', formFields);
+    console.log('integrationDetails', integrationDetails);
+    console.log('fields', fields);
+    console.log('instance', instance);
+    console.log('------------------------------------------------');
 
     return [
       {
@@ -144,23 +153,25 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         default: 'This will be generated from the Sentry Issue details.',
         disabled: true,
       } as IssueConfigField,
-    ].concat(
-      Object.values(formFields)
-        .filter(f => !['title', 'description'].includes(f.name))
-        .map(field => {
-          if (instance.hasOwnProperty(field.name)) {
-            field.default = instance[field.name];
-          }
-          if (
-            ['assignee', 'reporter'].includes(field.name) &&
-            instance.dynamic_form_fields &&
-            instance.dynamic_form_fields[field.name]
-          ) {
-            field.choices = instance.dynamic_form_fields[field.name].choices;
-          }
-          return field;
-        })
-    );
+    ]
+      .concat(formFields as IssueConfigField[])
+      .concat(
+        fields
+          .filter(f => !['title', 'description'].includes(f.name))
+          .map(field => {
+            if (instance.hasOwnProperty(field.name)) {
+              field.default = instance[field.name];
+            }
+            if (
+              ['assignee', 'reporter'].includes(field.name) &&
+              instance.dynamic_form_fields &&
+              instance.dynamic_form_fields[field.name]
+            ) {
+              field.choices = instance.dynamic_form_fields[field.name].choices;
+            }
+            return field;
+          }) || []
+      );
   };
 
   renderBodyText = () => {
