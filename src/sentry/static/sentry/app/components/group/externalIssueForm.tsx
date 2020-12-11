@@ -100,6 +100,11 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
     return `/groups/${group.id}/integrations/${integration.id}/`;
   };
 
+  getTitle = () => {
+    const {integration} = this.props;
+    return `${integration.provider.name} Issue`;
+  };
+
   getFormProps = (): Form['props'] => {
     const {action} = this.props;
     return {
