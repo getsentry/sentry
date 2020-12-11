@@ -1,56 +1,48 @@
-const removeFromList = (item, list) => {
-  const idx = list.indexOf(item);
-
-  if (idx !== -1) {
-    list.splice(idx, 1);
-  }
-};
-
-type Options = {
-  limit?: number;
-};
+import GroupStore from 'app/stores/groupStore';
 
 /**
- * Minimal type shape for objects that can be managed inside StreamManager.
+ * Currently only used with GroupStore
  */
-type IdShape = {
-  id: string;
+type Stores = typeof GroupStore;
+type AddItems = Parameters<Stores['add']>[0];
+
+type Options = {
+  /** Max number of items to keep at once */
+  limit?: number;
 };
 
 class StreamManager {
   private idList: string[] = [];
   private limit: number;
-  private store: any;
 
   // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there
-  // TODO(ts) Add better typing for store. Generally this is GroupStore, but it could be other things.
-  constructor(store: any, options: Options = {}) {
-    this.idList = [];
-    this.store = store;
-    this.limit = options.limit || 1000;
+  constructor(private store: Stores, options: Options = {}) {
+    this.limit = options.limit || 100;
   }
 
   trim() {
+    if (this.limit > this.idList.length) {
+      return;
+    }
+
     const excess = this.idList.splice(this.limit, this.idList.length - this.limit);
-    excess.forEach(this.store.remove);
+    this.store.remove(excess);
   }
 
-  push(items: IdShape | IdShape[] = []) {
+  push(items: AddItems = []) {
     items = Array.isArray(items) ? items : [items];
     if (items.length === 0) {
-      return this;
+      return;
     }
 
     items = items.filter(item => item.hasOwnProperty('id'));
-
-    items.forEach(item => removeFromList(item.id, this.idList));
     const ids = items.map(item => item.id);
+    this.idList = this.idList.filter(id => !ids.includes(id));
     this.idList = [...this.idList, ...ids];
 
     this.trim();
     this.store.add(items);
-    return this;
   }
 
   getAllItems() {
@@ -60,19 +52,18 @@ class StreamManager {
       .sort((a, b) => this.idList.indexOf(a.id) - this.idList.indexOf(b.id));
   }
 
-  unshift(items: IdShape | IdShape[] = []) {
+  unshift(items: AddItems = []) {
     items = Array.isArray(items) ? items : [items];
     if (items.length === 0) {
-      return this;
+      return;
     }
 
-    items.forEach(item => removeFromList(item.id, this.idList));
     const ids = items.map(item => item.id);
+    this.idList = this.idList.filter(id => !ids.includes(id));
     this.idList = [...ids, ...this.idList];
 
     this.trim();
     this.store.add(items);
-    return this;
   }
 }
 

@@ -54,7 +54,7 @@ type GroupStoreInterface = Reflux.StoreDefinition & {
   reset: () => void;
   loadInitialData: (items: Group[]) => void;
   add: (items: Group[]) => void;
-  remove: (itemId: string) => void;
+  remove: (itemIds: string[]) => void;
   addStatus: (id: string, status: string) => void;
   clearStatus: (id: string, status: string) => void;
   hasStatus: (id: string, status: string) => boolean;
@@ -149,14 +149,10 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
     this.trigger(itemIds);
   },
 
-  remove(itemId) {
-    this.items.forEach((item, idx) => {
-      if (item.id === itemId) {
-        this.items.splice(idx, idx + 1);
-      }
-    });
+  remove(itemIds) {
+    this.items = this.items.filter(item => !itemIds.includes(item.id));
 
-    this.trigger(new Set([itemId]));
+    this.trigger(new Set(itemIds));
   },
 
   addStatus(id, status) {
