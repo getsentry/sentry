@@ -275,11 +275,15 @@ def mark_event_reprocessed(data):
     This function is supposed to be unconditionally called when an event has
     finished reprocessing, regardless of whether it has been saved or not.
     """
-    if not is_reprocessed_event(data):
+    group_id = _get_original_issue_id(data)
+    if group_id is None:
         return
 
     key = _get_sync_counter_key(_get_original_issue_id(data))
-    _get_sync_redis_client().decr(key)
+    if _get_sync_redis_client().decr(key) == 0:
+        from sentry.tasks.reprocessing2 import finish_reprocessing
+
+        finish_reprocessing.delay(project_id=data["project"], group_id=group_id)
 
 
 def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_id=None):
