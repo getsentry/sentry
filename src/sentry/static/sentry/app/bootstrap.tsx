@@ -19,7 +19,6 @@ import Reflux from 'reflux';
 
 import {DISABLE_RR_WEB, NODE_ENV, SPA_DSN} from 'app/constants';
 import Main from 'app/main';
-import Pipeline from 'app/pipeline';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
 import ConfigStore from 'app/stores/configStore';
@@ -27,6 +26,7 @@ import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import {metric} from 'app/utils/analytics';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import {setupColorScheme} from 'app/utils/matchMedia';
+import PipelineView from 'app/views/integrationPipeline/pipelineView';
 
 if (NODE_ENV === 'development') {
   import(
@@ -144,7 +144,7 @@ const render = (Component: React.ComponentType) => {
 
 const RenderPipelineView = (pipelineName: string, props: Object) => {
   const rootEl = document.getElementById(ROOT_ELEMENT);
-  ReactDOM.render(<Pipeline pipelineName={pipelineName} {...props} />, rootEl);
+  ReactDOM.render(<PipelineView pipelineName={pipelineName} {...props} />, rootEl);
 };
 
 // setup darkmode + favicon

@@ -1,7 +1,12 @@
 import React from 'react';
 
-import AwsLambdaProjectSelect from 'app/integrationPopupViews/awsLambdaProjectSelect';
 import Main from 'app/main';
+
+import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
+
+/**
+ * This component is a wrapper for specific pipeline views for integrations
+ */
 
 const pipelineMapper = {
   awsLambdaProjectSelect: AwsLambdaProjectSelect,
@@ -12,7 +17,7 @@ type Props = {
   [key: string]: any;
 };
 
-const Pipeline = (props: Props) => {
+const PipelineView = (props: Props) => {
   const {pipelineName, ...rest} = props;
   const Component = pipelineMapper[pipelineName];
   if (!Component) {
@@ -25,4 +30,4 @@ const Pipeline = (props: Props) => {
   );
 };
 
-export default Pipeline;
+export default PipelineView;
