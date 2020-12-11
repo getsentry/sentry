@@ -8,7 +8,7 @@ import AbstractExternalIssueForm, {
   ExternalIssueAction,
 } from 'app/components/externalIssues/abstractExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import {Group, Integration, IntegrationExternalIssue, IssueConfigField} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
@@ -102,7 +102,7 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
 
   getTitle = () => {
     const {integration} = this.props;
-    return `${integration.provider.name} Issue`;
+    return tct('[integration] Issue', {integration: integration.provider.name});
   };
 
   getFormProps = (): Form['props'] => {

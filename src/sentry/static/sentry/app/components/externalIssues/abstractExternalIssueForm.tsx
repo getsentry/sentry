@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {t} from 'app/locale';
+import {tct} from 'app/locale';
 import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
@@ -178,7 +178,7 @@ export default class AbstractExternalIssueForm<
   getEndPointString = () => '';
   renderNavTabs = () => <React.Fragment />;
   renderBodyText = () => <React.Fragment />;
-  getTitle = () => t('Issue Link Settings');
+  getTitle = () => tct('Issue Link Settings', {});
   getFormProps = (): Form['props'] => {
     throw new Error("Method 'getFormProps()' must be implemented.");
   };
