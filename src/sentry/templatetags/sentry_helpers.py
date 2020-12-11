@@ -2,13 +2,14 @@ from __future__ import absolute_import
 
 import functools
 import os.path
-from collections import namedtuple
+import re
+from collections import OrderedDict, namedtuple
 from datetime import timedelta
 from random import randint
 
 import six
 from django import template
-from django.core.urlresolvers import reverse
+from django.template.base import token_kwargs
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
@@ -18,7 +19,6 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
@@ -105,12 +105,70 @@ def absolute_uri(parser, token):
     return AbsoluteUriNode(bits, target_var)
 
 
-@register.assignment_tag(takes_context=True)
-def url_with_referrer(context, viewname, *args):
-    url = reverse(viewname, args=args)
-    if context.get("referrer"):
-        url += "?referrer=%s" % context["referrer"]
-    return url
+@register.tag
+def script(parser, token):
+    """
+    A custom script tag wrapper that applies
+    CSP nonce attribute if found in the request.
+
+    In Saas sentry middleware sets the csp_nonce
+    attribute on the request and we strict CSP rules
+    to prevent XSS
+    """
+    try:
+        args = token.split_contents()
+        kwargs = token_kwargs(args[1:], parser)
+
+        nodelist = parser.parse(("endscript",))
+        parser.delete_first_token()
+
+        return ScriptNode(nodelist, **kwargs)
+    except ValueError as err:
+        raise template.TemplateSyntaxError("`script` tag failed to compile. : %s".format(err))
+
+
+class ScriptNode(template.Node):
+    def __init__(self, nodelist, **kwargs):
+        self.nodelist = nodelist
+        self.attrs = OrderedDict()
+        for k, v in kwargs.items():
+            self.attrs[k] = self._get_value(v)
+
+    def _get_value(self, token):
+        if hasattr(token, "token"):
+            return token.token
+        return None
+
+    def render(self, context):
+
+        request = context.get("request")
+        if hasattr(request, "csp_nonce"):
+            self.attrs.update({"nonce": request.csp_nonce})
+
+        content = ""
+        attrs = self._render_attrs()
+        if "src" not in self.attrs:
+            content = self.nodelist.render(context).strip()
+            content = self._unwrap_content(content)
+        return "<script{}>{}</script>".format(attrs, content)
+
+    def _render_attrs(self):
+        output = []
+        for k, v in self.attrs.items():
+            if v in (True, "True"):
+                output.append(" {}".format(k))
+            elif v in (None, False, "False"):
+                continue
+            else:
+                value = v.strip('"')
+                output.append(' {}="{}"'.format(k, value))
+        return "".join(output)
+
+    def _unwrap_content(self, text):
+        matches = re.search(r"<script[^\>]*>(.*?)</script>", text)
+        if matches:
+            return matches.group(1).strip()
+        return text
 
 
 @register.simple_tag
@@ -268,7 +326,7 @@ def percent(value, total, format=None):
 
 
 @register.filter
-def titlize(value):
+def titleize(value):
     return value.replace("_", " ").title()
 
 
@@ -285,18 +343,6 @@ def urlquote(value, safe=""):
 @register.filter
 def basename(value):
     return os.path.basename(value)
-
-
-@register.filter
-def list_organizations(user):
-    return Organization.objects.get_for_user(user)
-
-
-@register.filter
-def count_pending_access_requests(organization):
-    from sentry.models import OrganizationAccessRequest
-
-    return OrganizationAccessRequest.objects.filter(team__organization=organization).count()
 
 
 @register.filter
