@@ -233,6 +233,7 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               totals={totalValues}
               transactionName={transactionName}
+              eventView={eventView}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
             <StatusBreakdown

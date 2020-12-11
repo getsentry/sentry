@@ -17,13 +17,24 @@ type Props = {
   organization: Organization;
   location: Location;
   vitalName: WebVital;
+  hideBar?: boolean;
+  hideDescription?: boolean;
+  hideVitalPercentNames?: boolean;
 };
 
 export default function vitalInfo(props: Props) {
-  const {vitalName, eventView, organization, location} = props;
+  const {
+    vitalName,
+    eventView,
+    organization,
+    location,
+    hideVitalPercentNames,
+    hideDescription,
+  } = props;
   const description = vitalDescription[vitalName];
   return (
     <Container>
+      {!hideDescription && <Description>{description}</Description>}
       <VitalsCardDiscoverQuery
         eventView={eventView}
         orgSlug={organization.slug}
@@ -32,21 +43,24 @@ export default function vitalInfo(props: Props) {
       >
         {({isLoading, tableData}) => (
           <React.Fragment>
-            <VitalsCard tableData={tableData} isLoading={isLoading} {...props} noBorder />
+            <VitalsCard
+              tableData={tableData}
+              isLoading={isLoading}
+              {...props}
+              noBorder
+              showVitalPercentNames={!hideVitalPercentNames}
+            />
           </React.Fragment>
         )}
       </VitalsCardDiscoverQuery>
-      <Description>{description}</Description>
     </Container>
   );
 }
 
 const Container = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(4)};
-  padding-top: ${space(1)};
-  padding-bottom: ${space(4)};
+  gap: ${space(3)};
+  margin-bottom: ${space(3)};
 `;
 
 const Description = styled('div')``;

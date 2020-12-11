@@ -60,7 +60,8 @@ class VitalsPanel extends React.Component<Props> {
               location={location}
               isLoading={loading}
               error={errored}
-              vital={vitalDetails}
+              vital={vital}
+              vitalDetails={vitalDetails}
               summary={summary}
               failureRate={failureRate}
               chartData={chartData}
