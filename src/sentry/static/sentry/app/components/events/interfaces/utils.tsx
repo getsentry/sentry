@@ -85,16 +85,7 @@ export function stringifyQueryList(query: string | [key: string, value: string][
   return qs.stringify(queryObj);
 }
 
-// Custon type as this function is used to handle both the
-// request (http) event interface and rich http content used to make
-// sample curl commands.
-type UrlData = {
-  url: string;
-  query?: string | [key: string, value: string][];
-  fragment?: string;
-};
-
-export function getFullUrl(data: UrlData): string | undefined {
+export function getFullUrl(data: RequestEntry['data']): string | undefined {
   let fullUrl = data?.url;
   if (!fullUrl) {
     return fullUrl;
