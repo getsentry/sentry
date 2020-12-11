@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -14,8 +15,8 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
+import {IconAdd, IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   Integration,
@@ -23,6 +24,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -135,8 +137,15 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     const {organization, integration} = this.props;
     const {showModal, configInEdit} = this.state;
     const pathConfigs = this.pathConfigs;
+
     return (
       <React.Fragment>
+        <Alert type="info" icon={<IconInfo />}>
+          {tct(
+            'Stack trace linking is in Beta. Got feedback? Email [email:ecosystem-feedback@sentry.io].',
+            {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
+          )}
+        </Alert>
         <Panel>
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
@@ -156,7 +165,19 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           </PanelHeader>
           <PanelBody>
             {pathConfigs.length === 0 && (
-              <EmptyMessage description={t('No code path mappings')} />
+              <EmptyMessage
+                icon={getIntegrationIcon(integration.provider.key, 'lg')}
+                action={
+                  <Button
+                    href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
+                    size="small"
+                  >
+                    View Documentation
+                  </Button>
+                }
+              >
+                Set up stack trace linking by adding a code mapping.
+              </EmptyMessage>
             )}
             {pathConfigs
               .map(pathConfig => {

@@ -13,6 +13,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -220,7 +221,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
@@ -266,7 +267,12 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return <ReleaseLanding organization={organization} />;
+    return (
+      <ReleaseLanding
+        organization={organization}
+        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+      />
+    );
   }
 
   renderInnerBody(activeDisplay: DisplayOption) {

@@ -116,7 +116,10 @@ class MissingProjectMembership extends React.Component<Props, State> {
     const teams = this.state.project?.teams ?? [];
     teams.forEach(({slug}) => {
       const team = TeamStore.getBySlug(slug);
-      team?.isPending ? pending.push(team!.slug) : request.push(team!.slug);
+      if (!team) {
+        return;
+      }
+      team.isPending ? pending.push(team.slug) : request.push(team.slug);
     });
 
     return [request, pending];
