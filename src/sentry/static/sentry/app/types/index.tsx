@@ -868,7 +868,9 @@ type GroupActivityBase = {
 
 type GroupActivityNote = GroupActivityBase & {
   type: GroupActivityType.NOTE;
-  data: Record<string, any>;
+  data: {
+    text: string;
+  };
 };
 
 type GroupActivitySetResolved = GroupActivityBase & {
