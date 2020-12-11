@@ -47,7 +47,11 @@ class ReleaseHealth extends React.Component<Props> {
     // show only the ones that are selected in global header
     const [projectsToShow, projectsToHide] = partition(
       release.projects.sort((a, b) => a.slug.localeCompare(b.slug)),
-      p => (selection.projects.length > 0 ? selection.projects.includes(p.id) : true)
+      p =>
+        // do not filter for My Projects & All Projects
+        selection.projects.length > 0 && !selection.projects.includes(-1)
+          ? selection.projects.includes(p.id)
+          : true
     );
 
     function getHiddenProjectsTooltip() {

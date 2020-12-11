@@ -686,7 +686,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(
-                sort_by="date", limit=10, query="is:inbox is:unresolved", expand=["inbox"]
+                sort_by="date", limit=10, query="is:needs_review is:unresolved", expand=["inbox"]
             )
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -1023,6 +1023,29 @@ class GroupListTest(APITestCase, SnubaTestCase):
         # but seen_stats could be null when we collapse stats.
         with self.feature(["organizations:unhandled-issue-flag", "organizations:inbox"]):
             self.test_collapse_stats()
+
+    def test_collapse_stats_group_snooze_bug(self):
+        # There was a bug where we tried to access attributes on seen_stats if this feature is active
+        # but seen_stats could be null when we collapse stats.
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        GroupSnooze.objects.create(
+            group=event.group,
+            user_count=10,
+            until=timezone.now() + timedelta(days=1),
+            count=10,
+            state={"times_seen": 0},
+        )
+        self.login_as(user=self.user)
+        # The presence of the group above with attached GroupSnooze would have previously caused this error.
+        response = self.get_response(
+            sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):

@@ -56,8 +56,19 @@ class DashboardWidgetQuerySerializer(Serializer):
         }
 
 
+class DashboardListSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        data = {
+            "id": six.text_type(obj.id),
+            "title": obj.title,
+            "dateCreated": obj.date_added,
+            "createdBy": six.text_type(obj.created_by.id),
+        }
+        return data
+
+
 @register(Dashboard)
-class DashboardWithWidgetsSerializer(Serializer):
+class DashboardDetailsSerializer(Serializer):
     def get_attrs(self, item_list, user):
         result = {}
 

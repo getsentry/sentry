@@ -29,10 +29,11 @@ import withApi from 'app/utils/withApi';
 
 import GroupActions from './actions';
 import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
+import {getGroupReprocessingStatus, ReprocessingStatus} from './utils';
 
 const TAB = {
   DETAILS: 'details',
-  COMMENTS: 'comments',
+  ACTIVITY: 'activity',
   USER_FEEDBACK: 'user-feedback',
   ATTACHMENTS: 'attachments',
   TAGS: 'tags',
@@ -87,7 +88,13 @@ class GroupHeader extends React.Component<Props, State> {
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
-    const isReprocessing = hasReprocessingV2Feature && group.status === 'reprocessing';
+    // Reprocessing
+    const reprocessingStatus = getGroupReprocessingStatus(group);
+    const hasGroupBeenReprocessedAndHasntEvent =
+      hasReprocessingV2Feature &&
+      reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT;
+    const isGroupBeingReprocessing =
+      hasReprocessingV2Feature && reprocessingStatus === ReprocessingStatus.REPROCESSING;
 
     let className = 'group-detail';
 
@@ -180,7 +187,7 @@ class GroupHeader extends React.Component<Props, State> {
               )}
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Events')}</h6>
-                {isReprocessing ? (
+                {isGroupBeingReprocessing ? (
                   <Count className="count" value={group.count} />
                 ) : (
                   <Link to={eventRouteToObject}>
@@ -191,7 +198,7 @@ class GroupHeader extends React.Component<Props, State> {
               <div className="count align-right m-l-1">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ? (
-                  isReprocessing ? (
+                  isGroupBeingReprocessing ? (
                     <Count className="count" value={userCount} />
                   ) : (
                     <Link to={`${baseUrl}tags/user/${location.search}`}>
@@ -207,7 +214,7 @@ class GroupHeader extends React.Component<Props, State> {
                 <AssigneeSelector
                   id={group.id}
                   memberList={memberList}
-                  disabled={isReprocessing}
+                  disabled={isGroupBeingReprocessing}
                 />
               </div>
             </div>
@@ -217,23 +224,30 @@ class GroupHeader extends React.Component<Props, State> {
           seenBy={group.seenBy}
           iconTooltip={t('People who have viewed this issue')}
         />
-        <GroupActions group={group} project={project} disabled={isReprocessing} />
+        <GroupActions
+          group={group}
+          project={project}
+          disabled={isGroupBeingReprocessing}
+        />
         <NavTabs>
           <ListLink
             to={`${baseUrl}${location.search}`}
             isActive={() => currentTab === TAB.DETAILS}
+            disabled={hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Details')}
           </ListLink>
           <ListLink
             to={`${baseUrl}activity/${location.search}`}
-            isActive={() => currentTab === TAB.COMMENTS}
+            isActive={() => currentTab === TAB.ACTIVITY}
+            disabled={isGroupBeingReprocessing}
           >
             {t('Activity')} <Badge text={group.numComments} />
           </ListLink>
           <ListLink
             to={`${baseUrl}feedback/${location.search}`}
             isActive={() => currentTab === TAB.USER_FEEDBACK}
+            disabled={isGroupBeingReprocessing}
           >
             {t('User Feedback')} <Badge text={group.userReportCount} />
           </ListLink>
@@ -241,6 +255,7 @@ class GroupHeader extends React.Component<Props, State> {
             <ListLink
               to={`${baseUrl}attachments/${location.search}`}
               isActive={() => currentTab === TAB.ATTACHMENTS}
+              disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
             >
               {t('Attachments')}
             </ListLink>
@@ -248,15 +263,21 @@ class GroupHeader extends React.Component<Props, State> {
           <ListLink
             to={`${baseUrl}tags/${location.search}`}
             isActive={() => currentTab === TAB.TAGS}
+            disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Tags')}
           </ListLink>
-          <ListLink to={eventRouteToObject} isActive={() => currentTab === 'events'}>
+          <ListLink
+            to={eventRouteToObject}
+            isActive={() => currentTab === 'events'}
+            disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
+          >
             {t('Events')}
           </ListLink>
           <ListLink
             to={`${baseUrl}merged/${location.search}`}
             isActive={() => currentTab === TAB.MERGED}
+            disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
           >
             {t('Merged Issues')}
           </ListLink>
@@ -264,6 +285,7 @@ class GroupHeader extends React.Component<Props, State> {
             <ListLink
               to={`${baseUrl}similar/${location.search}`}
               isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+              disabled={isGroupBeingReprocessing || hasGroupBeenReprocessedAndHasntEvent}
             >
               {t('Similar Issues')}
             </ListLink>
@@ -273,6 +295,10 @@ class GroupHeader extends React.Component<Props, State> {
     );
   }
 }
+
+export {GroupHeader, TAB};
+
+export default withApi(GroupHeader);
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
@@ -287,7 +313,3 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
 `;
-
-export {GroupHeader, TAB};
-
-export default withApi(GroupHeader);

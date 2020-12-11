@@ -86,6 +86,10 @@ class IntegrationEventAction(EventAction):
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
+    @property
+    def prompt(self):
+        return u"Create {}".format(self.ticket_type)
+
     def generate_footer(self, rule_url):
         raise NotImplementedError
 

@@ -1,11 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -18,8 +19,9 @@ import {
   MailActionTargetType,
 } from 'app/types/alerts';
 import Input from 'app/views/settings/components/forms/controls/input';
-import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
-import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
+
+import MemberTeamFields from './memberTeamFields';
+import TicketRuleModal from './ticketRuleModal';
 
 export type FormField = {
   // Type of form fields
@@ -277,11 +279,26 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
-  updateParent = (data: {[key: string]: string}): void => {
+  updateParent = (
+    data: {[key: string]: string},
+    dynamicFieldChoices: {[key: string]: string[]}
+  ): void => {
     // iterating through these upon save instead of when each
     // element is changed to match the spec
     for (const [name, value] of Object.entries(data)) {
       this.props.onPropertyChange(this.props.index, name, value);
+
+      // We only know the choices after the form loads.
+      if (['assignee', 'reporter'].includes(name) && dynamicFieldChoices[name]) {
+        const dynamicFormFieldsCopy: any = this.props.node?.formFields || {};
+        // Overwrite the choices because the user's pick is in this list.
+        dynamicFormFieldsCopy[name].choices = dynamicFieldChoices[name];
+        this.props.onPropertyChange(
+          this.props.index,
+          'dynamic_form_fields',
+          dynamicFormFieldsCopy
+        );
+      }
     }
   };
 
@@ -294,14 +311,28 @@ class RuleNode extends React.Component<Props> {
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && (
-              <TicketRuleForm
-                formFields={node?.formFields || {}}
-                instance={data}
-                index={this.props.index}
-                onSubmitAction={this.updateParent}
-                onPropertyChange={this.props.onPropertyChange}
-              />
+            {ticketRule && node && (
+              <Button
+                size="small"
+                icon={<IconSettings size="xs" />}
+                type="button"
+                onClick={() =>
+                  openModal(deps => (
+                    <TicketRuleModal
+                      {...deps}
+                      formFields={node.formFields || {}}
+                      link={node.link}
+                      ticketType={node.ticketType}
+                      instance={data}
+                      index={this.props.index}
+                      onSubmitAction={this.updateParent}
+                      onPropertyChange={this.props.onPropertyChange}
+                    />
+                  ))
+                }
+              >
+                {t('Issue Link Settings')}
+              </Button>
             )}
           </Rule>
           <DeleteButton

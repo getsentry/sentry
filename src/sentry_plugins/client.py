@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 
-from sentry.shared_integrations.client import BaseApiClient
+from sentry.shared_integrations.client import BaseApiClient, BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 
 
@@ -62,3 +62,13 @@ class AuthApiClient(ApiClient):
         self.auth.refresh_token()
         kwargs = self.bind_auth(**kwargs)
         return ApiClient._request(self, method, path, **kwargs)
+
+
+class InternalApiClient(BaseInternalApiClient):
+    integration_type = "plugin"
+
+    datadog_prefix = "sentry-plugins"
+
+    log_path = "sentry.plugins.client"
+
+    plugin_name = "undefined"

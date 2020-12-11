@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import TimeSince from 'app/components/timeSince';
+import {IconClock} from 'app/icons';
 import {t} from 'app/locale';
 
 /**
@@ -18,6 +19,7 @@ type Props = {
 const TimesTag = ({lastSeen, firstSeen}: Props) => {
   return (
     <Wrapper>
+      <StyledIconClock size="xs" color="gray300" />
       {lastSeen && <TimeSince date={lastSeen} suffix={t('ago')} shorten />}
       {firstSeen && lastSeen && (
         <Seperator className="hidden-xs hidden-sm">&nbsp;|&nbsp;</Seperator>
@@ -35,11 +37,16 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
 };
 
 const Wrapper = styled('div')`
+  display: flex;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Seperator = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const StyledIconClock = styled(IconClock)`
+  margin-right: 2px;
 `;
 
 export default TimesTag;

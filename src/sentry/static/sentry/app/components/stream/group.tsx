@@ -1,19 +1,17 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
-import {Box, Flex} from 'reflexbox';
+import {Box} from 'reflexbox';
 
-import Feature from 'app/components/acl/feature';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Count from 'app/components/count';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import InboxReason from 'app/components/group/inboxBadges/inboxReason';
-import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import Link from 'app/components/links/link';
 import MenuItem from 'app/components/menuItem';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
@@ -68,6 +66,7 @@ type Props = {
 
 type State = {
   data: Group;
+  reviewed: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -85,6 +84,7 @@ class StreamGroup extends React.Component<Props, State> {
         ...data,
         filtered: useFilteredStats ? data.filtered : null,
       },
+      reviewed: false,
     };
   }
 
@@ -127,7 +127,15 @@ class StreamGroup extends React.Component<Props, State> {
     }
 
     const data = GroupStore.get(id) as Group;
-    this.setState({data});
+    this.setState(state => {
+      // On the inbox tab and the inbox reason is removed
+      const reviewed =
+        state.reviewed ||
+        (this.props.query === 'is:needs_review is:unresolved' &&
+          state.data.inbox?.reason !== undefined &&
+          data.inbox === false);
+      return {data, reviewed};
+    });
   }
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -206,7 +214,7 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   render() {
-    const {data} = this.state;
+    const {data, reviewed} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -236,7 +244,7 @@ class StreamGroup extends React.Component<Props, State> {
     const hasInbox = organization.features.includes('inbox');
 
     return (
-      <Wrapper data-test-id="group" onClick={this.toggleSelect}>
+      <Wrapper data-test-id="group" onClick={this.toggleSelect} reviewed={reviewed}>
         {canSelect && (
           <GroupCheckbox ml={2}>
             <GroupCheckBox id={data.id} />
@@ -257,32 +265,17 @@ class StreamGroup extends React.Component<Props, State> {
           />
           <EventOrGroupExtraDetails organization={organization} data={data} />
         </GroupSummary>
-        {hasInbox && (
-          <ReasonAndTimesContainer className="hidden-xs hidden-sm">
-            {data.inbox && (
-              <InboxReasonWrapper>
-                <InboxReason inbox={data.inbox} />
-              </InboxReasonWrapper>
-            )}
-            <div>
-              <TimesTag
-                lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                firstSeen={data.lifetime?.firstSeen || data.firstSeen}
-              />
-            </div>
-          </ReasonAndTimesContainer>
-        )}
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && (
-          <Box width={160} mx={2} className="hidden-xs hidden-sm">
+          <ChartWrapper className="hidden-xs hidden-sm">
             <GroupChart
               statsPeriod={statsPeriod!}
               data={data}
               showSecondaryPoints={showSecondaryPoints}
             />
-          </Box>
+          </ChartWrapper>
         )}
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
+        <EventUserWrapper>
           <DropdownMenu isNestedDropdown>
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
@@ -338,8 +331,8 @@ class StreamGroup extends React.Component<Props, State> {
               );
             }}
           </DropdownMenu>
-        </Flex>
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
+        </EventUserWrapper>
+        <EventUserWrapper>
           <DropdownMenu isNestedDropdown>
             {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
               const topLevelCx = classNames('dropdown', {
@@ -393,21 +386,19 @@ class StreamGroup extends React.Component<Props, State> {
               );
             }}
           </DropdownMenu>
-        </Flex>
-        <Box width={80} mx={2} className="hidden-xs hidden-sm">
+        </EventUserWrapper>
+        <AssigneeWrapper className="hidden-xs hidden-sm">
           <AssigneeSelector id={data.id} memberList={memberList} />
-        </Box>
-        {canSelect && (
-          <Feature organization={organization} features={['organizations:inbox']}>
-            <Box width={120} mx={2} className="hidden-xs hidden-sm">
-              <GroupRowActions
-                group={data}
-                orgId={organization.slug}
-                selection={selection}
-                query={query}
-              />
-            </Box>
-          </Feature>
+        </AssigneeWrapper>
+        {canSelect && hasInbox && (
+          <ActionsWrapper>
+            <GroupRowActions
+              group={data}
+              orgId={organization.slug}
+              selection={selection}
+              query={query}
+            />
+          </ActionsWrapper>
         )}
       </Wrapper>
     );
@@ -415,11 +406,25 @@ class StreamGroup extends React.Component<Props, State> {
 }
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)`
+const Wrapper = styled(PanelItem)<{reviewed: boolean}>`
   position: relative;
   padding: ${space(1)} 0;
-  align-items: center;
   line-height: 1.1;
+
+  ${p =>
+    p.reviewed &&
+    css`
+      animation: tintRow 0.2s linear forwards;
+
+      @keyframes tintRow {
+        0% {
+          background-color: ${p.theme.bodyBackground};
+        }
+        100% {
+          background-color: ${p.theme.backgroundSecondary};
+        }
+      }
+    `};
 `;
 
 const GroupSummary = styled(Box)`
@@ -490,15 +495,38 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const ReasonAndTimesContainer = styled('div')`
-  display: flex;
+const ChartWrapper = styled('div')`
   width: 160px;
-  flex-direction: column;
   margin: 0 ${space(2)};
+  align-self: center;
 `;
 
-const InboxReasonWrapper = styled('div')`
-  margin-bottom: ${space(0.75)};
+const EventUserWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 60px;
+  margin: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    width: 80px;
+  }
+`;
+
+const AssigneeWrapper = styled('div')`
+  width: 80px;
+  margin: 0 ${space(2)};
+  align-self: center;
+`;
+
+const ActionsWrapper = styled('div')`
+  width: 80px;
+  margin: 0 ${space(2)};
+  align-self: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    display: none;
+  }
 `;
 
 export default withGlobalSelection(withOrganization(StreamGroup));

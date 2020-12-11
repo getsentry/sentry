@@ -27,6 +27,7 @@ from __future__ import absolute_import
 #  SENTRY_EMAIL_USER
 #  SENTRY_EMAIL_PASSWORD
 #  SENTRY_EMAIL_USE_TLS
+#  SENTRY_EMAIL_USE_SSL
 #  SENTRY_ENABLE_EMAIL_REPLIES
 #  SENTRY_SMTP_HOSTNAME
 #  SENTRY_MAILGUN_API_KEY
@@ -224,6 +225,7 @@ if email:
     SENTRY_OPTIONS["mail.username"] = env("SENTRY_EMAIL_USER") or ""
     SENTRY_OPTIONS["mail.port"] = int(env("SENTRY_EMAIL_PORT") or 25)
     SENTRY_OPTIONS["mail.use-tls"] = Bool(env("SENTRY_EMAIL_USE_TLS", False))
+    SENTRY_OPTIONS["mail.use-ssl"] = Bool(env("SENTRY_EMAIL_USE_SSL", False))
 else:
     SENTRY_OPTIONS["mail.backend"] = "dummy"
 

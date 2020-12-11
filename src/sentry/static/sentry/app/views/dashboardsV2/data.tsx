@@ -1,9 +1,11 @@
 import {t} from 'app/locale';
 
-import {PrebuiltDashboard} from './types';
+import {DashboardDetails} from './types';
 
-export const EMPTY_DASHBOARD: PrebuiltDashboard = {
-  type: 'prebuilt',
+export const EMPTY_DASHBOARD: DashboardDetails = {
+  id: '',
+  dateCreated: '',
+  createdBy: '',
   title: t('Untitled dashboard'),
   widgets: [],
 };
