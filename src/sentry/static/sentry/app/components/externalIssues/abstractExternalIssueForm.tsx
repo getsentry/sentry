@@ -32,10 +32,6 @@ export default class AbstractExternalIssueForm<
   S extends State = State
 > extends AsyncComponent<P, S> {
   shouldRenderBadRequests = true;
-  constructor(props: P, context: any) {
-    super(props, context);
-  }
-
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -45,8 +41,6 @@ export default class AbstractExternalIssueForm<
       integrationDetails: undefined,
     };
   }
-
-  getEndPointString = () => '';
 
   refetchConfig = () => {
     const {action} = this.props;
@@ -180,17 +174,13 @@ export default class AbstractExternalIssueForm<
         }
       : {};
 
+  // Abstract methods.
+  getEndPointString = () => '';
+  renderNavTabs = () => <React.Fragment />;
+  renderBodyText = () => <React.Fragment />;
   getTitle = () => t('Issue Link Settings');
   getFormProps = (): Form['props'] => {
     throw new Error("Method 'getFormProps()' must be implemented.");
-  };
-
-  renderNavTabs = () => {
-    return <React.Fragment />;
-  };
-
-  renderBodyText = () => {
-    return <React.Fragment />;
   };
 
   getDefaultFormProps = (): Form['props'] => {
