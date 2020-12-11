@@ -40,7 +40,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
-      dynamicFieldValues: {},
       dynamicFieldChoices: {},
     };
   }
@@ -58,7 +57,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getNames = (): string[] => {
     const {formFields} = this.props;
 
-    return formFields.values().filter(field => field.hasOwnProperty('name')).map(field => field.name);
+    return formFields
+      .values()
+      .filter(field => field.hasOwnProperty('name'))
+      .map(field => field.name);
   };
 
   getEndPointString = () => {
@@ -124,10 +126,12 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   /**
-   * Set the order of the fields for the modal and replace `title` and `description`.
+   * Set the initial data from the Rule, replace `title` and `description` with
+   * disabled inputs, and use the cached dynamic choices.
    */
-  cleanFields = (): FormField[] => {
-    const {formFields} = this.props;
+  cleanFields = (): IssueConfigField[] => {
+    const {formFields, instance} = this.props;
+
     return [
       {
         name: 'title',
@@ -135,16 +139,26 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         type: 'string',
         default: 'This will be the same as the Sentry Issue.',
         disabled: true,
-      },
+      } as IssueConfigField,
       {
         name: 'description',
         label: 'Description',
         type: 'string',
         default: 'This will be generated from the Sentry Issue details.',
         disabled: true,
-      },
+      } as IssueConfigField,
     ].concat(
-      Object.values(formFields).filter(f => !['title', 'description'].includes(f.name))
+      Object.values(formFields)
+        .filter(f => !['title', 'description'].includes(f.name))
+        .map(field => {
+          if (instance.hasOwnProperty(field.name)) {
+            field.default = instance[field.name];
+          }
+          if (['assignee', 'reporter'].includes(field.name)) {
+            field.choices = instance.dynamic_form_fields[field.name].choices;
+          }
+          return field;
+        })
     );
   };
 
@@ -164,8 +178,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   render() {
-    const {instance} = this.props;
-    return this.renderForm(this.cleanFields(), instance);
+    return this.renderForm(this.cleanFields());
   }
 }
 
