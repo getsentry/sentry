@@ -2,9 +2,8 @@ import React from 'react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import {ExternalIssueAction} from 'app/components/externalIssues/abstractExternalIssueForm';
 import ExternalIssueForm from 'app/components/group/externalIssueForm';
-import NavTabs from 'app/components/navTabs';
-import {t} from 'app/locale';
 import {Group, GroupIntegration} from 'app/types';
 import withApi from 'app/utils/withApi';
 
@@ -17,7 +16,7 @@ type Props = ModalRenderProps & {
 };
 
 type State = {
-  action: 'create' | 'link' | null;
+  action?: ExternalIssueAction;
 };
 
 class ExternalIssueModal extends React.Component<Props, State> {
@@ -25,42 +24,31 @@ class ExternalIssueModal extends React.Component<Props, State> {
     action: 'create',
   };
 
-  handleClick = (action: 'create' | 'link') => {
+  handleClick = (action: ExternalIssueAction) => {
     this.setState({action});
   };
 
   render() {
-    const {Header, Body, closeModal, integration, group} = this.props;
+    const {closeModal, group, integration, onChange} = this.props;
     const {action} = this.state;
 
+    if (!action) {
+      return <React.Fragment />;
+    }
+
     return (
-      <React.Fragment>
-        <Header closeButton>{`${integration.provider.name} Issue`}</Header>
-        <NavTabs underlined>
-          <li className={action === 'create' ? 'active' : ''}>
-            <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
-          </li>
-          <li className={action === 'link' ? 'active' : ''}>
-            <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
-          </li>
-        </NavTabs>
-        <Body>
-          {action && (
-            <ExternalIssueForm
-              // need the key here so React will re-render
-              // with a new action prop
-              key={action}
-              group={group}
-              integration={integration}
-              action={action}
-              onSubmitSuccess={(_, onSuccess) => {
-                this.props.onChange(() => onSuccess());
-                closeModal();
-              }}
-            />
-          )}
-        </Body>
-      </React.Fragment>
+      <ExternalIssueForm
+        action={action}
+        group={group}
+        integration={integration}
+        // Need the key here so React will re-render with a new action prop.
+        key={action}
+        handleClick={this.handleClick}
+        onSubmitSuccess={(_, onSuccess) => {
+          onChange(() => onSuccess());
+          closeModal();
+        }}
+      />
     );
   }
 }

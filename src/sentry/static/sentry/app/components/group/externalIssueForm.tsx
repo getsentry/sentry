@@ -1,23 +1,17 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
-import * as queryString from 'query-string';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
+import AbstractExternalIssueForm, {
+  ExternalIssueAction,
+} from 'app/components/externalIssues/abstractExternalIssueForm';
+import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {
-  Group,
-  Integration,
-  IntegrationExternalIssue,
-  IntegrationIssueConfig,
-  IssueConfigField,
-} from 'app/types';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import {Group, Integration, IntegrationExternalIssue, IssueConfigField} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
-import {FieldValue} from 'app/views/settings/components/forms/model';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -30,21 +24,22 @@ const SUBMIT_LABEL_BY_ACTION = {
 };
 
 type Props = {
-  action: 'create' | 'link';
+  action: ExternalIssueAction;
   group: Group;
+  handleClick: (action: ExternalIssueAction) => void;
   integration: Integration;
   onSubmitSuccess: (
     externalIssue: IntegrationExternalIssue,
     onSuccess: () => void
   ) => void;
-} & AsyncComponent['props'];
+} & AbstractExternalIssueForm['props'];
 
-type State = {
-  integrationDetails: IntegrationIssueConfig;
-  dynamicFieldValues?: {[key: string]: FieldValue};
-} & AsyncComponent['state'];
+type State = AbstractExternalIssueForm['state'];
 
-class ExternalIssueForm extends AsyncComponent<Props, State> {
+class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
+  loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
+  submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
+
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     integration: PropTypes.object.isRequired,
@@ -52,16 +47,12 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     onSubmitSuccess: PropTypes.func.isRequired,
   };
 
-  shouldRenderBadRequests = true;
-  loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
-  submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
-
   componentDidMount() {
     this.loadTransaction = this.startTransaction('load');
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {group, integration, action} = this.props;
+    const {action, group, integration} = this.props;
     return [
       [
         'integrationDetails',
@@ -96,14 +87,6 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     this.submitTransaction?.finish();
   };
 
-  onRequestSuccess({stateKey, data}) {
-    if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
-      this.setState({
-        dynamicFieldValues: this.getDynamicFields(data),
-      });
-    }
-  }
-
   onLoadAllEndpointsSuccess() {
     this.loadTransaction?.finish();
   }
@@ -112,148 +95,46 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
     this.loadTransaction?.finish();
   };
 
-  refetchConfig = () => {
-    const {dynamicFieldValues} = this.state;
-    const {action, group, integration} = this.props;
-    const endpoint = `/groups/${group.id}/integrations/${integration.id}/`;
-    const query = {action, ...dynamicFieldValues};
-
-    this.api.request(endpoint, {
-      method: 'GET',
-      query,
-      success: (data, _, jqXHR) => {
-        this.handleRequestSuccess({stateKey: 'integrationDetails', data, jqXHR}, true);
-      },
-      error: error => {
-        this.handleError(error, ['integrationDetails', endpoint, null, null]);
-      },
-    });
+  getEndPointString = () => {
+    const {group, integration} = this.props;
+    return `/groups/${group.id}/integrations/${integration.id}/`;
   };
 
-  getDynamicFields(integrationDetails?: IntegrationIssueConfig) {
-    integrationDetails = integrationDetails || this.state.integrationDetails;
+  getFormProps = (): Form['props'] => {
     const {action} = this.props;
-    const config: IssueConfigField[] = integrationDetails[`${action}IssueConfig`];
-
-    return Object.fromEntries(
-      config
-        .filter((field: IssueConfigField) => field.updatesForm)
-        .map((field: IssueConfigField) => [field.name, field.default])
-    );
-  }
-
-  onFieldChange = (label: string, value: FieldValue) => {
-    const dynamicFields = this.getDynamicFields();
-    if (label in dynamicFields) {
-      const dynamicFieldValues = this.state.dynamicFieldValues || {};
-      dynamicFieldValues[label] = value;
-
-      this.setState(
-        {
-          dynamicFieldValues,
-          reloading: true,
-          error: false,
-          remainingRequests: 1,
-        },
-        this.refetchConfig
-      );
-    }
+    return {
+      ...this.getDefaultFormProps(),
+      submitLabel: SUBMIT_LABEL_BY_ACTION[action],
+      apiEndpoint: this.getEndPointString(),
+      apiMethod: action === 'create' ? 'POST' : 'PUT',
+      onPreSubmit: this.handlePreSubmit,
+      onSubmitError: this.handleSubmitError,
+      onSubmitSuccess: this.onSubmitSuccess,
+    };
   };
 
-  getOptions = (field: IssueConfigField, input: string) =>
-    new Promise((resolve, reject) => {
-      if (!input) {
-        const choices =
-          (field.choices as Array<[number | string, number | string]>) || [];
-        const options = choices.map(([value, label]) => ({value, label}));
-        return resolve({options});
-      }
-      return this.debouncedOptionLoad(field, input, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
-      });
-    });
+  renderNavTabs = () => {
+    const {action, handleClick} = this.props;
 
-  debouncedOptionLoad = debounce(
-    async (
-      field: IssueConfigField,
-      input: string,
-      cb: (err: Error | null, result?) => void
-    ) => {
-      const query = queryString.stringify({
-        ...this.state.dynamicFieldValues,
-        field: field.name,
-        query: input,
-      });
-
-      const url = field.url || '';
-      const separator = url.includes('?') ? '&' : '?';
-      // We can't use the API client here since the URL is not scoped under the
-      // API endpoints (which the client prefixes)
-      try {
-        const response = await fetch(url + separator + query);
-        cb(null, {options: response.ok ? await response.json() : []});
-      } catch (err) {
-        cb(err);
-      }
-    },
-    200,
-    {trailing: true}
-  );
-
-  getFieldProps = (field: IssueConfigField) =>
-    field.url
-      ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
-          async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
-          autoload: true,
-        }
-      : {};
+    return (
+      <NavTabs underlined>
+        <li className={action === 'create' ? 'active' : ''}>
+          <a onClick={() => handleClick('create')}>{t('Create')}</a>
+        </li>
+        <li className={action === 'link' ? 'active' : ''}>
+          <a onClick={() => handleClick('link')}>{t('Link')}</a>
+        </li>
+      </NavTabs>
+    );
+  };
 
   renderBody() {
     const {integrationDetails} = this.state;
-    const {action, group, integration} = this.props;
-    const config: IssueConfigField[] = integrationDetails[`${action}IssueConfig`];
-
-    const initialData = {};
-    config.forEach(field => {
-      // passing an empty array breaks multi select
-      // TODO(jess): figure out why this is breaking and fix
-      initialData[field.name] = field.multiple ? '' : field.default;
-    });
-    return (
-      <Form
-        apiEndpoint={`/groups/${group.id}/integrations/${integration.id}/`}
-        apiMethod={action === 'create' ? 'POST' : 'PUT'}
-        onSubmitSuccess={this.onSubmitSuccess}
-        initialData={initialData}
-        onFieldChange={this.onFieldChange}
-        submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
-        submitDisabled={this.state.reloading}
-        footerClass="modal-footer"
-        onPreSubmit={this.handlePreSubmit}
-        onSubmitError={this.handleSubmitError}
-      >
-        {config.map(field => (
-          <FieldFromConfig
-            key={`${field.name}-${field.default}-${field.required}`}
-            field={field}
-            inline={false}
-            stacked
-            flexibleControlStateSize
-            disabled={this.state.reloading}
-            {...this.getFieldProps(field)}
-          />
-        ))}
-      </Form>
-    );
+    if (!integrationDetails) {
+      return <React.Fragment />;
+    }
+    const config: IssueConfigField[] = integrationDetails[this.getConfigName()];
+    return this.renderForm(config);
   }
 }
 
