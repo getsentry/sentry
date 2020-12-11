@@ -35,7 +35,7 @@ type Props = {
   integration: Integration;
   onSubmitSuccess: (
     externalIssue: IntegrationExternalIssue,
-    onSucess: () => void
+    onSuccess: () => void
   ) => void;
 } & AsyncComponent['props'];
 
@@ -53,11 +53,11 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   };
 
   shouldRenderBadRequests = true;
-  loadTransasaction?: ReturnType<typeof Sentry.startTransaction>;
+  loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
   submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
 
   componentDidMount() {
-    this.loadTransasaction = this.startTransaction('load');
+    this.loadTransaction = this.startTransaction('load');
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -105,11 +105,11 @@ class ExternalIssueForm extends AsyncComponent<Props, State> {
   }
 
   onLoadAllEndpointsSuccess() {
-    this.loadTransasaction?.finish();
+    this.loadTransaction?.finish();
   }
 
   onRequestError = () => {
-    this.loadTransasaction?.finish();
+    this.loadTransaction?.finish();
   };
 
   refetchConfig = () => {
