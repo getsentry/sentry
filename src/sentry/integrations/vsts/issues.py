@@ -92,8 +92,8 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_item_type, item_tuples
 
-    def get_create_issue_config_no_params(self):
-        return self.get_create_issue_config(None, None, params={})
+    def get_create_issue_config_no_args(self):
+        return self.get_create_issue_config(None, None)
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"
