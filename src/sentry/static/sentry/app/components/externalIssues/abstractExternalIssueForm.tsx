@@ -97,8 +97,8 @@ export default class AbstractExternalIssueForm<
 
   onFieldChange = (label: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
-
-    if (label in this.getDynamicFields() && dynamicFieldValues) {
+    const dynamicFields = this.getDynamicFields();
+    if (dynamicFields.hasOwnProperty(label) && dynamicFieldValues) {
       dynamicFieldValues[label] = value;
       this.setState(
         {
