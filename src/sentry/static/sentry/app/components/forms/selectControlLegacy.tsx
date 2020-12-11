@@ -65,7 +65,7 @@ class SelectControlLegacy extends React.Component<Props> {
   static defaultProps = {
     clearable: false,
     multiple: false,
-    height: 36,
+    height: 38,
   };
 
   renderArrow = () => <StyledIconChevron direction="down" size="xs" />;

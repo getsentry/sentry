@@ -112,7 +112,7 @@ class Dashboard extends React.Component<Props, State> {
         {isEditing && (
           <WidgetWrapper key="add">
             <AddWidgetWrapper key="add" onClick={this.handleStartAdd}>
-              <IconAdd size="xl" isCircled color="inactive" />
+              <IconAdd size="lg" isCircled color="inactive" />
             </AddWidgetWrapper>
           </WidgetWrapper>
         )}
@@ -125,9 +125,9 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   grid-gap: ${space(2)};
-  grid-auto-flow: row;
+  align-items: stretch;
 `;
 
 const WidgetWrapper = styled('div')`
@@ -136,10 +136,11 @@ const WidgetWrapper = styled('div')`
 
 const AddWidgetWrapper = styled('a')`
   width: 100%;
-  height: 120px;
+  height: 100%;
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 250px;
 `;

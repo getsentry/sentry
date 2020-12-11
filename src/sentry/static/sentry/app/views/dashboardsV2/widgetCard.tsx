@@ -272,9 +272,9 @@ const WidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(2)} ${space(3)};
 
-  position: relative;
+  position: absolute;
   z-index: 2;
 `;
 
