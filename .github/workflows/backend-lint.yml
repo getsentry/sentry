@@ -15,6 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
       # for every PR in order to update the status checks.
@@ -88,14 +97,12 @@ jobs:
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
 
-      # Apply fixed files via pull request review comments
-      - name: Apply any pre-commit fixed files as Pull Request review comments
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
-        continue-on-error: true
-        uses: getsentry/action-git-diff-suggestions@main
+      # If working tree is dirty, commit and update if we have a token
+      - name: Commit any eslint fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true'
+        uses: getsentry/action-github-commit@main
         with:
-          message: pre-commit made this change
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
