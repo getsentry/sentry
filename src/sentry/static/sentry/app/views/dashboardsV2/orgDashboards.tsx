@@ -103,7 +103,6 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     const notFound = Object.values(this.state.errors).find(
       resp => resp && resp.status === 404
     );
-    console.log('render error');
 
     if (notFound) {
       return <NotFound />;
