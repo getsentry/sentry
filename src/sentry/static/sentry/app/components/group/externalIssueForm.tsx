@@ -24,7 +24,6 @@ const SUBMIT_LABEL_BY_ACTION = {
 };
 
 type Props = {
-  action: ExternalIssueAction;
   group: Group;
   handleClick: (action: ExternalIssueAction) => void;
   integration: Integration;
@@ -52,19 +51,19 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {action, group, integration} = this.props;
+    const {group, integration} = this.props;
     return [
       [
         'integrationDetails',
-        `/groups/${group.id}/integrations/${integration.id}/?action=${action}`,
+        `/groups/${group.id}/integrations/${integration.id}/?action=${this.action}`,
       ],
     ];
   }
 
   startTransaction = (type: 'load' | 'submit') => {
-    const {action, group, integration} = this.props;
+    const {group, integration} = this.props;
     const transaction = Sentry.startTransaction({name: `externalIssueForm.${type}`});
-    transaction.setTag('issueAction', action);
+    transaction.setTag('issueAction', this.action);
     transaction.setTag('groupID', group.id);
     transaction.setTag('projectID', group.project.id);
     transaction.setTag('integrationSlug', integration.provider.slug);
@@ -77,9 +76,9 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   };
 
   onSubmitSuccess = (data: IntegrationExternalIssue): void => {
-    const {action, onSubmitSuccess} = this.props;
+    const {onSubmitSuccess} = this.props;
 
-    onSubmitSuccess(data, () => addSuccessMessage(MESSAGES_BY_ACTION[action]));
+    onSubmitSuccess(data, () => addSuccessMessage(MESSAGES_BY_ACTION[this.action]));
     this.submitTransaction?.finish();
   };
 
@@ -106,12 +105,11 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   };
 
   getFormProps = (): Form['props'] => {
-    const {action} = this.props;
     return {
       ...this.getDefaultFormProps(),
-      submitLabel: SUBMIT_LABEL_BY_ACTION[action],
+      submitLabel: SUBMIT_LABEL_BY_ACTION[this.action],
       apiEndpoint: this.getEndPointString(),
-      apiMethod: action === 'create' ? 'POST' : 'PUT',
+      apiMethod: this.action === 'create' ? 'POST' : 'PUT',
       onPreSubmit: this.handlePreSubmit,
       onSubmitError: this.handleSubmitError,
       onSubmitSuccess: this.onSubmitSuccess,
@@ -119,14 +117,14 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   };
 
   renderNavTabs = () => {
-    const {action, handleClick} = this.props;
+    const {handleClick} = this.props;
 
     return (
       <NavTabs underlined>
-        <li className={action === 'create' ? 'active' : ''}>
+        <li className={this.action === 'create' ? 'active' : ''}>
           <a onClick={() => handleClick('create')}>{t('Create')}</a>
         </li>
-        <li className={action === 'link' ? 'active' : ''}>
+        <li className={this.action === 'link' ? 'active' : ''}>
           <a onClick={() => handleClick('link')}>{t('Link')}</a>
         </li>
       </NavTabs>
