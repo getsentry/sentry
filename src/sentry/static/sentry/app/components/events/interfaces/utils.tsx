@@ -1,20 +1,19 @@
 import * as Sentry from '@sentry/react';
-import isEmpty from 'lodash/isEmpty';
 import isString from 'lodash/isString';
 import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'app/constants';
+import {RequestEntry} from 'app/types';
 import {defined} from 'app/utils';
 
 import {DebugImage} from './debugMeta/types';
-import {RichHttpContentData} from './richHttpContent/types';
 
 export function escapeQuotes(v: string) {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 // TODO(dcramer): support cookies
-export function getCurlCommand(data: RichHttpContentData['data']) {
+export function getCurlCommand(data: RequestEntry['data']) {
   let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
@@ -22,7 +21,7 @@ export function getCurlCommand(data: RichHttpContentData['data']) {
   }
 
   // TODO(benvinegar): just gzip? what about deflate?
-  const compressed = data.headers.find(
+  const compressed = data.headers?.find(
     h => h[0] === 'Accept-Encoding' && h[1].indexOf('gzip') !== -1
   );
   if (compressed) {
@@ -30,9 +29,10 @@ export function getCurlCommand(data: RichHttpContentData['data']) {
   }
 
   // sort headers
-  const headers = data.headers.sort(function (a, b) {
-    return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
-  });
+  const headers =
+    data.headers?.sort(function (a, b) {
+      return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
+    }) ?? [];
 
   for (const header of headers) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeQuotes(header[1] + '') + '"';
@@ -85,14 +85,22 @@ export function stringifyQueryList(query: string | [key: string, value: string][
   return qs.stringify(queryObj);
 }
 
-// TODO(ts): This should be converted with the request interface
-export function getFullUrl(data: any): unknown {
-  let fullUrl = data && data.url;
+// Custon type as this function is used to handle both the
+// request (http) event interface and rich http content used to make
+// sample curl commands.
+type UrlData = {
+  url: string;
+  query?: string | [key: string, value: string][];
+  fragment?: string;
+};
+
+export function getFullUrl(data: UrlData): string | undefined {
+  let fullUrl = data?.url;
   if (!fullUrl) {
     return fullUrl;
   }
 
-  if (!isEmpty(data.query)) {
+  if (data?.query && data.query.length) {
     fullUrl += '?' + stringifyQueryList(data.query);
   }
 
