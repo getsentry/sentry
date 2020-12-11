@@ -12,6 +12,9 @@ brew 'pkgconfig'
 brew 'libxmlsec1'
 brew 'geoip'
 
+# Currently needed because on Big Sur there's no wheel for it
+brew install librdkafka
+
 # direnv isn't defined here, because we have it configured to check for a bootstrapped environment.
 # If it's installed in the early steps of the setup process, it just leads to confusion.
 # brew 'direnv'
