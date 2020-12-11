@@ -32,13 +32,7 @@ import withApi from 'app/utils/withApi';
 import {HeaderTitleLegend} from '../styles';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
-import {
-  getMaxOfSeries,
-  vitalChartTitleMap,
-  vitalNameFromLocation,
-  webVitalMeh,
-  webVitalPoor,
-} from './utils';
+import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
 
 const QUERY_KEYS = [
   'environment',
