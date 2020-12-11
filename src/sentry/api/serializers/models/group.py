@@ -582,6 +582,7 @@ class GroupSerializerBase(Serializer):
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
     def __init__(self, environment_func=None):
+        GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _get_seen_stats(self, item_list, user):
