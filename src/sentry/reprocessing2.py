@@ -367,4 +367,8 @@ def is_group_finished(group_id):
 
 
 def get_num_pending_events(group_id):
-    return int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)))
+    rv = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
+    if rv is None:
+        logger.error("reprocessing2.missing_counter")
+        return 0
+    return int(rv)
