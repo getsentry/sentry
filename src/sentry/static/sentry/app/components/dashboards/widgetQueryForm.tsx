@@ -176,7 +176,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
         {source === 'new' && (
           <Field
             data-test-id="new-query"
-            label="New Query"
+            label="Query"
             inline={false}
             flexibleControlStateSize
             stacked
@@ -199,7 +199,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
             {({hasFeature}) => (
               <Field
                 data-test-id="discover-query"
-                label="Existing Discover Query"
+                label="Query"
                 inline={false}
                 flexibleControlStateSize
                 stacked
