@@ -75,9 +75,9 @@ type ChildrenRenderFn = (
 
 type FeatureRenderProps = {
   organization: Organization;
-  project?: Project;
   features: string[];
   hasFeature: boolean;
+  project?: Project;
 };
 
 type AllFeatures = {
