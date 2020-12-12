@@ -95,7 +95,7 @@ def test_script_no_context(input, output):
         # Basic with attributes
         (
             '{% script async=True defer=True type="text/javascript" %}alert("hi"){% endscript %}',
-            '<script async defer type="text/javascript" nonce="r@nD0m">alert("hi")</script>',
+            '<script async defer nonce="r@nD0m" type="text/javascript">alert("hi")</script>',
         ),
         # Wrap script tag used for highlighting
         (
@@ -103,7 +103,7 @@ def test_script_no_context(input, output):
         {% script async=True defer=True type="text/javascript" %}
         <script>alert("hi")</script>
         {% endscript %}""",
-            '<script async defer type="text/javascript" nonce="r@nD0m">alert("hi")</script>',
+            '<script async defer nonce="r@nD0m" type="text/javascript">alert("hi")</script>',
         ),
     ),
 )

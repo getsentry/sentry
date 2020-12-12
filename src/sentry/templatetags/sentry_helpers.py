@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import functools
 import os.path
 import re
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from datetime import timedelta
 from random import randint
 
@@ -130,7 +130,7 @@ def script(parser, token):
 class ScriptNode(template.Node):
     def __init__(self, nodelist, **kwargs):
         self.nodelist = nodelist
-        self.attrs = OrderedDict()
+        self.attrs = {}
         for k, v in kwargs.items():
             self.attrs[k] = self._get_value(v)
 
@@ -162,6 +162,7 @@ class ScriptNode(template.Node):
             else:
                 value = v.strip('"')
                 output.append(' {}="{}"'.format(k, value))
+        output = sorted(output)
         return "".join(output)
 
     def _unwrap_content(self, text):
