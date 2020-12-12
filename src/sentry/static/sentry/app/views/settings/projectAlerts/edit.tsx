@@ -9,7 +9,6 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import AsyncView from 'app/views/asyncView';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
 
@@ -23,21 +22,18 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
   project: Project;
   hasMetricAlerts: boolean;
-} & AsyncView['props'];
+};
 
 type State = {
   alertType: string;
   ruleName: string;
-} & AsyncView['state'];
+};
 
-class ProjectAlertsEditor extends AsyncView<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      alertType: '',
-      ruleName: '',
-    };
-  }
+class ProjectAlertsEditor extends React.Component<Props, State> {
+  state: State = {
+    alertType: '',
+    ruleName: '',
+  };
 
   handleChangeTitle = ruleName => {
     this.setState({ruleName});
