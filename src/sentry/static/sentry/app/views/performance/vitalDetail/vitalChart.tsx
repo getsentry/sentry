@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -18,7 +17,6 @@ import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
@@ -29,7 +27,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {HeaderTitleLegend} from '../styles';
+import {HeaderTitle} from '../styles';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
 import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
@@ -192,15 +190,15 @@ class VitalChart extends React.Component<Props> {
     };
 
     return (
-      <ChartBody>
-        <HeaderTitleLegend>
+      <Panel>
+        <HeaderTitle>
           {t('Duration p75')}
           <QuestionTooltip
             size="sm"
             position="top"
             title={t(`The durations shown should fall under the vital threshold.`)}
           />
-        </HeaderTitleLegend>
+        </HeaderTitle>
         <ChartZoom
           router={router}
           period={statsPeriod}
@@ -244,7 +242,7 @@ class VitalChart extends React.Component<Props> {
                         color: colors[i],
                         lineStyle: {
                           opacity: 1,
-                          width: 3,
+                          width: 2,
                         },
                       };
                     })
@@ -290,13 +288,9 @@ class VitalChart extends React.Component<Props> {
             </EventsRequest>
           )}
         </ChartZoom>
-      </ChartBody>
+      </Panel>
     );
   }
 }
-
-const ChartBody = styled(Panel)`
-  padding: ${space(3)} ${space(2)};
-`;
 
 export default withApi(ReactRouter.withRouter(VitalChart));

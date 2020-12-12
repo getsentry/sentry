@@ -637,8 +637,8 @@ const Container = styled('div')`
 
 const PercentContainer = styled('div')`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(2)};
+  top: ${space(2)};
+  right: ${space(3)};
   z-index: 2;
 `;
 

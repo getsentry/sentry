@@ -86,8 +86,8 @@ function UserStats({eventView, totals, location, organization, transactionName}:
   });
 
   return (
-    <Container>
-      <div>
+    <div>
+      <ApdexContainer>
         <SectionHeading>
           {t('Apdex Score')}
           <QuestionTooltip
@@ -104,7 +104,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
             {threshold}ms {t('threshold')}
           </SectionValue>
         </Link>
-      </div>
+      </ApdexContainer>
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
           if (hasFeature) {
@@ -168,19 +168,16 @@ function UserStats({eventView, totals, location, organization, transactionName}:
         </SectionHeading>
         {userMisery}
       </UserMiseryContainer>
-    </Container>
+    </div>
   );
 }
 
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(2)};
-  margin-bottom: ${space(4)};
+const ApdexContainer = styled('div')`
+  margin-bottom: ${space(3)};
 `;
 
 const VitalsContainer = styled('div')`
-  grid-column: 1/3;
+  margin-bottom: ${space(3)};
 `;
 
 const VitalsHeading = styled('div')`
@@ -190,7 +187,7 @@ const VitalsHeading = styled('div')`
 `;
 
 const UserMiseryContainer = styled('div')`
-  grid-column: 1/3;
+  margin-bottom: ${space(4)};
 `;
 
 const StatNumber = styled('div')`

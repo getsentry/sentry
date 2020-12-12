@@ -28,6 +28,7 @@ import {
   vitalStateColors,
 } from './vitalDetail/utils';
 import VitalPercents from './vitalDetail/vitalPercents';
+import {HeaderTitle} from './styles';
 
 type Props = {
   eventView: EventView;
@@ -98,19 +99,13 @@ type CardProps = Props & {
   hideBar?: boolean;
 };
 
-const NonPanel = styled('div')`
-  flex-grow: 1;
-`;
+const NonPanel = styled('div')``;
 
-const StyledVitalCard = styled(Card)`
+const VitalCard = styled(Card)`
   color: ${p => p.theme.textColor};
-  padding: ${space(1.5)} ${space(2)} ${space(1.5)} ${space(2)};
-
-  &:focus,
-  &:hover {
-    color: ${p => p.theme.textColor};
-    top: -1px;
-  }
+  padding: ${space(2)} ${space(3)};
+  align-items: flex-start;
+  min-height: 150px;
 `;
 
 export function LinkedVitalsCard(props: CardProps) {
@@ -283,40 +278,23 @@ function VitalsCardContent(props: CardContentProps) {
     showVitalPercentNames,
     hideBar,
   } = props;
-  const Container = noBorder ? NonPanel : StyledVitalCard;
+  const Container = noBorder ? NonPanel : VitalCard;
   const colorStops = getColorStopsFromPercents(percents);
 
   return (
     <Container interactive>
       {noBorder || (
-        <CardTitle>
+        <HeaderTitle>
           {t(`${title}`)}
           <QuestionTooltip size="sm" position="top" title={titleDescription} />
-        </CardTitle>
+        </HeaderTitle>
       )}
       {noBorder || <CardValue>{value}</CardValue>}
-      {!hideBar && (
-        <CardBreakdown>
-          <ColorBar colorStops={colorStops} />
-        </CardBreakdown>
-      )}
-      <CardPercents>
-        <VitalPercents
-          percents={percents}
-          showVitalPercentNames={showVitalPercentNames}
-        />
-      </CardPercents>
+      {!hideBar && <ColorBar colorStops={colorStops} />}
+      <VitalPercents percents={percents} showVitalPercentNames={showVitalPercentNames} />
     </Container>
   );
 }
-
-const CardBreakdown = styled('div')``;
-
-const CardPercents = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-`;
 
 type BlankCardProps = {
   noBorder?: boolean;
@@ -324,7 +302,7 @@ type BlankCardProps = {
 };
 
 const BlankCard = (props: BlankCardProps) => {
-  const Container = props.noBorder ? NonPanel : StyledVitalCard;
+  const Container = props.noBorder ? NonPanel : VitalCard;
   return (
     <Container interactive>
       {props.noBorder || <CardTitle>{t(`${props.measurement}`)}</CardTitle>}
