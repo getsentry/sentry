@@ -29,7 +29,7 @@ class InternalWarningsEndpoint(Endpoint):
             else:
                 warnings.append(six.text_type(warning))
 
-        sort_by_message = functools.partial(sorted, key=six.binary_type)
+        sort_by_message = functools.partial(sorted, key=six.text_type)
 
         data = {
             "groups": sorted(
