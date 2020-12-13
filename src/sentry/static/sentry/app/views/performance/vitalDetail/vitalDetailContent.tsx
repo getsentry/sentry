@@ -161,15 +161,13 @@ class VitalDetailContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <StyledSearchContainer>
-              <StyledSearchBar
-                organization={organization}
-                projectIds={eventView.project}
-                query={query}
-                fields={eventView.fields}
-                onSearch={this.handleSearch}
-              />
-            </StyledSearchContainer>
+            <StyledSearchBar
+              organization={organization}
+              projectIds={eventView.project}
+              query={query}
+              fields={eventView.fields}
+              onSearch={this.handleSearch}
+            />
             <VitalInfo
               eventView={eventView}
               organization={organization}
@@ -203,10 +201,6 @@ class VitalDetailContent extends React.Component<Props, State> {
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-bottom: ${space(2)};
-`;
-
-const StyledSearchContainer = styled('div')`
-  display: flex;
 `;
 
 export default withProjects(VitalDetailContent);

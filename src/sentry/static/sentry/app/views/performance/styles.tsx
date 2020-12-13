@@ -18,7 +18,7 @@ export const SummaryGridRow = styled('tr')`
 export const DoubleHeaderContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: ${space(2)} ${space(3)};
+  padding: ${space(2)} ${space(3)} ${space(1)} ${space(3)};
   grid-gap: ${space(3)};
 `;
 
@@ -39,7 +39,7 @@ export const HeaderTitleLegend = styled(HeaderTitle)`
 `;
 
 export const ChartContainer = styled('div')`
-  padding: ${space(3)};
+  padding: ${space(2)} ${space(3)};
 `;
 
 export const ChartsGrid = styled('div')`
