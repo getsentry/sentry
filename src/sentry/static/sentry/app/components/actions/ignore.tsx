@@ -453,7 +453,7 @@ const DropdownMenuItem = styled('li')`
     display: block;
     > ul {
       border-radius: ${p => p.theme.borderRadius};
-      top: 0;
+      top: 5px;
       left: 100%;
       margin-top: -5px;
       margin-left: -1px;
