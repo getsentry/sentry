@@ -170,14 +170,6 @@ class VitalDetailContent extends React.Component<Props, State> {
               fields={eventView.fields}
               onSearch={this.handleSearch}
             />
-            <StyledVitalInfo>
-              <VitalInfo
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                vitalName={vital}
-              />
-            </StyledVitalInfo>
             <VitalChart
               organization={organization}
               query={eventView.query}
@@ -187,6 +179,14 @@ class VitalDetailContent extends React.Component<Props, State> {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
             />
+            <StyledVitalInfo>
+              <VitalInfo
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                vitalName={vital}
+              />
+            </StyledVitalInfo>
             <Table
               eventView={eventView}
               projects={projects}
@@ -204,15 +204,15 @@ class VitalDetailContent extends React.Component<Props, State> {
 
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(4)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
+const StyledSearchBar = styled(SearchBar)`
+  margin-bottom: ${space(2)};
+`;
+
 const StyledVitalInfo = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
 
 export default withProjects(VitalDetailContent);

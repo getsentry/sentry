@@ -35,6 +35,7 @@ type Props = {
   organization: Organization;
   location: Location;
   showVitalPercentNames?: boolean;
+  showDurationDetail?: boolean;
   hasCondensedVitals?: boolean;
 };
 
@@ -203,6 +204,7 @@ export function VitalsCard(props: CardProps) {
     <VitalsCardContent
       percents={percents}
       showVitalPercentNames={props.showVitalPercentNames}
+      showDurationDetail={props.showDurationDetail}
       title={measurement}
       titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
       value={`${value}${vitalName === WebVital.CLS ? '' : t('ms')}`}
@@ -254,6 +256,7 @@ function CondensedVitalsCard(props: CondensedCardProps) {
       noBorder
       percents={percents}
       showVitalPercentNames={props.showVitalPercentNames}
+      showDurationDetail={props.showDurationDetail}
     />
   );
 }
@@ -265,6 +268,7 @@ type CardContentProps = {
   value?: string;
   noBorder?: boolean;
   showVitalPercentNames?: boolean;
+  showDurationDetail?: boolean;
   hideBar?: boolean;
 };
 
@@ -276,6 +280,7 @@ function VitalsCardContent(props: CardContentProps) {
     titleDescription,
     value,
     showVitalPercentNames,
+    showDurationDetail,
     hideBar,
   } = props;
   const Container = noBorder ? NonPanel : VitalCard;
@@ -291,7 +296,18 @@ function VitalsCardContent(props: CardContentProps) {
       )}
       {noBorder || <CardValue>{value}</CardValue>}
       {!hideBar && <ColorBar colorStops={colorStops} />}
-      <VitalPercents percents={percents} showVitalPercentNames={showVitalPercentNames} />
+      <BarDetail>
+        {showDurationDetail && (
+          <div>
+            {t('The p75 for all transactions is ')}
+            <strong>{value}</strong>
+          </div>
+        )}
+        <VitalPercents
+          percents={percents}
+          showVitalPercentNames={showVitalPercentNames}
+        />
+      </BarDetail>
     </Container>
   );
 }
@@ -341,6 +357,12 @@ const VitalLink = (props: VitalLinkProps) => {
     </Link>
   );
 };
+
+const BarDetail = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
 
 const CardValue = styled('div')`
   font-size: 32px;

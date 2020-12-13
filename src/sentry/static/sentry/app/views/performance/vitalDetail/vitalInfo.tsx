@@ -15,10 +15,18 @@ type Props = {
   vitalName: WebVital;
   hideBar?: boolean;
   hideVitalPercentNames?: boolean;
+  hideDurationDetail?: boolean;
 };
 
 export default function vitalInfo(props: Props) {
-  const {vitalName, eventView, organization, location, hideVitalPercentNames} = props;
+  const {
+    vitalName,
+    eventView,
+    organization,
+    location,
+    hideVitalPercentNames,
+    hideDurationDetail,
+  } = props;
   return (
     <VitalsCardDiscoverQuery
       eventView={eventView}
@@ -34,6 +42,7 @@ export default function vitalInfo(props: Props) {
             {...props}
             noBorder
             showVitalPercentNames={!hideVitalPercentNames}
+            showDurationDetail={!hideDurationDetail}
           />
         </React.Fragment>
       )}

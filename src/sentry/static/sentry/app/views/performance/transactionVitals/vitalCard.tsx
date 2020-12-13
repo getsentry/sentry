@@ -309,6 +309,7 @@ class VitalCard extends React.Component<Props, State> {
                   vitalName={vital}
                   hideBar
                   hideVitalPercentNames
+                  hideDurationDetail
                 />
               </PercentContainer>
             </Feature>
