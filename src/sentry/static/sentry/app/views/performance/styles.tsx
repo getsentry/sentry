@@ -10,11 +10,6 @@ export const GridCellNumber = styled(GridCell)`
   text-align: right;
 `;
 
-export const SummaryGridRow = styled('tr')`
-  display: grid;
-  grid-template-columns: auto minmax(70px, 170px) minmax(70px, 230px);
-`;
-
 export const DoubleHeaderContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
