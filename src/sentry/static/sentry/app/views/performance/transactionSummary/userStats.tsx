@@ -109,7 +109,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
         {({hasFeature}) => {
           if (hasFeature) {
             return (
-              <VitalsContainer>
+              <div>
                 <VitalsHeading>
                   <SectionHeading>
                     {t('Web Vitals')}
@@ -131,7 +131,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                   location={location}
                   hasCondensedVitals
                 />
-              </VitalsContainer>
+              </div>
             );
           } else {
             return (
@@ -173,10 +173,6 @@ function UserStats({eventView, totals, location, organization, transactionName}:
 }
 
 const ApdexContainer = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
-const VitalsContainer = styled('div')`
   margin-bottom: ${space(3)};
 `;
 

@@ -79,7 +79,7 @@ export default function VitalsCards(props: Props) {
 const VitalsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  grid-column-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

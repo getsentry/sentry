@@ -35,6 +35,7 @@ const VitalBar = styled('div')<VitalBarProps>`
   display: grid;
   grid-template-columns: ${p => p.fractions.map(f => `${f}fr`).join(' ')};
   margin-bottom: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 type ColorProps = {
