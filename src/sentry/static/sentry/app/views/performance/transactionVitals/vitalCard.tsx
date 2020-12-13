@@ -307,7 +307,6 @@ class VitalCard extends React.Component<Props, State> {
                   organization={organization}
                   location={location}
                   vitalName={vital}
-                  hideDescription
                   hideBar
                   hideVitalPercentNames
                 />

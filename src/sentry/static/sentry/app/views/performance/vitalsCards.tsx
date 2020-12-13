@@ -285,7 +285,7 @@ function VitalsCardContent(props: CardContentProps) {
     <Container interactive>
       {noBorder || (
         <HeaderTitle>
-          {t(`${title}`)}
+          <OverflowEllipsis>{t(`${title}`)}</OverflowEllipsis>
           <QuestionTooltip size="sm" position="top" title={titleDescription} />
         </HeaderTitle>
       )}
@@ -305,7 +305,11 @@ const BlankCard = (props: BlankCardProps) => {
   const Container = props.noBorder ? NonPanel : VitalCard;
   return (
     <Container interactive>
-      {props.noBorder || <CardTitle>{t(`${props.measurement}`)}</CardTitle>}
+      {props.noBorder || (
+        <HeaderTitle>
+          <OverflowEllipsis>{t(`${props.measurement}`)}</OverflowEllipsis>
+        </HeaderTitle>
+      )}
       <CardValue>{'\u2014'}</CardValue>
     </Container>
   );
@@ -338,14 +342,12 @@ const VitalLink = (props: VitalLinkProps) => {
   );
 };
 
-const CardTitle = styled('div')`
-  display: inline-grid;
-  margin-bottom: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  ${overflowEllipsis};
-`;
-
 const CardValue = styled('div')`
   font-size: 32px;
-  margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1.5)};
+`;
+
+const OverflowEllipsis = styled('div')`
+  ${overflowEllipsis};
 `;

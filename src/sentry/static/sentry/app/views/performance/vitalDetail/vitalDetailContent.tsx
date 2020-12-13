@@ -25,7 +25,7 @@ import Breadcrumb from '../breadcrumb';
 import {getTransactionSearchQuery} from '../utils';
 
 import Table from './table';
-import {vitalMap} from './utils';
+import {vitalDescription, vitalMap} from './utils';
 import VitalChart from './vitalChart';
 import VitalInfo from './vitalInfo';
 
@@ -135,6 +135,7 @@ class VitalDetailContent extends React.Component<Props, State> {
 
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
+    const description = vitalDescription[vitalName];
 
     return (
       <React.Fragment>
@@ -161,6 +162,7 @@ class VitalDetailContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
+            <StyledDescription>{description}</StyledDescription>
             <StyledSearchBar
               organization={organization}
               projectIds={eventView.project}
@@ -198,9 +200,13 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 }
 
+const StyledDescription = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(3)};
+`;
+
 const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(3)};
 `;
 
 export default withProjects(VitalDetailContent);

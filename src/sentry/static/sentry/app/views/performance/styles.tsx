@@ -28,24 +28,18 @@ export const HeaderTitle = styled('div')`
   grid-gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
-  margin-bottom: ${space(0.5)};
   align-items: center;
 `;
 
 export const HeaderTitleLegend = styled(HeaderTitle)`
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.white};
+  border-radius: ${p => p.theme.borderRadius};
   position: absolute;
   z-index: 1;
 `;
 
 export const ChartContainer = styled('div')`
   padding: ${space(2)} ${space(3)};
-`;
-
-export const ChartsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-column-gap: ${space(1)};
 `;
 
 export const ErrorPanel = styled('div')`
