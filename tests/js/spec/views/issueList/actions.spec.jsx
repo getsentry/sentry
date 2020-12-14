@@ -225,7 +225,7 @@ describe('IssueListActions', function () {
         wrapper
           .find('IssueListActions')
           .setState({allInQuerySelected: false, anySelected: true});
-        wrapper.find('IgnoreActions MenuItem a').last().simulate('click');
+        wrapper.find('DropdownMenuItem ActionSubMenu a').last().simulate('click');
 
         await tick();
         wrapper.update();
