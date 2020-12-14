@@ -81,11 +81,12 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       throw new Error('Unable to find project');
     }
     const commitId = event.release?.lastCommit?.id;
+    const platform = event.platform;
     return [
       [
         'match',
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {query: {file: frame.filename, commitId}},
+        {query: {file: frame.filename, platform, commitId}},
       ],
     ];
   }

@@ -39,6 +39,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             return Response({"detail": "Filepath is required"}, status=400)
 
         commitId = request.GET.get("commitId")
+        platform = request.GET.get("platform")
         result = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
@@ -60,7 +61,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 # use the provider key to be able to spilt up stacktrace
                 # link metrics by integration type
                 provider = result["config"]["provider"]["key"]
-                scope.set_tag("integration", provider)
+                scope.set_tag("integration_provider", provider)
+                scope.set_tag("stacktrace_link.platform", platform)
 
                 if not filepath.startswith(config.stack_root):
                     scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
