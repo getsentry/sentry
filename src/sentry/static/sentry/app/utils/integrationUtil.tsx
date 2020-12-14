@@ -113,12 +113,18 @@ type IntegrationCategorySelectEvent = {
 
 type IntegrationStacktraceLinkEvent = {
   eventKey:
+    | 'integrations.stacktrace_start_setup'
+    | 'integrations.stacktrace_automatic_setup'
+    | 'integrations.stacktrace_manual_setup'
     | 'integrations.stacktrace_link_clicked'
     | 'integrations.reconfigure_stacktrace_setup';
   eventName:
+    | 'Integrations: Stacktrace Start Setup'
+    | 'Integrations: Stacktrace Automatic Setup'
+    | 'Integrations: Stacktrace Manual Setup'
     | 'Integrations: Stacktrace Link Clicked'
     | 'Integrations: Reconfigure Stacktrace Setup';
-  provider: string;
+  provider?: string;
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 

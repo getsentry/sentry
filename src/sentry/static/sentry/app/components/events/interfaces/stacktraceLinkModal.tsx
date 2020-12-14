@@ -11,7 +11,7 @@ import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import InputField from 'app/views/settings/components/forms/inputField';
 
 type Props = AsyncComponent['props'] &
@@ -41,9 +41,31 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     });
   }
 
+  onManualSetup(provider: string) {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_manual_setup',
+        eventName: 'Integrations: Stacktrace Manual Setup',
+        view: 'stacktrace_issue_details',
+        provider,
+      },
+      this.props.organization,
+      {startSession: true}
+    );
+  }
+
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
     const {organization, filename, project} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_automatic_setup',
+        eventName: 'Integrations: Stacktrace Automatic Setup',
+        view: 'stacktrace_issue_details',
+      },
+      this.props.organization,
+      {startSession: true}
+    );
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
@@ -133,6 +155,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
                 <Button
                   key={integration.id}
                   type="button"
+                  onClick={() => this.onManualSetup(integration.provider.key)}
                   to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings`}
                 >
                   {getIntegrationIcon(integration.provider.key)}
