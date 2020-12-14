@@ -18,7 +18,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         if sentry_app.is_internal:
             return Response({"detail": "Cannot publish internal integration."}, status=400)
 
-        if sentry_app.is_published_request_inprogress:
+        if sentry_app.is_publish_request_inprogress:
             return Response({"detail": "Publish request in progress."}, status=400)
 
         Updater.run(
