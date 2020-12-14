@@ -2965,7 +2965,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        query = {"field": ["id", "project.id"], "project": [self.project.id], "no_pagination": True}
+        query = {"field": ["id", "project.id"], "project": [self.project.id], "noPagination": True}
         response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1

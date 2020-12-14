@@ -109,7 +109,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
         with self.handle_query_errors():
             # Don't include cursor headers if the client won't be using them
-            if request.GET.get("no_pagination"):
+            if request.GET.get("noPagination"):
                 return Response(
                     self.handle_results_with_meta(
                         request,

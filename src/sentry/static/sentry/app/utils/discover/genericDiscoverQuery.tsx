@@ -160,7 +160,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       apiPayload.per_page = limit;
     }
     if (noPagination) {
-      apiPayload.no_pagination = noPagination;
+      apiPayload.noPagination = noPagination;
     }
     if (cursor) {
       apiPayload.cursor = cursor;
