@@ -57,7 +57,11 @@ class AccountDetails extends AsyncView {
           />
         </Form>
         <Form initialData={user.options} {...formCommonProps} allowUndo>
-          <JsonForm location={location} forms={accountPreferencesFields} />
+          <JsonForm
+            location={location}
+            forms={accountPreferencesFields}
+            additionalFieldProps={{user}}
+          />
         </Form>
         <AvatarChooser
           endpoint="/users/me/avatar/"
