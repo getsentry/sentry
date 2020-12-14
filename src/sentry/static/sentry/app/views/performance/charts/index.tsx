@@ -17,7 +17,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 
 import {getAxisOptions} from '../data';
-import {ErrorPanel, HeaderContainer, HeaderTitle} from '../styles';
+import {DoubleHeaderContainer, ErrorPanel, HeaderTitle} from '../styles';
 
 import Chart from './chart';
 import Footer from './footer';
@@ -90,7 +90,7 @@ class Container extends React.Component<Props> {
 
             return (
               <React.Fragment>
-                <HeaderContainer>
+                <DoubleHeaderContainer>
                   {axisOptions.map((option, i) => (
                     <div key={`${option.label}:${i}`}>
                       <HeaderTitle>
@@ -103,7 +103,7 @@ class Container extends React.Component<Props> {
                       </HeaderTitle>
                     </div>
                   ))}
-                </HeaderContainer>
+                </DoubleHeaderContainer>
                 {results ? (
                   getDynamicText({
                     value: (

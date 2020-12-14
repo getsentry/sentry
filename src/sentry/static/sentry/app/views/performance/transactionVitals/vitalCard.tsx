@@ -307,9 +307,9 @@ class VitalCard extends React.Component<Props, State> {
                   organization={organization}
                   location={location}
                   vitalName={vital}
-                  hideDescription
                   hideBar
                   hideVitalPercentNames
+                  hideDurationDetail
                 />
               </PercentContainer>
             </Feature>
@@ -637,8 +637,8 @@ const Container = styled('div')`
 
 const PercentContainer = styled('div')`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(2)};
+  top: ${space(2)};
+  right: ${space(3)};
   z-index: 2;
 `;
 

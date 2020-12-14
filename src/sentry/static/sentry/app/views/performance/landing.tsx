@@ -402,7 +402,6 @@ export const StyledPageHeader = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-
   margin-bottom: ${space(2)};
 `;
 

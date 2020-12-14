@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'app/api';
@@ -18,7 +17,6 @@ import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
@@ -29,16 +27,10 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {HeaderTitleLegend} from '../styles';
+import {ChartContainer, HeaderTitleLegend} from '../styles';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
-import {
-  getMaxOfSeries,
-  vitalChartTitleMap,
-  vitalNameFromLocation,
-  webVitalMeh,
-  webVitalPoor,
-} from './utils';
+import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';
 
 const QUERY_KEYS = [
   'environment',
@@ -94,7 +86,6 @@ class VitalChart extends React.Component<Props> {
     const utc = decodeScalar(router.location.query.utc);
 
     const vitalName = vitalNameFromLocation(location);
-    const chartTitle = vitalChartTitleMap[vitalName];
 
     const yAxis = [`p75(${vitalName})`];
 
@@ -176,7 +167,7 @@ class VitalChart extends React.Component<Props> {
       grid: {
         left: '10px',
         right: '10px',
-        top: '40px',
+        top: '20px',
         bottom: '0px',
       },
       seriesOptions: {
@@ -199,111 +190,113 @@ class VitalChart extends React.Component<Props> {
     };
 
     return (
-      <ChartBody>
-        <HeaderTitleLegend>
-          {t(chartTitle || '')}
-          <QuestionTooltip
-            size="sm"
-            position="top"
-            title={t(`The durations shown should fall under the vital threshold.`)}
-          />
-        </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
-          {zoomRenderProps => (
-            <EventsRequest
-              api={api}
-              organization={organization}
-              period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
-              start={start}
-              end={end}
-              interval={getInterval(datetimeSelection, true)}
-              showLoading={false}
-              query={query}
-              includePrevious={false}
-              yAxis={yAxis}
-            >
-              {({timeseriesData: results, errored, loading, reloading}) => {
-                if (errored) {
+      <Panel>
+        <ChartContainer>
+          <HeaderTitleLegend>
+            {t('Duration p75')}
+            <QuestionTooltip
+              size="sm"
+              position="top"
+              title={t(`The durations shown should fall under the vital threshold.`)}
+            />
+          </HeaderTitleLegend>
+          <ChartZoom
+            router={router}
+            period={statsPeriod}
+            projects={project}
+            environments={environment}
+          >
+            {zoomRenderProps => (
+              <EventsRequest
+                api={api}
+                organization={organization}
+                period={statsPeriod}
+                project={[...project]}
+                environment={[...environment]}
+                start={start}
+                end={end}
+                interval={getInterval(datetimeSelection, true)}
+                showLoading={false}
+                query={query}
+                includePrevious={false}
+                yAxis={yAxis}
+              >
+                {({timeseriesData: results, errored, loading, reloading}) => {
+                  if (errored) {
+                    return (
+                      <ErrorPanel>
+                        <IconWarning color="gray500" size="lg" />
+                      </ErrorPanel>
+                    );
+                  }
+
+                  const colors =
+                    (results && theme.charts.getColorPalette(results.length - 2)) || [];
+
+                  const {smoothedResults} = transformEventStatsSmoothed(results);
+
+                  const smoothedSeries = smoothedResults
+                    ? smoothedResults.map(({seriesName, ...rest}, i: number) => {
+                        return {
+                          seriesName: replaceSeriesName(seriesName) || 'p75',
+                          ...rest,
+                          color: colors[i],
+                          lineStyle: {
+                            opacity: 1,
+                            width: 2,
+                          },
+                        };
+                      })
+                    : [];
+
+                  const seriesMax = getMaxOfSeries(smoothedSeries);
+                  const yAxisMax = Math.max(seriesMax, vitalPoor);
+                  chartOptions.yAxis.max = yAxisMax * 1.1;
+
+                  // Stack the toolbox under the legend.
+                  // so all series names are clickable.
+                  zoomRenderProps.toolBox.z = -1;
+
                   return (
-                    <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
-                    </ErrorPanel>
+                    <ReleaseSeries
+                      start={start}
+                      end={end}
+                      period={statsPeriod}
+                      utc={utc}
+                      projects={project}
+                      environments={environment}
+                    >
+                      {({releaseSeries}) => (
+                        <TransitionChart loading={loading} reloading={reloading}>
+                          <TransparentLoadingMask visible={reloading} />
+                          {getDynamicText({
+                            value: (
+                              <LineChart
+                                {...zoomRenderProps}
+                                {...chartOptions}
+                                legend={legend}
+                                onLegendSelectChanged={this.handleLegendSelectChanged}
+                                series={[
+                                  ...markLines,
+                                  ...releaseSeries,
+                                  ...smoothedSeries,
+                                ]}
+                              />
+                            ),
+                            fixed: 'Web Vitals Chart',
+                          })}
+                        </TransitionChart>
+                      )}
+                    </ReleaseSeries>
                   );
-                }
-
-                const colors =
-                  (results && theme.charts.getColorPalette(results.length - 2)) || [];
-
-                const {smoothedResults} = transformEventStatsSmoothed(results);
-
-                const smoothedSeries = smoothedResults
-                  ? smoothedResults.map(({seriesName, ...rest}, i: number) => {
-                      return {
-                        seriesName: replaceSeriesName(seriesName) || 'Current',
-                        ...rest,
-                        color: colors[i],
-                        lineStyle: {
-                          opacity: 1,
-                          width: 3,
-                        },
-                      };
-                    })
-                  : [];
-
-                const seriesMax = getMaxOfSeries(smoothedSeries);
-                const yAxisMax = Math.max(seriesMax, vitalPoor);
-                chartOptions.yAxis.max = yAxisMax * 1.1;
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
-
-                return (
-                  <ReleaseSeries
-                    start={start}
-                    end={end}
-                    period={statsPeriod}
-                    utc={utc}
-                    projects={project}
-                    environments={environment}
-                  >
-                    {({releaseSeries}) => (
-                      <TransitionChart loading={loading} reloading={reloading}>
-                        <TransparentLoadingMask visible={reloading} />
-                        {getDynamicText({
-                          value: (
-                            <LineChart
-                              {...zoomRenderProps}
-                              {...chartOptions}
-                              legend={legend}
-                              onLegendSelectChanged={this.handleLegendSelectChanged}
-                              series={[...markLines, ...releaseSeries, ...smoothedSeries]}
-                            />
-                          ),
-                          fixed: 'Web Vitals Chart',
-                        })}
-                      </TransitionChart>
-                    )}
-                  </ReleaseSeries>
-                );
-              }}
-            </EventsRequest>
-          )}
-        </ChartZoom>
-      </ChartBody>
+                }}
+              </EventsRequest>
+            )}
+          </ChartZoom>
+        </ChartContainer>
+      </Panel>
     );
   }
 }
-
-const ChartBody = styled(Panel)`
-  padding: ${space(3)} ${space(2)};
-`;
 
 export default withApi(ReactRouter.withRouter(VitalChart));
