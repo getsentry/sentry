@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_RELEASE_PAT }}
+          fetch-depth: 0
       - uses: getsentry/craft@master
         name: Craft Prepare
         with:
