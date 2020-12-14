@@ -96,7 +96,9 @@ const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
 
 const PanelBodyLineItem = styled(PanelBody)`
   font-size: 1.4rem;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
 `;
 
 // Which fine tuning parts are grouped by project
@@ -267,7 +269,7 @@ export default class AccountNotificationFineTuning extends AsyncView<Props, Stat
       field.choices = this.emailChoices.map(({email}) => [email, email]);
     }
 
-    if (!notifications || !projects || !fineTuneData) {
+    if (!notifications || !fineTuneData) {
       return null;
     }
 
@@ -313,7 +315,7 @@ export default class AccountNotificationFineTuning extends AsyncView<Props, Stat
               initialData={fineTuneData}
             >
               {isProject && hasProjects && (
-                <AccountNotificationsByProject projects={projects} field={field} />
+                <AccountNotificationsByProject projects={projects!} field={field} />
               )}
 
               {isProject && !hasProjects && (
