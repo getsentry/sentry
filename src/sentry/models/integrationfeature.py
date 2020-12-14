@@ -14,6 +14,7 @@ class Feature(object):
     PROJECT_MANAGEMENT = 4
     INCIDENT_MANAGEMENT = 5
     FEATURE_FLAG = 6
+    ALERTS = 7
 
     @classmethod
     def as_choices(cls):
@@ -25,6 +26,7 @@ class Feature(object):
             (cls.PROJECT_MANAGEMENT, u"integrations-project-management"),
             (cls.INCIDENT_MANAGEMENT, u"integrations-incident-management"),
             (cls.FEATURE_FLAG, u"integrations-feature-flag"),
+            (cls.ALERTS, u"integrations-alerts"),
         )
 
     @classmethod
@@ -41,6 +43,8 @@ class Feature(object):
             return "integrations-incident-management"
         if feature == cls.FEATURE_FLAG:
             return "integrations-feature-flag"
+        if feature == cls.ALERTS:
+            return "integrations-alerts"
         return "integrations-api"
 
     @classmethod
@@ -57,6 +61,8 @@ class Feature(object):
             return "Organizations can **open a line to Sentry's stack trace** in another service."
         if feature == cls.EVENT_HOOKS:
             return "%s allows organizations to **forward events to another service**." % name
+        if feature == cls.ALERTS:
+            return "Configure Sentry alerts to trigger notifications in %s." % name
         # default
         return (
             "%s can **utilize the Sentry API** to pull data or update resources in Sentry (with permissions granted, of course)."
