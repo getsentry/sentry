@@ -10,6 +10,7 @@ import {DashboardDetails} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;
+  isEditing: boolean;
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
@@ -30,12 +31,11 @@ class DashboardTitle extends React.Component<Props> {
       return;
     }
     const {dashboard, onUpdate} = this.props;
-
-    event.target.innerText = nextDashboardTitle;
-
     if (!dashboard) {
       return;
     }
+
+    event.target.innerText = nextDashboardTitle;
 
     onUpdate({
       ...dashboard,
@@ -44,10 +44,14 @@ class DashboardTitle extends React.Component<Props> {
   };
 
   render() {
-    const {dashboard} = this.props;
+    const {dashboard, isEditing} = this.props;
 
     if (!dashboard) {
       return <Container>{t('Dashboards')}</Container>;
+    }
+
+    if (!isEditing) {
+      return <Container>{dashboard.title}</Container>;
     }
 
     return (
