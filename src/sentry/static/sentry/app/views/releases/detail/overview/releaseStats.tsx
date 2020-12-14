@@ -95,6 +95,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                 >
                   {({isLoading, error, tableData}) => {
                     if (isLoading || error || !tableData || tableData.data.length === 0) {
+                      return '\u2014';
                     }
                     return (
                       <GlobalSelectionLink
