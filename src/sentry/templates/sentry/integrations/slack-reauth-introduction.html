@@ -85,11 +85,13 @@
 {% endblock %}
 
 {% block main %}
+{% script %}
 <script>
     function loading() {
         document.getElementById("loader").setAttribute("class", "loader");
     };
 </script>
+{% endscript %}
     <h3>{% trans "Time For An Upgrade" %}</h3>
 
     <h5>{% trans "Farewell to Slack's legacy workspace apps." %}</h5>

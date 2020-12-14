@@ -2,6 +2,7 @@
 
 {% load sentry_api %}
 {% load sentry_assets %}
+{% load sentry_helpers %}
 
 {% block body %}
   <div id="blk_router">
@@ -32,9 +33,11 @@
       </div>
     </div>
   </div>
+  {% script %}
   <script>
   $(function() {
     if (typeof SentryRenderApp === 'function') SentryRenderApp();
   });
   </script>
+  {% endscript %}
 {% endblock %}
