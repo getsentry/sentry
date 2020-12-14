@@ -191,8 +191,14 @@ export default class AbstractExternalIssueForm<
     };
   };
 
-  renderForm = (formFields: IssueConfigField[]) => {
-    const initialData = formFields.reduce(
+  renderComponent() {
+    return this.state.error
+      ? this.renderError(new Error('Unable to load all required endpoints'))
+      : this.renderBody();
+  }
+
+  renderForm = (formFields?: IssueConfigField[]) => {
+    const initialData = (formFields || []).reduce(
       (accumulator: {[key: string]: any}, field: FormField) => {
         // passing an empty array breaks multi select
         // TODO(jess): figure out why this is breaking and fix
@@ -211,22 +217,28 @@ export default class AbstractExternalIssueForm<
         </Modal.Header>
         {this.renderNavTabs()}
         <Modal.Body>
-          {this.renderBodyText()}
-          <Form initialData={initialData} {...this.getFormProps()}>
-            {formFields
-              .filter((field: FormField) => field.hasOwnProperty('name'))
-              .map(field => (
-                <FieldFromConfig
-                  key={`${field.name}-${field.default}-${field.required}`}
-                  field={field}
-                  inline={false}
-                  stacked
-                  flexibleControlStateSize
-                  disabled={this.state.reloading}
-                  {...this.getFieldProps(field)}
-                />
-              ))}
-          </Form>
+          {this.shouldRenderLoading() ? (
+            this.renderLoading()
+          ) : (
+            <React.Fragment>
+              {this.renderBodyText()}
+              <Form initialData={initialData} {...this.getFormProps()}>
+                {(formFields || [])
+                  .filter((field: FormField) => field.hasOwnProperty('name'))
+                  .map(field => (
+                    <FieldFromConfig
+                      key={`${field.name}-${field.default}-${field.required}`}
+                      field={field}
+                      inline={false}
+                      stacked
+                      flexibleControlStateSize
+                      disabled={this.state.reloading}
+                      {...this.getFieldProps(field)}
+                    />
+                  ))}
+              </Form>
+            </React.Fragment>
+          )}
         </Modal.Body>
       </React.Fragment>
     );

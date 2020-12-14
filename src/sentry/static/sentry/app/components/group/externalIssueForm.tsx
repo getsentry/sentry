@@ -131,11 +131,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
 
   renderBody() {
     const {integrationDetails} = this.state;
-    const configName = this.getConfigName();
-    if (!integrationDetails?.hasOwnProperty(configName)) {
-      return null;
-    }
-    const config: IssueConfigField[] = integrationDetails[configName];
+    const config: IssueConfigField[] = (integrationDetails || {})[this.getConfigName()];
     return this.renderForm(config);
   }
 }
