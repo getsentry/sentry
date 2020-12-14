@@ -135,10 +135,8 @@ class ScriptNode(template.Node):
     def _get_value(self, token, context):
         if isinstance(token, six.string_types):
             return token
-        if isinstance(token.var, template.Variable):
-            return token.var.resolve(context)
-        if hasattr(token, "var"):
-            return token.var
+        if isinstance(token, template.base.FilterExpression):
+            return token.resolve(context)
         return None
 
     def render(self, context):

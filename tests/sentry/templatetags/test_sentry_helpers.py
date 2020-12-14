@@ -115,6 +115,11 @@ def test_script_no_context(input, output):
             "{% script src=url_path %}{% endscript %}",
             '<script nonce="r@nD0m" src="/asset.js"></script>',
         ),
+        # src with variable string name
+        (
+            "{% script src=url_path|upper %}{% endscript %}",
+            '<script nonce="r@nD0m" src="/ASSET.JS"></script>',
+        ),
     ),
 )
 def test_script_context(input, output):
