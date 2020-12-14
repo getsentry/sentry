@@ -70,7 +70,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
         ))}
       {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
-      {!lifetime && !lastSeen ? (
+      {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
       ) : hasInbox ? (
         <TimesTag
