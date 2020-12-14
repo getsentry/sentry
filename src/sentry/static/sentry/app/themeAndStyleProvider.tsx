@@ -39,14 +39,6 @@ class Main extends React.Component<Props, State> {
     }
   }
 
-  renderCore() {
-    const {children} = this.props;
-    if (children) {
-      return children;
-    }
-    return <Router history={browserHistory}>{routes()}</Router>;
-  }
-
   render() {
     return (
       <ThemeProvider<Theme> theme={this.state.theme}>
