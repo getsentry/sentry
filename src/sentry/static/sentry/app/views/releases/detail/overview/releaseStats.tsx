@@ -94,13 +94,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                   orgSlug={organization.slug}
                 >
                   {({isLoading, error, tableData}) => {
-                    if (
-                      isLoading ||
-                      error ||
-                      !tableData ||
-                      tableData.data.length === 0
-                    ) {
-                      return '\u2014';
+                    if (isLoading || error || !tableData || tableData.data.length === 0) {
                     }
                     return (
                       <GlobalSelectionLink
