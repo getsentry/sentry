@@ -64,5 +64,5 @@ class OrganizationReleasesTest(AcceptanceTestCase):
             self.browser.get(self.path + release.version)
             self.browser.wait_until_not(".loading")
             self.browser.wait_until_test_id("release-wrapper")
-            self.browser.snapshot("organization releases - detail")
+            self.browser.snapshot("organization releases - detail with discover and performance")
             # TODO(releases): add health data
