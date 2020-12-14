@@ -73,7 +73,7 @@ function IncompatibleQueryAlert({
   const eventTypeDefault = eventView.clone();
   eventTypeDefault.query += ' event.type:default';
   const eventTypeErrorDefault = eventView.clone();
-  eventTypeErrorDefault.query += ' event.type:error or event.type:transaction';
+  eventTypeErrorDefault.query += ' event.type:error or event.type:default';
   const pathname = `/organizations/${orgId}/discover/results/`;
 
   const eventTypeLinks = {
