@@ -26,6 +26,8 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import {ChartContainer, HeaderTitleLegend} from '../performance/styles';
+
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
 
@@ -108,10 +110,10 @@ class WidgetCard extends React.Component<Props, State> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: '10px',
-        right: '10px',
+        left: '0px',
+        right: '0px',
         top: '40px',
-        bottom: '0px',
+        bottom: '10px',
       },
       seriesOptions: {
         showSymbol: false,
@@ -244,9 +246,11 @@ class WidgetCard extends React.Component<Props, State> {
             }
           }}
         >
-          <WidgetHeader>{widget.title}</WidgetHeader>
-          {this.renderVisual()}
-          {this.renderEditPanel()}
+          <ChartContainer>
+            <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
+            {this.renderVisual()}
+            {this.renderEditPanel()}
+          </ChartContainer>
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -268,21 +272,8 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const WidgetHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(2)} ${space(3)};
-
-  position: absolute;
-  z-index: 2;
-`;
-
 const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
+  margin: 0;
 `;
 
 const EditPanel = styled('div')`
