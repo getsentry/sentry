@@ -30,7 +30,7 @@ describe('AccountDetails', function () {
 
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
 
-    // Stacktrace order, language, timezone
+    // Stacktrace order, language, timezone, theme
     expect(wrapper.find('SelectControl')).toHaveLength(4);
 
     expect(wrapper.find('BooleanField')).toHaveLength(1);
