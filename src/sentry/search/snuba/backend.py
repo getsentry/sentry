@@ -169,15 +169,10 @@ def owner_filter(owner, projects):
         owned_team = Q(groupowner__team__in=teams)
         owned_me = Q(groupowner__user=owner[1])
         no_owner = Q(groupowner__isnull=True)
-        return Q(
-            no_owner
-            | (
-                Q(
-                    groupowner__project_id__in=project_ids,
-                    groupowner__organization_id=organization_id,
-                )
-                & Q(owned_me | owned_team)
-            )
+        return no_owner | Q(
+            owned_me | owned_team,
+            groupowner__project_id__in=project_ids,
+            groupowner__organization_id=organization_id,
         )
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
