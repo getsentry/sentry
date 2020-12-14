@@ -181,7 +181,7 @@ class VitalCard extends React.Component<Props, State> {
 
     return (
       <CardSummary>
-        <Indicator color={colors[0]} />
+        {!this.showVitalColours() && <Indicator color={colors[0]} />}
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
           {summary === null || this.showVitalColours() ? null : summary <
