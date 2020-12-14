@@ -13,11 +13,10 @@ import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
-type Props = {
-  action: ExternalIssueAction;
-} & AsyncComponent['props'];
+type Props = AsyncComponent['props'];
 
 type State = {
+  action: ExternalIssueAction | null;
   integrationDetails: IntegrationIssueConfig | null;
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
 } & AsyncComponent['state'];
@@ -35,6 +34,7 @@ export default class AbstractExternalIssueForm<
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
+      action: 'create',
       // This is derived from integrationDetails when it loads.
       dynamicFieldValues: null,
       // This is fetched by AsyncComponent.getEndpoints.
@@ -43,8 +43,7 @@ export default class AbstractExternalIssueForm<
   }
 
   refetchConfig = () => {
-    const {action} = this.props;
-    const {dynamicFieldValues} = this.state;
+    const {action, dynamicFieldValues} = this.state;
     const query = {action, ...dynamicFieldValues};
     const endpoint = this.getEndPointString();
 
@@ -62,7 +61,7 @@ export default class AbstractExternalIssueForm<
 
   getConfigName = (): string => {
     // Explicitly returning a non-interpolated string for clarity.
-    const {action} = this.props;
+    const {action} = this.state;
     switch (action) {
       case 'create':
         return 'createIssueConfig';
@@ -73,9 +72,9 @@ export default class AbstractExternalIssueForm<
     }
   };
 
-  getDynamicFields(
+  getDynamicFields = (
     integrationDetails?: IntegrationIssueConfig
-  ): {[key: string]: FieldValue | null} {
+  ): {[key: string]: FieldValue | null} => {
     const config: IssueConfigField[] = (integrationDetails ||
       this.state.integrationDetails ||
       {})[this.getConfigName()];
@@ -85,15 +84,15 @@ export default class AbstractExternalIssueForm<
         .filter((field: IssueConfigField) => field.updatesForm)
         .map((field: IssueConfigField) => [field.name, field.default || null])
     );
-  }
+  };
 
-  onRequestSuccess({stateKey, data}) {
+  onRequestSuccess = ({stateKey, data}) => {
     if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
       });
     }
-  }
+  };
 
   onFieldChange = (label: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
@@ -176,8 +175,8 @@ export default class AbstractExternalIssueForm<
 
   // Abstract methods.
   getEndPointString = () => '';
-  renderNavTabs = () => <React.Fragment />;
-  renderBodyText = () => <React.Fragment />;
+  renderNavTabs = (): React.ReactNode => null;
+  renderBodyText = (): React.ReactNode => null;
   getTitle = () => tct('Issue Link Settings', {});
   getFormProps = (): Form['props'] => {
     throw new Error("Method 'getFormProps()' must be implemented.");
@@ -192,7 +191,7 @@ export default class AbstractExternalIssueForm<
     };
   };
 
-  renderForm(formFields: IssueConfigField[]) {
+  renderForm = (formFields: IssueConfigField[]) => {
     const initialData = formFields.reduce(
       (accumulator: {[key: string]: any}, field: FormField) => {
         // passing an empty array breaks multi select
@@ -231,5 +230,5 @@ export default class AbstractExternalIssueForm<
         </Modal.Body>
       </React.Fragment>
     );
-  }
+  };
 }

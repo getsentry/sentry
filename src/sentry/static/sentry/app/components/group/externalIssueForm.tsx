@@ -1,15 +1,14 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
+import {closeModal, ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import AbstractExternalIssueForm, {
   ExternalIssueAction,
 } from 'app/components/externalIssues/abstractExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Group, Integration, IntegrationExternalIssue, IssueConfigField} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
 
@@ -23,46 +22,42 @@ const SUBMIT_LABEL_BY_ACTION = {
   create: t('Create Issue'),
 };
 
-type Props = {
-  action: ExternalIssueAction;
+type Props = ModalRenderProps & {
   group: Group;
-  handleClick: (action: ExternalIssueAction) => void;
   integration: Integration;
-  onSubmitSuccess: (
-    externalIssue: IntegrationExternalIssue,
-    onSuccess: () => void
-  ) => void;
+  onChange: (onSuccess?: () => void, onError?: () => void) => void;
 } & AbstractExternalIssueForm['props'];
 
-type State = AbstractExternalIssueForm['state'];
+type State = {
+  action?: ExternalIssueAction;
+} & AbstractExternalIssueForm['state'];
 
-class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
+export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   loadTransaction?: ReturnType<typeof Sentry.startTransaction>;
   submitTransaction?: ReturnType<typeof Sentry.startTransaction>;
-
-  static propTypes = {
-    group: SentryTypes.Group.isRequired,
-    integration: PropTypes.object.isRequired,
-    action: PropTypes.oneOf(['link', 'create']),
-    onSubmitSuccess: PropTypes.func.isRequired,
-  };
 
   componentDidMount() {
     this.loadTransaction = this.startTransaction('load');
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {action, group, integration} = this.props;
+  getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
+    const {group, integration} = this.props;
+    const {action} = this.state;
     return [
       [
         'integrationDetails',
         `/groups/${group.id}/integrations/${integration.id}/?action=${action}`,
       ],
     ];
-  }
+  };
+
+  handleClick = (action: ExternalIssueAction) => {
+    this.setState({action}, () => this.reloadData());
+  };
 
   startTransaction = (type: 'load' | 'submit') => {
-    const {action, group, integration} = this.props;
+    const {group, integration} = this.props;
+    const {action} = this.state;
     const transaction = Sentry.startTransaction({name: `externalIssueForm.${type}`});
     transaction.setTag('issueAction', action);
     transaction.setTag('groupID', group.id);
@@ -76,10 +71,12 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
     this.submitTransaction = this.startTransaction('submit');
   };
 
-  onSubmitSuccess = (data: IntegrationExternalIssue): void => {
-    const {action, onSubmitSuccess} = this.props;
+  onSubmitSuccess = (_data: IntegrationExternalIssue): void => {
+    const {onChange} = this.props;
+    const {action} = this.state;
+    onChange(() => addSuccessMessage(MESSAGES_BY_ACTION[action]));
+    closeModal();
 
-    onSubmitSuccess(data, () => addSuccessMessage(MESSAGES_BY_ACTION[action]));
     this.submitTransaction?.finish();
   };
 
@@ -87,9 +84,9 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
     this.submitTransaction?.finish();
   };
 
-  onLoadAllEndpointsSuccess() {
+  onLoadAllEndpointsSuccess = () => {
     this.loadTransaction?.finish();
-  }
+  };
 
   onRequestError = () => {
     this.loadTransaction?.finish();
@@ -106,7 +103,7 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   };
 
   getFormProps = (): Form['props'] => {
-    const {action} = this.props;
+    const {action} = this.state;
     return {
       ...this.getDefaultFormProps(),
       submitLabel: SUBMIT_LABEL_BY_ACTION[action],
@@ -119,15 +116,14 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   };
 
   renderNavTabs = () => {
-    const {action, handleClick} = this.props;
-
+    const {action} = this.state;
     return (
       <NavTabs underlined>
         <li className={action === 'create' ? 'active' : ''}>
-          <a onClick={() => handleClick('create')}>{t('Create')}</a>
+          <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
         </li>
         <li className={action === 'link' ? 'active' : ''}>
-          <a onClick={() => handleClick('link')}>{t('Link')}</a>
+          <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
         </li>
       </NavTabs>
     );
@@ -135,12 +131,11 @@ class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
 
   renderBody() {
     const {integrationDetails} = this.state;
-    if (!integrationDetails) {
-      return <React.Fragment />;
+    const configName = this.getConfigName();
+    if (!integrationDetails?.hasOwnProperty(configName)) {
+      return null;
     }
-    const config: IssueConfigField[] = integrationDetails[this.getConfigName()];
+    const config: IssueConfigField[] = integrationDetails[configName];
     return this.renderForm(config);
   }
 }
-
-export default ExternalIssueForm;
