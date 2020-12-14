@@ -9,8 +9,8 @@ import space from 'app/styles/space';
 import {DashboardDetails} from './types';
 
 type Props = {
-  changesDashboard: DashboardDetails | null;
-  setChangesDashboard: (dashboard: DashboardDetails) => void;
+  dashboard: DashboardDetails | null;
+  onUpdate: (dashboard: DashboardDetails) => void;
 };
 
 class DashboardTitle extends React.Component<Props> {
@@ -29,25 +29,24 @@ class DashboardTitle extends React.Component<Props> {
 
       return;
     }
-
-    const {changesDashboard, setChangesDashboard} = this.props;
+    const {dashboard, onUpdate} = this.props;
 
     event.target.innerText = nextDashboardTitle;
 
-    if (!changesDashboard) {
+    if (!dashboard) {
       return;
     }
 
-    setChangesDashboard({
-      ...changesDashboard,
+    onUpdate({
+      ...dashboard,
       title: nextDashboardTitle,
     });
   };
 
   render() {
-    const {changesDashboard} = this.props;
+    const {dashboard} = this.props;
 
-    if (!changesDashboard) {
+    if (!dashboard) {
       return <Container>{t('Dashboards')}</Container>;
     }
 
@@ -56,7 +55,7 @@ class DashboardTitle extends React.Component<Props> {
         <StyledInlineInput
           name="dashboard-title"
           ref={this.refInput}
-          value={changesDashboard.title}
+          value={dashboard.title}
           onBlur={this.onBlur}
         />
       </Container>

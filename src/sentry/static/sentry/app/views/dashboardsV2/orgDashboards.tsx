@@ -56,7 +56,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [['dashboards', url]];
 
     if (params.dashboardId) {
-      endpoints.push(['selectedDashboard', `${url}/${params.dashboardId}/`]);
+      endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);
     }
 
     return endpoints;
