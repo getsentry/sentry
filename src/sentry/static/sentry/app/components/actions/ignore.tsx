@@ -366,6 +366,7 @@ const StyledIgnoreButton = styled(Button)`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
   border: 1px solid #4538a1;
+  box-shadow: none;
   & span {
     padding: 6px 4.5px;
   }
