@@ -144,7 +144,6 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
   };
 
   handleSubmitError = err => {
-    console.log(err?.responseJSON?.detail);
     addErrorMessage(
       tct('Request to publish [app] fails. [detail]', {
         app: this.props.app.slug,
