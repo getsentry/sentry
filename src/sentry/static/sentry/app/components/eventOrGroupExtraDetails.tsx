@@ -10,6 +10,7 @@ import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Placeholder from 'app/components/placeholder';
 import ShortId from 'app/components/shortId';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
@@ -69,7 +70,9 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
         ))}
       {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
-      {hasInbox ? (
+      {!lifetime && !firstSeen && !lastSeen ? (
+        <Placeholder height="14px" width="100px" />
+      ) : hasInbox ? (
         <TimesTag
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
