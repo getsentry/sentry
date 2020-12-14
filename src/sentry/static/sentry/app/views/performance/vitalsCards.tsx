@@ -81,7 +81,6 @@ const VitalsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   grid-column-gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, 1fr);
@@ -107,6 +106,7 @@ const VitalCard = styled(Card)`
   padding: ${space(2)} ${space(3)};
   align-items: flex-start;
   min-height: 150px;
+  margin-bottom: ${space(2)};
 `;
 
 export function LinkedVitalsCard(props: CardProps) {
@@ -359,9 +359,12 @@ const VitalLink = (props: VitalLinkProps) => {
 };
 
 const BarDetail = styled('div')`
-  display: flex;
-  justify-content: space-between;
   font-size: ${p => p.theme.fontSizeMedium};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    justify-content: space-between;
+  }
 `;
 
 const CardValue = styled('div')`

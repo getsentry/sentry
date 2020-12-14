@@ -46,7 +46,8 @@ export default function VitalPercents(props: Props) {
 }
 
 const VitalSet = styled('div')`
-  display: flex;
+  display: inline-grid;
+  grid-auto-flow: column;
   gap: ${space(2)};
 `;
 

@@ -87,7 +87,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
 
   return (
     <div>
-      <ApdexContainer>
+      <SidebarWrapper>
         <SectionHeading>
           {t('Apdex Score')}
           <QuestionTooltip
@@ -104,12 +104,12 @@ function UserStats({eventView, totals, location, organization, transactionName}:
             {threshold}ms {t('threshold')}
           </SectionValue>
         </Link>
-      </ApdexContainer>
+      </SidebarWrapper>
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
           if (hasFeature) {
             return (
-              <div>
+              <SidebarWrapper>
                 <VitalsHeading>
                   <SectionHeading>
                     {t('Web Vitals')}
@@ -131,7 +131,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                   location={location}
                   hasCondensedVitals
                 />
-              </div>
+              </SidebarWrapper>
             );
           } else {
             return (
@@ -172,7 +172,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
   );
 }
 
-const ApdexContainer = styled('div')`
+const SidebarWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
