@@ -177,6 +177,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     def is_installed_on(self, organization):
         return SentryAppInstallation.objects.filter(
             organization=organization, sentry_app=self,
+        ).exists()
 
     def build_signature(self, body):
         secret = self.application.client_secret
