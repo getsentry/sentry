@@ -25,6 +25,7 @@ backend_lintable: &backend_lintable
 
 backend: &backend
   - *backend_lintable
+  - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
   - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
