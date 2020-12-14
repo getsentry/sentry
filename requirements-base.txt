@@ -31,7 +31,7 @@ mmh3>=2.3.1,<2.4
 parsimonious==0.8.0
 petname>=2.6,<2.7
 phonenumberslite>=8.11.0,<8.12.0
-Pillow>=6.2.2,<7.0.0
+Pillow>=8.0.0,<9.0.0  # Pillow 8.x supports Python 3.6 to 3.9
 progressbar2>=3.32,<3.33
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
