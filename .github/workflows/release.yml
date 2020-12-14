@@ -42,7 +42,7 @@ jobs:
             await github.issues.create({
               owner: repoInfo.owner,
               repo: 'publish',
-              title: `publish ${repoInfo.repo}@${process.env.RELEASE_VERSION}`,
+              title: `publish: ${repoInfo.repo}@${process.env.RELEASE_VERSION}`,
               // TODO: Remove the following line after verification
               labels: ['dry-run'],
             });
