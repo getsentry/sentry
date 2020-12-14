@@ -39,7 +39,7 @@ jobs:
           github-token: ${{ secrets.GH_SENTRY_BOT_PAT }}
           script: |
             const repoInfo = context.repo;
-            await github.issues.createComment({
+            await github.issues.create({
               owner: repoInfo.owner,
               repo: 'publish',
               title: `publish ${repoInfo.repo}@{process.env.RELEASE_VERSION}`,
