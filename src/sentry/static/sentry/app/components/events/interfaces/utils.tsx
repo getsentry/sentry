@@ -91,7 +91,7 @@ export function getFullUrl(data: RequestEntry['data']): string | undefined {
     return fullUrl;
   }
 
-  if (data?.query && data.query.length) {
+  if (data?.query?.length) {
     fullUrl += '?' + stringifyQueryList(data.query);
   }
 
