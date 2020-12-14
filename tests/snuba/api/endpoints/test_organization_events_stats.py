@@ -273,6 +273,44 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
+    def test_throughput_epm_day_rollup(self):
+        project = self.create_project()
+        # Each of these denotes how many events to create in each minute
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_event(
+                    data={
+                        "event_id": six.text_type(uuid.uuid1()),
+                        "message": "very bad",
+                        "timestamp": iso_format(
+                            self.day_ago + timedelta(hours=hour, minutes=minute)
+                        ),
+                        "fingerprint": ["group1"],
+                        "tags": {"sentry:user": self.user.email},
+                    },
+                    project_id=project.id,
+                )
+
+        for axis in ["epm()", "tpm()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=24)),
+                        "interval": "24h",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+
+            assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+
     def test_throughput_eps_minute_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each minute

@@ -248,6 +248,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
                 # users.
+                # We need these rollup columns to generate correct events-stats results
                 column_map = {
                     "user_count": "count_unique(user)",
                     "event_count": "count()",
