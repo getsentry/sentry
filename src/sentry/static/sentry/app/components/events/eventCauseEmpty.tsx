@@ -11,13 +11,7 @@ import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {
-  Commit,
-  Project,
-  PromptActivity,
-  RepositoryStatus,
-  SharedViewOrganization,
-} from 'app/types';
+import {Commit, Organization, Project, PromptActivity, RepositoryStatus} from 'app/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import {snoozedDays} from 'app/utils/promptsActivity';
@@ -80,8 +74,14 @@ const DUMMY_COMMIT: Commit = {
   message: t('This example commit broke something'),
 };
 
+type ClickPayload = {
+  action: 'snoozed' | 'dismissed';
+  eventKey: string;
+  eventName: string;
+};
+
 type Props = {
-  organization: SharedViewOrganization;
+  organization: Organization;
   project: Project;
   api: Client;
 };
@@ -138,7 +138,7 @@ class EventCauseEmpty extends React.Component<Props, State> {
     return true;
   }
 
-  handleClick({action, eventKey, eventName}) {
+  handleClick({action, eventKey, eventName}: ClickPayload) {
     const {api, project, organization} = this.props;
 
     const data = {

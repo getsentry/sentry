@@ -221,7 +221,10 @@ class EventEntries extends React.Component<Props> {
         )}
         {!isShare &&
           (showExampleCommit ? (
-            <EventCauseEmpty organization={organization} project={project} />
+            <EventCauseEmpty
+              organization={organization as Organization}
+              project={project}
+            />
           ) : (
             <EventCause
               organization={organization as Organization}
