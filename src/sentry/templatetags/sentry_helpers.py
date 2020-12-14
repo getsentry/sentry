@@ -124,7 +124,7 @@ def script(parser, token):
 
         return ScriptNode(nodelist, **kwargs)
     except ValueError as err:
-        raise template.TemplateSyntaxError("`script` tag failed to compile. : %s".format(err))
+        raise template.TemplateSyntaxError("`script` tag failed to compile. : {}".format(err))
 
 
 class ScriptNode(template.Node):
