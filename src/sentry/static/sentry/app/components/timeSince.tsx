@@ -120,7 +120,7 @@ class TimeSince extends React.PureComponent<Props, State> {
         disabled={disabledAbsoluteTooltip}
         title={
           <div>
-            {tooltipTitle} <br />
+            <div>{tooltipTitle}</div>
             {tooltip}
           </div>
         }
