@@ -17,7 +17,7 @@ describe('IgnoreActions', function () {
         <IgnoreActions onUpdate={spy} disabled />,
         routerContext
       );
-      button = component.find('a.btn.btn-default').first();
+      button = component.find('StyledIgnoreActionLink').first();
     });
 
     it('has disabled prop', function () {
@@ -41,13 +41,13 @@ describe('IgnoreActions', function () {
     });
 
     it('displays ignored view', function () {
-      const button = component.find('a.btn.active');
+      const button = component.find('StyledIgnoreButton');
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function () {
-      component.find('a.btn.active').simulate('click');
+      component.find('StyledButton').simulate('click');
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
@@ -61,7 +61,7 @@ describe('IgnoreActions', function () {
     });
 
     it('calls spy with ignore details when clicked', function () {
-      const button = component.find('a.btn.btn-default').first();
+      const button = component.find('StyledIgnoreActionLink').first();
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'ignored'});
@@ -77,7 +77,7 @@ describe('IgnoreActions', function () {
         <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="Yoooooo" />,
         routerContext
       );
-      button = component.find('a.btn.btn-default').first();
+      button = component.find('StyledIgnoreActionLink').first();
     });
 
     it('displays confirmation modal with message provided', function () {

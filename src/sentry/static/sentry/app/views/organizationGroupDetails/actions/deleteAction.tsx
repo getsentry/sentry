@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
@@ -76,8 +77,8 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
   }
 
   return (
-    <div className="btn-group">
-      <LinkWithConfirmation
+    <DeleteDiscardWrapper>
+      <StyledLinkWithConfirmation
         className="group-remove btn btn-default btn-sm"
         title={t('Delete')}
         message={t(
@@ -89,24 +90,82 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         <IconWrapper>
           <IconDelete size="xs" />
         </IconWrapper>
-      </LinkWithConfirmation>
-      <DropdownLink
+      </StyledLinkWithConfirmation>
+      <StyledDropdownLink
         title=""
         caret
         className="group-delete btn btn-default btn-sm"
         disabled={disabled}
       >
-        <MenuItem onClick={openDiscardModal}>
+        <StyledMenuItemHeader header>{t('Delete & Discard')}</StyledMenuItemHeader>
+        <StyledMenuItem onClick={openDiscardModal}>
           <span>{t('Delete and discard future events')}</span>
-        </MenuItem>
-      </DropdownLink>
-    </div>
+        </StyledMenuItem>
+      </StyledDropdownLink>
+    </DeleteDiscardWrapper>
   );
 }
 
 export default DeleteAction;
 
+const dropdownTipCss = p => css`
+  & ul {
+    padding: 0;
+    border-radius: ${p.theme.borderRadius};
+    top: 40px;
+    &:after {
+      border-bottom: 8px solid ${p.theme.bodyBackground};
+    }
+  }
+`;
+
 const IconWrapper = styled('span')`
   position: relative;
   top: 1px;
+`;
+
+const StyledMenuItemHeader = styled(MenuItem)`
+  text-transform: uppercase;
+  padding: ${space(1)} 0 ${space(1)} 10px;
+  font-weight: 600;
+  color: ${p => p.theme.gray400};
+  background: ${p => p.theme.bodyBackground};
+  border-bottom: 1px solid ${p => p.theme.border};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  & span {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 5px;
+  }
+  & span:hover {
+    background: ${p => p.theme.bodyBackground};
+  }
+`;
+
+const StyledDropdownLink = styled(DropdownLink)`
+  transition: none;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+`;
+
+const StyledLinkWithConfirmation = styled(LinkWithConfirmation)`
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: 0;
+`;
+
+const DeleteDiscardWrapper = styled('div')`
+  display: inline-block;
+  margin-right: 5px;
+  ${dropdownTipCss}
+  & span {
+    position: relative;
+  }
 `;
