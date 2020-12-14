@@ -115,6 +115,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       );
     }
   }
+
   onReconfigureMapping() {
     const provider = this.config?.provider;
     const error = this.match.error;
@@ -150,13 +151,24 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   renderNoMatch() {
     const {organization} = this.props;
     const filename = this.props.frame.filename;
+    const platform = this.props.event.platform;
 
     if (this.project && this.integrations.length > 0 && filename) {
       return (
         <CodeMappingButtonContainer columnQuantity={2}>
           {t('Enable source code stack trace linking by setting up a code mapping.')}
           <Button
-            onClick={() =>
+            onClick={() => {
+              trackIntegrationEvent(
+                {
+                  eventKey: 'integrations.stacktrace_start_setup',
+                  eventName: 'Integrations: Stacktrace Start Setup',
+                  view: 'stacktrace_issue_details',
+                  platform,
+                },
+                this.props.organization,
+                {startSession: true}
+              );
               openModal(
                 deps =>
                   this.project && (
@@ -169,8 +181,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
                       {...deps}
                     />
                   )
-              )
-            }
+              );
+            }}
             size="xsmall"
           >
             {t('Setup Stack Trace Linking')}
