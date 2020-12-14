@@ -92,6 +92,7 @@ class UserSerializer(Serializer):
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 
             d["options"] = {
+                "theme": options.get("theme") or "light",
                 "language": options.get("language") or "en",
                 "stacktraceOrder": stacktrace_order,
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
