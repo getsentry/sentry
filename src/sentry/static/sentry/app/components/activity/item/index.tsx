@@ -180,6 +180,9 @@ const ActivityFooter = styled(HeaderAndFooter)`
 
 const ActivityBody = styled('div')`
   padding: ${space(2)} ${space(2)};
+  *:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const StyledActivityAvatar = styled(ActivityAvatar)`

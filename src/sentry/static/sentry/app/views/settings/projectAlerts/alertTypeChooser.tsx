@@ -178,6 +178,9 @@ const TypeCard = styled(Card)`
   cursor: pointer;
   padding: ${space(4)};
   margin-bottom: ${space(3)};
+  *:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 export default TypeChooser;
