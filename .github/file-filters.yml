@@ -31,7 +31,14 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+  - 'tests/!(js|apidocs)/**/*'
+  - 'config/**/*'
+
+plugins: &backend
+  - *backend
+  - 'src/sentry_plugins/**/*.html'
 
 api_docs:
   - *backend
   - 'api-docs/**'
+  - 'tests/apidocs/**'
