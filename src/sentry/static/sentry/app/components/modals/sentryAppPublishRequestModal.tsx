@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Scope, SentryApp} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
@@ -143,8 +143,14 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     this.props.closeModal();
   };
 
-  handleSubmitError = () => {
-    addErrorMessage(t('Request to publish %s fails.', this.props.app.slug));
+  handleSubmitError = err => {
+    console.log(err?.responseJSON?.detail);
+    addErrorMessage(
+      tct('Request to publish [app] fails. [detail]', {
+        app: this.props.app.slug,
+        detail: err?.responseJSON?.detail,
+      })
+    );
   };
 
   render() {

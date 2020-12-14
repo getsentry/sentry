@@ -159,6 +159,10 @@ class SentryApp(ParanoidModel, HasApiScopes):
         return self.status == SentryAppStatus.INTERNAL
 
     @property
+    def is_published_request_inprogress(self):
+        return self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
+
+    @property
     def slug_for_metrics(self):
         if self.is_internal:
             return "internal"
