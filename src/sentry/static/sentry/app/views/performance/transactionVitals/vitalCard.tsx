@@ -253,9 +253,6 @@ class VitalCard extends React.Component<Props, State> {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         alignWithLabel: true,
       },

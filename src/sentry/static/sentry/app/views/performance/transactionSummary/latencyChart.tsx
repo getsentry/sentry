@@ -158,9 +158,6 @@ class LatencyChart extends AsyncComponent<Props, State> {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         interval: 0,
         alignWithLabel: true,
