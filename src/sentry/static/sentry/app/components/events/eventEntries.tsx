@@ -34,7 +34,14 @@ import EventUserFeedback from 'app/components/events/userFeedback';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {AvatarProject, Entry, Event, Group, Organization} from 'app/types';
+import {
+  Entry,
+  Event,
+  Group,
+  Organization,
+  Project,
+  SharedViewOrganization,
+} from 'app/types';
 import {objectIsEmpty} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -62,19 +69,12 @@ const defaultProps = {
   showTagSummary: true,
 };
 
-// Custom shape because shared view doesn't get id.
-type SharedViewOrganization = {
-  slug: string;
-  id?: string;
-  features?: Array<string>;
-};
-
 type Props = {
   // This is definitely required because this component would crash if
   // organization were undefined.
   organization: SharedViewOrganization;
   event: Event;
-  project: AvatarProject;
+  project: Project;
   location: Location;
 
   group?: Group;
