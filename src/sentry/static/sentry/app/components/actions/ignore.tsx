@@ -335,7 +335,7 @@ const dropdownTipCss = p => css`
   & ul {
     padding: 0;
     border-radius: ${p.theme.borderRadius};
-    top: 40px;
+    top: 44px;
     &:after {
       border-bottom: 8px solid ${p.theme.bodyBackground};
     }
@@ -348,7 +348,7 @@ const inboxSubmenuCss = css`
 `;
 
 const IgnoreWrapper = styled('div')`
-  display: inline-block;
+  display: inline-flex;
   ${dropdownTipCss};
   & span {
     position: relative;
@@ -357,11 +357,11 @@ const IgnoreWrapper = styled('div')`
 
 const IgnoredButtonActionWrapper = styled('div')`
   margin-right: 5px;
-  display: inline-block;
+  display: inline-flex;
+  align-self: baseline;
 `;
 
 const StyledIgnoreButton = styled(Button)`
-  display: inline-flex;
   vertical-align: middle;
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
@@ -377,7 +377,8 @@ const StyledIgnoreButton = styled(Button)`
 `;
 
 const StyledIgnoreActionLink = styled(ActionLink)`
-  display: flex;
+  display: inline-flex;
+  align-items: baseline;
   float: left;
   color: #493e54;
   background-image: linear-gradient(to bottom, ${p => p.theme.white} 0%, #fcfbfc 100%);

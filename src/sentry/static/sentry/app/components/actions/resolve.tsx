@@ -285,7 +285,7 @@ const dropdownTipCss = p => css`
   & ul {
     padding: 0;
     border-radius: ${p.theme.borderRadius};
-    top: 40px;
+    top: 44px;
     &:after {
       border-bottom: 8px solid ${p.theme.bodyBackground};
     }
@@ -303,12 +303,12 @@ const actionLinkCss = p => css`
 
 const ResolvedActionWrapper = styled('div')`
   margin-right: 5px;
-  display: inline-block;
-  display: inline-block;
+  display: inline-flex;
 `;
 
 const ResolveWrapper = styled('div')<{hasInbox: boolean}>`
-  display: inline-block;
+  display: inline-flex;
+  align-self: baseline;
   ${dropdownTipCss};
   & span {
     position: relative;
