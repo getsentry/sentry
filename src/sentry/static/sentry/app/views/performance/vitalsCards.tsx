@@ -300,7 +300,7 @@ function VitalsCardContent(props: CardContentProps) {
         {showDurationDetail && (
           <div>
             {t('The p75 for all transactions is ')}
-            <Bold>{value}</Bold>
+            <strong>{value}</strong>
           </div>
         )}
         <VitalPercents
@@ -357,10 +357,6 @@ const VitalLink = (props: VitalLinkProps) => {
     </Link>
   );
 };
-
-const Bold = styled('span')`
-  font-weight: 600;
-`;
 
 const BarDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
