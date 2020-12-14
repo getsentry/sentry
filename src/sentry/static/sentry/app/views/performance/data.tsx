@@ -163,6 +163,7 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
+      'key_transaction',
       'transaction',
       'project',
       'count_unique(user)',
