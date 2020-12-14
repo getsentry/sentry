@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_RELEASE_PAT }}
+          fetch-depth: 0
       - uses: getsentry/craft@master
         name: Craft Prepare
         with:
@@ -35,13 +36,13 @@ jobs:
         uses: actions/github-script@v3
         with:
           # TODO: Replace token with GH_RELEASE_PAT after verification
-          token: ${{ secrets.GH_SENTRY_BOT_PAT }}
+          github-token: ${{ secrets.GH_SENTRY_BOT_PAT }}
           script: |
             const repoInfo = context.repo;
-            await github.issues.createComment({
+            await github.issues.create({
               owner: repoInfo.owner,
               repo: 'publish',
-              title: `publish ${repoInfo.repo}@{process.env.RELEASE_VERSION}`,
+              title: `publish: ${repoInfo.repo}@${process.env.RELEASE_VERSION}`,
               // TODO: Remove the following line after verification
               labels: ['dry-run'],
             });
