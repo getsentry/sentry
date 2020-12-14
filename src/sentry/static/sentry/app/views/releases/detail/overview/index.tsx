@@ -225,9 +225,7 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
-          const hasPerformance =
-            organization.features.includes('performance-view') &&
-            organization.features.includes('release-performance-views');
+          const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
 
@@ -305,7 +303,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       version={version}
                       location={location}
                     />
-                    <Feature features={['performance-view', 'release-performance-views']}>
+                    <Feature features={['performance-view']}>
                       <TransactionsList
                         location={location}
                         organization={organization}
