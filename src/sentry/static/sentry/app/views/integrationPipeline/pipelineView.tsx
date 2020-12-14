@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Main from 'app/main';
+import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
 
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
 
@@ -24,9 +24,9 @@ const PipelineView = (props: Props) => {
     throw new Error(`Invalid pipeline name ${pipelineName}`);
   }
   return (
-    <Main>
+    <ThemeAndStyleProvider>
       <Component {...rest} />
-    </Main>
+    </ThemeAndStyleProvider>
   );
 };
 
