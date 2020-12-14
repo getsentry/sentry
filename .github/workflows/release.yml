@@ -30,8 +30,6 @@ jobs:
         with:
           action: prepare
           version: ${{ env.RELEASE_VERSION }}
-        env:
-          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
       - name: Request publish
         if: success()
         uses: actions/github-script@v3
