@@ -2119,6 +2119,7 @@ FUNCTIONS = {
             aggregate=["min", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "max",
@@ -2126,6 +2127,7 @@ FUNCTIONS = {
             aggregate=["max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "avg",
