@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import functools
 import os.path
-import re
 from collections import namedtuple
 from datetime import timedelta
 from random import randint
 
 import six
 from django import template
-from django.template.base import token_kwargs
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
@@ -103,72 +101,6 @@ def absolute_uri(parser, token):
     else:
         target_var = None
     return AbsoluteUriNode(bits, target_var)
-
-
-@register.tag
-def script(parser, token):
-    """
-    A custom script tag wrapper that applies
-    CSP nonce attribute if found in the request.
-
-    In Saas sentry middleware sets the csp_nonce
-    attribute on the request and we strict CSP rules
-    to prevent XSS
-    """
-    try:
-        args = token.split_contents()
-        kwargs = token_kwargs(args[1:], parser)
-
-        nodelist = parser.parse(("endscript",))
-        parser.delete_first_token()
-
-        return ScriptNode(nodelist, **kwargs)
-    except ValueError as err:
-        raise template.TemplateSyntaxError("`script` tag failed to compile. : {}".format(err))
-
-
-class ScriptNode(template.Node):
-    def __init__(self, nodelist, **kwargs):
-        self.nodelist = nodelist
-        self.attrs = kwargs
-
-    def _get_value(self, token, context):
-        if isinstance(token, six.string_types):
-            return token
-        if isinstance(token, template.base.FilterExpression):
-            return token.resolve(context)
-        return None
-
-    def render(self, context):
-        request = context.get("request")
-        if hasattr(request, "csp_nonce"):
-            self.attrs.update({"nonce": request.csp_nonce})
-
-        content = ""
-        attrs = self._render_attrs(context)
-        if "src" not in self.attrs:
-            content = self.nodelist.render(context).strip()
-            content = self._unwrap_content(content)
-        return "<script{}>{}</script>".format(attrs, content)
-
-    def _render_attrs(self, context):
-        output = []
-        for k, v in self.attrs.items():
-            value = self._get_value(v, context)
-            if value in (True, "True"):
-                output.append(" {}".format(k))
-            elif value in (None, False, "False"):
-                continue
-            else:
-                output.append(' {}="{}"'.format(k, value))
-        output = sorted(output)
-        return "".join(output)
-
-    def _unwrap_content(self, text):
-        matches = re.search(r"<script[^\>]*>(.*?)</script>", text)
-        if matches:
-            return matches.group(1).strip()
-        return text
 
 
 @register.simple_tag
