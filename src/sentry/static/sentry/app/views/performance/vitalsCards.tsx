@@ -28,12 +28,14 @@ import {
   vitalStateColors,
 } from './vitalDetail/utils';
 import VitalPercents from './vitalDetail/vitalPercents';
+import {HeaderTitle} from './styles';
 
 type Props = {
   eventView: EventView;
   organization: Organization;
   location: Location;
   showVitalPercentNames?: boolean;
+  showDurationDetail?: boolean;
   hasCondensedVitals?: boolean;
 };
 
@@ -78,7 +80,7 @@ export default function VitalsCards(props: Props) {
 const VitalsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
-  gap: ${space(2)};
+  grid-column-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -98,19 +100,13 @@ type CardProps = Props & {
   hideBar?: boolean;
 };
 
-const NonPanel = styled('div')`
-  flex-grow: 1;
-`;
+const NonPanel = styled('div')``;
 
-const StyledVitalCard = styled(Card)`
+const VitalCard = styled(Card)`
   color: ${p => p.theme.textColor};
-  padding: ${space(1.5)} ${space(2)} ${space(2)} ${space(2)};
-
-  &:focus,
-  &:hover {
-    color: ${p => p.theme.textColor};
-    top: -1px;
-  }
+  padding: ${space(2)} ${space(3)};
+  align-items: flex-start;
+  min-height: 150px;
 `;
 
 export function LinkedVitalsCard(props: CardProps) {
@@ -208,6 +204,7 @@ export function VitalsCard(props: CardProps) {
     <VitalsCardContent
       percents={percents}
       showVitalPercentNames={props.showVitalPercentNames}
+      showDurationDetail={props.showDurationDetail}
       title={measurement}
       titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
       value={`${value}${vitalName === WebVital.CLS ? '' : t('ms')}`}
@@ -259,6 +256,7 @@ function CondensedVitalsCard(props: CondensedCardProps) {
       noBorder
       percents={percents}
       showVitalPercentNames={props.showVitalPercentNames}
+      showDurationDetail={props.showDurationDetail}
     />
   );
 }
@@ -270,6 +268,7 @@ type CardContentProps = {
   value?: string;
   noBorder?: boolean;
   showVitalPercentNames?: boolean;
+  showDurationDetail?: boolean;
   hideBar?: boolean;
 };
 
@@ -281,46 +280,37 @@ function VitalsCardContent(props: CardContentProps) {
     titleDescription,
     value,
     showVitalPercentNames,
+    showDurationDetail,
     hideBar,
   } = props;
-  const Container = noBorder ? NonPanel : StyledVitalCard;
+  const Container = noBorder ? NonPanel : VitalCard;
   const colorStops = getColorStopsFromPercents(percents);
 
   return (
     <Container interactive>
       {noBorder || (
-        <CardTitle>
-          <StyledTitle>{t(`${title}`)}</StyledTitle>
+        <HeaderTitle>
+          <OverflowEllipsis>{t(`${title}`)}</OverflowEllipsis>
           <QuestionTooltip size="sm" position="top" title={titleDescription} />
-        </CardTitle>
+        </HeaderTitle>
       )}
       {noBorder || <CardValue>{value}</CardValue>}
-      {!hideBar && (
-        <CardBreakdown>
-          <ColorBar colorStops={colorStops} />
-        </CardBreakdown>
-      )}
-      <CardPercents>
+      {!hideBar && <ColorBar colorStops={colorStops} />}
+      <BarDetail>
+        {showDurationDetail && (
+          <div>
+            {t('The p75 for all transactions is ')}
+            <strong>{value}</strong>
+          </div>
+        )}
         <VitalPercents
           percents={percents}
           showVitalPercentNames={showVitalPercentNames}
         />
-      </CardPercents>
+      </BarDetail>
     </Container>
   );
 }
-
-const CardBreakdown = styled('div')``;
-
-const StyledTitle = styled('span')`
-  margin-right: ${space(0.5)};
-`;
-
-const CardPercents = styled('div')`
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-`;
 
 type BlankCardProps = {
   noBorder?: boolean;
@@ -328,10 +318,14 @@ type BlankCardProps = {
 };
 
 const BlankCard = (props: BlankCardProps) => {
-  const Container = props.noBorder ? NonPanel : StyledVitalCard;
+  const Container = props.noBorder ? NonPanel : VitalCard;
   return (
     <Container interactive>
-      {props.noBorder || <CardTitle>{t(`${props.measurement}`)}</CardTitle>}
+      {props.noBorder || (
+        <HeaderTitle>
+          <OverflowEllipsis>{t(`${props.measurement}`)}</OverflowEllipsis>
+        </HeaderTitle>
+      )}
       <CardValue>{'\u2014'}</CardValue>
     </Container>
   );
@@ -364,14 +358,18 @@ const VitalLink = (props: VitalLinkProps) => {
   );
 };
 
-const CardTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(0.25)};
-  ${overflowEllipsis};
+const BarDetail = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const CardValue = styled('div')`
   font-size: 32px;
   margin-top: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1.5)};
+`;
+
+const OverflowEllipsis = styled('div')`
+  ${overflowEllipsis};
 `;

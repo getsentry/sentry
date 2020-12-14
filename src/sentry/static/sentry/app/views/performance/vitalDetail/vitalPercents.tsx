@@ -21,10 +21,10 @@ type Props = {
 
 export default function VitalPercents(props: Props) {
   return (
-    <Container>
+    <VitalSet>
       {props.percents.map(p => {
         return (
-          <Vital key={p.vitalState}>
+          <VitalStatus key={p.vitalState}>
             {p.vitalState === VitalState.POOR && (
               <IconFire color={vitalStateColors[p.vitalState] as Color} />
             )}
@@ -34,29 +34,25 @@ export default function VitalPercents(props: Props) {
             {p.vitalState === VitalState.GOOD && (
               <IconCheckmark color={vitalStateColors[p.vitalState] as Color} isCircled />
             )}
-            <Percent>
+            <span>
               {props.showVitalPercentNames && t(`${p.vitalState}`)}{' '}
               {formatPercentage(p.percent, 0)}
-            </Percent>
-          </Vital>
+            </span>
+          </VitalStatus>
         );
       })}
-    </Container>
+    </VitalSet>
   );
 }
 
-const Container = styled('div')`
+const VitalSet = styled('div')`
   display: flex;
   gap: ${space(2)};
-  margin-top: ${space(1)};
 `;
 
-const Vital = styled('div')`
+const VitalStatus = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
   font-size: ${theme.fontSizeMedium};
-`;
-
-const Percent = styled('div')`
-  margin-left: ${space(0.5)};
 `;

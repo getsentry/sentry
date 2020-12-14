@@ -304,7 +304,7 @@ function getTransactionsListSort(
 }
 
 const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(3)};
 `;
 
 export default withProjects(SummaryContent);
