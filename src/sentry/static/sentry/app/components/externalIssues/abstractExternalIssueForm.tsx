@@ -75,10 +75,9 @@ export default class AbstractExternalIssueForm<
   getDynamicFields = (
     integrationDetails?: IntegrationIssueConfig
   ): {[key: string]: FieldValue | null} => {
-    const config: IssueConfigField[] = (integrationDetails ||
-      this.state.integrationDetails ||
-      {})[this.getConfigName()];
-
+    const config: IssueConfigField[] =
+      (integrationDetails || this.state.integrationDetails || {})[this.getConfigName()] ||
+      [];
     return Object.fromEntries(
       config
         .filter((field: IssueConfigField) => field.updatesForm)
@@ -87,7 +86,7 @@ export default class AbstractExternalIssueForm<
   };
 
   onRequestSuccess = ({stateKey, data}) => {
-    if (stateKey === 'integrationDetails' && !this.state.dynamicFieldValues) {
+    if (stateKey === 'integrationDetails') {
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
       });
@@ -139,8 +138,9 @@ export default class AbstractExternalIssueForm<
       input: string,
       cb: (err: Error | null, result?: any) => void
     ) => {
+      const {dynamicFieldValues} = this.state;
       const query = queryString.stringify({
-        ...this.state.dynamicFieldValues,
+        ...dynamicFieldValues,
         field: field.name,
         query: input,
       });

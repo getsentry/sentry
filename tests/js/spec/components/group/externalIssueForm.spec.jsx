@@ -34,11 +34,18 @@ describe('ExternalIssueForm', () => {
     jest.useRealTimers();
   });
 
-  const generateWrapper = (action = 'create') =>
-    mountWithTheme(
+  const generateWrapper = (action = 'create') => {
+    MockApiClient.addMockResponse({
+      url: `/groups/${group.id}/integrations/${integration.id}/?action=create`,
+      body: formConfig,
+    });
+    const component = mountWithTheme(
       <ExternalIssueForm group={group} integration={integration} onChange={onChange} />,
       TestStubs.routerContext()
     );
+    component.instance().handleClick(action);
+    return component;
+  };
 
   describe('create', () => {
     // TODO: expand tests
