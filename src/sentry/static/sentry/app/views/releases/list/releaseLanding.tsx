@@ -11,9 +11,8 @@ import FeatureTourModal, {
 } from 'app/components/modals/featureTourModal';
 import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
-import {Organization, Project} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
 
 import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
@@ -82,7 +81,7 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
 
 type Props = {
   organization: Organization;
-  project: Project;
+  projectId?: number;
 } & AsyncView['props'];
 
 class ReleaseLanding extends AsyncView<Props> {
@@ -99,10 +98,10 @@ class ReleaseLanding extends AsyncView<Props> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {organization, projectId} = this.props;
 
     if (this.state.releases.length === 0) {
-      return <Promo organization={organization} project={project} />;
+      return <Promo organization={organization} projectId={projectId} />;
     }
 
     return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
@@ -111,42 +110,42 @@ class ReleaseLanding extends AsyncView<Props> {
 
 type PromoProps = {
   organization: Organization;
-  project: Project;
+  projectId?: number;
 };
 
 class Promo extends React.Component<PromoProps> {
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {organization, projectId} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'releases.landing_card_viewed',
       eventName: 'Releases: Landing Card Viewed',
       organization_id: parseInt(organization.id, 10),
-      project_id: project && parseInt(project.id, 10),
+      project_id: projectId,
     });
   }
 
   handleTourAdvance = (step: number, duration: number) => {
-    const {organization, project} = this.props;
+    const {organization, projectId} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'releases.tour.advance',
       eventName: 'Releases: Tour Advance',
       organization_id: parseInt(organization.id, 10),
-      project_id: project && parseInt(project.id, 10),
+      project_id: projectId,
       step,
       duration,
     });
   };
 
   handleClose = (step: number, duration: number) => {
-    const {organization, project} = this.props;
+    const {organization, projectId} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'releases.tour.close',
       eventName: 'Releases: Tour Close',
       organization_id: parseInt(organization.id, 10),
-      project_id: project && parseInt(project.id, 10),
+      project_id: projectId,
       step,
       duration,
     });
@@ -188,4 +187,4 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-export default withProject(ReleaseLanding);
+export default ReleaseLanding;

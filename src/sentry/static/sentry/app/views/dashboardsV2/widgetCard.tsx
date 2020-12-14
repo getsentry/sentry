@@ -12,7 +12,7 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import ErrorBoundary from 'app/components/errorBoundary';
-import {Panel, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -245,7 +245,7 @@ class WidgetCard extends React.Component<Props, State> {
           }}
         >
           <WidgetHeader>{widget.title}</WidgetHeader>
-          <StyledPanelBody>{this.renderVisual()}</StyledPanelBody>
+          {this.renderVisual()}
           {this.renderEditPanel()}
         </StyledPanel>
       </ErrorBoundary>
@@ -272,9 +272,9 @@ const WidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(2)} ${space(3)};
 
-  position: relative;
+  position: absolute;
   z-index: 2;
 `;
 
@@ -283,10 +283,6 @@ const StyledPanel = styled(Panel)`
   width: 100%;
   position: relative;
   overflow: hidden;
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  height: 250px;
 `;
 
 const EditPanel = styled('div')`

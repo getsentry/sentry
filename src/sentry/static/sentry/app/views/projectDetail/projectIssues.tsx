@@ -12,12 +12,12 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
+import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 
 type Props = {
-  organization: OrganizationSummary;
+  organization: Organization;
   location: Location;
 };
 

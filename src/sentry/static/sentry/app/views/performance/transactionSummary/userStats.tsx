@@ -2,13 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import QuestionTooltip from 'app/components/questionTooltip';
 import UserMisery from 'app/components/userMisery';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
@@ -20,14 +23,17 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
+import VitalsCards from '../vitalsCards';
+
 type Props = {
+  eventView: EventView;
   totals: Record<string, number>;
   location: Location;
   organization: Organization;
   transactionName: string;
 };
 
-function UserStats({totals, location, organization, transactionName}: Props) {
+function UserStats({eventView, totals, location, organization, transactionName}: Props) {
   let userMisery = <StatNumber>{'\u2014'}</StatNumber>;
   const threshold = organization.apdexThreshold;
   let apdex: React.ReactNode = <StatNumber>{'\u2014'}</StatNumber>;
@@ -80,8 +86,8 @@ function UserStats({totals, location, organization, transactionName}: Props) {
   });
 
   return (
-    <Container>
-      <div>
+    <div>
+      <ApdexContainer>
         <SectionHeading>
           {t('Apdex Score')}
           <QuestionTooltip
@@ -98,25 +104,59 @@ function UserStats({totals, location, organization, transactionName}: Props) {
             {threshold}ms {t('threshold')}
           </SectionValue>
         </Link>
-      </div>
-      {vitalsPassRate !== null && (
-        <div>
-          <SectionHeading>
-            {t('Web Vitals')}
-            <QuestionTooltip
-              position="top"
-              title={t(
-                'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
-              )}
-              size="sm"
-            />
-          </SectionHeading>
-          <StatNumber>{vitalsPassRate}</StatNumber>
-          <Link to={webVitalsTarget}>
-            <SectionValue>{t('Passed')}</SectionValue>
-          </Link>
-        </div>
-      )}
+      </ApdexContainer>
+      <Feature features={['organizations:performance-vitals-overview']}>
+        {({hasFeature}) => {
+          if (hasFeature) {
+            return (
+              <div>
+                <VitalsHeading>
+                  <SectionHeading>
+                    {t('Web Vitals')}
+                    <QuestionTooltip
+                      position="top"
+                      title={t(
+                        'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
+                      )}
+                      size="sm"
+                    />
+                  </SectionHeading>
+                  <Link to={webVitalsTarget}>
+                    <IconOpen />
+                  </Link>
+                </VitalsHeading>
+                <VitalsCards
+                  eventView={eventView}
+                  organization={organization}
+                  location={location}
+                  hasCondensedVitals
+                />
+              </div>
+            );
+          } else {
+            return (
+              vitalsPassRate !== null && (
+                <div>
+                  <SectionHeading>
+                    {t('Web Vitals')}
+                    <QuestionTooltip
+                      position="top"
+                      title={t(
+                        'Web Vitals with p75 better than the "poor" threshold, as defined by Google Web Vitals.'
+                      )}
+                      size="sm"
+                    />
+                  </SectionHeading>
+                  <StatNumber>{vitalsPassRate}</StatNumber>
+                  <Link to={webVitalsTarget}>
+                    <SectionValue>{t('Passed')}</SectionValue>
+                  </Link>
+                </div>
+              )
+            );
+          }
+        }}
+      </Feature>
       <UserMiseryContainer>
         <SectionHeading>
           {t('User Misery')}
@@ -128,19 +168,22 @@ function UserStats({totals, location, organization, transactionName}: Props) {
         </SectionHeading>
         {userMisery}
       </UserMiseryContainer>
-    </Container>
+    </div>
   );
 }
 
-const Container = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(2)};
-  margin-bottom: ${space(4)};
+const ApdexContainer = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
+const VitalsHeading = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const UserMiseryContainer = styled('div')`
-  grid-column: 1/3;
+  margin-bottom: ${space(4)};
 `;
 
 const StatNumber = styled('div')`
