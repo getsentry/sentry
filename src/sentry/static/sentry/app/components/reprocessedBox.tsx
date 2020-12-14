@@ -7,7 +7,6 @@ import {IconCheckmark, IconClose} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {GroupActivityReprocess, Organization} from 'app/types';
-import {defined} from 'app/utils';
 import localStorage from 'app/utils/localStorage';
 
 type Props = {
@@ -47,14 +46,13 @@ class ReprocessedBox extends React.Component<Props, State> {
       return null;
     }
 
-    const link =
-      defined(eventCount) && defined(oldGroupId) ? (
-        <Link
-          to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`}
-        >
-          {tn('See %s new event', 'See %s new events', eventCount)}
-        </Link>
-      ) : undefined;
+    const link = (
+      <Link
+        to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`}
+      >
+        {tn('See %s new event', 'See %s new events', eventCount)}
+      </Link>
+    );
 
     return (
       <BannerContainer priority="success" className={className}>

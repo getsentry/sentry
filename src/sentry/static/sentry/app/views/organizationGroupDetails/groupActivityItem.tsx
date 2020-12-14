@@ -25,12 +25,12 @@ type Props = {
   projectId: Project['id'];
 };
 
-function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
+function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
   const issuesLink = `/organizations/${orgSlug}/issues/`;
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
     if (data.ignoreDuration) {
-      return t('%(author)s ignored this issue for %(duration)s', {
+      return tct('[author] ignored this issue for [duration]', {
         author,
         duration: <Duration seconds={data.ignoreDuration * 60} />,
       });
@@ -72,7 +72,7 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
       });
     }
 
-    return t('%s ignored this issue', author);
+    return tct('[author] ignored this issue', {author});
   }
 
   function getAssignedMessage(data: GroupActivityAssigned['data']) {
@@ -82,41 +82,41 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
       const team = TeamStore.getById(data.assignee);
       assignee = team ? team.slug : '<unknown-team>';
 
-      return t('%(author)s assigned this issue to #%(assignee)s', {
+      return tct('[author] assigned this issue to #[assignee]', {
         author,
         assignee,
       });
     }
 
     if (activity.user && activity.assignee === activity.user.id) {
-      return t('%s assigned this issue to themselves', author);
+      return tct('[author] assigned this issue to themselves', {author});
     }
 
     assignee = MemberListStore.getById(data.assignee);
 
     if (typeof assignee === 'object' && assignee?.email) {
-      return t('%(author)s assigned this issue to %(assignee)s', {
+      return tct('[author] assigned this issue to [assignee]', {
         author,
         assignee: assignee.email,
       });
     }
 
-    return t('%s assigned this issue to an unknown user', author);
+    return tct('[author] assigned this issue to an unknown user', {author});
   }
 
   function renderContent() {
     switch (activity.type) {
       case GroupActivityType.NOTE:
-        return t('%s left a comment', author);
+        return tct('[author] left a comment', {author});
       case GroupActivityType.SET_RESOLVED:
-        return t('%s marked this issue as resolved', author);
+        return tct('[author] marked this issue as resolved', {author});
       case GroupActivityType.SET_RESOLVED_BY_AGE:
-        return t('%(author)s marked this issue as resolved due to inactivity', {
+        return tct('[author] marked this issue as resolved due to inactivity', {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
         return activity.data.version
-          ? t('%(author)s marked this issue as resolved in %(version)s', {
+          ? tct('[author] marked this issue as resolved in [version]', {
               author,
               version: (
                 <Version
@@ -126,9 +126,11 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
                 />
               ),
             })
-          : t('%s marked this issue as resolved in the upcoming release', author);
+          : tct('[author] marked this issue as resolved in the upcoming release', {
+              author,
+            });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-        return t('%(author)s marked this issue as resolved in %(version)s', {
+        return tct('[author] marked this issue as resolved in [version]', {
           author,
           version: (
             <CommitLink
@@ -141,7 +143,7 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return t('%(author)s marked this issue as resolved in %(version)s', {
+        return tct('[author] marked this issue as resolved in [version]', {
           author,
           version: (
             <PullRequestLink
@@ -153,29 +155,29 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
         });
       }
       case GroupActivityType.SET_UNRESOLVED:
-        return t('%s marked this issue as unresolved', author);
+        return tct('[author] marked this issue as unresolved', {author});
       case GroupActivityType.SET_IGNORED: {
         const {data} = activity;
         return getIgnoredMessage(data);
       }
       case GroupActivityType.SET_PUBLIC:
-        return t('%s made this issue public', author);
+        return tct('[author] made this issue public', {author});
       case GroupActivityType.SET_PRIVATE:
-        return t('%s made this issue private', author);
+        return tct('[author] made this issue private', {author});
       case GroupActivityType.SET_REGRESSION: {
         const {data} = activity;
         return data.version
-          ? t('%(author)s marked this issue as a regression in %(version)s', {
+          ? tct('[author] marked this issue as a regression in [version]', {
               author,
               version: (
                 <Version version={data.version} projectId={projectId} tooltipRawVersion />
               ),
             })
-          : t('%s marked this issue as a regression', author);
+          : tct('[author] marked this issue as a regression', {author});
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
-        return t('%(author)s created an issue on %(provider)s titled %(title)s', {
+        return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,
           title: <Link to={data.location}>{data.title}</Link>,
@@ -212,13 +214,13 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
         );
       }
       case GroupActivityType.FIRST_SEEN:
-        return t('%s first saw this issue', author);
+        return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
         const {data} = activity;
         return getAssignedMessage(data);
       }
       case GroupActivityType.UNASSIGNED:
-        return t('%s unassigned this issue', author);
+        return tct('[author] unassigned this issue', {author});
       case GroupActivityType.MERGE:
         return tn(
           '%2$s merged %1$s issue into this issue',
@@ -226,11 +228,21 @@ function GroupActivityItem({author, activity, orgSlug, projectId}: Props) {
           activity.data.issues.length,
           author
         );
-      case GroupActivityType.REPROCESS:
-        return t(
-          '%(author)s reprocessed this issue, some events may have moved into new issues',
-          {author}
-        );
+      case GroupActivityType.REPROCESS: {
+        const {data} = activity;
+        const {oldGroupId, eventCount} = data;
+
+        return tct('[author] reprocessed the events in this issue. [new-events]', {
+          author,
+          ['new-events']: (
+            <Link
+              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`}
+            >
+              {tn('See %s new event', 'See %s new events', eventCount)}
+            </Link>
+          ),
+        });
+      }
       default:
         return ''; // should never hit (?)
     }
