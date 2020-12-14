@@ -90,6 +90,7 @@ type Props = {
    */
   isShared?: boolean;
   shareUrl?: string | null;
+  disabled?: boolean;
 };
 
 class ShareIssue extends React.Component<Props> {
@@ -99,6 +100,7 @@ class ShareIssue extends React.Component<Props> {
     shareUrl: PropTypes.string,
     onToggle: PropTypes.func.isRequired,
     onReshare: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
   };
 
   hasConfirmModal = false;
@@ -125,7 +127,7 @@ class ShareIssue extends React.Component<Props> {
   };
 
   render() {
-    const {loading, isShared, shareUrl, onReshare} = this.props;
+    const {loading, isShared, shareUrl, onReshare, disabled} = this.props;
 
     return (
       <DropdownLink
@@ -138,6 +140,7 @@ class ShareIssue extends React.Component<Props> {
           </DropdownTitleContent>
         }
         onOpen={this.handleOpen}
+        disabled={disabled}
         keepMenuOpen
       >
         <DropdownContent>

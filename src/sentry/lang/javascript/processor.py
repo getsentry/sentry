@@ -16,6 +16,7 @@ from os.path import splitext
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urlsplit
 from symbolic import SourceMapView
+import sentry_sdk
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -73,6 +74,8 @@ CACHE_CONTROL_MIN = 60
 # the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
+
+CACHE_MAX_VALUE_SIZE = settings.SENTRY_CACHE_MAX_VALUE_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +214,14 @@ def discover_sourcemap(result):
     return force_text(sourcemap) if sourcemap is not None else None
 
 
+def get_release_file_cache_key(release_id, releasefile_ident):
+    return "releasefile:v1:%s:%s" % (release_id, releasefile_ident)
+
+
+def get_release_file_cache_key_meta(release_id, releasefile_ident):
+    return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -219,7 +230,17 @@ def fetch_release_file(filename, release, dist=None):
     """
 
     dist_name = dist and dist.name or None
-    cache_key = "releasefile:v1:%s:%s" % (release.id, ReleaseFile.get_ident(filename, dist_name))
+    releasefile_ident = ReleaseFile.get_ident(filename, dist_name)
+    cache_key = get_release_file_cache_key(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
+    # Cache key to store file metadata, currently only the size of the
+    # compressed version of file. We cannot use the cache_key because large
+    # payloads (silently) fail to cache due to e.g. memcached payload size
+    # limitation and we use the meta data to avoid compression of such a files.
+    cache_key_meta = get_release_file_cache_key_meta(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
@@ -257,13 +278,27 @@ def fetch_release_file(filename, release, dist=None):
                 (rf for ident in filename_idents for rf in possible_files if rf.ident == ident)
             )
 
+        # If the release file is not in cache, check if we can retrieve at
+        # least the size metadata from cache and prevent compression and
+        # caching if payload exceeds the backend limit.
+        z_body = None
+        z_body_size = None
+
+        if CACHE_MAX_VALUE_SIZE:
+            cache_meta = cache.get(cache_key_meta)
+            if cache_meta:
+                z_body_size = int(cache_meta.get("compressed_size"))
+
         logger.debug(
             "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
         )
         try:
             with metrics.timer("sourcemaps.release_file_read"):
                 with ReleaseFile.cache.getfile(releasefile) as fp:
-                    z_body, body = compress_file(fp)
+                    if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
+                        body = fp.read()
+                    else:
+                        z_body, body = compress_file(fp)
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None
@@ -271,9 +306,19 @@ def fetch_release_file(filename, release, dist=None):
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
             result = http.UrlResult(filename, headers, body, 200, encoding)
-            # This will implicitly skip too large payloads. Those will be cached
-            # on the file system by `ReleaseFile.cache`, instead.
-            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+
+            # If we don't have the compressed body for caching because the
+            # cached metadata said it is too large payload for the cache
+            # backend, do not attempt to cache.
+            if z_body:
+                # This will implicitly skip too large payloads. Those will be cached
+                # on the file system by `ReleaseFile.cache`, instead.
+                cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+
+                # In case the previous call to cache implicitly fails, we use
+                # the meta data to avoid pointless compression which is done
+                # only for caching.
+                cache.set(cache_key_meta, {"compressed_size": len(z_body)}, 3600)
 
     # in the cache as an unsuccessful attempt
     elif result == -1:
@@ -542,11 +587,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
             return False
 
-        self.release = self.get_release(create=True)
-        if self.data.get("dist") and self.release:
-            self.dist = self.release.get_dist(self.data["dist"])
+        with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
+            self.release = self.get_release(create=True)
+            if self.data.get("dist") and self.release:
+                self.dist = self.release.get_dist(self.data["dist"])
 
-        self.populate_source_cache(frames)
+        with sentry_sdk.start_span(
+            op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
+        ):
+            self.populate_source_cache(frames)
         return True
 
     def handles_frame(self, frame, stacktrace_info):
@@ -819,13 +868,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         logger.debug("Attempting to cache source %r", filename)
         try:
             # this both looks in the database and tries to scrape the internet
-            result = fetch_file(
-                filename,
-                project=self.project,
-                release=self.release,
-                dist=self.dist,
-                allow_scraping=self.allow_scraping,
-            )
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.cache_source.fetch_file"
+            ) as span:
+                span.set_data("filename", filename)
+                result = fetch_file(
+                    filename,
+                    project=self.project,
+                    release=self.release,
+                    dist=self.dist,
+                    allow_scraping=self.allow_scraping,
+                )
         except http.BadSource as exc:
             # most people don't upload release artifacts for their third-party libraries,
             # so ignore missing node_modules files
@@ -853,13 +906,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # pull down sourcemap
         try:
-            sourcemap_view = fetch_sourcemap(
-                sourcemap_url,
-                project=self.project,
-                release=self.release,
-                dist=self.dist,
-                allow_scraping=self.allow_scraping,
-            )
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
+            ) as span:
+                span.set_data("sourcemap_url", sourcemap_url)
+                sourcemap_view = fetch_sourcemap(
+                    sourcemap_url,
+                    project=self.project,
+                    release=self.release,
+                    dist=self.dist,
+                    allow_scraping=self.allow_scraping,
+                )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
             # uploaded a node_modules file, which has a sourceMappingURL, they
@@ -900,7 +957,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             pending_file_list.add(f["abs_path"])
 
         for idx, filename in enumerate(pending_file_list):
-            self.cache_source(filename=filename)
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.populate_source_cache.cache_source"
+            ) as span:
+                span.set_data("filename", filename)
+                self.cache_source(filename=filename)
 
     def close(self):
         StacktraceProcessor.close(self)

@@ -50,7 +50,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.models.groupinbox import add_group_to_inbox, get_inbox_details
-from sentry.models.group import looks_like_short_id
+from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
     issue_deleted,
@@ -151,16 +151,6 @@ def get_by_short_id(organization_id, is_short_id_lookup, query):
             pass
 
 
-STATUS_CHOICES = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-}
-
-
 class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
@@ -251,7 +241,9 @@ class InboxDetailsValidator(serializers.Serializer):
 class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
-    status = serializers.ChoiceField(choices=zip(STATUS_CHOICES.keys(), STATUS_CHOICES.keys()))
+    status = serializers.ChoiceField(
+        choices=zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())
+    )
     statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
@@ -472,25 +464,23 @@ def track_update_groups(function):
 
 def rate_limit_endpoint(limit=1, window=1):
     def inner(function):
-        def wrapper(*args, **kwargs):
-            try:
-                if ratelimiter.is_limited(
-                    u"rate_limit_endpoint:{}".format(md5_text(function).hexdigest()),
-                    limit=limit,
-                    window=window,
-                ):
-                    return Response(
-                        {
-                            "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
-                                limit, window
-                            )
-                        },
-                        status=429,
-                    )
-                else:
-                    return function(*args, **kwargs)
-            except Exception:
-                raise
+        def wrapper(self, request, *args, **kwargs):
+            ip = request.META["REMOTE_ADDR"]
+            if ratelimiter.is_limited(
+                u"rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
+                limit=limit,
+                window=window,
+            ):
+                return Response(
+                    {
+                        "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
+                            limit, window
+                        )
+                    },
+                    status=429,
+                )
+            else:
+                return function(self, request, *args, **kwargs)
 
         return wrapper
 
@@ -726,7 +716,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         result.update({"status": "resolved", "statusDetails": status_details})
 
     elif status:
-        new_status = STATUS_CHOICES[result["status"]]
+        new_status = STATUS_UPDATE_CHOICES[result["status"]]
 
         with transaction.atomic():
             happened = queryset.exclude(status=new_status).update(status=new_status)

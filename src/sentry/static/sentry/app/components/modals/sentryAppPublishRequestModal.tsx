@@ -1,10 +1,10 @@
 import React from 'react';
-import {Body, Header} from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -57,9 +57,8 @@ class PublishRequestFormModel extends FormModel {
   }
 }
 
-type Props = {
+type Props = ModalRenderProps & {
   app: SentryApp;
-  closeModal: () => void;
 };
 
 export default class SentryAppPublishRequestModal extends React.Component<Props> {
@@ -81,10 +80,10 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 
     const permissionLabel = (
       <React.Fragment>
-        {permissionQuestionBaseText}
+        <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
         {permissions.map((permission, i) => (
           <React.Fragment key={permission}>
-            {i > 0 && ', '} <code>{permission}</code>
+            {i > 0 && ', '} <Permission>{permission}</Permission>
           </React.Fragment>
         ))}
         .
@@ -149,7 +148,7 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
   };
 
   render() {
-    const {app} = this.props;
+    const {app, Header, Body} = this.props;
     const endpoint = `/sentry-apps/${app.slug}/publish-request/`;
     const forms = [
       {
@@ -188,4 +187,12 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
   font-size: 18px;
+`;
+
+const PermissionLabel = styled('span')`
+  line-height: 24px;
+`;
+
+const Permission = styled('code')`
+  line-height: 24px;
 `;

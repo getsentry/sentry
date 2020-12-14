@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
+import {openModal} from 'app/actionCreators/modal';
 import ActionLink from 'app/components/actions/actionLink';
 import Button from 'app/components/button';
 import CustomResolutionModal from 'app/components/customResolutionModal';
@@ -25,6 +26,7 @@ const defaultProps = {
   isResolved: false,
   isAutoResolved: false,
   confirmLabel: t('Resolve'),
+  hasInbox: false,
 };
 
 type Props = {
@@ -38,13 +40,10 @@ type Props = {
   disabled?: boolean;
   disableDropdown?: boolean;
   projectFetchError?: boolean;
+  hasInbox?: boolean;
 } & typeof defaultProps;
 
-type State = {
-  modal: boolean;
-};
-
-class ResolveActions extends React.Component<Props, State> {
+class ResolveActions extends React.Component<Props> {
   static propTypes = {
     hasRelease: PropTypes.bool.isRequired,
     latestRelease: PropTypes.object,
@@ -63,13 +62,7 @@ class ResolveActions extends React.Component<Props, State> {
 
   static defaultProps = defaultProps;
 
-  state = {modal: false};
-
   onCustomResolution(statusDetails: ResolutionStatusDetails) {
-    this.setState({
-      modal: false,
-    });
-
     this.props.onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
@@ -113,20 +106,19 @@ class ResolveActions extends React.Component<Props, State> {
     }
   }
 
-  render() {
+  renderDropdownMenu() {
     const {
+      projectId,
       isResolved,
       hasRelease,
       latestRelease,
       onUpdate,
-      orgId,
-      projectId,
       confirmMessage,
       shouldConfirm,
       disabled,
       confirmLabel,
       disableDropdown,
-      projectFetchError,
+      hasInbox,
     } = this.props;
 
     const buttonClass = this.getButtonClass();
@@ -147,84 +139,130 @@ class ResolveActions extends React.Component<Props, State> {
     };
 
     return (
-      <ResolveWrapper>
-        <CustomResolutionModal
-          show={this.state.modal}
-          onSelected={(statusDetails: ResolutionStatusDetails) =>
-            this.onCustomResolution(statusDetails)
-          }
-          onCanceled={() => this.setState({modal: false})}
-          orgId={orgId}
-          projectId={projectId}
-        />
-        <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
-          <ResolvedActionWrapper>
-            <StyledResolveActionLink
+      <ResolveWrapper hasInbox={hasInbox}>
+        <StyledDropdownLink
+          key="resolve-dropdown"
+          caret={!hasInbox}
+          className={hasInbox ? undefined : buttonClass}
+          title={hasInbox ? t('Resolve In\u2026') : ''}
+          alwaysRenderMenu
+          disabled={!projectId ? disabled : disableDropdown}
+          anchorRight={hasInbox}
+          isNestedDropdown={hasInbox}
+        >
+          <StyledMenuItem header>{t('Resolved In')}</StyledMenuItem>
+          <StyledTooltip title={actionTitle} containerDisplayMode="block">
+            <StyledActionLink
               {...actionLinkProps}
-              title={t('Resolve')}
-              disabled={disabled}
-              onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+              title={t('The next release')}
+              onAction={() =>
+                hasRelease &&
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {
+                    inNextRelease: true,
+                  },
+                })
+              }
             >
-              <StyledIconCheckmark size="xs" />
-              {t('Resolve')}
-            </StyledResolveActionLink>
-            <StyledDropdownLink
-              key="resolve-dropdown"
-              caret
-              className={buttonClass}
-              title=""
-              alwaysRenderMenu
-              disabled={!projectId ? disabled : disableDropdown}
+              {t('The next release')}
+            </StyledActionLink>
+          </StyledTooltip>
+          <StyledTooltip title={actionTitle} containerDisplayMode="block">
+            <StyledActionLink
+              {...actionLinkProps}
+              title={t('The current release')}
+              onAction={() =>
+                hasRelease &&
+                onUpdate({
+                  status: ResolutionStatus.RESOLVED,
+                  statusDetails: {
+                    inRelease: latestRelease ? latestRelease.version : 'latest',
+                  },
+                })
+              }
             >
-              <StyledMenuItem header>{t('Resolved In')}</StyledMenuItem>
-              <StyledTooltip title={actionTitle} containerDisplayMode="block">
-                <StyledActionLink
-                  {...actionLinkProps}
-                  title={t('The next release')}
-                  onAction={() =>
-                    hasRelease &&
-                    onUpdate({
-                      status: ResolutionStatus.RESOLVED,
-                      statusDetails: {
-                        inNextRelease: true,
-                      },
-                    })
-                  }
-                >
-                  {t('The next release')}
-                </StyledActionLink>
-              </StyledTooltip>
-              <StyledTooltip title={actionTitle} containerDisplayMode="block">
-                <StyledActionLink
-                  {...actionLinkProps}
-                  title={t('The current release')}
-                  onAction={() =>
-                    hasRelease &&
-                    onUpdate({
-                      status: ResolutionStatus.RESOLVED,
-                      statusDetails: {
-                        inRelease: latestRelease ? latestRelease.version : 'latest',
-                      },
-                    })
-                  }
-                >
-                  {latestRelease
-                    ? t('The current release (%s)', formatVersion(latestRelease.version))
-                    : t('The current release')}
-                </StyledActionLink>
-              </StyledTooltip>
-              <StyledTooltip title={actionTitle} containerDisplayMode="block">
-                <StyledActionLink
-                  {...actionLinkProps}
-                  title={t('Another version')}
-                  onAction={() => hasRelease && this.setState({modal: true})}
-                  shouldConfirm={false}
-                >
-                  {t('Another version\u2026')}
-                </StyledActionLink>
-              </StyledTooltip>
-            </StyledDropdownLink>
-          </ResolvedActionWrapper>
+              {latestRelease
+                ? t('The current release (%s)', formatVersion(latestRelease.version))
+                : t('The current release')}
+            </StyledActionLink>
+          </StyledTooltip>
+          <StyledTooltip title={actionTitle} containerDisplayMode="block">
+            <StyledActionLink
+              {...actionLinkProps}
+              title={t('Another version')}
+              onAction={() => hasRelease && this.openCustomReleaseModal()}
+              shouldConfirm={false}
+            >
+              {t('Another version\u2026')}
+            </StyledActionLink>
+          </StyledTooltip>
+        </StyledDropdownLink>
+      </ResolveWrapper>
+    );
+  }
+
+  openCustomReleaseModal() {
+    const {orgId, projectId} = this.props;
+
+    openModal(deps => (
+      <CustomResolutionModal
+        {...deps}
+        onSelected={(statusDetails: ResolutionStatusDetails) =>
+          this.onCustomResolution(statusDetails)
+        }
+        orgId={orgId}
+        projectId={projectId}
+      />
+    ));
+  }
+
+  render() {
+    const {
+      isResolved,
+      onUpdate,
+      confirmMessage,
+      shouldConfirm,
+      disabled,
+      confirmLabel,
+      projectFetchError,
+      hasInbox,
+    } = this.props;
+
+    if (isResolved) {
+      return this.renderResolved();
+    }
+
+    const actionLinkProps = {
+      shouldConfirm,
+      message: confirmMessage,
+      confirmLabel,
+      disabled,
+    };
+
+    return (
+      <ResolveWrapper hasInbox={hasInbox}>
+        <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
+          {hasInbox ? (
+            <div style={{width: '100%'}}>
+              <div className="dropdown-submenu flex expand-left">
+                {this.renderDropdownMenu()}
+              </div>
+            </div>
+          ) : (
+            <ResolvedActionWrapper>
+              <StyledResolveActionLink
+                {...actionLinkProps}
+                title={t('Resolve')}
+                disabled={disabled}
+                onAction={() => onUpdate({status: ResolutionStatus.RESOLVED})}
+              >
+                <StyledIconCheckmark size="xs" />
+                {t('Resolve')}
+              </StyledResolveActionLink>
+              {this.renderDropdownMenu()}
+            </ResolvedActionWrapper>
+          )}
         </Tooltip>
       </ResolveWrapper>
     );
@@ -240,6 +278,7 @@ const disabledCss = css`
   cursor: default;
   opacity: 0.65;
   pointer-events: none;
+  background: none !important;
 `;
 
 const dropdownTipCss = p => css`
@@ -265,14 +304,16 @@ const actionLinkCss = p => css`
 const ResolvedActionWrapper = styled('div')`
   margin-right: 5px;
   display: inline-block;
+  display: inline-block;
 `;
 
-const ResolveWrapper = styled('div')`
+const ResolveWrapper = styled('div')<{hasInbox: boolean}>`
   display: inline-block;
   ${dropdownTipCss};
   & span {
     position: relative;
   }
+  width: ${p => (p.hasInbox ? '100%' : 'auto')};
 `;
 
 const StyledIconCheckmark = styled(IconCheckmark)`
@@ -365,6 +406,7 @@ const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
+  ${p => (p.disabled ? disabledCss : null)};
 `;
 
 export default ResolveActions;

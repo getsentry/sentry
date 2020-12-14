@@ -191,7 +191,7 @@ describe('groupEventDetails', () => {
 
     wrapper.update();
 
-    const buttons = wrapper.find('.event-toolbar').find('ButtonBar').find('Button');
+    const buttons = wrapper.find('GroupEventToolbar').find('ButtonBar').find('Button');
 
     expect(buttons.at(0).prop('to')).toEqual({
       pathname: '/organizations/org-slug/issues/1/events/oldest/',
@@ -210,6 +210,26 @@ describe('groupEventDetails', () => {
       pathname: '/organizations/org-slug/issues/1/events/latest/',
       query: {environment: 'dev'},
     });
+  });
+
+  it('displays error on event error', async function () {
+    const wrapper = mountWithTheme(
+      <GroupEventDetails
+        api={new MockApiClient()}
+        group={group}
+        event={undefined}
+        eventError
+        project={project}
+        organization={org}
+        environments={[{id: '1', name: 'dev', displayName: 'Dev'}]}
+        params={{orgId: org.slug, group: group.id, eventId: '1'}}
+        location={{}}
+      />,
+      routerContext
+    );
+    await tick();
+
+    expect(wrapper.text()).toContain('events for this issue could not be found');
   });
 
   describe('EventCauseEmpty', () => {

@@ -626,10 +626,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
-        anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
+        anti_gravity = {
+            "priority": (-150, ""),
+            "fixVersions": (-125, ""),
+            "components": (-100, ""),
+            "security": (-50, ""),
+        }
 
         dynamic_fields = list(issue_type_meta["fields"].keys())
-        dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or f)
+        # Sort based on priority, then field name
+        dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
@@ -679,6 +685,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def create_issue(self, data, **kwargs):
+        """
+        Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
+        the Jira issue by removing all fields that aren't enumerated by this
+        schema. Send this cleaned data to Jira. Finally, make another API call
+        to Jira to make sure the issue was created and return basic issue details.
+
+        :param data: JiraCreateTicketAction object
+        :param kwargs: not used
+        :return: simple object with basic Jira issue details
+        """
         client = self.get_client()
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
@@ -765,7 +781,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            self.raise_error(e)
+            return self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:

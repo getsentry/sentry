@@ -10,7 +10,6 @@ import os.path
 import re
 import socket
 import sys
-import six
 import tempfile
 
 import sentry
@@ -881,6 +880,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
+    # Enables aws lambda integration
+    "organizations:integrations-aws_lambda": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
@@ -930,10 +931,10 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
+    # Enable "owner"/"suggested assignee" features.
+    "organizations:workflow-owners": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -961,6 +962,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
+    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1134,7 +1137,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
-CACHE_VERSION = 2 if six.PY3 else 1
+CACHE_VERSION = 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"
@@ -1246,6 +1249,13 @@ SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
 
 # Maximum content length for source files before we abort fetching
 SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
+
+# Maximum content length for cache value.  Currently used only to avoid
+# pointless compression of sourcemaps and other release files because we
+# silently fail to cache the compressed result anyway.  Defaults to None which
+# disables the check and allows different backends for unlimited payload.
+# e.g. memcached defaults to 1MB  = 1024 * 1024
+SENTRY_CACHE_MAX_VALUE_SIZE = None
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
@@ -1656,21 +1666,19 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
+    "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
 )
 
 
-def get_sentry_sdk_config():
-    return {
-        "release": sentry.__build__,
-        "environment": ENVIRONMENT,
-        "in_app_include": ["sentry", "sentry_plugins"],
-        "_experiments": {"smart_transaction_trimming": True},
-        "debug": True,
-        "send_default_pii": True,
-    }
-
-
-SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+SENTRY_SDK_CONFIG = {
+    "release": sentry.__build__,
+    "environment": ENVIRONMENT,
+    "in_app_include": ["sentry", "sentry_plugins"],
+    "_experiments": {"smart_transaction_trimming": True},
+    "debug": True,
+    "send_default_pii": True,
+    "auto_enabling_integrations": False,
+}
 
 # Callable to bind additional context for the Sentry SDK
 #

@@ -11,7 +11,6 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -272,7 +271,6 @@ class PerformanceLanding extends React.Component<Props, State> {
             onClick={() => this.handleViewChange(viewKey)}
           >
             {this.getViewLabel(viewKey)}
-            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="new" />}
           </Button>
         ))}
       </ButtonBar>
@@ -406,10 +404,6 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
   margin-bottom: ${space(2)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  height: 12px;
 `;
 
 export default withApi(

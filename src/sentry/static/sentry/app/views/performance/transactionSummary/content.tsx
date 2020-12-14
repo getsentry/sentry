@@ -1,33 +1,43 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import SearchBar from 'app/views/events/searchBar';
+import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
+import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
 } from 'app/views/performance/transactionVitals/constants';
 
+import {getTransactionDetailsUrl} from '../utils';
+
 import TransactionSummaryCharts from './charts';
 import TransactionHeader, {Tab} from './header';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
-import TransactionList from './transactionList';
 import UserStats from './userStats';
+import {TransactionFilterOptions} from './utils';
 
 type Props = {
   location: Location;
@@ -83,6 +93,58 @@ class SummaryContent extends React.Component<Props, State> {
     this.setState({incompatibleAlertNotice});
   };
 
+  handleCellAction = (column: TableColumn<React.ReactText>) => {
+    return (action: Actions, value: React.ReactText) => {
+      const {eventView, location} = this.props;
+
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
+
+      // no need to include transaction as its already in the query params
+      searchConditions.removeTag('transaction');
+
+      updateQuery(searchConditions, action, column.name, value);
+
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: stringifyQueryObject(searchConditions),
+        },
+      });
+    };
+  };
+
+  handleTransactionsListSortChange = (value: string) => {
+    const {location} = this.props;
+    const target = {
+      pathname: location.pathname,
+      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+    };
+    browserHistory.push(target);
+  };
+
+  handleDiscoverViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_discover',
+      eventName: 'Performance Views: View in Discover from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
+  handleViewDetailsClick = (_e: React.MouseEvent<Element>) => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_details',
+      eventName: 'Performance Views: View Details from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   render() {
     const {
       transactionName,
@@ -105,6 +167,10 @@ class SummaryContent extends React.Component<Props, State> {
         return Number.isFinite(totalValues[alias]);
       })
     );
+
+    const {selectedSort, sortOptions} = getTransactionsListSort(location, {
+      p95: slowDuration,
+    });
 
     return (
       <React.Fragment>
@@ -136,12 +202,21 @@ class SummaryContent extends React.Component<Props, State> {
               eventView={eventView}
               totalValues={totalCount}
             />
-            <TransactionList
-              organization={organization}
-              transactionName={transactionName}
+            <TransactionsList
               location={location}
+              organization={organization}
               eventView={eventView}
-              slowDuration={slowDuration}
+              selected={selectedSort}
+              options={sortOptions}
+              titles={[t('id'), t('user'), t('duration'), t('timestamp')]}
+              handleDropdownChange={this.handleTransactionsListSortChange}
+              generateLink={{
+                id: generateTransactionLink(transactionName),
+              }}
+              baseline={transactionName}
+              handleBaselineClick={this.handleViewDetailsClick}
+              handleCellAction={this.handleCellAction}
+              handleOpenInDiscoverClick={this.handleDiscoverViewClick}
             />
             <RelatedIssues
               organization={organization}
@@ -158,6 +233,7 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               totals={totalValues}
               transactionName={transactionName}
+              eventView={eventView}
             />
             <SidebarCharts organization={organization} eventView={eventView} />
             <StatusBreakdown
@@ -177,6 +253,54 @@ class SummaryContent extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
+}
+
+function generateTransactionLink(transactionName: string) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    query: Query
+  ): LocationDescriptor => {
+    const eventSlug = generateEventSlug(tableRow);
+    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
+  };
+}
+
+function getFilterOptions({p95}: {p95: number}): DropdownOption[] {
+  return [
+    {
+      sort: {kind: 'asc', field: 'transaction.duration'},
+      value: TransactionFilterOptions.FASTEST,
+      label: t('Fastest Transactions'),
+    },
+    {
+      query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+      sort: {kind: 'desc', field: 'transaction.duration'},
+      value: TransactionFilterOptions.SLOW,
+      label: t('Slow Transactions (p95)'),
+    },
+    {
+      sort: {kind: 'desc', field: 'transaction.duration'},
+      value: TransactionFilterOptions.OUTLIER,
+      label: t('Outlier Transactions (p100)'),
+    },
+    {
+      sort: {kind: 'desc', field: 'timestamp'},
+      value: TransactionFilterOptions.RECENT,
+      label: t('Recent Transactions'),
+    },
+  ];
+}
+
+function getTransactionsListSort(
+  location: Location,
+  options: {p95: number}
+): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
+  const sortOptions = getFilterOptions(options);
+  const urlParam =
+    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  return {selectedSort, sortOptions};
 }
 
 const StyledSearchBar = styled(SearchBar)`

@@ -1720,16 +1720,16 @@
     react-lifecycles-compat "^3.0.4"
     warning "^3.0.0"
 
-"@sentry-internal/global-search@^0.0.30":
-  version "0.0.30"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.30.tgz#a437ea93c3b63b988f36d5286d8175ffac87ed9a"
-  integrity sha512-DbZ8wwipssri5lxA+7GkSbBt3hSNtD1lB1PgYVN7o1KbBOP7iRSssdaq8bbuFfQQv/jwh+qQ6FappNgBfRQfiw==
+"@sentry-internal/global-search@^0.0.31":
+  version "0.0.31"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.31.tgz#b0e5b0d40b43a93a8d1a1b5f2fb1636db5c360f4"
+  integrity sha512-UhNJmjiJVuZmW4PCeYDTk+UULnaFWb0qUjT7SUwnYSLhXAe1zLN1pvXaLdwgCkdbDnmJh5H49pGnECbwRzBkVw==
   dependencies:
     "@types/dompurify" "^2.0.4"
     "@types/react" "^16.9.49"
     "@types/react-dom" "^16.9.8"
     algoliasearch "^4.3.1"
-    dompurify "^2.0.12"
+    dompurify "^2.2.3"
     htmlparser2 "^4.1.0"
     title-case "^3.0.2"
 
@@ -2669,10 +2669,10 @@
   dependencies:
     "@types/babel-types" "*"
 
-"@types/classnames@^2.2.0":
-  version "2.2.9"
-  resolved "https://registry.yarnpkg.com/@types/classnames/-/classnames-2.2.9.tgz#d868b6febb02666330410fe7f58f3c4b8258be7b"
-  integrity sha512-MNl+rT5UmZeilaPxAVs6YaPC2m6aA8rofviZbhbxpPpl61uKodfdQVsBtgJGTqGizEf02oW3tsVe7FYB8kK14A==
+"@types/classnames@2.2.11":
+  version "2.2.11"
+  resolved "https://registry.yarnpkg.com/@types/classnames/-/classnames-2.2.11.tgz#2521cc86f69d15c5b90664e4829d84566052c1cf"
+  integrity sha512-2koNhpWm3DgWRp5tpkiJ8JGc1xTn2q0l+jUNUE7oMKXUf5NpI9AIdC4kbjGNFBdHtcxBD18LAksoudAVhFKCjw==
 
 "@types/clipboard@^2.0.1":
   version "2.0.1"
@@ -5009,12 +5009,7 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-classnames@2.2.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.0.tgz#8f61df81f356c45d18a31d83fde4dfb194ea8722"
-  integrity sha1-j2HfgfNWxF0Yox2D/eTfsZTqhyI=
-
-classnames@^2.2.1, classnames@^2.2.4, classnames@^2.2.5:
+classnames@2.2.6, classnames@^2.2.1, classnames@^2.2.4, classnames@^2.2.5:
   version "2.2.6"
   resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.6.tgz#43935bffdd291f326dad0a205309b38d00f650ce"
   integrity sha512-JR/iSQOSt+LQIWwrwEzJ9uk0xfN3mTVYMwt1Ir5mUcSN6pU+V4zQFFaJsclJbPuAUQH+yfWef6tm7l1quW3C8Q==
@@ -6292,10 +6287,10 @@ domhandler@^3.0.0, domhandler@^3.2.0:
   dependencies:
     domelementtype "^2.0.1"
 
-dompurify@^2.0.12, dompurify@^2.0.7:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.1.1.tgz#b5aa988676b093a9c836d8b855680a8598af25fe"
-  integrity sha512-NijiNVkS/OL8mdQL1hUbCD6uty/cgFpmNiuFxrmJ5YPH2cXrPKIewoixoji56rbZ6XBPmtM8GA8/sf9unlSuwg==
+dompurify@^2.2.3:
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.2.3.tgz#ec653ba521b39f397c2ca045769438d593ea8a9f"
+  integrity sha512-8Hv7Q0FuwD9rWoB6qI2eZsfKbGXfoUVuGHHrE15vgk4ReOKwOkSgbqb2OMFtc0d5besOEkoLkcyuV10zQ2X5gw==
 
 domready@1.0.8:
   version "1.0.8"

@@ -7,19 +7,17 @@ import {Client} from 'app/api';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
-import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import {getSeriesSelection} from 'app/components/charts/utils';
 import ErrorBoundary from 'app/components/errorBoundary';
-import {Panel, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -28,55 +26,74 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-import {Widget, WidgetQuery} from './types';
+import {Widget} from './types';
+import WidgetQueries from './widgetQueries';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   organization: Organization;
+  isEditing: boolean;
   widget: Widget;
   selection: GlobalSelection;
+  onDelete: () => void;
+  onEdit: () => void;
 };
 
-class WidgetCard extends React.Component<Props> {
-  shouldComponentUpdate(nextProps: Props) {
+type State = {
+  hovering: boolean;
+};
+
+class WidgetCard extends React.Component<Props, State> {
+  state: State = {
+    hovering: false,
+  };
+
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
     if (
-      !isEqual(nextProps.widget.queries, this.props.widget.queries) ||
+      !isEqual(nextProps.widget, this.props.widget) ||
       !isEqual(nextProps.selection, this.props.selection) ||
-      nextProps.widget.title !== this.props.widget.title
+      nextState.hovering !== this.state.hovering
     ) {
       return true;
     }
     return false;
   }
 
-  renderWidgetQuery(widgetQuery: WidgetQuery, index: number) {
+  chartComponent(chartProps): React.ReactNode {
+    const {widget} = this.props;
+
+    switch (widget.displayType) {
+      case 'bar':
+        return <BarChart {...chartProps} />;
+      case 'line':
+      default:
+        return <LineChart {...chartProps} />;
+    }
+  }
+
+  renderVisual() {
     const {location, router, selection, api, organization, widget} = this.props;
 
     const statsPeriod = selection.datetime.period;
     const {start, end} = selection.datetime;
     const {projects, environments} = selection;
 
-    const datetimeSelection = {
-      start: start || null,
-      end: end || null,
-      period: statsPeriod,
-    };
-
     const legend = {
       right: 10,
-      top: 0,
+      top: 5,
       icon: 'circle',
       itemHeight: 8,
       itemWidth: 8,
       itemGap: 12,
       align: 'left',
+      type: 'plain',
       textStyle: {
         verticalAlign: 'top',
         fontSize: 11,
         fontFamily: 'Rubik',
       },
       selected: getSeriesSelection(location),
-      formatter: seriesName => {
+      formatter: (seriesName: string) => {
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -88,6 +105,7 @@ class WidgetCard extends React.Component<Props> {
       },
     };
 
+    const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
         left: '10px',
@@ -105,40 +123,30 @@ class WidgetCard extends React.Component<Props> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) =>
-            axisLabelFormatter(value, widgetQuery.fields[0] ?? ''),
+          formatter: (value: number) => axisLabelFormatter(value, axisField),
         },
       },
     };
 
-    const yAxis = [...widgetQuery.fields];
-
     return (
       <ChartZoom
-        key={String(index)}
         router={router}
         period={statsPeriod}
+        start={start}
+        end={end}
         projects={projects}
         environments={environments}
       >
         {zoomRenderProps => {
           return (
-            <EventsRequest
+            <WidgetQueries
               api={api}
               organization={organization}
-              period={statsPeriod}
-              project={[...projects]}
-              environment={[...environments]}
-              start={start}
-              end={end}
-              interval={getInterval(datetimeSelection, true)}
-              showLoading={false}
-              query={widgetQuery.conditions}
-              includePrevious={false}
-              yAxis={yAxis}
+              widget={widget}
+              selection={selection}
             >
-              {({results, errored, loading, reloading, timeseriesData}) => {
-                if (errored) {
+              {({results, error, loading}) => {
+                if (error) {
                   return (
                     <ErrorPanel>
                       <IconWarning color="gray500" size="lg" />
@@ -146,30 +154,13 @@ class WidgetCard extends React.Component<Props> {
                   );
                 }
 
-                if (
-                  yAxis.length === 1 &&
-                  timeseriesData &&
-                  timeseriesData.length &&
-                  widgetQuery.fields.length
-                ) {
-                  timeseriesData[0] = {
-                    ...timeseriesData[0],
-                    seriesName: widgetQuery.fields[0],
-                  };
-                }
-
-                // normalize chart data depending on number of y-axis data
-                const chartData = (yAxis.length === 1
-                  ? timeseriesData
-                  : results) as Series[];
-
-                const colors = chartData
-                  ? theme.charts.getColorPalette(chartData.length - 2)
+                const colors = results
+                  ? theme.charts.getColorPalette(results.length - 2)
                   : [];
 
                 // Create a list of series based on the order of the fields,
-                const series = chartData
-                  ? chartData.map((values, i: number) => ({
+                const series = results
+                  ? results.map((values, i: number) => ({
                       ...values,
                       color: colors[i],
                     }))
@@ -179,47 +170,55 @@ class WidgetCard extends React.Component<Props> {
                 // so all series names are clickable.
                 zoomRenderProps.toolBox.z = -1;
 
-                let chart: React.ReactNode = null;
-
-                switch (widget.displayType) {
-                  case 'bar': {
-                    chart = (
-                      <BarChart
-                        {...zoomRenderProps}
-                        {...chartOptions}
-                        legend={legend}
-                        series={[...series]}
-                      />
-                    );
-                    break;
-                  }
-                  case 'line':
-                  default: {
-                    chart = (
-                      <LineChart
-                        {...zoomRenderProps}
-                        {...chartOptions}
-                        legend={legend}
-                        series={[...series]}
-                      />
-                    );
-                  }
-                }
-
                 return (
-                  <TransitionChart loading={loading} reloading={reloading}>
-                    <TransparentLoadingMask visible={reloading} />
+                  <TransitionChart loading={loading} reloading={loading}>
+                    <TransparentLoadingMask visible={loading} />
                     {getDynamicText({
-                      value: chart,
-                      fixed: 'Line Chart',
+                      value: this.chartComponent({
+                        ...zoomRenderProps,
+                        ...chartOptions,
+                        legend,
+                        series,
+                      }),
+                      fixed: 'Widget Chart',
                     })}
                   </TransitionChart>
                 );
               }}
-            </EventsRequest>
+            </WidgetQueries>
           );
         }}
       </ChartZoom>
+    );
+  }
+
+  renderEditPanel() {
+    if (!this.state.hovering || !this.props.isEditing) {
+      return null;
+    }
+
+    const {onEdit, onDelete} = this.props;
+
+    return (
+      <EditPanel>
+        <IconContainer>
+          <IconGrabbable color="gray500" size="lg" />
+          <IconClick
+            onClick={() => {
+              onEdit();
+            }}
+          >
+            <IconEdit color="gray500" size="lg" />
+          </IconClick>
+          <IconClick
+            onClick={() => {
+              onDelete();
+            }}
+          >
+            <IconDelete color="gray500" size="lg" />
+          </IconClick>
+        </IconContainer>
+      </EditPanel>
     );
   }
 
@@ -229,13 +228,25 @@ class WidgetCard extends React.Component<Props> {
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel>
+        <StyledPanel
+          onMouseLeave={() => {
+            if (this.state.hovering) {
+              this.setState({
+                hovering: false,
+              });
+            }
+          }}
+          onMouseOver={() => {
+            if (!this.state.hovering) {
+              this.setState({
+                hovering: true,
+              });
+            }
+          }}
+        >
           <WidgetHeader>{widget.title}</WidgetHeader>
-          <StyledPanelBody>
-            {widget.queries.map((widgetQuery, index) =>
-              this.renderWidgetQuery(widgetQuery, index)
-            )}
-          </StyledPanelBody>
+          {this.renderVisual()}
+          {this.renderEditPanel()}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -261,13 +272,45 @@ const WidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(2)} ${space(3)};
+
+  position: absolute;
+  z-index: 2;
 `;
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
 `;
 
-const StyledPanelBody = styled(PanelBody)`
-  height: 250px;
+const EditPanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: rgba(255, 255, 255, 0.5);
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+
+  > * + * {
+    margin-left: 50px;
+  }
+`;
+
+const IconClick = styled('div')`
+  &:hover {
+    cursor: pointer;
+  }
 `;

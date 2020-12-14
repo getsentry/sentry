@@ -113,8 +113,9 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         repo = serializer.repo
         integration = serializer.integration
 
-        # strip off the base URL
-        rest_url = source_url.replace(u"{}/blob/".format(repo.url), "")
+        # strip off the base URL (could be in different formats)
+        rest_url = source_url.replace(u"{}/-/blob/".format(repo.url), "")
+        rest_url = rest_url.replace(u"{}/blob/".format(repo.url), "")
         branch, _, source_path = rest_url.partition("/")
 
         stack_root, source_root = find_roots(stack_path, source_path)
@@ -122,10 +123,10 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         return self.respond(
             {
                 "integrationId": integration.id,
-                "repoId": repo.id,
+                "repositoryId": repo.id,
                 "provider": integration.provider,
                 "stackRoot": stack_root,
                 "sourceRoot": source_root,
-                "branch": branch,
+                "defaultBranch": branch,
             }
         )

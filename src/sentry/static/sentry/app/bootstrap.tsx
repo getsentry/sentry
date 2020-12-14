@@ -57,7 +57,7 @@ function getSentryIntegrations(hasReplays: boolean = false) {
       routingInstrumentation: Sentry.reactRouterV3Instrumentation(
         Router.browserHistory as any,
         Router.createRoutes(routes()),
-        Router.match as any
+        Router.match
       ),
       idleTimeout: 5000,
     }),
@@ -112,6 +112,13 @@ metric.mark({name: 'sentry-app-init'});
 jQuery.ajaxSetup({
   //jQuery won't allow using the ajaxCsrfSetup function directly
   beforeSend: ajaxCsrfSetup,
+  // Completely disable evaluation of script responses using jQuery ajax
+  // Typically the `text script` converter will eval the text [1]. Instead we
+  // just immediately return.
+  // [1]: https://github.com/jquery/jquery/blob/8969732518470a7f8e654d5bc5be0b0076cb0b87/src/ajax/script.js#L39-L42
+  converters: {
+    'text script': (value: any) => value,
+  },
 });
 
 const render = (Component: React.ComponentType) => {

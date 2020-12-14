@@ -4,6 +4,7 @@ import $ from 'jquery';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ResolveActions from 'app/components/actions/resolve';
+import GlobalModal from 'app/components/globalModal';
 
 describe('ResolveActions', function () {
   describe('disabled', function () {
@@ -151,14 +152,17 @@ describe('ResolveActions', function () {
 
     beforeEach(function () {
       component = mountWithTheme(
-        <ResolveActions
-          onUpdate={spy}
-          hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
-          shouldConfirm
-          confirmMessage="Are you sure???"
-        />,
+        <React.Fragment>
+          <GlobalModal />
+          <ResolveActions
+            onUpdate={spy}
+            hasRelease={false}
+            orgId="org-1"
+            projectId="proj-1"
+            shouldConfirm
+            confirmMessage="Are you sure???"
+          />
+        </React.Fragment>,
         TestStubs.routerContext()
       );
       button = component.find('StyledResolveActionLink').first();
@@ -168,10 +172,13 @@ describe('ResolveActions', function () {
       expect(component).toSnapshot();
     });
 
-    it('displays confirmation modal with message provided', function () {
+    it('displays confirmation modal with message provided', async function () {
       button.simulate('click');
 
-      const modal = $(document.body).find('.modal');
+      await tick();
+      component.update();
+
+      const modal = component.find('Modal ModalDialog');
       expect(modal.text()).toContain('Are you sure???');
       expect(spy).not.toHaveBeenCalled();
       $(document.body).find('.modal button:contains("Resolve")').click();
@@ -187,12 +194,15 @@ describe('ResolveActions', function () {
       body: [TestStubs.Release()],
     });
     const wrapper = mountWithTheme(
-      <ResolveActions
-        hasRelease
-        orgId="org-slug"
-        projectId="project-slug"
-        onUpdate={onUpdate}
-      />,
+      <React.Fragment>
+        <GlobalModal />
+        <ResolveActions
+          hasRelease
+          orgId="org-slug"
+          projectId="project-slug"
+          onUpdate={onUpdate}
+        />
+      </React.Fragment>,
       TestStubs.routerContext()
     );
 

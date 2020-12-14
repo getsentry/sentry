@@ -4,7 +4,9 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -35,6 +37,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
     project,
     lifetime,
     isUnhandled,
+    inbox,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
@@ -42,7 +45,6 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {isUnhandled && hasInbox && <UnhandledTag />}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
@@ -65,12 +67,20 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {!hasInbox && (
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {hasInbox ? (
+        <TimesTag
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      ) : (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
+      {/* Always display comment count on inbox */}
       {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
@@ -128,6 +138,12 @@ const GroupExtra = styled('div')<{hasInbox: boolean}>`
   }
 `;
 
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
+`;
+
 const StyledTimes = styled(Times)`
   margin-right: 0;
 `;
@@ -162,12 +178,6 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));

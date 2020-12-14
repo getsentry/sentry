@@ -3,7 +3,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {GlobalSelection} from 'app/types';
+import {EventsStats, GlobalSelection, MultiSeriesEventsStats} from 'app/types';
 import {escape} from 'app/utils';
 import {parsePeriodToHours} from 'app/utils/dates';
 import {decodeList} from 'app/utils/queryString';
@@ -11,6 +11,7 @@ import {decodeList} from 'app/utils/queryString';
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
 // In minutes
+export const SIXTY_DAYS = 86400;
 export const THIRTY_DAYS = 43200;
 export const TWO_WEEKS = 20160;
 export const ONE_WEEK = 10080;
@@ -45,12 +46,21 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
 export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
+  if (diffInMinutes >= SIXTY_DAYS) {
+    // Greater than or equal to 30 days
+    if (highFidelity) {
+      return '4h';
+    } else {
+      return '1d';
+    }
+  }
+
   if (diffInMinutes >= THIRTY_DAYS) {
     // Greater than or equal to 30 days
     if (highFidelity) {
       return '1h';
     } else {
-      return '24h';
+      return '4h';
     }
   }
 
@@ -59,7 +69,7 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
     if (highFidelity) {
       return '30m';
     } else {
-      return '24h';
+      return '1h';
     }
   }
 
@@ -123,4 +133,10 @@ export function getSeriesSelection(
     selection[series] = false;
     return selection;
   }, {});
+}
+
+export function isMultiSeriesStats(
+  data: MultiSeriesEventsStats | EventsStats | null
+): data is MultiSeriesEventsStats {
+  return data !== null && data.data === undefined && data.totals === undefined;
 }

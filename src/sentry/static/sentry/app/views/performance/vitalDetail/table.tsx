@@ -29,9 +29,12 @@ import {
 } from '../transactionSummary/utils';
 
 import {
-  getVitalDetailTableStatusFunction,
+  getVitalDetailTableMehStatusFunction,
+  getVitalDetailTablePoorStatusFunction,
   vitalAbbreviations,
   vitalNameFromLocation,
+  VitalState,
+  vitalStateColors,
 } from './utils';
 
 const COLUMN_TITLES = ['Transaction', 'Project', 'Unique Users', 'Count'];
@@ -130,17 +133,25 @@ class Table extends React.Component<Props, State> {
 
     const field = String(column.key);
 
-    if (field === getVitalDetailTableStatusFunction(vitalName)) {
+    if (field === getVitalDetailTablePoorStatusFunction(vitalName)) {
       if (dataRow[getAggregateAlias(field)]) {
         return (
           <UniqueTagCell>
-            <StyledTag>{t('Fail')}</StyledTag>
+            <PoorTag>{t('Fail')}</PoorTag>
+          </UniqueTagCell>
+        );
+      } else if (
+        dataRow[getAggregateAlias(getVitalDetailTableMehStatusFunction(vitalName))]
+      ) {
+        return (
+          <UniqueTagCell>
+            <MehTag>{t('Meh')}</MehTag>
           </UniqueTagCell>
         );
       } else {
         return (
           <UniqueTagCell>
-            <Tag>{t('Pass')}</Tag>
+            <GoodTag>{t('Good')}</GoodTag>
           </UniqueTagCell>
         );
       }
@@ -311,18 +322,26 @@ class Table extends React.Component<Props, State> {
   getSortedEventView(vitalName: WebVital) {
     const {eventView} = this.props;
 
-    const aggregateField = getAggregateAlias(
-      getVitalDetailTableStatusFunction(vitalName)
+    const aggregateFieldPoor = getAggregateAlias(
+      getVitalDetailTablePoorStatusFunction(vitalName)
     );
-    const isSortingByStatus = eventView.sorts.some(sort =>
-      sort.field.includes(aggregateField)
+    const aggregateFieldMeh = getAggregateAlias(
+      getVitalDetailTableMehStatusFunction(vitalName)
+    );
+    const isSortingByStatus = eventView.sorts.some(
+      sort =>
+        sort.field.includes(aggregateFieldPoor) || sort.field.includes(aggregateFieldMeh)
     );
 
     const additionalSorts: Sort[] = isSortingByStatus
       ? []
       : [
           {
-            field: aggregateField,
+            field: aggregateFieldPoor,
+            kind: 'desc',
+          },
+          {
+            field: aggregateFieldMeh,
             kind: 'desc',
           },
         ];
@@ -341,6 +360,7 @@ class Table extends React.Component<Props, State> {
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
+      .slice(0, -1)
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
@@ -402,9 +422,27 @@ const UniqueTagCell = styled('div')`
   text-align: right;
 `;
 
-const StyledTag = styled(Tag)`
+const GoodTag = styled(Tag)`
   div {
-    background-color: ${p => p.theme.red300};
+    background-color: ${vitalStateColors[VitalState.GOOD]};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
+`;
+
+const MehTag = styled(Tag)`
+  div {
+    background-color: ${vitalStateColors[VitalState.MEH]};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
+`;
+
+const PoorTag = styled(Tag)`
+  div {
+    background-color: ${vitalStateColors[VitalState.POOR]};
   }
   span {
     color: ${p => p.theme.white};

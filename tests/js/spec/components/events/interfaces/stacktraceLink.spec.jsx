@@ -18,11 +18,29 @@ describe('StacktraceLink', function () {
     MockApiClient.clearMockResponses();
   });
 
+  it('renders setup CTA with integration but no configs', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master'},
+      body: {config: null, sourceUrl: null, integrations: [integration]},
+    });
+    mountWithTheme(
+      <StacktraceLink
+        frame={frame}
+        event={event}
+        projects={[project]}
+        organization={org}
+        lineNo={frame.lineNo}
+      />,
+      TestStubs.routerContext()
+    );
+  });
+
   it('renders source url link', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master'},
-      body: {config, sourceUrl: 'https://something.io'},
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     const wrapper = mountWithTheme(
       <StacktraceLink
@@ -42,7 +60,12 @@ describe('StacktraceLink', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master'},
-      body: {config, sourceUrl: null, error: 'file_not_found'},
+      body: {
+        config,
+        sourceUrl: null,
+        error: 'file_not_found',
+        integrations: [integration],
+      },
     });
     const wrapper = mountWithTheme(
       <StacktraceLink
@@ -64,7 +87,12 @@ describe('StacktraceLink', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master'},
-      body: {config, sourceUrl: null, error: 'stack_root_mismatch'},
+      body: {
+        config,
+        sourceUrl: null,
+        error: 'stack_root_mismatch',
+        integrations: [integration],
+      },
     });
     const wrapper = mountWithTheme(
       <StacktraceLink

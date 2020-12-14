@@ -2,7 +2,9 @@ PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
 # Currently, this is only required to install black via pre-commit.
-REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
+REQUIRED_PY3_VERSION := $(shell grep "3.6" .python-version)
+
+BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.0\.")
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
@@ -49,7 +51,19 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
+ifdef BIG_SUR
+	# NOTE: Once we have a new release of pyenv and once a newer Python version we can remove these
+	# https://github.com/pyenv/pyenv/pull/1711
+	# cat is used since pyenv would finish to soon when the Python version is already installed
+	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
+		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
+		pyenv install --skip-existing --patch 3.6.10
+	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
+		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
+		pyenv install --skip-existing --patch 2.7.16
+else
 	@cat .python-version | xargs -n1 pyenv install --skip-existing
+endif
 
 ensure-venv:
 	@./scripts/ensure-venv.sh

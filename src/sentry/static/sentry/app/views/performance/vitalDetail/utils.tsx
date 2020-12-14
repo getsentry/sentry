@@ -1,28 +1,79 @@
 import {Location, Query} from 'history';
 
+import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {Series} from 'app/types/echarts';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-
-import {WEB_VITAL_DETAILS} from '../transactionVitals/constants';
+import theme from 'app/utils/theme';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
 }
 
-export const vitalsThresholdFields = {
-  [WebVital.FP]: 'count_at_least(measurements.fp, 3000)',
-  [WebVital.FCP]: 'count_at_least(measurements.fcp, 3000)',
-  [WebVital.LCP]: 'count_at_least(measurements.lcp, 4000)',
-  [WebVital.FID]: 'count_at_least(measurements.fid, 300)',
-  [WebVital.CLS]: 'count_at_least(measurements.cls, 0.25)',
+export const webVitalPoor = {
+  [WebVital.FP]: 3000,
+  [WebVital.FCP]: 3000,
+  [WebVital.LCP]: 4000,
+  [WebVital.FID]: 300,
+  [WebVital.CLS]: 0.25,
 };
+
+export const webVitalMeh = {
+  [WebVital.FP]: 1000,
+  [WebVital.FCP]: 1000,
+  [WebVital.LCP]: 2500,
+  [WebVital.FID]: 100,
+  [WebVital.CLS]: 0.1,
+};
+
+export const vitalsPoorFields = {
+  [WebVital.FP]: `count_at_least(measurements.fp, 3000)`,
+  [WebVital.FCP]: `count_at_least(measurements.fcp, 3000)`,
+  [WebVital.LCP]: `count_at_least(measurements.lcp, 4000)`,
+  [WebVital.FID]: `count_at_least(measurements.fid, 300)`,
+  [WebVital.CLS]: `count_at_least(measurements.cls, 0.25)`,
+};
+
+export const vitalsMehFields = {
+  [WebVital.FP]: `count_at_least(measurements.fp, 1000)`,
+  [WebVital.FCP]: `count_at_least(measurements.fcp, 1000)`,
+  [WebVital.LCP]: `count_at_least(measurements.lcp, 2500)`,
+  [WebVital.FID]: `count_at_least(measurements.fid, 100)`,
+  [WebVital.CLS]: `count_at_least(measurements.cls, 0.1)`,
+};
+
 export const vitalsBaseFields = {
   [WebVital.FP]: 'count_at_least(measurements.fp, 0)',
   [WebVital.FCP]: 'count_at_least(measurements.fcp, 0)',
   [WebVital.LCP]: 'count_at_least(measurements.lcp, 0)',
   [WebVital.FID]: 'count_at_least(measurements.fid, 0)',
   [WebVital.CLS]: 'count_at_least(measurements.cls, 0)',
+};
+
+export const vitalsP75Fields = {
+  [WebVital.FP]: 'p75(measurements.fp)',
+  [WebVital.FCP]: 'p75(measurements.fcp)',
+  [WebVital.LCP]: 'p75(measurements.lcp)',
+  [WebVital.FID]: 'p75(measurements.fid)',
+  [WebVital.CLS]: 'p75(measurements.cls)',
+};
+
+export enum VitalState {
+  POOR = 'Poor',
+  MEH = 'Meh',
+  GOOD = 'Good',
+}
+
+export const vitalStateColors = {
+  [VitalState.POOR]: theme.red300,
+  [VitalState.MEH]: theme.yellow300,
+  [VitalState.GOOD]: theme.green300,
+};
+
+export const vitalStateIcons = {
+  [VitalState.POOR]: IconFire,
+  [VitalState.MEH]: IconWarning,
+  [VitalState.GOOD]: IconCheckmark,
 };
 
 export function vitalDetailRouteWithQuery({
@@ -66,8 +117,16 @@ export function vitalNameFromLocation(location: Location): WebVital {
   }
 }
 
-export function getVitalDetailTableStatusFunction(vitalName: WebVital): string {
-  const vitalThreshold = WEB_VITAL_DETAILS[vitalName].failureThreshold;
+export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {
+  const vitalThreshold = webVitalPoor[vitalName];
+  const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
+    `p75(${vitalName})`
+  )},greater,${vitalThreshold})`;
+  return statusFunction;
+}
+
+export function getVitalDetailTableMehStatusFunction(vitalName: WebVital): string {
+  const vitalThreshold = webVitalMeh[vitalName];
   const statusFunction = `compare_numeric_aggregate(${getAggregateAlias(
     `p75(${vitalName})`
   )},greater,${vitalThreshold})`;
@@ -75,7 +134,6 @@ export function getVitalDetailTableStatusFunction(vitalName: WebVital): string {
 }
 
 export const vitalMap: Partial<Record<WebVital, string>> = {
-  [WebVital.FP]: 'First Paint',
   [WebVital.FCP]: 'First Contentful Paint',
   [WebVital.CLS]: 'Cumulative Layout Shift',
   [WebVital.FID]: 'First Input Delay',
@@ -85,8 +143,6 @@ export const vitalMap: Partial<Record<WebVital, string>> = {
 export const vitalChartTitleMap = vitalMap;
 
 export const vitalDescription: Partial<Record<WebVital, string>> = {
-  [WebVital.FP]:
-    'First Paint (FP) measures the amount of time the first pixel takes to appear in the viewport, rendering any visual change from what was previously displayed. This may be in the subtle form of a background color, canvas, or image.',
   [WebVital.FCP]:
     'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.',
   [WebVital.CLS]:
@@ -98,7 +154,6 @@ export const vitalDescription: Partial<Record<WebVital, string>> = {
 };
 
 export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
-  [WebVital.FP]: 'FP',
   [WebVital.FCP]: 'FCP',
   [WebVital.CLS]: 'CLS',
   [WebVital.FID]: 'FID',

@@ -437,6 +437,10 @@ class EventsChart extends React.Component<Props> {
       }
       const seriesData = results ? results : timeseriesData;
 
+      // Stack the toolbox under the legend.
+      // so all series names are clickable.
+      zoomRenderProps.toolBox.z = -1;
+
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />

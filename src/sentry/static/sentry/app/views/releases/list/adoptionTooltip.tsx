@@ -6,10 +6,10 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 type Props = {
-  totalUsers: number;
-  totalUsers24h: number | null;
-  totalSessions: number;
-  totalSessions24h: number | null;
+  totalUsers?: number;
+  totalUsers24h?: number | null;
+  totalSessions?: number;
+  totalSessions24h?: number | null;
 };
 
 const AdoptionTooltip = ({
@@ -21,29 +21,30 @@ const AdoptionTooltip = ({
   return (
     <Wrapper>
       <Row>
+        <Title>{t('Total Users')}:</Title>
+        <Value>
+          <Count value={totalUsers ?? 0} />
+        </Value>
+      </Row>
+      <Row>
         <Title>{t('Last 24h')}:</Title>
         <Value>
           <Count value={totalUsers24h ?? 0} />
         </Value>
       </Row>
-      <Row>
-        <Title>{t('Total Users')}:</Title>
-        <Value>
-          <Count value={totalUsers} />
-        </Value>
-      </Row>
+
       <Divider />
 
+      <Row>
+        <Title>{t('Total Sessions')}:</Title>
+        <Value>
+          <Count value={totalSessions ?? 0} />
+        </Value>
+      </Row>
       <Row>
         <Title>{t('Last 24h')}:</Title>
         <Value>
           <Count value={totalSessions24h ?? 0} />
-        </Value>
-      </Row>
-      <Row>
-        <Title>{t('Total Sessions')}:</Title>
-        <Value>
-          <Count value={totalSessions} />
         </Value>
       </Row>
     </Wrapper>

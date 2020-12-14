@@ -130,6 +130,7 @@ options_mapper = {
     "mail.username": "EMAIL_HOST_USER",
     "mail.password": "EMAIL_HOST_PASSWORD",
     "mail.use-tls": "EMAIL_USE_TLS",
+    "mail.use-ssl": "EMAIL_USE_SSL",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
     "github-login.client-id": "GITHUB_APP_ID",
@@ -317,7 +318,7 @@ def initialize_app(config, skip_service_validation=False):
 
     for key in settings.CACHES:
         if not hasattr(settings.CACHES[key], "VERSION"):
-            settings.CACHES[key]["VERSION"] = settings.CACHE_VERSION
+            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)

@@ -61,6 +61,7 @@ register("mail.port", default=25, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.username", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.password", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.use-tls", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register("mail.use-ssl", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.subject-prefix", default="[Sentry] ", flags=FLAG_PRIORITIZE_DISK)
 register("mail.from", default="root@localhost", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
@@ -166,6 +167,13 @@ register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.client-secret", flags=FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
+# AWS Lambda Integration
+register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
+register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
+register("aws-lambda.cloudformation-url")
+register("aws-lambda.node-layer-arn")
+register("aws-lambda.region", default="us-east-2")
+
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
 register("snuba.search.pre-snuba-candidates-percentage", default=0.2)
@@ -265,3 +273,6 @@ register("processing.can-use-scrubbers", default=True)
 #
 # Note: A value that is neither 0 nor 1 is regarded as 0
 register("store.use-relay-dsn-sample-rate", default=1)
+
+# Mock out integrations and services for tests
+register("mocks.jira", default=False)

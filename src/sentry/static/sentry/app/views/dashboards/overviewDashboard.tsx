@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {t} from 'app/locale';
 import {Organization, Release} from 'app/types';
@@ -63,15 +63,16 @@ type DashboardLandingProps = {
 } & RouteComponentProps<{orgId: string}, {}>;
 
 function DashboardLanding(props: DashboardLandingProps) {
-  const {organization, ...restProps} = props;
+  const {organization, params, ...restProps} = props;
 
   const showDashboardV2 = organization.features.includes('dashboards-v2');
 
   if (showDashboardV2) {
-    return <DashboardDetail {...restProps} />;
+    const updatedParams = {...params, dashboardId: ''};
+    return <DashboardDetail {...restProps} params={updatedParams} />;
   }
 
-  return <OverviewDashboard {...restProps} />;
+  return <OverviewDashboard {...restProps} params={params} />;
 }
 
 export default withOrganization(DashboardLanding);
