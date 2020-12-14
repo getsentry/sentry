@@ -52,7 +52,7 @@ class SentryAppPublishRequestTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
-        assert response.data["detail"] == "Cannot publish already published. integration"
+        assert response.data["detail"] == "Cannot publish already published integration."
         send_mail.asssert_not_called()
 
     @mock.patch("sentry.utils.email.send_mail")
