@@ -67,6 +67,8 @@ dataset_valid_event_types = {
     ),
     QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
 }
+
+# TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
 unsupported_queries = {"release:latest"}
 
 
