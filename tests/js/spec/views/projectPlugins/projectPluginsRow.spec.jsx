@@ -13,7 +13,10 @@ describe('ProjectPluginRow', function () {
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
   it('renders', function () {
-    wrapper = mount(<ProjectPluginRow {...params} {...plugin} />, routerContext);
+    wrapper = mount(
+      <ProjectPluginRow {...params} {...plugin} project={project} />,
+      routerContext
+    );
 
     expect(wrapper).toSnapshot();
   });
@@ -21,7 +24,7 @@ describe('ProjectPluginRow', function () {
   it('calls `onChange` when clicked', function () {
     const onChange = jest.fn();
     wrapper = mount(
-      <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
+      <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       routerContext
     );
 
@@ -33,7 +36,7 @@ describe('ProjectPluginRow', function () {
   it('can not enable/disable or configure plugin without `project:write`', function () {
     const onChange = jest.fn();
     wrapper = mount(
-      <ProjectPluginRow {...params} {...plugin} onChange={onChange} />,
+      <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );
 

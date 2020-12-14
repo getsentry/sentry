@@ -18,7 +18,6 @@ type Props = {
    */
 
   organization: Organization;
-  project: Project;
   config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -67,6 +66,7 @@ type Props = {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
+  project?: Project;
 };
 
 type ChildrenRenderFn = (
@@ -75,9 +75,9 @@ type ChildrenRenderFn = (
 
 type FeatureRenderProps = {
   organization: Organization;
-  project: Project;
   features: string[];
   hasFeature: boolean;
+  project?: Project;
 };
 
 type AllFeatures = {

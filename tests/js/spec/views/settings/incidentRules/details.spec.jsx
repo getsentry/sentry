@@ -70,6 +70,7 @@ describe('Incident Rules Details', function () {
             ruleId: rule.id,
           }}
           organization={organization}
+          project={project}
         />
       </React.Fragment>,
       routerContext

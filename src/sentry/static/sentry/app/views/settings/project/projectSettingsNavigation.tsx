@@ -7,7 +7,7 @@ import getConfiguration from 'app/views/settings/project/navigationConfiguration
 
 type Props = {
   organization: Organization;
-  project: Project;
+  project?: Project;
 };
 
 const ProjectSettingsNavigation = ({organization, project}: Props) => (

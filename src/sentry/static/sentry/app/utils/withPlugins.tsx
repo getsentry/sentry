@@ -13,7 +13,7 @@ import withProject from 'app/utils/withProject';
 
 type WithPluginProps = {
   organization: Organization;
-  project: Project;
+  project?: Project;
 };
 
 type InjectedPluginProps = {
@@ -60,7 +60,7 @@ const withPlugins = <P extends WithPluginProps>(
           }
 
           const isOrgSame = prevOrg.slug === organization.slug;
-          const isProjectSame = prevProject.slug === project.slug;
+          const isProjectSame = prevProject.slug === project?.slug;
 
           // Don't do anything if org and project are the same
           if (isOrgSame && isProjectSame) {

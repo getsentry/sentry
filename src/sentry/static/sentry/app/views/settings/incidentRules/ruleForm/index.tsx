@@ -18,7 +18,6 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withProject from 'app/utils/withProject';
 import {convertDatasetEventTypesToSource} from 'app/views/alerts/utils';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
@@ -668,4 +667,4 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 export {RuleFormContainer};
-export default withProject(RuleFormContainer);
+export default RuleFormContainer;
