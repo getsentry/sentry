@@ -43,6 +43,7 @@ class Controls extends React.Component<Props> {
 
     const cancelButton = (
       <Button
+        data-test-id="dashboard-cancel"
         onClick={e => {
           e.preventDefault();
           onCancel();
@@ -57,6 +58,7 @@ class Controls extends React.Component<Props> {
         <ButtonBar gap={1} key="edit-controls">
           {cancelButton}
           <Button
+            data-test-id="dashboard-delete"
             onClick={e => {
               e.preventDefault();
               onDelete();
@@ -66,6 +68,7 @@ class Controls extends React.Component<Props> {
             {t('Delete')}
           </Button>
           <Button
+            data-test-id="dashboard-commit"
             onClick={e => {
               e.preventDefault();
               onCommit();
@@ -83,6 +86,7 @@ class Controls extends React.Component<Props> {
         <ButtonBar gap={1} key="create-controls">
           {cancelButton}
           <Button
+            data-test-id="dashboard-commit"
             onClick={e => {
               e.preventDefault();
               onCommit();
@@ -133,6 +137,7 @@ class Controls extends React.Component<Props> {
           />
         </DashboardSelect>
         <Button
+          data-test-id="dashboard-edit"
           onClick={e => {
             e.preventDefault();
             onEdit();
@@ -142,6 +147,7 @@ class Controls extends React.Component<Props> {
           {t('Edit')}
         </Button>
         <Button
+          data-test-id="dashboard-create"
           onClick={e => {
             e.preventDefault();
             onCreate();
