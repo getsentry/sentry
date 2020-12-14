@@ -33,7 +33,7 @@ backend: &backend
   - '.github/workflows/!(js-*)'
   - 'config/**/*'
 
-plugins: &backend
+plugins:
   - *backend
   - 'src/sentry_plugins/**/*.html'
 
