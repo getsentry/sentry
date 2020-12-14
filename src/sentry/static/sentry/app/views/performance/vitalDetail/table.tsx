@@ -137,7 +137,7 @@ class Table extends React.Component<Props, State> {
       if (dataRow[getAggregateAlias(field)]) {
         return (
           <UniqueTagCell>
-            <PoorTag>{t('Fail')}</PoorTag>
+            <PoorTag>{t('Poor')}</PoorTag>
           </UniqueTagCell>
         );
       } else if (
