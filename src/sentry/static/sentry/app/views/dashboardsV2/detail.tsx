@@ -242,8 +242,9 @@ class DashboardDetail extends React.Component<Props, State> {
               <React.Fragment>
                 <StyledPageHeader>
                   <DashboardTitle
-                    dashboard={modifiedDashboard}
+                    dashboard={modifiedDashboard || dashboard}
                     onUpdate={this.setModifiedDashboard}
+                    isEditing={dashboardState !== 'view'}
                   />
                   <Controls
                     organization={organization}

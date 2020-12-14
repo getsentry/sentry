@@ -272,7 +272,7 @@ const WidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(2)} ${space(3)};
+  padding: 0 ${space(1)};
 
   position: absolute;
   z-index: 2;
@@ -282,7 +282,7 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   width: 100%;
   position: relative;
-  overflow: hidden;
+  padding: ${space(1)};
 `;
 
 const EditPanel = styled('div')`
