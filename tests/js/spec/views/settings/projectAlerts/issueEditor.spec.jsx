@@ -81,6 +81,7 @@ describe('ProjectAlerts -> IssueEditor', function () {
           params={params}
           location={{pathname: ''}}
           routes={projectAlertRuleDetailsRoutes}
+          project={project}
         />
       </ProjectAlerts>,
       routerContext

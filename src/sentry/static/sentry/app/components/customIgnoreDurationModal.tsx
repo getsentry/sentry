@@ -1,8 +1,8 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
 import moment from 'moment';
 import {sprintf} from 'sprintf-js';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -14,10 +14,8 @@ const defaultProps = {
   label: t('Ignore this issue until \u2026'),
 };
 
-type Props = {
-  show: boolean;
+type Props = ModalRenderProps & {
   onSelected: (details: ResolutionStatusDetails) => void;
-  onCanceled: () => void;
 } & typeof defaultProps;
 
 type State = {
@@ -27,9 +25,10 @@ type State = {
 export default class CustomIgnoreDurationModal extends React.Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state = {
+  state: State = {
     dateWarning: false,
   };
+
   snoozeDateInputRef = React.createRef<HTMLInputElement>();
 
   snoozeTimeInputRef = React.createRef<HTMLInputElement>();
@@ -57,6 +56,7 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
     if (minutes > 0) {
       this.props.onSelected({ignoreDuration: minutes});
     }
+    this.props.closeModal();
   };
 
   render() {
@@ -75,14 +75,12 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
     );
 
     const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
-    const {show, onCanceled, label} = this.props;
+    const {Header, Body, Footer, label} = this.props;
 
     return (
-      <Modal show={show} animation={false} onHide={onCanceled}>
-        <Modal.Header>
-          <h4>{label}</h4>
-        </Modal.Header>
-        <Modal.Body>
+      <React.Fragment>
+        <Header>{label}</Header>
+        <Body>
           <form className="form-horizontal">
             <div className="control-group">
               <h6 className="nav-header">{t('Date')}</h6>
@@ -109,23 +107,23 @@ export default class CustomIgnoreDurationModal extends React.Component<Props, St
               />
             </div>
           </form>
-        </Modal.Body>
+        </Body>
         {this.state.dateWarning && (
           <Alert icon={<IconWarning size="md" />} type="error">
             {t('Please enter a valid date in the future')}
           </Alert>
         )}
-        <Modal.Footer>
+        <Footer>
           <ButtonBar gap={1}>
-            <Button type="button" priority="default" onClick={this.props.onCanceled}>
+            <Button type="button" priority="default" onClick={this.props.closeModal}>
               {t('Cancel')}
             </Button>
             <Button type="button" priority="primary" onClick={this.snoozeClicked}>
               {t('Ignore')}
             </Button>
           </ButtonBar>
-        </Modal.Footer>
-      </Modal>
+        </Footer>
+      </React.Fragment>
     );
   }
 }

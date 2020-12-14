@@ -27,6 +27,7 @@ class IssueSearchVisitor(SearchVisitor):
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
         "subscribed_by": ["subscribed"],
+        "owner": ["owner"],
         "first_release": ["first-release", "firstRelease"],
         "first_seen": ["age", "firstSeen"],
         "last_seen": ["lastSeen"],
@@ -45,7 +46,7 @@ class IssueSearchVisitor(SearchVisitor):
         is_filter_translators = {
             "assigned": (SearchKey("unassigned"), SearchValue(False)),
             "unassigned": (SearchKey("unassigned"), SearchValue(True)),
-            "inbox": (SearchKey("inbox"), SearchValue(True)),
+            "needs_review": (SearchKey("needs_review"), SearchValue(True)),
             "linked": (SearchKey("linked"), SearchValue(True)),
             "unlinked": (SearchKey("linked"), SearchValue(False)),
         }
@@ -110,6 +111,7 @@ def convert_status_value(value, projects, user, environments):
 
 
 value_converters = {
+    "owner": convert_actor_value,
     "assigned_to": convert_actor_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,

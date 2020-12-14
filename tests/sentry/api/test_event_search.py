@@ -67,47 +67,60 @@ def test_parse_function():
     assert parse_function("percentile(transaction.duration, 0.5)") == (
         "percentile",
         ["transaction.duration", "0.5"],
+        None,
     )
-    assert parse_function("p50()") == ("p50", [])
-    assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"])
-    assert parse_function("apdex(300)") == ("apdex", ["300"])
-    assert parse_function("failure_rate()") == ("failure_rate", [])
+    assert parse_function("p50()") == ("p50", [], None,)
+    assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
+    assert parse_function("apdex(300)") == ("apdex", ["300"], None)
+    assert parse_function("failure_rate()") == ("failure_rate", [], None)
     assert parse_function("measurements_histogram(1,0,1)") == (
         "measurements_histogram",
         ["1", "0", "1"],
+        None,
     )
     assert parse_function("count_unique(transaction.status)") == (
         "count_unique",
         ["transaction.status"],
+        None,
     )
-    assert parse_function("count_unique(some.tag-name)") == ("count_unique", ["some.tag-name"])
-    assert parse_function("count()") == ("count", [])
+    assert parse_function("count_unique(some.tag-name)") == (
+        "count_unique",
+        ["some.tag-name"],
+        None,
+    )
+    assert parse_function("count()") == ("count", [], None)
     assert parse_function("count_at_least(transaction.duration ,200)") == (
         "count_at_least",
         ["transaction.duration", "200"],
+        None,
     )
-    assert parse_function("min(measurements.foo)") == ("min", ["measurements.foo"])
+    assert parse_function("min(measurements.foo)") == ("min", ["measurements.foo"], None)
     assert parse_function("absolute_delta(transaction.duration, 400)") == (
         "absolute_delta",
         ["transaction.duration", "400"],
+        None,
     )
     assert parse_function(
-        "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15, p)"
+        "avg_range(transaction.duration, 0.5, 2020-03-13T15:14:15, 2020-03-14T15:14:15) AS p"
     ) == (
         "avg_range",
-        ["transaction.duration", "0.5", "2020-03-13T15:14:15", "2020-03-14T15:14:15", "p"],
+        ["transaction.duration", "0.5", "2020-03-13T15:14:15", "2020-03-14T15:14:15"],
+        "p",
     )
     assert parse_function("t_test(avg_1, avg_2,var_1, var_2, count_1, count_2)") == (
         "t_test",
         ["avg_1", "avg_2", "var_1", "var_2", "count_1", "count_2"],
+        None,
     )
     assert parse_function("compare_numeric_aggregate(alias, greater,1234)") == (
         "compare_numeric_aggregate",
         ["alias", "greater", "1234"],
+        None,
     )
     assert parse_function(r'to_other(release,"asdf @ \"qwer: (3,2)")') == (
         "to_other",
         ["release", r'"asdf @ \"qwer: (3,2)"'],
+        None,
     )
 
 
@@ -2016,6 +2029,31 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "Field names" in six.text_type(err)
 
+    def test_tag_fields(self):
+        fields = ["tags[test.foo:bar-123]"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["selected_columns"] == [
+            "tags[test.foo:bar-123]",
+            "id",
+            "project.id",
+            [
+                "transform",
+                [["toString", ["project_id"]], ["array", []], ["array", []], "''"],
+                "`project.name`",
+            ],
+        ]
+
+    def test_invalid_tag_fields(self):
+        for fields in [
+            ["t[a]gs[test]"],
+            ["t(a)gstest"],
+            ["tags[te[s]t]"],
+            ["tags[test]tags[test]"],
+        ]:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list(fields, eventstore.Filter())
+            assert "Invalid character" in six.text_type(err)
+
     def test_blank_field_ignored(self):
         fields = ["", "title", "   "]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2488,7 +2526,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentile_range(self):
         fields = [
-            "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)"
+            "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1"
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2512,20 +2550,18 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = [
-                "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow, 1)"
-            ]
+            fields = ["percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["percentile_range(transaction.duration, 0.5, today, 2020-05-03T06:48:57, 1)"]
+            fields = ["percentile_range(transaction.duration, 0.5, today, 2020-05-03T06:48:57)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_average_range(self):
         fields = [
-            "avg_range(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57, avg_range_1)"
+            "avg_range(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as avg_range_1"
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2549,12 +2585,12 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, tomorrow, 1)"]
+            fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["avg_range(transaction.duration, today, 2020-05-03T06:48:57, 1)"]
+            fields = ["avg_range(transaction.duration, today, 2020-05-03T06:48:57)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "start argument invalid: today is in the wrong format" in six.text_type(err)
 
@@ -2571,9 +2607,9 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentage(self):
         fields = [
-            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)",
-            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34, percentile_range_2)",
-            "percentage(percentile_range_2, percentile_range_1, trend_percentage)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1",
+            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34) as percentile_range_2",
+            "percentage(percentile_range_2, percentile_range_1) as trend_percentage",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2620,9 +2656,9 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_minus(self):
         fields = [
-            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57, percentile_range_1)",
-            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34, percentile_range_2)",
-            "minus(percentile_range_2, percentile_range_1, trend_difference)",
+            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1",
+            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34) as percentile_range_2",
+            "minus(percentile_range_2, percentile_range_1) as trend_difference",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2662,6 +2698,33 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
             ["minus", ["percentile_range_2", "percentile_range_1"], "trend_difference"],
         ]
+
+    def test_invalid_alias(self):
+        bad_function_aliases = [
+            "count() as ",
+            "count() as as as as as",
+            "count() as count(",
+            "count() as 123",
+            "count() as 1",
+        ]
+        for function in bad_function_aliases:
+            with pytest.raises(InvalidSearchQuery) as err:
+                resolve_field_list([function], eventstore.Filter())
+            assert "Invalid characters in field" in six.text_type(err)
+
+    def test_valid_alias(self):
+        function_aliases = [
+            ("count() as thecount", "thecount"),
+            ("count() AS thecount", "thecount"),
+            ("count() AS 123count", "123count"),
+            ("count() AS count123", "count123"),
+            ("count() AS c", "c"),
+            ("count() AS c1", "c1"),
+            ("count() AS 1c", "1c"),
+        ]
+        for function, alias in function_aliases:
+            result = resolve_field_list([function], eventstore.Filter())
+            assert result["aggregations"][0][-1] == alias, function
 
     def test_percentile_shortcuts(self):
         columns = [
@@ -2980,6 +3043,44 @@ class ResolveFieldListTest(unittest.TestCase):
                 "failure_count",
             ],
         ]
+
+    def test_redundant_grouping_errors(self):
+        fields = [
+            ["last_seen()", "timestamp"],
+            ["avg(measurements.lcp)", "measurements.lcp"],
+            ["min(timestamp)", "timestamp"],
+            ["max(timestamp)", "timestamp"],
+            ["p95()", "transaction.duration"],
+        ]
+        for field in fields:
+            with pytest.raises(InvalidSearchQuery) as error:
+                resolve_field_list(field, eventstore.Filter())
+
+            assert "you must first remove the function(s)" in six.text_type(error)
+
+        with pytest.raises(InvalidSearchQuery) as error:
+            resolve_field_list(
+                ["avg(transaction.duration)", "p95()", "transaction.duration"], eventstore.Filter()
+            )
+
+        assert "avg(transaction.duration)" in six.text_type(error)
+        assert "p95" in six.text_type(error)
+        assert " more." not in six.text_type(error)
+
+        with pytest.raises(InvalidSearchQuery) as error:
+            resolve_field_list(
+                [
+                    "avg(transaction.duration)",
+                    "p50()",
+                    "p75()",
+                    "p95()",
+                    "p99()",
+                    "transaction.duration",
+                ],
+                eventstore.Filter(),
+            )
+
+        assert "and 3 more" in six.text_type(error)
 
 
 def with_type(type, argument):

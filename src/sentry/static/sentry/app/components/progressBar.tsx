@@ -1,15 +1,56 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Theme} from 'app/utils/theme';
+
+type Variant = 'small' | 'large';
+
 type Props = {
   /**
    * The value of the progress indicator for the determinate variant. Value between 0 and 100
    */
   value: number;
   /**
+   * The style of the progressBar
+   */
+  variant?: Variant;
+  /**
    * Styles applied to the component's root
    */
   className?: string;
+};
+
+const getVariantStyle = ({
+  variant = 'small',
+  theme,
+}: Pick<Props, 'variant'> & {theme: Theme}) => {
+  if (variant === 'large') {
+    return `
+      height: 24px;
+      border-radius: 24px;
+      border: 1px solid ${theme.border};
+      box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.06);
+      :before {
+        left: 6px;
+        right: 6px;
+        height: 14px;
+        top: calc(50% - 14px/2);
+        border-radius: 20px;
+        max-width: calc(100% - 12px);
+      }
+    `;
+  }
+
+  return `
+    height: 6px;
+    border-radius: 100px;
+    background: ${theme.gray100};
+    :before {
+      top: 0;
+      left: 0;
+      height: 100%;
+    }
+  `;
 };
 
 const ProgressBar = styled(({className, value}: Props) => (
@@ -21,21 +62,17 @@ const ProgressBar = styled(({className, value}: Props) => (
     className={className}
   />
 ))`
-  background: ${p => p.theme.gray100};
-  border-radius: 100px;
-  height: 6px;
   width: 100%;
   overflow: hidden;
   position: relative;
   :before {
     content: ' ';
     width: ${p => p.value}%;
-    height: 100%;
     background-color: ${p => p.theme.purple300};
     position: absolute;
-    top: 0;
-    left: 0;
   }
+
+  ${getVariantStyle};
 `;
 
 export default ProgressBar;

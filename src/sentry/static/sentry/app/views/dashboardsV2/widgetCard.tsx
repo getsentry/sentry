@@ -12,9 +12,9 @@ import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import ErrorBoundary from 'app/components/errorBoundary';
-import {Panel, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
-import {IconWarning} from 'app/icons';
+import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
@@ -32,15 +32,27 @@ import WidgetQueries from './widgetQueries';
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   organization: Organization;
+  isEditing: boolean;
   widget: Widget;
   selection: GlobalSelection;
+  onDelete: () => void;
+  onEdit: () => void;
 };
 
-class WidgetCard extends React.Component<Props> {
-  shouldComponentUpdate(nextProps: Props): boolean {
+type State = {
+  hovering: boolean;
+};
+
+class WidgetCard extends React.Component<Props, State> {
+  state: State = {
+    hovering: false,
+  };
+
+  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
-      !isEqual(nextProps.selection, this.props.selection)
+      !isEqual(nextProps.selection, this.props.selection) ||
+      nextState.hovering !== this.state.hovering
     ) {
       return true;
     }
@@ -180,15 +192,61 @@ class WidgetCard extends React.Component<Props> {
     );
   }
 
+  renderEditPanel() {
+    if (!this.state.hovering || !this.props.isEditing) {
+      return null;
+    }
+
+    const {onEdit, onDelete} = this.props;
+
+    return (
+      <EditPanel>
+        <IconContainer>
+          <IconGrabbable color="gray500" size="lg" />
+          <IconClick
+            onClick={() => {
+              onEdit();
+            }}
+          >
+            <IconEdit color="gray500" size="lg" />
+          </IconClick>
+          <IconClick
+            onClick={() => {
+              onDelete();
+            }}
+          >
+            <IconDelete color="gray500" size="lg" />
+          </IconClick>
+        </IconContainer>
+      </EditPanel>
+    );
+  }
+
   render() {
     const {widget} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel>
+        <StyledPanel
+          onMouseLeave={() => {
+            if (this.state.hovering) {
+              this.setState({
+                hovering: false,
+              });
+            }
+          }}
+          onMouseOver={() => {
+            if (!this.state.hovering) {
+              this.setState({
+                hovering: true,
+              });
+            }
+          }}
+        >
           <WidgetHeader>{widget.title}</WidgetHeader>
-          <StyledPanelBody>{this.renderVisual()}</StyledPanelBody>
+          {this.renderVisual()}
+          {this.renderEditPanel()}
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -214,14 +272,45 @@ const WidgetHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(2)} ${space(3)};
+
+  position: absolute;
+  z-index: 2;
 `;
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   width: 100%;
+  position: relative;
+  overflow: hidden;
 `;
 
-const StyledPanelBody = styled(PanelBody)`
-  height: 250px;
+const EditPanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: rgba(255, 255, 255, 0.5);
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+
+  > * + * {
+    margin-left: 50px;
+  }
+`;
+
+const IconClick = styled('div')`
+  &:hover {
+    cursor: pointer;
+  }
 `;

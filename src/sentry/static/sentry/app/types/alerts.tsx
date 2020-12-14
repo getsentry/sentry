@@ -29,6 +29,8 @@ export type IssueAlertRuleActionTemplate = {
   formFields?: {
     [key: string]: IssueAlertRuleFormField;
   };
+  ticketType?: string;
+  link?: string;
 };
 export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 

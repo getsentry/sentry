@@ -753,8 +753,11 @@ class IssueListOverview extends React.Component<Props, State> {
     const pageCount = page * MAX_ITEMS + groupIds?.length;
 
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
-    if (organization.features.includes('inbox') && !tags?.is?.values?.includes('inbox')) {
-      tags?.is?.values?.push('inbox');
+    if (
+      organization.features.includes('inbox') &&
+      !tags?.is?.values?.includes('needs_review')
+    ) {
+      tags?.is?.values?.push('needs_review');
     }
 
     return (
