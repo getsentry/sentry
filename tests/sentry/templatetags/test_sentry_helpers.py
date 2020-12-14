@@ -105,6 +105,16 @@ def test_script_no_context(input, output):
         {% endscript %}""",
             '<script async defer nonce="r@nD0m" type="text/javascript">alert("hi")</script>',
         ),
+        # src with static string
+        (
+            '{% script src="/app.js" %}{% endscript %}',
+            '<script nonce="r@nD0m" src="/app.js"></script>',
+        ),
+        # src with variable string name
+        (
+            "{% script src=url_path %}{% endscript %}",
+            '<script nonce="r@nD0m" src="/asset.js"></script>',
+        ),
     ),
 )
 def test_script_context(input, output):
@@ -113,6 +123,9 @@ def test_script_context(input, output):
 
     prefix = "{% load sentry_helpers %}"
     result = (
-        engines["django"].from_string(prefix + input).render(context={"request": request}).strip()
+        engines["django"]
+        .from_string(prefix + input)
+        .render(context={"request": request, "url_path": "/asset.js"})
+        .strip()
     )
     assert result == output

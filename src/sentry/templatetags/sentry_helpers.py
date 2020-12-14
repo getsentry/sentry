@@ -130,37 +130,38 @@ def script(parser, token):
 class ScriptNode(template.Node):
     def __init__(self, nodelist, **kwargs):
         self.nodelist = nodelist
-        self.attrs = {}
-        for k, v in kwargs.items():
-            self.attrs[k] = self._get_value(v)
+        self.attrs = kwargs
 
-    def _get_value(self, token):
-        if hasattr(token, "token"):
-            return token.token
+    def _get_value(self, token, context):
+        if isinstance(token, six.string_types):
+            return token
+        if isinstance(token.var, template.Variable):
+            return token.var.resolve(context)
+        if hasattr(token, "var"):
+            return token.var
         return None
 
     def render(self, context):
-
         request = context.get("request")
         if hasattr(request, "csp_nonce"):
             self.attrs.update({"nonce": request.csp_nonce})
 
         content = ""
-        attrs = self._render_attrs()
+        attrs = self._render_attrs(context)
         if "src" not in self.attrs:
             content = self.nodelist.render(context).strip()
             content = self._unwrap_content(content)
         return "<script{}>{}</script>".format(attrs, content)
 
-    def _render_attrs(self):
+    def _render_attrs(self, context):
         output = []
         for k, v in self.attrs.items():
-            if v in (True, "True"):
+            value = self._get_value(v, context)
+            if value in (True, "True"):
                 output.append(" {}".format(k))
-            elif v in (None, False, "False"):
+            elif value in (None, False, "False"):
                 continue
             else:
-                value = v.strip('"')
                 output.append(' {}="{}"'.format(k, value))
         output = sorted(output)
         return "".join(output)
