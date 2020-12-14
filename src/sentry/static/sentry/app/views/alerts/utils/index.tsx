@@ -213,9 +213,9 @@ export function convertDatasetEventTypesToSource(
 /**
  * Attempt to guess the data source of a discover query
  *
- * @returns A new query without the datasource or null on no result
+ * @returns A new query without the datasource. null on no datasource
  */
-export function getQuerySource(
+export function getQueryDatasource(
   query: string
 ): {source: Datasource; query: string} | null {
   let match = query.match(

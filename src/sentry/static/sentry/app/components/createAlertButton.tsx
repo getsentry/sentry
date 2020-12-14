@@ -12,7 +12,7 @@ import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
-import {getQuerySource} from 'app/views/alerts/utils';
+import {getQueryDatasource} from 'app/views/alerts/utils';
 import {
   errorFieldConfig,
   transactionFieldConfig,
@@ -253,7 +253,7 @@ function CreateAlertFromViewButton({
   // Must have one or zero environments
   const hasEnvironmentError = eventView.environment.length > 1;
   // Must have event.type of error or transaction
-  const hasEventTypeError = getQuerySource(eventView.query) === null;
+  const hasEventTypeError = getQueryDatasource(eventView.query) === null;
   // yAxis must be a function and enabled on alerts
   const hasYAxisError = incompatibleYAxis(eventView);
   const errors: IncompatibleQueryProperties = {
