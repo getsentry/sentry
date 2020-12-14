@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {getQuerySource} from 'app/views/alerts/utils';
+import {getQueryDatasource} from 'app/views/alerts/utils';
 import {getIncidentDiscoverUrl} from 'app/views/alerts/utils/getIncidentDiscoverUrl';
 import {Dataset, Datasource} from 'app/views/settings/incidentRules/types';
 
@@ -85,42 +85,48 @@ describe('Alert utils', function () {
 
   describe('getQuerySource', () => {
     it('should parse event type error or default', () => {
-      expect(getQuerySource('event.type:default OR event.type:error')).toEqual({
+      expect(getQueryDatasource('event.type:default OR event.type:error')).toEqual({
         source: Datasource.ERROR_DEFAULT,
         query: '',
       });
       expect(
-        getQuerySource('event.type:error OR event.type:default transaction.duration:<30s')
+        getQueryDatasource(
+          'event.type:error OR event.type:default transaction.duration:<30s'
+        )
       ).toEqual({
         source: Datasource.ERROR_DEFAULT,
         query: 'transaction.duration:<30s',
       });
       expect(
-        getQuerySource('event.type:error OR (event.type:default event.level:fatal)')
+        getQueryDatasource('event.type:error OR (event.type:default event.level:fatal)')
       ).toEqual({
         source: Datasource.ERROR_DEFAULT,
         query: 'event.level:fatal)',
       });
     });
+
     it('should not allow event type transaction with anything else', () => {
-      expect(getQuerySource('event.type:error OR event.type:transaction')).toBeNull();
-      expect(getQuerySource('event.type:transaction OR event.type:default')).toBeNull();
+      expect(getQueryDatasource('event.type:error OR event.type:transaction')).toBeNull();
+      expect(
+        getQueryDatasource('event.type:transaction OR event.type:default')
+      ).toBeNull();
     });
+
     it('should allow error, transaction, default alone', () => {
-      expect(getQuerySource('event.type:error test')).toEqual({
+      expect(getQueryDatasource('event.type:error test')).toEqual({
         source: Datasource.ERROR,
         query: 'test',
       });
-      expect(getQuerySource('event.type:default test')).toEqual({
+      expect(getQueryDatasource('event.type:default test')).toEqual({
         source: Datasource.DEFAULT,
         query: 'test',
       });
-      expect(getQuerySource('event.type:transaction test')).toEqual({
+      expect(getQueryDatasource('event.type:transaction test')).toEqual({
         source: Datasource.TRANSACTION,
         query: 'test',
       });
       expect(
-        getQuerySource(
+        getQueryDatasource(
           'event.type:error explode OR (event.type:default event.level:fatal)'
         )
       ).toEqual({
