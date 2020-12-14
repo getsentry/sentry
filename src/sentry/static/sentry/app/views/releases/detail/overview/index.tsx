@@ -4,6 +4,7 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import {restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {t} from 'app/locale';
@@ -302,17 +303,19 @@ class ReleaseOverview extends AsyncView<Props> {
                       version={version}
                       location={location}
                     />
-                    <TransactionsList
-                      location={location}
-                      organization={organization}
-                      eventView={releaseEventView}
-                      trendView={releaseTrendView}
-                      selected={selectedSort}
-                      options={sortOptions}
-                      handleDropdownChange={this.handleTransactionsListSortChange}
-                      titles={titles}
-                      generateLink={generateLink}
-                    />
+                    <Feature features={['performance-view']}>
+                      <TransactionsList
+                        location={location}
+                        organization={organization}
+                        eventView={releaseEventView}
+                        trendView={releaseTrendView}
+                        selected={selectedSort}
+                        options={sortOptions}
+                        handleDropdownChange={this.handleTransactionsListSortChange}
+                        titles={titles}
+                        generateLink={generateLink}
+                      />
+                    </Feature>
                   </Main>
                   <Side>
                     <ReleaseStats
