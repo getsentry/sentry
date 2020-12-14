@@ -31,7 +31,6 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
-  - 'tests/!(js|apidocs)/**/*'
   - 'config/**/*'
 
 plugins: &backend
