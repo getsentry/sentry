@@ -252,62 +252,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
-                    "interval": "1h",
-                    "yAxis": "epm()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
-
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
-
-    def test_throughput_epm_day_rollup(self):
-        project = self.create_project()
-        # Each of these denotes how many events to create in each minute
-        event_counts = [6, 0, 6, 3, 0, 3]
-        for hour, count in enumerate(event_counts):
-            for minute in range(count):
-                self.store_event(
+        for axis in ["epm()", "tpm()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
-                        "message": "very bad",
-                        "timestamp": iso_format(
-                            self.day_ago + timedelta(hours=hour, minutes=minute)
-                        ),
-                        "fingerprint": ["group1"],
-                        "tags": {"sentry:user": self.user.email},
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=6)),
+                        "interval": "1h",
+                        "yAxis": axis,
+                        "project": project.id,
                     },
-                    project_id=project.id,
                 )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 6
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
-                    "interval": "24h",
-                    "yAxis": "epm()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
-
-        assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+            rows = data[0:6]
+            for test in zip(event_counts, rows):
+                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
     def test_throughput_eps_minute_rollup(self):
         project = self.create_project()
@@ -328,25 +292,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
-                    "interval": "1m",
-                    "yAxis": "eps()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
+        for axis in ["eps()", "tps()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                        "interval": "1m",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 6
 
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0] / 60.0
+            rows = data[0:6]
+            for test in zip(event_counts, rows):
+                assert test[1][1][0]["count"] == test[0] / 60.0
 
     def test_throughput_eps_no_rollup(self):
         project = self.create_project()

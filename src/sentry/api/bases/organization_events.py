@@ -253,6 +253,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "event_count": "count()",
                     "epm()": "epm(%d)" % rollup,
                     "eps()": "eps(%d)" % rollup,
+                    "tpm()": "tpm(%d)" % rollup,
+                    "tps()": "tps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
