@@ -69,7 +69,9 @@ class OpsBreakdown extends React.Component<Props> {
     }
 
     const spanEntry: SpanEntry | undefined = event.entries.find(
-      (entry: {type: string}) => entry.type === 'spans'
+      (entry: SpanEntry | any): entry is SpanEntry => {
+        return entry.type === 'spans';
+      }
     );
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];

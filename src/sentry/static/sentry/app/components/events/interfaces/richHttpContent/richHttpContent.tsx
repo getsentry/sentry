@@ -4,13 +4,17 @@ import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
+import {RequestEntry} from 'app/types';
 import {defined} from 'app/utils';
 
 import RichHttpContentClippedBoxBodySection from './richHttpContentClippedBoxBodySection';
 import RichHttpContentClippedBoxKeyValueList from './richHttpContentClippedBoxKeyValueList';
-import {RichHttpContentData} from './types';
 
-const RichHttpContent = ({data}: RichHttpContentData) => (
+type Props = {
+  data: RequestEntry['data'];
+};
+
+const RichHttpContent = ({data}: Props) => (
   <React.Fragment>
     {defined(data.query) && (
       <RichHttpContentClippedBoxKeyValueList

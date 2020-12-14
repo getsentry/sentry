@@ -452,7 +452,7 @@ type SentryEventBase = {
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: SpanEntry[];
+  entries: (SpanEntry | RequestEntry)[];
   startTimestamp: number;
   endTimestamp: number;
   type: 'transaction';
@@ -472,8 +472,27 @@ export type StacktraceEntry = {
   data: StacktraceType;
 };
 
+export type RequestEntry = {
+  type: 'request';
+  data: {
+    url: string;
+    method: string;
+    data?: string | null | Record<string, any> | [key: string, value: any][];
+    query?: [key: string, value: string][];
+    fragment?: string;
+    cookies?: [key: string, value: string][];
+    headers?: [key: string, value: string][];
+    env?: Record<string, string>;
+    inferredContentType?:
+      | null
+      | 'application/json'
+      | 'application/x-www-form-urlencoded'
+      | 'multipart/form-data';
+  };
+};
+
 export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: ExceptionEntry[] | StacktraceEntry[];
+  entries: (ExceptionEntry | StacktraceEntry | RequestEntry)[];
   type: 'error';
 };
 

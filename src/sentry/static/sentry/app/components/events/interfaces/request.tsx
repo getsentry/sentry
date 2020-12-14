@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -11,28 +10,24 @@ import ExternalLink from 'app/components/links/externalLink';
 import Truncate from 'app/components/truncate';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Event, RequestEntry} from 'app/types';
 import {isUrl} from 'app/utils';
 
-class RequestInterface extends React.Component {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-  };
+type Props = {
+  event: Event;
+  type: string;
+  data: RequestEntry['data'];
+};
 
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
+type State = {
+  view: string;
+};
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      view: 'formatted',
-    };
-  }
+class RequestInterface extends React.Component<Props, State> {
+  state: State = {
+    view: 'formatted',
+  };
 
   isPartial = () =>
     // We assume we only have a partial interface is we're missing
@@ -40,30 +35,30 @@ class RequestInterface extends React.Component {
     // to reliably construct a full HTTP request.
     !this.props.data.method || !this.props.data.url;
 
-  toggleView = value => {
+  toggleView = (value: string) => {
     this.setState({
       view: value,
     });
   };
 
   render() {
-    const {event, data, type} = this.props;
+    const {data, type} = this.props;
     const view = this.state.view;
 
     let fullUrl = getFullUrl(data);
     if (!isUrl(fullUrl)) {
       // Check if the url passed in is a safe url to avoid XSS
-      fullUrl = null;
+      fullUrl = undefined;
     }
 
-    let parsedUrl = null;
+    let parsedUrl: HTMLAnchorElement | null = null;
     if (fullUrl) {
       // use html tag to parse url, lol
       parsedUrl = document.createElement('a');
       parsedUrl.href = fullUrl;
     }
 
-    let actions;
+    let actions: React.ReactNode = null;
     if (!this.isPartial() && fullUrl) {
       actions = (
         <ButtonBar merged active={view}>
@@ -105,7 +100,6 @@ class RequestInterface extends React.Component {
 
     return (
       <EventDataSection
-        event={event}
         type={type}
         title={title}
         actions={actions}
