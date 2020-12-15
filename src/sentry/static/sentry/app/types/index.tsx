@@ -846,14 +846,6 @@ export type SuggestedOwner = {
   date_added: string;
 };
 
-type GroupFiltered = {
-  count: string;
-  stats: Record<string, TimeseriesValue[]>;
-  lastSeen: string;
-  firstSeen: string;
-  userCount: number;
-};
-
 export enum GroupActivityType {
   NOTE = 'note',
   SET_RESOLVED = 'set_resolved',
@@ -887,7 +879,9 @@ type GroupActivityBase = {
 
 type GroupActivityNote = GroupActivityBase & {
   type: GroupActivityType.NOTE;
-  data: Record<string, any>;
+  data: {
+    text: string;
+  };
 };
 
 type GroupActivitySetResolved = GroupActivityBase & {
@@ -1045,8 +1039,22 @@ export type GroupActivity =
 
 export type Activity = GroupActivity;
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
+export type GroupStats = GroupFiltered & {
+  lifetime?: GroupFiltered;
+  filtered: GroupFiltered | null;
+  id: string;
+};
+
 // TODO(ts): incomplete
-export type Group = GroupFiltered & {
+export type BaseGroup = {
   id: string;
   latestEvent: Event;
   activity: GroupActivity[];
@@ -1082,11 +1090,11 @@ export type Group = GroupFiltered & {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered: GroupFiltered | null;
-  lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
   owners?: SuggestedOwner[] | null;
 };
+
+export type Group = BaseGroup & GroupStats;
 
 export type GroupTombstone = {
   id: string;

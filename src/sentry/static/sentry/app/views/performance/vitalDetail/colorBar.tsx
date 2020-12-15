@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import space from 'app/styles/space';
+
 type ColorStop = {
   percent: number;
   color: string;
@@ -12,19 +14,19 @@ type Props = {
 
 const ColorBar = (props: Props) => {
   return (
-    <Container fractions={props.colorStops.map(({percent}) => percent)}>
+    <VitalBar fractions={props.colorStops.map(({percent}) => percent)}>
       {props.colorStops.map(colorStop => {
-        return <Bar color={colorStop.color} key={colorStop.color} />;
+        return <BarStatus color={colorStop.color} key={colorStop.color} />;
       })}
-    </Container>
+    </VitalBar>
   );
 };
 
-type ContainerProps = {
+type VitalBarProps = {
   fractions: number[];
 };
 
-const Container = styled('div')<ContainerProps>`
+const VitalBar = styled('div')<VitalBarProps>`
   height: 16px;
   width: 100%;
   overflow: hidden;
@@ -32,13 +34,15 @@ const Container = styled('div')<ContainerProps>`
   background: ${p => p.theme.gray100};
   display: grid;
   grid-template-columns: ${p => p.fractions.map(f => `${f}fr`).join(' ')};
+  margin-bottom: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
-type BarProps = {
+type ColorProps = {
   color: string;
 };
 
-const Bar = styled('div')<BarProps>`
+const BarStatus = styled('div')<ColorProps>`
   background-color: ${p => p.color};
 `;
 
