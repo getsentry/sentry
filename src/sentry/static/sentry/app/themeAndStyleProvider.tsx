@@ -1,11 +1,9 @@
 import React from 'react';
-import {browserHistory, Router} from 'react-router';
 import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
 import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
 import {ThemeProvider} from 'emotion-theming';
 
 import {loadPreferencesState} from 'app/actionCreators/preferences';
-import routes from 'app/routes';
 import ConfigStore from 'app/stores/configStore';
 import GlobalStyles from 'app/styles/global';
 import {Config} from 'app/types';
