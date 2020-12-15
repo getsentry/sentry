@@ -8,7 +8,7 @@ const queryCounts = {
   'is:needs_review is:unresolved': 1,
   'is:unresolved': 1,
   'is:ignored': 1,
-}
+};
 
 describe('IssueListHeader', () => {
   it('renders active tab with count when query matches inbox', () => {
@@ -19,7 +19,9 @@ describe('IssueListHeader', () => {
   });
 
   it("renders all tabs inactive when query doesn't match", () => {
-    const wrapper = mountWithTheme(<IssueListHeader query="" queryCounts={queryCounts} />);
+    const wrapper = mountWithTheme(
+      <IssueListHeader query="" queryCounts={queryCounts} />
+    );
     expect(wrapper.find('.active').exists()).toBe(false);
   });
 
@@ -34,7 +36,9 @@ describe('IssueListHeader', () => {
 
   it('transitions to new query on tab click', () => {
     const handleTabChange = jest.fn();
-    const wrapper = mountWithTheme(<IssueListHeader onTabChange={handleTabChange} queryCounts={queryCounts}/>);
+    const wrapper = mountWithTheme(
+      <IssueListHeader onTabChange={handleTabChange} queryCounts={queryCounts} />
+    );
     wrapper.find('a').at(0).simulate('click');
     expect(handleTabChange).toHaveBeenCalledWith('is:needs_review is:unresolved');
   });
