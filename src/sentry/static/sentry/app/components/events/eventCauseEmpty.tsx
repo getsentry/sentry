@@ -45,6 +45,7 @@ const DUMMY_COMMIT: Commit = {
     authenticators: [],
     dateJoined: '',
     options: {
+      theme: 'system',
       timezone: '',
       stacktraceOrder: 1,
       language: '',
