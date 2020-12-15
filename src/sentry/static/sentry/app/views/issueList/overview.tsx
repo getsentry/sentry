@@ -796,7 +796,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
                 <Panel>
                   <IssueListActions
-                    orgId={organization.slug}
+                    orgSlug={organization.slug}
                     selection={selection}
                     query={query}
                     queryCount={queryCount}
