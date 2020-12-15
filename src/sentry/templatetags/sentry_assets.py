@@ -1,14 +1,17 @@
 from __future__ import absolute_import
 
+import six
+import re
 from django.conf import settings
-from django.template import Library
+from django import template
+from django.template.base import token_kwargs
 from django.utils.safestring import mark_safe
 
 from sentry import options
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
-register = Library()
+register = template.Library()
 
 register.simple_tag(get_asset_url, name="asset_url")
 
@@ -56,5 +59,75 @@ def locale_js_include(context):
     if lang_code == "en" or lang_code not in settings.SUPPORTED_LANGUAGES:
         return ""
 
+    nonce = ""
+    if hasattr(request, "csp_nonce"):
+        nonce = ' nonce="{}"'.format(request.csp_nonce)
+
     href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
-    return mark_safe('<script src="{0}"{1}></script>'.format(href, crossorigin()))
+    return mark_safe('<script src="{0}"{1}{2}></script>'.format(href, crossorigin(), nonce))
+
+
+@register.tag
+def script(parser, token):
+    """
+    A custom script tag wrapper that applies
+    CSP nonce attribute if found in the request.
+
+    In Saas sentry middleware sets the csp_nonce
+    attribute on the request and we strict CSP rules
+    to prevent XSS
+    """
+    try:
+        args = token.split_contents()
+        kwargs = token_kwargs(args[1:], parser)
+
+        nodelist = parser.parse(("endscript",))
+        parser.delete_first_token()
+
+        return ScriptNode(nodelist, **kwargs)
+    except ValueError as err:
+        raise template.TemplateSyntaxError("`script` tag failed to compile. : {}".format(err))
+
+
+class ScriptNode(template.Node):
+    def __init__(self, nodelist, **kwargs):
+        self.nodelist = nodelist
+        self.attrs = kwargs
+
+    def _get_value(self, token, context):
+        if isinstance(token, six.string_types):
+            return token
+        if isinstance(token, template.base.FilterExpression):
+            return token.resolve(context)
+        return None
+
+    def render(self, context):
+        request = context.get("request")
+        if hasattr(request, "csp_nonce"):
+            self.attrs["nonce"] = request.csp_nonce
+
+        content = ""
+        attrs = self._render_attrs(context)
+        if "src" not in self.attrs:
+            content = self.nodelist.render(context).strip()
+            content = self._unwrap_content(content)
+        return "<script{}>{}</script>".format(attrs, content)
+
+    def _render_attrs(self, context):
+        output = []
+        for k, v in self.attrs.items():
+            value = self._get_value(v, context)
+            if value in (True, "True"):
+                output.append(" {}".format(k))
+            elif value in (None, False, "False"):
+                continue
+            else:
+                output.append(' {}="{}"'.format(k, value))
+        output = sorted(output)
+        return "".join(output)
+
+    def _unwrap_content(self, text):
+        matches = re.search(r"<script[^\>]*>([\s\S]*?)</script>", text)
+        if matches:
+            return matches.group(1).strip()
+        return text

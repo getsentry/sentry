@@ -8,7 +8,6 @@ from random import randint
 
 import six
 from django import template
-from django.core.urlresolvers import reverse
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
@@ -18,7 +17,6 @@ from pkg_resources import parse_version as Version
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
@@ -103,14 +101,6 @@ def absolute_uri(parser, token):
     else:
         target_var = None
     return AbsoluteUriNode(bits, target_var)
-
-
-@register.assignment_tag(takes_context=True)
-def url_with_referrer(context, viewname, *args):
-    url = reverse(viewname, args=args)
-    if context.get("referrer"):
-        url += "?referrer=%s" % context["referrer"]
-    return url
 
 
 @register.simple_tag
@@ -268,7 +258,7 @@ def percent(value, total, format=None):
 
 
 @register.filter
-def titlize(value):
+def titleize(value):
     return value.replace("_", " ").title()
 
 
@@ -285,18 +275,6 @@ def urlquote(value, safe=""):
 @register.filter
 def basename(value):
     return os.path.basename(value)
-
-
-@register.filter
-def list_organizations(user):
-    return Organization.objects.get_for_user(user)
-
-
-@register.filter
-def count_pending_access_requests(organization):
-    from sentry.models import OrganizationAccessRequest
-
-    return OrganizationAccessRequest.objects.filter(team__organization=organization).count()
 
 
 @register.filter
