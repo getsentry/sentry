@@ -1,23 +1,25 @@
-import GroupStore from 'app/stores/groupStore';
-
-/**
- * Currently only used with GroupStore
- */
-type Stores = typeof GroupStore;
-type AddItems = Parameters<Stores['add']>[0];
-
 type Options = {
   /** Max number of items to keep at once */
   limit?: number;
 };
 
+/**
+ * Minimal type shape for objects that can be managed inside StreamManager.
+ */
+type IdShape = {
+  id: string;
+};
+
 class StreamManager {
   private idList: string[] = [];
   private limit: number;
+  private store: any;
 
   // TODO(dcramer): this should listen to changes on GroupStore and remove
   // items that are removed there
-  constructor(private store: Stores, options: Options = {}) {
+  // TODO(ts) Add better typing for store. Generally this is GroupStore, but it could be other things.
+  constructor(store: any, options: Options = {}) {
+    this.store = store;
     this.limit = options.limit || 100;
   }
 
@@ -30,7 +32,7 @@ class StreamManager {
     this.store.remove(excess);
   }
 
-  push(items: AddItems = []) {
+  push(items: IdShape | IdShape[] = []) {
     items = Array.isArray(items) ? items : [items];
     if (items.length === 0) {
       return;
@@ -52,7 +54,7 @@ class StreamManager {
       .sort((a, b) => this.idList.indexOf(a.id) - this.idList.indexOf(b.id));
   }
 
-  unshift(items: AddItems = []) {
+  unshift(items: IdShape | IdShape[] = []) {
     items = Array.isArray(items) ? items : [items];
     if (items.length === 0) {
       return;
