@@ -68,23 +68,14 @@ export function getReleaseEventView(
           )
         ),
       });
-    case YAxis.COUNT_DURATION:
-      const durationColumn = 'transaction.duration';
-      const durationThreshold = organization?.apdexThreshold;
-      return EventView.fromSavedQuery({
-        ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults(
-            [
-              'event.type:transaction',
-              releaseFilter,
-              durationThreshold ? `${durationColumn}:>${durationThreshold}` : '',
-            ].filter(Boolean)
-          )
-        ),
-      });
     case YAxis.COUNT_VITAL:
-      const vitalThreshold = WEB_VITAL_DETAILS[vitalType].failureThreshold;
+    case YAxis.COUNT_DURATION:
+      const column =
+        yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : vitalType;
+      const threshold =
+        yAxis === YAxis.COUNT_DURATION
+          ? organization?.apdexThreshold
+          : WEB_VITAL_DETAILS[vitalType].failureThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
         query: stringifyQueryObject(
@@ -92,7 +83,7 @@ export function getReleaseEventView(
             [
               'event.type:transaction',
               releaseFilter,
-              vitalThreshold ? `${vitalType}:>${vitalThreshold}` : '',
+              threshold ? `${column}:>${threshold}` : '',
             ].filter(Boolean)
           )
         ),
