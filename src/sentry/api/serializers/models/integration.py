@@ -61,7 +61,9 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
             # Query param "action" only attached in TicketRuleForm modal.
             if self.params.get("action") == "create":
-                data["createIssueConfig"] = install.get_create_issue_config_no_params()
+                data["createIssueConfig"] = install.get_create_issue_config(
+                    None, user, params=self.params
+                )
 
         return data
 

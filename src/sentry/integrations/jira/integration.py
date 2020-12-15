@@ -541,19 +541,21 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config_no_params(self):
-        return self.get_create_issue_config(None, None, params={})
-
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "jira_integration"
         params = kwargs.get("params", {})
         fields = []
         defaults = {}
+        project_param_option = params.get("project")
+        project_option = None
         if group:
             fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
-            defaults = self.get_defaults(group.project, user)
+            project_option = group.project
+        project_option = project_param_option or project_option
+        if project_option:
+            defaults = self.get_defaults(project_option, user)
 
-        project_id = params.get("project", defaults.get("project"))
+        project_id = project_param_option or defaults.get("project")
         client = self.get_client()
         try:
             jira_projects = client.get_projects_list()
