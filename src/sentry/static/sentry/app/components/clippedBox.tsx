@@ -1,3 +1,4 @@
+import color from 'color';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
@@ -173,8 +174,8 @@ const ClipFade = styled('div')`
   padding: 40px 0 0;
   background-image: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.15),
-    rgba(255, 255, 255, 1)
+    ${p => color(p.theme.background).alpha(0.15).string()},
+    ${p => p.theme.background}
   );
   text-align: center;
   border-bottom: ${space(1.5)} solid ${p => p.theme.background};
