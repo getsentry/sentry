@@ -150,13 +150,30 @@ def owner_filter(owner, projects):
         relevant_owners = GroupOwner.objects.filter(
             project_id__in=project_ids, organization_id=organization_id
         )
+        filter_query = Q(team__in=teams) | Q(user=owner)
         return Q(
-            id__in=relevant_owners.filter(Q(team__in=teams) | Q(user=owner),)
+            id__in=relevant_owners.filter(filter_query)
             .values_list("group_id", flat=True)
             .distinct()
         )
-    elif owner == "me_or_none":
-        pass
+    elif isinstance(owner, list) and owner[0] == "me_or_none":
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__in=OrganizationMember.objects.filter(
+                    user=owner[1], organization_id=organization_id
+                ),
+                is_active=True,
+            ).values("team")
+        )
+
+        owned_team = Q(groupowner__team__in=teams)
+        owned_me = Q(groupowner__user=owner[1])
+        no_owner = Q(groupowner__isnull=True)
+        return no_owner | Q(
+            owned_me | owned_team,
+            groupowner__project_id__in=project_ids,
+            groupowner__organization_id=organization_id,
+        )
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
 

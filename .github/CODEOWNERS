@@ -32,6 +32,8 @@
 
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/releases
+/scripts/bump-version.sh        @getsentry/releases
+/scripts/post-release.sh        @getsentry/releases
 /docker                         @getsentry/releases
 setup.py                        @getsentry/releases
 setup.cfg                       @getsentry/releases

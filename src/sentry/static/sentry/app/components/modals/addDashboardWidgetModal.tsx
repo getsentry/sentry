@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
 import set from 'lodash/set';
@@ -12,6 +13,7 @@ import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -205,45 +207,49 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          <h2>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h2>
+          <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h4>
         </Header>
         <Body>
-          <Field
-            data-test-id="widget-name"
-            label="Widget Name"
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            error={errors?.title}
-          >
-            <Input
-              type="text"
-              name="title"
+          <DoubleFieldWrapper>
+            <Field
+              data-test-id="widget-name"
+              label={t('Widget Name')}
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              error={errors?.title}
               required
-              value={state.title}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                this.handleFieldChange('title')(event.target.value);
-              }}
-            />
-          </Field>
-          <Field
-            data-test-id="chart-type"
-            label="Chart Type"
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            error={errors?.displayType}
-          >
-            <SelectControl
-              deprecatedSelectControl
+            >
+              <Input
+                type="text"
+                name="title"
+                required
+                value={state.title}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  this.handleFieldChange('title')(event.target.value);
+                }}
+              />
+            </Field>
+            <Field
+              data-test-id="chart-type"
+              label={t('Chart Type')}
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              error={errors?.displayType}
               required
-              options={DISPLAY_TYPE_CHOICES.slice()}
-              name="displayType"
-              label={t('Chart Style')}
-              value={state.displayType}
-              onChange={this.handleFieldChange('displayType')}
-            />
-          </Field>
+            >
+              <SelectControl
+                deprecatedSelectControl
+                required
+                options={DISPLAY_TYPE_CHOICES.slice()}
+                name="displayType"
+                label={t('Chart Style')}
+                value={state.displayType}
+                onChange={this.handleFieldChange('displayType')}
+              />
+            </Field>
+          </DoubleFieldWrapper>
           {state.queries.map((query, i) => {
             return (
               <WidgetQueryForm
@@ -296,5 +302,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     );
   }
 }
+
+const DoubleFieldWrapper = styled('div')`
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: ${space(1)};
+  width: 100%;
+`;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

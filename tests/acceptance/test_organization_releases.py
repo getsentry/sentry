@@ -56,3 +56,13 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="global-header-project-selector"]')
         self.browser.wait_until_test_id("release-wrapper")
         self.browser.snapshot("organization releases - detail - global project header")
+
+    # This is snapshotting features that are enable through the discover and performance features.
+    def test_detail_with_discover_and_performance(self):
+        with self.feature(["organizations:discover-basic", "organizations:performance-view"]):
+            release = self.create_release(project=self.project, version="1.0")
+            self.browser.get(self.path + release.version)
+            self.browser.wait_until_not(".loading")
+            self.browser.wait_until_test_id("release-wrapper")
+            self.browser.snapshot("organization releases - detail with discover and performance")
+            # TODO(releases): add health data

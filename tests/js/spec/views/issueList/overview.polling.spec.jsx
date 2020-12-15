@@ -126,6 +126,11 @@ describe('IssueList -> Polling', function () {
         Link: DEFAULT_LINKS_HEADER,
       },
     });
+    const groupStats = TestStubs.GroupStats();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: [groupStats],
+    });
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
