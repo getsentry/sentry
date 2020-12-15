@@ -53,7 +53,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     limit=limit,
                     organization=organization,
                     referrer="api.organization-event-stats.find-topn",
-                    zerofill_top_events=True,
+                    allow_empty=False,
                 )
             return discover.timeseries_query(
                 selected_columns=query_columns,

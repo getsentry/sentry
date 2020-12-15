@@ -588,7 +588,7 @@ def top_events_timeseries(
     organization,
     referrer=None,
     top_events=None,
-    zerofill_top_events=False,
+    allow_empty=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -682,7 +682,7 @@ def top_events_timeseries(
             referrer=referrer,
         )
 
-    if zerofill_top_events and not result.get("data", []):
+    if not allow_empty and not result.get("data", []):
         return SnubaTSResult(
             {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
             snuba_filter.start,
