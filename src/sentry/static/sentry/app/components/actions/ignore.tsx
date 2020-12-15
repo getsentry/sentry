@@ -342,11 +342,6 @@ const dropdownTipCss = p => css`
   }
 `;
 
-const inboxSubmenuCss = css`
-  flex: hasInbox,
-  'expand-left': hasInbox,
-`;
-
 const IgnoreWrapper = styled('div')`
   display: inline-flex;
   ${dropdownTipCss};
@@ -453,7 +448,12 @@ const DropdownMenuItem = styled('li')<{hasInbox: boolean}>`
     background: ${p => p.theme.bodyBackground};
     border-radius: ${p => p.theme.borderRadius};
   }
-  ${p => (p.hasInbox ? inboxSubmenuCss : null)};
+  ${p =>
+    p.hasInbox &&
+    `
+      flex: 1;
+      justify-content: flex-start;
+    `};
 `;
 
 const StyledMenuItem = styled(MenuItem)`
