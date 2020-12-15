@@ -70,8 +70,7 @@ export function getReleaseEventView(
       });
     case YAxis.COUNT_VITAL:
     case YAxis.COUNT_DURATION:
-      const column =
-        yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : vitalType;
+      const column = yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : vitalType;
       const threshold =
         yAxis === YAxis.COUNT_DURATION
           ? organization?.apdexThreshold
