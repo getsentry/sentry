@@ -50,9 +50,23 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         "first_seen",
     }
 
-    def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
+    inbox_queries = {
+        "is:inbox is:unresolved",
+        "is:unresolved",
+        "is:ignored",
+    }
+
+    def _search(
+        self,
+        request,
+        organization,
+        projects,
+        environments,
+        extra_query_kwargs=None,
+        inbox_tab_query=None,
+    ):
         query_kwargs = build_query_params_from_request(
-            request, organization, projects, environments
+            request, organization, projects, environments, inbox_tab_query
         )
         if extra_query_kwargs is not None:
             assert "environment" not in extra_query_kwargs
@@ -207,6 +221,28 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         except (ValidationError, discover.InvalidSearchQuery) as exc:
             return Response({"detail": six.text_type(exc)}, status=400)
 
+        inbox_tab_cursor_results = None
+        if has_inbox:
+            inbox_tab_cursor_results = {}
+            if request.GET.get("query"):
+                inbox_tab_cursor_results[request.GET.get("query")] = (
+                    cursor_result.hits if cursor_result.hits else 0
+                )
+
+            for query in self.inbox_queries:
+                if query != request.GET.get("query"):
+                    _cursor_result, _query_kwargs = self._search(
+                        request,
+                        organization,
+                        projects,
+                        environments,
+                        {"count_hits": True, "date_to": end, "date_from": start},
+                        query,
+                    )
+                    inbox_tab_cursor_results[query] = (
+                        _cursor_result.hits if _query_kwargs.hits else 0
+                    )
+
         results = list(cursor_result)
 
         context = serialize(
@@ -234,7 +270,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         response = Response(context)
 
-        self.add_cursor_headers(request, response, cursor_result)
+        self.add_cursor_headers(request, response, cursor_result, inbox_tab_cursor_results)
 
         # TODO(jess): add metrics that are similar to project endpoint here
         return response

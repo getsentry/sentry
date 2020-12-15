@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 
 type Props = {
   query: string;
-  queryCount: number;
+  queryCounts: Record<string, number>;
   queryMaxCount: number;
   realtimeActive: boolean;
   onRealtimeChange: (realtime: boolean) => void;
@@ -25,14 +25,12 @@ const queries = [
 
 function IssueListHeader({
   query,
-  queryCount,
+  queryCounts,
   queryMaxCount,
   realtimeActive,
   onTabChange,
   onRealtimeChange,
 }: Props) {
-  const count = <StyledQueryCount count={queryCount} max={queryMaxCount} />;
-
   return (
     <React.Fragment>
       <BorderlessHeader>
@@ -54,7 +52,7 @@ function IssueListHeader({
           {queries.map(([tabQuery, queryName]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
-                {queryName} {query === tabQuery && count}
+                {queryName} <StyledQueryCount count={queryCounts[tabQuery]} max={queryMaxCount} hideIfEmpty={false}/>
               </a>
             </li>
           ))}

@@ -77,7 +77,9 @@ class ValidationError(Exception):
     pass
 
 
-def build_query_params_from_request(request, organization, projects, environments):
+def build_query_params_from_request(
+    request, organization, projects, environments, inbox_tab_query=None
+):
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
     limit = request.GET.get("limit")
@@ -93,7 +95,10 @@ def build_query_params_from_request(request, organization, projects, environment
             query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
-    query = request.GET.get("query", "is:unresolved").strip()
+
+    query = (
+        inbox_tab_query if inbox_tab_query else request.GET.get("query", "is:unresolved").strip()
+    )
     if query:
         try:
             search_filters = convert_query_values(

@@ -260,9 +260,11 @@ class Endpoint(APIView):
         response["Access-Control-Allow-Origin"] = request.META["HTTP_ORIGIN"]
         response["Access-Control-Allow-Methods"] = ", ".join(self.http_method_names)
 
-    def add_cursor_headers(self, request, response, cursor_result):
+    def add_cursor_headers(self, request, response, cursor_result, inbox_tab_cursor_results=None):
         if cursor_result.hits is not None:
             response["X-Hits"] = cursor_result.hits
+        if inbox_tab_cursor_results is not None:
+            response["X-All-Hits"] = inbox_tab_cursor_results
         if cursor_result.max_hits is not None:
             response["X-Max-Hits"] = cursor_result.max_hits
         response["Link"] = ", ".join(
