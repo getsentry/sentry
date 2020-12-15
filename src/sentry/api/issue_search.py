@@ -15,6 +15,7 @@ from sentry.api.event_search import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
+    parse_owner_value,
     parse_user_value,
     parse_release,
     parse_status_value,
@@ -95,6 +96,10 @@ def convert_actor_value(value, projects, user, environments):
     return parse_actor_value(projects, value, user)
 
 
+def convert_owner_value(value, projects, user, environments):
+    return parse_owner_value(projects, value, user)
+
+
 def convert_user_value(value, projects, user, environments):
     return parse_user_value(value, user)
 
@@ -111,7 +116,7 @@ def convert_status_value(value, projects, user, environments):
 
 
 value_converters = {
-    "owner": convert_actor_value,
+    "owner": convert_owner_value,
     "assigned_to": convert_actor_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,
