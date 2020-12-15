@@ -27,6 +27,40 @@ type State = {
 
 type VariantData = [string, React.ReactNode][];
 
+function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
+  if (variant.matched_rule) {
+    data.push([
+      t('Fingerprint rule'),
+      <TextWithQuestionTooltip key="type">
+        {variant.matched_rule}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t('The server-side fingerprinting rule that produced the fingerprint.')}
+        />
+      </TextWithQuestionTooltip>,
+    ]);
+  }
+  if (variant.values) {
+    data.push([t('Fingerprint values'), variant.values]);
+  }
+  if (variant.client_values) {
+    data.push([
+      t('Client fingerprint values'),
+      <TextWithQuestionTooltip key="type">
+        {variant.client_values}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t(
+            'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
+          )}
+        />
+      </TextWithQuestionTooltip>,
+    ]);
+  }
+}
+
 class GroupVariant extends React.Component<Props, State> {
   state = {
     showNonContributing: false,
@@ -102,9 +136,7 @@ class GroupVariant extends React.Component<Props, State> {
             />
           </TextWithQuestionTooltip>,
         ]);
-        if (variant.values) {
-          data.push([t('Fingerprint values'), variant.values]);
-        }
+        addFingerprintInfo(data, variant);
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
@@ -121,9 +153,7 @@ class GroupVariant extends React.Component<Props, State> {
             />
           </TextWithQuestionTooltip>,
         ]);
-        if (variant.values) {
-          data.push([t('Fingerprint values'), variant.values]);
-        }
+        addFingerprintInfo(data, variant);
         if (showGroupingConfig && variant.config?.id) {
           data.push([t('Grouping Config'), variant.config.id]);
         }

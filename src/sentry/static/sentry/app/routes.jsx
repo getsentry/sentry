@@ -1203,7 +1203,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.COMMENTS,
+                currentTab: TAB.ACTIVITY,
                 isEventRoute: false,
               }}
             />
@@ -1320,7 +1320,7 @@ function routes() {
                 }
                 component={errorHandler(LazyLoad)}
                 props={{
-                  currentTab: TAB.COMMENTS,
+                  currentTab: TAB.ACTIVITY,
                   isEventRoute: true,
                 }}
               />

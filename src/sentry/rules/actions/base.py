@@ -86,6 +86,10 @@ class IntegrationEventAction(EventAction):
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
+    @property
+    def prompt(self):
+        return u"Create {}".format(self.ticket_type)
+
     def generate_footer(self, rule_url):
         raise NotImplementedError
 
@@ -100,16 +104,21 @@ class TicketEventAction(IntegrationEventAction):
             rule_url
         )
 
-    def has_linked_issue(self, event, integration):
-        linked_issues = GroupLink.objects.filter(
-            project_id=self.project.id,
-            group_id=event.group.id,
-            linked_type=GroupLink.LinkedType.issue,
-        ).values_list("linked_id", flat=True)
-
+    def _linked_issues(self, event, integration):
         return ExternalIssue.objects.filter(
-            id__in=linked_issues, integration_id=integration.id,
-        ).exists()
+            id__in=GroupLink.objects.filter(
+                project_id=self.project.id,
+                group_id=event.group.id,
+                linked_type=GroupLink.LinkedType.issue,
+            ).values_list("linked_id", flat=True),
+            integration_id=integration.id,
+        )
+
+    def get_linked_issue_ids(self, event, integration):
+        return self._linked_issues(event, integration).values_list("key", flat=True)
+
+    def has_linked_issue(self, event, integration):
+        return self._linked_issues(event, integration).exists()
 
     def create_link(self, key, integration, installation, event):
         external_issue = ExternalIssue.objects.create(

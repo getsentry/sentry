@@ -83,6 +83,7 @@ describe('ProjectAlerts -> IssueEditor', function () {
           location={{pathname: ''}}
           routes={projectAlertRuleDetailsRoutes}
           onChangeTitle={onChangeTitleMock}
+          project={project}
         />
       </ProjectAlerts>,
       routerContext

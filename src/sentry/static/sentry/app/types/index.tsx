@@ -225,13 +225,13 @@ export type Project = {
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
-  latestRelease?: {version: string};
+  latestRelease?: Release;
   groupingEnhancementsBase: string;
   groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
-export type MinimalProject = Pick<Project, 'id' | 'slug'>;
+export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
@@ -452,7 +452,7 @@ type SentryEventBase = {
 };
 
 export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: SpanEntry[];
+  entries: (SpanEntry | RequestEntry)[];
   startTimestamp: number;
   endTimestamp: number;
   type: 'transaction';
@@ -472,8 +472,27 @@ export type StacktraceEntry = {
   data: StacktraceType;
 };
 
+export type RequestEntry = {
+  type: 'request';
+  data: {
+    url: string;
+    method: string;
+    data?: string | null | Record<string, any> | [key: string, value: any][];
+    query?: [key: string, value: string][];
+    fragment?: string;
+    cookies?: [key: string, value: string][];
+    headers?: [key: string, value: string][];
+    env?: Record<string, string>;
+    inferredContentType?:
+      | null
+      | 'application/json'
+      | 'application/x-www-form-urlencoded'
+      | 'multipart/form-data';
+  };
+};
+
 export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: ExceptionEntry[] | StacktraceEntry[];
+  entries: (ExceptionEntry | StacktraceEntry | RequestEntry)[];
   type: 'error';
 };
 
@@ -553,6 +572,14 @@ export type User = Omit<AvatarUser, 'options'> & {
   hasPasswordAuth: boolean;
   permissions: Set<string>;
   experiments: Partial<UserExperiments>;
+};
+
+// XXX(epurkhiser): we should understand how this is diff from User['emails]
+// above
+export type UserEmail = {
+  email: string;
+  isPrimary: boolean;
+  isVerified: boolean;
 };
 
 export type CommitAuthor = {
@@ -819,6 +846,199 @@ export type SuggestedOwner = {
   date_added: string;
 };
 
+export enum GroupActivityType {
+  NOTE = 'note',
+  SET_RESOLVED = 'set_resolved',
+  SET_RESOLVED_BY_AGE = 'set_resolved_by_age',
+  SET_RESOLVED_IN_RELEASE = 'set_resolved_in_release',
+  SET_RESOLVED_IN_COMMIT = 'set_resolved_in_commit',
+  SET_RESOLVED_IN_PULL_REQUEST = 'set_resolved_in_pull_request',
+  SET_UNRESOLVED = 'set_unresolved',
+  SET_IGNORED = 'set_ignored',
+  SET_PUBLIC = 'set_public',
+  SET_PRIVATE = 'set_private',
+  SET_REGRESSION = 'set_regression',
+  CREATE_ISSUE = 'create_issue',
+  UNMERGE_SOURCE = 'unmerge_source',
+  UNMERGE_DESTINATION = 'unmerge_destination',
+  FIRST_SEEN = 'first_seen',
+  ASSIGNED = 'assigned',
+  UNASSIGNED = 'unassigned',
+  MERGE = 'merge',
+  REPROCESS = 'reprocess',
+}
+
+type GroupActivityBase = {
+  dateCreated: string;
+  id: string;
+  project: Project;
+  user?: null | User;
+  assignee?: string;
+  issue?: Group;
+};
+
+type GroupActivityNote = GroupActivityBase & {
+  type: GroupActivityType.NOTE;
+  data: {
+    text: string;
+  };
+};
+
+type GroupActivitySetResolved = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetUnresolved = GroupActivityBase & {
+  type: GroupActivityType.SET_UNRESOLVED;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetPublic = GroupActivityBase & {
+  type: GroupActivityType.SET_PUBLIC;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetPrivate = GroupActivityBase & {
+  type: GroupActivityType.SET_PRIVATE;
+  data: Record<string, any>;
+};
+
+type GroupActivitySetByAge = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_BY_AGE;
+  data: Record<string, any>;
+};
+
+type GroupActivityUnassigned = GroupActivityBase & {
+  type: GroupActivityType.UNASSIGNED;
+  data: Record<string, any>;
+};
+
+type GroupActivityFirstSeen = GroupActivityBase & {
+  type: GroupActivityType.FIRST_SEEN;
+  data: Record<string, any>;
+};
+
+type GroupActivityRegression = GroupActivityBase & {
+  type: GroupActivityType.SET_REGRESSION;
+  data: {
+    version?: string;
+  };
+};
+
+type GroupActivitySetByResolvedInRelease = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+  data: {
+    version?: string;
+  };
+};
+
+type GroupActivitySetByResolvedInCommit = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
+  data: {
+    commit: Commit;
+  };
+};
+
+type GroupActivitySetByResolvedInPullRequest = GroupActivityBase & {
+  type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
+  data: {
+    pullRequest: PullRequest;
+  };
+};
+
+export type GroupActivitySetIgnored = GroupActivityBase & {
+  type: GroupActivityType.SET_IGNORED;
+  data: {
+    ignoreDuration?: number;
+    ignoreUntil?: string;
+    ignoreUserCount?: number;
+    ignoreUserWindow?: number;
+    ignoreWindow?: number;
+    ignoreCount?: number;
+  };
+};
+
+export type GroupActivityReprocess = GroupActivityBase & {
+  type: GroupActivityType.REPROCESS;
+  data: {
+    eventCount: number;
+    newGroupId: number;
+    oldGroupId: number;
+  };
+};
+
+type GroupActivityUnmergeDestination = GroupActivityBase & {
+  type: GroupActivityType.UNMERGE_DESTINATION;
+  data: {
+    fingerprints: Array<string>;
+    source?: {
+      id: string;
+      shortId: string;
+    };
+  };
+};
+
+type GroupActivityUnmergeSource = GroupActivityBase & {
+  type: GroupActivityType.UNMERGE_SOURCE;
+  data: {
+    fingerprints: Array<string>;
+    destination?: {
+      id: string;
+      shortId: string;
+    };
+  };
+};
+
+type GroupActivityMerge = GroupActivityBase & {
+  type: GroupActivityType.MERGE;
+  data: {
+    issues: Array<any>;
+  };
+};
+
+export type GroupActivityAssigned = GroupActivityBase & {
+  type: GroupActivityType.ASSIGNED;
+  data: {
+    assignee: string;
+    assigneeType: string;
+    user: Team | User;
+  };
+};
+
+export type GroupActivityCreateIssue = GroupActivityBase & {
+  type: GroupActivityType.CREATE_ISSUE;
+  data: {
+    provider: string;
+    location: string;
+    title: string;
+  };
+};
+
+export type GroupActivity =
+  | GroupActivityNote
+  | GroupActivitySetResolved
+  | GroupActivitySetUnresolved
+  | GroupActivitySetIgnored
+  | GroupActivitySetByAge
+  | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInRelease
+  | GroupActivitySetByResolvedInCommit
+  | GroupActivitySetByResolvedInPullRequest
+  | GroupActivityFirstSeen
+  | GroupActivityMerge
+  | GroupActivityReprocess
+  | GroupActivityUnassigned
+  | GroupActivityUnmergeDestination
+  | GroupActivitySetPublic
+  | GroupActivitySetPrivate
+  | GroupActivityRegression
+  | GroupActivityUnmergeSource
+  | GroupActivityAssigned
+  | GroupActivityCreateIssue;
+
+export type Activity = GroupActivity;
+
 type GroupFiltered = {
   count: string;
   stats: Record<string, TimeseriesValue[]>;
@@ -827,11 +1047,17 @@ type GroupFiltered = {
   userCount: number;
 };
 
+export type GroupStats = GroupFiltered & {
+  lifetime?: GroupFiltered;
+  filtered: GroupFiltered | null;
+  id: string;
+};
+
 // TODO(ts): incomplete
-export type Group = GroupFiltered & {
+export type BaseGroup = {
   id: string;
   latestEvent: Event;
-  activity: any[]; // TODO(ts)
+  activity: GroupActivity[];
   annotations: string[];
   assignedTo: User;
   culprit: string;
@@ -857,18 +1083,18 @@ export type Group = GroupFiltered & {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: string;
+  status: 'reprocessing' | ResolutionStatus;
   statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered: GroupFiltered | null;
-  lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
   owners?: SuggestedOwner[] | null;
 };
+
+export type Group = BaseGroup & GroupStats;
 
 export type GroupTombstone = {
   id: string;
@@ -975,6 +1201,7 @@ export type PullRequest = {
   id: string;
   title: string;
   externalUrl: string;
+  repository: Repository;
 };
 
 type IntegrationDialog = {
@@ -1305,9 +1532,9 @@ export type Commit = {
   id: string;
   message: string | null;
   dateCreated: string;
+  releases: BaseRelease[];
   repository?: Repository;
   author?: User;
-  releases: BaseRelease[];
 };
 
 export type Committer = {
@@ -1343,7 +1570,7 @@ export type SentryAppComponent = {
   };
 };
 
-type SavedQueryVersions = 1 | 2;
+export type SavedQueryVersions = 1 | 2;
 
 export type NewQuery = {
   id: string | undefined;
@@ -1513,6 +1740,8 @@ type Topvalue = {
   lastSeen: string;
   name: string;
   value: string;
+  // Might not actually exist.
+  query?: string;
 };
 
 export type TagWithTopValues = {
@@ -1561,6 +1790,7 @@ export type ResolutionStatusDetails = {
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
+  pendingEvents?: number;
 };
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
@@ -1602,16 +1832,6 @@ export type CrashFreeTimeBreakdown = {
   crashFreeUsers: number | null;
   totalUsers: number;
 }[];
-
-export type Activity = {
-  data: any;
-  dateCreated: string;
-  type: string;
-  id: string;
-  issue?: Group;
-  project: Project;
-  user?: User;
-};
 
 export type PlatformIntegration = {
   id: string;
@@ -1660,7 +1880,9 @@ export type EventGroupVariant = {
   hashMismatch: boolean;
   key: EventGroupVariantKey;
   type: EventGroupVariantType;
-  values?: string;
+  values?: Array<string>;
+  client_values?: Array<string>;
+  matched_rule?: string;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
 };
@@ -1786,10 +2008,22 @@ export type InternetProtocol = {
   regionCode: string | null;
 };
 
+/**
+ * XXX(ts): This actually all comes from getsentry. We should definitely
+ * refactor this into a more proper 'hook' mechanism in the future
+ */
 export type AuthConfig = {
   canRegister: boolean;
   serverHostname: string;
   hasNewsletter: boolean;
   githubLoginLink: string;
   vstsLoginLink: string;
+  googleLoginLink: string;
+};
+
+export type AuthProvider = {
+  key: string;
+  name: string;
+  requiredFeature: string;
+  disables2FA: boolean;
 };

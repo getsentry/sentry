@@ -5,7 +5,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.utils.compat import zip
-from sentry.models import Dashboard
+from sentry.models import Dashboard, DashboardTombstone
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 
@@ -29,10 +29,34 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_get(self):
         response = self.client.get(self.url)
         assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        assert "default-overview" == response.data[0]["id"]
+        self.assert_equal_dashboards(self.dashboard, response.data[1])
+        self.assert_equal_dashboards(self.dashboard_2, response.data[2])
+
+    def test_get_with_tombstone(self):
+        DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
+        response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
+        assert "default-overview" not in [r["id"] for r in response.data]
+
+    def test_get_query(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard 11", created_by=self.user, organization=self.organization
+        )
+        response = self.client.get(self.url, data={"query": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
         self.assert_equal_dashboards(self.dashboard, response.data[0])
-        self.assert_equal_dashboards(self.dashboard_2, response.data[1])
+        self.assert_equal_dashboards(dashboard, response.data[1])
+
+    def test_get_query_no_results(self):
+        response = self.client.get(self.url, data={"query": "not-in-there"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
 
     def test_post(self):
         response = self.client.post(self.url, data={"title": "Dashboard from Post"})
@@ -68,9 +92,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 },
             ],
         }
-
         response = self.client.post(self.url, data=data)
-        assert response.status_code == 201
+        assert response.status_code == 201, response.data
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
@@ -85,21 +108,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             queries = actual_widget.dashboardwidgetquery_set.all()
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
-
-    def test_query(self):
-        dashboard = Dashboard.objects.create(
-            title="Dashboard 11", created_by=self.user, organization=self.organization
-        )
-        response = self.client.get(self.url, data={"query": "1"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 2
-        self.assert_equal_dashboards(self.dashboard, response.data[0])
-        self.assert_equal_dashboards(dashboard, response.data[1])
-
-    def test_query_no_results(self):
-        response = self.client.get(self.url, data={"query": "not-in-there"})
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 0
 
     def test_invalid_data(self):
         response = self.client.post(self.url, data={"malformed-data": "Dashboard from Post"})

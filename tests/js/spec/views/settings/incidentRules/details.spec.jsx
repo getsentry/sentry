@@ -72,6 +72,7 @@ describe('Incident Rules Details', function () {
           }}
           organization={organization}
           onChangeTitle={onChangeTitleMock}
+          project={project}
         />
       </React.Fragment>,
       routerContext

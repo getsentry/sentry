@@ -1,7 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import RuleForm from 'app/views/settings/incidentRules/ruleForm';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
@@ -15,6 +15,7 @@ type RouteParams = {
 type Props = {
   organization: Organization;
   onChangeTitle: ({ruleName: string}) => void;
+  project: Project;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {

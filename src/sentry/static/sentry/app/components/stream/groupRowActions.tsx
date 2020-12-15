@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ActionLink from 'app/components/actions/actionLink';
-import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
@@ -74,25 +73,21 @@ class GroupRowActions extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <Tooltip title={t('Acknowledge')}>
+        <Tooltip title={t('Mark Reviewed')}>
           <ActionLink
             className="btn btn-default btn-sm"
             onAction={() => this.handleUpdate({inbox: false})}
             shouldConfirm={false}
-            title={t('Acknowledge')}
+            title={t('Mark Reviewed')}
           >
-            <IconIssues size="xs" color="gray300" />
+            <IconIssues size="sm" color="gray300" />
           </ActionLink>
-        </Tooltip>
-
-        <Tooltip title={t('Ignore')}>
-          <IgnoreActions onUpdate={this.handleUpdate} shouldConfirm={false} hasInbox />
         </Tooltip>
 
         <StyledDropdownLink
           caret={false}
           className="btn btn-sm btn-default action-more"
-          customTitle={<IconEllipsis size="xs" />}
+          customTitle={<IconEllipsis size="sm" color="gray300" />}
           title=""
           anchorRight
         >
@@ -135,17 +130,6 @@ class GroupRowActions extends React.Component<Props> {
                 );
               }}
             </Projects>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-remove-bookmark"
-              onAction={() => this.handleUpdate({isBookmarked: false})}
-              shouldConfirm={false}
-              title={t('Remove from Bookmarks')}
-            >
-              {t('Remove from Bookmarks')}
-            </ActionLink>
           </MenuItem>
           <MenuItem divider />
           <MenuItem noAnchor>

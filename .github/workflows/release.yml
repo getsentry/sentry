@@ -5,14 +5,6 @@ on:
       version:
         description: Version to release (optional)
         required: false
-      skip_prepare:
-        description: Skip preparation step (assume a release branch is ready)
-        required: false
-        default: false
-      dry_run:
-        description: Do not actually cut the release
-        required: false
-        default: false
       force:
         description: Force a release even when there are release-blockers (optional)
         required: false
@@ -32,36 +24,25 @@ jobs:
           force: ${{ github.event.inputs.force }}
       - uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GH_SENTRY_BOT_PAT }}
-          fetch-depth: 20
+          token: ${{ secrets.GH_RELEASE_PAT }}
+          fetch-depth: 0
       - uses: getsentry/craft@master
         name: Craft Prepare
-        if: ${{ !github.event.inputs.skip_prepare }}
         with:
           action: prepare
           version: ${{ env.RELEASE_VERSION }}
-        env:
-          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
-      # Wait until the builds start. Craft should do this automatically
-      # but it is broken now.
-      - run: sleep 10
-      - uses: getsentry/craft@master
-        name: Craft Publish
+      - name: Request publish
+        if: success()
+        uses: actions/github-script@v3
         with:
-          action: publish
-          version: ${{ env.RELEASE_VERSION }}
-        env:
-          DRY_RUN: ${{ github.event.inputs.dry_run }}
-          GITHUB_API_TOKEN: ${{ secrets.GH_SENTRY_BOT_PAT }}
-          ZEUS_API_TOKEN: ${{ secrets.ZEUS_API_TOKEN }}
-          TWINE_USERNAME: '__token__'
-          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-          DOCKER_USERNAME: 'sentrybuilder'
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      - id: next-dev-version
-        name: Set new version for development
-        if: ${{ !github.event.inputs.dry_run }}
-        run: |
-          git checkout master
-          ./scripts/bump-version.sh '' $(date -d "$(echo $RELEASE_VERSION | sed -e 's/^\([0-9]\{2\}\)\.\([0-9]\{1,2\}\)\.[0-9]\+$/20\1-\2-1/') 1 month" +%y.%-m.0.dev0)
-          git diff --quiet || git commit -anm 'meta: Bump new development version' && git pull --rebase && git push
+          # TODO: Replace token with GH_RELEASE_PAT after verification
+          github-token: ${{ secrets.GH_SENTRY_BOT_PAT }}
+          script: |
+            const repoInfo = context.repo;
+            await github.issues.create({
+              owner: repoInfo.owner,
+              repo: 'publish',
+              title: `publish: ${repoInfo.repo}@${process.env.RELEASE_VERSION}`,
+              // TODO: Remove the following line after verification
+              labels: ['dry-run'],
+            });

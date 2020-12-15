@@ -68,18 +68,18 @@ class OtherProjects extends React.Component<Props, State> {
           </Row>
         ))}
         {numberOfCollapsedProjects > 0 && (
-          <CollapseToggle priority="link" onClick={this.onCollapseToggle}>
+          <Button priority="link" onClick={this.onCollapseToggle}>
             {tn(
               'Show %s collapsed project',
               'Show %s collapsed projects',
               numberOfCollapsedProjects
             )}
-          </CollapseToggle>
+          </Button>
         )}
         {numberOfCollapsedProjects === 0 && canExpand && (
-          <CollapseToggle priority="link" onClick={this.onCollapseToggle}>
+          <Button priority="link" onClick={this.onCollapseToggle}>
             {t('Collapse')}
-          </CollapseToggle>
+          </Button>
         )}
       </Wrapper>
     );
@@ -95,10 +95,6 @@ const Row = styled('div')`
 
 const StyledLink = styled(Link)`
   display: inline-block;
-`;
-
-const CollapseToggle = styled(Button)`
-  width: 100%;
 `;
 
 export default OtherProjects;
