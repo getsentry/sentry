@@ -69,6 +69,8 @@ const SearchInputIcon = styled(IconSearch)`
 `;
 
 const SearchInput = styled('input')`
+  color: ${p => p.theme.formText};
+  background-color: ${p => p.theme.background};
   transition: border-color 0.15s ease;
   font-size: 14px;
   width: 260px;

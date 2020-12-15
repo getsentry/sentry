@@ -23,7 +23,7 @@ import TagsTable from 'app/components/tagsTable';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Event, EventTag, Organization} from 'app/types';
+import {Event, EventTag, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
@@ -221,7 +221,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     <BorderlessEventEntries
                       organization={organization}
                       event={event}
-                      project={projects[0]}
+                      project={projects[0] as Project}
                       location={location}
                       showExampleCommit={false}
                       showTagSummary={false}
