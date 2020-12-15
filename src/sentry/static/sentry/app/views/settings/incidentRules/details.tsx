@@ -14,6 +14,7 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
+  onChangeTitle: (data: string) => void;
   project: Project;
 } & RouteComponentProps<RouteParams, {}>;
 
@@ -34,6 +35,12 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     const {orgId, ruleId} = this.props.params;
 
     return [['rule', `/organizations/${orgId}/alert-rules/${ruleId}/`]];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle(data.name);
+    }
   }
 
   handleSubmitSuccess = () => {
