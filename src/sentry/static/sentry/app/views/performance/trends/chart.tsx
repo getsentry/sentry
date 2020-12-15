@@ -252,10 +252,9 @@ class Chart extends React.Component<Props> {
       trendFunction.chartLabel
     );
 
-    const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
-
-    const end = props.end ? getUtcToLocalDateObject(props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = props.start ? getUtcToLocalDateObject(props.start) : null;
+    const end = props.end ? getUtcToLocalDateObject(props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const intervalRatio = getIntervalRatio(router.location);
     const seriesSelection = (
