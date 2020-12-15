@@ -1,7 +1,8 @@
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
+import {ExceptionValue, Frame} from 'app/types';
 import {defined, trim} from 'app/utils';
 
-function getJavaScriptFrame(frame) {
+function getJavaScriptFrame(frame: Frame): string {
   let result = '';
   if (defined(frame.function)) {
     result += '  at ' + frame.function + '(';
@@ -23,7 +24,7 @@ function getJavaScriptFrame(frame) {
   return result;
 }
 
-function getRubyFrame(frame) {
+function getRubyFrame(frame: Frame): string {
   let result = '  from ';
   if (defined(frame.filename)) {
     result += frame.filename;
@@ -44,12 +45,12 @@ function getRubyFrame(frame) {
   return result;
 }
 
-export function getPHPFrame(frame, idx) {
+export function getPHPFrame(frame: Frame, idx: number): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
   return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
 }
 
-export function getPythonFrame(frame) {
+export function getPythonFrame(frame: Frame): string {
   let result = '';
   if (defined(frame.filename)) {
     result += '  File "' + frame.filename + '"';
@@ -77,7 +78,7 @@ export function getPythonFrame(frame) {
   return result;
 }
 
-export function getJavaFrame(frame) {
+export function getJavaFrame(frame: Frame): string {
   let result = '    at';
   if (defined(frame.module)) {
     result += ' ' + frame.module + '.';
@@ -95,11 +96,11 @@ export function getJavaFrame(frame) {
   return result;
 }
 
-function ljust(str, len) {
+function ljust(str: string, len: number) {
   return str + Array(Math.max(0, len - str.length) + 1).join(' ');
 }
 
-export function getNativeFrame(frame) {
+export function getNativeFrame(frame: Frame): string {
   let result = '  ';
   if (defined(frame.package)) {
     result += ljust(trimPackage(frame.package), 20);
@@ -118,7 +119,7 @@ export function getNativeFrame(frame) {
   return result;
 }
 
-export function getJavaPreamble(exception) {
+export function getJavaPreamble(exception: ExceptionValue): string {
   let result = `${exception.type}: ${exception.value}`;
   if (exception.module) {
     result = `${exception.module}.${result}`;
@@ -126,7 +127,7 @@ export function getJavaPreamble(exception) {
   return result;
 }
 
-function getPreamble(exception, platform) {
+function getPreamble(exception: ExceptionValue, platform: string | undefined): string {
   switch (platform) {
     case 'java':
       return getJavaPreamble(exception);
@@ -135,7 +136,7 @@ function getPreamble(exception, platform) {
   }
 }
 
-function getFrame(frame, frameIdx, platform) {
+function getFrame(frame: Frame, frameIdx: number, platform: string | undefined): string {
   if (frame.platform) {
     platform = frame.platform;
   }
@@ -161,8 +162,12 @@ function getFrame(frame, frameIdx, platform) {
   }
 }
 
-export default function render(data, platform, exception) {
-  const frames = [];
+export default function render(
+  data: ExceptionValue,
+  platform: string | undefined,
+  exception: ExceptionValue
+) {
+  const frames: string[] = [];
 
   data?.frames.forEach((frame, frameIdx) => {
     frames.push(getFrame(frame, frameIdx, platform));
