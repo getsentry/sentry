@@ -213,7 +213,8 @@ export function convertDatasetEventTypesToSource(
 /**
  * Attempt to guess the data source of a discover query
  *
- * @returns A new query without the datasource. null on no datasource
+ * @returns An object containing the datasource and new query without the datasource.
+ * Returns null on no datasource.
  */
 export function getQueryDatasource(
   query: string
