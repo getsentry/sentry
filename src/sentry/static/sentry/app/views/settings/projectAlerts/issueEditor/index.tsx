@@ -87,7 +87,7 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
-  onChangeTitle: (data: string) => void;
+  onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
