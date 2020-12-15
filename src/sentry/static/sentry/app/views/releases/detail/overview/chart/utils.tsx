@@ -25,7 +25,8 @@ export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
   yAxis?: YAxis,
-  eventType?: EventType,
+  eventType: EventType = EventType.ALL,
+  vitalType: WebVital = WebVital.LCP,
   organization?: Organization,
   /**
    * Indicates that we're only interested in the current release.
@@ -67,14 +68,9 @@ export function getReleaseEventView(
           )
         ),
       });
-    case YAxis.COUNT_LCP:
     case YAxis.COUNT_DURATION:
-      const column =
-        yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : 'measurements.lcp';
-      const threshold =
-        yAxis === YAxis.COUNT_DURATION
-          ? organization?.apdexThreshold
-          : WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold;
+      const durationColumn = 'transaction.duration';
+      const durationThreshold = organization?.apdexThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
         query: stringifyQueryObject(
@@ -82,13 +78,28 @@ export function getReleaseEventView(
             [
               'event.type:transaction',
               releaseFilter,
-              threshold ? `${column}:>${threshold}` : '',
+              durationThreshold ? `${durationColumn}:>${durationThreshold}` : '',
+            ].filter(Boolean)
+          )
+        ),
+      });
+    case YAxis.COUNT_VITAL:
+      const vitalThreshold = WEB_VITAL_DETAILS[vitalType].failureThreshold;
+      return EventView.fromSavedQuery({
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults(
+            [
+              'event.type:transaction',
+              releaseFilter,
+              vitalThreshold ? `${vitalType}:>${vitalThreshold}` : '',
             ].filter(Boolean)
           )
         ),
       });
     case YAxis.EVENTS:
-      const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
+      const eventTypeFilter =
+        eventType === EventType.ALL ? '' : `event.type:${eventType}`;
       return EventView.fromSavedQuery({
         ...baseQuery,
         query: stringifyQueryObject(
