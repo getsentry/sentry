@@ -115,11 +115,11 @@ describe('Performance > VitalDetail', function () {
     await tick();
     wrapper.update();
 
-    // It shows the vital card
-    expect(wrapper.find('vitalInfo')).toHaveLength(1);
-
     // It shows a search bar
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
+
+    // It shows the vital card
+    expect(wrapper.find('vitalInfo')).toHaveLength(1);
 
     // It shows a chart
     expect(wrapper.find('VitalChart')).toHaveLength(1);

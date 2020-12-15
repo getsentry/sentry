@@ -1,8 +1,6 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
@@ -10,16 +8,14 @@ import VitalsCardDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCar
 
 import {VitalsCard} from '../vitalsCards';
 
-import {vitalDescription} from './utils';
-
 type Props = {
   eventView: EventView;
   organization: Organization;
   location: Location;
   vitalName: WebVital;
   hideBar?: boolean;
-  hideDescription?: boolean;
   hideVitalPercentNames?: boolean;
+  hideDurationDetail?: boolean;
 };
 
 export default function vitalInfo(props: Props) {
@@ -29,38 +25,27 @@ export default function vitalInfo(props: Props) {
     organization,
     location,
     hideVitalPercentNames,
-    hideDescription,
+    hideDurationDetail,
   } = props;
-  const description = vitalDescription[vitalName];
   return (
-    <Container>
-      {!hideDescription && <Description>{description}</Description>}
-      <VitalsCardDiscoverQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        onlyVital={vitalName}
-      >
-        {({isLoading, tableData}) => (
-          <React.Fragment>
-            <VitalsCard
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-              noBorder
-              showVitalPercentNames={!hideVitalPercentNames}
-            />
-          </React.Fragment>
-        )}
-      </VitalsCardDiscoverQuery>
-    </Container>
+    <VitalsCardDiscoverQuery
+      eventView={eventView}
+      orgSlug={organization.slug}
+      location={location}
+      onlyVital={vitalName}
+    >
+      {({isLoading, tableData}) => (
+        <React.Fragment>
+          <VitalsCard
+            tableData={tableData}
+            isLoading={isLoading}
+            {...props}
+            noBorder
+            showVitalPercentNames={!hideVitalPercentNames}
+            showDurationDetail={!hideDurationDetail}
+          />
+        </React.Fragment>
+      )}
+    </VitalsCardDiscoverQuery>
   );
 }
-
-const Container = styled('div')`
-  display: grid;
-  gap: ${space(3)};
-  margin-bottom: ${space(3)};
-`;
-
-const Description = styled('div')``;
