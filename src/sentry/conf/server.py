@@ -931,6 +931,8 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
+    # Set default tab to inbox
+    "organizations:inbox-tab-default": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable "owner"/"suggested assignee" features.
