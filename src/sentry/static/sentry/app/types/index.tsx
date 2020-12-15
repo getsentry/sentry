@@ -188,6 +188,15 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+/**
+ * Minimal organization shape used on shared issue views.
+ */
+export type SharedViewOrganization = {
+  slug: string;
+  id?: string;
+  features?: Array<string>;
+};
+
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
@@ -2027,4 +2036,11 @@ export type AuthProvider = {
   name: string;
   requiredFeature: string;
   disables2FA: boolean;
+};
+
+export type PromptActivity = {
+  data: {
+    snoozed_ts?: number;
+    dismissed_ts?: number;
+  };
 };
