@@ -279,6 +279,12 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
+  /**
+   * Update all the AlertRuleAction's fields from the TicketRuleModal together
+   * only after the user clicks "Apply Changes".
+   * @param formData Form data
+   * @param fetchedFieldOptionsCache Object
+   */
   updateParent = (
     data: {[key: string]: string},
     dynamicFieldChoices: {[key: string]: string[]}

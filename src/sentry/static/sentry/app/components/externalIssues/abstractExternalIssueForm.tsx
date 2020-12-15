@@ -17,7 +17,14 @@ type Props = AsyncComponent['props'];
 
 type State = {
   action: ExternalIssueAction;
+  /**
+   * Fetched via endpoint, null until set.
+   */
   integrationDetails: IntegrationIssueConfig | null;
+  /**
+   * Object of fields where `updatesFrom` is true, by field name. Derived from
+   * `integrationDetails` when it loads. Null until set.
+   */
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
 } & AsyncComponent['state'];
 
