@@ -83,7 +83,7 @@ class Collapsible extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        {itemsToRender.map(item => item)}
+        {itemsToRender}
 
         {numberOfCollapsedItems > 0 && this.renderExpandButton(numberOfCollapsedItems)}
 
