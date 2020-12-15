@@ -59,7 +59,7 @@ export default class AbstractExternalIssueForm<
     });
   };
 
-  getConfigName = (): string => {
+  getConfigName = (): 'createIssueConfig' | 'linkIssueConfig' => {
     // Explicitly returning a non-interpolated string for clarity.
     const {action} = this.state;
     switch (action) {
@@ -110,7 +110,10 @@ export default class AbstractExternalIssueForm<
     }
   };
 
-  updateDynamicFieldChoices = (_field: IssueConfigField, _result: any): void => {
+  updateDynamicFieldChoices = (
+    _field: IssueConfigField,
+    _result: {options: {value: string; label: string}[]}
+  ): void => {
     // Do nothing.
   };
 
@@ -174,7 +177,9 @@ export default class AbstractExternalIssueForm<
       : {};
 
   // Abstract methods.
-  getEndPointString = () => '';
+  getEndPointString = (): string => {
+    throw new Error("Method 'getEndPointString()' must be implemented.");
+  };
   renderNavTabs = (): React.ReactNode => null;
   renderBodyText = (): React.ReactNode => null;
   getTitle = () => tct('Issue Link Settings', {});

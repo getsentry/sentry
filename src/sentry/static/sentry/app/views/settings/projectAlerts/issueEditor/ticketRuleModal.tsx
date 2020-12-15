@@ -58,7 +58,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       .map(field => field.name);
   };
 
-  getEndPointString = () => {
+  getEndPointString = (): string => {
     const {instance, organization} = this.props;
     return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
   };
@@ -101,7 +101,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     }
   };
 
-  updateDynamicFieldChoices = (field: IssueConfigField, result: any): void => {
+  updateDynamicFieldChoices = (
+    field: IssueConfigField,
+    result: {options: {value: string; label: string}[]}
+  ): void => {
     const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
     this.setState(prevState => {
       const newState = cloneDeep(prevState);

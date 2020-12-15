@@ -283,21 +283,18 @@ class RuleNode extends React.Component<Props> {
     data: {[key: string]: string},
     dynamicFieldChoices: {[key: string]: string[]}
   ): void => {
-    // iterating through these upon save instead of when each
-    // element is changed to match the spec
+    const {index, node, onPropertyChange} = this.props;
+    // Iterating through these upon save instead of when each element is changed
+    // to match the spec.
     for (const [name, value] of Object.entries(data)) {
-      this.props.onPropertyChange(this.props.index, name, value);
+      onPropertyChange(index, name, value);
 
       // We only know the choices after the form loads.
       if (['assignee', 'reporter'].includes(name) && dynamicFieldChoices[name]) {
-        const dynamicFormFieldsCopy: any = this.props.node?.formFields || {};
+        const dynamicFormFieldsCopy: any = node?.formFields || {};
         // Overwrite the choices because the user's pick is in this list.
         dynamicFormFieldsCopy[name].choices = dynamicFieldChoices[name];
-        this.props.onPropertyChange(
-          this.props.index,
-          'dynamic_form_fields',
-          dynamicFormFieldsCopy
-        );
+        onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
       }
     }
   };
