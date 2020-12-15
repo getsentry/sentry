@@ -32,6 +32,11 @@ export type DiscoverQueryProps = {
    * multiple paginated results on the page.
    */
   cursor?: string;
+  /**
+   * Include this whenever pagination won't be used. Limit can still be used when this is
+   * passed, but cursor will be ignored.
+   */
+  noPagination?: boolean;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;
@@ -136,6 +141,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       limit,
       cursor,
       setError,
+      noPagination,
     } = this.props;
 
     if (!eventView.isValid()) {
@@ -152,6 +158,9 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     if (limit) {
       apiPayload.per_page = limit;
+    }
+    if (noPagination) {
+      apiPayload.noPagination = noPagination;
     }
     if (cursor) {
       apiPayload.cursor = cursor;

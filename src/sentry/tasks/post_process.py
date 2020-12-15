@@ -180,6 +180,9 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
+        if event.group_id and is_reprocessed and is_new:
+            add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+
         if event.group_id and not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group

@@ -20,7 +20,13 @@ import {DEFAULT_ERROR_JSON} from 'app/constants';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Group, GroupActivityReprocess, Organization, User} from 'app/types';
+import {
+  Group,
+  GroupActivityReprocess,
+  GroupActivityType,
+  Organization,
+  User,
+} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -167,12 +173,12 @@ class GroupActivity extends React.Component<Props, State> {
               {group.activity.map(item => {
                 const authorName = item.user ? item.user.name : 'Sentry';
 
-                if (item.type === 'note') {
+                if (item.type === GroupActivityType.NOTE) {
                   return (
                     <ErrorBoundary mini key={`note-${item.id}`}>
                       <Note
                         showTime={false}
-                        text={item.data.text ?? ''}
+                        text={item.data.text}
                         modelId={item.id}
                         user={item.user as User}
                         dateCreated={item.dateCreated}
@@ -183,27 +189,27 @@ class GroupActivity extends React.Component<Props, State> {
                       />
                     </ErrorBoundary>
                   );
-                } else {
-                  return (
-                    <ErrorBoundary mini key={`item-${item.id}`}>
-                      <ActivityItem
-                        author={{
-                          type: item.user ? 'user' : 'system',
-                          user: item.user ?? undefined,
-                        }}
-                        date={item.dateCreated}
-                        header={
-                          <GroupActivityItem
-                            author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                            activity={item}
-                            orgSlug={this.props.params.orgId}
-                            projectId={group.project.id}
-                          />
-                        }
-                      />
-                    </ErrorBoundary>
-                  );
                 }
+
+                return (
+                  <ErrorBoundary mini key={`item-${item.id}`}>
+                    <ActivityItem
+                      author={{
+                        type: item.user ? 'user' : 'system',
+                        user: item.user ?? undefined,
+                      }}
+                      date={item.dateCreated}
+                      header={
+                        <GroupActivityItem
+                          author={<ActivityAuthor>{authorName}</ActivityAuthor>}
+                          activity={item}
+                          orgSlug={this.props.params.orgId}
+                          projectId={group.project.id}
+                        />
+                      }
+                    />
+                  </ErrorBoundary>
+                );
               })}
             </div>
           </div>

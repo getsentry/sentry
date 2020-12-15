@@ -3048,6 +3048,8 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [
             ["last_seen()", "timestamp"],
             ["avg(measurements.lcp)", "measurements.lcp"],
+            ["min(timestamp)", "timestamp"],
+            ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
         ]
         for field in fields:

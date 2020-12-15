@@ -23,7 +23,7 @@ import Controls from './controls';
 import Dashboard from './dashboard';
 import {EMPTY_DASHBOARD} from './data';
 import OrgDashboards from './orgDashboards';
-import Title from './title';
+import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
 
@@ -37,23 +37,13 @@ type Props = {
 
 type State = {
   dashboardState: DashboardState;
-  changesDashboard: DashboardDetails | null;
+  modifiedDashboard: DashboardDetails | null;
 };
 
 class DashboardDetail extends React.Component<Props, State> {
   state: State = {
     dashboardState: 'view',
-    changesDashboard: null,
-  };
-
-  onEdit = (dashboard: State['changesDashboard']) => () => {
-    if (!dashboard) {
-      return;
-    }
-    this.setState({
-      dashboardState: 'edit',
-      changesDashboard: cloneDashboard(dashboard),
-    });
+    modifiedDashboard: null,
   };
 
   componentDidMount() {
@@ -65,6 +55,16 @@ class DashboardDetail extends React.Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
   }
+
+  onEdit = (dashboard: State['modifiedDashboard']) => () => {
+    if (!dashboard) {
+      return;
+    }
+    this.setState({
+      dashboardState: 'edit',
+      modifiedDashboard: cloneDashboard(dashboard),
+    });
+  };
 
   onRouteLeave = (): string | undefined => {
     if (this.state.dashboardState !== 'view') {
@@ -85,18 +85,18 @@ class DashboardDetail extends React.Component<Props, State> {
   onCreate = () => {
     this.setState({
       dashboardState: 'create',
-      changesDashboard: cloneDashboard(EMPTY_DASHBOARD),
+      modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
     });
   };
 
   onCancel = () => {
     this.setState({
       dashboardState: 'view',
-      changesDashboard: null,
+      modifiedDashboard: null,
     });
   };
 
-  onDelete = (dashboard: State['changesDashboard']) => () => {
+  onDelete = (dashboard: State['modifiedDashboard']) => () => {
     const {api, organization} = this.props;
     if (!dashboard?.id) {
       return;
@@ -116,26 +116,25 @@ class DashboardDetail extends React.Component<Props, State> {
     dashboard,
     reloadData,
   }: {
-    dashboard: State['changesDashboard'];
+    dashboard: State['modifiedDashboard'];
     reloadData: () => void;
   }) => () => {
     const {api, organization, location} = this.props;
-    const {dashboardState, changesDashboard} = this.state;
+    const {dashboardState, modifiedDashboard} = this.state;
 
     switch (dashboardState) {
       case 'create': {
-        if (changesDashboard) {
-          createDashboard(api, organization.slug, changesDashboard).then(
+        if (modifiedDashboard) {
+          createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
 
-              // redirect to new dashboard
-
               this.setState({
                 dashboardState: 'view',
-                changesDashboard: null,
+                modifiedDashboard: null,
               });
 
+              // redirect to new dashboard
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
                 query: {
@@ -149,34 +148,44 @@ class DashboardDetail extends React.Component<Props, State> {
         break;
       }
       case 'edit': {
-        if (changesDashboard) {
+        if (modifiedDashboard) {
           // only update the dashboard if there are changes
-
-          if (isEqual(dashboard, changesDashboard)) {
+          if (isEqual(dashboard, modifiedDashboard)) {
             this.setState({
               dashboardState: 'view',
-              changesDashboard: null,
+              modifiedDashboard: null,
             });
             return;
           }
 
-          updateDashboard(api, organization.slug, changesDashboard).then(() => {
-            addSuccessMessage(t('Dashboard updated'));
+          updateDashboard(api, organization.slug, modifiedDashboard).then(
+            (newDashboard: DashboardDetails) => {
+              addSuccessMessage(t('Dashboard updated'));
 
-            this.setState({
-              dashboardState: 'view',
-              changesDashboard: null,
-            });
+              this.setState({
+                dashboardState: 'view',
+                modifiedDashboard: null,
+              });
 
-            reloadData();
-          });
+              if (dashboard && newDashboard.id !== dashboard.id) {
+                browserHistory.replace({
+                  pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                  query: {
+                    ...location.query,
+                  },
+                });
+                return;
+              }
+              reloadData();
+            }
+          );
 
           return;
         }
 
         this.setState({
           dashboardState: 'view',
-          changesDashboard: null,
+          modifiedDashboard: null,
         });
         break;
       }
@@ -184,7 +193,7 @@ class DashboardDetail extends React.Component<Props, State> {
       default: {
         this.setState({
           dashboardState: 'view',
-          changesDashboard: null,
+          modifiedDashboard: null,
         });
         break;
       }
@@ -192,31 +201,31 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onWidgetChange = (widgets: Widget[]) => {
-    const {changesDashboard} = this.state;
-    if (changesDashboard === null) {
+    const {modifiedDashboard} = this.state;
+    if (modifiedDashboard === null) {
       return;
     }
 
     this.setState((prevState: State) => {
       return {
         ...prevState,
-        changesDashboard: {
-          ...changesDashboard,
+        modifiedDashboard: {
+          ...modifiedDashboard,
           widgets,
         },
       };
     });
   };
 
-  setChangesDashboard = (dashboard: DashboardDetails) => {
+  setModifiedDashboard = (dashboard: DashboardDetails) => {
     this.setState({
-      changesDashboard: dashboard,
+      modifiedDashboard: dashboard,
     });
   };
 
   render() {
     const {api, location, params, organization} = this.props;
-    const {changesDashboard, dashboardState} = this.state;
+    const {modifiedDashboard, dashboardState} = this.state;
 
     return (
       <GlobalSelectionHeader
@@ -232,9 +241,10 @@ class DashboardDetail extends React.Component<Props, State> {
             return (
               <React.Fragment>
                 <StyledPageHeader>
-                  <Title
-                    changesDashboard={changesDashboard}
-                    setChangesDashboard={this.setChangesDashboard}
+                  <DashboardTitle
+                    dashboard={modifiedDashboard || dashboard}
+                    onUpdate={this.setModifiedDashboard}
+                    isEditing={dashboardState !== 'view'}
                   />
                   <Controls
                     organization={organization}
@@ -252,7 +262,7 @@ class DashboardDetail extends React.Component<Props, State> {
                   <NotFound />
                 ) : dashboard ? (
                   <Dashboard
-                    dashboard={changesDashboard || dashboard}
+                    dashboard={modifiedDashboard || dashboard}
                     organization={organization}
                     isEditing={dashboardState === 'edit' || dashboardState === 'create'}
                     onUpdate={this.onWidgetChange}
