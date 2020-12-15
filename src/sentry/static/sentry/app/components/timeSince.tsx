@@ -41,6 +41,8 @@ type Props = DefaultProps & {
    */
   shorten?: boolean;
 
+  tooltipTitle?: string;
+
   className?: string;
 } & TimeProps;
 
@@ -98,6 +100,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       suffix: _suffix,
       disabledAbsoluteTooltip,
       className,
+      tooltipTitle,
       shorten: _shorten,
       ...props
     } = this.props;
@@ -113,7 +116,15 @@ class TimeSince extends React.PureComponent<Props, State> {
     });
 
     return (
-      <Tooltip title={tooltip} disabled={disabledAbsoluteTooltip}>
+      <Tooltip
+        disabled={disabledAbsoluteTooltip}
+        title={
+          <div>
+            <div>{tooltipTitle}</div>
+            {tooltip}
+          </div>
+        }
+      >
         <time dateTime={dateObj.toISOString()} className={className} {...props}>
           {this.state.relative}
         </time>
