@@ -114,7 +114,7 @@ const aliases = {
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: 'rgba(240, 87, 129, 0.2)',
+  focus: color(colors.pink300).alpha(0.2).string(),
 
   /**
    * Inactive
