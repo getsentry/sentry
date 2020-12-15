@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -88,7 +87,7 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
-  onChangeTitle?: ({ruleName: string}) => void;
+  onChangeTitle: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {

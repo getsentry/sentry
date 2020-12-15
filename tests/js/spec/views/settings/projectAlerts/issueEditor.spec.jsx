@@ -106,6 +106,20 @@ describe('ProjectAlerts -> IssueEditor', function () {
       });
     });
 
+    it('gets correct rule name', async function () {
+      const rule = TestStubs.ProjectAlertRule();
+      mock = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: rule,
+      });
+      const {wrapper} = createWrapper();
+      expect(mock).toHaveBeenCalled();
+      expect(wrapper.find('IssueRuleEditor').prop('onChangeTitle')).toHaveBeenCalledWith(
+        rule.name
+      );
+    });
+
     it('deletes rule', async function () {
       const deleteMock = MockApiClient.addMockResponse({
         url: endpoint,

@@ -43,11 +43,12 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
     const {ruleName} = this.state;
     const defaultTitle = t('Edit Alert Rule');
 
-    const title = `${ruleName}`;
-
     if (!ruleName) {
       return defaultTitle;
     }
+
+    const title = `${ruleName}`;
+
     return `${defaultTitle}: ${title}`;
   }
 

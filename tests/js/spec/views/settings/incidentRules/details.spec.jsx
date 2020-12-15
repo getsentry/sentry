@@ -91,6 +91,9 @@ describe('Incident Rules Details', function () {
 
     expect(req).toHaveBeenCalled();
 
+    // Check correct rule name is called
+    expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
+
     wrapper
       .find('input[name="warningThreshold"]')
       .first(1)

@@ -14,7 +14,7 @@ type RouteParams = {
 
 type Props = {
   organization: Organization;
-  onChangeTitle: ({ruleName: string}) => void;
+  onChangeTitle: (data: string) => void;
   project: Project;
 } & RouteComponentProps<RouteParams, {}>;
 
