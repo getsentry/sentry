@@ -344,11 +344,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             return []
 
         return super(OrganizationReleasesBaseEndpoint, self).get_projects(
-            request,
-            organization,
-            force_global_perms=has_valid_api_key,
-            include_all_accessible=True,
-            project_ids=project_ids,
+            request, organization, force_global_perms=has_valid_api_key, project_ids=project_ids,
         )
 
     def has_release_permission(self, request, organization, release):
