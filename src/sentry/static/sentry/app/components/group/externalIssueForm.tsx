@@ -28,9 +28,7 @@ type Props = ModalRenderProps & {
   onChange: (onSuccess?: () => void, onError?: () => void) => void;
 } & AbstractExternalIssueForm['props'];
 
-type State = {
-  action?: ExternalIssueAction;
-} & AbstractExternalIssueForm['state'];
+type State = AbstractExternalIssueForm['state'];
 
 export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, State> {
   loadTransaction?: ReturnType<typeof Sentry.startTransaction>;

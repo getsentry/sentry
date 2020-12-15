@@ -16,7 +16,7 @@ export type ExternalIssueAction = 'create' | 'link';
 type Props = AsyncComponent['props'];
 
 type State = {
-  action: ExternalIssueAction | null;
+  action: ExternalIssueAction;
   integrationDetails: IntegrationIssueConfig | null;
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
 } & AsyncComponent['state'];
@@ -73,13 +73,13 @@ export default class AbstractExternalIssueForm<
   };
 
   getDynamicFields = (
-    integrationDetails?: IntegrationIssueConfig
+    integrationDetailsParam?: IntegrationIssueConfig
   ): {[key: string]: FieldValue | null} => {
-    const config: IssueConfigField[] =
-      (integrationDetails || this.state.integrationDetails || {})[this.getConfigName()] ||
-      [];
+    const {integrationDetails: integrationDetailsFromState} = this.state;
+    const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
+    const config = (integrationDetails || {})[this.getConfigName()];
     return Object.fromEntries(
-      config
+      (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
         .map((field: IssueConfigField) => [field.name, field.default || null])
     );
