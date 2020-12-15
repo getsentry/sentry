@@ -42,6 +42,7 @@ import {
   Project,
   SharedViewOrganization,
 } from 'app/types';
+import {isNotSharedOrganization} from 'app/types/utils';
 import {objectIsEmpty} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -70,9 +71,10 @@ const defaultProps = {
 };
 
 type Props = {
-  // This is definitely required because this component would crash if
-  // organization were undefined.
-  organization: SharedViewOrganization;
+  /**
+   * The organization can be the shared view on a public issue view.
+   */
+  organization: Organization | SharedViewOrganization;
   event: Event;
   project: Project;
   location: Location;
@@ -220,14 +222,12 @@ class EventEntries extends React.Component<Props> {
           </ErrorContainer>
         )}
         {!isShare &&
+          isNotSharedOrganization(organization) &&
           (showExampleCommit ? (
-            <EventCauseEmpty
-              organization={organization as Organization}
-              project={project}
-            />
+            <EventCauseEmpty organization={organization} project={project} />
           ) : (
             <EventCause
-              organization={organization as Organization}
+              organization={organization}
               project={project}
               event={event}
               group={group}
