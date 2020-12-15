@@ -35,14 +35,11 @@ jobs:
         if: success()
         uses: actions/github-script@v3
         with:
-          # TODO: Replace token with GH_RELEASE_PAT after verification
-          github-token: ${{ secrets.GH_SENTRY_BOT_PAT }}
+          github-token: ${{ secrets.GH_RELEASE_PAT }}
           script: |
             const repoInfo = context.repo;
             await github.issues.create({
               owner: repoInfo.owner,
               repo: 'publish',
               title: `publish: ${repoInfo.repo}@${process.env.RELEASE_VERSION}`,
-              // TODO: Remove the following line after verification
-              labels: ['dry-run'],
             });
