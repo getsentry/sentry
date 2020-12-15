@@ -90,7 +90,41 @@ PREBUILT_DASHBOARDS = {
                             "fields": ["count()"],
                         }
                     ],
-                }
+                },
+                {
+                    "title": "Affected Users",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Known Users",
+                            "conditions": "has:user.email",
+                            "fields": ["count_unique(user.email)"],
+                        },
+                        {
+                            "name": "Anonymous Users",
+                            "conditions": "!has:user.email",
+                            "fields": ["count()"],
+                        },
+                    ],
+                },
+                {
+                    "title": "Handled vs. Unhandled",
+                    "displayType": "line",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "Handled",
+                            "conditions": "error.handled:true",
+                            "fields": ["count()"],
+                        },
+                        {
+                            "name": "Unhandled",
+                            "conditions": "error.handled:false",
+                            "fields": ["count()"],
+                        },
+                    ],
+                },
             ],
         }
     ]
