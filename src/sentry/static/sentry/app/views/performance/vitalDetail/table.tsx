@@ -137,7 +137,7 @@ class Table extends React.Component<Props, State> {
       if (dataRow[getAggregateAlias(field)]) {
         return (
           <UniqueTagCell>
-            <PoorTag>{t('Fail')}</PoorTag>
+            <PoorTag>{t('Poor')}</PoorTag>
           </UniqueTagCell>
         );
       } else if (
@@ -337,6 +337,10 @@ class Table extends React.Component<Props, State> {
       ? []
       : [
           {
+            field: 'key_transaction',
+            kind: 'desc',
+          },
+          {
             field: aggregateFieldPoor,
             kind: 'desc',
           },
@@ -401,6 +405,7 @@ class Table extends React.Component<Props, State> {
                     tableData,
                     vitalName
                   ) as any,
+                  prependColumnWidths: ['max-content'],
                 }}
                 location={location}
               />

@@ -40,6 +40,10 @@ EOF
         # If .venv is less than Python 3.6 fail
         [[ "$minor" -lt 6 ]] &&
             die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
+        # If .venv is created with Python 3.9 or higher you might encounter problems and we want to ask you to downgrade
+        # At the moment, Pillow does not install with Python 3.9 and requires adding more build dependencies.
+        [[ "$minor" -ge 9 ]] &&
+            die "We recommend you create this virtualenv with a Python version between 3.6 and 3.8. Remove $VIRTUAL_ENV and start again."
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then

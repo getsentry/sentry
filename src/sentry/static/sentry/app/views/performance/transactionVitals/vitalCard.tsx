@@ -181,7 +181,7 @@ class VitalCard extends React.Component<Props, State> {
 
     return (
       <CardSummary>
-        <Indicator color={colors[0]} />
+        {!this.showVitalColours() && <Indicator color={colors[0]} />}
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
           {summary === null || this.showVitalColours() ? null : summary <
@@ -253,9 +253,6 @@ class VitalCard extends React.Component<Props, State> {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         alignWithLabel: true,
       },

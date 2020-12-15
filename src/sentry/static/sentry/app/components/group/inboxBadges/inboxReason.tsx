@@ -12,38 +12,59 @@ const GroupInboxReason = {
   UNIGNORED: 1,
   REGRESSION: 2,
   MANUAL: 3,
+  REPROCESSED: 4,
 };
 
 type Props = {
   inbox: InboxDetails;
 };
 
-const InboxReason = ({inbox}: Props) => {
+function InboxReason({inbox}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
 
-  let reasonBadgeText: string;
-  let tooltipText: string | undefined;
-  let tagType: React.ComponentProps<typeof Tag>['type'];
-
-  if (reason === GroupInboxReason.UNIGNORED) {
-    reasonBadgeText = t('Unignored');
-    tooltipText = t('%(count)s events within %(window)s', {
-      count: reason_details?.count || 0,
-      window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
-    });
-  } else if (reason === GroupInboxReason.REGRESSION) {
-    tagType = 'error';
-    reasonBadgeText = t('Regression');
-    tooltipText = t('Issue was resolved.');
-  } else if (reason === GroupInboxReason.MANUAL) {
-    tagType = 'highlight';
-    reasonBadgeText = t('Manual');
-    // TODO(scttcper): Add tooltip text for a manual move
-    // Moved to inbox by {full_name}.
-  } else {
-    tagType = 'warning';
-    reasonBadgeText = t('New Issue');
+  function getReasonDetails(): {
+    tagType: React.ComponentProps<typeof Tag>['type'];
+    reasonBadgeText: string;
+    tooltipText?: string;
+  } {
+    switch (reason) {
+      case GroupInboxReason.UNIGNORED:
+        return {
+          tagType: 'default',
+          reasonBadgeText: t('Unignored'),
+          tooltipText: t('%(count)s events within %(window)s', {
+            count: reason_details?.count || 0,
+            window: moment.duration(reason_details?.window || 0, 'minutes').humanize(),
+          }),
+        };
+      case GroupInboxReason.REGRESSION:
+        return {
+          tagType: 'error',
+          reasonBadgeText: t('Regression'),
+          tooltipText: t('Issue was resolved'),
+        };
+      case GroupInboxReason.MANUAL:
+        return {
+          tagType: 'highlight',
+          reasonBadgeText: t('Manual'),
+          // TODO(scttcper): Add tooltip text for a manual move
+          // Moved to inbox by {full_name}.
+        };
+      case GroupInboxReason.REPROCESSED:
+        return {
+          tagType: 'info',
+          reasonBadgeText: t('Reprocessed'),
+          tooltipText: t('Issue was reprocessed'),
+        };
+      default:
+        return {
+          tagType: 'warning',
+          reasonBadgeText: t('New Issue'),
+        };
+    }
   }
+
+  const {tooltipText, reasonBadgeText, tagType} = getReasonDetails();
 
   const tooltip = (
     <TooltipWrapper>
@@ -61,7 +82,7 @@ const InboxReason = ({inbox}: Props) => {
       {reasonBadgeText}
     </Tag>
   );
-};
+}
 
 export default InboxReason;
 

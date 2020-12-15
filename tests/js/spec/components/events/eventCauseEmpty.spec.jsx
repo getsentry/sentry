@@ -65,6 +65,9 @@ describe('EventCauseEmpty', function () {
 
     wrapper.find('button[aria-label="Snooze"]').first().simulate('click');
 
+    await tick();
+    await wrapper.update();
+
     expect(putMock).toHaveBeenCalledWith(
       '/promptsactivity/',
       expect.objectContaining({
@@ -139,6 +142,9 @@ describe('EventCauseEmpty', function () {
     wrapper.update();
 
     wrapper.find('button[aria-label="Dismiss"]').first().simulate('click');
+
+    await tick();
+    await wrapper.update();
 
     expect(putMock).toHaveBeenCalledWith(
       '/promptsactivity/',
