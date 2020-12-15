@@ -4,6 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
+import GlobalModal from 'app/components/globalModal';
 import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
 
 const mockResponse = mocks => {
@@ -75,7 +76,10 @@ describe('IntegrationCodeMappings', function () {
     ]);
 
     wrapper = mountWithTheme(
-      <IntegrationCodeMappings organization={org} integration={integration} />
+      <React.Fragment>
+        <GlobalModal />
+        <IntegrationCodeMappings organization={org} integration={integration} />
+      </React.Fragment>
     );
   });
 
@@ -88,11 +92,14 @@ describe('IntegrationCodeMappings', function () {
   it('opens modal', async () => {
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(0);
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+
     await tick();
+    wrapper.update();
+
     expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(1);
   });
 
-  it('create new config', () => {
+  it('create new config', async () => {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
     const defaultBranch = 'release';
@@ -107,6 +114,9 @@ describe('IntegrationCodeMappings', function () {
       }),
     });
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+
+    await tick();
+    wrapper.update();
 
     selectByValue(wrapper, projects[1].id, {control: true, name: 'projectId'});
     selectByValue(wrapper, repos[1].id, {name: 'repositoryId'});
@@ -136,7 +146,7 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('edit existing config', () => {
+  it('edit existing config', async () => {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
@@ -151,10 +161,15 @@ describe('IntegrationCodeMappings', function () {
       }),
     });
     wrapper.find('button[aria-label="edit"]').first().simulate('click');
+
+    await tick();
+    wrapper.update();
+
     wrapper
       .find('input[name="stackRoot"]')
       .simulate('change', {target: {value: stackRoot}});
     wrapper.find('form').simulate('submit');
+
     expect(editMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
