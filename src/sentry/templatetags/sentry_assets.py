@@ -104,7 +104,7 @@ class ScriptNode(template.Node):
     def render(self, context):
         request = context.get("request")
         if hasattr(request, "csp_nonce"):
-            self.attrs.update({"nonce": request.csp_nonce})
+            self.attrs["nonce"] = request.csp_nonce
 
         content = ""
         attrs = self._render_attrs(context)
