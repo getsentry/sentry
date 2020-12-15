@@ -14,12 +14,14 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
         with:
-          # because we want to lint + fix + commit, we need to checkout the HEAD sha (otherwise
-          # it checks out the merge commit and we will not be able to commit to it)
-          ref: ${{ github.event.pull_request.head.ref || 'master' }}
-          # We need the repo here so that this works for forks
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Check for frontend file changes
         uses: getsentry/paths-filter@v2
@@ -69,18 +71,26 @@ jobs:
           yarn lint:css
 
       # Otherwise if it's not main branch, only lint modified files
+      # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
-      # Apply fixed files via pull request review comments
-      - name: Apply any eslint fixed files as Pull Request review comments
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
-        uses: getsentry/action-git-diff-suggestions@main
+      # Check (and error) for dirty working tree for forks
+      # Reason being we need a different token to auto commit changes and
+      # forks do not have access to said token
+      - name: Check for dirty git working tree (forks)
+        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        run: |
+          git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
+
+      # If working tree is dirty, commit and update if we have a token
+      - name: Commit any eslint fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        uses: getsentry/action-github-commit@main
         with:
-          message: eslint made this change
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
