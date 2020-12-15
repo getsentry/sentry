@@ -181,7 +181,7 @@ class VitalCard extends React.Component<Props, State> {
 
     return (
       <CardSummary>
-        <Indicator color={colors[0]} />
+        {!this.showVitalColours() && <Indicator color={colors[0]} />}
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
           {summary === null || this.showVitalColours() ? null : summary <
@@ -253,9 +253,6 @@ class VitalCard extends React.Component<Props, State> {
     const xAxis = {
       type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         alignWithLabel: true,
       },
@@ -307,9 +304,9 @@ class VitalCard extends React.Component<Props, State> {
                   organization={organization}
                   location={location}
                   vitalName={vital}
-                  hideDescription
                   hideBar
                   hideVitalPercentNames
+                  hideDurationDetail
                 />
               </PercentContainer>
             </Feature>
@@ -637,8 +634,8 @@ const Container = styled('div')`
 
 const PercentContainer = styled('div')`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(2)};
+  top: ${space(2)};
+  right: ${space(3)};
   z-index: 2;
 `;
 

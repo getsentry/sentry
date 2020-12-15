@@ -71,70 +71,63 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
         </div>
       </div>
 
-      <Feature features={['release-performance-views']}>
+      <div>
+        <SectionHeading>
+          {t('Apdex')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, 'apdex')}
+            size="sm"
+          />
+        </SectionHeading>
         <div>
-          <SectionHeading>
-            {t('Apdex')}
-            <QuestionTooltip
-              position="top"
-              title={getTermHelp(organization, 'apdex')}
-              size="sm"
-            />
-          </SectionHeading>
-          <div>
-            <Feature features={['performance-view']}>
-              {hasFeature =>
-                hasFeature ? (
-                  <DiscoverQuery
-                    eventView={getReleaseEventView(
-                      selection,
-                      release?.version,
-                      organization
-                    )}
-                    location={location}
-                    orgSlug={organization.slug}
-                  >
-                    {({isLoading, error, tableData}) => {
-                      if (
-                        isLoading ||
-                        error ||
-                        !tableData ||
-                        tableData.data.length === 0
-                      ) {
-                        return '\u2014';
-                      }
-                      return (
-                        <GlobalSelectionLink
-                          to={{
-                            pathname: `/organizations/${organization.slug}/performance/`,
-                            query: {
-                              query: `release:${release?.version}`,
-                            },
-                          }}
-                        >
-                          <Count
-                            value={
-                              tableData.data[0][
-                                getAggregateAlias(`apdex(${organization.apdexThreshold})`)
-                              ]
-                            }
-                          />
-                        </GlobalSelectionLink>
-                      );
-                    }}
-                  </DiscoverQuery>
-                ) : (
-                  <Tooltip
-                    title={t('This view is only available with Performance Monitoring.')}
-                  >
-                    {'\u2014'}
-                  </Tooltip>
-                )
-              }
-            </Feature>
-          </div>
+          <Feature features={['performance-view']}>
+            {hasFeature =>
+              hasFeature ? (
+                <DiscoverQuery
+                  eventView={getReleaseEventView(
+                    selection,
+                    release?.version,
+                    organization
+                  )}
+                  location={location}
+                  orgSlug={organization.slug}
+                >
+                  {({isLoading, error, tableData}) => {
+                    if (isLoading || error || !tableData || tableData.data.length === 0) {
+                      return '\u2014';
+                    }
+                    return (
+                      <GlobalSelectionLink
+                        to={{
+                          pathname: `/organizations/${organization.slug}/performance/`,
+                          query: {
+                            query: `release:${release?.version}`,
+                          },
+                        }}
+                      >
+                        <Count
+                          value={
+                            tableData.data[0][
+                              getAggregateAlias(`apdex(${organization.apdexThreshold})`)
+                            ]
+                          }
+                        />
+                      </GlobalSelectionLink>
+                    );
+                  }}
+                </DiscoverQuery>
+              ) : (
+                <Tooltip
+                  title={t('This view is only available with Performance Monitoring.')}
+                >
+                  {'\u2014'}
+                </Tooltip>
+              )
+            }
+          </Feature>
         </div>
-      </Feature>
+      </div>
 
       <div>
         <SectionHeading>
