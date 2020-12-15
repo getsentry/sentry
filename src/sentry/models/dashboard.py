@@ -78,6 +78,8 @@ PREBUILT_DASHBOARDS = {
         {
             "id": "default-overview",
             "title": "Dashboard",
+            "dateCreated": "",
+            "createdBy": "",
             "widgets": [
                 {
                     "title": "Events",
