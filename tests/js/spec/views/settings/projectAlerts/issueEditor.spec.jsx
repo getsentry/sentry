@@ -137,7 +137,7 @@ describe('ProjectAlerts -> IssueEditor', function () {
       );
     });
 
-    it('sends correct environment value', async function () {
+    it('sends correct environment value', function () {
       const {wrapper} = createWrapper();
       selectByValue(wrapper, 'production', {name: 'environment'});
       wrapper.find('form').simulate('submit');

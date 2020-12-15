@@ -204,7 +204,7 @@ describe('ProjectAlertsCreate', function () {
 
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         // Change target environment
-        await tick();
+
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
         // Change actionMatch and filterMatch dropdown
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
