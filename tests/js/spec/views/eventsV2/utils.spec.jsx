@@ -298,6 +298,7 @@ describe('getExpandedResults()', function () {
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
+        {field: 'failure_count()'}, // expect this to be transformed to transaction.status
       ],
     });
 
@@ -307,6 +308,7 @@ describe('getExpandedResults()', function () {
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
+      {field: 'transaction.status', width: -1},
     ]);
 
     // transforms pXX functions with optional arguments properly
