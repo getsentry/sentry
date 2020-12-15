@@ -23,7 +23,7 @@ function handleColorSchemeChange(e: MediaQueryListEvent): void {
   ConfigStore.updateTheme(type);
 }
 
-export function prefersDark(): boolean {
+function prefersDark(): boolean {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 

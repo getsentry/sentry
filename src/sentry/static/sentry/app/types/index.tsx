@@ -562,6 +562,7 @@ export type User = Omit<AvatarUser, 'options'> & {
   authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
+    theme: 'system' | 'light' | 'dark';
     timezone: string;
     stacktraceOrder: number;
     language: string;
