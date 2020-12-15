@@ -193,10 +193,11 @@ const StyledSelect = styled(SelectPicker)`
     color: ${p => p.theme.textColor};
 
     &.is-focused.is-selected {
-      color: ${p => p.theme.white};
+      color: ${p => p.theme.textColor};
     }
     &.is-selected {
       background-color: ${p => p.theme.active};
+      color: ${p => p.theme.black};
     }
     &.is-focused {
       background-color: ${p => p.theme.focus};

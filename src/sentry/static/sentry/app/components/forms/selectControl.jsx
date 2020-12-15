@@ -48,7 +48,7 @@ const combineStyles = (newStyles, baseStyles) => {
   }, baseStyles);
 };
 
-const SelectControlComponent = props => {
+const SelectControl = props => {
   // TODO(epurkhiser): We should remove all SelectControls (and SelectFields,
   // SelectAsyncFields, etc) that are using this prop, before we can remove the
   // v1 react-select component.
@@ -288,10 +288,9 @@ const SelectControlComponent = props => {
     />
   );
 };
-SelectControlComponent.propTypes = SelectControlLegacy.propTypes;
+SelectControl.propTypes = SelectControlLegacy.propTypes;
 
-const SelectControl = withTheme(SelectControlComponent);
-SelectControl.propTypes = SelectControlComponent.propTypes;
+const SelectControlWithTheme = withTheme(SelectControl);
 
 const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
   // Pick the right component to use
@@ -311,7 +310,9 @@ const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
 
 SelectPicker.propTypes = SelectControl.propTypes;
 
-const forwardRef = (props, ref) => <SelectControl forwardedRef={ref} {...props} />;
+const forwardRef = (props, ref) => (
+  <SelectControlWithTheme forwardedRef={ref} {...props} />
+);
 forwardRef.displayName = 'RefForwardedSelectControl';
 
 const RefForwardedSelectControl = React.forwardRef(forwardRef);
