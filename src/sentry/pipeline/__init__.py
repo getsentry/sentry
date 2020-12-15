@@ -6,6 +6,7 @@ from types import LambdaType
 
 from sentry.models import Organization
 from sentry.web.frontend.base import BaseView
+from sentry.utils import json
 from sentry.utils.session_store import RedisSessionStore
 from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
@@ -53,6 +54,13 @@ class PipelineView(BaseView):
         should be used to bind data and traverse the pipeline.
         """
         raise NotImplementedError
+
+    def render_react_view(self, request, pipelineName, props):
+        return render_to_response(
+            template="sentry/bases/react_pipeline.html",
+            request=request,
+            context={"pipelineName": pipelineName, "props": json.dumps(props)},
+        )
 
 
 class NestedPipelineView(PipelineView):
