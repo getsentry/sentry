@@ -111,6 +111,12 @@ const aliases = {
   active: colors.pink300,
 
   /**
+   * Indicates that something has "focus", which is different than "active" state as it is more temporal
+   * and should be a bit subtler than active
+   */
+  focus: 'rgba(240, 87, 129, 0.2)',
+
+  /**
    * Inactive
    */
   inactive: colors.gray200,
@@ -468,6 +474,7 @@ const commonTheme = {
 } as const;
 
 const darkAliases = {
+  ...aliases,
   bodyBackground: colors.black,
   headerBackground: colors.gray500,
   background: colors.black,
@@ -478,7 +485,6 @@ const darkAliases = {
   subText: colors.gray200,
   linkColor: colors.purple200,
   disabled: colors.gray200,
-  active: colors.pink300,
   inactive: colors.gray200,
   error: colors.red300,
   success: colors.green300,

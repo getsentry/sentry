@@ -193,17 +193,21 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return `
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.purple300};
+      background: ${props.theme.active};
+
+      &:hover {
+        color: ${props.theme.black};
+      }
     `;
   }
 
   return `
     ${common}
     color: ${props.theme.gray500};
-    background-color: ${props.theme.white};
+    background-color: ${props.theme.background};
 
     &:hover {
-      background: ${props.theme.gray100};
+      background: ${props.theme.focus};
     }
   `;
 }
