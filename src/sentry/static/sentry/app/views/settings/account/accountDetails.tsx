@@ -40,23 +40,20 @@ class AccountDetails extends AsyncView {
       apiMethod: 'PUT' as APIRequestMethod,
       allowUndo: true,
       saveOnBlur: true,
+      onSubmitSuccess: this.handleSubmitSuccess,
     };
 
     return (
       <div>
         <SettingsPageHeader title={t('Account Details')} />
-        <Form
-          initialData={user}
-          {...formCommonProps}
-          onSubmitSuccess={this.handleSubmitSuccess}
-        >
+        <Form initialData={user} {...formCommonProps}>
           <JsonForm
             location={location}
             forms={accountDetailsFields}
             additionalFieldProps={{user}}
           />
         </Form>
-        <Form initialData={user.options} {...formCommonProps} allowUndo>
+        <Form initialData={user.options} {...formCommonProps}>
           <JsonForm
             location={location}
             forms={accountPreferencesFields}
