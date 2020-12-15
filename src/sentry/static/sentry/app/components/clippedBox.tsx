@@ -1,7 +1,7 @@
-import color from 'color';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
