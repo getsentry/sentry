@@ -219,7 +219,7 @@ export function getQueryDatasource(
   query: string
 ): {source: Datasource; query: string} | null {
   let match = query.match(
-    /\(?event.type:(error|default|transaction)\)?\WOR\W\(?\!?event.type:(error|default|transaction)\)?/i
+    /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
   );
   if (match) {
     // should be [error, default] or [default, error]
@@ -231,10 +231,10 @@ export function getQueryDatasource(
     return {source: Datasource.ERROR_DEFAULT, query: query.replace(match[0], '').trim()};
   }
 
-  match = query.match(/event.type:(error|default|transaction)/i);
-  if (match && Datasource[match[1].toUpperCase()]) {
+  match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
+  if (match && Datasource[match[2].toUpperCase()]) {
     return {
-      source: Datasource[match[1].toUpperCase()],
+      source: Datasource[match[2].toUpperCase()],
       query: query.replace(match[0], '').trim(),
     };
   }

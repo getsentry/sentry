@@ -103,6 +103,12 @@ describe('Alert utils', function () {
         source: Datasource.ERROR_DEFAULT,
         query: 'event.level:fatal)',
       });
+      expect(
+        getQueryDatasource('(event.type:error OR event.type:default) event.level:fatal')
+      ).toEqual({
+        source: Datasource.ERROR_DEFAULT,
+        query: 'event.level:fatal',
+      });
     });
 
     it('should not allow event type transaction with anything else', () => {
@@ -110,6 +116,12 @@ describe('Alert utils', function () {
       expect(
         getQueryDatasource('event.type:transaction OR event.type:default')
       ).toBeNull();
+    });
+
+    it('should not allow boolean event types', () => {
+      expect(getQueryDatasource('!event.type:error')).toBeNull();
+      expect(getQueryDatasource('!event.type:transaction something')).toBeNull();
+      expect(getQueryDatasource('!event.type:default')).toBeNull();
     });
 
     it('should allow error, transaction, default alone', () => {
