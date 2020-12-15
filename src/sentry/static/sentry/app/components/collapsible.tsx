@@ -4,11 +4,11 @@ import Button from 'app/components/button';
 import {t, tn} from 'app/locale';
 
 type CollapseButtonRenderProps = {
-  handleCollapse: () => void;
+  onCollapse: () => void;
 };
 
 type ExpandButtonRenderProps = {
-  handleExpand: () => void;
+  onExpand: () => void;
   numberOfCollapsedItems: number;
 };
 
@@ -34,7 +34,7 @@ class Collapsible extends React.Component<Props, State> {
     collapsed: true,
   };
 
-  onCollapseToggle = () => {
+  handleCollapseToggle = () => {
     this.setState(prevState => ({
       collapsed: !prevState.collapsed,
     }));
@@ -44,11 +44,11 @@ class Collapsible extends React.Component<Props, State> {
     const {collapseButton} = this.props;
 
     if (typeof collapseButton === 'function') {
-      return collapseButton({handleCollapse: this.onCollapseToggle});
+      return collapseButton({onCollapse: this.handleCollapseToggle});
     }
 
     return (
-      <Button priority="link" onClick={this.onCollapseToggle} data-test-id="collapse">
+      <Button priority="link" onClick={this.handleCollapseToggle}>
         {t('Collapse')}
       </Button>
     );
@@ -59,13 +59,13 @@ class Collapsible extends React.Component<Props, State> {
 
     if (typeof expandButton === 'function') {
       return expandButton({
-        handleExpand: this.onCollapseToggle,
+        onExpand: this.handleCollapseToggle,
         numberOfCollapsedItems,
       });
     }
 
     return (
-      <Button priority="link" onClick={this.onCollapseToggle} data-test-id="expand">
+      <Button priority="link" onClick={this.handleCollapseToggle}>
         {tn('Show %s collapsed item', 'Show %s collapsed items', numberOfCollapsedItems)}
       </Button>
     );

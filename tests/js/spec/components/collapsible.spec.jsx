@@ -14,22 +14,22 @@ describe('Collapsible', function () {
     expect(wrapper.find('div').length).toBe(5);
     expect(wrapper.find('div').at(2).text()).toBe('Item 3');
 
-    expect(wrapper.find('Button[data-test-id="expand"]').text()).toBe(
+    expect(wrapper.find('button[aria-label="Show 2 collapsed items"]').text()).toBe(
       'Show 2 collapsed items'
     );
-    expect(wrapper.find('Button[data-test-id="collapse"]').exists()).toBeFalsy();
+    expect(wrapper.find('button[aria-label="Collapse"]').exists()).toBeFalsy();
   });
 
   it('expands items', function () {
     const wrapper = mountWithTheme(<Collapsible>{items}</Collapsible>);
 
     // expand
-    wrapper.find('Button[data-test-id="expand"]').simulate('click');
+    wrapper.find('button[aria-label="Show 2 collapsed items"]').simulate('click');
 
     expect(wrapper.find('div').length).toBe(7);
 
     // collapse back
-    wrapper.find('Button[data-test-id="collapse"]').simulate('click');
+    wrapper.find('button[aria-label="Collapse"]').simulate('click');
 
     expect(wrapper.find('div').length).toBe(5);
   });
@@ -49,20 +49,17 @@ describe('Collapsible', function () {
 
     expect(wrapper.find('div').length).toBe(7);
 
-    expect(wrapper.find('Button[data-test-id="expand"]').exists()).toBeFalsy();
-    expect(wrapper.find('Button[data-test-id="collapse"]').exists()).toBeFalsy();
+    expect(wrapper.find('button').exists()).toBeFalsy();
   });
 
   it('takes custom buttons', function () {
     const wrapper = mountWithTheme(
       <Collapsible
-        collapseButton={({handleCollapse}) => (
-          <Button onClick={handleCollapse} data-test-id="custom-collapse">
-            Custom Collapse
-          </Button>
+        collapseButton={({onCollapse}) => (
+          <Button onClick={onCollapse}>Custom Collapse</Button>
         )}
-        expandButton={({handleExpand, numberOfCollapsedItems}) => (
-          <Button onClick={handleExpand} data-test-id="custom-expand">
+        expandButton={({onExpand, numberOfCollapsedItems}) => (
+          <Button onClick={onExpand} aria-label="Expand">
             Custom Expand {numberOfCollapsedItems}
           </Button>
         )}
@@ -71,20 +68,15 @@ describe('Collapsible', function () {
       </Collapsible>
     );
 
-    expect(wrapper.find('Button[data-test-id="expand"]').exists()).toBeFalsy();
-    expect(wrapper.find('Button[data-test-id="collapse"]').exists()).toBeFalsy();
-
-    expect(wrapper.find('Button[data-test-id="custom-expand"]').text()).toBe(
-      'Custom Expand 2'
-    );
+    expect(wrapper.find('button').length).toBe(1);
 
     // custom expand
-    wrapper.find('Button[data-test-id="custom-expand"]').simulate('click');
+    wrapper.find('button[aria-label="Expand"]').simulate('click');
 
     expect(wrapper.find('div').length).toBe(7);
 
     // custom collapse back
-    wrapper.find('Button[data-test-id="custom-collapse"]').simulate('click');
+    wrapper.find('button[aria-label="Custom Collapse"]').simulate('click');
 
     expect(wrapper.find('div').length).toBe(5);
   });

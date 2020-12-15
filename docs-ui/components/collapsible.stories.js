@@ -26,11 +26,9 @@ export const CustomButtons = () => {
   return (
     <Collapsible
       maxVisibleItems={number('Max visible items', 5)}
-      collapseButton={({handleCollapse}) => (
-        <Button onClick={handleCollapse}>Collapse</Button>
-      )}
-      expandButton={({handleExpand, numberOfCollapsedItems}) => (
-        <Button onClick={handleExpand}>
+      collapseButton={({onCollapse}) => <Button onClick={onCollapse}>Collapse</Button>}
+      expandButton={({onExpand, numberOfCollapsedItems}) => (
+        <Button onClick={onExpand}>
           {tn('Expand %s item', 'Expand %s items', numberOfCollapsedItems)}
         </Button>
       )}
