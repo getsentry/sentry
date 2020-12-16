@@ -68,7 +68,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader title={t('Edit Api Key')} />
+        <SettingsPageHeader title={t('Edit API Key')} />
 
         <Panel>
           <PanelHeader>{t('API Key')}</PanelHeader>
