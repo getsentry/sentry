@@ -42,7 +42,6 @@ export default class AbstractExternalIssueForm<
     return {
       ...super.getDefaultState(),
       action: 'create',
-      // This is derived from integrationDetails when it loads.
       dynamicFieldValues: null,
       // This is fetched by AsyncComponent.getEndpoints.
       integrationDetails: null,
@@ -94,12 +93,18 @@ export default class AbstractExternalIssueForm<
 
   onRequestSuccess = ({stateKey, data}) => {
     if (stateKey === 'integrationDetails') {
+      this.handleReceiveIntegrationDetails(data);
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
       });
     }
   };
 
+  /**
+   * If this field should updateFrom, updateForm. Otherwise, do nothing.
+   * @param label
+   * @param value
+   */
   onFieldChange = (label: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
     const dynamicFields = this.getDynamicFields();
@@ -117,7 +122,7 @@ export default class AbstractExternalIssueForm<
     }
   };
 
-  updateDynamicFieldChoices = (
+  updateFetchedFieldOptionsCache = (
     _field: IssueConfigField,
     _result: {options: {value: string; label: string}[]}
   ): void => {
@@ -136,7 +141,7 @@ export default class AbstractExternalIssueForm<
         if (err) {
           reject(err);
         } else {
-          this.updateDynamicFieldChoices(field, result);
+          this.updateFetchedFieldOptionsCache(field, result);
           resolve(result);
         }
       });
@@ -184,6 +189,9 @@ export default class AbstractExternalIssueForm<
       : {};
 
   // Abstract methods.
+  handleReceiveIntegrationDetails = (_data: any) => {
+    // Do nothing.
+  };
   getEndPointString = (): string => {
     throw new Error("Method 'getEndPointString()' must be implemented.");
   };

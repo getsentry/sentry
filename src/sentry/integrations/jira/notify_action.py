@@ -55,6 +55,7 @@ class JiraCreateTicketAction(TicketEventAction):
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
                 "updatesForm": True,
+                "name": "integration",
             }
         }
 
@@ -78,7 +79,13 @@ class JiraCreateTicketAction(TicketEventAction):
 
         :return: (Option) Django form fields dictionary
         """
-        return self.data.get("dynamic_form_fields")
+        fields = self.data.get("dynamic_form_fields")
+        print("fields", fields)
+        return {
+            field['name']: field
+            for field in fields
+            if 'name' in field
+        } if fields else None
 
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()

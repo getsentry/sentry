@@ -10,33 +10,40 @@ import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {IssueConfigField, Organization} from 'app/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
+import {IssueAlertRuleAction} from 'app/types/alerts';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 
 type Props = ModalRenderProps & {
+  // Comes from the in-code definition of a `TicketEventAction`.
   formFields: {[key: string]: any};
   index: number;
-  instance: IssueAlertRuleAction | IssueAlertRuleCondition;
+  // The AlertRuleAction from DB.
+  instance: IssueAlertRuleAction;
   link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
-    dynamicFieldChoices: {[key: string]: string[]}
+    fetchedFieldOptionsCache: {[key: string]: [string, string][]}
   ) => void;
-  onPropertyChange: (rowIndex: number, name: string, value: string) => void;
   organization: Organization;
   ticketType?: string;
 } & AbstractExternalIssueForm['props'];
 
 type State = {
-  dynamicFieldChoices: {[key: string]: string[]};
+  issueConfigFieldsCache: IssueConfigField[];
+  fetchedFieldOptionsCache: {[key: string]: [string, string][]};
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   getDefaultState(): State {
+    const {instance} = this.props;
+    const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
     return {
       ...super.getDefaultState(),
-      dynamicFieldChoices: {},
+      fetchedFieldOptionsCache: Object.fromEntries(
+        issueConfigFieldsCache.map(field => [field.name, field.choices])
+      ),
+      issueConfigFieldsCache,
     };
   }
 
@@ -50,10 +57,18 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     ];
   }
 
-  getNames = (): string[] => {
-    const {formFields} = this.props;
+  handleReceiveIntegrationDetails = (integrationDetails: any) => {
+    this.setState({
+      issueConfigFieldsCache: integrationDetails[this.getConfigName()],
+    });
+  };
 
-    return Object.values(formFields)
+  /**
+   * Get a list of formFields names with valid config data.
+   */
+  getValidAndSavableFieldNames = (): string[] => {
+    const {issueConfigFieldsCache} = this.state;
+    return (issueConfigFieldsCache || [])
       .filter(field => field.hasOwnProperty('name'))
       .map(field => field.name);
   };
@@ -63,6 +78,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
   };
 
+  /**
+   * Clean up the form data before saving it to state.
+   * @param data
+   */
   cleanData = (data: {
     [key: string]: string;
   }): {
@@ -70,14 +89,16 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     [key: string]: any;
   } => {
     const {instance} = this.props;
-    const names: string[] = this.getNames();
+    const {issueConfigFieldsCache} = this.state;
+    const names: string[] = this.getValidAndSavableFieldNames();
     const formData: {
       integration?: string | number;
       [key: string]: any;
     } = {};
     if (instance?.hasOwnProperty('integration')) {
-      formData.integration = instance?.integration;
+      formData.integration = instance.integration;
     }
+    formData.dynamic_form_fields = issueConfigFieldsCache;
     for (const [key, value] of Object.entries(data)) {
       if (names.includes(key)) {
         formData[key] = value;
@@ -88,27 +109,27 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e, model) => {
     const {onSubmitAction, closeModal} = this.props;
-    const {dynamicFieldChoices} = this.state;
+    const {fetchedFieldOptionsCache} = this.state;
 
     // This is a "fake form", so don't actually POST to an endpoint.
     e.preventDefault();
     e.stopPropagation();
 
     if (model.validateForm()) {
-      onSubmitAction(this.cleanData(data), dynamicFieldChoices);
+      onSubmitAction(this.cleanData(data), fetchedFieldOptionsCache);
       addSuccessMessage(t('Changes applied.'));
       closeModal();
     }
   };
 
-  updateDynamicFieldChoices = (
+  updateFetchedFieldOptionsCache = (
     field: IssueConfigField,
     result: {options: {value: string; label: string}[]}
   ): void => {
-    const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
+    const fetchedFieldOptionsCache = result.options.map(obj => [obj.value, obj.label]);
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
-      set(newState, `dynamicFieldChoices[${field.name}]`, dynamicFieldChoices);
+      set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);
       return newState;
     });
   };
@@ -130,9 +151,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
    * disabled inputs, and use the cached dynamic choices.
    */
   cleanFields = (): IssueConfigField[] => {
-    const {formFields, instance} = this.props;
+    const {instance} = this.props;
+    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
-    return [
+    const fields: IssueConfigField[] = [
       {
         name: 'title',
         label: 'Title',
@@ -147,20 +169,24 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         default: 'This will be generated from the Sentry Issue details.',
         disabled: true,
       } as IssueConfigField,
-    ].concat(
-      Object.values(formFields)
-        .filter(f => !['title', 'description'].includes(f.name))
+    ];
+
+    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    return fields.concat(
+      (configsFromAPI || [])
+        // Skip fields if they already exist.
+        .filter(field => !fields.map(f => f.name).includes(field.name))
         .map(field => {
+          // Overwrite defaults from cache.
           if (instance.hasOwnProperty(field.name)) {
-            field.default = instance[field.name];
+            field.default = instance[field.name] || field.default;
           }
-          if (
-            ['assignee', 'reporter'].includes(field.name) &&
-            instance.dynamic_form_fields &&
-            instance.dynamic_form_fields[field.name]
-          ) {
-            field.choices = instance.dynamic_form_fields[field.name].choices;
+
+          // Overwrite choices from cache.
+          if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+            field.choices = fetchedFieldOptionsCache[field.name];
           }
+
           return field;
         })
     );

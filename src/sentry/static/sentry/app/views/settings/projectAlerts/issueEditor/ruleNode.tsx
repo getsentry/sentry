@@ -286,27 +286,30 @@ class RuleNode extends React.Component<Props> {
    * @param fetchedFieldOptionsCache Object
    */
   updateParent = (
-    data: {[key: string]: string},
-    dynamicFieldChoices: {[key: string]: string[]}
+    formData: {[key: string]: string},
+    fetchedFieldOptionsCache: {[key: string]: [string, string][]}
   ): void => {
-    const {index, node, onPropertyChange} = this.props;
-    // Iterating through these upon save instead of when each element is changed
-    // to match the spec.
-    for (const [name, value] of Object.entries(data)) {
+    const {data, index, onPropertyChange} = this.props;
+    for (const [name, value] of Object.entries(formData)) {
       onPropertyChange(index, name, value);
+    }
 
-      // We only know the choices after the form loads.
-      if (['assignee', 'reporter'].includes(name) && dynamicFieldChoices[name]) {
-        const dynamicFormFieldsCopy: any = node?.formFields || {};
+    // We only know the choices after the form loads.
+    for (const [name, choices] of Object.entries(fetchedFieldOptionsCache)) {
+      // If a value was actually selected.
+      if (name in formData) {
+        const dynamicFormFieldsCopy = data.dynamic_form_fields as any;
         // Overwrite the choices because the user's pick is in this list.
-        dynamicFormFieldsCopy[name].choices = dynamicFieldChoices[name];
-        onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
+        if (dynamicFormFieldsCopy?.hasOwnProperty(name)) {
+          dynamicFormFieldsCopy[name].choices = choices;
+          onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
+        }
       }
     }
   };
 
   render() {
-    const {data, disabled, index, node, onPropertyChange, organization} = this.props;
+    const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
     return (
       <RuleRowContainer>
@@ -329,7 +332,6 @@ class RuleNode extends React.Component<Props> {
                       instance={data}
                       index={index}
                       onSubmitAction={this.updateParent}
-                      onPropertyChange={onPropertyChange}
                       organization={organization}
                     />
                   ))
