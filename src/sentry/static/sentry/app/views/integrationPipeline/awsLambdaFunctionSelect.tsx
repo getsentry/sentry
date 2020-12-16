@@ -15,7 +15,7 @@ type Props = {
 const getLabel = (func: LambdaFunction) => `${func.Runtime} - ${func.FunctionName}`;
 
 export default class AwsLambdaFunctionSelect extends React.Component<Props> {
-  model = new FormModel({baseUrl: window.location.origin});
+  model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
   get initialData() {
     const {lambdaFunctions} = this.props;
     const initialData = lambdaFunctions.reduce((accum, func) => {
