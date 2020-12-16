@@ -6,13 +6,11 @@ import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import MarkLine from 'app/components/charts/components/markLine';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {DateString, Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {escape} from 'app/utils';
@@ -55,11 +53,11 @@ function getOrganizationReleases(
     }
   });
   api.clear();
-  return (api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
+  return api.requestPromise(`/organizations/${organization.slug}/releases/stats/`, {
     includeAllArgs: true,
     method: 'GET',
     query,
-  }) as unknown) as [ReleaseMetaBasic[], any, JQueryXHR];
+  }) as Promise<[ReleaseMetaBasic[], any, JQueryXHR]>;
 }
 
 type Props = WithRouterProps & {
@@ -86,32 +84,6 @@ type State = {
 };
 
 class ReleaseSeries extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object,
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(PropTypes.number.isRequired).isRequired,
-    environments: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
-
-    period: PropTypes.string,
-    start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-    end: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-    utc: PropTypes.bool,
-    // Array of releases, if empty, component will fetch releases itself
-    releases: PropTypes.arrayOf(
-      PropTypes.shape({
-        version: PropTypes.string,
-        date: PropTypes.string,
-      })
-    ),
-    tooltip: SentryTypes.EChartsTooltip,
-    queryExtra: PropTypes.object,
-
-    memoized: PropTypes.bool,
-    preserveQueryParams: PropTypes.bool,
-    emphasizeReleases: PropTypes.arrayOf(PropTypes.string.isRequired),
-  };
-
   state = {
     releases: null,
     releaseSeries: [],
