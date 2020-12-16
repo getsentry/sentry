@@ -4,6 +4,7 @@ import inspect
 import six
 
 from django.conf import settings
+from django.urls import resolve
 
 import sentry_sdk
 
@@ -22,6 +23,11 @@ UNSAFE_FILES = (
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
+
+# URLs that should always be sampled
+SAMPLED_URL_NAMES = [
+    "sentry-api-0-organization-releases",
+]
 
 UNSAFE_TAG = "_unsafe"
 
@@ -124,6 +130,18 @@ def _override_on_full_queue(transport, metric_name):
     transport._worker.on_full_queue = on_full_queue
 
 
+def traces_sampler(sampling_context):
+    if "wsgi_environ" in sampling_context:
+        match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
+        if match and match.url_name in SAMPLED_URL_NAMES:
+            return 1.0
+
+    if sampling_context["parent_sampled"] is not None:
+        return sampling_context["parent_sampled"]
+
+    return 0.0
+
+
 def configure_sdk():
     from sentry_sdk.integrations.logging import LoggingIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -137,6 +155,7 @@ def configure_sdk():
     relay_dsn = sdk_options.pop("relay_dsn", None)
     internal_project_key = get_project_key()
     upstream_dsn = sdk_options.pop("dsn", None)
+    sdk_options["traces_sampler"] = traces_sampler
 
     if upstream_dsn:
         upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))

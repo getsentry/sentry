@@ -40,7 +40,6 @@ from sentry.snuba.sessions import (
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip as izip
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -138,7 +137,6 @@ def debounce_update_release_health_data(organization, project_ids):
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("OrganizationReleasesEndpoint.get")
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -267,7 +265,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             **paginator_kwargs
         )
 
-    @transaction_start("OrganizationReleasesEndpoint.post")
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -423,7 +420,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
 
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    @transaction_start("OrganizationReleasesStatsEndpoint.get")
     def get(self, request, organization):
         """
         List an Organization's Releases specifically for building timeseries
