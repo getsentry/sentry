@@ -9,7 +9,7 @@ import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
-import {DashboardListItem, DashboardState} from './types';
+import {DashboardDetails, DashboardListItem, DashboardState} from './types';
 
 type OptionType = {
   label: string;
@@ -19,7 +19,7 @@ type OptionType = {
 type Props = {
   organization: Organization;
   dashboards: DashboardListItem[];
-  dashboard: DashboardListItem;
+  dashboard: null | DashboardDetails;
   onEdit: () => void;
   onCreate: () => void;
   onCancel: () => void;
@@ -43,11 +43,11 @@ class Controls extends React.Component<Props> {
 
     const cancelButton = (
       <Button
+        data-test-id="dashboard-cancel"
         onClick={e => {
           e.preventDefault();
           onCancel();
         }}
-        size="small"
       >
         {t('Cancel')}
       </Button>
@@ -58,22 +58,22 @@ class Controls extends React.Component<Props> {
         <ButtonBar gap={1} key="edit-controls">
           {cancelButton}
           <Button
+            data-test-id="dashboard-delete"
             onClick={e => {
               e.preventDefault();
               onDelete();
             }}
             priority="danger"
-            size="small"
           >
-            {t('Delete Dashboard')}
+            {t('Delete')}
           </Button>
           <Button
+            data-test-id="dashboard-commit"
             onClick={e => {
               e.preventDefault();
               onCommit();
             }}
             priority="primary"
-            size="small"
           >
             {t('Finish Editing')}
           </Button>
@@ -86,12 +86,13 @@ class Controls extends React.Component<Props> {
         <ButtonBar gap={1} key="create-controls">
           {cancelButton}
           <Button
+            data-test-id="dashboard-commit"
             onClick={e => {
               e.preventDefault();
               onCommit();
             }}
             priority="primary"
-            size="small"
+            icon={<IconAdd size="xs" isCircled />}
           >
             {t('Create Dashboard')}
           </Button>
@@ -106,23 +107,18 @@ class Controls extends React.Component<Props> {
       };
     });
 
-    const currentOption: OptionType = {
-      label: dashboard.title,
-      value: dashboard,
-    };
+    let currentOption: OptionType | undefined = undefined;
+    if (dashboard) {
+      currentOption = {
+        label: dashboard.title,
+        value: dashboard,
+      };
+    } else if (dropdownOptions.length) {
+      currentOption = dropdownOptions[0];
+    }
 
     return (
       <ButtonBar gap={1} key="controls">
-        <Button
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          icon={<IconEdit size="xs" />}
-          size="small"
-        >
-          {t('Edit')}
-        </Button>
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -132,30 +128,32 @@ class Controls extends React.Component<Props> {
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
               const {organization} = this.props;
-
-              if (value.type === 'prebuilt') {
-                browserHistory.push({
-                  pathname: `/organizations/${organization.slug}/dashboards/`,
-                  query: {},
-                });
-                return;
-              }
-
               browserHistory.push({
                 pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                // TODO(mark) should this retain global selection?
                 query: {},
               });
             }}
           />
         </DashboardSelect>
         <Button
+          data-test-id="dashboard-edit"
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          icon={<IconEdit size="xs" />}
+        >
+          {t('Edit')}
+        </Button>
+        <Button
+          data-test-id="dashboard-create"
           onClick={e => {
             e.preventDefault();
             onCreate();
           }}
           priority="primary"
           icon={<IconAdd size="xs" isCircled />}
-          size="small"
         >
           {t('Create Dashboard')}
         </Button>

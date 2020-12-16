@@ -35,6 +35,7 @@ class UserDetailsTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert resp.data["id"] == six.text_type(user.id)
+        assert resp.data["options"]["theme"] == "light"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
@@ -67,6 +68,7 @@ class UserUpdateTest(APITestCase):
             data={
                 "name": "hello world",
                 "options": {
+                    "theme": "system",
                     "timezone": "UTC",
                     "stacktraceOrder": "2",
                     "language": "fr",
@@ -83,6 +85,7 @@ class UserUpdateTest(APITestCase):
         # note: email should not change, removed support for email changing from this endpoint
         assert user.email == "a@example.com"
         assert user.username == "a@example.com"
+        assert UserOption.objects.get_value(user=self.user, key="theme") == "system"
         assert UserOption.objects.get_value(user=self.user, key="timezone") == "UTC"
         assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
@@ -90,8 +93,7 @@ class UserUpdateTest(APITestCase):
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
     def test_saving_changes_value(self):
-        """ Even when saving on an option directly, we should still be able to use get_value to retrieve updated options
-        """
+        """Even when saving on an option directly, we should still be able to use get_value to retrieve updated options"""
         UserOption.objects.set_value(user=self.user, key="language", value="fr")
 
         uo = UserOption.objects.get(user=self.user, key="language")

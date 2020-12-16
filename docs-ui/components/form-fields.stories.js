@@ -1,21 +1,22 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {number, boolean} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
+import {boolean, number} from '@storybook/addon-knobs';
 
 import {Panel} from 'app/components/panels';
+import Switch from 'app/components/switch';
+import NewBooleanField from 'app/views/settings/components/forms/booleanField';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import DatePickerField from 'app/views/settings/components/forms/datePickerField';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
-import NewBooleanField from 'app/views/settings/components/forms/booleanField';
+import RadioBooleanField from 'app/views/settings/components/forms/radioBooleanField';
 import RadioField from 'app/views/settings/components/forms/radioField';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import Switch from 'app/components/switch';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 export default {
   title: 'Core/Forms/Fields',
@@ -186,11 +187,38 @@ export const _RadioField = withInfo({
         ['choice_three', 'Choice Three'],
       ]}
     />
+    <RadioField
+      orientInline
+      name="inline-radio"
+      label="Inline Radios"
+      choices={[
+        ['choice_one', 'Choice One'],
+        ['choice_two', 'Choice Two'],
+      ]}
+    />
   </Form>
 ));
 
 _RadioField.story = {
   name: 'RadioField',
+};
+
+export const _RadioBooleanField = withInfo({
+  text: 'RadioBoolean field only two radios',
+  propTablesExclude: [Form],
+})(() => (
+  <Form>
+    <RadioBooleanField
+      name="subscribe"
+      yesLabel="Yes, I would like to receive updates via email"
+      noLabel="No, I'd prefer not to receive these updates"
+      help="Help text for making an informed decision"
+    />
+  </Form>
+));
+
+_RadioBooleanField.story = {
+  name: 'RadioBooleanField',
 };
 
 export const _SelectField = withInfo({

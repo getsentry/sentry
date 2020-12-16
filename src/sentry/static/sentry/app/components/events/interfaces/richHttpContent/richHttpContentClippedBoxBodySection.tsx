@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import ClippedBox from 'app/components/clippedBox';
 import ContextData from 'app/components/contextData';
@@ -7,15 +6,14 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
-import {Meta} from 'app/types';
+import {Meta, RequestEntry} from 'app/types';
 import {defined} from 'app/utils';
 
 import getTransformedData from './getTransformedData';
-import {InferredContentType, SubData} from './types';
 
 type Props = {
-  data: SubData;
-  inferredContentType: InferredContentType;
+  data: RequestEntry['data']['data'];
+  inferredContentType: RequestEntry['data']['inferredContentType'];
   meta?: Meta;
 };
 
@@ -72,10 +70,6 @@ const RichHttpContentClippedBoxBodySection = ({
       <ErrorBoundary mini>{content}</ErrorBoundary>
     </ClippedBox>
   ) : null;
-};
-
-RichHttpContentClippedBoxBodySection.propTypes = {
-  meta: PropTypes.object,
 };
 
 export default RichHttpContentClippedBoxBodySection;

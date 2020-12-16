@@ -10,7 +10,6 @@ from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
 from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
-event_time = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 
@@ -52,7 +51,9 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         return event
 
     def test_python_event(self):
-        event = self.create_sample_event(platform="python", time=event_time)
+        self.create_sample_event(platform="python")
+        self.create_sample_event(platform="python")
+        event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
 
         # Wait for tag bars to load

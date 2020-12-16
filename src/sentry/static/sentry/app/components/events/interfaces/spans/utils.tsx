@@ -429,7 +429,9 @@ export function getTraceContext(
 
 export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
   const spanEntry: SpanEntry | undefined = event.entries.find(
-    (entry: {type: string}) => entry.type === 'spans'
+    (entry: SpanEntry | any): entry is SpanEntry => {
+      return entry.type === 'spans';
+    }
   );
 
   const spans: Array<RawSpanType> = spanEntry?.data ?? [];

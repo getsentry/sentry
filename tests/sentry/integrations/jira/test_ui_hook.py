@@ -11,7 +11,7 @@ from sentry.utils.http import absolute_uri
 
 UNABLE_TO_VERIFY_INSTALLATION = b"Unable to verify installation"
 REFRESH_REQUIRED = b"This page has expired, please refresh to configure your Sentry integration"
-CLICK_TO_FINISH = b"Click to Finish Installation"
+CLICK_TO_FINISH = b"Finish Installation in Sentry"
 
 
 class JiraUiHookViewTestCase(APITestCase):

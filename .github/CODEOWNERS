@@ -30,8 +30,19 @@
 /src/sentry/auth/                   @getsentry/security
 /src/sentry/api/permissions.py      @getsentry/security
 
+# Dev
+/.github/                   @getsentry/owners-sentry-dev
+/config/hooks/              @getsentry/owners-sentry-dev
+/scripts/                   @getsentry/owners-sentry-dev
+Makefile                    @getsentry/owners-sentry-dev
+.envrc                      @getsentry/owners-sentry-dev
+.pre-commit-config.yaml     @getsentry/owners-sentry-dev
+.git-blame-ignore-revs      @getsentry/owners-sentry-dev
+
 # Build & Releases
 /.github/workflows/release.yml  @getsentry/releases
+/scripts/bump-version.sh        @getsentry/releases
+/scripts/post-release.sh        @getsentry/releases
 /docker                         @getsentry/releases
 setup.py                        @getsentry/releases
 setup.cfg                       @getsentry/releases
@@ -43,18 +54,7 @@ package.json        @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
-# Dev
-/.github/                   @getsentry/owners-sentry-dev
-/config/hooks/              @getsentry/owners-sentry-dev
-/scripts/                   @getsentry/owners-sentry-dev
-Makefile                    @getsentry/owners-sentry-dev
-.envrc                      @getsentry/owners-sentry-dev
-.pre-commit-config.yaml     @getsentry/owners-sentry-dev
-.git-blame-ignore-revs      @getsentry/owners-sentry-dev
-
-
 # Owners by product feature
-
 
 ### Issue/Metric Alerts ###
 /src/sentry/static/sentry/app/views/settings/projectAlerts/     @getsentry/workflow

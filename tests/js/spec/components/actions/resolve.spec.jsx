@@ -4,6 +4,7 @@ import $ from 'jquery';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ResolveActions from 'app/components/actions/resolve';
+import GlobalModal from 'app/components/globalModal';
 
 describe('ResolveActions', function () {
   describe('disabled', function () {
@@ -21,7 +22,7 @@ describe('ResolveActions', function () {
         />,
         TestStubs.routerContext()
       );
-      button = component.find('a.btn.btn-default').first();
+      button = component.find('StyledActionLink').first();
     });
 
     it('has disabled prop', function () {
@@ -86,13 +87,13 @@ describe('ResolveActions', function () {
     });
 
     it('displays resolved view', function () {
-      const button = component.find('a.btn.active');
+      const button = component.find('StyledResolveButton').first();
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function () {
-      component.find('a.btn.active').simulate('click');
+      component.find('StyledResolveButton').last().simulate('click');
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
@@ -113,7 +114,7 @@ describe('ResolveActions', function () {
         TestStubs.routerContext()
       );
 
-      component.find('a.btn').simulate('click');
+      component.find('StyledResolveButton').simulate('click');
       expect(spy).not.toHaveBeenCalled();
     });
   });
@@ -138,7 +139,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('a.btn.btn-default').first();
+      const button = component.find('StyledResolveActionLink');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -151,27 +152,33 @@ describe('ResolveActions', function () {
 
     beforeEach(function () {
       component = mountWithTheme(
-        <ResolveActions
-          onUpdate={spy}
-          hasRelease={false}
-          orgId="org-1"
-          projectId="proj-1"
-          shouldConfirm
-          confirmMessage="Are you sure???"
-        />,
+        <React.Fragment>
+          <GlobalModal />
+          <ResolveActions
+            onUpdate={spy}
+            hasRelease={false}
+            orgId="org-1"
+            projectId="proj-1"
+            shouldConfirm
+            confirmMessage="Are you sure???"
+          />
+        </React.Fragment>,
         TestStubs.routerContext()
       );
-      button = component.find('a.btn.btn-default').first();
+      button = component.find('StyledResolveActionLink').first();
     });
 
     it('renders', function () {
       expect(component).toSnapshot();
     });
 
-    it('displays confirmation modal with message provided', function () {
+    it('displays confirmation modal with message provided', async function () {
       button.simulate('click');
 
-      const modal = $(document.body).find('.modal');
+      await tick();
+      component.update();
+
+      const modal = component.find('Modal ModalDialog');
       expect(modal.text()).toContain('Are you sure???');
       expect(spy).not.toHaveBeenCalled();
       $(document.body).find('.modal button:contains("Resolve")').click();
@@ -187,12 +194,15 @@ describe('ResolveActions', function () {
       body: [TestStubs.Release()],
     });
     const wrapper = mountWithTheme(
-      <ResolveActions
-        hasRelease
-        orgId="org-slug"
-        projectId="project-slug"
-        onUpdate={onUpdate}
-      />,
+      <React.Fragment>
+        <GlobalModal />
+        <ResolveActions
+          hasRelease
+          orgId="org-slug"
+          projectId="project-slug"
+          onUpdate={onUpdate}
+        />
+      </React.Fragment>,
       TestStubs.routerContext()
     );
 

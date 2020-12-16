@@ -4,11 +4,13 @@ from __future__ import absolute_import
 
 import six
 
+from mock import patch
 from uuid import uuid4
 
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -409,6 +411,63 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
         release.add_project(project)
         serialize(release)
+
+    def test_get_user_for_authors_simple(self):
+        user = User.objects.create(email="chrib@sentry.io")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        assert len(users) == 1
+        assert users[six.text_type(user.id)]["email"] == user.email
+
+    def test_get_user_for_authors_no_user(self):
+        user = User(email="notactuallyauser@sentry.io")
+        project = self.create_project()
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        assert len(users) == 1
+        assert users[six.text_type(user.id)]["email"] == user.email
+
+    @patch("sentry.api.serializers.models.release.serialize")
+    def test_get_user_for_authors_caching(self, patched_serialize_base):
+        # Ensure the fetched/miss caching logic works.
+        user = User.objects.create(email="chrib@sentry.io")
+        user2 = User.objects.create(email="alsochrib@sentry.io")
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        self.create_member(user=user2, organization=project.organization)
+        commit_author = CommitAuthor.objects.create(
+            email="chrib@sentry.io", name="Chrib", organization_id=project.organization_id
+        )
+        commit_author2 = CommitAuthor.objects.create(
+            email="alsochrib@sentry.io", name="Also Chrib", organization_id=project.organization_id
+        )
+
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[commit_author]
+        )
+        assert len(users) == 1
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        patched_serialize_base.call_count = 1
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[commit_author]
+        )
+        assert len(users) == 1
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        patched_serialize_base.call_count = 1
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[commit_author, commit_author2]
+        )
+        assert len(users) == 2
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        assert users[six.text_type(commit_author2.id)]["email"] == user2.email
+        patched_serialize_base.call_count = 2
+        users = get_users_for_authors(
+            organization_id=project.organization_id, authors=[commit_author, commit_author2]
+        )
+        assert len(users) == 2
+        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        assert users[six.text_type(commit_author2.id)]["email"] == user2.email
+        patched_serialize_base.call_count = 2
 
 
 class ReleaseRefsSerializerTest(TestCase):

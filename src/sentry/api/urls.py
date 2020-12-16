@@ -286,7 +286,6 @@ from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
 from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
-from .endpoints.user_appearance import UserAppearanceEndpoint
 from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoint
 from .endpoints.user_authenticator_enroll import UserAuthenticatorEnrollEndpoint
 from .endpoints.user_authenticator_index import UserAuthenticatorIndexEndpoint
@@ -517,11 +516,6 @@ urlpatterns = [
                     r"^(?P<user_id>[^\/]+)/avatar/$",
                     UserAvatarEndpoint.as_view(),
                     name="sentry-api-0-user-avatar",
-                ),
-                url(
-                    r"^(?P<user_id>[^\/]+)/appearance/$",
-                    UserAppearanceEndpoint.as_view(),
-                    name="sentry-api-0-user-appearance",
                 ),
                 url(
                     r"^(?P<user_id>[^\/]+)/authenticators/$",

@@ -130,11 +130,12 @@ class Actions extends React.Component<Props, State> {
   };
 
   onReprocess = () => {
-    const {group, organization} = this.props;
+    const {group, organization, project} = this.props;
     openModal(({closeModal, Header, Body}) => (
       <ReprocessingDialogForm
         group={group}
         orgSlug={organization.slug}
+        project={project}
         closeModal={closeModal}
         Header={Header}
         Body={Body}
@@ -244,7 +245,9 @@ class Actions extends React.Component<Props, State> {
             orgId={organization.slug}
             projectId={project.slug}
             isResolved={isResolved}
-            isAutoResolved={isResolved && group.statusDetails.autoResolved}
+            isAutoResolved={
+              group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
+            }
           />
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={space(3)}>

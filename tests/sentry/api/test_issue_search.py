@@ -94,8 +94,8 @@ class ParseSearchQueryTest(TestCase):
         )
 
     def test_is_query_inbox(self):
-        assert parse_search_query("is:inbox") == [
-            SearchFilter(key=SearchKey(name="inbox"), operator="=", value=SearchValue(True))
+        assert parse_search_query("is:needs_review") == [
+            SearchFilter(key=SearchKey(name="needs_review"), operator="=", value=SearchValue(True))
         ]
 
     def test_numeric_filter(self):

@@ -70,7 +70,7 @@ class DashboardWidgetQuery(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidgetquery"
-        unique_together = (("widget", "name"), ("widget", "order"))
+        unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
 
@@ -92,6 +92,6 @@ class DashboardWidget(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidget"
-        unique_together = (("dashboard", "order"), ("dashboard", "title"))
+        unique_together = (("dashboard", "order"),)
 
     __repr__ = sane_repr("dashboard", "title")

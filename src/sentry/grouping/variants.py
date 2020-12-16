@@ -94,13 +94,36 @@ class ComponentVariant(BaseVariant):
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
 
+def expose_fingerprint_dict(values, info=None):
+    rv = {
+        "values": values,
+    }
+    if not info:
+        return rv
+
+    from sentry.grouping.fingerprinting import Rule
+
+    client_values = info.get("client_fingerprint")
+    if client_values and (
+        len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
+    ):
+        rv["client_values"] = client_values
+    matched_rule = info.get("matched_rule")
+    if matched_rule:
+        rule = Rule.from_json(matched_rule)
+        rv["matched_rule"] = rule.text
+
+    return rv
+
+
 class CustomFingerprintVariant(BaseVariant):
     """A completely custom fingerprint."""
 
     type = "custom-fingerprint"
 
-    def __init__(self, values):
+    def __init__(self, values, fingerprint_info=None):
         self.values = values
+        self.info = fingerprint_info
 
     @property
     def description(self):
@@ -114,7 +137,7 @@ class CustomFingerprintVariant(BaseVariant):
             yield ("fingerprint", "ident-shingle"), [value]
 
     def _get_metadata_as_dict(self):
-        return {"values": self.values}
+        return expose_fingerprint_dict(self.values, self.info)
 
 
 class SaltedComponentVariant(ComponentVariant):
@@ -122,9 +145,10 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted-component"
 
-    def __init__(self, values, component, config):
+    def __init__(self, values, component, config, fingerprint_info=None):
         ComponentVariant.__init__(self, component, config)
         self.values = values
+        self.info = fingerprint_info
 
     @property
     def description(self):
@@ -151,5 +175,5 @@ class SaltedComponentVariant(ComponentVariant):
 
     def _get_metadata_as_dict(self):
         rv = ComponentVariant._get_metadata_as_dict(self)
-        rv["values"] = self.values
+        rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv

@@ -6,11 +6,12 @@ import InlineInput from 'app/components/inputInline';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-import {DashboardListItem} from './types';
+import {DashboardDetails} from './types';
 
 type Props = {
-  changesDashboard: DashboardListItem | undefined;
-  setChangesDashboard: (dashboard: DashboardListItem) => void;
+  dashboard: DashboardDetails | null;
+  isEditing: boolean;
+  onUpdate: (dashboard: DashboardDetails) => void;
 };
 
 class DashboardTitle extends React.Component<Props> {
@@ -29,26 +30,28 @@ class DashboardTitle extends React.Component<Props> {
 
       return;
     }
-
-    const {changesDashboard, setChangesDashboard} = this.props;
-
-    event.target.innerText = nextDashboardTitle;
-
-    if (!changesDashboard) {
+    const {dashboard, onUpdate} = this.props;
+    if (!dashboard) {
       return;
     }
 
-    setChangesDashboard({
-      ...changesDashboard,
+    event.target.innerText = nextDashboardTitle;
+
+    onUpdate({
+      ...dashboard,
       title: nextDashboardTitle,
     });
   };
 
   render() {
-    const {changesDashboard} = this.props;
+    const {dashboard, isEditing} = this.props;
 
-    if (!changesDashboard) {
+    if (!dashboard) {
       return <Container>{t('Dashboards')}</Container>;
+    }
+
+    if (!isEditing) {
+      return <Container>{dashboard.title}</Container>;
     }
 
     return (
@@ -56,7 +59,7 @@ class DashboardTitle extends React.Component<Props> {
         <StyledInlineInput
           name="dashboard-title"
           ref={this.refInput}
-          value={changesDashboard.title}
+          value={dashboard.title}
           onBlur={this.onBlur}
         />
       </Container>

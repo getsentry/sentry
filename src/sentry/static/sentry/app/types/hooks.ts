@@ -164,10 +164,6 @@ type FeatureDisabledHook = (opts: {
    */
   organization: Organization;
   /**
-   * The project that is associated to this feature.
-   */
-  project: Project;
-  /**
    * The list of features that are controlled by this hook.
    */
   features: string[];
@@ -177,6 +173,11 @@ type FeatureDisabledHook = (opts: {
   hasFeature: boolean;
 
   children: FeatureDisabled['props']['children'];
+
+  /**
+   * The project that is associated to this feature.
+   */
+  project?: Project;
 }) => React.ReactNode;
 
 /**

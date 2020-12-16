@@ -12,6 +12,7 @@ describe('Login', function () {
   it('renders a loading indicator', function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
+      body: {},
     });
 
     const wrapper = mountWithTheme(<Login />);

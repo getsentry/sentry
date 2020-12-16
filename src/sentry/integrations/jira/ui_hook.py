@@ -8,6 +8,7 @@ from sentry.integrations.atlassian_connect import (
     get_integration_from_request,
 )
 from sentry.utils import json
+from sentry.utils.assets import get_asset_url
 from sentry.utils.signing import sign
 from sentry.utils.http import absolute_uri
 
@@ -33,4 +34,6 @@ class JiraUiHookView(JiraBaseHook):
         finish_link = u"{}.?signed_params={}".format(
             absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
         )
-        return self.get_response({"finish_link": finish_link})
+
+        image_path = absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png"))
+        return self.get_response({"finish_link": finish_link, "image_path": image_path})
