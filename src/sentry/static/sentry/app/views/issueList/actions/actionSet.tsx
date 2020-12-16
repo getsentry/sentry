@@ -64,7 +64,7 @@ function ActionSet({
       {hasInbox && (
         <div className="btn-group hidden-sm hidden-xs">
           <StyledActionLink
-            className="btn btn-default btn-sm action-merge"
+            className="btn btn-primary btn-sm action-merge"
             data-test-id="button-acknowledge"
             disabled={!anySelected}
             onAction={() => onUpdate({inbox: false})}
