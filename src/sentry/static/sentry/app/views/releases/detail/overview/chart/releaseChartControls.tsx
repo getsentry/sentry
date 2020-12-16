@@ -227,7 +227,7 @@ function SecondarySelector({
     case YAxis.COUNT_VITAL:
       return (
         <OptionSelector
-          title={t('Vital Type')}
+          title={t('Vital')}
           selected={vitalType}
           options={vitalTypeOptions}
           onChange={onVitalTypeChange as (value: string) => void}
