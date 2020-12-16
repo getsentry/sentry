@@ -213,7 +213,6 @@ def get_internal_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    assert project._organization_cache is not None
     sentry_source_url = "%s%s" % (
         internal_url_prefix.rstrip("/"),
         reverse(
@@ -260,7 +259,6 @@ def parse_sources(config):
 
 
 def get_options_for_project(project):
-    assert project._organization_cache is not None
     return {
         # Symbolicators who do not support options will ignore this field entirely.
         "dif_candidates": features.has("organizations:dif-candidates", project.organization)
@@ -281,7 +279,6 @@ def get_sources_for_project(project):
 
     # Check that the organization still has access to symbol sources. This
     # controls both builtin and external sources.
-    assert project._organization_cache is not None
     organization = project.organization
 
     if not features.has("organizations:symbol-sources", organization):
