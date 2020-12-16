@@ -69,7 +69,7 @@ function ActionSet({
             disabled={!anySelected}
             onAction={() => onUpdate({inbox: false})}
             shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
-            message={confirm(ConfirmAction.MARK, false, ' as reviewed')}
+            message={confirm('mark', false, ' as reviewed')}
             confirmLabel={label('Mark', ' as reviewed')}
             title={t('Mark Reviewed')}
           >
@@ -203,7 +203,7 @@ function ActionSet({
               disabled={!anySelected}
               onAction={() => onUpdate({isBookmarked: false})}
               shouldConfirm={onShouldConfirm(ConfirmAction.UNBOOKMARK)}
-              message={confirm(ConfirmAction.REMOVE, false, ' from your bookmarks')}
+              message={confirm('remove', false, ' from your bookmarks')}
               confirmLabel={label('remove', ' from your bookmarks')}
               title={t('Remove from Bookmarks')}
             >
