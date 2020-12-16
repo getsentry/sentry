@@ -746,6 +746,7 @@ class IssueListOverview extends React.Component<Props, State> {
       tags,
       selection,
       location,
+      router,
     } = this.props;
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -760,6 +761,9 @@ class IssueListOverview extends React.Component<Props, State> {
       tags?.is?.values?.push('needs_review');
     }
 
+    const projectIds = selection?.projects?.map(p => p.toString());
+    const orgSlug = organization.slug;
+
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
         {({hasFeature}) => (
@@ -772,6 +776,9 @@ class IssueListOverview extends React.Component<Props, State> {
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
                 onTabChange={this.handleTabClick}
+                projectIds={projectIds}
+                orgSlug={orgSlug}
+                router={router}
               />
             )}
             <StyledPageContent isInbox={hasFeature}>
@@ -796,7 +803,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
                 <Panel>
                   <IssueListActions
-                    orgSlug={organization.slug}
+                    orgSlug={orgSlug}
                     selection={selection}
                     query={query}
                     queryCount={queryCount}
@@ -813,7 +820,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   <PanelBody>
                     <ProcessingIssueList
                       organization={organization}
-                      projectIds={selection?.projects?.map(p => p.toString())}
+                      projectIds={projectIds}
                       showProject
                     />
                     {this.renderStreamBody()}
@@ -850,7 +857,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     tags={tags}
                     query={query}
                     onQueryChange={this.onIssueListSidebarSearch}
-                    orgId={organization.slug}
+                    orgId={orgSlug}
                     tagValueLoader={this.tagValueLoader}
                   />
                 )}
