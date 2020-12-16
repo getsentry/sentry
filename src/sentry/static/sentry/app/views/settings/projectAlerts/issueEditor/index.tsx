@@ -87,10 +87,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -132,6 +133,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
 
     return endpoints as [string, string][];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle?.(data.name);
+    }
   }
 
   pollHandler = async (quitTime: number) => {

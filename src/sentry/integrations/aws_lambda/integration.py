@@ -8,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 
 
 from sentry import options
+from sentry.api.serializers import serialize
 from sentry.integrations import (
     IntegrationInstallation,
     IntegrationFeatures,
@@ -19,7 +20,7 @@ from sentry.models import Project, ProjectKey
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.web.helpers import render_to_response
-from sentry.utils.compat import filter
+from sentry.utils.compat import filter, map
 
 from .client import gen_aws_lambda_client
 from .utils import parse_arn
@@ -66,7 +67,11 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.SERVERLESS])
 
     def get_pipeline_views(self):
-        return [AwsLambdaCloudFormationPipelineView(), AwsLambdaSetupLayerPipelineView()]
+        return [
+            AwsLambdaProjectSelectPipelineView(),
+            AwsLambdaCloudFormationPipelineView(),
+            AwsLambdaSetupLayerPipelineView(),
+        ]
 
     def build_integration(self, state):
         # TODO: unhardcode
@@ -87,17 +92,38 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         return integration
 
 
+class AwsLambdaProjectSelectPipelineView(PipelineView):
+    def dispatch(self, request, pipeline):
+        # if we have the project_id, go to the next step
+        if "project_id" in request.GET:
+            return pipeline.next_step()
+
+        organization = pipeline.organization
+        # TODO: check status of project
+        projects = Project.objects.filter(organization=organization)
+        serialized_projects = map(lambda x: serialize(x, request.user), projects)
+
+        return self.render_react_view(
+            request, "awsLambdaProjectSelect", {"projects": serialized_projects}
+        )
+
+
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        # TODO: Find way so a user/org only gets one external id
         if request.method == "POST":
+            # load parameters from query param and post request
+            project_id = request.GET["project_id"]
             arn = request.POST["arn"]
             aws_external_id = request.POST["aws_external_id"]
+
             pipeline.bind_state("arn", arn)
             pipeline.bind_state("aws_external_id", aws_external_id)
+            pipeline.bind_state("project_id", project_id)
             return pipeline.next_step()
 
         template_url = options.get("aws-lambda.cloudformation-url")
+
+        # TODO: Find way so a user/org only gets one external id
         aws_external_id = uuid.uuid4()
 
         cloudformation_url = (
@@ -116,20 +142,19 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
         organization = pipeline.organization
 
-        # TODO: make project selection part of flow
-        project = Project.objects.filter(
-            organization=organization, platform="node-awslambda"
-        ).first()
-        if not project:
+        arn = pipeline.fetch_state("arn")
+        project_id = pipeline.fetch_state("project_id")
+        aws_external_id = pipeline.fetch_state("aws_external_id")
+
+        try:
+            project = Project.objects.get(organization=organization, id=project_id)
+        except Project.DoesNotExist:
             raise IntegrationError("No valid project")
 
         enabled_dsn = ProjectKey.get_default(project=project)
         if not enabled_dsn:
             raise IntegrationError("Project does not have DSN enabled")
         sentry_project_dsn = enabled_dsn.get_dsn(public=True)
-
-        arn = pipeline.fetch_state("arn")
-        aws_external_id = pipeline.fetch_state("aws_external_id")
 
         lambda_client = gen_aws_lambda_client(arn, aws_external_id)
 

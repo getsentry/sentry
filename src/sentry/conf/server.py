@@ -911,6 +911,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -931,6 +933,8 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
+    # Enable the new images loaded design and features
+    "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
     # Enable "owner"/"suggested assignee" features.
@@ -954,8 +958,6 @@ SENTRY_FEATURES = {
     "projects:plugins": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable version 2 of reprocessing (completely distinct from v1)
-    "projects:reprocessing-v2": False,
     # Enable functionality for sampling of events on projects.
     "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
@@ -1700,6 +1702,7 @@ EMAIL_PORT = DEAD
 EMAIL_HOST_USER = DEAD
 EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
+EMAIL_USE_SSL = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 
