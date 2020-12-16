@@ -225,8 +225,7 @@ const ProjectRows = styled('div')`
 
 const ExpandButtonWrapper = styled('div')`
   position: absolute;
-  left: 0;
-  right: 0;
+  width: 100%;
   bottom: 0;
   display: flex;
   align-items: center;
