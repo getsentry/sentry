@@ -271,9 +271,14 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(Group.objects.get(id=group.id))
 
+
         assert result["status"] == "reprocessing"
         assert result["statusDetails"] == {
             "pendingEvents": 0,
+            "info": {
+                "totalEvents": 0,
+                "dateCreated": result["statusDetails"]["info"]["dateCreated"]
+            }
         }
 
 
