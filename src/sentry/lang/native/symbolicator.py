@@ -448,20 +448,14 @@ class SymbolicatorSession(object):
     def upload_minidump(self, minidump):
         return self._create_task(
             path="minidump",
-            data={
-                "sources": json.dumps(self.sources),
-                "request_data": json.dumps({"options": self.options}),
-            },
+            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
         return self._create_task(
             path="applecrashreport",
-            data={
-                "sources": json.dumps(self.sources),
-                "request_data": json.dumps({"options": self.options}),
-            },
+            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
             files={"apple_crash_report": report},
         )
 
