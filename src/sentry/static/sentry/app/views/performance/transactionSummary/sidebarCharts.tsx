@@ -172,13 +172,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-        xAxisIndex={[0, 1, 2]}
-      >
+      <ChartZoom router={router} period={statsPeriod} xAxisIndex={[0, 1, 2]}>
         {zoomRenderProps => (
           <EventsRequest
             api={api}

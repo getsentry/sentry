@@ -312,12 +312,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-      >
+      <ChartZoom router={router} period={statsPeriod}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {

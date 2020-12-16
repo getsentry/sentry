@@ -76,9 +76,7 @@ class WidgetCard extends React.Component<Props, State> {
   renderVisual() {
     const {location, router, selection, api, organization, widget} = this.props;
 
-    const statsPeriod = selection.datetime.period;
-    const {start, end} = selection.datetime;
-    const {projects, environments} = selection;
+    const {start, end, period} = selection.datetime;
 
     const legend = {
       right: 10,
@@ -131,14 +129,7 @@ class WidgetCard extends React.Component<Props, State> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        start={start}
-        end={end}
-        projects={projects}
-        environments={environments}
-      >
+      <ChartZoom router={router} period={period} start={start} end={end}>
         {zoomRenderProps => {
           return (
             <WidgetQueries

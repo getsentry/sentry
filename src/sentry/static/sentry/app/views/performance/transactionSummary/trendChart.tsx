@@ -146,12 +146,7 @@ class TrendChart extends React.Component<Props> {
             title={t(`Trends shows the smoothed value of an aggregate over time.`)}
           />
         </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
+        <ChartZoom router={router} period={statsPeriod}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}

@@ -490,14 +490,7 @@ class EventsChart extends React.Component<Props> {
     }
 
     return (
-      <ChartZoom
-        router={router}
-        period={period}
-        utc={utc}
-        projects={projects}
-        environments={environments}
-        {...props}
-      >
+      <ChartZoom router={router} period={period} utc={utc} {...props}>
         {zoomRenderProps => (
           <EventsRequest
             {...props}
