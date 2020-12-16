@@ -12,11 +12,11 @@ import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import {NoteType} from 'app/types/alerts';
 import marked from 'app/utils/marked';
+import {Theme} from 'app/utils/theme';
 
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
 import {CreateError, Mentionable, MentionChangeEvent, Mentioned} from './types';
-import {Theme} from 'app/utils/theme';
 
 const defaultProps = {
   placeholder: t('Add a comment.\nTag users with @, or teams with #'),
