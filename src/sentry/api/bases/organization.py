@@ -14,6 +14,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
     ApiKey,
+    ApiToken,
     Authenticator,
     Organization,
     Project,
@@ -157,12 +158,7 @@ class OrganizationEndpoint(Endpoint):
             raise ParseError(detail="Invalid project parameter. Values must be numbers.")
 
     def get_projects(
-        self,
-        request,
-        organization,
-        force_global_perms=False,
-        include_all_accessible=False,
-        project_ids=None,
+        self, request, organization, force_global_perms=False, project_ids=None,
     ):
         """
         Determines which project ids to filter the endpoint by. If a list of
@@ -179,27 +175,18 @@ class OrganizationEndpoint(Endpoint):
         `request.auth.has_scope` way of checking permissions, don't use it
         for anything else, we plan to remove this once we remove uses of
         `auth.has_scope`.
-        :param include_all_accessible: Whether to factor the organization
-        allow_joinleave flag into permission checks. We should ideally
-        standardize how this is used and remove this parameter.
         :param project_ids: Projects if they were passed via request
         data instead of get params
         :return: A list of Project objects, or raises PermissionDenied.
         """
         if project_ids is None:
             project_ids = self.get_requested_project_ids(request)
-        return self._get_projects_by_id(
-            project_ids, request, organization, force_global_perms, include_all_accessible
-        )
+        return self._get_projects_by_id(project_ids, request, organization, force_global_perms,)
 
     def _get_projects_by_id(
-        self,
-        project_ids,
-        request,
-        organization,
-        force_global_perms=False,
-        include_all_accessible=False,
+        self, project_ids, request, organization, force_global_perms=False,
     ):
+        include_all_accessible = False
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
         user = getattr(request, "user", None)
 
@@ -333,6 +320,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
                 return []
+            has_valid_api_key = request.auth.has_scope(
+                "project:releases"
+            ) or request.auth.has_scope("project:write")
+        elif isinstance(request.auth, ApiToken):
             has_valid_api_key = request.auth.has_scope(
                 "project:releases"
             ) or request.auth.has_scope("project:write")

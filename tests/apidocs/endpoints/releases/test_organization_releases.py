@@ -23,6 +23,7 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
         self.project3 = self.create_project(teams=[team1], organization=org)
 
         self.login_as(user=user)
+        self.create_team_membership(team1, user=user)
 
         release1 = Release.objects.create(
             organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
