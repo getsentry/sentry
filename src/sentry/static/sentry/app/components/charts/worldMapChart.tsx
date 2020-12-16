@@ -2,6 +2,7 @@ import React from 'react';
 import echarts, {EChartOption} from 'echarts';
 import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
+import {Theme} from 'app/utils/theme';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
 
@@ -23,6 +24,7 @@ type MapChartSeries = Omit<Series, 'data'> & {
 
 type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
+  theme: Theme;
   seriesOptions?: EChartOption.SeriesMap;
 };
 
