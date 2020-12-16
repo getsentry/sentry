@@ -28,6 +28,7 @@ type Props = {
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   onTabChange: (query: string) => void;
+  hasReprocessingV2Feature?: boolean;
 };
 
 const queries = [
@@ -48,6 +49,7 @@ function IssueListHeader({
   onRealtimeChange,
   projects,
   router,
+  hasReprocessingV2Feature,
 }: Props) {
   const selectedProjectSlugs = projectIds
     .map(projectId => projects.find(project => project.id === projectId)?.slug)
@@ -55,6 +57,10 @@ function IssueListHeader({
 
   const selectedProjectSlug =
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
+
+  const tabs = hasReprocessingV2Feature
+    ? queries
+    : queries.filter(([tabQuery]) => tabQuery !== Query.REPROCESSING);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -112,7 +118,7 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {queries.map(([tabQuery, queryName]) => (
+          {tabs.map(([tabQuery, queryName]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}

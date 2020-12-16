@@ -94,6 +94,7 @@ default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:release-performance-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
+default_manager.add("organizations:reprocessing-ui", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
@@ -112,6 +113,7 @@ default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:workflow-owners", OrganizationFeature)  # NOQA
+
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

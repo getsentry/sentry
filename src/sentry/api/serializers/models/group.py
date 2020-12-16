@@ -56,7 +56,7 @@ from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
-from sentry.reprocessing2 import get_num_pending_events
+from sentry.reprocessing2 import get_progress
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -481,7 +481,7 @@ class GroupSerializerBase(Serializer):
             status_label = "pending_merge"
         elif status == GroupStatus.REPROCESSING:
             status_label = "reprocessing"
-            status_details["pendingEvents"] = get_num_pending_events(attrs["id"])
+            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
         else:
             status_label = "unresolved"
         return status_details, status_label

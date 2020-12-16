@@ -31,7 +31,6 @@ describe('IssueListActions', function () {
               allResultsVisible={false}
               query=""
               queryCount={1500}
-              orgSlug="1337"
               organization={org}
               projectId="project-slug"
               selection={{
@@ -63,7 +62,7 @@ describe('IssueListActions', function () {
 
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         wrapper.find('ResolveActions ActionLink').first().simulate('click');
@@ -100,7 +99,6 @@ describe('IssueListActions', function () {
               allResultsVisible={false}
               query=""
               queryCount={600}
-              orgSlug="1337"
               organization={TestStubs.routerContext().context.organization}
               projectId="1"
               selection={{
@@ -132,7 +130,7 @@ describe('IssueListActions', function () {
 
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         wrapper.find('ResolveActions ActionLink').first().simulate('click');
@@ -169,7 +167,6 @@ describe('IssueListActions', function () {
               allResultsVisible
               query=""
               queryCount={15}
-              orgSlug="1337"
               organization={TestStubs.routerContext().context.organization}
               projectId="1"
               selection={{
@@ -190,7 +187,7 @@ describe('IssueListActions', function () {
 
       it('resolves selected items', function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         jest
@@ -215,7 +212,7 @@ describe('IssueListActions', function () {
 
       it('ignores selected items', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         jest
@@ -269,7 +266,6 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          orgSlug="1337"
           organization={TestStubs.routerContext().context.organization}
           projectId="1"
           selection={{
@@ -330,7 +326,6 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          orgSlug="1337"
           organization={TestStubs.routerContext().context.organization}
           groupIds={['1', '2', '3']}
           selection={{
@@ -369,7 +364,6 @@ describe('IssueListActions', function () {
           <IssueListActions
             api={new MockApiClient()}
             query=""
-            orgSlug="1337"
             organization={organization}
             groupIds={['1', '2', '3']}
             selection={{
@@ -405,7 +399,7 @@ describe('IssueListActions', function () {
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
       const apiMock = MockApiClient.addMockResponse({
-        url: '/organizations/1337/issues/',
+        url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
       wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');

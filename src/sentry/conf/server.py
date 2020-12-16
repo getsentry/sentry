@@ -935,6 +935,8 @@ SENTRY_FEATURES = {
     "organizations:unhandled-issue-flag": False,
     # Enable "owner"/"suggested assignee" features.
     "organizations:workflow-owners": False,
+    # Enable Issues List Reprocessing Tab.
+    "organizations:reprocessing-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

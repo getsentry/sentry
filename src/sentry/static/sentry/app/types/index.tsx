@@ -1063,6 +1063,22 @@ export type GroupStats = GroupFiltered & {
   id: string;
 };
 
+type BaseGroupStatusReprocessing = {
+  status: 'reprocessing';
+  statusDetails: {
+    pendingEvents: number;
+    info: {
+      dateCreated: string;
+      totalEvents: number;
+    };
+  };
+};
+
+type BaseGroupStatusResolution = {
+  status: ResolutionStatus;
+  statusDetails: ResolutionStatusDetails;
+};
+
 // TODO(ts): incomplete
 export type BaseGroup = {
   id: string;
@@ -1093,8 +1109,6 @@ export type BaseGroup = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: 'reprocessing' | ResolutionStatus;
-  statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
@@ -1104,7 +1118,9 @@ export type BaseGroup = {
   owners?: SuggestedOwner[] | null;
 };
 
-export type Group = BaseGroup & GroupStats;
+export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
+export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
+export type Group = GroupResolution | GroupReprocessing;
 
 export type GroupTombstone = {
   id: string;
@@ -1800,8 +1816,8 @@ export type ResolutionStatusDetails = {
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
-  pendingEvents?: number;
 };
+
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;

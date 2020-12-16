@@ -81,6 +81,7 @@ from __future__ import absolute_import
 import hashlib
 import logging
 import sentry_sdk
+from sentry.utils import json
 import six
 
 from django.conf import settings
@@ -270,6 +271,10 @@ def _get_sync_counter_key(group_id):
     return "re2:count:{}".format(group_id)
 
 
+def _get_info_reprocessed_key(group_id):
+    return "re2:info:{}".format(group_id)
+
+
 def mark_event_reprocessed(data):
     """
     This function is supposed to be unconditionally called when an event has
@@ -342,7 +347,7 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
     #
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
-    models.Activity.objects.create(
+    new_activity = models.Activity.objects.create(
         type=models.Activity.REPROCESS,
         project=new_group.project,
         ident=six.text_type(group_id),
@@ -351,8 +356,16 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},
     )
 
+    # New Activity Timestamp
+    date_created = new_activity.datetime
+
     client = _get_sync_redis_client()
     client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, event_count)
+    client.setex(
+        _get_info_reprocessed_key(group_id),
+        _REDIS_SYNC_TTL,
+        json.dumps({"dateCreated": date_created, "totalEvents": event_count}),
+    )
 
     return new_group.id
 
@@ -362,9 +375,17 @@ def is_group_finished(group_id):
     Checks whether a group has finished reprocessing.
     """
 
-    pending = get_num_pending_events(group_id)
+    pending, _ = get_progress(group_id)
     return pending <= 0
 
 
-def get_num_pending_events(group_id):
-    return int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)))
+def get_progress(group_id):
+    pending = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
+    info = _get_sync_redis_client().get(_get_info_reprocessed_key(group_id))
+    if pending is None:
+        logger.error("reprocessing2.missing_counter")
+        return 0, None
+    if info is None:
+        logger.error("reprocessing2.missing_info")
+        return 0, None
+    return int(pending), json.loads(info)
