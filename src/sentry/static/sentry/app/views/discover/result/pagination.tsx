@@ -16,7 +16,7 @@ export default class Pagination extends React.Component<PaginationProps> {
     const {getPreviousPage, getNextPage, previous, next} = this.props;
 
     return (
-      <PaginationButtons className="btn-group">
+      <PaginationButtons>
         <Button
           className="btn"
           disabled={!previous}
