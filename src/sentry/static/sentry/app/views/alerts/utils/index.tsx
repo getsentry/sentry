@@ -209,3 +209,36 @@ export function convertDatasetEventTypesToSource(
     return Datasource.ERROR;
   }
 }
+
+/**
+ * Attempt to guess the data source of a discover query
+ *
+ * @returns An object containing the datasource and new query without the datasource.
+ * Returns null on no datasource.
+ */
+export function getQueryDatasource(
+  query: string
+): {source: Datasource; query: string} | null {
+  let match = query.match(
+    /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
+  );
+  if (match) {
+    // should be [error, default] or [default, error]
+    const eventTypes = match.slice(1, 3).sort().join(',');
+    if (eventTypes !== 'default,error') {
+      return null;
+    }
+
+    return {source: Datasource.ERROR_DEFAULT, query: query.replace(match[0], '').trim()};
+  }
+
+  match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
+  if (match && Datasource[match[2].toUpperCase()]) {
+    return {
+      source: Datasource[match[2].toUpperCase()],
+      query: query.replace(match[0], '').trim(),
+    };
+  }
+
+  return null;
+}
