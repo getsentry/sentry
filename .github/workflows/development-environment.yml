@@ -8,11 +8,12 @@ on:
 jobs:
   dev-environment:
     name: Python set up
-    runs-on: macos-11.0
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
     matrix:
       python-version: [3.6, 3.7, 3.8, 3.9]
+      os: [ macosx-11.0, ubuntu-16.04]
 
     steps:
       - uses: actions/checkout@v2
