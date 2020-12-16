@@ -88,8 +88,9 @@ function ReprocessingDialogForm({
           <NumberField
             name="maxEvents"
             label={t('Enter the number of events to be reprocessed')}
-            help={t(
-              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events.'
+            help={tct(
+              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events, [strong:and the rest will be deleted.]',
+              {strong: <strong />}
             )}
             placeholder={t('Reprocess all events')}
             min={1}
