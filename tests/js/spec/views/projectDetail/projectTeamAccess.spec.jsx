@@ -78,14 +78,11 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
 
     expect(wrapper.find('IdBadge').length).toBe(5);
-    expect(wrapper.find('CollapseToggle').text()).toBe('Show 2 collapsed teams');
 
-    wrapper.find('CollapseToggle').simulate('click');
+    wrapper.find('button[aria-label="Show 2 collapsed teams"]').simulate('click');
     expect(wrapper.find('IdBadge').length).toBe(7);
-    expect(wrapper.find('CollapseToggle').text()).toBe('Collapse');
 
-    wrapper.find('CollapseToggle').simulate('click');
+    wrapper.find('button[aria-label="Collapse"]').simulate('click');
     expect(wrapper.find('IdBadge').length).toBe(5);
-    expect(wrapper.find('CollapseToggle').text()).toBe('Show 2 collapsed teams');
   });
 });

@@ -84,6 +84,7 @@ default_manager.add("organizations:integrations-stacktrace-link", OrganizationFe
 default_manager.add("organizations:integrations-aws_lambda", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
+default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:monitors", OrganizationFeature)  # NOQA
 default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
@@ -93,6 +94,7 @@ default_manager.add("organizations:performance-view", OrganizationFeature)  # NO
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:release-performance-views", OrganizationFeature)  # NOQA
+default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
@@ -130,7 +132,6 @@ default_manager.add("projects:similarity-view", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)  # NOQA
-default_manager.add("projects:reprocessing-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:workflow-owners-ingestion", ProjectFeature)  # NOQA
 
 # Project plugin features
