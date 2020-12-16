@@ -4,7 +4,7 @@ WEBPACK := yarn build-acceptance
 # Currently, this is only required to install black via pre-commit.
 REQUIRED_PY3_VERSION := $(shell grep "3.6" .python-version)
 
-BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.0\.")
+BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.")
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
