@@ -25,19 +25,17 @@ function SubscribeAction({group, onClick, className}: Props) {
   const subscribedClassName = `group-subscribe ${group.isSubscribed ? ' active' : ''}`;
 
   return (
-    <div className="btn-group">
-      <Tooltip title={getSubscriptionReason(group, true)}>
-        <div
-          className={classNames(className, subscribedClassName)}
-          title={t('Subscribe')}
-          onClick={onClick}
-        >
-          <IconWrapper>
-            <IconBell size="xs" />
-          </IconWrapper>
-        </div>
-      </Tooltip>
-    </div>
+    <Tooltip title={getSubscriptionReason(group, true)}>
+      <div
+        className={classNames(className, subscribedClassName)}
+        title={t('Subscribe')}
+        onClick={onClick}
+      >
+        <IconWrapper>
+          <IconBell size="xs" />
+        </IconWrapper>
+      </div>
+    </Tooltip>
   );
 }
 
