@@ -199,7 +199,11 @@ export default ButtonForwardRef;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
-const getFontSize = ({size, theme}: StyledButtonProps) => {
+const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
+  if (priority === 'link') {
+    return 'inherit';
+  }
+
   switch (size) {
     case 'xsmall':
     case 'small':
