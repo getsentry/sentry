@@ -48,6 +48,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
+        .loading .loading-indicator {
+          border-color: ${theme.background};
+          border-left-color: ${theme.purple300};
+        }
         .modal-content {
           background: ${theme.background};
         }
