@@ -111,9 +111,9 @@ class IssueListActions extends React.Component<Props, State> {
     });
   }
 
-  handleSelectStatsPeriod(period: string) {
+  handleSelectStatsPeriod = (period: string) => {
     return this.props.onSelectStatsPeriod(period);
-  }
+  };
 
   handleApplyToAll = () => {
     this.setState({allInQuerySelected: true});
