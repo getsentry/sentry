@@ -17,7 +17,7 @@ import EventTags from 'app/components/events/eventTags/eventTags';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
 import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import CspInterface from 'app/components/events/interfaces/csp';
-import DebugMetaInterface from 'app/components/events/interfaces/debugMeta';
+import ImagesLoadedInterface from 'app/components/events/interfaces/imagesLoaded';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
 import MessageInterface from 'app/components/events/interfaces/message';
@@ -60,7 +60,7 @@ export const INTERFACES = {
   hpkp: GenericInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface,
+  debugmeta: ImagesLoadedInterface,
   spans: SpansInterface,
 };
 

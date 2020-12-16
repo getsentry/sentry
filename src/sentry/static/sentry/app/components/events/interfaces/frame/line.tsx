@@ -4,8 +4,8 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import Button from 'app/components/button';
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
+import DebugImage from 'app/components/events/interfaces/imagesLoaded/debugImage';
+import {combineStatus} from 'app/components/events/interfaces/imagesLoaded/utils';
 import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus, {
   PackageStatusIcon,

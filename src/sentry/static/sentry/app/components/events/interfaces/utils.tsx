@@ -6,7 +6,7 @@ import {FILTER_MASK} from 'app/constants';
 import {RequestEntry} from 'app/types';
 import {defined} from 'app/utils';
 
-import {DebugImage} from './debugMeta/types';
+import {DebugImage} from './imagesLoaded/types';
 
 export function escapeQuotes(v: string) {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');

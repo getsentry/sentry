@@ -64,7 +64,7 @@ const cache = new CellMeasurerCache({
   defaultHeight: 81,
 });
 
-class DebugMeta extends React.PureComponent<Props, State> {
+class ImagesLoaded extends React.PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: {images: []},
   };
@@ -442,7 +442,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 }
 
-export default DebugMeta;
+export default ImagesLoaded;
 
 const StyledList = styled(List)<{height: number}>`
   height: auto !important;
