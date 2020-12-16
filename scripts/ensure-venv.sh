@@ -47,7 +47,7 @@ EOF
             if [[ -n "$PYTHON_VERSION" ]]; then
                 cat << EOF
 ${yellow}${bold}
-You have explicitely set a non-recommend Python version (${PYTHON_VERSION}). You're on your own.
+You have explicitly set a non-recommended Python version (${PYTHON_VERSION}). You're on your own.
 ${reset}
 EOF
             else
