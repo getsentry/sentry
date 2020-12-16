@@ -126,13 +126,13 @@ default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
 default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
 default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
-default_manager.add("projects:reprocessing-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
 default_manager.add("projects:servicehooks", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)  # NOQA
+default_manager.add("projects:reprocessing-v2", ProjectFeature)  # NOQA
 default_manager.add("projects:workflow-owners-ingestion", ProjectFeature)  # NOQA
 
 # Project plugin features
