@@ -23,7 +23,7 @@ export enum YAxis {
   EVENTS = 'events',
   FAILED_TRANSACTIONS = 'failedTransactions',
   COUNT_DURATION = 'countDuration',
-  COUNT_LCP = 'countLCP',
+  COUNT_VITAL = 'countVital',
 }
 
 export enum EventType {
@@ -37,7 +37,7 @@ export enum EventType {
 export const PERFORMANCE_AXIS = [
   YAxis.FAILED_TRANSACTIONS,
   YAxis.COUNT_DURATION,
-  YAxis.COUNT_LCP,
+  YAxis.COUNT_VITAL,
 ];
 
 type Props = {
@@ -46,6 +46,8 @@ type Props = {
   onYAxisChange: (value: YAxis) => void;
   eventType: EventType;
   onEventTypeChange: (value: EventType) => void;
+  vitalType: WebVital;
+  onVitalTypeChange: (value: WebVital) => void;
   organization: Organization;
   hasHealthData: boolean;
   hasDiscover: boolean;
@@ -60,8 +62,10 @@ const ReleaseChartControls = ({
   hasHealthData,
   hasDiscover,
   hasPerformance,
-  eventType,
+  eventType = EventType.ALL,
   onEventTypeChange,
+  vitalType = WebVital.LCP,
+  onVitalTypeChange,
 }: Props) => {
   const noHealthDataTooltip = !hasHealthData
     ? t('This view is only available with release health data.')
@@ -105,13 +109,13 @@ const ReleaseChartControls = ({
     },
     {
       value: YAxis.COUNT_DURATION,
-      label: t('Slow Count (duration)'),
+      label: t('Slow Duration Count'),
       disabled: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
     {
-      value: YAxis.COUNT_LCP,
-      label: t('Slow Count (LCP)'),
+      value: YAxis.COUNT_VITAL,
+      label: t('Slow Vital Count'),
       disabled: !hasPerformance,
       tooltip: noPerformanceTooltip,
     },
@@ -121,14 +125,6 @@ const ReleaseChartControls = ({
       disabled: !hasDiscover,
       tooltip: noDiscoverTooltip,
     },
-  ];
-
-  const eventTypeOptions: SelectValue<EventType>[] = [
-    {value: EventType.ALL, label: t('All')},
-    {value: EventType.CSP, label: t('CSP')},
-    {value: EventType.DEFAULT, label: t('Default')},
-    {value: EventType.ERROR, label: 'Error'},
-    {value: EventType.TRANSACTION, label: t('Transaction')},
   ];
 
   const getSummaryHeading = () => {
@@ -144,9 +140,11 @@ const ReleaseChartControls = ({
       case YAxis.FAILED_TRANSACTIONS:
         return t('Failed Transactions');
       case YAxis.COUNT_DURATION:
-        return t(`Count over ${organization.apdexThreshold}ms`);
-      case YAxis.COUNT_LCP:
-        return t(`Count over ${WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold}ms`);
+        return t('Count over %sms', organization.apdexThreshold);
+      case YAxis.COUNT_VITAL:
+        return vitalType !== WebVital.CLS
+          ? t('Count over %sms', WEB_VITAL_DETAILS[vitalType].failureThreshold)
+          : t('Count over %s', WEB_VITAL_DETAILS[vitalType].failureThreshold);
       case YAxis.SESSIONS:
       default:
         return t('Total Sessions');
@@ -167,14 +165,13 @@ const ReleaseChartControls = ({
         )}
       </InlineContainer>
       <InlineContainer>
-        {yAxis === YAxis.EVENTS && (
-          <OptionSelector
-            title={t('Event Type')}
-            selected={eventType ?? EventType.ALL}
-            options={eventTypeOptions}
-            onChange={onEventTypeChange as (value: string) => void}
-          />
-        )}
+        <SecondarySelector
+          yAxis={yAxis}
+          eventType={eventType}
+          onEventTypeChange={onEventTypeChange}
+          vitalType={vitalType}
+          onVitalTypeChange={onVitalTypeChange}
+        />
         <OptionSelector
           title={t('Display')}
           selected={yAxis}
@@ -185,6 +182,61 @@ const ReleaseChartControls = ({
     </StyledChartControls>
   );
 };
+
+const eventTypeOptions: SelectValue<EventType>[] = [
+  {value: EventType.ALL, label: t('All')},
+  {value: EventType.CSP, label: t('CSP')},
+  {value: EventType.DEFAULT, label: t('Default')},
+  {value: EventType.ERROR, label: 'Error'},
+  {value: EventType.TRANSACTION, label: t('Transaction')},
+];
+
+const vitalTypeOptions: SelectValue<WebVital>[] = [
+  WebVital.FP,
+  WebVital.FCP,
+  WebVital.LCP,
+  WebVital.FID,
+  WebVital.CLS,
+].map(vital => ({value: vital, label: WEB_VITAL_DETAILS[vital].name}));
+
+type SecondarySelectorProps = {
+  yAxis: YAxis;
+  eventType: EventType;
+  onEventTypeChange: (v: EventType) => void;
+  vitalType: WebVital;
+  onVitalTypeChange: (v: WebVital) => void;
+};
+
+function SecondarySelector({
+  yAxis,
+  eventType,
+  onEventTypeChange,
+  vitalType,
+  onVitalTypeChange,
+}: SecondarySelectorProps) {
+  switch (yAxis) {
+    case YAxis.EVENTS:
+      return (
+        <OptionSelector
+          title={t('Event Type')}
+          selected={eventType}
+          options={eventTypeOptions}
+          onChange={onEventTypeChange as (value: string) => void}
+        />
+      );
+    case YAxis.COUNT_VITAL:
+      return (
+        <OptionSelector
+          title={t('Vital')}
+          selected={vitalType}
+          options={vitalTypeOptions}
+          onChange={onVitalTypeChange as (value: string) => void}
+        />
+      );
+    default:
+      return null;
+  }
+}
 
 const StyledChartControls = styled(ChartControls)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
