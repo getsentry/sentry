@@ -167,6 +167,7 @@ from .endpoints.organization_repository_details import OrganizationRepositoryDet
 from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
+from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -943,6 +944,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/searches/$",
                     OrganizationSearchesEndpoint.as_view(),
                     name="sentry-api-0-organization-searches",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/sessions/$",
+                    OrganizationSessionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-sessions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/users/issues/$",
