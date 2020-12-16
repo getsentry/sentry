@@ -636,7 +636,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {organization} = this.props;
     const query = this.getQuery();
     const isReprocessingQuery =
-      query === Query.REPROCESSING && organization.features.includes('reprocessing-ui');
+      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -778,7 +778,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-ui');
+    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
 
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
