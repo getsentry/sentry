@@ -444,7 +444,7 @@ class MailAdapter(object):
 
             headers = {
                 "X-Sentry-Project": project.slug,
-                "category": "digest_email",
+                "X-SMTPAPI": {"category": "digest_email"},
             }
 
             group = six.next(iter(counts))
@@ -520,7 +520,7 @@ class MailAdapter(object):
 
         headers = {
             "X-Sentry-Project": project.slug,
-            "category": "user_report_email",
+            "X-SMTPAPI": {"category": "user_report_email"},
         }
 
         # TODO(dcramer): this is copypasta'd from activity notifications
