@@ -80,13 +80,13 @@ class FormModel {
 
   options: FormOptions;
 
-  constructor({initialData, ...options}: OptionsWithInitial = {}) {
+  constructor({initialData, baseUrl, ...options}: OptionsWithInitial = {}) {
     this.options = options || {};
     if (initialData) {
       this.setInitialData(initialData);
     }
 
-    this.api = new Client(options);
+    this.api = new Client({baseUrl});
   }
 
   /**
