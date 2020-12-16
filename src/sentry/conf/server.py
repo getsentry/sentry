@@ -837,6 +837,8 @@ SENTRY_FEATURES = {
     "organizations:custom-symbol-sources": True,
     # Enable the events stream interface.
     "organizations:events": False,
+    # Request detailed "debug logs" from Symbolicator and save them to event
+    "organizations:dif-candidates": False,
     # Enable discover 2 basic functions
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
