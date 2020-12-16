@@ -1,14 +1,18 @@
 import React from 'react';
 import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import {EChartOption} from 'echarts/lib/echarts';
+import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import MarkLine from 'app/components/charts/components/markLine';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {DateString, Organization} from 'app/types';
+import {Series} from 'app/types/echarts';
 import {escape} from 'app/utils';
 import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
 import {formatVersion} from 'app/utils/formatters';
@@ -17,9 +21,27 @@ import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+type ReleaseMetaBasic = {
+  version: string;
+  date: string;
+};
+
+type ReleaseConditions = {
+  start: DateString;
+  end: DateString;
+  project: Readonly<number[]>;
+  environment: Readonly<string[]>;
+  statsPeriod?: string;
+  cursor?: string;
+};
+
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
-async function getOrganizationReleases(api, organization, conditions = null) {
+function getOrganizationReleases(
+  api: Client,
+  organization: Organization,
+  conditions: ReleaseConditions
+) {
   const query = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
@@ -35,31 +57,33 @@ async function getOrganizationReleases(api, organization, conditions = null) {
     includeAllArgs: true,
     method: 'GET',
     query,
-  });
+  }) as Promise<[ReleaseMetaBasic[], any, JQueryXHR]>;
 }
 
-class ReleaseSeries extends React.Component {
-  static propTypes = {
-    api: PropTypes.object,
-    router: PropTypes.object,
-    organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(PropTypes.number),
-    environments: PropTypes.arrayOf(PropTypes.string),
+type Props = WithRouterProps & {
+  api: Client;
+  organization: Organization;
+  children: (s: State) => React.ReactNode;
+  projects: Readonly<number[]>;
+  environments: Readonly<string[]>;
+  start: DateString;
+  end: DateString;
+  period?: string;
+  utc?: boolean | null;
+  releases?: ReleaseMetaBasic[] | null;
+  tooltip?: EChartOption.Tooltip;
+  memoized?: boolean;
+  preserveQueryParams?: boolean;
+  emphasizeReleases?: string[];
+  queryExtra?: Query;
+};
 
-    period: PropTypes.string,
-    start: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-    end: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-    utc: PropTypes.bool,
-    // Array of releases, if empty, component will fetch releases itself
-    releases: PropTypes.arrayOf(SentryTypes.Release),
-    tooltip: SentryTypes.EChartsTooltip,
-    queryExtra: PropTypes.object,
+type State = {
+  releases: ReleaseMetaBasic[] | null;
+  releaseSeries: Series[];
+};
 
-    memoized: PropTypes.bool,
-    preserveQueryParams: PropTypes.bool,
-    emphasizeReleases: PropTypes.arrayOf(PropTypes.string),
-  };
-
+class ReleaseSeries extends React.Component<Props, State> {
   state = {
     releases: null,
     releaseSeries: [],
@@ -97,10 +121,15 @@ class ReleaseSeries extends React.Component {
     this.props.api.clear();
   }
 
+  _isMounted: boolean = false;
+
   getOrganizationReleasesMemoized = memoize(
-    async (api, conditions, organization) =>
-      await getOrganizationReleases(api, conditions, organization),
-    (_, __, conditions) => `${Object.values(conditions).map(JSON.stringify).join('-')}`
+    (api, conditions, organization) =>
+      getOrganizationReleases(api, conditions, organization),
+    (_, __, conditions) =>
+      Object.values(conditions)
+        .map(val => JSON.stringify(val))
+        .join('-')
   );
 
   async fetchData() {
@@ -114,7 +143,7 @@ class ReleaseSeries extends React.Component {
       end,
       memoized,
     } = this.props;
-    const conditions = {
+    const conditions: ReleaseConditions = {
       start,
       end,
       project: projects,
@@ -122,7 +151,7 @@ class ReleaseSeries extends React.Component {
       statsPeriod: period,
     };
     let hasMore = true;
-    const releases = [];
+    const releases: ReleaseMetaBasic[] = [];
     while (hasMore) {
       try {
         const getReleases = memoized
@@ -137,7 +166,7 @@ class ReleaseSeries extends React.Component {
         const pageLinks = xhr && xhr.getResponseHeader('Link');
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
-          hasMore = paginationObject && paginationObject.next.results;
+          hasMore = paginationObject?.next?.results ?? false;
           conditions.cursor = paginationObject.next.cursor;
         } else {
           hasMore = false;
@@ -155,7 +184,7 @@ class ReleaseSeries extends React.Component {
       releases,
       release => !emphasizeReleases.includes(release.version)
     );
-    const releaseSeries = [];
+    const releaseSeries: Series[] = [];
     if (unemphasizedReleases.length) {
       releaseSeries.push(this.getReleaseSeries(unemphasizedReleases));
     }
@@ -187,66 +216,72 @@ class ReleaseSeries extends React.Component {
       query.project = router.location.query.project;
     }
     if (preserveQueryParams) {
-      query.environment = environments;
+      query.environment = [...environments];
       query.start = start ? getUtcDateString(start) : undefined;
-      query.end = start ? getUtcDateString(end) : undefined;
+      query.end = end ? getUtcDateString(end) : undefined;
       query.statsPeriod = period || undefined;
     }
+
+    const markLine = MarkLine({
+      animation: false,
+      lineStyle: {
+        color: theme.purple300,
+        opacity,
+        type: 'solid',
+      },
+      label: {
+        show: false,
+      },
+      data: releases.map(release => ({
+        xAxis: +new Date(release.date),
+        name: formatVersion(release.version, true),
+        value: formatVersion(release.version, true),
+        onClick: () => {
+          router.push({
+            pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
+            query,
+          });
+        },
+        label: {
+          formatter: () => formatVersion(release.version, true),
+        },
+      })),
+    });
+
+    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
+    (markLine as any).tooltip =
+      tooltip ||
+      ({
+        trigger: 'item',
+        formatter: ({data}: EChartOption.Tooltip.Format) => {
+          // XXX using this.props here as this function does not get re-run
+          // unless projects are changed. Using a closure variable would result
+          // in stale values.
+          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
+            local: !this.props.utc,
+          });
+          const version = escape(formatVersion(data.name, true));
+          return [
+            '<div class="tooltip-series">',
+            `<div><span class="tooltip-label"><strong>${t(
+              'Release'
+            )}</strong></span> ${version}</div>`,
+            '</div>',
+            '<div class="tooltip-date">',
+            time,
+            '</div>',
+            '</div>',
+            '<div class="tooltip-arrow"></div>',
+          ].join('');
+        },
+      } as EChartOption.Tooltip);
 
     return {
       seriesName: 'Releases',
       data: [],
-      markLine: MarkLine({
-        animation: false,
-        lineStyle: {
-          normal: {
-            color: theme.purple300,
-            opacity,
-            type: 'solid',
-          },
-        },
-        tooltip: tooltip || {
-          trigger: 'item',
-          formatter: ({data}) => {
-            // XXX using this.props here as this function does not get re-run
-            // unless projects are changed. Using a closure variable would result
-            // in stale values.
-            const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-              local: !this.props.utc,
-            });
-            const version = escape(formatVersion(data.name, true));
-            return [
-              '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>${t(
-                'Release'
-              )}</strong></span> ${version}</div>`,
-              '</div>',
-              '<div class="tooltip-date">',
-              time,
-              '</div>',
-              '</div>',
-              '<div class="tooltip-arrow"></div>',
-            ].join('');
-          },
-        },
-        label: {
-          show: false,
-        },
-        data: releases.map(release => ({
-          xAxis: +new Date(release.date),
-          name: formatVersion(release.version, true),
-          value: formatVersion(release.version, true),
-          onClick: () => {
-            router.push({
-              pathname: `/organizations/${organization.slug}/releases/${release.version}/`,
-              query,
-            });
-          },
-          label: {
-            formatter: () => formatVersion(release.version, true),
-          },
-        })),
-      }),
+      markLine,
     };
   };
 

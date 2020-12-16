@@ -15,8 +15,8 @@ import {getPeriod} from 'app/utils/getPeriod';
 
 type Options = {
   organization: OrganizationSummary;
-  project?: number[];
-  environment?: string[];
+  project?: Readonly<number[]>;
+  environment?: Readonly<string[]>;
   period?: string;
   start?: DateString;
   end?: DateString;

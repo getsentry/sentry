@@ -558,6 +558,9 @@ class VitalCard extends React.Component<Props, State> {
       },
     });
 
+    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
     (markLine as any).tooltip = {
       formatter: () =>
         [

@@ -83,12 +83,9 @@ class VitalsChart extends React.Component<Props> {
       queryExtra,
     } = this.props;
 
-    const start = this.props.start
-      ? getUtcToLocalDateObject(this.props.start)
-      : undefined;
-
-    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
+    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const legend = {
       right: 10,
@@ -117,8 +114,8 @@ class VitalsChart extends React.Component<Props> {
     };
 
     const datetimeSelection = {
-      start: start || null,
-      end: end || null,
+      start,
+      end,
       period: statsPeriod,
     };
 
@@ -169,8 +166,8 @@ class VitalsChart extends React.Component<Props> {
               api={api}
               organization={organization}
               period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
+              project={project}
+              environment={environment}
               start={start}
               end={end}
               interval={getInterval(datetimeSelection, true)}
