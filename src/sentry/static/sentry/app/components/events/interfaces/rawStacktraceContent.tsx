@@ -1,5 +1,6 @@
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
 import {ExceptionValue, Frame} from 'app/types';
+import {StacktraceType} from 'app/types/stacktrace';
 import {defined, trim} from 'app/utils';
 
 function getJavaScriptFrame(frame: Frame): string {
@@ -163,9 +164,9 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
 }
 
 export default function render(
-  data: ExceptionValue,
-  platform: string | undefined,
-  exception: ExceptionValue
+  data: StacktraceType,
+  platform?: string,
+  exception?: ExceptionValue
 ) {
   const frames: string[] = [];
 
