@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
-import PropTypes from 'prop-types';
 
 import Hovercard from 'app/components/hovercard';
 import ExternalLink from 'app/components/links/externalLink';
@@ -13,37 +12,15 @@ import Pills from 'app/components/pills';
 import {IconInfo, IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Mechanism} from 'app/types/stacktrace';
 import {isUrl} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 
-class ExceptionMechanism extends React.Component {
-  static propTypes = {
-    data: PropTypes.shape({
-      type: PropTypes.string,
-      description: PropTypes.string,
-      help_link: PropTypes.string,
-      handled: PropTypes.bool,
-      meta: PropTypes.shape({
-        errno: PropTypes.shape({
-          number: PropTypes.number.isRequired,
-          name: PropTypes.string,
-        }),
-        mach_exception: PropTypes.shape({
-          exception: PropTypes.number.isRequired,
-          code: PropTypes.number.isRequired,
-          subcode: PropTypes.number.isRequired,
-          name: PropTypes.string,
-        }),
-        signal: PropTypes.shape({
-          number: PropTypes.number.isRequired,
-          code: PropTypes.number,
-          name: PropTypes.string,
-          code_name: PropTypes.string,
-        }),
-      }),
-      data: PropTypes.object,
-    }).isRequired,
-  };
+type Props = {
+  data: Mechanism;
+};
 
+class ExceptionMechanism extends React.Component<Props> {
   render() {
     const mechanism = this.props.data;
     const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
@@ -115,7 +92,7 @@ const Wrapper = styled('div')`
   margin: ${space(2)} 0;
 `;
 
-const iconStyle = p => css`
+const iconStyle = (p: {theme: Theme}) => css`
   transition: 0.1s linear color;
   color: ${p.theme.gray300};
   :hover {

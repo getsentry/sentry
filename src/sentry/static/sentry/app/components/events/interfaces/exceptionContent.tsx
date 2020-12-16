@@ -40,7 +40,7 @@ const ExceptionContent = ({
       <Annotated object={exc} objectKey="value" required>
         {value => <StyledPre className="exc-message">{value}</StyledPre>}
       </Annotated>
-      {exc.mechanism && <ExceptionMechanism data={exc.mechanism} platform={platform} />}
+      {exc.mechanism && <ExceptionMechanism data={exc.mechanism} />}
       <ExceptionStacktraceContent
         data={
           type === STACK_TYPE.ORIGINAL
