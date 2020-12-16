@@ -78,12 +78,9 @@ class VitalChart extends React.Component<Props> {
       router,
     } = this.props;
 
-    const start = this.props.start
-      ? getUtcToLocalDateObject(this.props.start)
-      : undefined;
-
-    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
+    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const vitalName = vitalNameFromLocation(location);
 
@@ -106,8 +103,8 @@ class VitalChart extends React.Component<Props> {
     };
 
     const datetimeSelection = {
-      start: start || null,
-      end: end || null,
+      start,
+      end,
       period: statsPeriod,
     };
 
@@ -211,8 +208,8 @@ class VitalChart extends React.Component<Props> {
                 api={api}
                 organization={organization}
                 period={statsPeriod}
-                project={[...project]}
-                environment={[...environment]}
+                project={project}
+                environment={environment}
                 start={start}
                 end={end}
                 interval={getInterval(datetimeSelection, true)}
