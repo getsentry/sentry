@@ -552,7 +552,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         :param user: User model. TODO Make this the first parameter.
         :param kwargs: (Optional) Object
             * params: (Optional) Object
-            * params.project: (Optional) String. The Jira project ID.
+            * params.project: (Optional) Sentry Project object
             * params.issuetype: (Optional) String. The Jira issue type. For
                 example: "Bug", "Epic", "Story".
         :return:

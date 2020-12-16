@@ -43,7 +43,6 @@ export default class AbstractExternalIssueForm<
       ...super.getDefaultState(),
       action: 'create',
       dynamicFieldValues: null,
-      // This is fetched by AsyncComponent.getEndpoints.
       integrationDetails: null,
     };
   }
