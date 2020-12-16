@@ -9,7 +9,7 @@ import ButtonBar from 'app/components/buttonBar';
 import ContextPickerModalContainer from 'app/components/contextPickerModal';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
-import {IconPause, IconPlay, IconSliders, IconUser} from 'app/icons';
+import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -99,20 +99,6 @@ function IssueListHeader({
               onClick={selectedProjectSlug ? undefined : handleSelectProject('ownership')}
             >
               {t('Issue Owners')}
-            </Button>
-            <Button
-              size="small"
-              icon={<IconSliders size="xs" />}
-              to={
-                selectedProjectSlug
-                  ? `/settings/${orgSlug}/projects/${selectedProjectSlug}/issue-grouping/`
-                  : undefined
-              }
-              onClick={
-                selectedProjectSlug ? undefined : handleSelectProject('issue-grouping')
-              }
-            >
-              {t('Issue Grouping')}
             </Button>
             <Button
               size="small"
