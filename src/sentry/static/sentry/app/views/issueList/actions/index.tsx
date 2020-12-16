@@ -375,6 +375,7 @@ const SelectAllNotice = styled('div')`
   background-color: ${p => p.theme.yellow100};
   border-top: 1px solid ${p => p.theme.yellow300};
   border-bottom: 1px solid ${p => p.theme.yellow300};
+  color: ${p => p.theme.black};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};
