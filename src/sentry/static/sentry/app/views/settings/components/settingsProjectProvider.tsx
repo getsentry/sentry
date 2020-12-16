@@ -1,6 +1,7 @@
 import React from 'react';
 
 import SentryTypes from 'app/sentryTypes';
+import {Project} from 'app/types';
 
 /**
  * Simple Component that takes project from context and passes it as props to children
@@ -16,13 +17,16 @@ class SettingsProjectProvider extends React.Component {
 
   render() {
     const {children} = this.props;
-    const {project} = this.context;
+    const {project}: {project: Project} = this.context;
 
-    return React.cloneElement(children, {
-      ...this.props,
-      ...children.props,
-      project,
-    });
+    if (React.isValidElement(children)) {
+      return React.cloneElement(children, {
+        ...this.props,
+        ...children.props,
+        project,
+      });
+    }
+    return null;
   }
 }
 
