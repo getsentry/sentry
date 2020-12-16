@@ -17,11 +17,11 @@ import StreamGroup from 'app/components/stream/group';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {tct} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
-import {Group} from 'app/types';
+import {GroupResolution} from 'app/types';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import withApi from 'app/utils/withApi';
 
-type CustomGroup = Group & {
+type CustomGroup = GroupResolution & {
   eventID: string;
   groupID: string;
 };
@@ -95,7 +95,7 @@ class List extends React.Component<Props, State> {
   // the goal of this function is to insert the properties eventID and groupID, so then the link rendered
   // in the EventOrGroupHeader component will always have the structure '/organization/:orgSlug/issues/:groupId/event/:eventId/',
   // providing a smooth navigation between issues with the same trace ID
-  convertGroupsIntoEventFormat = (groups: Array<Group>) => {
+  convertGroupsIntoEventFormat = (groups: Array<GroupResolution>) => {
     const {issues} = this.props;
 
     return groups

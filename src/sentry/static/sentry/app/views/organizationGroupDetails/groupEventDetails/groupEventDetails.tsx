@@ -223,9 +223,8 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     // reprocessing
     const hasReprocessingV2Feature = project.features?.includes('reprocessing-v2');
-    const {activity: activities, statusDetails, count} = group;
+    const {activity: activities, count} = group;
     const groupCount = Number(count);
-    const {pendingEvents} = statusDetails;
     const mostRecentActivity = getGroupMostRecentActivity(activities);
     const reprocessStatus = getGroupReprocessingStatus(group, mostRecentActivity);
 
@@ -233,10 +232,11 @@ class GroupEventDetails extends React.Component<Props, State> {
       <div className={className}>
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
-          reprocessStatus === ReprocessingStatus.REPROCESSING ? (
+          reprocessStatus === ReprocessingStatus.REPROCESSING &&
+          group.status === 'reprocessing' ? (
             <ReprocessingProgress
               totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
-              pendingEvents={pendingEvents ?? 0}
+              pendingEvents={group.statusDetails.pendingEvents}
             />
           ) : (
             <React.Fragment>
