@@ -19,17 +19,16 @@ INTEGRATION_KEY = "integration"
 
 
 class AzureDevopsNotifyServiceForm(forms.Form):
-    vsts_integration = forms.ChoiceField(choices=(), widget=forms.Select())
+    integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args, **kwargs):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(AzureDevopsNotifyServiceForm, self).__init__(*args, **kwargs)
-
         if integrations:
-            self.fields["vsts_integration"].initial = integrations[0][0]
+            self.fields[INTEGRATION_KEY].initial = integrations[0][0]
 
-        self.fields["vsts_integration"].choices = integrations
-        self.fields["vsts_integration"].widget.choices = self.fields["vsts_integration"].choices
+        self.fields[INTEGRATION_KEY].choices = integrations
+        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
     def clean(self):
         return super(AzureDevopsNotifyServiceForm, self).clean()
@@ -37,11 +36,9 @@ class AzureDevopsNotifyServiceForm(forms.Form):
 
 class AzureDevopsCreateTicketAction(TicketEventAction):
     form_cls = AzureDevopsNotifyServiceForm
-
+    label = u"Create an Azure DevOps work item in {integration} with these "
     ticket_type = "an Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/azure-devops/#issue-sync"
-    label = u"Create an Azure DevOps work item in {vsts_integration} with these "
-    prompt = "Create an Azure DevOps work item"
     provider = "vsts"
     integration_key = INTEGRATION_KEY
 
@@ -53,7 +50,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
             self.data[self.integration_key] = integration_choices[0][0]
 
         self.form_fields = {
-            "vsts_integration": {
+            self.integration_key: {
                 "choices": integration_choices,
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
@@ -67,7 +64,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
                 self.form_fields[field["name"]] = field
 
     def render_label(self):
-        return self.label.format(vsts_integration=self.get_integration_name())
+        return self.label.format(integration=self.get_integration_name())
 
     def get_dynamic_form_fields(self):
         """
