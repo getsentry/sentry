@@ -21,6 +21,7 @@ from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.web.helpers import render_to_response
 from sentry.utils.compat import filter, map
+from sentry.utils import json
 
 from .client import gen_aws_lambda_client
 from .utils import parse_arn
@@ -70,6 +71,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         return [
             AwsLambdaProjectSelectPipelineView(),
             AwsLambdaCloudFormationPipelineView(),
+            AwsLambdaListFunctionsPipelineView(),
             AwsLambdaSetupLayerPipelineView(),
         ]
 
@@ -123,10 +125,12 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
         template_url = options.get("aws-lambda.cloudformation-url")
 
-        # TODO: Find way so a user/org only gets one external id
-        aws_external_id = uuid.uuid4()
+        # let browser set external id from local storage so restarting
+        # the installation maintains the same external id
+        aws_external_id = request.GET.get("aws_external_id", uuid.uuid4())
 
         cloudformation_url = (
+            "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
             "stackName=Sentry-Monitoring-Stack-Filter&templateURL=%s&param_ExternalId=%s"
             % (template_url, aws_external_id)
         )
@@ -138,13 +142,41 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         )
 
 
+class AwsLambdaListFunctionsPipelineView(PipelineView):
+    def dispatch(self, request, pipeline):
+        if request.method == "POST":
+            # TODO: find better way to determine if the POST is from the previous step
+            if not request.POST.get("aws_external_id"):
+                data = json.loads(request.body)
+                pipeline.bind_state("enabled_lambdas", data)
+                return pipeline.next_step()
+
+        arn = pipeline.fetch_state("arn")
+        aws_external_id = pipeline.fetch_state("aws_external_id")
+
+        lambda_client = gen_aws_lambda_client(arn, aws_external_id)
+
+        lambda_functions = filter(
+            lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+            lambda_client.list_functions()["Functions"],
+        )
+
+        return self.render_react_view(
+            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions}
+        )
+
+
 class AwsLambdaSetupLayerPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
+        if "finish_pipeline" in request.GET:
+            return pipeline.finish_pipeline()
+
         organization = pipeline.organization
 
         arn = pipeline.fetch_state("arn")
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
+        enabled_lambdas = pipeline.fetch_state("enabled_lambdas")
 
         try:
             project = Project.objects.get(organization=organization, id=project_id)
@@ -162,9 +194,15 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
             lambda_client.list_functions()["Functions"],
         )
+        lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
+
+        failures = []
 
         for function in lambda_functions:
             name = function["FunctionName"]
+            # check to see if the user wants to enable this function
+            if not enabled_lambdas.get(name):
+                continue
             # TODO: load existing layers and environment and append to them
             try:
                 lambda_client.update_function_configuration(
@@ -179,6 +217,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     },
                 )
             except Exception as e:
+                failures.append(function)
                 logger.info(
                     "update_function_configuration.error",
                     extra={
@@ -189,4 +228,11 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     },
                 )
 
-        return pipeline.next_step()
+        # if we have failures, show them to the user
+        # otherwise, finish
+        if failures:
+            return self.render_react_view(
+                request, "awsLambdaFailureDetails", {"lambdaFunctionFailures": failures}
+            )
+        else:
+            return pipeline.finish_pipeline()
