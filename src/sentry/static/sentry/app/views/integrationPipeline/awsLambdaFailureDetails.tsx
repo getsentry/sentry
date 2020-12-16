@@ -12,13 +12,9 @@ export default function AwsLambdaFailureDetails({lambdaFunctionFailures}: Props)
   return (
     <Wrapper>
       <h3>{t('Failed to update the following Lambda Functions')}</h3>
-      {lambdaFunctionFailures
-        .sort((a, b) =>
-          a.FunctionName.toLowerCase() < b.FunctionName.toLowerCase() ? -1 : 1
-        )
-        .map(func => {
-          return <div key={func.FunctionName}>{func.FunctionName}</div>;
-        })}
+      {lambdaFunctionFailures.map(func => {
+        return <div key={func.FunctionName}>{func.FunctionName}</div>;
+      })}
       <StyledButton priority="primary" href="?finish_pipeline=1">
         Finish
       </StyledButton>

@@ -194,6 +194,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
             lambda_client.list_functions()["Functions"],
         )
+        lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
         failures = []
 

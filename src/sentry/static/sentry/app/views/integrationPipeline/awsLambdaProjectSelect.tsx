@@ -32,7 +32,6 @@ export default function AwsLambdaProjectSelect({projects}: {projects: Project[]}
       },
     ],
   };
-  // TODO: convert to post
   const handleSubmit = ({projectId}: {projectId: string}) => {
     // redirect to the same URL but with the project_id set
     const {
