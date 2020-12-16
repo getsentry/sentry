@@ -80,12 +80,7 @@ class JiraCreateTicketAction(TicketEventAction):
         :return: (Option) Django form fields dictionary
         """
         fields = self.data.get("dynamic_form_fields")
-        print("fields", fields)
-        return {
-            field['name']: field
-            for field in fields
-            if 'name' in field
-        } if fields else None
+        return {field["name"]: field for field in fields if "name" in field} if fields else None
 
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
