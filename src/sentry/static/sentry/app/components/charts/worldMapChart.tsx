@@ -2,9 +2,9 @@ import React from 'react';
 import echarts, {EChartOption} from 'echarts';
 import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
-import {Theme} from 'app/utils/theme';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
+import {Theme} from 'app/utils/theme';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
