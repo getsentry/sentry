@@ -85,7 +85,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
     }
 
     const releaseQueryExtra = {
-      yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_LCP : YAxis.COUNT_DURATION,
+      yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_VITAL : YAxis.COUNT_DURATION,
       showTransactions:
         display === DisplayModes.VITALS
           ? TransactionsListOption.SLOW_LCP
