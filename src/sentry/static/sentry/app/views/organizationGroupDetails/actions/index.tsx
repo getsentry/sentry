@@ -201,11 +201,8 @@ class Actions extends React.Component<Props, State> {
     });
   };
 
-  handleClick(
-    disabled: boolean,
-    onClick: (event: React.MouseEvent<HTMLDivElement>) => void
-  ) {
-    return function (event: React.MouseEvent<HTMLDivElement>) {
+  handleClick(disabled: boolean, onClick: (event: React.MouseEvent) => void) {
+    return function (event: React.MouseEvent) {
       if (disabled) {
         event.preventDefault();
         event.stopPropagation();
@@ -298,7 +295,6 @@ class Actions extends React.Component<Props, State> {
         <SubscribeAction
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-          className={buttonClassName}
         />
 
         {projectFeatures.has('reprocessing-v2') && (
