@@ -6,6 +6,7 @@ if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
     exit 0
 fi
 
+red="$(tput setaf 1)"
 yellow="$(tput setaf 3)"
 bold="$(tput bold)"
 reset="$(tput sgr0)"
@@ -51,12 +52,13 @@ ${reset}
 EOF
             else
                 cat << EOF
-${yellow}${bold}
+${red}${bold}
 WARNING! You are running a virtualenv with a Python version different than 3.6
 We recommend you start with a fresh virtualenv or to set the variable PYTHON_VERSION
 to the Python version you want to use (e.g. 3.7).
 ${reset}
 EOF
+                exit 1
             fi
         fi
     fi
