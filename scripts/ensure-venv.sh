@@ -44,17 +44,17 @@ EOF
         # If .venv is created with Python greater than 3.6 you might encounter problems and we want to ask you to downgrade
         # unless you explicitely set an environment variable
         if [[ "$minor" -gt 6 ]]; then
-            if [[ -n "$PYTHON_VERSION" ]]; then
+            if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
                 cat << EOF
 ${yellow}${bold}
-You have explicitly set a non-recommended Python version (${PYTHON_VERSION}). You're on your own.
+You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
 ${reset}
 EOF
             else
                 cat << EOF
 ${red}${bold}
 WARNING! You are running a virtualenv with a Python version different than 3.6
-We recommend you start with a fresh virtualenv or to set the variable PYTHON_VERSION
+We recommend you start with a fresh virtualenv or to set the variable SENTRY_PYTHON_VERSION
 to the Python version you want to use (e.g. 3.7).
 ${reset}
 EOF
