@@ -2,9 +2,9 @@ import React from 'react';
 
 import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
 
+import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
 import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
-import AwsLambdFailureDetails from './awsLambdFailureDetails';
 
 /**
  * This component is a wrapper for specific pipeline views for integrations
@@ -13,7 +13,7 @@ import AwsLambdFailureDetails from './awsLambdFailureDetails';
 const pipelineMapper = {
   awsLambdaProjectSelect: AwsLambdaProjectSelect,
   awsLambdaFunctionSelect: AwsLambdaFunctionSelect,
-  awsLambdFailureDetails: AwsLambdFailureDetails,
+  awsLambdaFailureDetails: AwsLambdaFailureDetails,
 };
 
 type Props = {

@@ -231,7 +231,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         # otherwise, finish
         if failures:
             return self.render_react_view(
-                request, "awsLambdFailureDetails", {"lambdaFunctionFailures": failures}
+                request, "awsLambdaFailureDetails", {"lambdaFunctionFailures": failures}
             )
         else:
             return pipeline.finish_pipeline()

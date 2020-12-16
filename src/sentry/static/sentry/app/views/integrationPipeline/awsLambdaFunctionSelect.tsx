@@ -45,7 +45,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     return (
       <StyledForm
         initialData={this.initialData}
-        allowDefault
+        skipPreventDefault
         model={model}
         apiEndpoint="/extensions/aws_lambda/setup/"
       >

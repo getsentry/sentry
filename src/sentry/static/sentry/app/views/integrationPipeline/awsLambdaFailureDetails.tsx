@@ -8,7 +8,7 @@ type Props = {
   lambdaFunctionFailures: Array<{FunctionName: string; Runtime: string}>;
 };
 
-export default function AwsLambdFailureDetails({lambdaFunctionFailures}: Props) {
+export default function AwsLambdaFailureDetails({lambdaFunctionFailures}: Props) {
   return (
     <Wrapper>
       <h3>{t('Failed to update the following Lambda Functions')}</h3>
