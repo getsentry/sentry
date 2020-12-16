@@ -261,7 +261,7 @@ def parse_sources(config):
 def get_options_for_project(project):
     return {
         # Symbolicators who do not support options will ignore this field entirely.
-        "dif_candidates": features.has("organizations:dif-candidates", project.organization)
+        "dif_candidates": features.has("organizations:images-loaded-v2", project.organization)
     }
 
 
