@@ -133,7 +133,10 @@ class ActivityEmail(object):
         project = self.project
         group = self.group
 
-        headers = {"X-Sentry-Project": project.slug}
+        headers = {
+            "X-Sentry-Project": project.slug,
+            "X-SMTPAPI": {"category": self.get_category()},
+        }
 
         if group:
             headers.update(
@@ -141,7 +144,6 @@ class ActivityEmail(object):
                     "X-Sentry-Logger": group.logger,
                     "X-Sentry-Logger-Level": group.get_level_display(),
                     "X-Sentry-Reply-To": group_id_to_email(group.id),
-                    "category": self.get_category(),
                 }
             )
 
