@@ -4,10 +4,10 @@ import space from 'app/styles/space';
  * Note this is an object for `react-mentions` component and
  * not a styled component/emotion style
  */
-export default function mentionStyle({minHeight}) {
+export default function mentionStyle({theme, minHeight}) {
   return {
     control: {
-      backgroundColor: '#fff',
+      backgroundColor: `${theme.background}`,
       fontSize: 15,
       fontWeight: 'normal',
     },
