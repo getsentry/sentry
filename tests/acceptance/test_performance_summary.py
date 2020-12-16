@@ -118,7 +118,13 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
-            urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
+            urlencode(
+                {
+                    "transaction": "/country_by_code/",
+                    "project": self.project.id,
+                    "dataFilter": "exclude_outliers",
+                }
+            ),
         )
 
         # Create transactions
@@ -169,7 +175,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.element(
                 xpath="//button//span[contains(text(), 'Exclude Outliers')]"
             ).click()
-
             self.browser.element(xpath="//li//span[contains(text(), 'View All')]").click()
             self.page.wait_until_loaded()
 
