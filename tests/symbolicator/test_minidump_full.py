@@ -140,7 +140,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
 
         with self.feature(
-            {"organizations:event-attachments": True, "projects:reprocessing-v2": True}
+            {"organizations:event-attachments": True, "organizations:reprocessing-v2": True}
         ):
             with open(get_fixture_path("windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(

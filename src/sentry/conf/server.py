@@ -911,6 +911,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -937,8 +939,6 @@ SENTRY_FEATURES = {
     "organizations:unhandled-issue-flag": False,
     # Enable "owner"/"suggested assignee" features.
     "organizations:workflow-owners": False,
-    # Enable Issues List Reprocessing Tab.
-    "organizations:reprocessing-ui": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -958,8 +958,6 @@ SENTRY_FEATURES = {
     "projects:plugins": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable version 2 of reprocessing (completely distinct from v1)
-    "projects:reprocessing-v2": False,
     # Enable functionality for sampling of events on projects.
     "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.

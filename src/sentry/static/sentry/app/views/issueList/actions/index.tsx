@@ -256,7 +256,7 @@ class IssueListActions extends React.Component<Props, State> {
 
     const numIssues = issues.size;
     const isReprocessingQuery =
-      query === Query.REPROCESSING && organization.features.includes('reprocessing-ui');
+      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
     return (
       <Sticky>
