@@ -26,6 +26,7 @@ import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import {metric} from 'app/utils/analytics';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import {setupColorScheme} from 'app/utils/matchMedia';
+import PipelineView from 'app/views/integrationPipeline/pipelineView';
 
 if (NODE_ENV === 'development') {
   import(
@@ -121,8 +122,10 @@ jQuery.ajaxSetup({
   },
 });
 
+const ROOT_ELEMENT = 'blk_router';
+
 const render = (Component: React.ComponentType) => {
-  const rootEl = document.getElementById('blk_router');
+  const rootEl = document.getElementById(ROOT_ELEMENT);
 
   try {
     ReactDOM.render(<Component />, rootEl);
@@ -137,6 +140,11 @@ const render = (Component: React.ComponentType) => {
       window.location.assign(window.location.pathname);
     }
   }
+};
+
+const RenderPipelineView = (pipelineName: string, props: Object) => {
+  const rootEl = document.getElementById(ROOT_ELEMENT);
+  ReactDOM.render(<PipelineView pipelineName={pipelineName} {...props} />, rootEl);
 };
 
 // setup darkmode + favicon
@@ -159,6 +167,9 @@ async function loadPasswordStrength(callback: Function) {
 const globals = {
   // This is the primary entrypoint for rendering the sentry app.
   SentryRenderApp: () => render(Main),
+
+  // This is used to render pipeline views (such as the integration popup)
+  RenderPipelineView,
 
   // The following globals are used in sentry-plugins webpack externals
   // configuration.

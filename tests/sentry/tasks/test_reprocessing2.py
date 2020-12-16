@@ -26,7 +26,7 @@ from sentry.utils.cache import cache_key_for_event
 def reprocessing_feature(monkeypatch):
     monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
 
-    with Feature({"projects:reprocessing-v2": True}):
+    with Feature({"organizations:reprocessing-v2": True}):
         yield
 
 
