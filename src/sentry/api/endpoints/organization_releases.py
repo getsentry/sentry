@@ -371,6 +371,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 if commit_list:
                     try:
                         release.set_commits(commit_list)
+                        analytics.record(
+                            "release.set_commits",
+                            user_id=request.user.id if request.user and request.user.id else None,
+                            organization_id=organization.id,
+                            project_ids=[project.id for project in release.projects.all()],
+                            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                        )
                     except ReleaseCommitError:
                         raise ConflictError("Release commits are currently being processed")
 
@@ -395,6 +402,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     fetch_commits = not commit_list
                     try:
                         release.set_refs(refs, request.user, fetch=fetch_commits)
+                        analytics.record(
+                            "release.set_commits",
+                            user_id=request.user.id if request.user and request.user.id else None,
+                            organization_id=organization.id,
+                            project_ids=[project.id for project in release.projects.all()],
+                            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                        )
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [six.text_type(e)]}, status=400)
@@ -416,6 +430,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
                 )
+
                 scope.set_tag("success_status", status)
                 return Response(serialize(release, request.user), status=status)
             scope.set_tag("failure_reason", "serializer_error")

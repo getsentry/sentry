@@ -4,6 +4,8 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry import analytics
+
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -97,6 +99,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                                       the release went live.  If not provided
                                       the current time is assumed.
         :param array commits: an optional list of commit data to be associated
+
                               with the release. Commits must include parameters
                               ``id`` (the sha of the commit), and can optionally
                               include ``repository``, ``message``, ``author_name``,
@@ -185,6 +188,14 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                         data={"version": release.version},
                         datetime=release.date_released,
                     )
+
+            analytics.record(
+                "release.set_commits",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=organization.id,
+                project_ids=[project.id for project in release.projects.all()],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
 
             return Response(serialize(release, request.user))
 

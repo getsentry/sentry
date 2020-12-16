@@ -5,6 +5,8 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
+from sentry import analytics
+
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -141,6 +143,13 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                     datetime=release.date_released,
                 )
 
+            analytics.record(
+                "release.set_commits",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=project.organization_id,
+                project_ids=[project.id for project in release.projects.all()],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
             return Response(serialize(release, request.user))
 
     @transaction_start("ProjectReleaseDetailsEndpoint.delete")
