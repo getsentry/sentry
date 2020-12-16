@@ -1,0 +1,42 @@
+name: Development Environment
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  dev-environment:
+    name: Python set up
+    runs-on: macos-11.0
+    timeout-minutes: 5
+    strategy:
+    matrix:
+      python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
+      - name: Set up Python environment (as per direnv)
+        run: |
+          python -m virtualenv .venv
+          source .venv/bin/activate
+          make install-py-dev
+          make setup-git
+          touch foo.txt && git add foo.txt && git commit -m "Test git hooks"
