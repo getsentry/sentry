@@ -133,6 +133,13 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                 hook = ReleaseHook(project)
                 # TODO(dcramer): handle errors with release payloads
                 hook.set_commits(release.version, commit_list)
+                analytics.record(
+                    "release.set_commits_local",
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=project.organization_id,
+                    project_ids=[project.id],
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                )
 
             if not was_released and release.date_released:
                 Activity.objects.create(
@@ -143,13 +150,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                     datetime=release.date_released,
                 )
 
-            analytics.record(
-                "release.set_commits",
-                user_id=request.user.id if request.user and request.user.id else None,
-                organization_id=project.organization_id,
-                project_ids=[project.id for project in release.projects.all()],
-                user_agent=request.META.get("HTTP_USER_AGENT", ""),
-            )
             return Response(serialize(release, request.user))
 
     @transaction_start("ProjectReleaseDetailsEndpoint.delete")

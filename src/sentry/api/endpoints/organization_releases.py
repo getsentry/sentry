@@ -372,10 +372,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     try:
                         release.set_commits(commit_list)
                         analytics.record(
-                            "release.set_commits",
+                            "release.set_commits_local",
                             user_id=request.user.id if request.user and request.user.id else None,
                             organization_id=organization.id,
-                            project_ids=[project.id for project in release.projects.all()],
+                            project_ids=[project.id for project in projects],
                             user_agent=request.META.get("HTTP_USER_AGENT", ""),
                         )
                     except ReleaseCommitError:
@@ -402,13 +402,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     fetch_commits = not commit_list
                     try:
                         release.set_refs(refs, request.user, fetch=fetch_commits)
-                        analytics.record(
-                            "release.set_commits",
-                            user_id=request.user.id if request.user and request.user.id else None,
-                            organization_id=organization.id,
-                            project_ids=[project.id for project in release.projects.all()],
-                            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-                        )
                     except InvalidRepository as e:
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [six.text_type(e)]}, status=400)

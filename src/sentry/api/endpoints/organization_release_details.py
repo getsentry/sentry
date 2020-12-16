@@ -118,6 +118,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             scope.set_tag("version", version)
             try:
                 release = Release.objects.get(organization_id=organization, version=version)
+                projects = release.projects.all()
             except Release.DoesNotExist:
                 scope.set_tag("failure_reason", "Release.DoesNotExist")
                 raise ResourceDoesNotExist
@@ -153,7 +154,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             if commit_list:
                 # TODO(dcramer): handle errors with release payloads
                 release.set_commits(commit_list)
-
+                analytics.record(
+                    "release.set_commits_local",
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization.id,
+                    project_ids=[project.id for project in projects],
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                )
             refs = result.get("refs")
             if not refs:
                 refs = [
@@ -180,7 +187,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                     return Response({"refs": [six.text_type(e)]}, status=400)
 
             if not was_released and release.date_released:
-                for project in release.projects.all():
+                for project in projects:
                     Activity.objects.create(
                         type=Activity.RELEASE,
                         project=project,
@@ -188,14 +195,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                         data={"version": release.version},
                         datetime=release.date_released,
                     )
-
-            analytics.record(
-                "release.set_commits",
-                user_id=request.user.id if request.user and request.user.id else None,
-                organization_id=organization.id,
-                project_ids=[project.id for project in release.projects.all()],
-                user_agent=request.META.get("HTTP_USER_AGENT", ""),
-            )
 
             return Response(serialize(release, request.user))
 
