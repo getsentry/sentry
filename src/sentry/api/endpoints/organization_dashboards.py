@@ -39,7 +39,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             serialized = []
             for item in results:
                 if isinstance(item, dict):
-                    serialized.append(item)
+                    cloned = item.copy()
+                    del cloned["widgets"]
+                    serialized.append(cloned)
                 else:
                     serialized.append(serialize(item, request.user, serializer=list_serializer))
             return serialized
