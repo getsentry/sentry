@@ -423,9 +423,11 @@ class SentryAppStatus(object):
     UNPUBLISHED = 0
     PUBLISHED = 1
     INTERNAL = 2
+    PUBLISH_REQUEST_INPROGRESS = 3
     UNPUBLISHED_STR = "unpublished"
     PUBLISHED_STR = "published"
     INTERNAL_STR = "internal"
+    PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
 
     @classmethod
     def as_choices(cls):
@@ -433,6 +435,7 @@ class SentryAppStatus(object):
             (cls.UNPUBLISHED, six.text_type(cls.UNPUBLISHED_STR)),
             (cls.PUBLISHED, six.text_type(cls.PUBLISHED_STR)),
             (cls.INTERNAL, six.text_type(cls.INTERNAL_STR)),
+            (cls.PUBLISH_REQUEST_INPROGRESS, six.text_type(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
         )
 
     @classmethod
@@ -443,6 +446,8 @@ class SentryAppStatus(object):
             return cls.PUBLISHED_STR
         elif status == cls.INTERNAL:
             return cls.INTERNAL_STR
+        elif status == cls.PUBLISH_REQUEST_INPROGRESS:
+            return cls.PUBLISH_REQUEST_INPROGRESS_STR
 
 
 class SentryAppInstallationStatus(object):
