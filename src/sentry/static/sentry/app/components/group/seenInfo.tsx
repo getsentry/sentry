@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -79,12 +80,22 @@ class SeenInfo extends React.Component<Props> {
               {environment && (
                 <TimeSinceWrapper>
                   {toTitleCase(environment)}
-                  <TimeSince date={date} disabledAbsoluteTooltip />
+                  {date ? (
+                    <TimeSince date={date} disabledAbsoluteTooltip />
+                  ) : (
+                    <span>{t('N/A')}</span>
+                  )}
                 </TimeSinceWrapper>
               )}
             </div>
           }
-          body={<StyledDateTime date={date} />}
+          body={
+            date ? (
+              <StyledDateTime date={date} />
+            ) : (
+              <NoEnvironment>{t(`N/A for ${environment}`)}</NoEnvironment>
+            )
+          }
           position="top"
           tipColor={theme.gray500}
         >
@@ -99,7 +110,7 @@ class SeenInfo extends React.Component<Props> {
                 <StyledTimeSince date={dateGlobal} disabledAbsoluteTooltip />
               </React.Fragment>
             ) : (
-              <React.Fragment>{t('n/a')} </React.Fragment>
+              <NoDateTime>{t('N/A')}</NoDateTime>
             )}
           </DateWrapper>
         </StyledHovercard>
@@ -124,6 +135,13 @@ class SeenInfo extends React.Component<Props> {
   }
 }
 
+const dateTimeCss = p => css`
+  color: ${p.theme.gray300};
+  font-size: ${p.theme.fontSizeMedium};
+  display: flex;
+  justify-content: center;
+`;
+
 const HovercardWrapper = styled('div')`
   display: flex;
 `;
@@ -134,10 +152,15 @@ const DateWrapper = styled('div')`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: flex;
-  justify-content: center;
+  ${dateTimeCss};
+`;
+
+const NoEnvironment = styled('div')`
+  ${dateTimeCss};
+`;
+
+const NoDateTime = styled('span')`
+  margin-right: ${space(0.5)};
 `;
 
 const TooltipWrapper = styled('span')`
