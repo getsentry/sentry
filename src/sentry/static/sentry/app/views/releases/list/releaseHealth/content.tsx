@@ -2,13 +2,15 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Button from 'app/components/button';
+import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Release, ReleaseProject} from 'app/types';
@@ -16,7 +18,6 @@ import {defined} from 'app/utils';
 
 import {getReleaseNewIssuesUrl} from '../../utils';
 import AdoptionTooltip from '../adoptionTooltip';
-import ClippedHealthRows from '../clippedHealthRows';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
@@ -76,128 +77,179 @@ const Content = ({
         </Layout>
       </Header>
 
-      <ClippedHealthRows>
-        {projects.map(project => {
-          const {slug, healthData, newGroups} = project;
-          const {
-            hasHealthData,
-            adoption,
-            stats,
-            crashFreeUsers,
-            crashFreeSessions,
-            sessionsCrashed,
-            totalUsers,
-            totalUsers24h,
-            totalSessions,
-            totalSessions24h,
-          } = healthData || {};
+      <ProjectRows>
+        <Collapsible
+          expandButton={({onExpand, numberOfCollapsedItems}) => (
+            <ExpandButtonWrapper>
+              <Button priority="primary" size="xsmall" onClick={onExpand}>
+                {tct('Show [numberOfCollapsedItems] More', {
+                  numberOfCollapsedItems,
+                })}
+              </Button>
+            </ExpandButtonWrapper>
+          )}
+          collapseButton={({onCollapse}) => (
+            <CollapseButtonWrapper>
+              <Button priority="primary" size="xsmall" onClick={onCollapse}>
+                {t('Collapse')}
+              </Button>
+            </CollapseButtonWrapper>
+          )}
+        >
+          {projects.map(project => {
+            const {slug, healthData, newGroups} = project;
+            const {
+              hasHealthData,
+              adoption,
+              stats,
+              crashFreeUsers,
+              crashFreeSessions,
+              sessionsCrashed,
+              totalUsers,
+              totalUsers24h,
+              totalSessions,
+              totalSessions24h,
+            } = healthData || {};
 
-          return (
-            <ProjectRow key={`${releaseVersion}-${slug}-health`}>
-              <Layout>
-                <ProjectColumn>
-                  <ProjectName
-                    orgSlug={orgSlug}
-                    project={project}
-                    releaseVersion={releaseVersion}
-                  />
-                </ProjectColumn>
+            return (
+              <ProjectRow key={`${releaseVersion}-${slug}-health`}>
+                <Layout>
+                  <ProjectColumn>
+                    <ProjectName
+                      orgSlug={orgSlug}
+                      project={project}
+                      releaseVersion={releaseVersion}
+                    />
+                  </ProjectColumn>
 
-                <AdoptionColumn>
-                  {showPlaceholders ? (
-                    <StyledPlaceholder width="150px" />
-                  ) : defined(adoption) ? (
-                    <AdoptionWrapper>
-                      <ProgressBarWrapper>
-                        <Tooltip
-                          containerDisplayMode="block"
-                          title={
-                            <AdoptionTooltip
-                              totalUsers={totalUsers}
-                              totalSessions={totalSessions}
-                              totalUsers24h={totalUsers24h}
-                              totalSessions24h={totalSessions24h}
-                            />
-                          }
-                        >
-                          <ProgressBar value={Math.ceil(adoption)} />
-                        </Tooltip>
-                      </ProgressBarWrapper>
-                      <Count value={totalUsers24h ?? 0} />
-                    </AdoptionWrapper>
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </AdoptionColumn>
-
-                {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
-                  <UsersColumn>
+                  <AdoptionColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeUsers) ? (
-                      <CrashFree percent={crashFreeUsers} />
+                      <StyledPlaceholder width="150px" />
+                    ) : defined(adoption) ? (
+                      <AdoptionWrapper>
+                        <ProgressBarWrapper>
+                          <Tooltip
+                            containerDisplayMode="block"
+                            title={
+                              <AdoptionTooltip
+                                totalUsers={totalUsers}
+                                totalSessions={totalSessions}
+                                totalUsers24h={totalUsers24h}
+                                totalSessions24h={totalSessions24h}
+                              />
+                            }
+                          >
+                            <ProgressBar value={Math.ceil(adoption)} />
+                          </Tooltip>
+                        </ProgressBarWrapper>
+                        <Count value={totalUsers24h ?? 0} />
+                      </AdoptionWrapper>
                     ) : (
                       <NotAvailable />
                     )}
-                  </UsersColumn>
-                ) : (
-                  <SessionsColumn>
+                  </AdoptionColumn>
+
+                  {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
+                    <UsersColumn>
+                      {showPlaceholders ? (
+                        <StyledPlaceholder width="60px" />
+                      ) : defined(crashFreeUsers) ? (
+                        <CrashFree percent={crashFreeUsers} />
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </UsersColumn>
+                  ) : (
+                    <SessionsColumn>
+                      {showPlaceholders ? (
+                        <StyledPlaceholder width="60px" />
+                      ) : defined(crashFreeSessions) ? (
+                        <CrashFree percent={crashFreeSessions} />
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </SessionsColumn>
+                  )}
+
+                  <DailyColumn>
                     {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeSessions) ? (
-                      <CrashFree percent={crashFreeSessions} />
+                      <StyledPlaceholder />
+                    ) : hasHealthData && defined(stats) ? (
+                      <ChartWrapper>
+                        <HealthStatsChart
+                          data={stats}
+                          height={20}
+                          period={activeStatsPeriod}
+                          activeDisplay={activeDisplay}
+                        />
+                      </ChartWrapper>
                     ) : (
                       <NotAvailable />
                     )}
-                  </SessionsColumn>
-                )}
+                  </DailyColumn>
 
-                <DailyColumn>
-                  {showPlaceholders ? (
-                    <StyledPlaceholder />
-                  ) : hasHealthData && defined(stats) ? (
-                    <ChartWrapper>
-                      <HealthStatsChart
-                        data={stats}
-                        height={20}
-                        period={activeStatsPeriod}
-                        activeDisplay={activeDisplay}
-                      />
-                    </ChartWrapper>
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </DailyColumn>
+                  <CrashesColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="30px" />
+                    ) : hasHealthData && defined(sessionsCrashed) ? (
+                      <Count value={sessionsCrashed} />
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </CrashesColumn>
 
-                <CrashesColumn>
-                  {showPlaceholders ? (
-                    <StyledPlaceholder width="30px" />
-                  ) : hasHealthData && defined(sessionsCrashed) ? (
-                    <Count value={sessionsCrashed} />
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </CrashesColumn>
-
-                <IssuesColumn>
-                  <Tooltip title={t('Open in Issues')}>
-                    <Link
-                      to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
-                    >
-                      <Count value={newGroups || 0} />
-                    </Link>
-                  </Tooltip>
-                </IssuesColumn>
-              </Layout>
-            </ProjectRow>
-          );
-        })}
-      </ClippedHealthRows>
+                  <IssuesColumn>
+                    <Tooltip title={t('Open in Issues')}>
+                      <Link
+                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                      >
+                        <Count value={newGroups || 0} />
+                      </Link>
+                    </Tooltip>
+                  </IssuesColumn>
+                </Layout>
+              </ProjectRow>
+            );
+          })}
+        </Collapsible>
+      </ProjectRows>
     </React.Fragment>
   );
 };
 
 export default Content;
+
+const ProjectRows = styled('div')`
+  position: relative;
+`;
+
+const ExpandButtonWrapper = styled('div')`
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: linear-gradient(
+    180deg,
+    hsla(0, 0%, 100%, 0.15) 0,
+    ${p => p.theme.white}
+  );
+  background-repeat: repeat-x;
+  border-bottom: ${space(1)} solid ${p => p.theme.white};
+  border-top: ${space(1)} solid transparent;
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const CollapseButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 41px;
+`;
 
 const ProjectRow = styled(PanelItem)`
   padding: 10px ${space(2)};
