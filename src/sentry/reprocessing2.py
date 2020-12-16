@@ -79,13 +79,14 @@ instead of group deletion is:
 from __future__ import absolute_import
 
 import hashlib
+import random
 import logging
 import sentry_sdk
 import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore
+from sentry import nodestore, features, eventstore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry import models
 from sentry.utils import snuba
@@ -110,14 +111,18 @@ def _generate_unprocessed_event_node_id(project_id, event_id):
     ).hexdigest()
 
 
+def _should_build_dataset(project):
+    if features.has("projects:reprocessing-v2", project, actor=None):
+        return True
+
+    return random.random() < (options.get("reprocessing2.sample-dataset-building") or 0.0)
+
+
 def save_unprocessed_event(project, event_id):
     """
     Move event from event_processing_store into nodestore. Only call if event
     has outcome=accepted.
     """
-    if not features.has("projects:reprocessing-v2", project, actor=None):
-        return
-
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.save_unprocessed_event.get_unprocessed_event"
     ):
@@ -138,7 +143,7 @@ def backup_unprocessed_event(project, data):
     able to be reprocessed.
     """
 
-    if not features.has("projects:reprocessing-v2", project, actor=None):
+    if not _should_build_dataset(project):
         return
 
     event_processing_store.store(data, unprocessed=True)

@@ -276,3 +276,8 @@ register("store.use-relay-dsn-sample-rate", default=1)
 
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
+
+# Sample rate for saving pre-event-processing backups of event payload to be
+# used for reprocessing.  Once the rollout is complete this option will become
+# defunct.
+register("reprocessing2.sample-dataset-building", default=0.0)
