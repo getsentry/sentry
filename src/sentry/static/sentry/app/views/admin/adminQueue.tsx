@@ -1,5 +1,8 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {SelectField} from 'app/components/forms';
 import InternalStatChart from 'app/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -59,21 +62,17 @@ export default class AdminQueue extends AsyncView<{}, State> {
 
     return (
       <div>
-        <div className="btn-group pull-right">
-          {TIME_WINDOWS.map(r => (
-            <a
-              className={`btn btn-sm ${
-                r === this.state.timeWindow ? 'btn-primary' : 'btn-default'
-              }`}
-              onClick={() => this.changeWindow(r)}
-              key={r}
-            >
-              {r}
-            </a>
-          ))}
-        </div>
+        <Header>
+          <h3 className="no-border">Queue Overview</h3>
 
-        <h3 className="no-border">Queue Overview</h3>
+          <ButtonBar merged active={this.state.timeWindow}>
+            {TIME_WINDOWS.map(r => (
+              <Button size="small" barId={r} onClick={() => this.changeWindow(r)} key={r}>
+                {r}
+              </Button>
+            ))}
+          </ButtonBar>
+        </Header>
 
         <Panel>
           <PanelHeader>Global Throughput</PanelHeader>
@@ -138,3 +137,8 @@ export default class AdminQueue extends AsyncView<{}, State> {
     );
   }
 }
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
