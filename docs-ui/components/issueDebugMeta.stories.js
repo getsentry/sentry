@@ -2,7 +2,7 @@ import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
 import SentryTypes from 'app/sentryTypes';
-import DebugMeta from 'app/components/events/interfaces/debugMeta';
+import ImagesLoaded from 'app/components/events/interfaces/imagesLoaded';
 
 const event = {
   id: 'deadbeef',
@@ -105,13 +105,13 @@ class OrganizationContext extends React.Component {
 }
 
 export default {
-  title: 'Features/Issues/DebugMeta',
+  title: 'Features/Issues/ImagesLoaded',
 };
 
 export const Default = withInfo('Various debug image metadata states')(() => (
   <div className="section">
     <OrganizationContext>
-      <DebugMeta
+      <ImagesLoaded
         event={event}
         data={event.entries[0].data}
         orgId={organization.id}
