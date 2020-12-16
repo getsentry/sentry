@@ -38,6 +38,12 @@ def verify_signature(request):
     return constant_time_compare(expected, signature)
 
 
+def safe_json_parse(resp):
+    if resp.headers.get("content-type") == "application/json":
+        return resp.json()
+    return None
+
+
 class VercelWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -182,7 +188,7 @@ class VercelWebhookEndpoint(Endpoint):
                 del no_ref_payload["refs"]
                 try:
                     resp = session.post(url, json=no_ref_payload, headers=headers)
-                    json_error = resp.json()
+                    json_error = safe_json_parse(resp)
                     resp.raise_for_status()
                 except RequestException as e:
                     # errors here should be uncommon but we should be aware of them
@@ -197,7 +203,7 @@ class VercelWebhookEndpoint(Endpoint):
                 # set the refs
                 try:
                     resp = session.post(url, json=release_payload, headers=headers,)
-                    json_error = resp.json()
+                    json_error = safe_json_parse(resp)
                     resp.raise_for_status()
                 except RequestException as e:
                     # errors will probably be common if the user doesn't have repos set up
