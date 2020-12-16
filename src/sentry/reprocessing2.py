@@ -116,7 +116,7 @@ def save_unprocessed_event(project, event_id):
     Move event from event_processing_store into nodestore. Only call if event
     has outcome=accepted.
     """
-    if not features.has("projects:reprocessing-v2", project, actor=None):
+    if not features.has("organizations:reprocessing-v2", project, actor=None):
         return
 
     with sentry_sdk.start_span(
@@ -139,7 +139,7 @@ def backup_unprocessed_event(project, data):
     able to be reprocessed.
     """
 
-    if not features.has("projects:reprocessing-v2", project, actor=None):
+    if not features.has("organizations:reprocessing-v2", project, actor=None):
         return
 
     event_processing_store.store(data, unprocessed=True)

@@ -20,7 +20,7 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         :auth: required
         """
 
-        if not features.has("projects:reprocessing-v2", group.project, actor=request.user):
+        if not features.has("organizations:reprocessing-v2", group.project, actor=request.user):
             return self.respond(
                 {"error": "This project does not have the reprocessing v2 feature"}, status=404,
             )
