@@ -52,6 +52,7 @@ type Props = {
     model: FormModel
   ) => void;
   onPreSubmit?: () => void;
+  allowDefault?: boolean;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
 type Context = {
@@ -145,7 +146,7 @@ export default class Form extends React.Component<Props> {
   model: FormModel = this.props.model || new FormModel();
 
   onSubmit = e => {
-    e.preventDefault();
+    !this.props.allowDefault && e.preventDefault();
     if (this.model.isSaving) {
       return;
     }
