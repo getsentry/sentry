@@ -233,7 +233,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('StyledPageHeader ButtonBar Button')).toHaveLength(2);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);

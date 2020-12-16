@@ -9,8 +9,8 @@ export function getPerformanceLandingUrl(organization: OrganizationSummary): str
   return `/organizations/${organization.slug}/performance/`;
 }
 
-export function getTransactionSearchQuery(location: Location) {
-  return String(decodeScalar(location.query.query) || '').trim();
+export function getTransactionSearchQuery(location: Location, query: string = '') {
+  return String(decodeScalar(location.query.query) || query).trim();
 }
 
 export function getTransactionDetailsUrl(
