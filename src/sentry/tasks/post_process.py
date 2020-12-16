@@ -144,6 +144,7 @@ def post_process_group(
         # event_id since the Event object may not actually have been stored
         # in the database due to sampling.
         from sentry.models import (
+            Commit,
             Project,
             Organization,
             EventDict,
@@ -153,6 +154,7 @@ def post_process_group(
         from sentry.models.group import get_group_with_redirect
         from sentry.rules.processor import RuleProcessor
         from sentry.tasks.servicehooks import process_service_hook
+        from sentry.tasks.groupowner import process_suspect_commits
 
         # Re-bind node data to avoid renormalization. We only want to
         # renormalize when loading old data from the database.
@@ -178,6 +180,9 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
+        if event.group_id and is_reprocessed and is_new:
+            add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+
         if event.group_id and not is_reprocessed:
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
@@ -202,6 +207,25 @@ def post_process_group(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
                     safe_execute(callback, event, futures)
+
+            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
+                event.project.organization_id
+            )
+
+            try:
+                org_has_commit = cache.get(has_commit_key)
+                if org_has_commit is None:
+                    org_has_commit = Commit.objects.filter(
+                        organization_id=event.project.organization_id
+                    ).exists()
+                    cache.set(has_commit_key, org_has_commit, 3600)
+
+                if org_has_commit and features.has(
+                    "projects:workflow-owners-ingestion", event.project,
+                ):
+                    process_suspect_commits(event=event)
+            except Exception:
+                logger.exception("Failed to process suspect commits")
 
             if features.has("projects:servicehooks", project=event.project):
                 allowed_events = set(["event.created"])

@@ -21,6 +21,7 @@ const IconChevron = React.forwardRef(function IconChevron(
       css={
         direction
           ? css`
+              transition: transform 120ms ease-in-out;
               transform: rotate(${theme.iconDirections[direction]}deg);
             `
           : undefined

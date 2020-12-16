@@ -113,12 +113,18 @@ type IntegrationCategorySelectEvent = {
 
 type IntegrationStacktraceLinkEvent = {
   eventKey:
+    | 'integrations.stacktrace_start_setup'
+    | 'integrations.stacktrace_automatic_setup'
+    | 'integrations.stacktrace_manual_setup'
     | 'integrations.stacktrace_link_clicked'
     | 'integrations.reconfigure_stacktrace_setup';
   eventName:
+    | 'Integrations: Stacktrace Start Setup'
+    | 'Integrations: Stacktrace Automatic Setup'
+    | 'Integrations: Stacktrace Manual Setup'
     | 'Integrations: Stacktrace Link Clicked'
     | 'Integrations: Reconfigure Stacktrace Setup';
-  provider: string;
+  provider?: string;
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 
@@ -356,21 +362,22 @@ export const safeGetQsParam = (param: string) => {
   }
 };
 
-export const getIntegrationIcon = (integrationType?: string) => {
+export const getIntegrationIcon = (integrationType?: string, size?: string) => {
+  const iconSize = size || 'md';
   switch (integrationType) {
     case 'bitbucket':
-      return <IconBitbucket size="md" />;
+      return <IconBitbucket size={iconSize} />;
     case 'gitlab':
-      return <IconGitlab size="md" />;
+      return <IconGitlab size={iconSize} />;
     case 'github':
     case 'github_enterprise':
-      return <IconGithub size="md" />;
+      return <IconGithub size={iconSize} />;
     case 'jira':
     case 'jira_server':
-      return <IconJira size="md" />;
+      return <IconJira size={iconSize} />;
     case 'vsts':
-      return <IconVsts size="md" />;
+      return <IconVsts size={iconSize} />;
     default:
-      return <IconGeneric size="md" />;
+      return <IconGeneric size={iconSize} />;
   }
 };

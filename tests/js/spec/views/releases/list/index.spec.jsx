@@ -13,7 +13,7 @@ describe('ReleasesList', function () {
   const props = {
     router,
     organization,
-    selection: {projects: [2]},
+    selection: {projects: []},
     params: {orgId: organization.slug},
     location: {
       query: {
@@ -278,5 +278,61 @@ describe('ReleasesList', function () {
         healthStatsPeriod: '14d',
       }),
     });
+  });
+
+  it('shows health rows only for selected projects in global header', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {
+          ...TestStubs.Release({version: '2.0.0'}),
+          projects: [
+            {
+              id: 1,
+              name: 'Test',
+              slug: 'test',
+            },
+            {
+              id: 2,
+              name: 'Test2',
+              slug: 'test2',
+            },
+            {
+              id: 3,
+              name: 'Test3',
+              slug: 'test3',
+            },
+          ],
+        },
+      ],
+    });
+    const healthSection = mountWithTheme(
+      <ReleasesList {...props} selection={{projects: [2]}} />,
+      routerContext
+    ).find('ReleaseHealth');
+    const hiddenProjectsMessage = healthSection.find('HiddenProjectsMessage');
+
+    expect(hiddenProjectsMessage.text()).toBe('2 hidden projects');
+
+    expect(hiddenProjectsMessage.find('Tooltip').prop('title')).toBe('test, test3');
+
+    expect(healthSection.find('ProjectRow').length).toBe(1);
+
+    expect(healthSection.find('ProjectName').text()).toBe('test2');
+  });
+
+  it('does not hide health rows when "All Projects" are selected in global header', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [TestStubs.Release({version: '2.0.0'})],
+    });
+    const healthSection = mountWithTheme(
+      <ReleasesList {...props} selection={{projects: [-1]}} />,
+      routerContext
+    ).find('ReleaseHealth');
+
+    expect(healthSection.find('HiddenProjectsMessage').exists()).toBeFalsy();
+
+    expect(healthSection.find('ProjectRow').length).toBe(1);
   });
 });

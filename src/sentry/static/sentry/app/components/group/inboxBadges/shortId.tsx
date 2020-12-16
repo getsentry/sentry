@@ -12,20 +12,28 @@ type Props = {
 };
 
 const ShortId = ({shortId, avatar}: Props) => (
-  <UnhandledTagWrapper>
+  <Wrapper>
     <AvatarWrapper>{avatar}</AvatarWrapper>
-    {shortId}
-  </UnhandledTagWrapper>
+    <IdWrapper>{shortId}</IdWrapper>
+  </Wrapper>
 );
 
 export default ShortId;
 
-const UnhandledTagWrapper = styled('div')`
-  display: inline-flex;
-  align-items: center;
+const Wrapper = styled('div')`
+  display: flex;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
-
 const AvatarWrapper = styled('div')`
   margin-right: 3px;
+  flex-shrink: 0;
+`;
+
+const IdWrapper = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
 `;

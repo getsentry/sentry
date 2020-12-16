@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.integrations.jira.utils import (
     transform_jira_fields_to_form_fields,
     transform_jira_choices_to_strings,
+    get_name_for_jira,
 )
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
@@ -16,39 +17,42 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
+
 logger = logging.getLogger("sentry.rules")
+
+INTEGRATION_KEY = "integration"
 
 
 class JiraNotifyServiceForm(forms.Form):
-    jira_integration = forms.ChoiceField(choices=(), widget=forms.Select())
+    integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args, **kwargs):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(JiraNotifyServiceForm, self).__init__(*args, **kwargs)
-
         if integrations:
-            self.fields["jira_integration"].initial = integrations[0][0]
+            self.fields[INTEGRATION_KEY].initial = integrations[0][0]
 
-        self.fields["jira_integration"].choices = integrations
-        self.fields["jira_integration"].widget.choices = self.fields["jira_integration"].choices
+        self.fields[INTEGRATION_KEY].choices = integrations
+        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
 
 class JiraCreateTicketAction(TicketEventAction):
     form_cls = JiraNotifyServiceForm
-    label = u"""Create a Jira issue in {jira_integration} with these """
-    prompt = "Create a Jira issue"
+    label = u"""Create a Jira issue in {integration} with these """
+    ticket_type = "a Jira issue"
+    link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
-    integration_key = "jira_integration"
+    integration_key = INTEGRATION_KEY
 
     def __init__(self, *args, **kwargs):
         super(JiraCreateTicketAction, self).__init__(*args, **kwargs)
-        integration_choices = [(i.id, i.name) for i in self.get_integrations()]
+        integration_choices = [(i.id, get_name_for_jira(i)) for i in self.get_integrations()]
 
         if not self.get_integration_id() and integration_choices:
             self.data[self.integration_key] = integration_choices[0][0]
 
         self.form_fields = {
-            "jira_integration": {
+            self.integration_key: {
                 "choices": integration_choices,
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
@@ -65,7 +69,7 @@ class JiraCreateTicketAction(TicketEventAction):
         kwargs = transform_jira_choices_to_strings(self.form_fields, self.data)
 
         # Replace with "removed" if the integration was uninstalled.
-        kwargs.update({"jira_integration": self.get_integration_name()})
+        kwargs.update({self.integration_key: self.get_integration_name()})
 
         # Only add values when they exist.
         return self.label.format(**kwargs)
@@ -102,9 +106,9 @@ class JiraCreateTicketAction(TicketEventAction):
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
 
-        jira_integration = cleaned_data.get("jira_integration")
+        integration = cleaned_data.get(self.integration_key)
         try:
-            Integration.objects.get(id=jira_integration)
+            Integration.objects.get(id=integration)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
                 _("Jira integration is a required field.",), code="invalid",
@@ -118,7 +122,12 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         organization = self.project.organization
-        integration = self.get_integration()
+        try:
+            integration = self.get_integration()
+        except Integration.DoesNotExist:
+            # Integration removed, rule still active.
+            return
+
         installation = integration.get_installation(organization.id)
 
         self.data["title"] = event.title
@@ -135,10 +144,7 @@ class JiraCreateTicketAction(TicketEventAction):
             if self.data.get("dynamic_form_fields"):
                 del self.data["dynamic_form_fields"]
 
-            if not self.has_linked_issue(event, integration):
-                resp = installation.create_issue(self.data)
-                self.create_link(resp["key"], integration, installation, event)
-            else:
+            if self.has_linked_issue(event, integration):
                 logger.info(
                     "jira.rule_trigger.link_already_exists",
                     extra={
@@ -147,7 +153,12 @@ class JiraCreateTicketAction(TicketEventAction):
                         "group_id": event.group.id,
                     },
                 )
-            return
+                return
+
+            # POST to "create issue" API and save the newly created issue key.
+            response = installation.create_issue(self.data)
+            issue_key = response.get("key")
+            self.create_link(issue_key, integration, installation, event)
 
         key = u"jira:{}".format(integration.id)
         yield self.future(create_issue, key=key)

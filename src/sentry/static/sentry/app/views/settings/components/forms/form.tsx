@@ -41,6 +41,8 @@ type Props = {
   // Save field on control blur
   saveOnBlur?: boolean;
   model?: FormModel;
+  // if set to true, preventDefault is not called
+  skipPreventDefault?: boolean;
   'data-test-id'?: string;
 
   onCancel?: (e: React.MouseEvent) => void;
@@ -145,7 +147,7 @@ export default class Form extends React.Component<Props> {
   model: FormModel = this.props.model || new FormModel();
 
   onSubmit = e => {
-    e.preventDefault();
+    !this.props.skipPreventDefault && e.preventDefault();
     if (this.model.isSaving) {
       return;
     }

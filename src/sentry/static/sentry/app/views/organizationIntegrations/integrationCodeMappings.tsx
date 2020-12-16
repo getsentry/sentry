@@ -1,9 +1,10 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
@@ -14,8 +15,8 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'app/components/repositoryProjectPathConfigRow';
-import {IconAdd} from 'app/icons';
-import {t} from 'app/locale';
+import {IconAdd, IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
   Integration,
@@ -23,6 +24,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -34,8 +36,6 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   pathConfigs: RepositoryProjectPathConfig[];
   repos: Repository[];
-  showModal: boolean;
-  configInEdit?: RepositoryProjectPathConfig;
 };
 
 class IntegrationCodeMappings extends AsyncComponent<Props, State> {
@@ -44,7 +44,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       pathConfigs: [],
       repos: [],
-      showModal: false,
     };
   }
 
@@ -86,24 +85,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.projects.find(project => project.id === pathConfig.projectId);
   }
 
-  openModal = (pathConfig?: RepositoryProjectPathConfig) => {
-    this.setState({
-      showModal: true,
-      configInEdit: pathConfig,
-    });
-  };
-
-  closeModal = () => {
-    this.setState({
-      showModal: false,
-      pathConfig: undefined,
-    });
-  };
-
-  handleEdit = (pathConfig: RepositoryProjectPathConfig) => {
-    this.openModal(pathConfig);
-  };
-
   handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
     const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig.id}/`;
@@ -128,15 +109,45 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     // our getter handles the order of the configs
     pathConfigs = pathConfigs.concat([pathConfig]);
     this.setState({pathConfigs});
-    this.closeModal();
+    this.setState({pathConfig: undefined});
+  };
+
+  openModal = (pathConfig?: RepositoryProjectPathConfig) => {
+    const {organization, integration} = this.props;
+
+    openModal(({Body, Header, closeModal}) => (
+      <React.Fragment>
+        <Header closeButton>{t('Configure code path mapping')}</Header>
+        <Body>
+          <RepositoryProjectPathConfigForm
+            organization={organization}
+            integration={integration}
+            projects={this.projects}
+            repos={this.repos}
+            onSubmitSuccess={config => {
+              this.handleSubmitSuccess(config);
+              closeModal();
+            }}
+            existingConfig={pathConfig}
+            onCancel={closeModal}
+          />
+        </Body>
+      </React.Fragment>
+    ));
   };
 
   renderBody() {
-    const {organization, integration} = this.props;
-    const {showModal, configInEdit} = this.state;
     const pathConfigs = this.pathConfigs;
+    const {integration} = this.props;
+
     return (
       <React.Fragment>
+        <Alert type="info" icon={<IconInfo />}>
+          {tct(
+            'Stack trace linking is in Beta. Got feedback? Email [email:ecosystem-feedback@sentry.io].',
+            {email: <a href="mailto:ecosystem-feedback@sentry.io" />}
+          )}
+        </Alert>
         <Panel>
           <PanelHeader disablePadding hasButtons>
             <HeaderLayout>
@@ -156,7 +167,19 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
           </PanelHeader>
           <PanelBody>
             {pathConfigs.length === 0 && (
-              <EmptyMessage description={t('No code path mappings')} />
+              <EmptyMessage
+                icon={getIntegrationIcon(integration.provider.key, 'lg')}
+                action={
+                  <Button
+                    href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
+                    size="small"
+                  >
+                    View Documentation
+                  </Button>
+                }
+              >
+                Set up stack trace linking by adding a code mapping.
+              </EmptyMessage>
             )}
             {pathConfigs
               .map(pathConfig => {
@@ -172,7 +195,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                       <RepositoryProjectPathConfigRow
                         pathConfig={pathConfig}
                         project={project}
-                        onEdit={this.handleEdit}
+                        onEdit={this.openModal}
                         onDelete={this.handleDelete}
                       />
                     </Layout>
@@ -182,26 +205,6 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               .filter(item => !!item)}
           </PanelBody>
         </Panel>
-
-        <Modal
-          show={showModal}
-          onHide={this.closeModal}
-          enforceFocus={false}
-          backdrop="static"
-          animation={false}
-        >
-          <Modal.Header closeButton />
-          <Modal.Body>
-            <RepositoryProjectPathConfigForm
-              organization={organization}
-              integration={integration}
-              projects={this.projects}
-              repos={this.repos}
-              onSubmitSuccess={this.handleSubmitSuccess}
-              existingConfig={configInEdit}
-            />
-          </Modal.Body>
-        </Modal>
       </React.Fragment>
     );
   }
@@ -221,8 +224,9 @@ const Layout = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout)`
-  align-items: flex-end;
-  margin: ${space(1)};
+  align-items: center;
+  margin: 0;
+  margin-left: ${space(2)};
 `;
 
 const ConfigPanelItem = styled(PanelItem)``;

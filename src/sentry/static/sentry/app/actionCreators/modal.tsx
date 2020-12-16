@@ -1,16 +1,16 @@
 import React from 'react';
-import {ModalBody, ModalFooter, ModalHeader} from 'react-bootstrap';
+import {Modal as BoostrapModal} from 'react-bootstrap';
 import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
+import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
-import {DashboardListItem, Widget} from 'app/views/dashboardsV2/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
-  Header: typeof ModalHeader;
-  Body: typeof ModalBody;
-  Footer: typeof ModalFooter;
+  Header: typeof BoostrapModal.Header;
+  Body: typeof BoostrapModal.Body;
+  Footer: typeof BoostrapModal.Footer;
 };
 
 export type ModalOptions = {
@@ -120,7 +120,7 @@ export async function openCommandPalette(options: ModalOptions = {}) {
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal Body={deps.Body} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 type RecoveryModalOptions = {
@@ -205,12 +205,6 @@ export async function openInviteMembersModal(options = {}) {
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
-
-type DashboardWidgetModalOptions = {
-  organization: Organization;
-  dashboard: DashboardListItem;
-  onAddWidget: (data: Widget) => void;
-};
 
 export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
   const mod = await import(

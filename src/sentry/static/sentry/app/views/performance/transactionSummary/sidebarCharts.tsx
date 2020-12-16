@@ -91,6 +91,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
       {
         // apdex
         gridIndex: 0,
+        interval: 0.2,
         axisLabel: {
           formatter: (value: number) => formatFloat(value, 1),
           color: theme.chartLabel,
@@ -98,19 +99,23 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         ...axisLineConfig,
       },
       {
-        // throughput
+        // failure rate
         gridIndex: 1,
+        splitNumber: 4,
+        interval: 0.5,
+        max: 1.0,
         axisLabel: {
-          formatter: formatAbbreviatedNumber,
+          formatter: (value: number) => formatPercentage(value, 0),
           color: theme.chartLabel,
         },
         ...axisLineConfig,
       },
       {
-        // failure rate
+        // throughput
         gridIndex: 2,
+        splitNumber: 4,
         axisLabel: {
-          formatter: (value: number) => formatPercentage(value, 0),
+          formatter: formatAbbreviatedNumber,
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -149,20 +154,20 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartTitle top="190px" key="throughput">
-        {t('TPM')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, 'tpm')}
-          size="sm"
-        />
-      </ChartTitle>
-
-      <ChartTitle top="410px" key="failure-rate">
+      <ChartTitle top="190px" key="failure-rate">
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
           title={getTermHelp(organization, 'failureRate')}
+          size="sm"
+        />
+      </ChartTitle>
+
+      <ChartTitle top="410px" key="throughput">
+        {t('TPM')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'tpm')}
           size="sm"
         />
       </ChartTitle>
@@ -183,11 +188,11 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             environment={[...environment]}
             start={start}
             end={end}
-            interval={getInterval(datetimeSelection, true)}
+            interval={getInterval(datetimeSelection)}
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={[`apdex(${organization.apdexThreshold})`, 'epm()', 'failure_rate()']}
+            yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

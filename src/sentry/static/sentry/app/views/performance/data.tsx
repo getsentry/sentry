@@ -7,7 +7,8 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
-  getVitalDetailTableStatusFunction,
+  getVitalDetailTableMehStatusFunction,
+  getVitalDetailTablePoorStatusFunction,
   vitalNameFromLocation,
 } from './vitalDetail/utils';
 
@@ -163,6 +164,7 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
+      'key_transaction',
       'transaction',
       'project',
       'count_unique(user)',
@@ -170,7 +172,8 @@ export function generatePerformanceVitalDetailView(
       `p50(${vitalName})`,
       `p75(${vitalName})`,
       `p95(${vitalName})`,
-      getVitalDetailTableStatusFunction(vitalName),
+      getVitalDetailTablePoorStatusFunction(vitalName),
+      getVitalDetailTableMehStatusFunction(vitalName),
     ],
     version: 2,
   };

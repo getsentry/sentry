@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from django.db import IntegrityError, transaction
 
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models import Dashboard
 from rest_framework.response import Response
@@ -15,7 +16,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         Retrieve an Organization's Dashboards
         `````````````````````````````````````
+
         Retrieve a list of dashboards that are associated with the given organization.
+        If on the first page, this endpoint will also include any pre-built dashboards
+        that haven't been replaced or removed.
+
         :pparam string organization_slug: the slug of the organization the
                                           dashboards belongs to.
         :qparam string query: the title of the dashboard being searched for.
@@ -25,13 +30,25 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
+        dashboards = dashboards.order_by("title")
+        prebuilt = Dashboard.get_prebuilt_list(organization, query)
+
+        list_serializer = DashboardListSerializer()
+
+        def handle_results(results):
+            serialized = []
+            for item in results:
+                if isinstance(item, dict):
+                    serialized.append(item)
+                else:
+                    serialized.append(serialize(item, request.user, serializer=list_serializer))
+            return serialized
 
         return self.paginate(
             request=request,
-            queryset=dashboards,
-            order_by="title",
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            sources=[prebuilt, dashboards],
+            paginator_cls=ChainPaginator,
+            on_results=handle_results,
         )
 
     def post(self, request, organization):
@@ -44,7 +61,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         :param string title: the title of the dashboard.
         """
         serializer = DashboardSerializer(
-            data=request.data, context={"organization_id": organization.id, "request": request}
+            data=request.data, context={"organization": organization, "request": request}
         )
 
         if not serializer.is_valid():

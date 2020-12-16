@@ -226,7 +226,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         [
             "query",
             "status",
-            "inbox",
+            "needs_review",
+            "owner",
             "bookmarked_by",
             "assigned_to",
             "unassigned",

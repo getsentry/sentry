@@ -2958,3 +2958,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
+
+    def test_no_pagination_param(self):
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [self.project.id], "noPagination": True}
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert "Link" not in response
