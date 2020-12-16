@@ -82,9 +82,7 @@ describe('CreateAlertFromViewButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    expect(errorsAlert.text()).toBe(
-      'An alert needs a filter of event.type:error or event.type:transaction. Use one of these and try again.'
-    );
+    expect(errorsAlert.text()).toContain('An alert needs a filter of event.type:error');
   });
 
   it('should warn when yAxis is not allowed', () => {
