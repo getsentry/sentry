@@ -109,7 +109,6 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
-            self.browser.wait_until_not('[data-test-id="stats-loading"]')
 
             self.browser.snapshot("real user monitoring")
 
@@ -119,13 +118,20 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
-            urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
+            urlencode(
+                {
+                    "transaction": "/country_by_code/",
+                    "project": self.project.id,
+                    "dataFilter": "exclude_outliers",
+                }
+            ),
         )
 
         # Create transactions
         for seconds in range(3):
             event_data = load_data("transaction", timestamp=before_now(minutes=2))
             event_data["contexts"]["trace"]["op"] = "pageload"
+            event_data["contexts"]["trace"]["id"] = ("c" * 31) + hex(seconds)[2:]
             event_data["event_id"] = ("c" * 31) + hex(seconds)[2:]
             event_data["measurements"]["fp"]["value"] = seconds * 10
             event_data["measurements"]["fcp"]["value"] = seconds * 10
@@ -137,6 +143,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         # add anchor point
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
         event_data["contexts"]["trace"]["op"] = "pageload"
+        event_data["contexts"]["trace"]["id"] = "a" * 32
         event_data["event_id"] = "a" * 32
         event_data["measurements"]["fp"]["value"] = 3000
         event_data["measurements"]["fcp"]["value"] = 3000
@@ -148,6 +155,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         # add outlier
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
         event_data["contexts"]["trace"]["op"] = "pageload"
+        event_data["contexts"]["trace"]["id"] = "b" * 32
         event_data["event_id"] = "b" * 32
         event_data["measurements"]["fp"]["value"] = 3000000000
         event_data["measurements"]["fcp"]["value"] = 3000000000
@@ -161,14 +169,13 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURE_NAMES):
             self.browser.get(vitals_path)
             self.page.wait_until_loaded()
-            self.browser.wait_until_not('[data-test-id="stats-loading"]')
 
             self.browser.snapshot("real user monitoring - exclude outliers")
 
             self.browser.element(
                 xpath="//button//span[contains(text(), 'Exclude Outliers')]"
             ).click()
-
             self.browser.element(xpath="//li//span[contains(text(), 'View All')]").click()
+            self.page.wait_until_loaded()
 
             self.browser.snapshot("real user monitoring - view all data")
