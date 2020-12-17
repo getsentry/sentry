@@ -12,8 +12,8 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7 ]
-        os: [ ubuntu-20.04, macos-11.0 ]
+        python-version: [ 3.6 ]
+        os: [ macos-11.0 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -34,10 +34,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
-      - name: Set up Python environment (as per direnv)
+      - name: Install pre-requisites
+        if: ${{ os.runner == 'macOS' }}
+        run:
+          xcode-select --install
+          brew bundle --verbose
+
+      - name: Set up Python environment (as per docs)
         env:
           SENTRY_PYTHON_VERSION: yes  # This permits using non-default Python
-        run: |
+        run: | # Not using pyenv for now & make bootstrap
           python -m pip install virtualenv
           python -m virtualenv .venv
           source .venv/bin/activate
