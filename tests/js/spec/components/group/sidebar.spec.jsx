@@ -42,7 +42,7 @@ describe('GroupSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/current-release',
+      url: '/issues/1/current-release/',
       body: {},
     });
 
