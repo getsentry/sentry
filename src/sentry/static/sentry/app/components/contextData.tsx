@@ -277,10 +277,10 @@ class ContextData extends React.Component<Props, State> {
     } = this.props;
 
     return (
-      <ContextValues {...other}>
+      <pre {...other}>
         {this.renderValue(data)}
         {children}
-      </ContextValues>
+      </pre>
     );
   }
 }
@@ -305,11 +305,6 @@ const ToggleIcon = styled('a')<{isOpen?: boolean}>`
   &:hover {
     background: ${p => (p.isOpen ? p.theme.gray400 : p.theme.blue200)};
   }
-`;
-
-const ContextValues = styled('pre')`
-  /* Not using theme to be consistent with less files */
-  color: #4e3fb4;
 `;
 
 export default ContextData;
