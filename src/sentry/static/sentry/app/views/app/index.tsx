@@ -205,6 +205,11 @@ class App extends React.Component<Props, State> {
     e.stopPropagation();
   }
 
+  @keydown('meta+shift+l')
+  toggleDarkMode() {
+    ConfigStore.set('theme', ConfigStore.get('theme') === 'light' ? 'dark' : 'light');
+  }
+
   onConfigured = () => this.setState({needsUpgrade: false});
 
   // this is somewhat hackish
