@@ -6,7 +6,7 @@ import six
 from django import forms
 
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import TicketEventAction, create_issue
+from sentry.rules.actions.base import TicketEventAction
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -40,6 +40,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
     ticket_type = "an Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/azure-devops/#issue-sync"
     provider = "vsts"
+    issue_key_path = "metadata.display_name"
     integration_key = INTEGRATION_KEY
 
     def render_label(self):
@@ -79,21 +80,4 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
 
     @transaction_start("AzureDevopsCreateTicketAction.after")
     def after(self, event, state):
-        organization = self.project.organization
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
-            # Integration removed, rule still active.
-            return
-
-        installation = integration.get_installation(organization.id)
-
-        self.data["description"] = self.build_description(event, installation)
-        key = u"vsts:{}".format(integration.id)
-        yield self.future(
-            create_issue,
-            key=key,
-            data=self.data,
-            integration=integration,
-            issue_key_path="metadata.display_name",
-        )
+        super(AzureDevopsCreateTicketAction, self).after(event, state)

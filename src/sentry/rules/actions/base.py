@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function
 
+import functools
 import logging
 import operator
-import functools
 import six
 
 from sentry.constants import ObjectStatus
@@ -127,16 +127,43 @@ def create_link(key, integration, installation, event):
     )
 
 
+def build_description(event, rule_id, installation, generate_footer):
+    """
+    Format the description of the ticket/work item
+    """
+    project = event.group.project
+    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
+        project.organization.slug, project.slug, rule_id
+    )
+    return installation.get_group_description(event.group, event) + generate_footer(rule_url)
+
+
 def create_issue(event, futures):
     """Create an issue for a given event"""
+    organization = event.group.project.organization
 
     for future in futures:
+        rule_id = future.rule.id
         data = future.kwargs.get("data")
-        integration = future.kwargs.get("integration")
-        organization = event.group.project.organization
+        provider = future.kwargs.get("provider")
+        integration_id = future.kwargs.get("integration_id")
+        generate_footer = future.kwargs.get("generate_footer")
+
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                provider=provider,
+                organizations=organization,
+                status=ObjectStatus.VISIBLE,
+            )
+        except Integration.DoesNotExist:
+            # Integration removed, rule still active.
+            return
+
         installation = integration.get_installation(organization.id)
 
         data["title"] = event.title
+        data["description"] = build_description(event, installation, rule_id, generate_footer)
 
         # HACK to get fixVersion in the correct format
         if data.get("fixVersions"):
@@ -150,7 +177,7 @@ def create_issue(event, futures):
             logger.info(
                 "{}.rule_trigger.link_already_exists".format(integration.provider),
                 extra={
-                    "rule_id": future.rule.id,
+                    "rule_id": rule_id,
                     "project_id": event.group.project.id,
                     "group_id": event.group.id,
                 },
@@ -197,13 +224,15 @@ class TicketEventAction(IntegrationEventAction):
     def generate_footer(self, rule_url):
         raise NotImplementedError
 
-    def build_description(self, event, installation):
-        """
-        Format the description of the ticket/work item
-        """
-        rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
-            self.project.organization.slug, self.project.slug, self.rule.id
-        )
-        return installation.get_group_description(event.group, event) + self.generate_footer(
-            rule_url
+    def after(self, event, state):
+        integration_id = self.get_integration_id()
+        key = u"{}:{}".format(self.provider, integration_id)
+        yield self.future(
+            create_issue,
+            key=key,
+            data=self.data,
+            generate_footer=self.generate_footer,
+            integration_id=integration_id,
+            issue_key_path=self.issue_key_path,
+            provider=self.provider,
         )

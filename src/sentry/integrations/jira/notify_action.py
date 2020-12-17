@@ -11,7 +11,7 @@ from sentry.integrations.jira.utils import (
     transform_jira_choices_to_strings,
 )
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import TicketEventAction, create_issue
+from sentry.rules.actions.base import TicketEventAction
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -41,6 +41,7 @@ class JiraCreateTicketAction(TicketEventAction):
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
+    issue_key_path = "key"
     integration_key = INTEGRATION_KEY
 
     def render_label(self):
@@ -92,16 +93,4 @@ class JiraCreateTicketAction(TicketEventAction):
 
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
-        organization = self.project.organization
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
-            # Integration removed, rule still active.
-            return
-
-        installation = integration.get_installation(organization.id)
-        self.data["description"] = self.build_description(event, installation)
-        key = u"jira:{}".format(integration.id)
-        yield self.future(
-            create_issue, key=key, integration=integration, issue_key_path="key", data=self.data
-        )
+        super(JiraCreateTicketAction, self).after(event, state)
