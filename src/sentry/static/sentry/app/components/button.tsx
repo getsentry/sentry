@@ -193,7 +193,7 @@ const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
 
 // Some components use Button's propTypes
 Button.propTypes = Button.propTypes;
-Button.displayName = 'forwardRef<Button>';
+Button.displayName = 'Button';
 
 export default Button;
 
