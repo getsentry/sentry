@@ -12,6 +12,7 @@ import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {Aggregation, AGGREGATIONS, explodeFieldString} from 'app/utils/discover/fields';
+import {getQueryDatasource} from 'app/views/alerts/utils';
 import {
   errorFieldConfig,
   transactionFieldConfig,
@@ -69,7 +70,46 @@ function IncompatibleQueryAlert({
   eventTypeError.query += ' event.type:error';
   const eventTypeTransaction = eventView.clone();
   eventTypeTransaction.query += ' event.type:transaction';
+  const eventTypeDefault = eventView.clone();
+  eventTypeDefault.query += ' event.type:default';
+  const eventTypeErrorDefault = eventView.clone();
+  eventTypeErrorDefault.query += ' event.type:error or event.type:default';
   const pathname = `/organizations/${orgId}/discover/results/`;
+
+  const eventTypeLinks = {
+    error: (
+      <Link
+        to={{
+          pathname,
+          query: eventTypeError.generateQueryStringObject(),
+        }}
+      />
+    ),
+    default: (
+      <Link
+        to={{
+          pathname,
+          query: eventTypeError.generateQueryStringObject(),
+        }}
+      />
+    ),
+    transaction: (
+      <Link
+        to={{
+          pathname,
+          query: eventTypeDefault.generateQueryStringObject(),
+        }}
+      />
+    ),
+    errorDefault: (
+      <Link
+        to={{
+          pathname,
+          query: eventTypeErrorDefault.generateQueryStringObject(),
+        }}
+      />
+    ),
+  };
 
   return (
     <StyledAlert type="warning" icon={<IconInfo color="yellow300" size="sm" />}>
@@ -83,25 +123,8 @@ function IncompatibleQueryAlert({
             )}
           {hasEventTypeError &&
             tct(
-              'An alert needs a filter of [error:event.type:error] or [transaction:event.type:transaction]. Use one of these and try again.',
-              {
-                error: (
-                  <Link
-                    to={{
-                      pathname,
-                      query: eventTypeError.generateQueryStringObject(),
-                    }}
-                  />
-                ),
-                transaction: (
-                  <Link
-                    to={{
-                      pathname,
-                      query: eventTypeTransaction.generateQueryStringObject(),
-                    }}
-                  />
-                ),
-              }
+              'An alert needs a filter of [error:event.type:error], [default:event.type:default], [transaction:event.type:transaction], [errorDefault:(event.type:error OR event.type:default)]. Use one of these and try again.',
+              eventTypeLinks
             )}
           {hasYAxisError &&
             tct(
@@ -123,25 +146,8 @@ function IncompatibleQueryAlert({
             {hasEventTypeError && (
               <li>
                 {tct(
-                  'Use the filter [error:event.type:error] or [transaction:event.type:transaction].',
-                  {
-                    error: (
-                      <Link
-                        to={{
-                          pathname,
-                          query: eventTypeError.generateQueryStringObject(),
-                        }}
-                      />
-                    ),
-                    transaction: (
-                      <Link
-                        to={{
-                          pathname,
-                          query: eventTypeTransaction.generateQueryStringObject(),
-                        }}
-                      />
-                    ),
-                  }
+                  'Use the filter [error:event.type:error], [default:event.type:default], [transaction:event.type:transaction], [errorDefault:(event.type:error OR event.type:default)].',
+                  eventTypeLinks
                 )}
               </li>
             )}
@@ -247,9 +253,7 @@ function CreateAlertFromViewButton({
   // Must have one or zero environments
   const hasEnvironmentError = eventView.environment.length > 1;
   // Must have event.type of error or transaction
-  const hasEventTypeError =
-    !eventView.query.includes('event.type:error') &&
-    !eventView.query.includes('event.type:transaction');
+  const hasEventTypeError = getQueryDatasource(eventView.query) === null;
   // yAxis must be a function and enabled on alerts
   const hasYAxisError = incompatibleYAxis(eventView);
   const errors: IncompatibleQueryProperties = {

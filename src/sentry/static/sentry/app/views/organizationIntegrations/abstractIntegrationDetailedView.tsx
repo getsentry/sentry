@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -8,7 +8,7 @@ import Alert, {Props as AlertProps} from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
-import Tag from 'app/components/tagDeprecated';
+import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'app/icons';
 import {t} from 'app/locale';

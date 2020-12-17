@@ -4,11 +4,18 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.event_search import (
+    resolve_field_list,
+    get_filter,
+    InvalidSearchQuery,
+)
 from sentry.models import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetDisplayTypes,
+    Dashboard,
 )
+from sentry.utils.dates import parse_stats_period
 
 
 def get_next_dashboard_order(dashboard_id):
@@ -39,12 +46,26 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     name = serializers.CharField(required=False, allow_blank=True)
-    conditions = serializers.CharField(required=False)
-    interval = serializers.CharField(required=False)
+    conditions = serializers.CharField(required=False, allow_blank=True)
 
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
+
+    def validate_fields(self, fields):
+        snuba_filter = get_filter("")
+        try:
+            resolve_field_list(fields, snuba_filter)
+            return fields
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError(u"Invalid fields: {}".format(err))
+
+    def validate_conditions(self, conditions):
+        try:
+            get_filter(conditions)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError(u"Invalid conditions: {}".format(err))
+        return conditions
 
     def validate(self, data):
         if not data.get("id"):
@@ -61,6 +82,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
+    interval = serializers.CharField(required=False)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
 
     def validate_display_type(self, display_type):
@@ -68,9 +90,23 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
 
     validate_id = validate_id
 
+    def validate_interval(self, interval):
+        if parse_stats_period(interval) is None:
+            raise serializers.ValidationError("Invalid interval")
+        return interval
+
     def validate(self, data):
-        if not data.get("id") and not data.get("queries"):
-            raise serializers.ValidationError("One or more queries are required to create a widget")
+        if not data.get("id"):
+            if not data.get("queries"):
+                raise serializers.ValidationError(
+                    {"queries": "One or more queries are required to create a widget"}
+                )
+            if not data.get("title"):
+                raise serializers.ValidationError({"title": "Title is required during creation."})
+            if data.get("display_type") is None:
+                raise serializers.ValidationError(
+                    {"displayType": "displayType is required during creation."}
+                )
         return data
 
 
@@ -81,6 +117,24 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     widgets = DashboardWidgetSerializer(many=True, required=False)
 
     validate_id = validate_id
+
+    def create(self, validated_data):
+        """
+        Create a dashboard, and create any widgets and their queries
+
+        Only call save() on this serializer from within a transaction or
+        bad things will happen
+        """
+        self.instance = Dashboard.objects.create(
+            organization=self.context.get("organization"),
+            title=validated_data["title"],
+            created_by=self.context.get("request").user,
+        )
+
+        if "widgets" in validated_data:
+            self.update_widgets(self.instance, validated_data["widgets"])
+
+        return self.instance
 
     def update(self, instance, validated_data):
         """
@@ -138,6 +192,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             dashboard=dashboard,
             display_type=widget_data["display_type"],
             title=widget_data["title"],
+            interval=widget_data.get("interval", "5m"),
             order=order,
         )
         new_queries = []
@@ -148,7 +203,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     fields=query["fields"],
                     conditions=query["conditions"],
                     name=query.get("name", ""),
-                    interval=query.get("interval", "5m"),
                     order=i,
                 )
             )
@@ -157,6 +211,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     def update_widget(self, widget, data, order):
         widget.title = data.get("title", widget.title)
         widget.display_type = data.get("display_type", widget.display_type)
+        widget.interval = data.get("interval", widget.interval)
         widget.order = order
         widget.save()
 
@@ -178,26 +233,30 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
             query_id = query_data.get("id")
             if query_id and query_id in existing_map:
                 self.update_widget_query(existing_map[query_id], query_data, next_order + i)
-            if not query_id:
+            elif not query_id:
                 new_queries.append(
                     DashboardWidgetQuery(
                         widget=widget,
                         fields=query_data["fields"],
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
-                        interval=query_data.get("interval", "5m"),
                         order=next_order + i,
                     )
                 )
+            else:
+                raise serializers.ValidationError("You cannot use a query not owned by this widget")
         DashboardWidgetQuery.objects.bulk_create(new_queries)
 
     def update_widget_query(self, query, data, order):
         query.name = data.get("name", query.name)
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
-        query.interval = data.get("interval", query.interval)
         query.order = order
         query.save()
 
     def remove_missing_queries(self, widget_id, keep_ids):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
+
+
+class DashboardSerializer(DashboardDetailsSerializer):
+    title = serializers.CharField(required=True)

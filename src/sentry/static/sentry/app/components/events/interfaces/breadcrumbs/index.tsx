@@ -28,8 +28,6 @@ import {
   BreadcrumbType,
 } from './types';
 
-const ISO_STRING_DATE_AND_TIME_DIVISION = 10;
-
 type FilterProps = React.ComponentProps<typeof Filter>;
 type FilterOptions = FilterProps['options'];
 
@@ -70,8 +68,8 @@ class Breadcrumbs extends React.Component<Props, State> {
     const {data} = this.props;
     let breadcrumbs = data.values;
 
-    // Add the error event as the final (virtual) breadcrumb
-    const virtualCrumb = this.getVirtualCrumb(breadcrumbs[0]);
+    // Add the (virtual) breadcrumb based on the error or message event if possible.
+    const virtualCrumb = this.getVirtualCrumb();
     if (virtualCrumb) {
       breadcrumbs = [...breadcrumbs, virtualCrumb];
     }
@@ -156,16 +154,8 @@ class Breadcrumbs extends React.Component<Props, State> {
     return match[1];
   }
 
-  getVirtualCrumb(breadcrumb: Breadcrumb): Breadcrumb | undefined {
+  getVirtualCrumb(): Breadcrumb | undefined {
     const {event} = this.props;
-
-    const timestamp =
-      breadcrumb?.timestamp && event.dateCreated
-        ? `${breadcrumb.timestamp.slice(
-            0,
-            ISO_STRING_DATE_AND_TIME_DIVISION
-          )}${event.dateCreated.slice(ISO_STRING_DATE_AND_TIME_DIVISION)}`
-        : undefined;
 
     const exception = event.entries.find(
       entry => entry.type === BreadcrumbType.EXCEPTION
@@ -174,6 +164,8 @@ class Breadcrumbs extends React.Component<Props, State> {
     if (!exception && !event.message) {
       return undefined;
     }
+
+    const timestamp = event.dateCreated;
 
     if (exception) {
       const {type, value, module: mdl} = exception.data.values[0];

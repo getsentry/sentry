@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';

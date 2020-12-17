@@ -16,9 +16,14 @@ from sentry.models import (
     Group,
     GroupInbox,
     GroupLink,
+    GroupOwner,
     GroupStatus,
     GroupSubscription,
+    OrganizationMember,
+    OrganizationMemberTeam,
     PlatformExternalIssue,
+    Team,
+    User,
 )
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
@@ -120,6 +125,64 @@ def inbox_filter(inbox, projects):
     if not inbox:
         query = ~query
     return query
+
+
+def owner_filter(owner, projects):
+    organization_id = projects[0].organization_id
+    project_ids = [p.id for p in projects]
+    if isinstance(owner, Team):
+        return Q(
+            id__in=GroupOwner.objects.filter(
+                team=owner, project_id__in=project_ids, organization_id=organization_id
+            )
+            .values_list("group_id", flat=True)
+            .distinct()
+        ) | assigned_to_filter(owner, projects)
+    elif isinstance(owner, User):
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__in=OrganizationMember.objects.filter(
+                    user=owner, organization_id=organization_id
+                ),
+                is_active=True,
+            ).values("team")
+        )
+        relevant_owners = GroupOwner.objects.filter(
+            project_id__in=project_ids, organization_id=organization_id
+        )
+        filter_query = Q(team__in=teams) | Q(user=owner)
+        return Q(
+            id__in=relevant_owners.filter(filter_query)
+            .values_list("group_id", flat=True)
+            .distinct()
+        ) | assigned_to_filter(owner, projects)
+    elif isinstance(owner, list) and owner[0] == "me_or_none":
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__in=OrganizationMember.objects.filter(
+                    user=owner[1], organization_id=organization_id
+                ),
+                is_active=True,
+            ).values("team")
+        )
+
+        owned_me = Q(
+            id__in=GroupOwner.objects.filter(
+                Q(user_id=owner[1].id) | Q(team__in=teams),
+                project_id__in=[p.id for p in projects],
+                organization_id=organization_id,
+            )
+            .values_list("group_id", flat=True)
+            .distinct()
+        )
+        no_owner = unassigned_filter(True, projects) & ~Q(
+            id__in=GroupOwner.objects.filter(project_id__in=[p.id for p in projects]).values_list(
+                "group_id", flat=True
+            )
+        )
+        return no_owner | owned_me | assigned_to_filter(owner[1], projects)
+
+    raise InvalidSearchQuery(u"Unsupported owner type.")
 
 
 class Condition(object):
@@ -336,7 +399,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 )
             ),
             "active_at": ScalarCondition("active_at"),
-            "inbox": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "needs_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
         }
 
         if environments is not None:

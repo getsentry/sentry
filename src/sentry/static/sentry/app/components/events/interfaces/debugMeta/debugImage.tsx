@@ -13,6 +13,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 
+import {DebugImage as DebugImageType, DebugStatus} from './types';
 import {combineStatus, getFileName} from './utils';
 
 type Status = ReturnType<typeof combineStatus>;
@@ -58,33 +59,11 @@ function getImageStatusDetails(status: Status) {
 }
 
 type Props = {
-  image: Image;
+  image: DebugImageType;
   showDetails: boolean;
   style?: React.CSSProperties;
   orgId?: Organization['id'];
   projectId?: Project['id'];
-};
-
-type DebugStatus = ReturnType<typeof combineStatus>;
-
-type Image = {
-  code_id: string;
-  code_file: string;
-  debug_id: string;
-  debug_file: string;
-  features: {
-    has_sources: boolean;
-    has_debug_info: boolean;
-    has_unwind_info: boolean;
-    has_symbols: boolean;
-  };
-  image_addr: string;
-  image_size: number;
-  type: string;
-  debug_status?: DebugStatus;
-  unwind_status?: DebugStatus;
-  image_vmaddr?: string;
-  arch?: string;
 };
 
 const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Props) => {
@@ -176,9 +155,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
 
       <ImageInfoGroup>
-        <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
-        <AddressDivider />
-        <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+        {startAddress && endAddress ? (
+          <React.Fragment>
+            <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+            <AddressDivider />
+            <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+          </React.Fragment>
+        ) : null}
       </ImageInfoGroup>
 
       <ImageInfoGroup fullWidth>

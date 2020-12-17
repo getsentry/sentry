@@ -1,23 +1,20 @@
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {
-  DashboardListItem,
-  OrgDashboard,
-  OrgDashboardResponse,
-  OrgDashboardUpdate,
-} from 'app/views/dashboardsV2/types';
+import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 
 export function createDashboard(
   api: Client,
   orgId: string,
-  newDashboard: DashboardListItem
-): Promise<OrgDashboardResponse> {
-  const promise: Promise<OrgDashboardResponse> = api.requestPromise(
+  newDashboard: DashboardDetails
+): Promise<DashboardDetails> {
+  const {title, widgets} = newDashboard;
+
+  const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title: newDashboard.title},
+      data: {title, widgets},
     }
   );
 
@@ -37,14 +34,14 @@ export function createDashboard(
 export function updateDashboard(
   api: Client,
   orgId: string,
-  dashboard: OrgDashboard
-): Promise<OrgDashboardResponse> {
-  const data: OrgDashboardUpdate = {
+  dashboard: DashboardDetails
+): Promise<DashboardDetails> {
+  const data = {
     title: dashboard.title,
     widgets: dashboard.widgets,
   };
 
-  const promise: Promise<OrgDashboardResponse> = api.requestPromise(
+  const promise: Promise<DashboardDetails> = api.requestPromise(
     `/organizations/${orgId}/dashboards/${dashboard.id}/`,
     {
       method: 'PUT',
@@ -87,5 +84,20 @@ export function deleteDashboard(
     }
   });
 
+  return promise;
+}
+
+export function validateWidget(
+  api: Client,
+  orgId: string,
+  widget: Widget
+): Promise<undefined> {
+  const promise: Promise<undefined> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/widgets/`,
+    {
+      method: 'POST',
+      data: widget,
+    }
+  );
   return promise;
 }

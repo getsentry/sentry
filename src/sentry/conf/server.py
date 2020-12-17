@@ -518,6 +518,7 @@ CELERY_IMPORTS = (
     "sentry.data_export.tasks",
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
+    "sentry.snuba.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
@@ -705,6 +706,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=5),
         "options": {"expires": 3600},
     },
+    "snuba-subscription-checker": {
+        "task": "sentry.snuba.tasks.subscription_checker",
+        "schedule": timedelta(minutes=20),
+        "options": {"expires": 20 * 60},
+    },
 }
 
 BGTASKS = {
@@ -823,6 +829,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable inline preview of attachments.
+    "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -870,6 +878,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
+    # Enables aws lambda integration
+    "organizations:integrations-aws_lambda": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
@@ -898,7 +908,9 @@ SENTRY_FEATURES = {
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
-    "organizations:relay": False,
+    "organizations:relay": True,
+    # Enable version 2 of reprocessing (completely distinct from v1)
+    "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -919,10 +931,16 @@ SENTRY_FEATURES = {
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
+    # Set default tab to inbox
+    "organizations:inbox-tab-default": False,
+    # Enable the new images loaded design and features
+    "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
+    # Enable "owner"/"suggested assignee" features.
+    "organizations:workflow-owners": False,
+    # Adds additional filters and a new section to issue alert rules.
+    "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
     # Enable data forwarding functionality for projects.
@@ -940,14 +958,14 @@ SENTRY_FEATURES = {
     "projects:plugins": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable version 2 of reprocessing (completely distinct from v1)
-    "projects:reprocessing-v2": False,
     # Enable functionality for sampling of events on projects.
     "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
+    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1233,6 +1251,13 @@ SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
 
 # Maximum content length for source files before we abort fetching
 SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
+
+# Maximum content length for cache value.  Currently used only to avoid
+# pointless compression of sourcemaps and other release files because we
+# silently fail to cache the compressed result anyway.  Defaults to None which
+# disables the check and allows different backends for unlimited payload.
+# e.g. memcached defaults to 1MB  = 1024 * 1024
+SENTRY_CACHE_MAX_VALUE_SIZE = None
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
@@ -1643,21 +1668,19 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
+    "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
 )
 
 
-def get_sentry_sdk_config():
-    return {
-        "release": sentry.__build__,
-        "environment": ENVIRONMENT,
-        "in_app_include": ["sentry", "sentry_plugins"],
-        "_experiments": {"smart_transaction_trimming": True},
-        "debug": True,
-        "send_default_pii": True,
-    }
-
-
-SENTRY_SDK_CONFIG = get_sentry_sdk_config()
+SENTRY_SDK_CONFIG = {
+    "release": sentry.__build__,
+    "environment": ENVIRONMENT,
+    "in_app_include": ["sentry", "sentry_plugins"],
+    "_experiments": {"smart_transaction_trimming": True},
+    "debug": True,
+    "send_default_pii": True,
+    "auto_enabling_integrations": False,
+}
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -1679,6 +1702,7 @@ EMAIL_PORT = DEAD
 EMAIL_HOST_USER = DEAD
 EMAIL_HOST_PASSWORD = DEAD
 EMAIL_USE_TLS = DEAD
+EMAIL_USE_SSL = DEAD
 SERVER_EMAIL = DEAD
 EMAIL_SUBJECT_PREFIX = DEAD
 

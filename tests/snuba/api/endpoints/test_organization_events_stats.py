@@ -6,6 +6,7 @@ import uuid
 
 from pytz import utc
 from datetime import timedelta
+from uuid import uuid4
 
 from django.core.urlresolvers import reverse
 
@@ -251,25 +252,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
-                    "interval": "1h",
-                    "yAxis": "epm()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
+        for axis in ["epm()", "tpm()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=6)),
+                        "interval": "1h",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 6
 
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+            rows = data[0:6]
+            for test in zip(event_counts, rows):
+                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
     def test_throughput_epm_day_rollup(self):
         project = self.create_project()
@@ -290,23 +292,24 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
-                    "interval": "24h",
-                    "yAxis": "epm()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
+        for axis in ["epm()", "tpm()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=24)),
+                        "interval": "24h",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
 
-        assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+            assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
     def test_throughput_eps_minute_rollup(self):
         project = self.create_project()
@@ -327,25 +330,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
-                    "interval": "1m",
-                    "yAxis": "eps()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
+        for axis in ["eps()", "tps()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                        "interval": "1m",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 6
 
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0] / 60.0
+            rows = data[0:6]
+            for test in zip(event_counts, rows):
+                assert test[1][1][0]["count"] == test[0] / 60.0
 
     def test_throughput_eps_no_rollup(self):
         project = self.create_project()
@@ -1319,3 +1323,49 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert [{"count": self.event_data[index]["count"]}] in [
                 attrs for time, attrs in results["data"]
             ]
+
+    def test_top_events_with_to_other(self):
+        version = "version -@'\" 1.2,3+(4)"
+        version_escaped = "version -@'\\\" 1.2,3+(4)"
+        # every symbol is replaced with a underscore to make the alias
+        version_alias = "version_______1_2_3__4_"
+
+        # add an event in the current release
+        event = self.event_data[0]
+        event_data = event["data"].copy()
+        event_data["event_id"] = uuid4().hex
+        event_data["release"] = version
+        self.store_event(event_data, project_id=event["project"].id)
+
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    # the double underscores around the version alias is because of a comma and quote
+                    "orderby": ["-to_other_release__{}__others_current".format(version_alias)],
+                    "field": [
+                        "count()",
+                        'to_other(release,"{}",others,current)'.format(version_escaped),
+                    ],
+                    "topEvents": 2,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 2
+
+        current = data["current"]
+        assert current["order"] == 1
+        assert sum(attrs[0]["count"] for _, attrs in current["data"]) == 1
+
+        others = data["others"]
+        assert others["order"] == 0
+        assert sum(attrs[0]["count"] for _, attrs in others["data"]) == sum(
+            event_data["count"] for event_data in self.event_data
+        )

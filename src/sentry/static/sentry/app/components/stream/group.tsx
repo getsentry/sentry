@@ -1,9 +1,10 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
-import {Box, Flex} from 'reflexbox';
+import {Box} from 'reflexbox';
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -11,21 +12,31 @@ import Count from 'app/components/count';
 import DropdownMenu from 'app/components/dropdownMenu';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import InboxReason from 'app/components/group/inboxBadges/inboxReason';
-import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import Link from 'app/components/links/link';
 import MenuItem from 'app/components/menuItem';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {PanelItem} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
+import ProgressBar from 'app/components/progressBar';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
+import GroupRowActions from 'app/components/stream/groupRowActions';
+import TimeSince from 'app/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {GlobalSelection, Group, NewQuery, Organization, User} from 'app/types';
-import {valueIsEqual} from 'app/utils';
+import {
+  GlobalSelection,
+  Group,
+  GroupReprocessing,
+  NewQuery,
+  Organization,
+  User,
+} from 'app/types';
+import {defined, percent, valueIsEqual} from 'app/utils';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
@@ -58,16 +69,16 @@ type Props = {
   id: string;
   selection: GlobalSelection;
   organization: Organization;
+  isReprocessingQuery?: boolean;
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
-  /** >=1 group is in the inbox and should display the reason or a placeholder */
-  hasInboxReason?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
 type State = {
   data: Group;
+  reviewed: boolean;
 };
 
 class StreamGroup extends React.Component<Props, State> {
@@ -85,6 +96,7 @@ class StreamGroup extends React.Component<Props, State> {
         ...data,
         filtered: useFilteredStats ? data.filtered : null,
       },
+      reviewed: false,
     };
   }
 
@@ -127,7 +139,15 @@ class StreamGroup extends React.Component<Props, State> {
     }
 
     const data = GroupStore.get(id) as Group;
-    this.setState({data});
+    this.setState(state => {
+      // On the inbox tab and the inbox reason is removed
+      const reviewed =
+        state.reviewed ||
+        (this.props.query === 'is:needs_review is:unresolved' &&
+          state.data.inbox?.reason !== undefined &&
+          data.inbox === false);
+      return {data, reviewed};
+    });
   }
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -153,7 +173,7 @@ class StreamGroup extends React.Component<Props, State> {
 
     const queryTerms: string[] = [];
 
-    if (isFiltered && query) {
+    if (isFiltered && typeof query === 'string') {
       const queryObj = queryToObj(query);
       for (const queryTag in queryObj)
         if (!DiscoveryExclusionFields.includes(queryTag)) {
@@ -205,8 +225,45 @@ class StreamGroup extends React.Component<Props, State> {
     };
   }
 
-  render() {
+  renderReprocessingColumns() {
     const {data} = this.state;
+    const {statusDetails, count} = data as GroupReprocessing;
+    const {info, pendingEvents} = statusDetails;
+    const {totalEvents, dateCreated} = info;
+
+    const remainingEventsToReprocess = totalEvents - pendingEvents;
+    const remainingEventsToReprocessPercent = percent(
+      remainingEventsToReprocess,
+      totalEvents
+    );
+
+    const value = remainingEventsToReprocessPercent || 100;
+
+    return (
+      <React.Fragment>
+        <StartedColumn>
+          <TimeSince date={dateCreated} />
+        </StartedColumn>
+        <EventsReprocessedColumn>
+          {!defined(count) ? (
+            <Placeholder height="17px" />
+          ) : (
+            <React.Fragment>
+              <Count value={totalEvents} />
+              {'/'}
+              <Count value={Number(count)} />
+            </React.Fragment>
+          )}
+        </EventsReprocessedColumn>
+        <ProgressColumn>
+          <ProgressBar value={value} />
+        </ProgressColumn>
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const {data, reviewed} = this.state;
     const {
       query,
       hasGuideAnchor,
@@ -216,7 +273,7 @@ class StreamGroup extends React.Component<Props, State> {
       statsPeriod,
       selection,
       organization,
-      hasInboxReason,
+      isReprocessingQuery,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -237,11 +294,16 @@ class StreamGroup extends React.Component<Props, State> {
     const hasInbox = organization.features.includes('inbox');
 
     return (
-      <Wrapper data-test-id="group" onClick={this.toggleSelect}>
+      <Wrapper
+        data-test-id="group"
+        onClick={isReprocessingQuery ? undefined : this.toggleSelect}
+        reviewed={reviewed}
+        hasInbox={hasInbox}
+      >
         {canSelect && (
-          <GroupCheckbox ml={2}>
-            <GroupCheckBox id={data.id} />
-          </GroupCheckbox>
+          <GroupCheckBoxWrapper ml={2}>
+            <GroupCheckBox id={data.id} disabled={!!isReprocessingQuery} />
+          </GroupCheckBoxWrapper>
         )}
         <GroupSummary
           width={[8 / 12, 8 / 12, 6 / 12]}
@@ -249,151 +311,170 @@ class StreamGroup extends React.Component<Props, State> {
           mr={1}
           flex="1"
         >
-          <EventOrGroupHeader includeLink data={data} query={query} size="normal" />
-          <EventOrGroupExtraDetails data={data} />
+          <EventOrGroupHeader
+            organization={organization}
+            includeLink
+            data={data}
+            query={query}
+            size="normal"
+          />
+          <EventOrGroupExtraDetails organization={organization} data={data} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
-        {withChart && (
-          <Box width={160} mx={2} className="hidden-xs hidden-sm">
-            <GroupChart
-              statsPeriod={statsPeriod!}
-              data={data}
-              showSecondaryPoints={showSecondaryPoints}
-            />
-          </Box>
-        )}
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <DropdownMenu isNestedDropdown>
-            {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-              const topLevelCx = classNames('dropdown', {
-                'anchor-middle': true,
-                open: isOpen,
-              });
-
-              return (
-                <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-                  <span
-                    {...getRootProps({
-                      className: topLevelCx,
-                    })}
-                  >
-                    <span {...getActorProps({})}>
-                      <div className="dropdown-actor-title">
-                        <PrimaryCount value={primaryCount} />
-                        {secondaryCount !== undefined && (
-                          <SecondaryCount value={secondaryCount} />
-                        )}
-                      </div>
-                    </span>
-                    <StyledDropdownList
-                      {...getMenuProps({className: 'dropdown-menu inverted'})}
-                    >
-                      {data.filtered && (
-                        <React.Fragment>
-                          <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                            <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                            <MenuItemCount value={data.filtered.count} />
-                          </StyledMenuItem>
-                          <MenuItem divider />
-                        </React.Fragment>
-                      )}
-
-                      <StyledMenuItem to={this.getDiscoverUrl()}>
-                        <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                        <MenuItemCount value={data.count} />
-                      </StyledMenuItem>
-
-                      {data.lifetime && (
-                        <React.Fragment>
-                          <MenuItem divider />
-                          <StyledMenuItem>
-                            <MenuItemText>{t('Since issue began')}</MenuItemText>
-                            <MenuItemCount value={data.lifetime.count} />
-                          </StyledMenuItem>
-                        </React.Fragment>
-                      )}
-                    </StyledDropdownList>
-                  </span>
-                </GuideAnchor>
-              );
-            }}
-          </DropdownMenu>
-        </Flex>
-        <Flex width={[40, 60, 80, 80]} mx={2} justifyContent="flex-end">
-          <DropdownMenu isNestedDropdown>
-            {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-              const topLevelCx = classNames('dropdown', {
-                'anchor-middle': true,
-                open: isOpen,
-              });
-
-              return (
-                <span
-                  {...getRootProps({
-                    className: topLevelCx,
-                  })}
-                >
-                  <span {...getActorProps({})}>
-                    <div className="dropdown-actor-title">
-                      <PrimaryCount value={primaryUserCount} />
-                      {secondaryUserCount !== undefined && (
-                        <SecondaryCount dark value={secondaryUserCount} />
-                      )}
-                    </div>
-                  </span>
-                  <StyledDropdownList
-                    {...getMenuProps({className: 'dropdown-menu inverted'})}
-                  >
-                    {data.filtered && (
-                      <React.Fragment>
-                        <StyledMenuItem to={this.getDiscoverUrl(true)}>
-                          <MenuItemText>{t('Matching search filters')}</MenuItemText>
-                          <MenuItemCount value={data.filtered.userCount} />
-                        </StyledMenuItem>
-                        <MenuItem divider />
-                      </React.Fragment>
-                    )}
-
-                    <StyledMenuItem to={this.getDiscoverUrl()}>
-                      <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                      <MenuItemCount value={data.userCount} />
-                    </StyledMenuItem>
-
-                    {data.lifetime && (
-                      <React.Fragment>
-                        <MenuItem divider />
-                        <StyledMenuItem>
-                          <MenuItemText>{t('Since issue began')}</MenuItemText>
-                          <MenuItemCount value={data.lifetime.userCount} />
-                        </StyledMenuItem>
-                      </React.Fragment>
-                    )}
-                  </StyledDropdownList>
-                </span>
-              );
-            }}
-          </DropdownMenu>
-        </Flex>
-        <Box width={80} mx={2} className="hidden-xs hidden-sm">
-          <AssigneeSelector id={data.id} memberList={memberList} />
-        </Box>
-        {hasInbox && (
-          <React.Fragment>
-            {hasInboxReason && (
-              <ReasonBox width={95} mx={2} className="hidden-xs hidden-sm">
-                <BadgeWrapper>
-                  {data.inbox ? <InboxReason inbox={data.inbox} /> : <div />}
-                </BadgeWrapper>
-              </ReasonBox>
+        {withChart && !isReprocessingQuery && (
+          <ChartWrapper className="hidden-xs hidden-sm">
+            {!data.filtered?.stats && !data.stats ? (
+              <Placeholder height="24px" />
+            ) : (
+              <GroupChart
+                statsPeriod={statsPeriod!}
+                data={data}
+                showSecondaryPoints={showSecondaryPoints}
+              />
             )}
-            <TimesBox width={170} mx={2} className="hidden-xs hidden-sm">
-              <BadgeWrapper>
-                <TimesTag
-                  lastSeen={data.lifetime?.lastSeen || data.lastSeen}
-                  firstSeen={data.lifetime?.firstSeen || data.firstSeen}
+          </ChartWrapper>
+        )}
+        {isReprocessingQuery ? (
+          this.renderReprocessingColumns()
+        ) : (
+          <React.Fragment>
+            <EventUserWrapper>
+              {!defined(primaryCount) ? (
+                <Placeholder height="18px" />
+              ) : (
+                <DropdownMenu isNestedDropdown>
+                  {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+                    const topLevelCx = classNames('dropdown', {
+                      'anchor-middle': true,
+                      open: isOpen,
+                    });
+
+                    return (
+                      <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+                        <span
+                          {...getRootProps({
+                            className: topLevelCx,
+                          })}
+                        >
+                          <span {...getActorProps({})}>
+                            <div className="dropdown-actor-title">
+                              <PrimaryCount value={primaryCount} />
+                              {secondaryCount !== undefined && (
+                                <SecondaryCount value={secondaryCount} />
+                              )}
+                            </div>
+                          </span>
+                          <StyledDropdownList
+                            {...getMenuProps({className: 'dropdown-menu inverted'})}
+                          >
+                            {data.filtered && (
+                              <React.Fragment>
+                                <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                                  <MenuItemText>
+                                    {t('Matching search filters')}
+                                  </MenuItemText>
+                                  <MenuItemCount value={data.filtered.count} />
+                                </StyledMenuItem>
+                                <MenuItem divider />
+                              </React.Fragment>
+                            )}
+
+                            <StyledMenuItem to={this.getDiscoverUrl()}>
+                              <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                              <MenuItemCount value={data.count} />
+                            </StyledMenuItem>
+
+                            {data.lifetime && (
+                              <React.Fragment>
+                                <MenuItem divider />
+                                <StyledMenuItem>
+                                  <MenuItemText>{t('Since issue began')}</MenuItemText>
+                                  <MenuItemCount value={data.lifetime.count} />
+                                </StyledMenuItem>
+                              </React.Fragment>
+                            )}
+                          </StyledDropdownList>
+                        </span>
+                      </GuideAnchor>
+                    );
+                  }}
+                </DropdownMenu>
+              )}
+            </EventUserWrapper>
+            <EventUserWrapper>
+              {!defined(primaryUserCount) ? (
+                <Placeholder height="18px" />
+              ) : (
+                <DropdownMenu isNestedDropdown>
+                  {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+                    const topLevelCx = classNames('dropdown', {
+                      'anchor-middle': true,
+                      open: isOpen,
+                    });
+
+                    return (
+                      <span
+                        {...getRootProps({
+                          className: topLevelCx,
+                        })}
+                      >
+                        <span {...getActorProps({})}>
+                          <div className="dropdown-actor-title">
+                            <PrimaryCount value={primaryUserCount} />
+                            {secondaryUserCount !== undefined && (
+                              <SecondaryCount dark value={secondaryUserCount} />
+                            )}
+                          </div>
+                        </span>
+                        <StyledDropdownList
+                          {...getMenuProps({className: 'dropdown-menu inverted'})}
+                        >
+                          {data.filtered && (
+                            <React.Fragment>
+                              <StyledMenuItem to={this.getDiscoverUrl(true)}>
+                                <MenuItemText>
+                                  {t('Matching search filters')}
+                                </MenuItemText>
+                                <MenuItemCount value={data.filtered.userCount} />
+                              </StyledMenuItem>
+                              <MenuItem divider />
+                            </React.Fragment>
+                          )}
+
+                          <StyledMenuItem to={this.getDiscoverUrl()}>
+                            <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                            <MenuItemCount value={data.userCount} />
+                          </StyledMenuItem>
+
+                          {data.lifetime && (
+                            <React.Fragment>
+                              <MenuItem divider />
+                              <StyledMenuItem>
+                                <MenuItemText>{t('Since issue began')}</MenuItemText>
+                                <MenuItemCount value={data.lifetime.userCount} />
+                              </StyledMenuItem>
+                            </React.Fragment>
+                          )}
+                        </StyledDropdownList>
+                      </span>
+                    );
+                  }}
+                </DropdownMenu>
+              )}
+            </EventUserWrapper>
+            <AssigneeWrapper className="hidden-xs hidden-sm">
+              <AssigneeSelector id={data.id} memberList={memberList} />
+            </AssigneeWrapper>
+            {canSelect && hasInbox && (
+              <ActionsWrapper>
+                <GroupRowActions
+                  group={data}
+                  orgId={organization.slug}
+                  selection={selection}
+                  query={query}
                 />
-              </BadgeWrapper>
-            </TimesBox>
+              </ActionsWrapper>
+            )}
           </React.Fragment>
         )}
       </Wrapper>
@@ -401,25 +482,37 @@ class StreamGroup extends React.Component<Props, State> {
   }
 }
 
-const Wrapper = styled(PanelItem)`
-  padding: ${space(1)} 0;
-  align-items: center;
+export default withGlobalSelection(withOrganization(StreamGroup));
+
+// Position for wrapper is relative for overlay actions
+const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
+  position: relative;
+  padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
   line-height: 1.1;
+
+  ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
+
+  ${p =>
+    p.reviewed &&
+    css`
+      animation: tintRow 0.2s linear forwards;
+
+      @keyframes tintRow {
+        0% {
+          background-color: ${p.theme.bodyBackground};
+        }
+        100% {
+          background-color: ${p.theme.backgroundSecondary};
+        }
+      }
+    `};
 `;
 
 const GroupSummary = styled(Box)`
   overflow: hidden;
 `;
 
-const ReasonBox = styled(Box)`
-  margin: 0 ${space(0.25)} 0 ${space(1)};
-`;
-
-const TimesBox = styled(Box)`
-  margin: 0 ${space(1.5)} 0 ${space(0.5)};
-`;
-
-const GroupCheckbox = styled(Box)`
+const GroupCheckBoxWrapper = styled(Box)`
   align-self: flex-start;
   & input[type='checkbox'] {
     margin: 0;
@@ -483,9 +576,73 @@ const MenuItemText = styled('div')`
   padding-right: ${space(1)};
 `;
 
-const BadgeWrapper = styled('div')`
-  display: flex;
-  justify-content: center;
+const ChartWrapper = styled('div')`
+  width: 160px;
+  margin: 0 ${space(2)};
+  align-self: center;
 `;
 
-export default withGlobalSelection(withOrganization(StreamGroup));
+const EventUserWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 60px;
+  margin: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    width: 80px;
+  }
+`;
+
+const AssigneeWrapper = styled('div')`
+  width: 80px;
+  margin: 0 ${space(2)};
+  align-self: center;
+`;
+
+const ActionsWrapper = styled('div')`
+  width: 80px;
+  margin: 0 ${space(2)};
+  align-self: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    display: none;
+  }
+`;
+
+// Reprocessing
+const StartedColumn = styled('div')`
+  align-self: center;
+  margin: 0 ${space(2)};
+  color: ${p => p.theme.gray500};
+  ${overflowEllipsis};
+  width: 85px;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+    width: 140px;
+  }
+`;
+
+const EventsReprocessedColumn = styled('div')`
+  align-self: center;
+  margin: 0 ${space(2)};
+  color: ${p => p.theme.gray500};
+  ${overflowEllipsis};
+  width: 75px;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    width: 140px;
+  }
+`;
+
+const ProgressColumn = styled('div')`
+  margin: 0 ${space(2)};
+  align-self: center;
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: block;
+    width: 160px;
+  }
+`;

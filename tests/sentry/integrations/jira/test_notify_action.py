@@ -6,8 +6,7 @@ from sentry.integrations.jira.notify_action import JiraCreateTicketAction
 from sentry.models import Integration, ExternalIssue, GroupLink, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
-
-from .test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
+from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraCreateTicketActionTest(RuleTestCase):
@@ -32,24 +31,23 @@ class JiraCreateTicketActionTest(RuleTestCase):
         event = self.get_event()
         jira_rule = self.get_rule(
             data={
-                "title": "example summary",
-                "description": "example bug report",
                 "issuetype": "1",
-                "project": "10000",
+                "labels": "bunnies",
                 "customfield_10200": "sad",
                 "customfield_10300": ["Feature 1", "Feature 2"],
-                "labels": "bunnies",
-                "jira_integration": self.integration.id,
+                "project": "10000",
+                "integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
             }
         )
         jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
+
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
-            body=SAMPLE_CREATE_META_RESPONSE,
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
             content_type="json",
             match_querystring=False,
         )
@@ -65,7 +63,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/APP-123",
-            body=SAMPLE_GET_ISSUE_RESPONSE,
+            body=StubService.get_stub_json("jira", "get_issue_response.json"),
             content_type="json",
             match_querystring=False,
         )
@@ -75,9 +73,12 @@ class JiraCreateTicketActionTest(RuleTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[2].response.text)
-        assert data["title"] == "example summary"
-        assert data["description"] == "example bug report"
+
+        # Make assertions about what would be sent.
+        data = json.loads(responses.calls[2].request.body)
+        assert data["fields"]["summary"] == event.title
+        assert event.message in data["fields"]["description"]
+        assert data["fields"]["issuetype"]["id"] == "1"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
@@ -111,7 +112,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "customfield_10200": "sad",
                 "customfield_10300": ["Feature 1", "Feature 2"],
                 "labels": "bunnies",
-                "jira_integration": self.integration.id,
+                "integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
@@ -127,7 +128,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
     def test_render_label(self):
         rule = self.get_rule(
             data={
-                "jira_integration": self.integration.id,
+                "integration": self.integration.id,
                 "issuetype": 1,
                 "project": 10000,
                 "dynamic_form_fields": {
@@ -142,20 +143,20 @@ class JiraCreateTicketActionTest(RuleTestCase):
         deleted_id = self.integration.id
         self.integration.delete()
 
-        rule = self.get_rule(data={"jira_integration": deleted_id})
+        rule = self.get_rule(data={"integration": deleted_id})
 
         assert rule.render_label() == "Create a Jira issue in [removed] with these "
 
     @responses.activate
     def test_invalid_integration(self):
-        rule = self.get_rule(data={"jira_integration": self.integration.id})
+        rule = self.get_rule(data={"integration": self.integration.id})
 
         form = rule.get_form_instance()
         assert form.is_valid()
 
     @responses.activate
     def test_invalid_project(self):
-        rule = self.get_rule(data={"jira_integration": self.integration.id})
+        rule = self.get_rule(data={"integration": self.integration.id})
 
         form = rule.get_form_instance()
         assert form.is_valid()

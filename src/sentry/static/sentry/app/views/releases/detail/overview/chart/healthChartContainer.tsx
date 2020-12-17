@@ -5,6 +5,7 @@ import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import {PlatformKey} from 'app/data/platformCategories';
 import {IconWarning} from 'app/icons';
 import {GlobalSelection} from 'app/types';
 
@@ -20,6 +21,9 @@ type Props = Omit<
   selection: GlobalSelection;
   yAxis: YAxis;
   router: ReactRouter.InjectedRouter;
+  platform: PlatformKey;
+  title: string;
+  help?: string;
 };
 
 type State = {
@@ -36,41 +40,57 @@ class ReleaseChartContainer extends React.Component<Props, State> {
   };
 
   render() {
-    const {loading, errored, reloading, chartData, selection, yAxis, router} = this.props;
+    const {
+      loading,
+      errored,
+      reloading,
+      chartData,
+      selection,
+      yAxis,
+      router,
+      platform,
+      title,
+      help,
+    } = this.props;
     const {shouldRecalculateVisibleSeries} = this.state;
     const {datetime} = selection;
     const {utc, period, start, end} = datetime;
 
     return (
-      <React.Fragment>
-        <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-          {zoomRenderProps => {
-            if (errored) {
-              return (
-                <ErrorPanel>
-                  <IconWarning color="gray300" size="lg" />
-                </ErrorPanel>
-              );
-            }
-
+      <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
+        {zoomRenderProps => {
+          if (errored) {
             return (
-              <TransitionChart loading={loading} reloading={reloading}>
-                <TransparentLoadingMask visible={reloading} />
-                <HealthChart
-                  utc={utc}
-                  timeseriesData={chartData}
-                  zoomRenderProps={zoomRenderProps}
-                  reloading={reloading}
-                  yAxis={yAxis}
-                  location={router.location}
-                  shouldRecalculateVisibleSeries={shouldRecalculateVisibleSeries}
-                  onVisibleSeriesRecalculated={this.handleVisibleSeriesRecalculated}
-                />
-              </TransitionChart>
+              <ErrorPanel>
+                <IconWarning color="gray300" size="lg" />
+              </ErrorPanel>
             );
-          }}
-        </ChartZoom>
-      </React.Fragment>
+          }
+
+          // Stack the toolbox under the legend.
+          // so all series names are clickable.
+          zoomRenderProps.toolBox.z = -1;
+
+          return (
+            <TransitionChart loading={loading} reloading={reloading}>
+              <TransparentLoadingMask visible={reloading} />
+              <HealthChart
+                utc={utc}
+                timeseriesData={chartData}
+                zoomRenderProps={zoomRenderProps}
+                reloading={reloading}
+                yAxis={yAxis}
+                location={router.location}
+                shouldRecalculateVisibleSeries={shouldRecalculateVisibleSeries}
+                onVisibleSeriesRecalculated={this.handleVisibleSeriesRecalculated}
+                platform={platform}
+                title={title}
+                help={help}
+              />
+            </TransitionChart>
+          );
+        }}
+      </ChartZoom>
     );
   }
 }

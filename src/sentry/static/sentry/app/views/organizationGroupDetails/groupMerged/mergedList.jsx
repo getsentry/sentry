@@ -40,7 +40,7 @@ class MergedList extends React.Component {
     return (
       <div>
         <h2>
-          <span>{t('Merged fingerprints with latest event')}</span>
+          <span>{t('Merged fingerprints with latest event')}</span>{' '}
           <QueryCount count={itemsWithLatestEvent.length} />
         </h2>
 

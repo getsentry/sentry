@@ -1,6 +1,5 @@
 import React from 'react';
-
-import Tag from 'app/components/tag';
+import styled from '@emotion/styled';
 
 /**
  * Used in new inbox
@@ -12,6 +11,29 @@ type Props = {
   avatar?: React.ReactNode;
 };
 
-const ShortId = ({shortId, avatar}: Props) => <Tag icon={avatar}>{shortId}</Tag>;
+const ShortId = ({shortId, avatar}: Props) => (
+  <Wrapper>
+    <AvatarWrapper>{avatar}</AvatarWrapper>
+    <IdWrapper>{shortId}</IdWrapper>
+  </Wrapper>
+);
 
 export default ShortId;
+
+const Wrapper = styled('div')`
+  display: flex;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
+const AvatarWrapper = styled('div')`
+  margin-right: 3px;
+  flex-shrink: 0;
+`;
+
+const IdWrapper = styled('div')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+`;

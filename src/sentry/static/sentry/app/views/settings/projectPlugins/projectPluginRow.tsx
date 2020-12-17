@@ -1,6 +1,5 @@
 import React from 'react';
-import {Link} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {Link, RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
@@ -16,7 +15,6 @@ import getDynamicText from 'app/utils/getDynamicText';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 
 const grayText = css`
   color: #979ba0;
@@ -117,7 +115,7 @@ class ProjectPluginRow extends React.PureComponent<Props> {
   }
 }
 
-export default withOrganization(withProject(ProjectPluginRow));
+export default withOrganization(ProjectPluginRow);
 
 const PluginItem = styled('div')`
   display: flex;

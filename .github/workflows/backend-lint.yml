@@ -15,6 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       # If we make these jobs "required" to merge on GH, then on every PR, GitHub automatically
       # creates a status check in the "pending" state. This means that the workflow needs to run
       # for every PR in order to update the status checks.
@@ -34,7 +42,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -87,6 +95,13 @@ jobs:
           # XXX: there is a very small chance that it'll expand to exceed Linux's limits
           #      `getconf ARG_MAX` - max # bytes of args + environ for exec()
           pre-commit run --files ${{ steps.files.outputs.all_files }}
+
+      # If working tree is dirty, commit and update if we have a token
+      - name: Apply any pre-commit fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.backend == 'true' && always()
+        uses: getsentry/action-github-commit@main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts

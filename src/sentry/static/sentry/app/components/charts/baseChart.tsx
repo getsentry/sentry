@@ -74,7 +74,7 @@ type Props = {
   /**
    * Must be explicitly `null` to disable yAxis
    */
-  yAxis?: EChartOption.YAxis;
+  yAxis?: EChartOption.YAxis | null;
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
    * objects to customize yAxis properties
@@ -488,6 +488,35 @@ const ChartContainer = styled('div')`
 
   .echarts-for-react div:first-of-type {
     width: 100% !important;
+  }
+
+  /* Tooltip description styling */
+  .tooltip-description {
+    color: ${p => p.theme.white};
+    border-radius: ${p => p.theme.borderRadius};
+    background: #000;
+    opacity: 0.9;
+    padding: 5px 10px;
+    position: relative;
+    font-weight: bold;
+    font-size: ${p => p.theme.fontSizeSmall};
+    line-height: 1.4;
+    font-family: ${p => p.theme.text.family};
+    max-width: 250px;
+    white-space: normal;
+    text-align: center;
+    :after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #000;
+      transform: translateX(-50%);
+    }
   }
 `;
 

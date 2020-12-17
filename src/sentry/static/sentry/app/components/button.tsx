@@ -29,7 +29,7 @@ type Props = {
   external?: boolean;
   borderless?: boolean;
   label?: string;
-  tooltipProps?: any;
+  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
   name?: string;
@@ -42,7 +42,7 @@ type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-class Button extends React.Component<ButtonProps, {}> {
+class BaseButton extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
@@ -187,19 +187,23 @@ class Button extends React.Component<ButtonProps, {}> {
   }
 }
 
-const ButtonForwardRef = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
-  <Button forwardRef={ref} {...props} />
+const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
+  <BaseButton forwardRef={ref} {...props} />
 ));
 
 // Some components use Button's propTypes
-ButtonForwardRef.propTypes = Button.propTypes;
-ButtonForwardRef.displayName = 'forwardRef<Button>';
+Button.propTypes = Button.propTypes;
+Button.displayName = 'Button';
 
-export default ButtonForwardRef;
+export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
-const getFontSize = ({size, theme}: StyledButtonProps) => {
+const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
+  if (priority === 'link') {
+    return 'inherit';
+  }
+
   switch (size) {
     case 'xsmall':
     case 'small':
@@ -239,7 +243,8 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
   return css`
     color: ${color};
     background-color: ${background};
-    border: 1px solid ${!borderless && !!border ? border : 'transparent'};
+    border: 1px solid
+      ${priority !== 'link' && !borderless && !!border ? border : 'transparent'};
 
     &:hover {
       color: ${color};

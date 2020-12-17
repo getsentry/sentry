@@ -1,26 +1,24 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
-import FeatureTourModal from 'app/components/modals/featureTourModal';
 import Placeholder from 'app/components/placeholder';
 import TextOverflow from 'app/components/textOverflow';
 import Version from 'app/components/version';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import styled from 'app/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Release} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 
-const DOCS_URL = 'https://docs.sentry.io/product/releases/';
+import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -35,11 +33,25 @@ type State = {
 } & AsyncComponent['state'];
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    if (
+      this.state !== nextState ||
+      !isEqual(
+        pick(this.props.location.query, Object.values(URL_PARAM)),
+        pick(nextProps.location.query, Object.values(URL_PARAM))
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {location, organization, projectSlug} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      ...pick(location.query, Object.values(URL_PARAM)),
       per_page: 5,
     };
 
@@ -93,7 +105,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     const {lastDeploy, dateCreated} = release;
 
     return (
-      <React.Fragment>
+      <React.Fragment key={release.version}>
         <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
         <TextOverflow>
           <StyledVersion
@@ -107,6 +119,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
   };
 
   renderInnerBody() {
+    const {organization, projectId} = this.props;
     const {loading, releases, hasOlderReleases} = this.state;
     const checkingForOlderReleases =
       !(releases ?? []).length && hasOlderReleases === undefined;
@@ -117,23 +130,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
 
     if (!hasOlderReleases) {
-      return (
-        <StyledButtonBar gap={1}>
-          <Button size="small" priority="primary" external href={DOCS_URL}>
-            {t('Start Setup')}
-          </Button>
-          <FeatureTourModal
-            steps={RELEASES_TOUR_STEPS}
-            onAdvance={this.handleTourAdvance}
-          >
-            {({showModal}) => (
-              <Button size="small" onClick={showModal}>
-                {t('Get a tour')}
-              </Button>
-            )}
-          </FeatureTourModal>
-        </StyledButtonBar>
-      );
+      return <MissingReleasesButtons organization={organization} projectId={projectId} />;
     }
 
     if (!releases || releases.length === 0) {
@@ -159,10 +156,6 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
 
 const Section = styled('section')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
 `;
 
 const ReleasesTable = styled('div')`

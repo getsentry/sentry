@@ -1,8 +1,6 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
+import {browserHistory, PlainRoute, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {
@@ -12,13 +10,10 @@ import {
 } from 'app/actionCreators/dashboards';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import AsyncComponent from 'app/components/asyncComponent';
 import NotFound from 'app/components/errors/notFound';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
@@ -26,137 +21,125 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Controls from './controls';
 import Dashboard from './dashboard';
-import {EMPTY_DASHBOARD, PREBUILT_DASHBOARDS} from './data';
-import Title from './title';
-import {
-  DashboardListItem,
-  DashboardState,
-  OrgDashboard,
-  OrgDashboardResponse,
-  Widget,
-} from './types';
+import {EMPTY_DASHBOARD} from './data';
+import OrgDashboards from './orgDashboards';
+import DashboardTitle from './title';
+import {DashboardDetails, DashboardState, Widget} from './types';
 import {cloneDashboard} from './utils';
+
+const UNSAVED_MESSAGE = t('You have unsaved changes are you sure you want to leave?');
 
 type Props = {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
-};
+  route: PlainRoute;
+} & WithRouterProps<{orgId: string; dashboardId: string}, {}>;
 
 type State = {
-  // local state
   dashboardState: DashboardState;
-  changesDashboard: DashboardListItem | undefined;
+  modifiedDashboard: DashboardDetails | null;
+};
 
-  // endpoint response
-  orgDashboards: OrgDashboardResponse[] | null;
-} & AsyncComponent['state'];
-
-class DashboardDetail extends AsyncComponent<Props, State> {
+class DashboardDetail extends React.Component<Props, State> {
   state: State = {
-    // AsyncComponent state
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: [],
-
-    // endpoint response
-    orgDashboards: [],
-
-    // local state
-    dashboardState: 'default',
-    changesDashboard: undefined,
+    dashboardState: 'view',
+    modifiedDashboard: null,
   };
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-
-    const url = `/organizations/${organization.slug}/dashboards/`;
-
-    return [['orgDashboards', url]];
+  componentDidMount() {
+    const {route, router} = this.props;
+    router.setRouteLeaveHook(route, this.onRouteLeave);
+    window.addEventListener('beforeunload', this.onUnload);
   }
 
-  onEdit = (dashboard: DashboardListItem) => () => {
+  componentWillUnmount() {
+    window.removeEventListener('beforeunload', this.onUnload);
+  }
+
+  onEdit = (dashboard: State['modifiedDashboard']) => () => {
+    if (!dashboard) {
+      return;
+    }
     this.setState({
       dashboardState: 'edit',
-      changesDashboard: cloneDashboard(dashboard),
+      modifiedDashboard: cloneDashboard(dashboard),
     });
+  };
+
+  onRouteLeave = (): string | undefined => {
+    if (this.state.dashboardState !== 'view') {
+      return UNSAVED_MESSAGE;
+    }
+    // eslint-disable-next-line consistent-return
+    return;
+  };
+
+  onUnload = (event: BeforeUnloadEvent) => {
+    if (this.state.dashboardState === 'view') {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = UNSAVED_MESSAGE;
   };
 
   onCreate = () => {
     this.setState({
       dashboardState: 'create',
-      changesDashboard: cloneDashboard(EMPTY_DASHBOARD),
+      modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
     });
   };
 
-  onRevert = (dashboard: DashboardListItem) => () => {
-    switch (this.state.dashboardState) {
-      case 'edit': {
-        this.setState({
-          changesDashboard: cloneDashboard(dashboard),
-        });
-        break;
-      }
-      case 'create': {
-        this.setState({
-          changesDashboard: cloneDashboard(EMPTY_DASHBOARD),
-        });
-        break;
-      }
-      default: {
-        // nothing to do
-      }
-    }
+  onCancel = () => {
+    this.setState({
+      dashboardState: 'view',
+      modifiedDashboard: null,
+    });
   };
 
-  isRevertable(dashboard: DashboardListItem) {
-    const {changesDashboard, dashboardState} = this.state;
-
-    switch (dashboardState) {
-      case 'create': {
-        return !isEqual(dashboard, EMPTY_DASHBOARD);
-      }
-      case 'edit': {
-        return !isEqual(dashboard, changesDashboard);
-      }
-      default: {
-        return false;
-      }
-    }
-  }
-
-  onDelete = (dashboard: DashboardListItem) => () => {
+  onDelete = (dashboard: State['modifiedDashboard']) => () => {
     const {api, organization} = this.props;
-    if (dashboard.type === 'org') {
-      deleteDashboard(api, organization.slug, dashboard.id).then(() => {
-        addSuccessMessage(t('Dashboard deleted'));
+    if (!dashboard?.id) {
+      return;
+    }
 
-        browserHistory.replace({
-          pathname: `/organizations/${organization.slug}/dashboards/`,
-          query: {},
-        });
+    deleteDashboard(api, organization.slug, dashboard.id).then(() => {
+      addSuccessMessage(t('Dashboard deleted'));
+
+      browserHistory.replace({
+        pathname: `/organizations/${organization.slug}/dashboards/`,
+        query: {},
       });
-    }
+    });
   };
 
-  onCommit = dashboard => () => {
-    const {api, organization} = this.props;
-    const {dashboardState, changesDashboard} = this.state;
+  onCommit = ({
+    dashboard,
+    reloadData,
+  }: {
+    dashboard: State['modifiedDashboard'];
+    reloadData: () => void;
+  }) => () => {
+    const {api, organization, location} = this.props;
+    const {dashboardState, modifiedDashboard} = this.state;
 
     switch (dashboardState) {
       case 'create': {
-        if (changesDashboard) {
-          createDashboard(api, organization.slug, changesDashboard).then(
-            (newDashboard: OrgDashboardResponse) => {
+        if (modifiedDashboard) {
+          createDashboard(api, organization.slug, modifiedDashboard).then(
+            (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
 
-              // redirect to new dashboard
+              this.setState({
+                dashboardState: 'view',
+                modifiedDashboard: null,
+              });
 
+              // redirect to new dashboard
               browserHistory.replace({
                 pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
-                query: {},
+                query: {
+                  ...location.query,
+                },
               });
             }
           );
@@ -165,205 +148,133 @@ class DashboardDetail extends AsyncComponent<Props, State> {
         break;
       }
       case 'edit': {
-        if (changesDashboard && changesDashboard.type === 'org') {
+        if (modifiedDashboard) {
           // only update the dashboard if there are changes
-
-          if (!this.isRevertable(dashboard)) {
+          if (isEqual(dashboard, modifiedDashboard)) {
             this.setState({
-              dashboardState: 'default',
-              changesDashboard: undefined,
+              dashboardState: 'view',
+              modifiedDashboard: null,
             });
             return;
           }
 
-          updateDashboard(api, organization.slug, changesDashboard).then(() => {
-            addSuccessMessage(t('Dashboard updated'));
+          updateDashboard(api, organization.slug, modifiedDashboard).then(
+            (newDashboard: DashboardDetails) => {
+              addSuccessMessage(t('Dashboard updated'));
 
-            this.setState({
-              dashboardState: 'default',
-              changesDashboard: undefined,
-            });
+              this.setState({
+                dashboardState: 'view',
+                modifiedDashboard: null,
+              });
 
-            this.reloadData();
-          });
+              if (dashboard && newDashboard.id !== dashboard.id) {
+                browserHistory.replace({
+                  pathname: `/organizations/${organization.slug}/dashboards/${newDashboard.id}/`,
+                  query: {
+                    ...location.query,
+                  },
+                });
+                return;
+              }
+              reloadData();
+            }
+          );
 
           return;
         }
 
         this.setState({
-          dashboardState: 'default',
-          changesDashboard: undefined,
+          dashboardState: 'view',
+          modifiedDashboard: null,
         });
         break;
       }
-      case 'default':
+      case 'view':
       default: {
         this.setState({
-          dashboardState: 'default',
-          changesDashboard: undefined,
+          dashboardState: 'view',
+          modifiedDashboard: null,
         });
         break;
       }
     }
   };
 
-  getOrgDashboards(): OrgDashboard[] {
-    const {orgDashboards} = this.state;
-
-    if (!Array.isArray(orgDashboards)) {
-      return [];
-    }
-
-    return orgDashboards.map(dashboard => {
-      return {
-        type: 'org',
-        ...dashboard,
-      };
-    });
-  }
-
   onWidgetChange = (widgets: Widget[]) => {
-    const {changesDashboard} = this.state;
-    if (changesDashboard === undefined) {
+    const {modifiedDashboard} = this.state;
+    if (modifiedDashboard === null) {
       return;
     }
 
     this.setState((prevState: State) => {
       return {
         ...prevState,
-        changesDashboard: {
-          ...changesDashboard,
+        modifiedDashboard: {
+          ...modifiedDashboard,
           widgets,
         },
       };
     });
   };
 
-  getDashboardsList(): DashboardListItem[] {
-    const {orgDashboards} = this.state;
-
-    if (!Array.isArray(orgDashboards)) {
-      return PREBUILT_DASHBOARDS;
-    }
-
-    const normalizedOrgDashboards: OrgDashboard[] = orgDashboards.map(dashboard => {
-      return {
-        type: 'org',
-        ...dashboard,
-      };
-    });
-
-    return [...PREBUILT_DASHBOARDS, ...normalizedOrgDashboards];
-  }
-
-  getCurrentDashboard(): DashboardListItem | undefined {
-    const {params} = this.props;
-    const dashboardId = params.dashboardId as string | undefined;
-    const orgDashboards = this.getOrgDashboards();
-
-    if (typeof dashboardId === 'string') {
-      return orgDashboards.find(dashboard => {
-        return dashboard.id === dashboardId;
-      });
-    }
-
-    return PREBUILT_DASHBOARDS[0];
-  }
-
-  setChangesDashboard = (dashboard: DashboardListItem) => {
+  setModifiedDashboard = (dashboard: DashboardDetails) => {
     this.setState({
-      changesDashboard: dashboard,
+      modifiedDashboard: dashboard,
     });
   };
 
-  renderBody() {
-    const dashboard = this.getCurrentDashboard();
-
-    if (!dashboard) {
-      return <NotFound />;
-    }
-
-    return this.renderContent(dashboard);
-  }
-
-  renderError(error: Error) {
-    const notFound = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 404
-    );
-
-    if (notFound) {
-      return <NotFound />;
-    }
-
-    return super.renderError(error, true, true);
-  }
-
-  renderContent(dashboard: DashboardListItem) {
-    const {organization} = this.props;
+  render() {
+    const {api, location, params, organization} = this.props;
+    const {modifiedDashboard, dashboardState} = this.state;
 
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
       >
-        <PageContent>
-          <LightWeightNoProjectMessage organization={organization}>
-            <StyledPageHeader>
-              <Title
-                changesDashboard={this.state.changesDashboard}
-                setChangesDashboard={this.setChangesDashboard}
-              />
-              <Controls
-                organization={organization}
-                dashboards={this.getDashboardsList()}
-                dashboard={dashboard}
-                onEdit={this.onEdit(dashboard)}
-                onCreate={this.onCreate}
-                onRevert={this.onRevert(dashboard)}
-                isRevertable={this.isRevertable(dashboard)}
-                onCommit={this.onCommit(dashboard)}
-                onDelete={this.onDelete(dashboard)}
-                dashboardState={this.state.dashboardState}
-              />
-            </StyledPageHeader>
-            {this.state.changesDashboard ? (
-              <Dashboard
-                dashboard={this.state.changesDashboard}
-                organization={organization}
-                isEditing={this.state.dashboardState === 'edit'}
-                onUpdate={this.onWidgetChange}
-              />
-            ) : (
-              <Dashboard
-                dashboard={dashboard}
-                organization={organization}
-                isEditing={this.state.dashboardState === 'edit'}
-                onUpdate={this.onWidgetChange}
-              />
-            )}
-          </LightWeightNoProjectMessage>
-        </PageContent>
+        <OrgDashboards
+          api={api}
+          location={location}
+          params={params}
+          organization={organization}
+        >
+          {({dashboard, dashboards, error, reloadData}) => {
+            return (
+              <React.Fragment>
+                <StyledPageHeader>
+                  <DashboardTitle
+                    dashboard={modifiedDashboard || dashboard}
+                    onUpdate={this.setModifiedDashboard}
+                    isEditing={dashboardState !== 'view'}
+                  />
+                  <Controls
+                    organization={organization}
+                    dashboards={dashboards}
+                    dashboard={dashboard}
+                    onEdit={this.onEdit(dashboard)}
+                    onCreate={this.onCreate}
+                    onCancel={this.onCancel}
+                    onCommit={this.onCommit({dashboard, reloadData})}
+                    onDelete={this.onDelete(dashboard)}
+                    dashboardState={dashboardState}
+                  />
+                </StyledPageHeader>
+                {error ? (
+                  <NotFound />
+                ) : dashboard ? (
+                  <Dashboard
+                    dashboard={modifiedDashboard || dashboard}
+                    organization={organization}
+                    isEditing={dashboardState === 'edit' || dashboardState === 'create'}
+                    onUpdate={this.onWidgetChange}
+                  />
+                ) : (
+                  <LoadingIndicator />
+                )}
+              </React.Fragment>
+            );
+          }}
+        </OrgDashboards>
       </GlobalSelectionHeader>
-    );
-  }
-
-  renderComponent() {
-    const {organization, location} = this.props;
-
-    if (!organization.features.includes('dashboards-v2')) {
-      // Redirect to Dashboards v1
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/dashboards/`,
-        query: {
-          ...location.query,
-        },
-      });
-      return null;
-    }
-
-    return (
-      <SentryDocumentTitle title={t('Dashboards')} objSlug={organization.slug}>
-        {super.renderComponent()}
-      </SentryDocumentTitle>
     );
   }
 }
@@ -379,4 +290,4 @@ const StyledPageHeader = styled('div')`
   white-space: nowrap;
 `;
 
-export default withOrganization(withApi(DashboardDetail));
+export default withApi(withOrganization(DashboardDetail));

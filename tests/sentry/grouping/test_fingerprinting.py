@@ -69,6 +69,19 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
     )
 
 
+def test_rule_export():
+    rules = FingerprintingRules.from_config_string(
+        """
+logger:sentry.*                                 -> logger, {{ logger }}, title="Message from {{ logger }}"
+"""
+    )
+    assert rules.rules[0].to_json() == {
+        "attributes": {"title": "Message from {{ logger }}"},
+        "fingerprint": ["logger", "{{ logger }}"],
+        "matchers": [["logger", "sentry.*"]],
+    }
+
+
 def test_parsing_errors():
     with pytest.raises(InvalidFingerprintingConfig):
         FingerprintingRules.from_config_string("invalid.message:foo -> bar")

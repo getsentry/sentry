@@ -369,9 +369,14 @@ describe('Performance > Trends', function () {
       data.routerContext
     );
 
+    await tick();
+    wrapper.update();
+
     for (const trendFunction of TRENDS_FUNCTIONS) {
       selectTrendFunction(wrapper, trendFunction.field);
+
       await tick();
+      wrapper.update();
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
@@ -394,9 +399,14 @@ describe('Performance > Trends', function () {
       data.routerContext
     );
 
+    await tick();
+    wrapper.update();
+
     for (const confidenceLevel of CONFIDENCE_LEVELS) {
       selectConfidenceLevel(wrapper, confidenceLevel.label);
+
       await tick();
+      wrapper.update();
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({

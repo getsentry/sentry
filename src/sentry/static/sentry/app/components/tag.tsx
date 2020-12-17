@@ -40,6 +40,10 @@ type Props = React.HTMLAttributes<HTMLSpanElement> & {
    * Shows clickable IconClose on the right side.
    */
   onDismiss?: () => void;
+  /**
+   * Max width of the tag's text
+   */
+  textMaxWidth?: number;
 };
 
 function Tag({
@@ -50,10 +54,11 @@ function Tag({
   href,
   onDismiss,
   children,
+  textMaxWidth = 150,
   ...props
 }: Props) {
   const iconsProps = {
-    size: '12px',
+    size: '11px',
     color: theme.tag[type].iconColor as Color,
   };
 
@@ -62,7 +67,7 @@ function Tag({
       <Background type={type}>
         {tagIcon()}
 
-        <Text>{children}</Text>
+        <Text maxWidth={textMaxWidth}>{children}</Text>
 
         {defined(onDismiss) && (
           <DismissButton
@@ -120,17 +125,18 @@ const Background = styled('div')<{type: keyof Theme['tag']}>`
   height: ${TAG_HEIGHT};
   border-radius: ${TAG_HEIGHT};
   background-color: ${p => p.theme.tag[p.type].background};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${space(1)};
 `;
 
 const IconWrapper = styled('span')`
-  margin-right: 3px;
+  margin-right: ${space(0.5)};
+  display: inline-flex;
 `;
 
-const Text = styled('span')`
+const Text = styled('span')<{maxWidth: number}>`
   color: ${p => p.theme.gray500};
-  font-size: 13px;
-  max-width: 150px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -141,7 +147,7 @@ const Text = styled('span')`
 `;
 
 const DismissButton = styled(Button)`
-  margin-left: 3px;
+  margin-left: ${space(0.5)};
   border: none;
 `;
 

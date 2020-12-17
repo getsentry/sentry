@@ -1,6 +1,6 @@
 import React from 'react';
 import {forceCheck} from 'react-lazyload';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -13,6 +13,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -26,9 +27,11 @@ import AsyncView from 'app/views/asyncView';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 
 import ReleaseCard from './releaseCard';
+import ReleaseDisplayOptions from './releaseDisplayOptions';
 import ReleaseLanding from './releaseLanding';
-import ReleaseListDisplayOptions from './releaseListDisplayOptions';
 import ReleaseListSortOptions from './releaseListSortOptions';
+import ReleaseListStatusOptions from './releaseListStatusOptions';
+import {DisplayOption, SortOption, StatusOption} from './utils';
 
 type RouteParams = {
   orgId: string;
@@ -54,8 +57,9 @@ class ReleasesList extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
-    const sort = this.getSort();
-    const display = this.getDisplay();
+    const activeSort = this.getSort();
+    const activeStatus = this.getStatus();
+    const activeDisplay = this.getDisplay();
 
     const query = {
       ...pick(location.query, [
@@ -65,13 +69,16 @@ class ReleasesList extends AsyncView<Props, State> {
         'query',
         'sort',
         'healthStatsPeriod',
-        'healthStat',
       ]),
       summaryStatsPeriod: statsPeriod,
       per_page: 25,
       health: 1,
-      flatten: sort === 'date' ? 0 : 1,
-      status: display === 'archived' ? ReleaseStatus.Archived : ReleaseStatus.Active,
+      healthStat: activeDisplay === DisplayOption.CRASH_FREE_USERS ? 'users' : 'sessions',
+      flatten: activeSort === SortOption.DATE ? 0 : 1,
+      status:
+        activeStatus === StatusOption.ARCHIVED
+          ? ReleaseStatus.Archived
+          : ReleaseStatus.Active,
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
@@ -79,7 +86,7 @@ class ReleasesList extends AsyncView<Props, State> {
     ];
 
     // when sorting by date we fetch releases without health and then fetch health lazily
-    if (sort === 'date') {
+    if (activeSort === SortOption.DATE) {
       endpoints.push([
         'releasesWithoutHealth',
         `/organizations/${organization.slug}/releases/`,
@@ -128,16 +135,43 @@ class ReleasesList extends AsyncView<Props, State> {
     return typeof query === 'string' ? query : undefined;
   }
 
-  getSort() {
+  getSort(): SortOption {
     const {sort} = this.props.location.query;
 
-    return typeof sort === 'string' ? sort : 'date';
+    switch (sort) {
+      case SortOption.CRASH_FREE_USERS:
+        return SortOption.CRASH_FREE_USERS;
+      case SortOption.CRASH_FREE_SESSIONS:
+        return SortOption.CRASH_FREE_SESSIONS;
+      case SortOption.SESSIONS:
+        return SortOption.SESSIONS;
+      case SortOption.USERS_24_HOURS:
+        return SortOption.USERS_24_HOURS;
+      default:
+        return SortOption.DATE;
+    }
   }
 
-  getDisplay() {
+  getDisplay(): DisplayOption {
     const {display} = this.props.location.query;
 
-    return typeof display === 'string' ? display : 'active';
+    switch (display) {
+      case DisplayOption.CRASH_FREE_USERS:
+        return DisplayOption.CRASH_FREE_USERS;
+      default:
+        return DisplayOption.CRASH_FREE_SESSIONS;
+    }
+  }
+
+  getStatus(): StatusOption {
+    const {status} = this.props.location.query;
+
+    switch (status) {
+      case StatusOption.ARCHIVED:
+        return StatusOption.ARCHIVED;
+      default:
+        return StatusOption.ACTIVE;
+    }
   }
 
   handleSearch = (query: string) => {
@@ -149,7 +183,7 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
-  handleSort = (sort: string) => {
+  handleSortBy = (sort: string) => {
     const {location, router} = this.props;
 
     router.push({
@@ -167,6 +201,15 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
+  handleStatus = (status: string) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, cursor: undefined, status},
+    });
+  };
+
   shouldShowLoadingIndicator() {
     const {loading, releases, reloading} = this.state;
 
@@ -178,11 +221,11 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
-    const display = this.getDisplay();
+    const activeStatus = this.getStatus();
 
     if (searchQuery && searchQuery.length) {
       return (
@@ -192,7 +235,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeSort === 'users_24h') {
+    if (activeSort === SortOption.USERS_24_HOURS) {
       return (
         <EmptyStateWarning small>
           {t('There are no releases with active user data (users in the last 24 hours).')}
@@ -200,7 +243,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (activeSort !== 'date') {
+    if (activeSort !== SortOption.DATE) {
       const relativePeriod = getRelativeSummary(
         statsPeriod || DEFAULT_STATS_PERIOD
       ).toLowerCase();
@@ -212,7 +255,7 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (display === 'archived') {
+    if (activeStatus === StatusOption.ARCHIVED) {
       return (
         <EmptyStateWarning small>
           {t('There are no archived releases.')}
@@ -224,12 +267,17 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return <ReleaseLanding organization={organization} />;
+    return (
+      <ReleaseLanding
+        organization={organization}
+        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+      />
+    );
   }
 
-  renderInnerBody() {
+  renderInnerBody(activeDisplay: DisplayOption) {
     const {location, selection, organization} = this.props;
-    const {releases, reloading, loadingHealth} = this.state;
+    const {releases, reloading, loadingHealth, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -239,22 +287,32 @@ class ReleasesList extends AsyncView<Props, State> {
       return this.renderEmptyMessage();
     }
 
-    return releases.map(release => (
-      <ReleaseCard
-        release={release}
-        orgSlug={organization.slug}
-        location={location}
-        selection={selection}
-        reloading={reloading}
-        key={`${release.version}-${release.projects[0].slug}`}
-        showHealthPlaceholders={loadingHealth}
-      />
-    ));
+    return (
+      <React.Fragment>
+        {releases.map(release => (
+          <ReleaseCard
+            key={`${release.version}-${release.projects[0].slug}`}
+            activeDisplay={activeDisplay}
+            release={release}
+            orgSlug={organization.slug}
+            location={location}
+            selection={selection}
+            reloading={reloading}
+            showHealthPlaceholders={loadingHealth}
+          />
+        ))}
+        <Pagination pageLinks={releasesPageLinks} />
+      </React.Fragment>
+    );
   }
 
   renderBody() {
     const {organization} = this.props;
-    const {releasesPageLinks, releases} = this.state;
+    const {releases, reloading} = this.state;
+
+    const activeSort = this.getSort();
+    const activeStatus = this.getStatus();
+    const activeDisplay = this.getDisplay();
 
     return (
       <GlobalSelectionHeader
@@ -268,29 +326,31 @@ class ReleasesList extends AsyncView<Props, State> {
             <StyledPageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
               <SortAndFilterWrapper>
-                <ReleaseListDisplayOptions
-                  selected={this.getDisplay()}
-                  onSelect={this.handleDisplay}
-                />
-                <ReleaseListSortOptions
-                  selected={this.getSort()}
-                  onSelect={this.handleSort}
-                />
-                <SearchBar
+                <StyledSearchBar
                   placeholder={t('Search')}
                   onSearch={this.handleSearch}
                   query={this.getQuery()}
                 />
+                <ReleaseListStatusOptions
+                  selected={activeStatus}
+                  onSelect={this.handleStatus}
+                />
+                <ReleaseListSortOptions
+                  selected={activeSort}
+                  onSelect={this.handleSortBy}
+                />
+                <ReleaseDisplayOptions
+                  selected={activeDisplay}
+                  onSelect={this.handleDisplay}
+                />
               </SortAndFilterWrapper>
             </StyledPageHeader>
 
-            {this.getDisplay() === 'archived' && releases?.length > 0 && (
-              <ReleaseArchivedNotice multi />
-            )}
+            {!reloading &&
+              activeStatus === StatusOption.ARCHIVED &&
+              !!releases?.length && <ReleaseArchivedNotice multi />}
 
-            {this.renderInnerBody()}
-
-            <Pagination pageLinks={releasesPageLinks} />
+            {this.renderInnerBody(activeDisplay)}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>
@@ -298,24 +358,26 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
-  flex-wrap: wrap;
-  margin-bottom: 0;
-  ${PageHeading} {
-    margin-bottom: ${space(2)};
-    margin-right: ${space(2)};
+const StyledSearchBar = styled(SearchBar)`
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    order: 4;
   }
 `;
+
+const StyledPageHeader = styled(PageHeader)`
+  display: grid;
+  grid-gap: ${space(2)};
+  grid-template-columns: 1fr;
+  justify-content: flex-start;
+  margin-bottom: ${space(3)};
+`;
+
 const SortAndFilterWrapper = styled('div')`
   display: grid;
-  grid-template-columns: auto auto 1fr;
   grid-gap: ${space(2)};
-  margin-bottom: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    width: 100%;
-    grid-template-columns: none;
-    grid-template-rows: 1fr 1fr 1fr;
-    margin-bottom: ${space(4)};
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: 1fr repeat(3, auto);
   }
 `;
 

@@ -122,7 +122,8 @@ function getSelectedTransaction(
   }
 
   const selectedTransaction = transactions.find(
-    transaction => transaction.transaction === selectedTransactionName
+    transaction =>
+      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
   );
 
   if (selectedTransaction) {
@@ -141,7 +142,9 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
     if (!transaction) {
       delete query[selectedQueryKey];
     } else {
-      query[selectedQueryKey] = transaction?.transaction;
+      query[selectedQueryKey] = transaction
+        ? `${transaction.transaction}-${transaction.project}`
+        : undefined;
     }
     browserHistory.push({
       pathname: location.pathname,
@@ -268,7 +271,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer>
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle}{' '}
+                {chartTitle}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (
@@ -549,8 +552,7 @@ const ChartContainer = styled('div')`
 `;
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
-  padding: 0;
-  margin: ${space(3)};
+  padding: ${space(2)} ${space(3)};
 `;
 
 const StyledButton = styled(Button)`

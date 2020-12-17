@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import ProjectActions from 'app/actions/projectActions';
@@ -8,7 +8,6 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import projectSecurityAndPrivacyGroups from 'app/data/forms/projectSecurityAndPrivacyGroups';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
-import withProject from 'app/utils/withProject';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -87,4 +86,4 @@ class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivac
   }
 }
 
-export default withProject(ProjectSecurityAndPrivacy);
+export default ProjectSecurityAndPrivacy;

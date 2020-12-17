@@ -64,14 +64,13 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
-    interval = models.CharField(max_length=10)
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidgetquery"
-        unique_together = (("widget", "name"), ("widget", "order"))
+        unique_together = (("widget", "order"),)
 
     __repr__ = sane_repr("widget", "type", "name")
 
@@ -86,12 +85,13 @@ class DashboardWidget(Model):
     dashboard = FlexibleForeignKey("sentry.Dashboard")
     order = BoundedPositiveIntegerField()
     title = models.CharField(max_length=255)
+    interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardwidget"
-        unique_together = (("dashboard", "order"), ("dashboard", "title"))
+        unique_together = (("dashboard", "order"),)
 
     __repr__ = sane_repr("dashboard", "title")

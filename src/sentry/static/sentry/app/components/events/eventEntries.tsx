@@ -34,7 +34,15 @@ import EventUserFeedback from 'app/components/events/userFeedback';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {AvatarProject, Entry, Event, Group, Organization} from 'app/types';
+import {
+  Entry,
+  Event,
+  Group,
+  Organization,
+  Project,
+  SharedViewOrganization,
+} from 'app/types';
+import {isNotSharedOrganization} from 'app/types/utils';
 import {objectIsEmpty} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
@@ -62,19 +70,13 @@ const defaultProps = {
   showTagSummary: true,
 };
 
-// Custom shape because shared view doesn't get id.
-type SharedViewOrganization = {
-  slug: string;
-  id?: string;
-  features?: Array<string>;
-};
-
 type Props = {
-  // This is definitely required because this component would crash if
-  // organization were undefined.
-  organization: SharedViewOrganization;
+  /**
+   * The organization can be the shared view on a public issue view.
+   */
+  organization: Organization | SharedViewOrganization;
   event: Event;
-  project: AvatarProject;
+  project: Project;
   location: Location;
 
   group?: Group;
@@ -212,15 +214,20 @@ class EventEntries extends React.Component<Props> {
       <div className={className} data-test-id="event-entries">
         {hasErrors && (
           <ErrorContainer>
-            <EventErrors event={event} />
+            <EventErrors
+              event={event}
+              orgSlug={organization.slug}
+              projectSlug={project.slug}
+            />
           </ErrorContainer>
         )}
         {!isShare &&
+          isNotSharedOrganization(organization) &&
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
             <EventCause
-              organization={organization as Organization}
+              organization={organization}
               project={project}
               event={event}
               group={group}

@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -450,8 +450,13 @@ export default class AsyncComponent<
     );
   }
 
+  shouldRenderLoading() {
+    const {loading, reloading} = this.state;
+    return loading && (!this.shouldReload || !reloading);
+  }
+
   renderComponent() {
-    return this.state.loading && (!this.shouldReload || !this.state.reloading)
+    return this.shouldRenderLoading()
       ? this.renderLoading()
       : this.state.error
       ? this.renderError(new Error('Unable to load all required endpoints'))

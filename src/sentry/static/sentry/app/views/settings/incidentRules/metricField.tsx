@@ -8,7 +8,9 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
+  Aggregation,
   AGGREGATIONS,
+  ColumnType,
   explodeFieldString,
   FIELDS,
   generateFieldAsString,
@@ -35,11 +37,20 @@ type Props = Omit<FormField['props'], 'children'> & {
 const getFieldOptionConfig = (dataset: Dataset) => {
   const config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
 
-  const aggregations = Object.fromEntries(
-    config.aggregations.map(key => [key, AGGREGATIONS[key]])
+  const aggregations = Object.fromEntries<Aggregation>(
+    config.aggregations.map(key => {
+      // TODO(scttcper): Temporary hack for default value while we handle the translation of user
+      if (key === 'count_unique') {
+        const agg = AGGREGATIONS[key] as Aggregation;
+        agg.generateDefaultValue = () => 'tags[sentry:user]';
+        return [key, agg];
+      }
+
+      return [key, AGGREGATIONS[key]];
+    })
   );
 
-  const fields = Object.fromEntries(
+  const fields = Object.fromEntries<ColumnType>(
     config.fields.map(key => {
       // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
       // tags[sentry:user].
@@ -121,6 +132,7 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
             columnWidth={columnWidth}
             gridColumns={numParameters}
             inFieldLabels={inFieldLabels}
+            shouldRenderTag={false}
             disabled={disabled}
           />
         </React.Fragment>

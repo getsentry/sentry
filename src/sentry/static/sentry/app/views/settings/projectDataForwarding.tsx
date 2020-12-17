@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -15,7 +15,6 @@ import {t, tct} from 'app/locale';
 import {Organization, Plugin, Project, TimeseriesValue} from 'app/types';
 import {Series} from 'app/types/echarts';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -191,4 +190,4 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
   }
 }
 
-export default withProject(withOrganization(ProjectDataForwarding));
+export default withOrganization(ProjectDataForwarding);

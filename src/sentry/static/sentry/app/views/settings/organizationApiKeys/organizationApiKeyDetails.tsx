@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -69,7 +68,7 @@ class OrganizationApiKeyDetails extends AsyncView<Props, State> {
   renderBody() {
     return (
       <div>
-        <SettingsPageHeader title={t('Edit Api Key')} />
+        <SettingsPageHeader title={t('Edit API Key')} />
 
         <Panel>
           <PanelHeader>{t('API Key')}</PanelHeader>

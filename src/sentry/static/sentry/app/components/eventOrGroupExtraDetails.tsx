@@ -1,14 +1,16 @@
 import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
-import InboxCommentsLink from 'app/components/group/inboxBadges/commentsLink';
-import InboxEventAnnotation from 'app/components/group/inboxBadges/eventAnnotation';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Placeholder from 'app/components/placeholder';
 import ShortId from 'app/components/shortId';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
@@ -36,22 +38,21 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
     project,
     lifetime,
     isUnhandled,
+    inbox,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
-  const orgFeatures = new Set(organization.features);
-  const hasInbox = orgFeatures.has('inbox');
+  const hasInbox = organization.features.includes('inbox');
 
   return (
-    <GroupExtra>
-      {isUnhandled && hasInbox && <UnhandledTag />}
+    <GroupExtra hasInbox={hasInbox}>
       {shortId &&
         (hasInbox ? (
           <InboxShortId
             shortId={shortId}
             avatar={
               project && (
-                <ShadowlessProjectBadge project={project} avatarSize={14} hideName />
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
               )
             }
           />
@@ -67,66 +68,54 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {!hasInbox && (
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {!lifetime && !firstSeen && !lastSeen ? (
+        <Placeholder height="14px" width="100px" />
+      ) : hasInbox ? (
+        <TimesTag
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      ) : (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
-      {numComments > 0 &&
-        (hasInbox ? (
-          <InboxCommentsLink
-            to={`${issuesPath}${id}/activity/`}
-            subscriptionDetails={subscriptionDetails}
-            numComments={numComments}
+      {/* Always display comment count on inbox */}
+      {numComments > 0 && (
+        <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+          <IconChat
+            size="xs"
+            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
           />
-        ) : (
-          <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
-            <IconChat
-              size="xs"
-              color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
-            />
-            <span>{numComments}</span>
-          </CommentsLink>
-        ))}
-      {logger &&
-        (hasInbox ? (
-          <InboxEventAnnotation
+          <span>{numComments}</span>
+        </CommentsLink>
+      )}
+      {logger && (
+        <LoggerAnnotation hasInbox={hasInbox}>
+          <Link
             to={{
               pathname: issuesPath,
               query: {
                 query: `logger:${logger}`,
               },
             }}
-            annotation={logger}
-          />
-        ) : (
-          <LoggerAnnotation>
-            <Link
-              to={{
-                pathname: issuesPath,
-                query: {
-                  query: `logger:${logger}`,
-                },
-              }}
-            >
-              {logger}
-            </Link>
-          </LoggerAnnotation>
-        ))}
-      {annotations &&
-        annotations.map((annotation, key) =>
-          hasInbox ? (
-            <InboxEventAnnotation key={key} htmlAnnotation={annotation} />
-          ) : (
-            <AnnotationNoMargin
-              dangerouslySetInnerHTML={{
-                __html: annotation,
-              }}
-              key={key}
-            />
-          )
-        )}
+          >
+            {logger}
+          </Link>
+        </LoggerAnnotation>
+      )}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin
+          hasInbox={hasInbox}
+          dangerouslySetInnerHTML={{
+            __html: annotation,
+          }}
+          key={key}
+        />
+      ))}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
@@ -135,13 +124,13 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
   );
 }
 
-const GroupExtra = styled('div')`
+const GroupExtra = styled('div')<{hasInbox: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  grid-gap: ${space(2)};
+  grid-gap: ${p => (p.hasInbox ? space(1.5) : space(2))};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeSmall};
   position: relative;
   min-width: 500px;
@@ -149,6 +138,12 @@ const GroupExtra = styled('div')`
 
   a {
     color: inherit;
+  }
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
   }
 `;
 
@@ -170,19 +165,22 @@ const GroupShortId = styled(ShortId)`
   color: ${p => p.theme.subText};
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)`
+const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
   margin-left: 0;
-  padding-left: ${space(2)};
+  padding-left: ${p => (p.hasInbox ? 0 : space(2))};
+  ${p => p.hasInbox && `border-left: none;`};
+
+  ${p =>
+    p.hasInbox &&
+    css`
+      & > a {
+        color: ${p.theme.textColor};
+      }
+    `}
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));

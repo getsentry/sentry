@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as queryString from 'query-string';
@@ -123,7 +122,6 @@ class SimilarStackTrace extends React.Component<Props, State> {
           version,
         })}`,
         dataKey: 'similar',
-        version,
       });
     }
 
@@ -224,6 +222,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
             project={project}
             groupId={groupId}
             pageLinks={similarLinks}
+            v2={v2}
           />
         )}
       </React.Fragment>

@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';

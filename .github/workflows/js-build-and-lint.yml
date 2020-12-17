@@ -11,16 +11,17 @@ on:
 jobs:
   typescript-and-lint:
     name: typescript and lint
-    if: github.ref != 'refs/heads/master'
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v2
+
+      - name: Internal github app token
+        id: token
+        uses: getsentry/action-github-app-token@v1
+        continue-on-error: true
         with:
-          # because we want to lint + fix + commit, we need to checkout the HEAD sha (otherwise
-          # it checks out the merge commit and we will not be able to commit to it)
-          ref: ${{ github.event.pull_request.head.ref || 'master' }}
-          # We need the repo here so that this works for forks
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Check for frontend file changes
         uses: getsentry/paths-filter@v2
@@ -69,27 +70,27 @@ jobs:
           yarn lint -c .eslintrc.relax.js
           yarn lint:css
 
-      - name: eslint (forks)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
-        run: |
-          yarn eslint ${{ steps.changes.outputs.frontend_modified_lintable_files }}
-
       # Otherwise if it's not main branch, only lint modified files
+      # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
-      # Otherwise if it's not main branch, only lint modified files
-      - name: Commit any eslint fixed files
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true' && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
+      # Check (and error) for dirty working tree for forks
+      # Reason being we need a different token to auto commit changes and
+      # forks do not have access to said token
+      - name: Check for dirty git working tree (forks)
+        if: steps.token.outcome != 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions@sentry.io"
-          git add -A
-          git commit -m "chore: Automatic eslint fix (${GITHUB_SHA})" || exit 0
-          git push origin
+          git diff --quiet || (echo '::error ::lint produced file changes, run linter locally and try again' && exit 1)
+
+      # If working tree is dirty, commit and update if we have a token
+      - name: Commit any eslint fixed files
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        uses: getsentry/action-github-commit@main
+        with:
+          github-token: ${{ steps.token.outputs.token }}
 
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
@@ -97,7 +98,7 @@ jobs:
           yarn tsc -p config/tsconfig.build.json
 
       - name: storybook
-        if: steps.changes.outputs.frontend == 'true'
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         env:
           STORYBOOK_BUILD: 1
         run: |

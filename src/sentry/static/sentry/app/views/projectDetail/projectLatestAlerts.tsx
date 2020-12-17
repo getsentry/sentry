@@ -1,20 +1,18 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import {SectionHeading} from 'app/components/charts/styles';
-import CreateAlertButton from 'app/components/createAlertButton';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import styled from 'app/styled';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -22,7 +20,7 @@ import {Theme} from 'app/utils/theme';
 
 import {Incident, IncidentStatus} from '../alerts/types';
 
-const DOCS_URL = 'https://docs.sentry.io/workflow/alerts-notifications/alerts/';
+import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -38,11 +36,25 @@ type State = {
 } & AsyncComponent['state'];
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    if (
+      this.state !== nextState ||
+      !isEqual(
+        pick(this.props.location.query, Object.values(URL_PARAM)),
+        pick(nextProps.location.query, Object.values(URL_PARAM))
+      )
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {location, organization} = this.props;
 
     const query = {
-      ...pick(location.query, [...Object.values(URL_PARAM)]),
+      ...pick(location.query, Object.values(URL_PARAM)),
       per_page: 3,
     };
 
@@ -51,12 +63,12 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
       [
         'unresolvedAlerts',
         `/organizations/${organization.slug}/incidents/`,
-        {query: {...query, status: IncidentStatus.OPENED}},
+        {query: {...query, status: 'open'}},
       ],
       [
         'resolvedAlerts',
         `/organizations/${organization.slug}/incidents/`,
-        {query: {...query, status: IncidentStatus.CLOSED}},
+        {query: {...query, status: 'closed'}},
       ],
     ];
   }
@@ -136,24 +148,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
     if (!hasAlertRule) {
       return (
-        <div>
-          <StyledButtonBar gap={1}>
-            <CreateAlertButton
-              organization={organization}
-              iconProps={{size: 'xs'}}
-              size="small"
-              priority="primary"
-              referrer="project_detail"
-              projectSlug={projectSlug}
-              hideIcon
-            >
-              {t('Create Alert Rule')}
-            </CreateAlertButton>
-            <Button size="small" external href={DOCS_URL}>
-              {t('Learn More')}
-            </Button>
-          </StyledButtonBar>
-        </div>
+        <MissingAlertsButtons organization={organization} projectSlug={projectSlug} />
       );
     }
 
@@ -180,10 +175,6 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
 const Section = styled('section')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
 `;
 
 const AlertRowLink = styled(Link)`

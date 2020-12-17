@@ -874,8 +874,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert data[0]["count_sub_customer_is-Enterprise-42"] == 1
-        assert data[1]["count_sub_customer_is-Enterprise-42"] == 3
+        assert data[0]["count_sub_customer_is_Enterprise_42"] == 1
+        assert data[1]["count_sub_customer_is_Enterprise_42"] == 3
 
     def test_aggregation_comparison(self):
         project = self.create_project()
@@ -2958,3 +2958,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
+
+    def test_no_pagination_param(self):
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [self.project.id], "noPagination": True}
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert "Link" not in response

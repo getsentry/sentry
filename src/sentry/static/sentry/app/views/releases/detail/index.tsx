@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -29,7 +29,6 @@ import AsyncView from 'app/views/asyncView';
 
 import PickProjectToContinue from './pickProjectToContinue';
 import ReleaseHeader from './releaseHeader';
-import {getReleaseEventView} from './utils';
 
 type ReleaseContext = {
   release: ReleaseWithHealth;
@@ -128,11 +127,6 @@ class ReleasesDetail extends AsyncView<Props, State> {
     const {organization, location, selection, releaseMeta} = this.props;
     const {release, deploys, reloading} = this.state;
     const project = release?.projects.find(p => p.id === selection.projects[0]);
-    const releaseEventView = getReleaseEventView(
-      selection,
-      release?.version,
-      organization
-    );
 
     if (!project || !release) {
       if (reloading) {
@@ -148,7 +142,6 @@ class ReleasesDetail extends AsyncView<Props, State> {
           <ReleaseHeader
             location={location}
             organization={organization}
-            releaseEventView={releaseEventView}
             release={release}
             project={project}
             releaseMeta={releaseMeta}
@@ -248,8 +241,8 @@ class ReleasesDetailContainer extends AsyncComponent<Omit<Props, 'releaseMeta'>>
       datetime: {
         start: new Date(releaseDate.getTime() - 12 * 3600 * 1000),
         end: new Date(releaseDate.getTime() + 12 * 3600 * 1000),
-        period: '',
         utc: false,
+        period: '',
       },
     };
 

@@ -35,15 +35,23 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
     return element;
   };
 
+  const formatErrorKind = (kind: string) => {
+    return capitalize(kind.replace(/_/g, ' '));
+  };
+
   const getErrorMessage = (error: MetaError) => {
     const errorMessage: string[] = [];
 
-    if (error[0]) {
-      errorMessage.push(capitalize(error[0].replace('_', ' ')));
-    }
+    if (Array.isArray(error)) {
+      if (error[0]) {
+        errorMessage.push(formatErrorKind(error[0]));
+      }
 
-    if (error[1]?.reason) {
-      errorMessage.push(`(${error[1].reason})`);
+      if (error[1]?.reason) {
+        errorMessage.push(`(${error[1].reason})`);
+      }
+    } else {
+      errorMessage.push(formatErrorKind(error));
     }
 
     return errorMessage.join(' ');

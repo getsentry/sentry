@@ -252,10 +252,9 @@ class Chart extends React.Component<Props> {
       trendFunction.chartLabel
     );
 
-    const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
-
-    const end = props.end ? getUtcToLocalDateObject(props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = props.start ? getUtcToLocalDateObject(props.start) : null;
+    const end = props.end ? getUtcToLocalDateObject(props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const intervalRatio = getIntervalRatio(router.location);
     const seriesSelection = (
@@ -313,81 +312,75 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
-          {zoomRenderProps => {
-            const smoothedSeries = smoothedResults
-              ? smoothedResults.map(values => {
-                  return {
-                    ...values,
-                    color: lineColor.default,
-                    lineStyle: {
-                      opacity: 1,
-                    },
-                  };
-                })
-              : [];
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        projects={project}
+        environments={environment}
+      >
+        {zoomRenderProps => {
+          const smoothedSeries = smoothedResults
+            ? smoothedResults.map(values => {
+                return {
+                  ...values,
+                  color: lineColor.default,
+                  lineStyle: {
+                    opacity: 1,
+                  },
+                };
+              })
+            : [];
 
-            const intervalSeries = getIntervalLine(
-              smoothedResults || [],
-              intervalRatio,
-              transaction
-            );
+          const intervalSeries = getIntervalLine(
+            smoothedResults || [],
+            intervalRatio,
+            transaction
+          );
 
-            return (
-              <ReleaseSeries
-                start={start}
-                end={end}
-                queryExtra={queryExtra}
-                period={statsPeriod}
-                utc={utc}
-                projects={isNaN(transactionProject) ? project : [transactionProject]}
-                environments={environment}
-                memoized
-              >
-                {({releaseSeries}) => (
-                  <TransitionChart loading={loading} reloading={reloading}>
-                    <TransparentLoadingMask visible={reloading} />
-                    {getDynamicText({
-                      value: (
-                        <LineChart
-                          {...zoomRenderProps}
-                          {...chartOptions}
-                          onLegendSelectChanged={this.handleLegendSelectChanged}
-                          series={[
-                            ...smoothedSeries,
-                            ...releaseSeries,
-                            ...intervalSeries,
-                          ]}
-                          seriesOptions={{
-                            showSymbol: false,
-                          }}
-                          legend={legend}
-                          toolBox={{
-                            show: false,
-                          }}
-                          grid={{
-                            left: '10px',
-                            right: '10px',
-                            top: '40px',
-                            bottom: '0px',
-                          }}
-                        />
-                      ),
-                      fixed: 'Duration Chart',
-                    })}
-                  </TransitionChart>
-                )}
-              </ReleaseSeries>
-            );
-          }}
-        </ChartZoom>
-      </React.Fragment>
+          return (
+            <ReleaseSeries
+              start={start}
+              end={end}
+              queryExtra={queryExtra}
+              period={statsPeriod}
+              utc={utc}
+              projects={isNaN(transactionProject) ? project : [transactionProject]}
+              environments={environment}
+              memoized
+            >
+              {({releaseSeries}) => (
+                <TransitionChart loading={loading} reloading={reloading}>
+                  <TransparentLoadingMask visible={reloading} />
+                  {getDynamicText({
+                    value: (
+                      <LineChart
+                        {...zoomRenderProps}
+                        {...chartOptions}
+                        onLegendSelectChanged={this.handleLegendSelectChanged}
+                        series={[...smoothedSeries, ...releaseSeries, ...intervalSeries]}
+                        seriesOptions={{
+                          showSymbol: false,
+                        }}
+                        legend={legend}
+                        toolBox={{
+                          show: false,
+                        }}
+                        grid={{
+                          left: '10px',
+                          right: '10px',
+                          top: '40px',
+                          bottom: '0px',
+                        }}
+                      />
+                    ),
+                    fixed: 'Duration Chart',
+                  })}
+                </TransitionChart>
+              )}
+            </ReleaseSeries>
+          );
+        }}
+      </ChartZoom>
     );
   }
 }

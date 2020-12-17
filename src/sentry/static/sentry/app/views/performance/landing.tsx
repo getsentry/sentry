@@ -7,10 +7,10 @@ import isEqual from 'lodash/isEqual';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import FeatureBadge from 'app/components/featureBadge';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -46,6 +46,7 @@ import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
 import Onboarding from './onboarding';
 import Table from './table';
 import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
+import VitalsCards from './vitalsCards';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
@@ -270,7 +271,6 @@ class PerformanceLanding extends React.Component<Props, State> {
             onClick={() => this.handleViewChange(viewKey)}
           >
             {this.getViewLabel(viewKey)}
-            {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="new" />}
           </Button>
         ))}
       </ButtonBar>
@@ -315,7 +315,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
       : this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
-    const filterString = getTransactionSearchQuery(location);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
     const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
@@ -359,6 +359,13 @@ class PerformanceLanding extends React.Component<Props, State> {
                     )}
                     onSearch={this.handleSearch}
                   />
+                  <Feature features={['performance-vitals-overview']}>
+                    <VitalsCards
+                      eventView={eventView}
+                      organization={organization}
+                      location={location}
+                    />
+                  </Feature>
                   <Charts
                     eventView={eventView}
                     organization={organization}
@@ -395,12 +402,7 @@ export const StyledPageHeader = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-
   margin-bottom: ${space(2)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  height: 12px;
 `;
 
 export default withApi(

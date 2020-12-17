@@ -11,6 +11,7 @@ from sentry.api.paginator import (
     OffsetPaginator,
     SequencePaginator,
     GenericOffsetPaginator,
+    ChainPaginator,
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
     reverse_bisect_left,
@@ -620,3 +621,65 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
             rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
             CombinedQuerysetPaginator(intermediaries=[rule_intermediary, rule_intermediary2],)
+
+
+class TestChainPaginator(TestCase):
+    cls = ChainPaginator
+
+    def test_simple(self):
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=5)
+        assert len(result.results) == 5
+        assert result.results == [1, 2, 3, 4, 5]
+        assert result.next.has_results
+        assert result.prev.has_results is False
+
+    def test_small_first(self):
+        sources = [[1, 2], [3, 4, 5, 6]]
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=5)
+        assert len(result.results) == 5
+        assert result.results == [1, 2, 3, 4, 5]
+        assert result.next.has_results
+        assert result.prev.has_results is False
+
+    def test_results_from_two_sources(self):
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        cursor = Cursor(3, 1)
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=3, cursor=cursor)
+        assert len(result.results) == 3
+        assert result.results == [4, 5, 6]
+        assert result.next.has_results
+        assert result.prev.has_results
+
+    def test_results_from_last_source(self):
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        cursor = Cursor(3, 2)
+        paginator = self.cls(sources=sources)
+        result = paginator.get_result(limit=3, cursor=cursor)
+        assert len(result.results) == 2
+        assert result.results == [7, 8]
+        assert result.next.has_results is False
+        assert result.prev.has_results
+
+    def test_no_duplicates_in_pagination(self):
+        sources = [[1, 2, 3, 4], [5, 6, 7, 8]]
+        cursor = Cursor(3, 0)
+        paginator = self.cls(sources=sources)
+
+        first = paginator.get_result(limit=3, cursor=cursor)
+        assert len(first.results) == 3
+        assert first.results == [1, 2, 3]
+        assert first.next.has_results
+
+        second = paginator.get_result(limit=3, cursor=first.next)
+        assert len(second.results) == 3
+        assert second.results == [4, 5, 6]
+        assert second.next.has_results
+
+        third = paginator.get_result(limit=3, cursor=second.next)
+        assert len(third.results) == 2
+        assert third.results == [7, 8]
+        assert third.next.has_results is False

@@ -9,7 +9,7 @@ type PillType = 'positive' | 'negative' | 'error';
 type Props = {
   type?: PillType;
   name?: React.ReactNode;
-  value?: string | boolean | null;
+  value?: number | string | boolean | null;
   children?: React.ReactNode;
   className?: string;
 };

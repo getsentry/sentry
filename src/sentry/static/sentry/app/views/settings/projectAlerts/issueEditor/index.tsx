@@ -1,6 +1,5 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -33,7 +32,6 @@ import {
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -89,10 +87,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -134,6 +133,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
 
     return endpoints as [string, string][];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle?.(data.name);
+    }
   }
 
   pollHandler = async (quitTime: number) => {
@@ -678,6 +683,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
+                        selectType="grouped"
                         items={actions ?? []}
                         placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
@@ -724,7 +730,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withProject(withOrganization(IssueRuleEditor));
+export default withOrganization(IssueRuleEditor);
 
 const StyledForm = styled(Form)`
   position: relative;

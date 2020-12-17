@@ -1,10 +1,10 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import {restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {t} from 'app/locale';
@@ -12,6 +12,7 @@ import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -34,8 +35,18 @@ import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
+import ReleaseStats from './releaseStats';
 import ReleaseStatsRequest from './releaseStatsRequest';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
+
+export enum TransactionsListOption {
+  FAILURE_COUNT = 'failure_count',
+  TPM = 'tpm',
+  SLOW = 'slow',
+  SLOW_LCP = 'slow_lcp',
+  REGRESSION = 'regression',
+  IMPROVEMENT = 'improved',
+}
 
 type RouteParams = {
   orgId: string;
@@ -60,7 +71,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleYAxisChange = (yAxis: YAxis) => {
     const {location, router} = this.props;
-    const {eventType: _eventType, ...query} = location.query;
+    const {eventType: _eventType, vitalType: _vitalType, ...query} = location.query;
 
     router.push({
       ...location,
@@ -74,6 +85,15 @@ class ReleaseOverview extends AsyncView<Props> {
     router.push({
       ...location,
       query: {...location.query, eventType},
+    });
+  };
+
+  handleVitalTypeChange = (vitalType: WebVital) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, vitalType},
     });
   };
 
@@ -126,6 +146,20 @@ class ReleaseOverview extends AsyncView<Props> {
     return EventType.ALL;
   }
 
+  getVitalType(yAxis: YAxis): WebVital {
+    if (yAxis === YAxis.COUNT_VITAL) {
+      const {vitalType} = this.props.location.query;
+
+      if (typeof vitalType === 'string') {
+        if (Object.values(WebVital).includes(vitalType as WebVital)) {
+          return vitalType as WebVital;
+        }
+      }
+    }
+
+    return WebVital.LCP;
+  }
+
   getReleaseEventView(
     version: string,
     projectId: number,
@@ -150,19 +184,19 @@ class ReleaseOverview extends AsyncView<Props> {
     };
 
     switch (selectedSort.value) {
-      case 'p75_lcp':
+      case TransactionsListOption.SLOW_LCP:
         return EventView.fromSavedQuery({
           ...baseQuery,
           query: `event.type:transaction release:${version} epm():>0.01 has:measurements.lcp`,
           fields: ['transaction', 'failure_count()', 'epm()', 'p75(measurements.lcp)'],
           orderby: 'p75_measurements_lcp',
         });
-      case 'p50':
+      case TransactionsListOption.SLOW:
         return EventView.fromSavedQuery({
           ...baseQuery,
           query: `event.type:transaction release:${version} epm():>0.01`,
         });
-      case 'failure_count':
+      case TransactionsListOption.FAILURE_COUNT:
         return EventView.fromSavedQuery({
           ...baseQuery,
           query: `event.type:transaction release:${version} failure_count():>0`,
@@ -186,6 +220,7 @@ class ReleaseOverview extends AsyncView<Props> {
       version: 2,
       name: `Release ${formatVersion(version)}`,
       fields: ['transaction'],
+      query: 'tpm():>0.01 trend_percentage():>0%',
       range: period,
       environment: environments,
       projects: [projectId],
@@ -217,6 +252,7 @@ class ReleaseOverview extends AsyncView<Props> {
           const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
+          const vitalType = this.getVitalType(yAxis);
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -225,7 +261,7 @@ class ReleaseOverview extends AsyncView<Props> {
             selectedSort
           );
           const titles =
-            selectedSort.value !== 'p75_lcp'
+            selectedSort.value !== TransactionsListOption.SLOW_LCP
               ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')]
               : [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')];
           const releaseTrendView = this.getReleaseTrendView(
@@ -233,6 +269,15 @@ class ReleaseOverview extends AsyncView<Props> {
             project.id,
             releaseMeta.released
           );
+
+          const generateLink = {
+            transaction: generateTransactionLink(
+              version,
+              project.id,
+              selection,
+              location.query.showTransactions
+            ),
+          };
 
           return (
             <ReleaseStatsRequest
@@ -244,6 +289,7 @@ class ReleaseOverview extends AsyncView<Props> {
               location={location}
               yAxis={yAxis}
               eventType={eventType}
+              vitalType={vitalType}
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
               hasPerformance={hasPerformance}
@@ -266,6 +312,8 @@ class ReleaseOverview extends AsyncView<Props> {
                         onYAxisChange={this.handleYAxisChange}
                         eventType={eventType}
                         onEventTypeChange={this.handleEventTypeChange}
+                        vitalType={vitalType}
+                        onVitalTypeChange={this.handleVitalTypeChange}
                         router={router}
                         organization={organization}
                         hasHealthData={hasHealthData}
@@ -274,6 +322,7 @@ class ReleaseOverview extends AsyncView<Props> {
                         version={version}
                         hasDiscover={hasDiscover}
                         hasPerformance={hasPerformance}
+                        platform={project.platform}
                       />
                     )}
                     <Issues
@@ -282,25 +331,28 @@ class ReleaseOverview extends AsyncView<Props> {
                       version={version}
                       location={location}
                     />
-                    <TransactionsList
-                      api={api}
-                      location={location}
-                      organization={organization}
-                      eventView={releaseEventView}
-                      trendView={releaseTrendView}
-                      selected={selectedSort}
-                      options={sortOptions}
-                      handleDropdownChange={this.handleTransactionsListSortChange}
-                      titles={titles}
-                      generateFirstLink={generateTransactionLinkFn(
-                        version,
-                        project.id,
-                        selection,
-                        location.query.showTransactions
-                      )}
-                    />
+                    <Feature features={['performance-view']}>
+                      <TransactionsList
+                        location={location}
+                        organization={organization}
+                        eventView={releaseEventView}
+                        trendView={releaseTrendView}
+                        selected={selectedSort}
+                        options={sortOptions}
+                        handleDropdownChange={this.handleTransactionsListSortChange}
+                        titles={titles}
+                        generateLink={generateLink}
+                      />
+                    </Feature>
                   </Main>
                   <Side>
+                    <ReleaseStats
+                      organization={organization}
+                      release={release}
+                      project={project}
+                      location={location}
+                      selection={selection}
+                    />
                     <ProjectReleaseDetails
                       release={release}
                       releaseMeta={releaseMeta}
@@ -346,7 +398,7 @@ class ReleaseOverview extends AsyncView<Props> {
   }
 }
 
-function generateTransactionLinkFn(
+function generateTransactionLink(
   version: string,
   projectId: number,
   selection: GlobalSelection,
@@ -382,36 +434,36 @@ function getDropdownOptions(): DropdownOption[] {
   return [
     {
       sort: {kind: 'desc', field: 'failure_count'},
-      value: 'failure_count',
+      value: TransactionsListOption.FAILURE_COUNT,
       label: t('Failing Transactions'),
     },
     {
       sort: {kind: 'desc', field: 'epm'},
-      value: 'tpm',
+      value: TransactionsListOption.TPM,
       label: t('Frequent Transactions'),
     },
     {
       sort: {kind: 'desc', field: 'p50'},
-      value: 'slow',
+      value: TransactionsListOption.SLOW,
       label: t('Slow Transactions'),
     },
     {
       sort: {kind: 'desc', field: 'p75_measurements_lcp'},
-      value: 'slow_lcp',
+      value: TransactionsListOption.SLOW_LCP,
       label: t('Slow LCP'),
     },
     {
       sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: 'tpm():>0.01 trend_percentage():>0% t_test():<-6',
+      query: [['t_test()', '<-6']],
       trendType: TrendChangeType.REGRESSION,
-      value: 'regression',
+      value: TransactionsListOption.REGRESSION,
       label: t('Trending Regressions'),
     },
     {
       sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: 'tpm():>0.01 trend_percentage():>0% t_test():>6',
+      query: [['t_test()', '>6']],
       trendType: TrendChangeType.IMPROVED,
-      value: 'improved',
+      value: TransactionsListOption.IMPROVEMENT,
       label: t('Trending Improvements'),
     },
   ];
@@ -421,7 +473,8 @@ function getTransactionsListSort(
   location: Location
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getDropdownOptions();
-  const urlParam = decodeScalar(location.query.showTransactions) || 'failure_count';
+  const urlParam =
+    decodeScalar(location.query.showTransactions) || TransactionsListOption.FAILURE_COUNT;
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }

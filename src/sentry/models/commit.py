@@ -3,7 +3,12 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 from sentry.utils.cache import memoize
 from sentry.utils.groupreference import find_referenced_groups
 
