@@ -7,6 +7,7 @@ import {
   IconLinear,
   IconRookout,
   IconTeamwork,
+  IconZepel,
 } from 'app/icons';
 import {SentryAppComponent} from 'app/types';
 
@@ -26,6 +27,8 @@ const SentryAppIcon = ({slug}: Props) => {
       return <IconTeamwork size="md" />;
     case 'linear':
       return <IconLinear size="md" />;
+    case 'zepel':
+      return <IconZepel size="md" />;
     default:
       return <IconGeneric size="md" />;
   }
