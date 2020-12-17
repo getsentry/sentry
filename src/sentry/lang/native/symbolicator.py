@@ -107,20 +107,12 @@ class Symbolicator(object):
         base_url = symbolicator_options["url"].rstrip("/")
         assert base_url
 
-        if not getattr(project, "_organization_cache", False):
-            # needed for efficient featureflag checks in getsentry
-            with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-                project._organization_cache = Organization.objects.get_from_cache(
-                    id=project.organization_id
-                )
-
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=six.text_type(project.id),
             event_id=six.text_type(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
-            options=get_options_for_project(project),
         )
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
@@ -258,19 +250,18 @@ def parse_sources(config):
     return sources
 
 
-def get_options_for_project(project):
-    return {
-        # Symbolicators who do not support options will ignore this field entirely.
-        "dif_candidates": features.has("organizations:images-loaded-v2", project.organization)
-    }
-
-
 def get_sources_for_project(project):
     """
     Returns a list of symbol sources for this project.
     """
 
     sources = []
+
+    if not getattr(project, "_organization_cache", False):
+        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+            project._organization_cache = Organization.objects.get_from_cache(
+                id=project.organization_id
+            )
 
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
@@ -280,7 +271,6 @@ def get_sources_for_project(project):
     # Check that the organization still has access to symbol sources. This
     # controls both builtin and external sources.
     organization = project.organization
-
     if not features.has("organizations:symbol-sources", organization):
         return sources
 
@@ -329,14 +319,11 @@ def get_sources_for_project(project):
 
 
 class SymbolicatorSession(object):
-    def __init__(
-        self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
-    ):
+    def __init__(self, url=None, sources=None, project_id=None, event_id=None, timeout=None):
         self.url = url
         self.project_id = project_id
         self.event_id = event_id
         self.sources = sources or []
-        self.options = options or None
         self.timeout = timeout
         self.session = None
 
@@ -433,12 +420,7 @@ class SymbolicatorSession(object):
             return self._request(method="post", path=path, params=params, **kwargs)
 
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
-        json = {
-            "sources": self.sources,
-            "options": self.options,
-            "stacktraces": stacktraces,
-            "modules": modules,
-        }
+        json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
 
         if signal:
             json["signal"] = signal
@@ -448,14 +430,14 @@ class SymbolicatorSession(object):
     def upload_minidump(self, minidump):
         return self._create_task(
             path="minidump",
-            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
+            data={"sources": json.dumps(self.sources)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
         return self._create_task(
             path="applecrashreport",
-            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
+            data={"sources": json.dumps(self.sources)},
             files={"apple_crash_report": report},
         )
 

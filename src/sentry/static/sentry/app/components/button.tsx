@@ -29,7 +29,7 @@ type Props = {
   external?: boolean;
   borderless?: boolean;
   label?: string;
-  tooltipProps?: any;
+  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
   name?: string;
@@ -243,7 +243,8 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
   return css`
     color: ${color};
     background-color: ${background};
-    border: 1px solid ${!borderless && !!border ? border : 'transparent'};
+    border: 1px solid
+      ${priority !== 'link' && !borderless && !!border ? border : 'transparent'};
 
     &:hover {
       color: ${color};
