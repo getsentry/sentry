@@ -53,7 +53,7 @@ EOF
             else
                 cat << EOF
 ${red}${bold}
-WARNING! You are running a virtualenv with a Python version different than 3.6
+ERROR! You are running a virtualenv with a Python version different than 3.6
 We recommend you start with a fresh virtualenv or to set the variable SENTRY_PYTHON_VERSION
 to the Python version you want to use (e.g. 3.7).
 ${reset}
