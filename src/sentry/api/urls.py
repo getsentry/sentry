@@ -92,20 +92,21 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
+from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_measurements_histogram import (
     OrganizationEventsMeasurementsHistogramEndpoint,
 )
-from .endpoints.organization_events_trends import (
-    OrganizationEventsTrendsEndpoint,
-    OrganizationEventsTrendsStatsEndpoint,
-)
-from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventBaseline,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
+from .endpoints.organization_events_trends import (
+    OrganizationEventsTrendsEndpoint,
+    OrganizationEventsTrendsStatsEndpoint,
+)
+from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
@@ -851,6 +852,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-vitals/$",
+                    OrganizationEventsVitalsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-vitals",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
