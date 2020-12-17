@@ -374,7 +374,7 @@ class OrganizationReleasesEndpoint(
                     try:
                         release.set_commits(commit_list)
                         self.track_set_commits_local(
-                            release,
+                            request,
                             organization_id=organization.id,
                             project_ids=[project.id for project in projects],
                         )
