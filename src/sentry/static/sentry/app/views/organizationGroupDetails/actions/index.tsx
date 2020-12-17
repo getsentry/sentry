@@ -221,7 +221,6 @@ class Actions extends React.Component<Props, State> {
     const {status, isBookmarked} = group;
 
     const orgFeatures = new Set(organization.features);
-    const projectFeatures = new Set(project.features);
 
     let buttonClassName = 'btn btn-default btn-sm';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -306,7 +305,7 @@ class Actions extends React.Component<Props, State> {
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
           className={buttonClassName}
         />
-        {projectFeatures.has('reprocessing-v2') && (
+        {orgFeatures.has('reprocessing-v2') && (
           <div className="btn-group">
             <Tooltip title={t('Reprocess this issue')}>
               <div
