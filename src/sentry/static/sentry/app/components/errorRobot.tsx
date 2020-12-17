@@ -88,7 +88,6 @@ class ErrorRobot extends React.Component<Props, State> {
         <p>
           <CreateSampleEventButton
             priority="link"
-            borderless
             project={project}
             source="issues_list"
             disabled={!project}

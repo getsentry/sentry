@@ -243,7 +243,8 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
   return css`
     color: ${color};
     background-color: ${background};
-    border: 1px solid ${!borderless && !!border ? border : 'transparent'};
+    border: 1px solid
+      ${priority !== 'link' && !borderless && !!border ? border : 'transparent'};
 
     &:hover {
       color: ${color};
