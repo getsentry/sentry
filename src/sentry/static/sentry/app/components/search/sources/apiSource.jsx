@@ -121,7 +121,7 @@ async function createIntegrationResults(integrationsPromise, orgId) {
         model: provider,
         sourceType: 'integration',
         resultType: 'integration',
-        to: `/settings/${orgId}/integrations/`,
+        to: `/settings/${orgId}/integrations/${provider.slug}/`,
       }))) ||
     []
   );
