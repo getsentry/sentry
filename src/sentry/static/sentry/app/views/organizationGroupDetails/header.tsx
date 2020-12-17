@@ -84,7 +84,7 @@ class GroupHeader extends React.Component<Props, State> {
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
-    const hasReprocessingV2Feature = projectFeatures.has('reprocessing-v2');
+    const hasReprocessingV2Feature = organizationFeatures.has('reprocessing-v2');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
