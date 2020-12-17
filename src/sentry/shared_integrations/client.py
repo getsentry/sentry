@@ -75,6 +75,7 @@ class BaseApiResponse(object):
                 )
         else:
             data = json.loads(response.text, object_pairs_hook=OrderedDict)
+
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)
         elif isinstance(data, (list, tuple)):

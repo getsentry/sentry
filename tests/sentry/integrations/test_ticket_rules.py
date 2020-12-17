@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from collections import namedtuple
+
 from django.core.urlresolvers import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
@@ -12,6 +14,8 @@ from sentry.testutils import RuleTestCase
 from sentry.utils.compat import mock
 
 from tests.fixtures.integrations.jira import MockJira
+
+RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
@@ -47,7 +51,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         results = list(action_inst.after(event=event, state=self.get_state()))
         assert len(results) == 1
 
-        return results[0].callback(event, futures=[])
+        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        return results[0].callback(event, futures=[rule_future])
+        # return results[0].callback(event, futures=[])
 
     def get_key(self, event):
         return ExternalIssue.objects.filter(
