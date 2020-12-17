@@ -17,7 +17,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import tsdb
+from sentry import tsdb, analytics
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
@@ -414,3 +414,14 @@ class StatsMixin(object):
             return int(value[:-1])
         else:
             raise ValueError(value)
+
+
+class ReleaseAnalyticsMixin(object):
+    def track_set_commits_local(self, request, organization_id=None, project_ids=None):
+        analytics.record(
+            "release.set_commits_local",
+            user_id=request.user.id if request.user and request.user.id else None,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
