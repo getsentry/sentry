@@ -84,7 +84,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time',
+      type: 'time' as const,
       show: false,
     })),
     yAxes: [
@@ -124,9 +124,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1], colors[2]] as string[],
     tooltip: {
-      trigger: 'axis',
+      trigger: 'axis' as const,
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {

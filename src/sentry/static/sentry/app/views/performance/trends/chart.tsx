@@ -68,7 +68,7 @@ function getLegend(trendFunction: string) {
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left',
+    align: 'left' as const,
     textStyle: {
       verticalAlign: 'top',
       fontSize: 11,

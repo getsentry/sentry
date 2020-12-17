@@ -97,7 +97,7 @@ class TrendChart extends React.Component<Props> {
       itemHeight: 8,
       itemWidth: 8,
       itemGap: 12,
-      align: 'left',
+      align: 'left' as const,
       textStyle: {
         verticalAlign: 'top',
         fontSize: 11,
@@ -123,7 +123,7 @@ class TrendChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         valueFormatter: value => tooltipFormatter(value, 'p50()'),
       },
       yAxis: {
@@ -204,10 +204,6 @@ class TrendChart extends React.Component<Props> {
                       };
                     })
                   : [];
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
 
                 return (
                   <ReleaseSeries

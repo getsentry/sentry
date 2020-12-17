@@ -26,6 +26,7 @@ export default function ToolBox(options, features): EChartOption['toolbox'] {
     right: 0,
     top: 0,
     itemSize: 16,
+    z: -1,
 
     feature: getFeatures(features),
     ...options,

@@ -159,10 +159,6 @@ class WidgetCard extends React.Component<Props, State> {
                     }))
                   : [];
 
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
-
                 return (
                   <TransitionChart loading={loading} reloading={loading}>
                     <TransparentLoadingMask visible={loading} />

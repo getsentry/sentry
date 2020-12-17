@@ -14,7 +14,7 @@ import {
 /**
  * Formatter for chart tooltips that handle a variety of discover result values
  */
-export function tooltipFormatter(value: number, seriesName: string): string {
+export function tooltipFormatter(value: number, seriesName: string = ''): string {
   switch (aggregateOutputType(seriesName)) {
     case 'integer':
     case 'number':

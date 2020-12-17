@@ -93,7 +93,7 @@ class VitalChart extends React.Component<Props> {
       itemHeight: 8,
       itemWidth: 8,
       itemGap: 12,
-      align: 'left',
+      align: 'left' as const,
       textStyle: {
         verticalAlign: 'top',
         fontSize: 11,
@@ -171,8 +171,8 @@ class VitalChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) =>
+        trigger: 'axis' as const,
+        valueFormatter: (value: number, seriesName?: string) =>
           tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : 'p75()'),
       },
       yAxis: {
@@ -244,10 +244,6 @@ class VitalChart extends React.Component<Props> {
                   const seriesMax = getMaxOfSeries(smoothedSeries);
                   const yAxisMax = Math.max(seriesMax, vitalPoor);
                   chartOptions.yAxis.max = yAxisMax * 1.1;
-
-                  // Stack the toolbox under the legend.
-                  // so all series names are clickable.
-                  zoomRenderProps.toolBox.z = -1;
 
                   return (
                     <ReleaseSeries

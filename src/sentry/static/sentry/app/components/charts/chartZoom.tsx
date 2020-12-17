@@ -23,13 +23,29 @@ const getDate = date =>
 
 type Period = {
   period: string;
-  start: any;
-  end: any;
+  start: DateString;
+  end: DateString;
+};
+
+const ZoomPropKeys = [
+  'xAxis', // do we need this?
+  'onChartReady',
+  'onDataZoom',
+  'onRestore',
+  'onFinished',
+] as const;
+
+type RenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
+  utc?: boolean;
+  isGroupedByDate?: boolean;
+  showTimeInTooltip?: boolean;
+  dataZoom?: EChartOption.DataZoom[];
+  toolBox?: EChartOption['toolbox'];
 };
 
 type Props = {
   router?: WithRouterProps['router'];
-  children: any;
+  children: (props: RenderProps) => React.ReactNode;
   disabled?: boolean;
   xAxis?: EChartOption.XAxis;
   xAxisIndex?: number | number[];
@@ -96,9 +112,9 @@ class ChartZoom extends React.Component<Props> {
     this.saveCurrentPeriod(this.props);
   }
 
-  history: any[];
+  history: Period[];
   currentPeriod?: Period;
-  zooming: any;
+  zooming: (() => void) | null = null;
 
   /**
    * Save current period state from period in props to be used
@@ -128,7 +144,7 @@ class ChartZoom extends React.Component<Props> {
 
     // Save period so that we can revert back to it when using echarts "back" navigation
     if (saveHistory) {
-      this.history.push(this.currentPeriod);
+      this.history.push(this.currentPeriod!);
     }
 
     // Callback to let parent component know zoom has changed
@@ -238,6 +254,7 @@ class ChartZoom extends React.Component<Props> {
       children,
       xAxisIndex,
 
+      router: _router,
       onZoom: _onZoom,
       onRestore: _onRestore,
       onChartReady: _onChartReady,
@@ -255,7 +272,7 @@ class ChartZoom extends React.Component<Props> {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
-      utc,
+      utc: utc ?? undefined,
       dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
@@ -275,8 +292,8 @@ class ChartZoom extends React.Component<Props> {
         }
       ),
       onDataZoom: this.handleDataZoom,
-      onRestore: this.handleZoomRestore,
       onFinished: this.handleChartFinished,
+      onRestore: this.handleZoomRestore,
       ...props,
     };
 
