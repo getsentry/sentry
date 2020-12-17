@@ -25,9 +25,9 @@ UNSAFE_FILES = (
 )
 
 # URLs that should always be sampled
-SAMPLED_URL_NAMES = [
+SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-releases",
-]
+}
 
 UNSAFE_TAG = "_unsafe"
 
@@ -131,15 +131,18 @@ def _override_on_full_queue(transport, metric_name):
 
 
 def traces_sampler(sampling_context):
+    # If there's already a sampled decision, just use that
+    if sampling_context["parent_sampled"] is not None:
+        return sampling_context["parent_sampled"]
+
+    # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:
         match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
         if match and match.url_name in SAMPLED_URL_NAMES:
             return 1.0
 
-    if sampling_context["parent_sampled"] is not None:
-        return sampling_context["parent_sampled"]
-
-    return 0.0
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_APM_SAMPLING or 0)
 
 
 def configure_sdk():
