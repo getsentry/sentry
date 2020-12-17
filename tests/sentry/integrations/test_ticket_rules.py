@@ -53,7 +53,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
-        # return results[0].callback(event, futures=[])
 
     def get_key(self, event):
         return ExternalIssue.objects.filter(
