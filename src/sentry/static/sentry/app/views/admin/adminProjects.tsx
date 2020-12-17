@@ -1,25 +1,39 @@
-/* eslint-disable react/jsx-key */
 import React from 'react';
+import {Location} from 'history';
 import moment from 'moment';
 
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import {Organization} from 'app/types';
 
 export const prettyDate = function (x) {
   return moment(x).format('ll');
 };
 
-class AdminProjects extends React.Component {
-  getRow = row => [
-    <td>
+type Row = {
+  dateCreated: string;
+  name: string;
+  organization: Organization;
+  slug: string;
+  status: string;
+};
+
+type Props = {
+  location: Location;
+} & AsyncView['props'];
+
+export default class AdminProjects extends AsyncView<Props> {
+  getRow = (row: Row) => [
+    <td key="name">
       <strong>
         <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
       </strong>
       <br />
       <small>{row.organization.name}</small>
     </td>,
-    <td style={{textAlign: 'center'}}>{row.status}</td>,
-    <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
+    <td key="status" style={{textAlign: 'center'}}>{row.status}</td>,
+    <td key="dateCreated" style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
   ];
 
   render() {
@@ -56,5 +70,3 @@ class AdminProjects extends React.Component {
     );
   }
 }
-
-export default AdminProjects;
