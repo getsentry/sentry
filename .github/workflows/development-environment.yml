@@ -9,7 +9,7 @@ jobs:
   dev-environment:
     name: Python set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       matrix:
         python-version: [ 3.6 ]
