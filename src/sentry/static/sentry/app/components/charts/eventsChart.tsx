@@ -181,7 +181,7 @@ class Chart extends React.Component<ChartProps, State> {
       itemGap: 12,
       align: 'left',
       textStyle: {
-        color: theme.subText,
+        color: theme.textColor,
         verticalAlign: 'top',
         fontSize: 11,
         fontFamily: 'Rubik',

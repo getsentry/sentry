@@ -22,7 +22,7 @@ export default function Legend(
     padding: 0,
     formatter,
     textStyle: {
-      color: theme?.subText,
+      color: theme?.textColor,
     },
     ...rest,
   };
