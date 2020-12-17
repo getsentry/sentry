@@ -36,8 +36,8 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        run: |
-          xcode-select --install
+        run: |  # Xcode CLI is already installed
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           brew bundle --verbose
 
       - name: Set up Python environment (as per docs)
