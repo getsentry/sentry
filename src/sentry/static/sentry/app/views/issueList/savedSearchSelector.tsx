@@ -129,6 +129,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   color: ${p => p.theme.textColor};
   background-color: ${p => p.theme.background};
   border-right: 0;
+  border-color: ${p => p.theme.border};
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
     p.isOpen
@@ -139,7 +140,9 @@ const StyledDropdownButton = styled(DropdownButton)`
   margin-right: 0;
 
   &:hover,
+  &:focus,
   &:active {
+    border-color: ${p => p.theme.border};
     border-right: 0;
   }
 `;
