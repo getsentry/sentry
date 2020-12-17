@@ -117,7 +117,7 @@ const VitalsContainer = styled('div')`
   }
 `;
 
-type CardProps = Props & {
+type CardProps = Omit<Props, 'projects'> & {
   vitalName: WebVital;
   tableData: any;
   isLoading?: boolean;
@@ -357,7 +357,7 @@ const BlankCard = (props: BlankCardProps) => {
   );
 };
 
-type VitalLinkProps = Props & {
+type VitalLinkProps = Omit<Props, 'projects'> & {
   vitalName: WebVital;
   children: React.ReactNode;
 };
