@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'app/actionCreators/modal';
-import ActionLink from 'app/components/actions/actionLink';
+import ActionLink from 'app/components/issueActions/actionLink';
 import Button from 'app/components/button';
 import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';

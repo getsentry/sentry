@@ -5,7 +5,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 
 import {openModal} from 'app/actionCreators/modal';
-import ActionLink from 'app/components/actions/actionLink';
+import ActionLink from 'app/components/issueActions/actionLink';
 import Button from 'app/components/button';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import DropdownLink from 'app/components/dropdownLink';

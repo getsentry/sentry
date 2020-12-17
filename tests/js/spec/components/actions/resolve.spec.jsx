@@ -3,7 +3,7 @@ import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ResolveActions from 'app/components/actions/resolve';
+import ResolveActions from 'app/components/issueActions/resolve';
 import GlobalModal from 'app/components/globalModal';
 
 describe('ResolveActions', function () {

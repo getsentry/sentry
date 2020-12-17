@@ -3,7 +3,7 @@ import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import IgnoreActions from 'app/components/actions/ignore';
+import IgnoreActions from 'app/components/issueActions/ignore';
 
 describe('IgnoreActions', function () {
   const routerContext = TestStubs.routerContext();

@@ -2,8 +2,8 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import ActionLink from 'app/components/actions/actionLink';
-import IgnoreActions from 'app/components/actions/ignore';
+import ActionLink from 'app/components/issueActions/actionLink';
+import IgnoreActions from 'app/components/issueActions/ignore';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';

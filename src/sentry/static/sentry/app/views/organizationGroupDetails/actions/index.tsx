@@ -10,9 +10,9 @@ import {
 import {openModal} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
-import IgnoreActions from 'app/components/actions/ignore';
-import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import IgnoreActions from 'app/components/issueActions/ignore';
+import ResolveActions from 'app/components/issueActions/resolve';
 import Link from 'app/components/links/link';
 import ShareIssue from 'app/components/shareIssue';
 import Tooltip from 'app/components/tooltip';

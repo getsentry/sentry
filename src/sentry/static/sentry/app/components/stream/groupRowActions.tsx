@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import ActionLink from 'app/components/actions/actionLink';
-import ResolveActions from 'app/components/actions/resolve';
+import ActionLink from 'app/components/issueActions/actionLink';
+import ResolveActions from 'app/components/issueActions/resolve';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
