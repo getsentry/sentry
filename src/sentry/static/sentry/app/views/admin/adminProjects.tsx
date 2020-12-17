@@ -38,9 +38,9 @@ export default class AdminProjects extends AsyncView<Props> {
 
   render() {
     const columns = [
-      <th>Project</th>,
-      <th style={{width: 150, textAlign: 'center'}}>Status</th>,
-      <th style={{width: 200, textAlign: 'right'}}>Created</th>,
+      <th key="name">Project</th>,
+      <th key="status" style={{width: 150, textAlign: 'center'}}>Status</th>,
+      <th key="dateCreated" style={{width: 200, textAlign: 'right'}}>Created</th>,
     ];
 
     return (
