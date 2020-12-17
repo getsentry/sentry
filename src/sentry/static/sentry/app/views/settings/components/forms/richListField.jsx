@@ -225,6 +225,9 @@ const ItemList = styled('ul')`
   flex-wrap: wrap;
   align-items: flex-start;
   padding: 0;
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const Item = styled('li')`
