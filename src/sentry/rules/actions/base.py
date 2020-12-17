@@ -135,6 +135,7 @@ def build_description(event, rule_id, installation, generate_footer):
     rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
         project.organization.slug, project.slug, rule_id
     )
+
     return installation.get_group_description(event.group, event) + generate_footer(rule_url)
 
 
@@ -161,9 +162,8 @@ def create_issue(event, futures):
             return
 
         installation = integration.get_installation(organization.id)
-
         data["title"] = event.title
-        data["description"] = build_description(event, installation, rule_id, generate_footer)
+        data["description"] = build_description(event, rule_id, installation, generate_footer)
 
         # HACK to get fixVersion in the correct format
         if data.get("fixVersions"):
@@ -212,7 +212,10 @@ class TicketEventAction(IntegrationEventAction):
 
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
-            self.form_fields.update(dynamic_fields)
+            if isinstance(dynamic_fields, list):
+                self.form_fields.update(dynamic_fields[0])
+            else:
+                self.form_fields.update(dynamic_fields)
 
     def translate_integration(self, integration):
         return integration
@@ -227,7 +230,7 @@ class TicketEventAction(IntegrationEventAction):
     def after(self, event, state):
         integration_id = self.get_integration_id()
         key = u"{}:{}".format(self.provider, integration_id)
-        yield self.future(
+        return self.future(
             create_issue,
             key=key,
             data=self.data,

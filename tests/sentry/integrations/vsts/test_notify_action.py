@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import responses
+from collections import namedtuple
 
 from time import time
 
@@ -13,6 +14,8 @@ from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, 
 
 from .test_issues import VstsIssueBase
 from .testutils import WORK_ITEM_RESPONSE, GET_PROJECTS_RESPONSE
+
+RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
@@ -68,7 +71,8 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert len(results) == 1
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        rule_future = RuleFuture(rule=azuredevops_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
         data = json.loads(responses.calls[2].response.text)
 
         assert data["fields"]["System.Title"] == "Hello"

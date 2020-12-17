@@ -93,4 +93,4 @@ class JiraCreateTicketAction(TicketEventAction):
 
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
-        super(JiraCreateTicketAction, self).after(event, state)
+        yield super(JiraCreateTicketAction, self).after(event, state)

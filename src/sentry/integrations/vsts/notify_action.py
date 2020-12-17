@@ -69,7 +69,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
                 logger.info(e)
                 return self.error(six.text_type(e))
             else:
-                self.data["dynamic_form_fields"] = fields
+                self.data["dynamic_form_fields"] = fields[0]
                 return fields
         return None
 
@@ -80,4 +80,4 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
 
     @transaction_start("AzureDevopsCreateTicketAction.after")
     def after(self, event, state):
-        super(AzureDevopsCreateTicketAction, self).after(event, state)
+        yield super(AzureDevopsCreateTicketAction, self).after(event, state)
