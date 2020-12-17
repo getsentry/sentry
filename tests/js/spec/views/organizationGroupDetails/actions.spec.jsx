@@ -65,7 +65,7 @@ describe('GroupActions', function () {
           })}
         />
       );
-      const btn = wrapper.find('.group-subscribe');
+      const btn = wrapper.find('button[aria-label="Subscribe"]');
       btn.simulate('click');
 
       expect(issuesApi).toHaveBeenCalledWith(

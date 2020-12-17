@@ -351,7 +351,6 @@ const IgnoreWrapper = styled('div')`
 `;
 
 const IgnoredButtonActionWrapper = styled('div')`
-  margin-right: 5px;
   display: inline-flex;
   align-self: baseline;
 `;

@@ -60,36 +60,26 @@
     color: #949ea4;
   }
 
-  .group-actions {
-    margin-top: 15px;
+  .group-resolve.active {
+    background: @green;
+    color: #fff;
+    border-color: @green-dark;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  }
 
-    .btn-group {
-      margin-right: 5px;
-    }
+  .group-remove:hover {
+    color: #fff;
+    background: @red;
+    border-color: @red-dark;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  }
 
-    .group-resolve.active {
-      background: @green;
-      color: #fff;
-      border-color: @green-dark;
-      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
-
-    .group-remove:hover {
-      color: #fff;
-      background: @red;
-      border-color: @red-dark;
-      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-    }
-
-    .clearfix;
-
-    .id-label {
-      background: #fff;
-      max-width: 200px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  .id-label {
+    background: #fff;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .severity {

@@ -162,8 +162,6 @@ const StyledLinkWithConfirmation = styled(LinkWithConfirmation)`
 `;
 
 const DeleteDiscardWrapper = styled('div')`
-  display: inline-block;
-  margin-right: 5px;
   ${dropdownTipCss}
   & span {
     position: relative;
