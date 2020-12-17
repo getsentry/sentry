@@ -185,14 +185,26 @@ export function VitalsCard(props: CardProps) {
   const measurement = vitalMap[vitalName];
 
   if (isLoading || !tableData || !tableData.data || !tableData.data[0]) {
-    return <BlankCard noBorder={noBorder} measurement={measurement} />;
+    return (
+      <BlankCard
+        noBorder={noBorder}
+        measurement={measurement}
+        titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
+      />
+    );
   }
 
   const result = tableData.data[0];
   const base = result[getAggregateAlias(vitalsBaseFields[vitalName])];
 
   if (!base) {
-    return <BlankCard noBorder={noBorder} measurement={measurement} />;
+    return (
+      <BlankCard
+        noBorder={noBorder}
+        measurement={measurement}
+        titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
+      />
+    );
   }
 
   const percents = getPercentsFromCounts(getCounts(result, vitalName));
@@ -315,15 +327,18 @@ function VitalsCardContent(props: CardContentProps) {
 type BlankCardProps = {
   noBorder?: boolean;
   measurement?: string;
+  titleDescription?: string;
 };
 
 const BlankCard = (props: BlankCardProps) => {
   const Container = props.noBorder ? NonPanel : VitalCard;
+
   return (
     <Container interactive>
       {props.noBorder || (
         <HeaderTitle>
           <OverflowEllipsis>{t(`${props.measurement}`)}</OverflowEllipsis>
+          <QuestionTooltip size="sm" position="top" title={props.titleDescription} />
         </HeaderTitle>
       )}
       <CardValue>{'\u2014'}</CardValue>
