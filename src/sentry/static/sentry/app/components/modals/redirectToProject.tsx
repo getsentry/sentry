@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
-import Text from 'app/components/text';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
 
 type Props = ModalRenderProps &
@@ -82,6 +82,21 @@ class RedirectToProjectModal extends React.Component<Props, State> {
 
 export default ReactRouter.withRouter(RedirectToProjectModal);
 export {RedirectToProjectModal};
+
+const Text = styled('div')`
+  *:last-child {
+    margin-bottom: 0;
+  }
+
+  ${/* sc-selector */ Panel} & {
+    padding-left: ${space(2)};
+    padding-right: ${space(2)};
+
+    &:first-child {
+      padding-top: ${space(2)};
+    }
+  }
+`;
 
 const ButtonWrapper = styled('div')`
   display: flex;
