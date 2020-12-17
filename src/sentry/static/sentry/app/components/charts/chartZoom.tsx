@@ -28,7 +28,10 @@ type Period = {
 };
 
 const ZoomPropKeys = [
-  'xAxis', // do we need this?
+  'start',
+  'end',
+  'period',
+  'xAxis',
   'onChartReady',
   'onDataZoom',
   'onRestore',
@@ -51,6 +54,7 @@ type Props = {
   xAxisIndex?: number | number[];
   start?: DateString;
   end?: DateString;
+  period?: string;
   utc?: boolean | null;
   onChartReady?: EChartChartReadyHandler;
   onDataZoom?: EChartDataZoomHandler;
