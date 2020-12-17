@@ -1,5 +1,5 @@
 import React from 'react';
-import {Location} from 'history';
+import {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
 import ResultGrid from 'app/components/resultGrid';
@@ -7,9 +7,7 @@ import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import {Organization} from 'app/types';
 
-export const prettyDate = function (x) {
-  return moment(x).format('ll');
-};
+const prettyDate = (x: string) => moment(x).format('ll');
 
 type Row = {
   dateCreated: string;
@@ -19,11 +17,11 @@ type Row = {
   status: string;
 };
 
-type Props = {
-  location: Location;
-} & AsyncView['props'];
+type Props = RouteComponentProps<{}, {}>;
 
-export default class AdminProjects extends AsyncView<Props> {
+type State = {} & AsyncView['state'];
+
+export default class AdminProjects extends AsyncView<Props, State> {
   getRow = (row: Row) => [
     <td key="name">
       <strong>
