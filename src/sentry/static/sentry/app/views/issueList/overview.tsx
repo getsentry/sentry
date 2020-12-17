@@ -269,8 +269,7 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default')
     ) {
-      // TODO(scttcper): Use constant added in #22641
-      return 'is:needs_review is:unresolved';
+      return Query.NEEDS_REVIEW;
     }
 
     return DEFAULT_QUERY;
