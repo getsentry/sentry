@@ -42,7 +42,7 @@ type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-class Button extends React.Component<ButtonProps, {}> {
+class BaseButton extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
     priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
@@ -187,15 +187,15 @@ class Button extends React.Component<ButtonProps, {}> {
   }
 }
 
-const ButtonForwardRef = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
-  <Button forwardRef={ref} {...props} />
+const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
+  <BaseButton forwardRef={ref} {...props} />
 ));
 
 // Some components use Button's propTypes
-ButtonForwardRef.propTypes = Button.propTypes;
-ButtonForwardRef.displayName = 'forwardRef<Button>';
+Button.propTypes = Button.propTypes;
+Button.displayName = 'Button';
 
-export default ButtonForwardRef;
+export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
