@@ -59,6 +59,15 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     const {organization, filename, project} = this.props;
     trackIntegrationEvent(
       {
+        eventKey: 'integrations.stacktrace_start_setup',
+        eventName: 'Integrations: Stacktrace Start Setup',
+        view: 'stacktrace_issue_details',
+        setup_type: 'automatic',
+      },
+      this.props.organization
+    );
+    trackIntegrationEvent(
+      {
         eventKey: 'integrations.stacktrace_submit_config',
         eventName: 'Integrations: Stacktrace Submit Config',
         setup_type: 'automatic',
