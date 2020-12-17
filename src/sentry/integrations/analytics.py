@@ -106,7 +106,6 @@ class IntegrationStacktraceLinkEvent(analytics.Event):
         analytics.Attribute("provider"),
         analytics.Attribute("config_id"),
         analytics.Attribute("project_id"),
-        analytics.Attribute("platform"),
         analytics.Attribute("filepath"),
         analytics.Attribute("status"),
     )
