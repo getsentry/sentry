@@ -4,7 +4,7 @@ import {withTheme} from 'emotion-theming';
 import max from 'lodash/max';
 
 import {Series, SeriesDataUnit} from 'app/types/echarts';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 
 import VisualMap from './components/visualMap';
 import MapSeries from './series/mapSeries';
@@ -24,6 +24,7 @@ type MapChartSeries = Omit<Series, 'data'> & {
 
 type Props = Omit<ChartProps, 'series'> & {
   series: MapChartSeries[];
+  theme: Theme;
   seriesOptions?: EChartOption.SeriesMap;
 };
 
@@ -67,7 +68,7 @@ class WorldMapChart extends React.Component<Props, State> {
       return null;
     }
 
-    const {series, seriesOptions, ...props} = this.props;
+    const {series, seriesOptions, theme, ...props} = this.props;
     const processedSeries = series.map(({seriesName, data, ...options}) =>
       MapSeries({
         ...seriesOptions,
