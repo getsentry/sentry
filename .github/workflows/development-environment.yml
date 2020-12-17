@@ -35,7 +35,7 @@ jobs:
             ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
       - name: Install pre-requisites
-        if: ${{ os.runner == 'macOS' }}
+        if: ${{ runner.os == 'macOS' }}
         run:
           xcode-select --install
           brew bundle --verbose
