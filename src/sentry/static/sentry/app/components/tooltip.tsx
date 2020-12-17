@@ -15,12 +15,12 @@ type DefaultProps = {
   /**
    * Position for the tooltip.
    */
-  position: PopperJS.Placement;
+  position?: PopperJS.Placement;
 
   /**
    * Display mode for the container element
    */
-  containerDisplayMode: React.CSSProperties['display'];
+  containerDisplayMode?: React.CSSProperties['display'];
 };
 
 type Props = DefaultProps & {
