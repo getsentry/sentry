@@ -1,9 +1,15 @@
 from __future__ import absolute_import, print_function
 
+import logging
+import operator
+import functools
+
 from sentry.constants import ObjectStatus
 from sentry.models.integration import Integration
 from sentry.models import ExternalIssue, GroupLink
 from sentry.rules.base import RuleBase
+
+logger = logging.getLogger("sentry.rules")
 
 
 class EventAction(RuleBase):
@@ -83,6 +89,78 @@ class IntegrationEventAction(EventAction):
         return self.form_cls(self.data, integrations=self.get_integrations())
 
 
+def _linked_issues(event, integration):
+    return ExternalIssue.objects.filter(
+        id__in=GroupLink.objects.filter(
+            project_id=event.group.project.id,
+            group_id=event.group.id,
+            linked_type=GroupLink.LinkedType.issue,
+        ).values_list("linked_id", flat=True),
+        integration_id=integration.id,
+    )
+
+
+def get_linked_issue_ids(event, integration):
+    return _linked_issues(event, integration).values_list("key", flat=True)
+
+
+def has_linked_issue(event, integration):
+    return _linked_issues(event, integration).exists()
+
+
+def create_link(key, integration, installation, event):
+    external_issue = ExternalIssue.objects.create(
+        organization_id=event.group.project.organization.id,
+        integration_id=integration.id,
+        key=key,
+        title=event.title,
+        description=installation.get_group_description(event.group, event),
+    )
+    GroupLink.objects.create(
+        group_id=event.group.id,
+        project_id=event.group.project.id,
+        linked_type=GroupLink.LinkedType.issue,
+        linked_id=external_issue.id,
+        relationship=GroupLink.Relationship.references,
+        data={"provider": integration.provider},
+    )
+
+
+def create_issue(event, futures):
+    """Create an issue for a given event"""
+
+    for future in futures:
+        data = future.kwargs.get("data")
+        integration = future.kwargs.get("integration")
+        organization = event.group.project.organization
+        installation = integration.get_installation(organization.id)
+
+        data["title"] = event.title
+
+        # HACK to get fixVersion in the correct format
+        if data.get("fixVersions"):
+            if not isinstance(data["fixVersions"], list):
+                data["fixVersions"] = [data["fixVersions"]]
+
+        if data.get("dynamic_form_fields"):
+            del data["dynamic_form_fields"]
+
+        if has_linked_issue(event, integration):
+            logger.info(
+                "{}.rule_trigger.link_already_exists".format(integration.provider),
+                extra={
+                    "rule_id": future.rule.id,
+                    "project_id": event.group.project.id,
+                    "group_id": event.group.id,
+                },
+            )
+            return
+        response = installation.create_issue(data)
+        issue_key_path = future.kwargs.get("issue_key_path")
+        issue_key = functools.reduce(operator.getitem, issue_key_path.split("."), response)
+        create_link(issue_key, integration, installation, event)
+
+
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
@@ -102,37 +180,4 @@ class TicketEventAction(IntegrationEventAction):
         )
         return installation.get_group_description(event.group, event) + self.generate_footer(
             rule_url
-        )
-
-    def _linked_issues(self, event, integration):
-        return ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(
-                project_id=self.project.id,
-                group_id=event.group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list("linked_id", flat=True),
-            integration_id=integration.id,
-        )
-
-    def get_linked_issue_ids(self, event, integration):
-        return self._linked_issues(event, integration).values_list("key", flat=True)
-
-    def has_linked_issue(self, event, integration):
-        return self._linked_issues(event, integration).exists()
-
-    def create_link(self, key, integration, installation, event):
-        external_issue = ExternalIssue.objects.create(
-            organization_id=self.project.organization.id,
-            integration_id=integration.id,
-            key=key,
-            title=event.title,
-            description=installation.get_group_description(event.group, event),
-        )
-        GroupLink.objects.create(
-            group_id=event.group.id,
-            project_id=self.project.id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-            data={"provider": self.provider},
         )

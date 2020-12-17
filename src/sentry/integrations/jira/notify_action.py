@@ -11,7 +11,8 @@ from sentry.integrations.jira.utils import (
     transform_jira_choices_to_strings,
 )
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import TicketEventAction
+from sentry.rules.actions.base import TicketEventAction, create_issue
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
@@ -116,36 +117,8 @@ class JiraCreateTicketAction(TicketEventAction):
             return
 
         installation = integration.get_installation(organization.id)
-
-        self.data["title"] = event.title
         self.data["description"] = self.build_description(event, installation)
-
-        def create_issue(event, futures):
-            """Create the Jira ticket for a given event"""
-
-            # HACK to get fixVersion in the correct format
-            if self.data.get("fixVersions"):
-                if not isinstance(self.data["fixVersions"], list):
-                    self.data["fixVersions"] = [self.data["fixVersions"]]
-
-            if self.data.get("dynamic_form_fields"):
-                del self.data["dynamic_form_fields"]
-
-            if self.has_linked_issue(event, integration):
-                logger.info(
-                    "jira.rule_trigger.link_already_exists",
-                    extra={
-                        "rule_id": self.rule.id,
-                        "project_id": self.project.id,
-                        "group_id": event.group.id,
-                    },
-                )
-                return
-
-            # POST to "create issue" API and save the newly created issue key.
-            response = installation.create_issue(self.data)
-            issue_key = response.get("key")
-            self.create_link(issue_key, integration, installation, event)
-
         key = u"jira:{}".format(integration.id)
-        yield self.future(create_issue, key=key)
+        yield self.future(
+            create_issue, key=key, integration=integration, issue_key_path="key", data=self.data
+        )

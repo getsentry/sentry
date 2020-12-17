@@ -39,26 +39,28 @@ class VstsIssueSync(IssueSyncMixin):
 
         params = kwargs.get("params", {})
         if group:
-            defaults = self.get_project_defaults(group.project_id)
-            try:
-                default_project = params.get(
-                    "project", defaults.get("project") or project_choices[0][0]
-                )
-            except IndexError:
-                return None, project_choices
-
-            # If a project has been selected outside of the default list of
-            # projects, stick it onto the front of the list so that it can be
-            # selected.
-            try:
-                next(True for r in project_choices if r[0] == default_project)
-            except StopIteration:
-                try:
-                    project_choices.insert(0, self.create_default_repo_choice(default_project))
-                except (ApiError, ApiUnauthorized):
-                    return None, project_choices
+            default_project_id = group.project.id
         else:
-            default_project = project_choices[0][0]
+            rule_project = kwargs.get("project", None)
+            default_project_id = rule_project.id
+        defaults = self.get_project_defaults(default_project_id)
+        try:
+            default_project = params.get(
+                "project", defaults.get("project") or project_choices[0][0]
+            )
+        except IndexError:
+            return None, project_choices
+
+        # If a project has been selected outside of the default list of
+        # projects, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in project_choices if r[0] == default_project)
+        except StopIteration:
+            try:
+                project_choices.insert(0, self.create_default_repo_choice(default_project))
+            except (ApiError, ApiUnauthorized):
+                return None, project_choices
 
         return default_project, project_choices
 
@@ -92,8 +94,8 @@ class VstsIssueSync(IssueSyncMixin):
 
         return default_item_type, item_tuples
 
-    def get_create_issue_config_no_args(self):
-        return self.get_create_issue_config(None, None)
+    def get_create_issue_config_no_group(self, project):
+        return self.get_create_issue_config(None, None, project=project)
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "vsts_integration"

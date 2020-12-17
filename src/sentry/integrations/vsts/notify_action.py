@@ -6,7 +6,7 @@ import six
 from django import forms
 
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import TicketEventAction
+from sentry.rules.actions.base import TicketEventAction, create_issue
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -83,10 +83,11 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
         else:
             vsts_integration = VstsIntegration(integration, self.project.organization.id)
             try:
-                fields = vsts_integration.get_create_issue_config_no_args()
+                fields = vsts_integration.get_create_issue_config_no_group(self.project)
             except IntegrationError as e:
                 # TODO log when the API call fails.
                 logger.info(e)
+                return self.error(six.text_type(e))
             else:
                 self.data["dynamic_form_fields"] = fields
                 return fields
@@ -108,28 +109,12 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
 
         installation = integration.get_installation(organization.id)
 
-        self.data["title"] = event.title
         self.data["description"] = self.build_description(event, installation)
-
-        def create_issue(event, futures):
-            """Create an Azure DevOps work item for a given event"""
-
-            if self.data.get("dynamic_form_fields"):
-                del self.data["dynamic_form_fields"]
-
-            if not self.has_linked_issue(event, integration):
-                resp = installation.create_issue(self.data)
-                self.create_link(resp["metadata"]["display_name"], integration, installation, event)
-            else:
-                logger.info(
-                    "vsts.rule_trigger.link_already_exists",
-                    extra={
-                        "rule_id": self.rule.id,
-                        "project_id": self.project.id,
-                        "group_id": event.group.id,
-                    },
-                )
-            return
-
         key = u"vsts:{}".format(integration.id)
-        yield self.future(create_issue, key=key)
+        yield self.future(
+            create_issue,
+            key=key,
+            data=self.data,
+            integration=integration,
+            issue_key_path="metadata.display_name",
+        )
