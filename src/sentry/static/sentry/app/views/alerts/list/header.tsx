@@ -100,10 +100,10 @@ const StyledLayoutTitle = styled(Layout.Title)`
 `;
 
 const TabLayoutHeader = styled(Layout.Header)`
-  padding-top: 0;
+  padding-top: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    padding-top: 0;
+    padding-top: ${space(1)};
   }
 `;
 
