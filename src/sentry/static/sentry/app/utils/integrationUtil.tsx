@@ -113,18 +113,21 @@ type IntegrationCategorySelectEvent = {
 
 type IntegrationStacktraceLinkEvent = {
   eventKey:
+    | 'integrations.stacktrace_open_modal'
     | 'integrations.stacktrace_start_setup'
-    | 'integrations.stacktrace_automatic_setup'
-    | 'integrations.stacktrace_manual_setup'
+    | 'integrations.stacktrace_submit_config'
+    | 'integrations.stacktrace_complete_setup'
     | 'integrations.stacktrace_link_clicked'
     | 'integrations.reconfigure_stacktrace_setup';
   eventName:
+    | 'Integrations: Stacktrace Open Modal'
     | 'Integrations: Stacktrace Start Setup'
-    | 'Integrations: Stacktrace Automatic Setup'
-    | 'Integrations: Stacktrace Manual Setup'
+    | 'Integrations: Stacktrace Submit Config'
+    | 'Integrations: Stacktrace Complete Setup'
     | 'Integrations: Stacktrace Link Clicked'
     | 'Integrations: Reconfigure Stacktrace Setup';
   provider?: string;
+  setup_type?: 'automatic' | 'manual';
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 
@@ -141,7 +144,8 @@ type IntegrationsEventParams = (
     | 'plugin_details'
     | 'integrations_directory'
     | 'integrations_directory_integration_detail'
-    | 'stacktrace_issue_details';
+    | 'stacktrace_issue_details'
+    | 'integration_configuration_detail';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 

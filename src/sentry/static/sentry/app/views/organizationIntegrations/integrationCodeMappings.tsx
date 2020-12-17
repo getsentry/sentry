@@ -24,7 +24,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -104,6 +104,16 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_complete_setup',
+        eventName: 'Integrations: Stacktrace Complete Setup',
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: this.props.integration.provider.key,
+      },
+      this.props.organization
+    );
     let {pathConfigs} = this.state;
     pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
