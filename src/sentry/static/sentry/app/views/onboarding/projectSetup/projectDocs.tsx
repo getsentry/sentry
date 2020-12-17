@@ -1,3 +1,5 @@
+import 'prism-sentry/index.css';
+
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
@@ -318,6 +320,10 @@ const DocsWrapper = styled(motion.div)`
   h6,
   p {
     margin-bottom: 18px;
+  }
+
+  div[data-language] {
+    margin-bottom: ${space(2)};
   }
 
   code {
