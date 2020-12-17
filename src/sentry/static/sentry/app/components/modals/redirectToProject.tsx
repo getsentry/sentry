@@ -87,15 +87,6 @@ const Text = styled('div')`
   *:last-child {
     margin-bottom: 0;
   }
-
-  ${/* sc-selector */ Panel} & {
-    padding-left: ${space(2)};
-    padding-right: ${space(2)};
-
-    &:first-child {
-      padding-top: ${space(2)};
-    }
-  }
 `;
 
 const ButtonWrapper = styled('div')`
