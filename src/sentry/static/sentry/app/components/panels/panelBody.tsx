@@ -38,9 +38,6 @@ PanelBody.defaultProps = {
 const FlexBox = styled(Flex)<Props>`
   ${p => !p.flexible && 'display: block'};
   ${p => p.withPadding && `padding: ${space(2)}`};
-  *:last-child {
-    margin-bottom: 0;
-  }
 `;
 
 export default PanelBody;
