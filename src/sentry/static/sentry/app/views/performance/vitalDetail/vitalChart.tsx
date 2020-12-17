@@ -119,13 +119,13 @@ class VitalChart extends React.Component<Props> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {
-            color: theme.textColor,
+            color: theme.red300,
             type: 'dashed',
-            width: 1,
+            width: 1.5,
           },
           label: {
             show: true,
-            position: 'insideEndBottom',
+            position: 'insideEndTop',
             formatter: t('Poor'),
           },
           data: [
@@ -142,13 +142,13 @@ class VitalChart extends React.Component<Props> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {
-            color: theme.textColor,
+            color: theme.yellow300,
             type: 'dashed',
-            width: 1,
+            width: 1.5,
           },
           label: {
             show: true,
-            position: 'insideEndBottom',
+            position: 'insideEndTop',
             formatter: t('Meh'),
           },
           data: [
@@ -162,9 +162,9 @@ class VitalChart extends React.Component<Props> {
 
     const chartOptions = {
       grid: {
-        left: '10px',
+        left: '5px',
         right: '10px',
-        top: '20px',
+        top: '35px',
         bottom: '0px',
       },
       seriesOptions: {
