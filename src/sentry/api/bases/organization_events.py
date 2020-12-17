@@ -264,7 +264,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
-            if top_events:
+            # When top_events mode is True, result can be a SnubaTSResult in the event that
+            # there were no top events found. In this case, result contains a zerofilled series
+            # that acts as a placeholder.
+            if top_events and isinstance(result, dict):
                 results = {}
                 for key, event_result in six.iteritems(result):
                     if len(query_columns) > 1:
