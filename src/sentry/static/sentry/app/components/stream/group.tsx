@@ -298,6 +298,7 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={isReprocessingQuery ? undefined : this.toggleSelect}
         reviewed={reviewed}
+        hasInbox={hasInbox}
       >
         {canSelect && (
           <GroupCheckBoxWrapper ml={2}>
@@ -484,10 +485,12 @@ class StreamGroup extends React.Component<Props, State> {
 export default withGlobalSelection(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{reviewed: boolean}>`
+const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
   position: relative;
-  padding: ${space(1.5)} 0;
+  padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
   line-height: 1.1;
+
+  ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
     p.reviewed &&
