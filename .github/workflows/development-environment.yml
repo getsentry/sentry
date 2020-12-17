@@ -12,8 +12,8 @@ jobs:
     timeout-minutes: 5
     strategy:
       matrix:
-        python-version: [3.6, 3.7]
-        os: [ ubuntu-20.04]
+        python-version: [ 3.6, 3.7 ]
+        os: [ ubuntu-20.04, macos-11.0 ]
 
     steps:
       - uses: actions/checkout@v2
@@ -35,6 +35,8 @@ jobs:
             ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
 
       - name: Set up Python environment (as per direnv)
+        env:
+          SENTRY_PYTHON_VERSION: yes  # This permits using non-default Python
         run: |
           python -m pip install virtualenv
           python -m virtualenv .venv
