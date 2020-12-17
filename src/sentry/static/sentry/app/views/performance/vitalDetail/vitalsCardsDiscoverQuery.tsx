@@ -52,6 +52,7 @@ function VitalsCardDiscoverQuery(props: Props) {
     <GenericDiscoverQuery<TableData, {}>
       getRequestPayload={getRequestPayload}
       route="eventsv2"
+      noPagination
       {...props}
     />
   );
