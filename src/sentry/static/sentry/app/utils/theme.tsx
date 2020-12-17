@@ -260,12 +260,12 @@ const generateButtonTheme = alias => ({
   borderRadius: '3px',
 
   default: {
-    color: '#2f2936',
-    colorActive: '#161319',
-    background: colors.white,
-    backgroundActive: colors.white,
-    border: '#d8d2de',
-    borderActive: '#c9c0d1',
+    color: alias.secondaryButton,
+    colorActive: alias.secondaryButton,
+    background: alias.background,
+    backgroundActive: alias.background,
+    border: alias.secondaryButton,
+    borderActive: alias.secondaryButton,
     focusShadow: color(colors.gray200).alpha(0.5).string(),
   },
   primary: {
