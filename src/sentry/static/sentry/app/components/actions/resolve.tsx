@@ -302,7 +302,6 @@ const actionLinkCss = p => css`
 `;
 
 const ResolvedActionWrapper = styled('div')`
-  margin-right: 5px;
   display: inline-flex;
 `;
 
