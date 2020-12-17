@@ -5,8 +5,7 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry import analytics
-
+from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -23,7 +22,7 @@ from sentry.utils.sdk import configure_scope, bind_organization_context
 from sentry.web.decorators import transaction_start
 
 
-class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
+class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 
     @transaction_start("ProjectReleaseDetailsEndpoint.get")
@@ -133,12 +132,8 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
                 hook = ReleaseHook(project)
                 # TODO(dcramer): handle errors with release payloads
                 hook.set_commits(release.version, commit_list)
-                analytics.record(
-                    "release.set_commits_local",
-                    user_id=request.user.id if request.user and request.user.id else None,
-                    organization_id=project.organization_id,
-                    project_ids=[project.id],
-                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                self.track_set_commits_local(
+                    request, organization_id=project.organization_id, project_ids=[project.id]
                 )
 
             if not was_released and release.date_released:

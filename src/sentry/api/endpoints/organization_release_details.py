@@ -4,8 +4,7 @@ import six
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry import analytics
-
+from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -30,7 +29,7 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
+class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     @transaction_start("OrganizationReleaseDetailsEndpoint.get")
     def get(self, request, organization, version):
         """
@@ -154,13 +153,12 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             if commit_list:
                 # TODO(dcramer): handle errors with release payloads
                 release.set_commits(commit_list)
-                analytics.record(
-                    "release.set_commits_local",
-                    user_id=request.user.id if request.user and request.user.id else None,
+                self.track_set_commits_local(
+                    request,
                     organization_id=organization.id,
                     project_ids=[project.id for project in projects],
-                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
                 )
+
             refs = result.get("refs")
             if not refs:
                 refs = [
