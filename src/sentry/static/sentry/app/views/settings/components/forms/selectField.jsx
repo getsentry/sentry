@@ -1,8 +1,8 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 const getChoices = props => {
   let choices = props.choices || [];
@@ -18,11 +18,13 @@ export default class SelectField extends React.Component {
   static propTypes = {
     ...InputField.propTypes,
     choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
+    options: PropTypes.arrayOf(PropTypes.object),
     allowClear: PropTypes.bool,
     allowEmpty: PropTypes.bool,
     multiple: PropTypes.bool,
     escapeMarkup: PropTypes.bool,
     small: PropTypes.bool,
+    inFieldLabel: PropTypes.string,
   };
 
   static defaultProps = {

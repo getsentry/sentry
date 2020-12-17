@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import sentry_sdk
 import six
 from django.utils.http import urlquote
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import APIException, ParseError
 
 
 from sentry import features
@@ -124,7 +124,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
-                message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                raise ParseError(
+                    detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                )
+            elif isinstance(error, (snuba.UnqualifiedQueryError)):
+                raise ParseError(detail=error.message)
             elif isinstance(
                 error,
                 (
@@ -133,13 +137,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryExecutionError,
                     snuba.QuerySizeExceeded,
                     snuba.SchemaValidationError,
-                    snuba.UnqualifiedQueryError,
+                    snuba.QueryMissingColumn,
                 ),
             ):
                 sentry_sdk.capture_exception(error)
                 message = "Internal error. Your query failed to run."
-
-            raise ParseError(detail=message)
+            raise APIException(detail=message)
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
@@ -245,11 +248,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
                 # users.
+                # We need these rollup columns to generate correct events-stats results
                 column_map = {
                     "user_count": "count_unique(user)",
                     "event_count": "count()",
                     "epm()": "epm(%d)" % rollup,
                     "eps()": "eps(%d)" % rollup,
+                    "tpm()": "tpm(%d)" % rollup,
+                    "tps()": "tps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):

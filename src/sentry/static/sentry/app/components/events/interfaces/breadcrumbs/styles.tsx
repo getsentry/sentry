@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import theme, {Color} from 'app/utils/theme';
 import space from 'app/styles/space';
+import theme, {Color} from 'app/utils/theme';
 
 const IconWrapper = styled('div', {
   shouldForwardProp: prop => prop !== 'color',
@@ -15,13 +15,13 @@ const IconWrapper = styled('div', {
   justify-content: center;
   width: 26px;
   height: 26px;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLightest};
   border-radius: 32px;
   z-index: ${p => p.theme.zIndex.breadcrumbs.iconWrapper};
   position: relative;
-  border: 1px solid ${p => p.theme.borderDark};
-  color: ${p => p.theme.gray800};
+  border: 1px solid ${p => p.theme.border};
+  color: ${p => p.theme.textColor};
   ${p =>
     p.color &&
     `
@@ -38,7 +38,7 @@ const GridCell = styled('div')<{
   position: relative;
   white-space: pre-wrap;
   word-break: break-all;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(1)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(1)} ${space(2)};
@@ -46,8 +46,7 @@ const GridCell = styled('div')<{
   ${p =>
     p.hasError &&
     `
-      background: #fffcfb;
-      border-bottom: 1px solid ${p.theme.red400};
+      border-bottom: 1px solid ${p.theme.red300};
       :after {
         content: '';
         position: absolute;
@@ -55,7 +54,7 @@ const GridCell = styled('div')<{
         left: 0;
         height: 1px;
         width: 100%;
-        background: ${p.theme.red400};
+        background: ${p.theme.red300};
       }
     `}
   ${p => p.isLastItem && `border-bottom: none`};
@@ -72,7 +71,7 @@ const GridCellLeft = styled(GridCell)`
     top: 0;
     bottom: 0;
     left: 21px;
-    background: ${p => (p.hasError ? p.theme.red400 : p.theme.gray300)};
+    background: ${p => (p.hasError ? p.theme.red300 : p.theme.innerBorder)};
     position: absolute;
     @media (min-width: ${p => p.theme.breakpoints[0]}) {
       left: 29px;
@@ -81,10 +80,10 @@ const GridCellLeft = styled(GridCell)`
 `;
 
 const aroundContentStyle = css`
-  border: 1px solid ${theme.borderDark};
+  border: 1px solid ${theme.border};
   border-radius: ${theme.borderRadius};
   box-shadow: ${theme.dropShadowLightest};
   z-index: 1;
 `;
 
-export {GridCell, GridCellLeft, IconWrapper, aroundContentStyle};
+export {aroundContentStyle, GridCell, GridCellLeft, IconWrapper};

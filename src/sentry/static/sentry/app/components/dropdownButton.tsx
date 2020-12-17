@@ -2,8 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import space from 'app/styles/space';
 import {IconChevron} from 'app/icons';
+import space from 'app/styles/space';
 
 type Props = React.ComponentProps<typeof Button> & {
   /**
@@ -64,19 +64,19 @@ const StyledButton = styled(Button)<
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
   border-bottom-color: ${p =>
-    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.borderDark};
+    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
 
   &:active,
   &:focus,
   &:hover {
     border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.borderDark};
+      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
   }
 `;
 
 const LabelText = styled('em')`
   font-style: normal;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-right: ${space(0.75)};
 `;
 

@@ -2,39 +2,46 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import {SentryTransactionEvent} from 'app/types';
 
-import {
-  rectOfContent,
-  toPercent,
-  getHumanDuration,
-  pickSpanBarColour,
-  boundsGenerator,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  getSpanID,
-  getSpanOperation,
-} from './utils';
-import {DragManagerChildrenProps} from './dragManager';
 import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
+import {DragManagerChildrenProps} from './dragManager';
+import MeasurementsPanel from './measurementsPanel';
+import {zIndex} from './styles';
 import {
   ParsedTraceType,
-  TickAlignment,
-  SpanChildrenLookupType,
   RawSpanType,
+  SpanChildrenLookupType,
+  TickAlignment,
 } from './types';
-import {zIndex} from './styles';
+import {
+  boundsGenerator,
+  getHumanDuration,
+  getSpanID,
+  getSpanOperation,
+  pickSpanBarColour,
+  rectOfContent,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  toPercent,
+} from './utils';
 
-export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
 const MINIMAP_HEIGHT = 120;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 20;
 const VIEW_HANDLE_HEIGHT = 18;
+const SECONDARY_HEADER_HEIGHT = 20;
+export const MINIMAP_CONTAINER_HEIGHT =
+  MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
+  event: SentryTransactionEvent;
 };
 
 class TraceViewHeader extends React.Component<PropType> {
@@ -266,6 +273,51 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   }
 
+  generateBounds() {
+    const {dragProps, trace} = this.props;
+
+    return boundsGenerator({
+      traceStartTimestamp: trace.traceStartTimestamp,
+      traceEndTimestamp: trace.traceEndTimestamp,
+      viewStart: dragProps.viewWindowStart,
+      viewEnd: dragProps.viewWindowEnd,
+    });
+  }
+
+  renderSecondaryHeader() {
+    const {event} = this.props;
+
+    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
+
+    return (
+      <DividerHandlerManager.Consumer>
+        {dividerHandlerChildrenProps => {
+          const {dividerPosition} = dividerHandlerChildrenProps;
+
+          return (
+            <SecondaryHeader>
+              <ScrollBarContainer
+                ref={this.props.virtualScrollBarContainerRef}
+                style={{
+                  // the width of this component is shrunk to compensate for half of the width of the divider line
+                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                }}
+              />
+              <DividerSpacer />
+              {hasMeasurements ? (
+                <MeasurementsPanel
+                  event={event}
+                  generateBounds={this.generateBounds()}
+                  dividerPosition={dividerPosition}
+                />
+              ) : null}
+            </SecondaryHeader>
+          );
+        }}
+      </DividerHandlerManager.Consumer>
+    );
+  }
+
   render() {
     return (
       <HeaderContainer>
@@ -322,6 +374,7 @@ class TraceViewHeader extends React.Component<PropType> {
             </div>
           )}
         </CursorGuideHandler.Consumer>
+        {this.renderSecondaryHeader()}
       </HeaderContainer>
     );
   }
@@ -484,11 +537,11 @@ const TimeAxis = styled('div')`
   width: 100%;
   position: absolute;
   left: 0;
-  bottom: 0;
-  border-top: 1px solid ${p => p.theme.borderDark};
+  top: ${MINIMAP_HEIGHT}px;
+  border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
-  background-color: ${p => p.theme.white};
-  color: ${p => p.theme.gray500};
+  background-color: ${p => p.theme.background};
+  color: ${p => p.theme.gray300};
   font-size: 10px;
   font-weight: 500;
 `;
@@ -530,7 +583,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
 const TickMarker = styled('div')`
   width: 1px;
   height: 4px;
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   top: 0;
   left: 0;
@@ -555,7 +608,7 @@ const TickLabel = (props: {
 
 const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   padding: 4px;
   height: 100%;
   border-radius: 3px;
@@ -578,9 +631,9 @@ const HeaderContainer = styled('div')`
   left: 0;
   top: 0;
   z-index: ${zIndex.minimapContainer};
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+  background-color: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
+  height: ${MINIMAP_CONTAINER_HEIGHT}px;
 `;
 
 const MinimapBackground = styled('div')`
@@ -606,14 +659,20 @@ const ViewHandleContainer = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
 `;
 
+const ViewHandleLine = styled('div')`
+  height: ${MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}px;
+  width: 2px;
+  background-color: ${p => p.theme.textColor};
+`;
+
 const ViewHandle = styled('div')<{isDragging: boolean}>`
   position: absolute;
-  background-color: ${p => p.theme.gray800};
+  background-color: ${p => p.theme.textColor};
   cursor: col-resize;
   width: 8px;
   height: ${VIEW_HANDLE_HEIGHT}px;
   bottom: 0;
-  left: -4px;
+  left: -3px;
 `;
 
 const Fog = styled('div')`
@@ -640,7 +699,7 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red400};
+  background-color: ${p => p.theme.red300};
   transform: translateX(-50%);
 `;
 
@@ -658,22 +717,7 @@ const Handle = ({
       left: toPercent(left),
     }}
   >
-    <svg
-      width={1}
-      height={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-      fill="none"
-      style={{width: '1px', overflow: 'visible'}}
-    >
-      <line
-        x1="0"
-        x2="0"
-        y1="0"
-        y2={MINIMAP_HEIGHT - VIEW_HANDLE_HEIGHT}
-        strokeWidth="1"
-        strokeDasharray="5 3"
-        style={{stroke: '#302839'}}
-      />
-    </svg>
+    <ViewHandleLine />
     <ViewHandle
       data-ignore="true"
       onMouseDown={onMouseDown}
@@ -690,6 +734,35 @@ const WindowSelection = styled('div')`
   top: 0;
   height: ${MINIMAP_HEIGHT}px;
   background-color: rgba(69, 38, 80, 0.1);
+`;
+
+const SecondaryHeader = styled('div')`
+  position: absolute;
+  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  left: 0;
+  height: ${TIME_AXIS_HEIGHT}px;
+  width: 100%;
+  background-color: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  border-top: 1px solid ${p => p.theme.border};
+`;
+
+const DividerSpacer = styled('div')`
+  width: 1px;
+  background-color: ${p => p.theme.gray200};
+`;
+
+const ScrollBarContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: ${SECONDARY_HEADER_HEIGHT}px;
+  left: 0;
+  bottom: 0;
+  & > div[data-type='virtual-scrollbar'].dragging > div {
+    background-color: ${p => p.theme.gray500};
+    cursor: grabbing;
+  }
 `;
 
 export default TraceViewHeader;

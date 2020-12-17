@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 import six
 from operator import attrgetter
+import re
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -24,10 +25,12 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
+from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.decorators import classproperty
 
 from .client import JiraApiClient, JiraCloud
+from .utils import build_user_choice
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -102,6 +105,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+    issues_ignored_fields_key = "issues_ignored_fields"
 
     @classproperty
     def use_email_scope(cls):
@@ -163,6 +167,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "When a ticket is assigned in Jira, assign its linked Sentry issue to the same user."
                 ),
             },
+            {
+                "name": self.issues_ignored_fields_key,
+                "label": "Ignored Fields",
+                "type": "textarea",
+                "placeholder": _('e.g. "components, security, customfield_10006"'),
+                "help": _(
+                    "Comma-separated list of Jira fields that you don't want to show in issue creation form"
+                ),
+            },
         ]
 
         client = self.get_client()
@@ -220,6 +233,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     unresolved_status=statuses["on_unresolve"],
                 )
 
+        if self.issues_ignored_fields_key in data:
+            ignored_fields_text = data.pop(self.issues_ignored_fields_key)
+            # While we describe the config as a "comma-separated list", users are likely to
+            # accidentally use newlines, so we explicitly handle that case. On page
+            # refresh, they will see how it got interpreted as `get_config_data` will
+            # re-serialize the config as a comma-separated list.
+            ignored_fields_list = filter(
+                None, [field.strip() for field in re.split(r"[,\n\r]+", ignored_fields_text)]
+            )
+            data[self.issues_ignored_fields_key] = ignored_fields_list
+
         config.update(data)
         self.org_integration.update(config=config)
 
@@ -235,6 +259,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "on_resolve": pm.resolved_status,
             }
         config["sync_status_forward"] = sync_status_forward
+        config[self.issues_ignored_fields_key] = ", ".join(
+            config.get(self.issues_ignored_fields_key, "")
+        )
         return config
 
     def sync_metadata(self):
@@ -272,6 +299,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_persisted_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
+
+    def get_persisted_user_default_config_fields(self):
+        return ["reporter"]
+
+    def get_persisted_ignored_fields(self):
+        return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_group_description(self, group, event, **kwargs):
         output = [
@@ -373,7 +406,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         """
         return reverse("sentry-extensions-jira-search", args=[org_slug, self.model.id])
 
-    def build_dynamic_field(self, group, field_meta):
+    def build_dynamic_field(self, field_meta, group=None):
         """
         Builds a field based on Jira's meta field information
         """
@@ -393,7 +426,12 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            fkwargs["url"] = self.search_url(group.organization.slug)
+            organization = (
+                group.organization
+                if group
+                else Organization.objects.get_from_cache(id=self.organization_id)
+            )
+            fkwargs["url"] = self.search_url(organization.slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
             # TODO: Implement timetracking (currently unsupported altogether)
@@ -503,12 +541,18 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, **kwargs):
-        kwargs["link_referrer"] = "jira_integration"
-        fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
-        params = kwargs.get("params", {})
+    def get_create_issue_config_no_params(self):
+        return self.get_create_issue_config(None, None, params={})
 
-        defaults = self.get_project_defaults(group.project_id)
+    def get_create_issue_config(self, group, user, **kwargs):
+        kwargs["link_referrer"] = "jira_integration"
+        params = kwargs.get("params", {})
+        fields = []
+        defaults = {}
+        if group:
+            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            defaults = self.get_defaults(group.project, user)
+
         project_id = params.get("project", defaults.get("project"))
         client = self.get_client()
         try:
@@ -565,35 +609,41 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "type": "select",
                     "choices": issue_type_choices,
                     "updatesForm": True,
+                    "required": bool(issue_type_choices),  # required if we have any type choices
                 }
             ]
         )
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]
-
-        # TODO(jess): are we going to allow ignored fields?
-        # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
         ignored_fields = set(
             k
             for k, v in six.iteritems(issue_type_meta["fields"])
             if v["name"] in HIDDEN_ISSUE_FIELDS["names"]
         )
         ignored_fields.update(HIDDEN_ISSUE_FIELDS["keys"])
+        ignored_fields.update(self.get_persisted_ignored_fields())
 
         # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
-        anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
+        anti_gravity = {
+            "priority": (-150, ""),
+            "fixVersions": (-125, ""),
+            "components": (-100, ""),
+            "security": (-50, ""),
+        }
 
         dynamic_fields = list(issue_type_meta["fields"].keys())
-        dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
+        # Sort based on priority, then field name
+        dynamic_fields.sort(key=lambda f: anti_gravity.get(f, (0, f)))
 
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
                 # don't overwrite the fixed fields for the form.
                 continue
-            mb_field = self.build_dynamic_field(group, issue_type_meta["fields"][field])
+
+            mb_field = self.build_dynamic_field(issue_type_meta["fields"][field], group)
             if mb_field:
                 mb_field["name"] = field
                 fields.append(mb_field)
@@ -608,10 +658,43 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 field["choices"] = self.make_choices(client.get_versions(meta["key"]))
             elif field["name"] == "labels":
                 field["default"] = defaults.get("labels", "")
+            elif field["name"] == "reporter":
+                reporter_id = defaults.get("reporter", "")
+                if not reporter_id:
+                    continue
+                try:
+                    reporter_info = client.get_user(reporter_id)
+                except ApiError as e:
+                    logger.info(
+                        "jira.get-create-issue-config.no-matching-reporter",
+                        extra={
+                            "integration_id": self.model.id,
+                            "organization_id": self.organization_id,
+                            "persisted_reporter_id": reporter_id,
+                            "error": six.text_type(e),
+                        },
+                    )
+                    continue
+                reporter_tuple = build_user_choice(reporter_info, client.user_id_field())
+                if not reporter_tuple:
+                    continue
+                reporter_id, reporter_label = reporter_tuple
+                field["default"] = reporter_id
+                field["choices"] = [(reporter_id, reporter_label)]
 
         return fields
 
     def create_issue(self, data, **kwargs):
+        """
+        Get the (cached) "createmeta" from Jira to use as a "schema". Clean up
+        the Jira issue by removing all fields that aren't enumerated by this
+        schema. Send this cleaned data to Jira. Finally, make another API call
+        to Jira to make sure the issue was created and return basic issue details.
+
+        :param data: JiraCreateTicketAction object
+        :param kwargs: not used
+        :return: simple object with basic Jira issue details
+        """
         client = self.get_client()
         cleaned_data = {}
         # protect against mis-configured integration submitting a form without an
@@ -698,7 +781,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            self.raise_error(e)
+            return self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:

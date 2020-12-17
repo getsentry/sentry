@@ -1,22 +1,22 @@
-import ReactSelect, {components} from 'react-select';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
+import ReactSelect, {components} from 'react-select';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import Reflux from 'reflux';
 
-import {Organization, Project} from 'app/types';
-import {t, tct} from 'app/locale';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import OrganizationStore from 'app/stores/organizationStore';
-import OrganizationsStore from 'app/stores/organizationsStore';
-import Projects from 'app/utils/projects';
-import SelectControl from 'app/components/forms/selectControl';
-import replaceRouterParams from 'app/utils/replaceRouterParams';
-import space from 'app/styles/space';
-import Link from 'app/components/links/link';
-import IdBadge from 'app/components/idBadge';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import SelectControl from 'app/components/forms/selectControl';
+import IdBadge from 'app/components/idBadge';
+import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t, tct} from 'app/locale';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import OrganizationStore from 'app/stores/organizationStore';
+import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import Projects from 'app/utils/projects';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 type Props = ModalRenderProps & {
   /**
@@ -261,7 +261,6 @@ class ContextPickerModal extends React.Component<Props> {
         }}
         placeholder={t('Select a Project')}
         name="project"
-        openMenuOnFocus
         options={projects.map(({slug}) => ({label: slug, value: slug}))}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
@@ -310,7 +309,6 @@ class ContextPickerModal extends React.Component<Props> {
               placeholder={t('Select an Organization')}
               name="organization"
               options={orgChoices}
-              openMenuOnFocus
               value={organization}
               onChange={this.handleSelectOrganization}
             />

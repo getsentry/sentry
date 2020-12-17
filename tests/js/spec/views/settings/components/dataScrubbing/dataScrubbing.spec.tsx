@@ -2,10 +2,10 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import DataScrubbing from 'app/views/settings/components/dataScrubbing';
-import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
+import DataScrubbing from 'app/views/settings/components/dataScrubbing';
+import {ProjectId} from 'app/views/settings/components/dataScrubbing/types';
 
 jest.mock('app/actionCreators/modal');
 
@@ -106,7 +106,7 @@ describe('Data Scrubbing', () => {
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
 
       // PanelAction
-      const actionButtons = wrapper.find('PanelAction').find('Button');
+      const actionButtons = wrapper.find('PanelAction').find('BaseButton');
       expect(actionButtons).toHaveLength(2);
       expect(actionButtons.at(0).prop('disabled')).toEqual(false);
       expect(actionButtons.at(1).prop('disabled')).toEqual(true);
@@ -168,7 +168,7 @@ describe('Data Scrubbing', () => {
       expect(panelBody.find('List').prop('isDisabled')).toEqual(true);
 
       // PanelAction
-      const actionButtons = wrapper.find('PanelAction').find('Button');
+      const actionButtons = wrapper.find('PanelAction').find('BaseButton');
       expect(actionButtons).toHaveLength(2);
       expect(actionButtons.at(0).prop('disabled')).toEqual(false);
       expect(actionButtons.at(1).prop('disabled')).toEqual(true);

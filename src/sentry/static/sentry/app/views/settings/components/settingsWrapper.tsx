@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import PropTypes from 'prop-types';
 
-import ScrollToTop from 'app/views/settings/components/scrollToTop';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withLatestContext from 'app/utils/withLatestContext';
+import ScrollToTop from 'app/views/settings/components/scrollToTop';
 
 type Props = {
   location: Location;
@@ -75,7 +75,7 @@ const StyledSettingsWrapper = styled('div')`
   display: flex;
   flex: 1;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   margin-bottom: -${space(3)}; /* to account for footer margin top */
   line-height: 1;
 

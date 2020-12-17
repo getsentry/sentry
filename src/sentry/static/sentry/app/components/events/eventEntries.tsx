@@ -1,44 +1,52 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import PropTypes from 'prop-types';
 
-import {analytics} from 'app/utils/analytics';
-import {logException} from 'app/utils/logging';
-import {objectIsEmpty} from 'app/utils';
-import {t} from 'app/locale';
-import CspInterface from 'app/components/events/interfaces/csp';
-import DebugMetaInterface from 'app/components/events/interfaces/debugMeta';
+import EventContexts from 'app/components/events/contexts';
+import EventContextSummary from 'app/components/events/contextSummary/contextSummary';
+import EventDevice from 'app/components/events/device';
+import EventErrors from 'app/components/events/errors';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
 import EventCauseEmpty from 'app/components/events/eventCauseEmpty';
-import EventContextSummary from 'app/components/events/contextSummary/contextSummary';
-import EventContexts from 'app/components/events/contexts';
 import EventDataSection from 'app/components/events/eventDataSection';
-import EventDevice from 'app/components/events/device';
-import EventErrors from 'app/components/events/errors';
 import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
-import EventGroupingInfo from 'app/components/events/groupingInfo';
-import EventPackageData from 'app/components/events/packageData';
 import EventSdk from 'app/components/events/eventSdk';
-import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import EventTags from 'app/components/events/eventTags/eventTags';
-import EventUserFeedback from 'app/components/events/userFeedback';
+import EventGroupingInfo from 'app/components/events/groupingInfo';
+import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
+import CspInterface from 'app/components/events/interfaces/csp';
+import DebugMetaInterface from 'app/components/events/interfaces/debugMeta';
 import ExceptionInterface from 'app/components/events/interfaces/exception';
 import GenericInterface from 'app/components/events/interfaces/generic';
 import MessageInterface from 'app/components/events/interfaces/message';
 import RequestInterface from 'app/components/events/interfaces/request';
-import RRWebIntegration from 'app/components/events/rrwebIntegration';
-import SentryTypes from 'app/sentryTypes';
-import BreadcrumbsInterface from 'app/components/events/interfaces/breadcrumbs';
 import SpansInterface from 'app/components/events/interfaces/spans';
 import StacktraceInterface from 'app/components/events/interfaces/stacktrace';
 import TemplateInterface from 'app/components/events/interfaces/template';
-import ThreadsInterface from 'app/components/events/interfaces/threads/threads';
+import ThreadsInterface from 'app/components/events/interfaces/threads';
+import EventPackageData from 'app/components/events/packageData';
+import RRWebIntegration from 'app/components/events/rrwebIntegration';
+import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import {DataSection} from 'app/components/events/styles';
+import EventUserFeedback from 'app/components/events/userFeedback';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {
+  Entry,
+  Event,
+  Group,
+  Organization,
+  Project,
+  SharedViewOrganization,
+} from 'app/types';
+import {isNotSharedOrganization} from 'app/types/utils';
+import {objectIsEmpty} from 'app/utils';
+import {analytics} from 'app/utils/analytics';
+import {logException} from 'app/utils/logging';
 import withOrganization from 'app/utils/withOrganization';
-import {Event, AvatarProject, Group} from 'app/types';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -62,19 +70,13 @@ const defaultProps = {
   showTagSummary: true,
 };
 
-// Custom shape because shared view doesn't get id.
-type SharedViewOrganization = {
-  slug: string;
-  id?: string;
-  features?: Array<string>;
-};
-
 type Props = {
-  // This is definitely required because this component would crash if
-  // organization were undefined.
-  organization: SharedViewOrganization;
+  /**
+   * The organization can be the shared view on a public issue view.
+   */
+  organization: Organization | SharedViewOrganization;
   event: Event;
-  project: AvatarProject;
+  project: Project;
   location: Location;
 
   group?: Group;
@@ -148,7 +150,7 @@ class EventEntries extends React.Component<Props> {
       return null;
     }
 
-    return entries.map((entry, entryIdx) => {
+    return (entries as Array<Entry>).map((entry, entryIdx) => {
       try {
         const Component = INTERFACES[entry.type];
         if (!Component) {
@@ -212,10 +214,15 @@ class EventEntries extends React.Component<Props> {
       <div className={className} data-test-id="event-entries">
         {hasErrors && (
           <ErrorContainer>
-            <EventErrors event={event} />
+            <EventErrors
+              event={event}
+              orgSlug={organization.slug}
+              projectSlug={project.slug}
+            />
           </ErrorContainer>
         )}
         {!isShare &&
+          isNotSharedOrganization(organization) &&
           (showExampleCommit ? (
             <EventCauseEmpty organization={organization} project={project} />
           ) : (
@@ -312,7 +319,7 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   box-shadow: none;
   padding: 20px 30px 0 40px;
   border: 0;
-  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.borderLight};` : '')}
+  ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
 `;
 

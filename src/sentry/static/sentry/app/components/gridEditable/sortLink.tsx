@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
-import {IconArrow} from 'app/icons';
 import Link from 'app/components/links/link';
+import {IconArrow} from 'app/icons';
 
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
 
 type Props = {
   align: Alignments;
-  title: string;
+  title: React.ReactNode;
   direction: Directions;
   canSort: boolean;
 

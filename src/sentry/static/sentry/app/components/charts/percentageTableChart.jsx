@@ -1,15 +1,15 @@
-import {Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import Count from 'app/components/count';
-import {IconChevron} from 'app/icons';
 import TableChart from 'app/components/charts/tableChart';
+import Count from 'app/components/count';
+import {PanelItem} from 'app/components/panels';
+import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
@@ -41,10 +41,10 @@ const StyledDelta = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p =>
     p.direction > 0
-      ? p.theme.green400
+      ? p.theme.green300
       : p.direction < 0
-      ? p.theme.red400
-      : p.theme.gray500};
+      ? p.theme.red300
+      : p.theme.gray300};
 `;
 
 class PercentageTableChart extends React.Component {
@@ -216,7 +216,7 @@ const PercentageLabel = styled('div')`
 const BarWrapper = styled('div')`
   flex: 1;
   margin-right: ${space(1)};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const Percentage = styled('div')`
@@ -228,7 +228,7 @@ const Percentage = styled('div')`
 const Bar = styled('div', {shouldForwardProp: isPropValid})`
   flex: 1;
   width: ${p => p.width}%;
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.border};
   height: 12px;
   border-radius: 2px;
 `;
@@ -244,7 +244,7 @@ const CountColumn = styled(Name)`
 `;
 
 const TableHeader = styled(PanelItem)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding: ${space(1)};
 `;
 

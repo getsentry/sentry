@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import SelectControl from 'app/components/forms/selectControl';
+import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
 
 type Props = SelectControl['props'] & {
@@ -49,7 +49,7 @@ const RoleSelectControl = styled(SelectControl)`
   }
 
   .Select-option:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.borderLight};
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 

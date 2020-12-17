@@ -5,14 +5,14 @@ import {Panel} from 'app/components/panels';
 import {Organization} from 'app/types';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {WebVital, getAggregateAlias} from 'app/utils/discover/fields';
-import {decodeScalar} from 'app/utils/queryString';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {GenericChildrenProps} from 'app/utils/discover/genericDiscoverQuery';
+import {decodeScalar} from 'app/utils/queryString';
 
-import {NUM_BUCKETS, PERCENTILE, WEB_VITAL_DETAILS, VITAL_GROUPS} from './constants';
+import {NUM_BUCKETS, PERCENTILE, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
+import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 import {HistogramData, VitalGroup} from './types';
 import VitalCard from './vitalCard';
-import MeasurementsHistogramQuery from './measurementsHistogramQuery';
 
 type Props = {
   organization: Organization;
@@ -37,28 +37,34 @@ class VitalsPanel extends React.Component<Props> {
     const {location, organization, eventView, dataFilter} = this.props;
     const vitalDetails = WEB_VITAL_DETAILS[vital];
 
-    if (min !== undefined || max !== undefined) {
-      return (
-        <MeasurementsHistogramQuery
-          location={location}
-          orgSlug={organization.slug}
-          eventView={eventView}
-          numBuckets={NUM_BUCKETS}
-          measurements={[vitalDetails.slug]}
-          min={min}
-          max={max}
-          precision={precision}
-          dataFilter={dataFilter}
-        >
-          {results => (
+    const zoomed = min !== undefined || max !== undefined;
+
+    return (
+      <MeasurementsHistogramQuery
+        location={location}
+        orgSlug={organization.slug}
+        eventView={eventView}
+        numBuckets={NUM_BUCKETS}
+        measurements={zoomed ? [vitalDetails.slug] : []}
+        min={min}
+        max={max}
+        precision={precision}
+        dataFilter={dataFilter}
+      >
+        {results => {
+          const loading = zoomed ? results.isLoading : isLoading;
+          const errored = zoomed ? results.error !== null : error;
+          const chartData = zoomed ? results.histograms?.[vital] ?? histogram : histogram;
+          return (
             <VitalCard
               location={location}
-              isLoading={isLoading || results.isLoading}
-              error={error || results.error !== null}
-              vital={vitalDetails}
+              isLoading={loading}
+              error={errored}
+              vital={vital}
+              vitalDetails={vitalDetails}
               summary={summary}
               failureRate={failureRate}
-              chartData={results.histograms?.[vital] ?? []}
+              chartData={chartData}
               colors={color}
               eventView={eventView}
               organization={organization}
@@ -66,26 +72,10 @@ class VitalsPanel extends React.Component<Props> {
               max={max}
               precision={precision}
             />
-          )}
-        </MeasurementsHistogramQuery>
-      );
-    } else {
-      return (
-        <VitalCard
-          location={location}
-          isLoading={isLoading}
-          error={error}
-          vital={vitalDetails}
-          summary={summary}
-          failureRate={failureRate}
-          chartData={histogram}
-          colors={color}
-          eventView={eventView}
-          organization={organization}
-          precision={precision}
-        />
-      );
-    }
+          );
+        }}
+      </MeasurementsHistogramQuery>
+    );
   }
 
   renderVitalGroup(group: VitalGroup, summaryResults: GenericChildrenProps<TableData>) {
@@ -109,17 +99,13 @@ class VitalsPanel extends React.Component<Props> {
       {}
     );
 
-    const allZoomed = vitals.every(
-      vital => bounds[vital]?.start !== undefined || bounds[vital]?.end !== undefined
-    );
-
     return (
       <MeasurementsHistogramQuery
         location={location}
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={allZoomed ? [] : vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
         min={min}
         max={max}
         precision={precision}
@@ -184,6 +170,7 @@ class VitalsPanel extends React.Component<Props> {
           orgSlug={organization.slug}
           eventView={eventView}
           limit={1}
+          noPagination
         >
           {results => (
             <React.Fragment>

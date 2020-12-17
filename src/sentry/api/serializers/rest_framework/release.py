@@ -5,7 +5,7 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.api.fields.user import UserField
 from sentry.constants import COMMIT_RANGE_DELIMITER, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
-from sentry.models import Release
+from sentry.models import Release, ReleaseStatus
 
 
 class ReleaseHeadCommitSerializerDeprecated(serializers.Serializer):
@@ -58,6 +58,14 @@ class ReleaseSerializer(serializers.Serializer):
     url = serializers.URLField(required=False, allow_null=True, allow_blank=True)
     dateReleased = serializers.DateTimeField(required=False, allow_null=True)
     commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
+
+    status = serializers.CharField(required=False, allow_null=False)
+
+    def validate_status(self, value):
+        try:
+            return ReleaseStatus.from_string(value)
+        except ValueError:
+            raise serializers.ValidationError("Invalid status %s" % value)
 
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):

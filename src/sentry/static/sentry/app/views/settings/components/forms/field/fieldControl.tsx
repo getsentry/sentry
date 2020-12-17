@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
+import FieldControlState from 'app/views/settings/components/forms/field/fieldControlState';
 
 const defaultProps = {
   flexibleControlStateSize: false,
@@ -79,7 +79,6 @@ const FieldControlErrorWrapper = styled('div')<{inline?: boolean}>`
 `;
 
 const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
-  color: ${p => p.theme.gray600};
   display: flex;
   flex: 1;
   flex-direction: column;

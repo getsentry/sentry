@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconSize} from 'app/utils/theme';
 import Tooltip from 'app/components/tooltip';
 import {IconQuestion} from 'app/icons';
+import {IconSize} from 'app/utils/theme';
 
 type ContainerProps = {
   className?: string;
@@ -17,10 +17,10 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
 
   & svg {
     transition: 120ms color;
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
 
     &:hover {
-      color: ${p => p.theme.gray500};
+      color: ${p => p.theme.gray300};
     }
   }
 `;

@@ -1,3 +1,5 @@
+import 'echarts/lib/component/toolbox';
+
 import {EChartOption} from 'echarts';
 
 function getFeatures({dataZoom, ...features}) {

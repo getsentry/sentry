@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
 
@@ -390,7 +390,7 @@ export const TableChartRowBar = styled(({width: _width, ...props}) => <div {...p
   bottom: 0;
   left: 0;
   right: ${p => 100 - p.width}%;
-  background-color: ${p => p.theme.gray300};
+  background-color: ${p => p.theme.backgroundSecondary};
   z-index: 1;
 `;
 

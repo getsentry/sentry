@@ -2,25 +2,26 @@ import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
-import Field from 'app/views/settings/components/forms/field';
 import Button from 'app/components/button';
 import {IconChevron} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
+import Field from 'app/views/settings/components/forms/field';
+
+import {
+  EventId,
+  KeysOfUnion,
+  MethodType,
+  Rule,
+  RuleType,
+  SourceSuggestion,
+} from '../../types';
+import {getMethodLabel, getRuleLabel} from '../../utils';
 
 import EventIdField from './eventIdField';
 import SelectField from './selectField';
 import SourceField from './sourceField';
-import {getRuleLabel, getMethodLabel} from '../../utils';
-import {
-  MethodType,
-  RuleType,
-  Rule,
-  SourceSuggestion,
-  KeysOfUnion,
-  EventId,
-} from '../../types';
 
 type Values = Omit<Record<KeysOfUnion<Rule>, string>, 'id'>;
 
@@ -204,7 +205,7 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
     p.isExpanded &&
     `
     border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.borderDark};
+    border: 1px solid ${p.theme.border};
     box-shadow: ${p.theme.dropShadowLight};
     margin: ${space(2)} 0 ${space(3)} 0;
     padding: ${space(2)};
@@ -223,10 +224,10 @@ const ToggleWrapper = styled('div')`
 
 const Toggle = styled(Button)`
   font-weight: 700;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   &:hover,
   &:focus {
-    color: ${p => p.theme.gray700};
+    color: ${p => p.theme.textColor};
   }
   > *:first-child {
     display: grid;

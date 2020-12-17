@@ -163,6 +163,7 @@ class TokenAuthentication(StandardAuthentication):
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)
             scope.set_tag("api_token", token.id)
+            scope.set_tag("api_token_is_sentry_app", getattr(token.user, "is_sentry_app", False))
 
         return (token.user, token)
 
@@ -174,10 +175,10 @@ class DSNAuthentication(StandardAuthentication):
         try:
             key = ProjectKey.from_dsn(token)
         except ProjectKey.DoesNotExist:
-            raise AuthenticationFailed("Invalid token")
+            raise AuthenticationFailed("Invalid dsn")
 
         if not key.is_active:
-            raise AuthenticationFailed("Invalid token")
+            raise AuthenticationFailed("Invalid dsn")
 
         with configure_scope() as scope:
             scope.set_tag("api_token_type", self.token_name)

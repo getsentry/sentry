@@ -1,9 +1,9 @@
 import React from 'react';
 import {createFilter} from 'react-select';
 
-import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Alert from 'app/components/alert';
 import {AvatarProject, Project} from 'app/types';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
 export const FieldType = [
   'array',
@@ -89,6 +89,7 @@ type BaseField = {
   selectionInfoFunction?: (props: any) => React.ReactNode;
 
   stacked?: boolean;
+  hideLabel?: boolean;
   flexibleControlStateSize?: boolean;
 };
 
@@ -110,6 +111,7 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   noOptionsMessage?: () => string;
+  deprecatedSelectControl?: boolean;
 };
 
 type TextareaType = {type: 'textarea'} & {
@@ -149,10 +151,10 @@ export type ProjectMapperType = {
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
     text: string; //url comes from the `next` parameter in the QS
+    description?: string;
     allowedDomain: string;
   };
   iconType: string;
-  manageUrl?: string;
 };
 
 //selects a sentry project with avatars

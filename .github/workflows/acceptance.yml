@@ -11,12 +11,7 @@ on:
     branches:
       - master
       - releases/**
-  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
-  # Visual Snapshots to run on forks.  It allows forks to access secrets safely by
-  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
-  #
-  # See https://github.com/getsentry/sentry/pull/21600 for more details
-  pull_request_target:
+  pull_request:
 
 jobs:
   frontend:
@@ -28,17 +23,7 @@ jobs:
       VISUAL_HTML_ENABLE: 1
     steps:
       - uses: actions/checkout@v2
-        name: Checkout sentry (pull_request_target)
-        if: github.event.pull_request.head.ref != ''
-        with:
-          # Note this is required because of `pull_request_target`, which allows
-          # forks to access secrets safely by only running workflows from the main branch.
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-
-      - uses: actions/checkout@v2
-        name: Checkout sentry (push)
-        if: github.event.pull_request.head.ref == ''
+        name: Checkout sentry
 
       - uses: volta-cli/action@v1
 
@@ -82,6 +67,9 @@ jobs:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   acceptance:
     # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
     name: python2.7 acceptance
@@ -93,20 +81,11 @@ jobs:
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@v2
-        name: Checkout sentry (pull_request_target)
-        if: github.event.pull_request.head.ref != ''
-        with:
-          # Note this is required because of `pull_request_target`, which allows
-          # forks to access secrets safely by only running workflows from the main branch.
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-
-      - uses: actions/checkout@v2
-        name: Checkout sentry (push)
-        if: github.event.pull_request.head.ref == ''
+        name: Checkout sentry
 
       - uses: volta-cli/action@v1
 
@@ -147,6 +126,10 @@ jobs:
           yarn install --frozen-lockfile
 
       - name: webpack
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          # this is fine to not have for forks, it shouldn't fail
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn webpack --display errors-only
 
@@ -167,21 +150,3 @@ jobs:
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
-
-  visual-diff:
-    # Note: `github.ref` is always `master` for `pull_request_target` event
-    # `github.head/base_ref` == '' for `push` event, we want to skip it on pushes
-    if: github.head_ref != ''
-    needs: [acceptance, frontend]
-    runs-on: ubuntu-16.04
-    timeout-minutes: 20
-
-    steps:
-      - name: Diff snapshots
-        id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
-        with:
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

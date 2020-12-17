@@ -7,8 +7,6 @@ import logging
 from django.utils import timezone
 from rest_framework.response import Response
 
-import sentry_sdk
-
 from sentry import tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
@@ -19,9 +17,7 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity,
     Group,
-    GroupRelease,
     GroupSeen,
-    GroupStatus,
     Release,
     User,
     UserReport,
@@ -35,16 +31,6 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
 
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-STATUS_CHOICES = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-}
 
 
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):

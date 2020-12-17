@@ -17,7 +17,7 @@ def pytest_configure(config):
 
     # Do not build in CI because tests are run w/ `make test-acceptance` which builds assets
     # Can also skip with the env var `SKIP_ACCEPTANCE_UI_BUILD`
-    # `CI` is a default env var on Travis CI (see: https://docs.travis-ci.com/user/environment-variables/#default-environment-variables)
+    # `CI` is a default env var in GHA (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
     if os.environ.get("CI") or os.environ.get("SKIP_ACCEPTANCE_UI_BUILD"):
         return
 
@@ -59,12 +59,8 @@ def pytest_configure(config):
 
     try:
         status = subprocess.call(
-            ["yarn", "--silent", "webpack"],
-            env={
-                "NODE_ENV": "development",
-                "PATH": os.environ["PATH"],
-                "NODE_OPTIONS": "--max-old-space-size=4096",
-            },
+            ["yarn", "build-acceptance"],
+            env={"PATH": os.environ["PATH"], "NODE_OPTIONS": "--max-old-space-size=4096"},
         )
 
         if status != 0:

@@ -133,6 +133,33 @@ class GroupStatus(object):
     MUTED = IGNORED
 
 
+# Statuses that can be queried/searched for
+STATUS_QUERY_CHOICES = {
+    "resolved": GroupStatus.RESOLVED,
+    "unresolved": GroupStatus.UNRESOLVED,
+    "ignored": GroupStatus.IGNORED,
+    # TODO(dcramer): remove in 9.0
+    "muted": GroupStatus.IGNORED,
+    "reprocessing": GroupStatus.REPROCESSING,
+}
+
+# Statuses that can be updated from the regular "update group" API
+#
+# Differences over STATUS_QUERY_CHOICES:
+#
+# reprocessing is missing as it is its own endpoint and requires extra input
+# resolvedInNextRelease is added as that is an action that can be taken, but at
+# the same time it can't be queried for
+STATUS_UPDATE_CHOICES = {
+    "resolved": GroupStatus.RESOLVED,
+    "unresolved": GroupStatus.UNRESOLVED,
+    "ignored": GroupStatus.IGNORED,
+    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
+    # TODO(dcramer): remove in 9.0
+    "muted": GroupStatus.IGNORED,
+}
+
+
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
@@ -325,12 +352,14 @@ class Group(Model):
         )
         super(Group, self).save(*args, **kwargs)
 
-    def get_absolute_url(self, params=None):
+    def get_absolute_url(self, params=None, event_id=None):
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
-        url = u"organizations/{org}/issues/{id}/{params}".format(
+        event_path = u"events/{}/".format(event_id) if event_id else ""
+        url = u"organizations/{org}/issues/{id}/{event_path}{params}".format(
             org=urlquote(self.organization.slug),
             id=self.id,
+            event_path=event_path,
             params="?" + urlencode(params) if params else "",
         )
         return absolute_uri(url)

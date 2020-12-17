@@ -1,9 +1,9 @@
-import DocumentTitle from 'react-document-title';
 import React from 'react';
+import DocumentTitle from 'react-document-title';
 import styled from '@emotion/styled';
 
-import CreateProject from 'app/views/projectInstall/createProject';
 import space from 'app/styles/space';
+import CreateProject from 'app/views/projectInstall/createProject';
 
 const NewProject = () => (
   <Container>
@@ -18,7 +18,7 @@ const NewProject = () => (
 
 const Container = styled('div')`
   flex: 1;
-  background: #fff;
+  background: ${p => p.theme.background};
   margin-bottom: -${space(3)}; /* cleans up a bg gap at bottom */
 `;
 

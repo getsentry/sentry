@@ -2,9 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
+import {tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization, OrganizationSummary} from 'app/types';
-import {tn} from 'app/locale';
 
 type Props = {
   organization: OrganizationSummary;
@@ -37,7 +37,7 @@ const OrgSummary = styled('div')`
   overflow: hidden;
 `;
 const SummaryOrgName = styled('div')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   font-size: 16px;
   line-height: 1.1;
   font-weight: bold;
@@ -45,7 +45,7 @@ const SummaryOrgName = styled('div')`
   ${overflowEllipsis};
 `;
 const SummaryOrgDetails = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: 14px;
   line-height: 1;
   ${overflowEllipsis};

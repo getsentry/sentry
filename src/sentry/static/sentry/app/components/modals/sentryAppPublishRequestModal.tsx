@@ -1,17 +1,17 @@
-import {Body, Header} from 'react-bootstrap/lib/Modal';
-import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {SentryApp, Scope} from 'app/types';
-import {t} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {ModalRenderProps} from 'app/actionCreators/modal';
+import {PermissionChoice, SENTRY_APP_PERMISSIONS} from 'app/constants';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {SENTRY_APP_PERMISSIONS, PermissionChoice} from 'app/constants';
+import {Scope, SentryApp} from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import FormModel from 'app/views/settings/components/forms/model';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option
@@ -57,9 +57,8 @@ class PublishRequestFormModel extends FormModel {
   }
 }
 
-type Props = {
+type Props = ModalRenderProps & {
   app: SentryApp;
-  closeModal: () => void;
 };
 
 export default class SentryAppPublishRequestModal extends React.Component<Props> {
@@ -81,10 +80,10 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 
     const permissionLabel = (
       <React.Fragment>
-        {permissionQuestionBaseText}
+        <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
         {permissions.map((permission, i) => (
           <React.Fragment key={permission}>
-            {i > 0 && ', '} <code>{permission}</code>
+            {i > 0 && ', '} <Permission>{permission}</Permission>
           </React.Fragment>
         ))}
         .
@@ -144,12 +143,17 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
     this.props.closeModal();
   };
 
-  handleSubmitError = () => {
-    addErrorMessage(t('Request to publish %s fails.', this.props.app.slug));
+  handleSubmitError = err => {
+    addErrorMessage(
+      tct('Request to publish [app] fails. [detail]', {
+        app: this.props.app.slug,
+        detail: err?.responseJSON?.detail,
+      })
+    );
   };
 
   render() {
-    const {app} = this.props;
+    const {app, Header, Body} = this.props;
     const endpoint = `/sentry-apps/${app.slug}/publish-request/`;
     const forms = [
       {
@@ -188,4 +192,12 @@ export default class SentryAppPublishRequestModal extends React.Component<Props>
 const Explanation = styled('div')`
   margin: ${space(1.5)} 0px;
   font-size: 18px;
+`;
+
+const PermissionLabel = styled('span')`
+  line-height: 24px;
+`;
+
+const Permission = styled('code')`
+  line-height: 24px;
 `;

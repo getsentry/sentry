@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
-import Reflux from 'reflux';
 import * as qs from 'query-string';
+import Reflux from 'reflux';
 
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
@@ -11,6 +11,7 @@ type ConfigStoreInterface = {
   get<K extends keyof Config>(key: K): Config[K];
   set<K extends keyof Config>(key: K, value: Config[K]): void;
   getConfig(): Config;
+  updateTheme(theme: 'light' | 'dark'): void;
   loadInitialData(config: Config): void;
 };
 
@@ -28,8 +29,23 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   set(key, value) {
-    this.config[key] = value;
+    this.config = {
+      ...this.config,
+      [key]: value,
+    };
     this.trigger({[key]: value});
+  },
+
+  /**
+   * This is only called by media query listener so that we can control
+   * the auto switching of color schemes without affecting manual toggle
+   */
+  updateTheme(theme) {
+    if (this.config.user?.options.theme !== 'system') {
+      return;
+    }
+
+    this.set('theme', theme);
   },
 
   getConfig() {
@@ -37,8 +53,16 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   loadInitialData(config): void {
-    config.features = new Set(config.features || []);
-    this.config = config;
+    // TODO(dark): Remove staff requirement and add dark mode user preference
+    const shouldUseDarkMode =
+      // @ts-ignore
+      config.user?.isStaff && config.user?.options.theme === 'dark';
+
+    this.config = {
+      ...config,
+      features: new Set(config.features || []),
+      theme: shouldUseDarkMode ? 'dark' : 'light',
+    };
 
     // Language code is passed from django
     let languageCode = config.languageCode;

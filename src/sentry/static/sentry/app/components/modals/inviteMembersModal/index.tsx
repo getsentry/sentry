@@ -1,25 +1,25 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {t, tn, tct} from 'app/locale';
-import {MEMBER_ROLES} from 'app/constants';
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {uniqueId} from 'app/utils/guid';
-import {IconCheckmark, IconWarning, IconAdd} from 'app/icons';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import HookOrDefault from 'app/components/hookOrDefault';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {MEMBER_ROLES} from 'app/constants';
+import {IconAdd, IconCheckmark, IconWarning} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import AsyncComponent from 'app/components/asyncComponent';
 import {Organization, Team} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {uniqueId} from 'app/utils/guid';
 import withLatestContext from 'app/utils/withLatestContext';
 import withTeams from 'app/utils/withTeams';
-import LoadingIndicator from 'app/components/loadingIndicator';
 
-import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 import InviteRowControl from './inviteRowControl';
+import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
@@ -75,7 +75,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];
@@ -460,7 +460,7 @@ const Heading = styled('h1')`
 `;
 
 const Subtext = styled('p')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(3)};
 `;
 
@@ -501,10 +501,10 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
   grid-gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => (p.status === 'error' ? p.theme.red400 : p.theme.gray600)};
+  color: ${p => (p.status === 'error' ? p.theme.red300 : p.theme.gray400)};
 
   > :first-child {
-    ${p => p.status === 'success' && `color: ${p.theme.green400}`};
+    ${p => p.status === 'success' && `color: ${p.theme.green300}`};
   }
 `;
 

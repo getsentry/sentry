@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {LocationDescriptor} from 'history';
 import {Link as RouterLink} from 'react-router';
+import {LocationDescriptor} from 'history';
+import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
@@ -37,7 +37,7 @@ export default class GlobalSelectionLink extends React.Component<Props> {
     const {location} = this.context;
     const {to} = this.props;
 
-    const globalQuery = extractSelectionParameters(location.query);
+    const globalQuery = extractSelectionParameters(location?.query);
     const hasGlobalQuery = Object.keys(globalQuery).length > 0;
     const query =
       typeof to === 'object' && to.query ? {...globalQuery, ...to.query} : globalQuery;

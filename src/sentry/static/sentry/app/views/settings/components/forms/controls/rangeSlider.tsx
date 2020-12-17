@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
-import Input from 'app/views/settings/components/forms/controls/input';
 import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
 
 type Props = {
   name: string;
@@ -260,7 +260,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     border-radius: 3px;
     border: 0;
   }
@@ -269,7 +269,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     border-radius: 3px;
     border: 0;
   }
@@ -278,7 +278,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     border-radius: 3px;
     border: 0;
   }
@@ -288,7 +288,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -301,7 +301,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -314,7 +314,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.purple300};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -323,13 +323,13 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &::-ms-fill-lower {
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     border: 0;
     border-radius: 50%;
   }
 
   &::-ms-fill-upper {
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
     border: 0;
     border-radius: 50%;
   }
@@ -338,31 +338,31 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     outline: none;
 
     &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.gray200};
     }
 
     &::-ms-fill-upper {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.gray200};
     }
 
     &::-ms-fill-lower {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.gray200};
     }
   }
 
   &[disabled] {
     &::-webkit-slider-thumb {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.gray200};
       cursor: default;
     }
 
     &::-moz-range-thumb {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.gray200};
       cursor: default;
     }
 
     &::-ms-thumb {
-      background: ${p => p.theme.gray400};
+      background: ${p => p.theme.gray200};
       cursor: default;
     }
 
@@ -383,7 +383,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
 const Label = styled('label')`
   font-size: 14px;
   margin-bottom: ${p => p.theme.grid}px;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 const SliderAndInputWrapper = styled('div')<{showCustomInput?: boolean}>`

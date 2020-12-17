@@ -7,7 +7,7 @@ import six
 from django.db import DataError
 from django.utils import timezone
 
-from sentry.constants import STATUS_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.models import EventUser, KEYWORD_MAP, Release, Team, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
@@ -33,9 +33,9 @@ def get_user_tag(projects, key, value):
 
 
 def parse_status_value(value):
-    if value in STATUS_CHOICES:
-        return STATUS_CHOICES[value]
-    if value in STATUS_CHOICES.values():
+    if value in STATUS_QUERY_CHOICES:
+        return STATUS_QUERY_CHOICES[value]
+    if value in STATUS_QUERY_CHOICES.values():
         return value
     raise ValueError("Invalid status value")
 
@@ -66,6 +66,15 @@ def parse_duration(value, interval):
         )
 
     return delta.total_seconds() * 1000.0
+
+
+def parse_percentage(value):
+    try:
+        value = float(value)
+    except ValueError:
+        raise InvalidQuery(u"{} is not a valid percentage value".format(value))
+
+    return value / 100
 
 
 def parse_datetime_range(value):
@@ -210,6 +219,12 @@ def parse_actor_value(projects, value, user):
     if value.startswith("#"):
         return parse_team_value(projects, value, user)
     return parse_user_value(value, user)
+
+
+def parse_owner_value(projects, value, user):
+    if value == "me_or_none":
+        return ["me_or_none", user]
+    return parse_actor_value(projects, value, user)
 
 
 def parse_user_value(value, user):
@@ -427,13 +442,21 @@ def parse_query(projects, query, user, environments):
                     results["unassigned"] = True
                 elif value == "assigned":
                     results["unassigned"] = False
+                elif value == "needs_review":
+                    results["needs_review"] = True
+                elif value == "linked":
+                    results["linked"] = True
+                elif value == "unlinked":
+                    results["linked"] = False
                 else:
                     try:
-                        results["status"] = STATUS_CHOICES[value]
+                        results["status"] = STATUS_QUERY_CHOICES[value]
                     except KeyError:
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == "assigned":
                 results["assigned_to"] = parse_actor_value(projects, value, user)
+            elif key == "owner":
+                results["owner"] = parse_owner_value(projects, value, user)
             elif key == "bookmarks":
                 results["bookmarked_by"] = parse_user_value(value, user)
             elif key == "subscribed":

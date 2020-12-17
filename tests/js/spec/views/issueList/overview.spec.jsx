@@ -1,15 +1,15 @@
+import React from 'react';
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
-import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ErrorRobot from 'app/components/errorRobot';
-import GroupStore from 'app/stores/groupStore';
-import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
+import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
+import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
 // Mock <IssueListSidebar> and <IssueListActions>
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
@@ -30,6 +30,7 @@ describe('IssueList', function () {
   let organization;
   let project;
   let group;
+  let groupStats;
   let savedSearch;
 
   let fetchTagsRequest;
@@ -66,6 +67,11 @@ describe('IssueList', function () {
       headers: {
         Link: DEFAULT_LINKS_HEADER,
       },
+    });
+    groupStats = TestStubs.GroupStats();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: [groupStats],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
@@ -1263,7 +1269,7 @@ describe('IssueList', function () {
         '/organizations/org-slug/issues/',
         expect.objectContaining({
           data:
-            'limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+            'collapse=stats&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });
@@ -1314,7 +1320,7 @@ describe('IssueList', function () {
 
   describe('processingIssues', function () {
     beforeEach(function () {
-      wrapper = shallow(<IssueListOverview {...props} />);
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
     });
 
     it('fetches and displays processing issues', async function () {
@@ -1633,6 +1639,14 @@ describe('IssueList', function () {
       });
 
       expect(wrapper.find(ErrorRobot)).toHaveLength(0);
+    });
+  });
+
+  describe('with inbox feature', function () {
+    it('renders inbox layout', function () {
+      organization.features = ['inbox'];
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
     });
   });
 });

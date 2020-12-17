@@ -1,11 +1,11 @@
-import {observable, computed, action, ObservableMap} from 'mobx';
 import isEqual from 'lodash/isEqual';
+import {action, computed, observable, ObservableMap} from 'mobx';
 
-import {Client, APIRequestMethod} from 'app/api';
 import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
-import {defined} from 'app/utils';
-import {t} from 'app/locale';
+import {APIRequestMethod, Client} from 'app/api';
 import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
@@ -28,7 +28,12 @@ export type FormOptions = {
   onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
 };
 
-type OptionsWithInitial = FormOptions & {initialData?: object};
+type ClientOptions = ConstructorParameters<typeof Client>[0];
+
+type OptionsWithInitial = FormOptions & {
+  initialData?: object;
+  apiOptions?: ClientOptions;
+};
 
 class FormModel {
   /**
@@ -78,13 +83,13 @@ class FormModel {
 
   options: FormOptions;
 
-  constructor({initialData, ...options}: OptionsWithInitial = {}) {
+  constructor({initialData, apiOptions, ...options}: OptionsWithInitial = {}) {
     this.options = options || {};
     if (initialData) {
       this.setInitialData(initialData);
     }
 
-    this.api = new Client();
+    this.api = new Client(apiOptions);
   }
 
   /**

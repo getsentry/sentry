@@ -1,27 +1,25 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
-import Alert from 'app/components/alert';
 import Feature from 'app/components/acl/feature';
-import FeatureBadge from 'app/components/featureBadge';
-import CreateAlertButton from 'app/components/createAlertButton';
-import * as Layout from 'app/components/layouts/thirds';
-import ExternalLink from 'app/components/links/externalLink';
 import ButtonBar from 'app/components/buttonBar';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import FeatureBadge from 'app/components/featureBadge';
+import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
-import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import Breadcrumb from 'app/views/performance/breadcrumb';
+import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
+import Breadcrumb from 'app/views/performance/breadcrumb';
+
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
-import {vitalsRouteWithQuery} from '../transactionVitals/utils';
 
 export enum Tab {
   TransactionSummary,
@@ -37,7 +35,7 @@ type Props = {
   currentTab: Tab;
   hasWebVitals: boolean;
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
 };
 
@@ -54,8 +52,17 @@ class TransactionHeader extends React.Component<Props> {
     });
   }
 
+  trackVitalsTabClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.vitals_tab_clicked',
+      eventName: 'Performance Views: Vitals tab clicked',
+      organization_id: organization.id,
+    });
+  };
+
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     this.trackAlertClick(errors);
     this.props.handleIncompatibleQuery?.(incompatibleAlertNoticeFn, errors);
@@ -69,7 +76,7 @@ class TransactionHeader extends React.Component<Props> {
     const {eventView, organization, projects} = this.props;
 
     return (
-      <CreateAlertButton
+      <CreateAlertFromViewButton
         eventView={eventView}
         organization={organization}
         projects={projects}
@@ -101,6 +108,20 @@ class TransactionHeader extends React.Component<Props> {
       hasWebVitals,
     } = this.props;
 
+    const summaryTarget = transactionSummaryRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
+    const vitalsTarget = vitalsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
     return (
       <Layout.Header>
         <Layout.HeaderContent>
@@ -120,65 +141,30 @@ class TransactionHeader extends React.Component<Props> {
             {this.renderKeyTransactionButton()}
           </ButtonBar>
         </Layout.HeaderActions>
-        <Feature organization={organization} features={['measurements']}>
-          {({hasFeature}) => {
-            if (!hasFeature) {
-              return null;
-            }
-            const summaryTarget = transactionSummaryRouteWithQuery({
-              orgSlug: organization.slug,
-              transaction: transactionName,
-              projectID: decodeScalar(location.query.project),
-              query: location.query,
-            });
-            const vitalsTarget = vitalsRouteWithQuery({
-              orgSlug: organization.slug,
-              transaction: transactionName,
-              projectID: decodeScalar(location.query.project),
-              query: location.query,
-            });
-            return (
-              <React.Fragment>
-                {currentTab === Tab.RealUserMonitoring && (
-                  <StyledAlert type="info" icon={<IconInfo size="md" />}>
-                    {t(
-                      "Web vitals is a new beta feature for organizations who have turned on Early Adopter in their account settings. We'd love to hear any feedback you have at"
-                    )}{' '}
-                    <ExternalLink href="mailto:performance-feedback@sentry.io">
-                      performance-feedback@sentry.io
-                    </ExternalLink>
-                  </StyledAlert>
-                )}
-                <StyledNavTabs>
-                  <ListLink
-                    to={summaryTarget}
-                    isActive={() => currentTab === Tab.TransactionSummary}
-                  >
-                    {t('Overview')}
-                  </ListLink>
-                  {hasWebVitals && (
-                    <ListLink
-                      to={vitalsTarget}
-                      isActive={() => currentTab === Tab.RealUserMonitoring}
-                    >
-                      {t('Web Vitals')}
-                      <FeatureBadge type="beta" />
-                    </ListLink>
-                  )}
-                </StyledNavTabs>
-              </React.Fragment>
-            );
-          }}
-        </Feature>
+        <React.Fragment>
+          <StyledNavTabs>
+            <ListLink
+              to={summaryTarget}
+              isActive={() => currentTab === Tab.TransactionSummary}
+            >
+              {t('Overview')}
+            </ListLink>
+            {hasWebVitals && (
+              <ListLink
+                to={vitalsTarget}
+                isActive={() => currentTab === Tab.RealUserMonitoring}
+                onClick={this.trackVitalsTabClick}
+              >
+                {t('Web Vitals')}
+                <FeatureBadge type="new" />
+              </ListLink>
+            )}
+          </StyledNavTabs>
+        </React.Fragment>
       </Layout.Header>
     );
   }
 }
-
-const StyledAlert = styled(Alert)`
-  /* Makes sure the alert is pushed into another row */
-  width: 100%;
-`;
 
 const StyledNavTabs = styled(NavTabs)`
   margin-bottom: 0;

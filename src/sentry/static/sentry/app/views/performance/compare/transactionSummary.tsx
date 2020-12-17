@@ -1,15 +1,16 @@
 import React from 'react';
+import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import {Params} from 'react-router/lib/Router';
 
+import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spans/utils';
+import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event, Organization} from 'app/types';
-import Link from 'app/components/links/link';
-import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spans/utils';
 
 import {getTransactionDetailsUrl} from '../utils';
+
 import {isTransactionEvent} from './utils';
 
 type Props = {
@@ -113,7 +114,7 @@ const EventRow = styled('div')`
 `;
 
 const Baseline = styled('div')`
-  background-color: ${p => p.theme.gray700};
+  background-color: ${p => p.theme.textColor};
   height: 100%;
   width: 4px;
 
@@ -121,7 +122,7 @@ const Baseline = styled('div')`
 `;
 
 const Regression = styled('div')`
-  background-color: ${p => p.theme.purple300};
+  background-color: ${p => p.theme.purple200};
   height: 100%;
   width: 4px;
 
@@ -155,11 +156,11 @@ const ContentTitle = styled('div')`
 `;
 
 const EventId = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 function shortEventId(value: string): string {

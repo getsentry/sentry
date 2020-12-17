@@ -1,24 +1,23 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import {Params} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
+import PropTypes from 'prop-types';
 
-import {Repository, RepositoryStatus} from 'app/types';
 import {Client} from 'app/api';
-import {t, tct} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
-import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import RepositoryRow from 'app/components/repositoryRow';
 import {IconCommit} from 'app/icons';
+import {t, tct} from 'app/locale';
+import {Repository, RepositoryStatus} from 'app/types';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-type Props = {
+type Props = RouteComponentProps<{orgId: string}, {}> & {
   itemList: Repository[];
   onRepositoryChange: (data: {id: string; status: RepositoryStatus}) => void;
   api: Client;
-  params: Params;
 };
 
 const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: Props) => {

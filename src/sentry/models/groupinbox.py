@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import jsonschema
+import logging
+
 from enum import Enum
 
 from django.db import models
@@ -7,12 +10,26 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
 
+INBOX_REASON_DETAILS = {
+    "type": ["object", "null"],
+    "properties": {
+        "until": {"type": ["string", "null"], "format": "date-time"},
+        "count": {"type": ["integer", "null"]},
+        "window": {"type": ["integer", "null"]},
+        "user_count": {"type": ["integer", "null"]},
+        "user_window": {"type": ["integer", "null"]},
+    },
+    "required": [],
+    "additionalProperties": False,
+}
+
 
 class GroupInboxReason(Enum):
     NEW = 0
     UNIGNORED = 1
     REGRESSION = 2
     MANUAL = 3
+    REPROCESSED = 4
 
 
 class GroupInbox(Model):
@@ -23,6 +40,8 @@ class GroupInbox(Model):
     __core__ = False
 
     group = FlexibleForeignKey("sentry.Group", unique=True, db_constraint=False)
+    project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=False)
+    organization = FlexibleForeignKey("sentry.Organization", null=True, db_constraint=False)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
     reason_details = JSONField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -33,8 +52,24 @@ class GroupInbox(Model):
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
+    if reason_details is not None:
+        if "until" in reason_details and reason_details["until"] is not None:
+            reason_details["until"] = reason_details["until"].replace(microsecond=0).isoformat()
+
+    try:
+        jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
+    except jsonschema.ValidationError:
+        logging.error("GroupInbox invalid jsonschema: {}".format(reason_details))
+        reason_details = None
+
     group_inbox, created = GroupInbox.objects.get_or_create(
-        group=group, defaults={"reason": reason.value, "reason_details": reason_details}
+        group=group,
+        defaults={
+            "project": group.project,
+            "organization_id": group.project.organization_id,
+            "reason": reason.value,
+            "reason_details": reason_details,
+        },
     )
     return group_inbox
 
@@ -45,3 +80,18 @@ def remove_group_from_inbox(group):
         group_inbox.delete()
     except GroupInbox.DoesNotExist:
         pass
+
+
+def get_inbox_details(group_list):
+    group_ids = [g.id for g in group_list]
+    group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
+    inbox_stats = {
+        gi.group_id: {
+            "reason": gi.reason,
+            "reason_details": gi.reason_details,
+            "date_added": gi.date_added,
+        }
+        for gi in group_inboxes
+    }
+
+    return inbox_stats

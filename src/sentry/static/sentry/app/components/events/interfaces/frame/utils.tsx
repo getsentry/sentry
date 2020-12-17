@@ -1,9 +1,9 @@
 import React from 'react';
 
-import {PlatformType, Frame} from 'app/types';
-import {t} from 'app/locale';
-import {IconQuestion, IconWarning} from 'app/icons';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {IconQuestion, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import {Frame, PlatformType} from 'app/types';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
@@ -13,7 +13,7 @@ export function trimPackage(pkg: string) {
 
 export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
-  // of the stacktrace / exception
+  // of the stack trace / exception
   return dataPlatform || platform;
 }
 
@@ -23,7 +23,7 @@ export function getFrameHint(frame: Frame) {
   const func = frame.function || '<unknown>';
   // Custom color used to match adjacent text.
   const warningIcon = <IconQuestion size="xs" color={'#2c45a8' as any} />;
-  const errorIcon = <IconWarning size="xs" color="red400" />;
+  const errorIcon = <IconWarning size="xs" color="red300" />;
 
   if (func.match(/^@objc\s/)) {
     return [t('Objective-C -> Swift shim frame'), warningIcon];

@@ -1,11 +1,11 @@
 import React from 'react';
 
 import {
-  rectOfContent,
   clamp,
+  rectOfContent,
+  setBodyUserSelect,
   toPercent,
   UserSelectValues,
-  setBodyUserSelect,
 } from './utils';
 
 // divider handle is positioned at 50% width from the left-hand side

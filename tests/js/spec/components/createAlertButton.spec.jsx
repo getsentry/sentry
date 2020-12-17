@@ -2,9 +2,9 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {DEFAULT_EVENT_VIEW, ALL_VIEWS} from 'app/views/eventsV2/data';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import EventView from 'app/utils/discover/eventView';
+import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'app/views/eventsV2/data';
 
 const onIncompatibleQueryMock = jest.fn();
 const onCloseMock = jest.fn();
@@ -12,7 +12,7 @@ const onSuccessMock = jest.fn();
 
 function generateWrappedComponent(organization, eventView) {
   return mountWithTheme(
-    <CreateAlertButton
+    <CreateAlertFromViewButton
       location={location}
       organization={organization}
       eventView={eventView}
@@ -24,7 +24,7 @@ function generateWrappedComponent(organization, eventView) {
   );
 }
 
-describe('CreateAlertButton', () => {
+describe('CreateAlertFromViewButton', () => {
   const organization = TestStubs.Organization();
 
   afterEach(() => {
@@ -34,7 +34,7 @@ describe('CreateAlertButton', () => {
   it('renders', () => {
     const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
     const wrapper = generateWrappedComponent(organization, eventView);
-    expect(wrapper.text()).toBe('Create alert');
+    expect(wrapper.text()).toBe('Create Alert');
   });
 
   it('should warn when project is not selected', () => {
@@ -82,9 +82,7 @@ describe('CreateAlertButton', () => {
     const errorsAlert = mountWithTheme(
       onIncompatibleQueryMock.mock.calls[0][0](onCloseMock)
     );
-    expect(errorsAlert.text()).toBe(
-      'An alert needs a filter of event.type:error or event.type:transaction. Use one of these and try again.'
-    );
+    expect(errorsAlert.text()).toContain('An alert needs a filter of event.type:error');
   });
 
   it('should warn when yAxis is not allowed', () => {
@@ -115,6 +113,20 @@ describe('CreateAlertButton', () => {
       projects: [2],
     });
     expect(eventView.getYAxis()).toBe('apdex(300)');
+    const wrapper = generateWrappedComponent(organization, eventView);
+    wrapper.simulate('click');
+    expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('should allow yAxis with a measurement as the parameter', () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:transaction',
+      yAxis: 'p75(measurements.fcp)',
+      fields: [...DEFAULT_EVENT_VIEW.fields, 'p75(measurements.fcp)'],
+      projects: [2],
+    });
+    expect(eventView.getYAxis()).toBe('p75(measurements.fcp)');
     const wrapper = generateWrappedComponent(organization, eventView);
     wrapper.simulate('click');
     expect(onIncompatibleQueryMock).toHaveBeenCalledTimes(0);
@@ -173,7 +185,7 @@ describe('CreateAlertButton', () => {
 
     const wrapper = generateWrappedComponent(noAccessOrg, eventView);
 
-    const button = wrapper.find('button[aria-label="Create alert"]');
+    const button = wrapper.find('button[aria-label="Create Alert"]');
     expect(button.props()['aria-disabled']).toBe(true);
   });
 });

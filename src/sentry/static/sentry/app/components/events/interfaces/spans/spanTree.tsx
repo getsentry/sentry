@@ -1,41 +1,39 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SentryTransactionEvent, Organization} from 'app/types';
 import {t, tct} from 'app/locale';
+import {Organization, SentryTransactionEvent} from 'app/types';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
+import * as DividerHandlerManager from './dividerHandlerManager';
+import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
+import {DividerLine} from './spanBar';
+import SpanGroup from './spanGroup';
+import {SpanRowMessage} from './styles';
+import {FilterSpans} from './traceView';
 import {
+  GapSpanType,
+  OrphanTreeDepth,
+  ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
   SpanChildrenLookupType,
-  ParsedTraceType,
-  GapSpanType,
   TreeDepthType,
-  OrphanTreeDepth,
 } from './types';
 import {
   boundsGenerator,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  pickSpanBarColour,
   generateRootSpan,
   getSpanID,
   getSpanOperation,
   getSpanTraceID,
+  isEventFromBrowserJavaScriptSDK,
   isGapSpan,
   isOrphanSpan,
-  isEventFromBrowserJavaScriptSDK,
-  toPercent,
+  pickSpanBarColour,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
 } from './utils';
-import {DragManagerChildrenProps} from './dragManager';
-import SpanGroup from './spanGroup';
-import {SpanRowMessage} from './styles';
-import * as DividerHandlerManager from './dividerHandlerManager';
-import {FilterSpans} from './traceView';
-import {ActiveOperationFilter} from './filter';
-import MeasurementsPanel from './measurementsPanel';
-import * as MeasurementsManager from './measurementsManager';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
@@ -53,6 +51,7 @@ type PropType = {
   event: SentryTransactionEvent;
   spansWithErrors: TableData | null | undefined;
   operationNameFilters: ActiveOperationFilter;
+  traceViewRef: React.RefObject<HTMLDivElement>;
 };
 
 class SpanTree extends React.Component<PropType> {
@@ -63,8 +62,6 @@ class SpanTree extends React.Component<PropType> {
 
     return true;
   }
-
-  traceViewRef = React.createRef<HTMLDivElement>();
 
   generateInfoMessage(input: {
     isCurrentSpanHidden: boolean;
@@ -121,6 +118,22 @@ class SpanTree extends React.Component<PropType> {
     }
 
     return <SpanRowMessage>{messages}</SpanRowMessage>;
+  }
+
+  generateLimitExceededMessage() {
+    const {trace} = this.props;
+
+    if (hasAllSpans(trace)) {
+      return null;
+    }
+
+    return (
+      <SpanRowMessage>
+        {t(
+          'The next spans are unavailable. You may have exceeded the span limit or need to address missing instrumentation.'
+        )}
+      </SpanRowMessage>
+    );
   }
 
   isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
@@ -367,45 +380,33 @@ class SpanTree extends React.Component<PropType> {
     });
   };
 
-  renderSecondaryPanel() {
-    const {organization, event} = this.props;
-
-    if (!organization.features.includes('measurements')) {
-      return null;
-    }
-
-    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
-
-    // only display the secondary header if there are any measurements
-    if (!hasMeasurements) {
-      return null;
-    }
+  renderDivider(
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+  ) {
+    const {addDividerLineRef} = dividerHandlerChildrenProps;
 
     return (
-      <DividerHandlerManager.Consumer>
-        {(
-          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-        ) => {
-          const {dividerPosition} = dividerHandlerChildrenProps;
-
-          return (
-            <SecondaryHeader>
-              <div
-                style={{
-                  // the width of this component is shrunk to compensate for half of the width of the divider line
-                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                }}
-              />
-              <DividerSpacer />
-              <MeasurementsPanel
-                event={event}
-                generateBounds={this.generateBounds()}
-                dividerPosition={dividerPosition}
-              />
-            </SecondaryHeader>
-          );
+      <DividerLine
+        ref={addDividerLineRef()}
+        style={{
+          position: 'relative',
         }}
-      </DividerHandlerManager.Consumer>
+        onMouseEnter={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseLeave={() => {
+          dividerHandlerChildrenProps.setHover(false);
+        }}
+        onMouseOver={() => {
+          dividerHandlerChildrenProps.setHover(true);
+        }}
+        onMouseDown={dividerHandlerChildrenProps.onDragStart}
+        onClick={event => {
+          // we prevent the propagation of the clicks from this component to prevent
+          // the span detail from being opened.
+          event.stopPropagation();
+        }}
+      />
     );
   }
 
@@ -423,16 +424,14 @@ class SpanTree extends React.Component<PropType> {
       numOfFilteredSpansAbove,
     });
 
+    const limitExceededMessage = this.generateLimitExceededMessage();
+
     return (
-      <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-        <MeasurementsManager.Provider>
-          {this.renderSecondaryPanel()}
-          <TraceViewContainer ref={this.traceViewRef}>
-            {spanTree}
-            {infoMessage}
-          </TraceViewContainer>
-        </MeasurementsManager.Provider>
-      </DividerHandlerManager.Provider>
+      <TraceViewContainer ref={this.props.traceViewRef}>
+        {spanTree}
+        {infoMessage}
+        {limitExceededMessage}
+      </TraceViewContainer>
     );
   }
 }
@@ -443,15 +442,39 @@ const TraceViewContainer = styled('div')`
   border-bottom-right-radius: 3px;
 `;
 
-const SecondaryHeader = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  display: flex;
+/**
+ * Checks if a trace contains all of its spans.
+ *
+ * The heuristic used here favors false negatives over false positives.
+ * This is because showing a warning that the trace is not showing all
+ * spans when it has them all is more misleading than not showing a
+ * warning when it is missing some spans.
+ *
+ * A simple heuristic to determine when there are unrecorded spans
+ *
+ * 1. We assume if there are less than 999 spans, then we have all
+ *    the spans for a transaction. 999 was chosen because most SDKs
+ *    have a default limit of 1000 spans per transaction, but the
+ *    python SDK is 999 for historic reasons.
+ *
+ * 2. We assume that if there are unrecorded spans, they should be
+ *    at least 100ms in duration.
+ *
+ * While not perfect, this simple heuristic is unlikely to report
+ * false positives.
+ */
+function hasAllSpans(trace: ParsedTraceType): boolean {
+  const {traceEndTimestamp, spans} = trace;
+  if (spans.length < 999) {
+    return true;
+  }
 
-  border-bottom: 1px solid ${p => p.theme.gray400};
-`;
+  const lastSpan = spans.reduce((latest, span) =>
+    latest.timestamp > span.timestamp ? latest : span
+  );
+  const missingDuration = traceEndTimestamp - lastSpan.timestamp;
 
-const DividerSpacer = styled('div')`
-  width: 1px;
-`;
+  return missingDuration < 0.1;
+}
 
 export default SpanTree;

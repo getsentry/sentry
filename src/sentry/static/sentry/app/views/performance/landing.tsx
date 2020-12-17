@@ -1,61 +1,57 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {GlobalSelection, Organization, Project} from 'app/types';
-import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {updateDateTime} from 'app/actionCreators/globalSelection';
-import SearchBar from 'app/views/events/searchBar';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {PageContent} from 'app/styles/organization';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
-import Alert from 'app/components/alert';
+import {loadOrganizationTags} from 'app/actionCreators/tags';
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
-import FeatureBadge from 'app/components/featureBadge';
-import EventView from 'app/utils/discover/eventView';
-import {generateAggregateFields} from 'app/utils/discover/fields';
-import space from 'app/styles/space';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView from 'app/utils/discover/eventView';
+import {generateAggregateFields} from 'app/utils/discover/fields';
+import {decodeScalar} from 'app/utils/queryString';
+import {
+  QueryResults,
+  stringifyQueryObject,
+  tokenizeSearch,
+} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import {
-  tokenizeSearch,
-  stringifyQueryObject,
-  QueryResults,
-} from 'app/utils/tokenizeSearch';
-import {decodeScalar} from 'app/utils/queryString';
+import SearchBar from 'app/views/events/searchBar';
 
-import {generatePerformanceEventView, DEFAULT_STATS_PERIOD} from './data';
-import Table from './table';
 import Charts from './charts/index';
-import Onboarding from './onboarding';
-import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
 import TrendsContent from './trends/content';
 import {
-  modifyTrendsViewDefaultPeriod,
-  DEFAULT_TRENDS_STATS_PERIOD,
   DEFAULT_MAX_DURATION,
+  DEFAULT_TRENDS_STATS_PERIOD,
+  modifyTrendsViewDefaultPeriod,
 } from './trends/utils';
+import {DEFAULT_STATS_PERIOD, generatePerformanceEventView} from './data';
+import Onboarding from './onboarding';
+import Table from './table';
+import {addRoutePerformanceContext, getTransactionSearchQuery} from './utils';
+import VitalsCards from './vitalsCards';
 
 export enum FilterViews {
   ALL_TRANSACTIONS = 'ALL_TRANSACTIONS',
-  KEY_TRANSACTIONS = 'KEY_TRANSACTIONS',
   TRENDS = 'TRENDS',
 }
-
-const VIEWS = Object.values(FilterViews).filter(view => view !== 'TRENDS');
-const VIEWS_WITH_TRENDS = Object.values(FilterViews);
 
 type Props = {
   api: Client;
@@ -156,8 +152,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     switch (currentView) {
       case FilterViews.ALL_TRANSACTIONS:
         return t('By Transaction');
-      case FilterViews.KEY_TRANSACTIONS:
-        return t('By Key Transaction');
       case FilterViews.TRENDS:
         return t('By Trend');
       default:
@@ -229,10 +223,10 @@ class PerformanceLanding extends React.Component<Props, State> {
     if (viewKey === FilterViews.TRENDS) {
       const modifiedConditions = new QueryResults([]);
 
-      if (conditions.hasTag('epm()')) {
-        modifiedConditions.setTagValues('epm()', conditions.getTagValues('epm()'));
+      if (conditions.hasTag('tpm()')) {
+        modifiedConditions.setTagValues('tpm()', conditions.getTagValues('tpm()'));
       } else {
-        modifiedConditions.setTagValues('epm()', ['>0.01']);
+        modifiedConditions.setTagValues('tpm()', ['>0.01']);
       }
       if (conditions.hasTag('transaction.duration')) {
         modifiedConditions.setTagValues(
@@ -252,7 +246,7 @@ class PerformanceLanding extends React.Component<Props, State> {
 
     if (isNavigatingAwayFromTrends) {
       // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
-      conditions.removeTag('epm()');
+      conditions.removeTag('tpm()');
       conditions.removeTag('transaction.duration');
 
       newQuery.query = stringifyQueryObject(conditions);
@@ -265,44 +259,21 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   renderHeaderButtons() {
+    const views: FilterViews[] = [FilterViews.ALL_TRANSACTIONS, FilterViews.TRENDS];
     return (
-      <Feature features={['trends']}>
-        {({hasFeature}) =>
-          hasFeature ? (
-            <ButtonBar merged active={this.getCurrentView()}>
-              {VIEWS_WITH_TRENDS.map(viewKey => {
-                return (
-                  <Button
-                    key={viewKey}
-                    barId={viewKey}
-                    size="small"
-                    data-test-id={'landing-header-' + viewKey.toLowerCase()}
-                    onClick={() => this.handleViewChange(viewKey)}
-                  >
-                    {this.getViewLabel(viewKey)}
-                    {viewKey === FilterViews.TRENDS && <StyledFeatureBadge type="beta" />}
-                  </Button>
-                );
-              })}
-            </ButtonBar>
-          ) : (
-            <ButtonBar merged active={this.getCurrentView()}>
-              {VIEWS.map(viewKey => {
-                return (
-                  <Button
-                    key={viewKey}
-                    barId={viewKey}
-                    size="small"
-                    onClick={() => this.handleViewChange(viewKey)}
-                  >
-                    {this.getViewLabel(viewKey)}
-                  </Button>
-                );
-              })}
-            </ButtonBar>
-          )
-        }
-      </Feature>
+      <ButtonBar merged active={this.getCurrentView()}>
+        {views.map(viewKey => (
+          <Button
+            key={viewKey}
+            barId={viewKey}
+            size="small"
+            data-test-id={'landing-header-' + viewKey.toLowerCase()}
+            onClick={() => this.handleViewChange(viewKey)}
+          >
+            {this.getViewLabel(viewKey)}
+          </Button>
+        ))}
+      </ButtonBar>
     );
   }
 
@@ -344,7 +315,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ? modifyTrendsViewDefaultPeriod(this.state.eventView, location)
       : this.state.eventView;
     const showOnboarding = this.shouldShowOnboarding();
-    const filterString = getTransactionSearchQuery(location);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
     const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
@@ -373,6 +344,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                   organization={organization}
                   location={location}
                   eventView={eventView}
+                  setError={this.setError}
                 />
               ) : (
                 <div>
@@ -380,15 +352,25 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     projectIds={eventView.project}
                     query={filterString}
-                    fields={generateAggregateFields(organization, eventView.fields)}
+                    fields={generateAggregateFields(
+                      organization,
+                      [...eventView.fields, {field: 'tps()'}],
+                      ['epm()', 'eps()']
+                    )}
                     onSearch={this.handleSearch}
                   />
+                  <Feature features={['performance-vitals-overview']}>
+                    <VitalsCards
+                      eventView={eventView}
+                      organization={organization}
+                      location={location}
+                    />
+                  </Feature>
                   <Charts
                     eventView={eventView}
                     organization={organization}
                     location={location}
                     router={router}
-                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                   />
                   <Table
                     eventView={eventView}
@@ -396,7 +378,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={this.setError}
-                    keyTransactions={currentView === FilterViews.KEY_TRANSACTIONS}
                     summaryConditions={summaryConditions}
                   />
                 </div>
@@ -414,19 +395,14 @@ export const StyledPageHeader = styled('div')`
   align-items: center;
   justify-content: space-between;
   font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   height: 40px;
   margin-bottom: ${space(1)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-
   margin-bottom: ${space(2)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  height: 12px;
 `;
 
 export default withApi(

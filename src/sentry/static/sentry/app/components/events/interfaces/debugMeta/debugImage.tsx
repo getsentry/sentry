@@ -1,19 +1,20 @@
-import isNil from 'lodash/isNil';
 import React from 'react';
 import styled from '@emotion/styled';
+import isNil from 'lodash/isNil';
 
-import space from 'app/styles/space';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import DebugFileFeature from 'app/components/debugFileFeature';
+import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import {PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'app/icons';
 import {t} from 'app/locale';
-import {IconSearch, IconCircle, IconCheckmark, IconFlag} from 'app/icons';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 
-import {getFileName, combineStatus} from './utils';
+import {DebugImage as DebugImageType, DebugStatus} from './types';
+import {combineStatus, getFileName} from './utils';
 
 type Status = ReturnType<typeof combineStatus>;
 
@@ -58,33 +59,11 @@ function getImageStatusDetails(status: Status) {
 }
 
 type Props = {
-  image: Image;
+  image: DebugImageType;
   showDetails: boolean;
   style?: React.CSSProperties;
   orgId?: Organization['id'];
   projectId?: Project['id'];
-};
-
-type DebugStatus = ReturnType<typeof combineStatus>;
-
-type Image = {
-  code_id: string;
-  code_file: string;
-  debug_id: string;
-  debug_file: string;
-  features: {
-    has_sources: boolean;
-    has_debug_info: boolean;
-    has_unwind_info: boolean;
-    has_symbols: boolean;
-  };
-  image_addr: string;
-  image_size: number;
-  type: string;
-  debug_status?: DebugStatus;
-  unwind_status?: DebugStatus;
-  image_vmaddr?: string;
-  arch?: string;
 };
 
 const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Props) => {
@@ -130,13 +109,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       case 'found':
         return (
           <IconWrapper>
-            <IconCheckmark isCircled color="green500" />
+            <IconCheckmark isCircled color="green300" />
           </IconWrapper>
         );
       default:
         return (
           <IconWrapper>
-            <IconFlag color="red400" />
+            <IconFlag color="red300" />
           </IconWrapper>
         );
     }
@@ -176,9 +155,13 @@ const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Pr
       <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
 
       <ImageInfoGroup>
-        <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
-        <AddressDivider />
-        <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+        {startAddress && endAddress ? (
+          <React.Fragment>
+            <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+            <AddressDivider />
+            <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+          </React.Fragment>
+        ) : null}
       </ImageInfoGroup>
 
       <ImageInfoGroup fullWidth>
@@ -305,11 +288,11 @@ const CodeFile = styled('span')`
 `;
 
 const DebugFile = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const ImageSubtext = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const ImageProp = styled('span')`

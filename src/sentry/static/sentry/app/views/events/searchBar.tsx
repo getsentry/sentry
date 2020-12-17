@@ -1,3 +1,4 @@
+import React from 'react';
 import {ClassNames} from '@emotion/core';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
@@ -5,23 +6,24 @@ import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
-import React from 'react';
 
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
-import {defined} from 'app/utils';
 import {fetchTagValues} from 'app/actionCreators/tags';
-import SentryTypes from 'app/sentryTypes';
-import {SavedSearchType, Organization, TagCollection} from 'app/types';
+import {Client} from 'app/api';
 import SmartSearchBar from 'app/components/smartSearchBar';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
+import SentryTypes from 'app/sentryTypes';
+import {Organization, SavedSearchType, TagCollection} from 'app/types';
+import {defined} from 'app/utils';
 import {
   Field,
   FIELD_TAGS,
-  TRACING_FIELDS,
   isAggregateField,
+  isMeasurement,
+  TRACING_FIELDS,
 } from 'app/utils/discover/fields';
+import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withTags from 'app/utils/withTags';
-import {Client} from 'app/api';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -68,9 +70,9 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       const {api, organization, projectIds} = this.props;
       const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
 
-      if (isAggregateField(tag.key)) {
+      if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
-        // so we simply don't
+        // or measurements, so we simply don't
         return Promise.resolve([]);
       }
 
@@ -100,7 +102,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
    */
   prepareQuery = query => query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
 
-  getTagList() {
+  getTagList(measurements) {
     const {fields, organization, tags, omitTags} = this.props;
     const functionTags = fields
       ? Object.fromEntries(
@@ -111,7 +113,7 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
       : {};
 
     const fieldTags = organization.features.includes('performance-view')
-      ? Object.assign({}, FIELD_TAGS, functionTags)
+      ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
       : omit(FIELD_TAGS, TRACING_FIELDS);
 
     const combined = assign({}, tags, fieldTags);
@@ -126,25 +128,31 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
   }
 
   render() {
-    const tags = this.getTagList();
     return (
-      <ClassNames>
-        {({css}) => (
-          <SmartSearchBar
-            {...this.props}
-            hasRecentSearches
-            savedSearchType={SavedSearchType.EVENT}
-            onGetTagValues={this.getEventFieldValues}
-            supportedTags={tags}
-            prepareQuery={this.prepareQuery}
-            excludeEnvironment
-            dropdownClassName={css`
-              max-height: 300px;
-              overflow-y: auto;
-            `}
-          />
-        )}
-      </ClassNames>
+      <Measurements>
+        {({measurements}) => {
+          const tags = this.getTagList(measurements);
+          return (
+            <ClassNames>
+              {({css}) => (
+                <SmartSearchBar
+                  {...this.props}
+                  hasRecentSearches
+                  savedSearchType={SavedSearchType.EVENT}
+                  onGetTagValues={this.getEventFieldValues}
+                  supportedTags={tags}
+                  prepareQuery={this.prepareQuery}
+                  excludeEnvironment
+                  dropdownClassName={css`
+                    max-height: 300px;
+                    overflow-y: auto;
+                  `}
+                />
+              )}
+            </ClassNames>
+          );
+        }}
+      </Measurements>
     );
   }
 }

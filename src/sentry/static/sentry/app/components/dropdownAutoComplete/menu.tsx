@@ -1,18 +1,18 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import AutoComplete from 'app/components/autoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
-import Input from 'app/views/settings/components/forms/controls/input';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import Input from 'app/views/settings/components/forms/controls/input';
 
-import List from './list';
-import {ItemsBeforeFilter, Item} from './types';
 import autoCompleteFilter from './autoCompleteFilter';
+import List from './list';
+import {Item, ItemsBeforeFilter} from './types';
 
-type MenuFooterChildProps = {
+export type MenuFooterChildProps = {
   actions: Actions;
 };
 
@@ -292,7 +292,11 @@ const Menu = ({
         typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
       return (
-        <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
+        <AutoCompleteRoot
+          {...getRootProps()}
+          className={rootClassName}
+          disabled={disabled}
+        >
           {children({
             getInputProps,
             getActorProps,
@@ -381,13 +385,13 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: normal;
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 
 const InputLoadingWrapper = styled('div')`
   display: flex;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   align-items: center;
   flex-shrink: 0;
   width: 30px;
@@ -398,7 +402,7 @@ const InputLoadingWrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   padding: ${space(2)};
   text-align: center;
   text-transform: none;
@@ -409,6 +413,7 @@ export const AutoCompleteRoot = styled(({isOpen: _isOpen, ...props}) => (
 ))`
   position: relative;
   display: inline-block;
+  ${p => p.disabled && 'pointer-events: none;'}
 `;
 
 const BubbleWithMinWidth = styled(DropdownBubble)`
@@ -417,16 +422,16 @@ const BubbleWithMinWidth = styled(DropdownBubble)`
 
 const InputWrapper = styled('div')`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   align-items: center;
 `;
 
 const LabelWithPadding = styled('div')`
-  background-color: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   border-width: 1px 0;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   &:first-child {
     border-top: none;

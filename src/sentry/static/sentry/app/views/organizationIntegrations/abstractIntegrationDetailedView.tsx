@@ -1,13 +1,14 @@
-import startCase from 'lodash/startCase';
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 
 import Access from 'app/components/acl/access';
 import Alert, {Props as AlertProps} from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
+import Tag from 'app/components/tag';
 import Tooltip from 'app/components/tooltip';
 import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'app/icons';
 import {t} from 'app/locale';
@@ -28,10 +29,9 @@ import {
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Tag from 'app/components/tagDeprecated';
 
-import IntegrationStatus from './integrationStatus';
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
+import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
 
@@ -413,7 +413,7 @@ const Name = styled('div')`
 `;
 
 const IconCloseCircle = styled(IconClose)`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
   margin-right: ${space(1)};
 `;
 
@@ -485,7 +485,7 @@ const DisableWrapper = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-weight: 600;
   font-size: 12px;
 `;

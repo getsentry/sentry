@@ -1,20 +1,22 @@
-import {MentionsInput, Mention} from 'react-mentions';
 import React from 'react';
+import {Mention, MentionsInput} from 'react-mentions';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
-import {t} from 'app/locale';
-import {NoteType} from 'app/types/alerts';
 import Button from 'app/components/button';
-import ConfigStore from 'app/stores/configStore';
 import NavTabs from 'app/components/navTabs';
 import {IconMarkdown} from 'app/icons';
-import marked from 'app/utils/marked';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
+import {NoteType} from 'app/types/alerts';
+import marked from 'app/utils/marked';
+import {Theme} from 'app/utils/theme';
 
-import {Mentionable, Mentioned, MentionChangeEvent, CreateError} from './types';
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
+import {CreateError, Mentionable, MentionChangeEvent, Mentioned} from './types';
 
 const defaultProps = {
   placeholder: t('Add a comment.\nTag users with @, or teams with #'),
@@ -40,6 +42,7 @@ type Props = {
   onUpdate?: (data: NoteType) => void;
   onCreate?: (data: NoteType) => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
+  theme: Theme;
 } & typeof defaultProps;
 
 type State = {
@@ -49,7 +52,7 @@ type State = {
   teamMentions: Mentioned[];
 };
 
-class NoteInput extends React.Component<Props, State> {
+class NoteInputComponent extends React.Component<Props, State> {
   state: State = {
     preview: false,
     value: this.props.text || '',
@@ -161,6 +164,7 @@ class NoteInput extends React.Component<Props, State> {
       errorJSON,
       memberList,
       teams,
+      theme,
     } = this.props;
 
     const existingItem = !!modelId;
@@ -200,12 +204,13 @@ class NoteInput extends React.Component<Props, State> {
         <NoteInputBody>
           {preview ? (
             <NotePreview
+              theme={theme}
               minHeight={minHeight}
               dangerouslySetInnerHTML={{__html: marked(this.cleanMarkdown(value))}}
             />
           ) : (
             <MentionsInput
-              style={mentionStyle({minHeight})}
+              style={mentionStyle({theme, minHeight})}
               placeholder={placeholder}
               onChange={this.handleChange}
               onKeyDown={this.handleKeyDown}
@@ -250,9 +255,11 @@ class NoteInput extends React.Component<Props, State> {
   }
 }
 
+const NoteInput = withTheme(NoteInputComponent);
+
 type NoteInputContainerProps = {
   projectSlugs: string[];
-} & Omit<Props, 'memberList' | 'teams'>;
+} & Omit<Props, 'memberList' | 'teams' | 'theme'>;
 
 type MentionablesChildFunc = Parameters<
   React.ComponentProps<typeof Mentionables>['children']
@@ -282,6 +289,7 @@ export default NoteInputContainer;
 
 type NotePreviewProps = {
   minHeight: Props['minHeight'];
+  theme: Props['theme'];
 };
 // This styles both the note preview and the note editor input
 const getNotePreviewCss = (p: NotePreviewProps) => {
@@ -315,7 +323,7 @@ const getNoteInputErrorStyles = p => {
       height: 0;
       border-top: 7px solid transparent;
       border-bottom: 7px solid transparent;
-      border-right: 7px solid ${p.theme.red400};
+      border-right: 7px solid ${p.theme.red300};
       position: absolute;
       left: -7px;
       top: 12px;
@@ -350,7 +358,7 @@ const NoteInputBody = styled('div')`
 
 const Footer = styled('div')`
   display: flex;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   justify-content: space-between;
   transition: opacity 0.2s ease-in-out;
   padding-left: ${space(1.5)};
@@ -385,7 +393,7 @@ const ErrorMessage = styled('span')`
 
 const NoteInputNavTabs = styled(NavTabs)`
   padding: ${space(1)} ${space(2)} 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: 0;
 `;
 
@@ -404,7 +412,7 @@ const MarkdownTab = styled(NoteInputNavTab)`
     display: flex;
     align-items: center;
     margin-right: 0;
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.subText};
 
     float: right;
   }

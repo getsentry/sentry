@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
+import Card from 'app/components/card';
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import {User} from 'app/types';
-import Card from 'app/components/card';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   title?: string;
@@ -74,7 +74,7 @@ class QueryCard extends React.PureComponent<Props> {
 }
 
 const AvatarWrapper = styled('span')`
-  border: 3px solid ${p => p.theme.borderLight};
+  border: 3px solid ${p => p.theme.border};
   border-radius: 50%;
   height: min-content;
 `;
@@ -107,13 +107,13 @@ const QueryTitle = styled('div')`
 const QueryDetail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   line-height: 1.5;
   ${overflowEllipsis};
 `;
 
 const QueryCardBody = styled('div')`
-  background: ${p => p.theme.gray200};
+  background: ${p => p.theme.backgroundSecondary};
   max-height: 100px;
   height: 100%;
   overflow: hidden;
@@ -131,11 +131,11 @@ const DateSelected = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   ${overflowEllipsis};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
   padding-left: ${space(1)};
 `;
 

@@ -2,9 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import Link from 'app/components/links/link';
 
 export type StatsPeriod = '24h' | '14d';
 
@@ -55,11 +55,11 @@ const Wrapper = styled('div')`
 `;
 
 const Period = styled(Link)<{selected: boolean}>`
-  color: ${p => (p.selected ? p.theme.gray600 : p.theme.gray500)};
+  color: ${p => (p.selected ? p.theme.gray400 : p.theme.gray300)};
 
   &:hover,
   &:focus {
-    color: ${p => (p.selected ? p.theme.gray600 : p.theme.gray500)};
+    color: ${p => (p.selected ? p.theme.gray400 : p.theme.gray300)};
   }
 `;
 

@@ -9,9 +9,9 @@
  */
 import zipWith from 'lodash/zipWith';
 
-import {OPERATOR} from 'app/views/discover/data';
 import {escapeQuotes} from 'app/components/events/interfaces/utils';
-import {Organization, GlobalSelection} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
+import {OPERATOR} from 'app/views/discover/data';
 import {Condition, Query} from 'app/views/discover/types';
 
 import {getEventsUrlPathFromDiscoverQuery} from './getEventsUrlPathFromDiscoverQuery';

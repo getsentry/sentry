@@ -2,11 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {t} from 'app/locale';
-import {IconClose} from 'app/icons/iconClose';
-import {callIfFunction} from 'app/utils/callIfFunction';
 import Button from 'app/components/button';
 import {IconSearch} from 'app/icons';
+import {IconClose} from 'app/icons/iconClose';
+import {t} from 'app/locale';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 type DefaultProps = {
   query: string;
@@ -103,7 +103,7 @@ class SearchBar extends React.PureComponent<Props, State> {
               onChange={this.onQueryChange}
               width={width}
             />
-            <StyledIconSearch className="search-input-icon" size="sm" color="gray500" />
+            <StyledIconSearch className="search-input-icon" size="sm" color="gray300" />
             {this.state.query !== this.props.defaultQuery && (
               <SearchClearButton
                 type="button"
@@ -140,10 +140,10 @@ const SearchClearButton = styled(Button)`
   transform: translateY(-50%);
   right: 10px;
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
 
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
 

@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {AvatarUser, Commit} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
+import {AvatarUser, Commit} from 'app/types';
 
 type Props = {
   commit: Commit;

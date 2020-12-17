@@ -1,14 +1,14 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Team, Project, Scope} from 'app/types';
+import PageHeading from 'app/components/pageHeading';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import PageHeading from 'app/components/pageHeading';
+import {Project, Scope, Team} from 'app/types';
 
-import TeamMembers from './teamMembers';
 import ProjectCard from './projectCard';
+import TeamMembers from './teamMembers';
 
 type Props = {
   team: Team;
@@ -71,7 +71,7 @@ const ProjectCards = styled('div')`
 `;
 
 const TeamSectionWrapper = styled('div')<{showBorder: boolean}>`
-  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.borderLight : 0)};
+  border-bottom: ${p => (p.showBorder ? '1px solid ' + p.theme.border : 0)};
   padding: 0 ${space(4)} ${space(4)};
 `;
 

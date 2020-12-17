@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
-import {t} from 'app/locale';
-import {IconFilter} from 'app/icons';
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import Tooltip from 'app/components/tooltip';
+import {IconFilter} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
@@ -15,8 +15,8 @@ type Props = {
   isAbsolute: boolean;
   isFoundByStackScanning: boolean;
   isInlineFrame: boolean;
-  relativeAddressMaxlength: number;
-  onToggle: (event: React.MouseEvent<SVGElement>) => void;
+  relativeAddressMaxlength?: number;
+  onToggle?: (event: React.MouseEvent<SVGElement>) => void;
 };
 
 const TogglableAddress = ({
@@ -66,10 +66,10 @@ const TogglableAddress = ({
     <Wrapper>
       {canBeConverted && (
         <AddressIconTooltip
-          title={isAbsolute ? t('Switch to absolute') : t('Switch to relative')}
+          title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
           containerDisplayMode="inline-flex"
         >
-          <AddressToggleIcon onClick={onToggle} size="xs" color="purple400" />
+          <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
         </AddressIconTooltip>
       )}
       <Tooltip title={tooltipTitle} disabled={!(isFoundByStackScanning || isInlineFrame)}>
@@ -103,11 +103,11 @@ const getAddresstextBorderBottom = (
   p: Pick<Partial<Props>, 'isFoundByStackScanning' | 'isInlineFrame'> & {theme: Theme}
 ) => {
   if (p.isFoundByStackScanning) {
-    return `1px dashed ${p.theme.red400}`;
+    return `1px dashed ${p.theme.red300}`;
   }
 
   if (p.isInlineFrame) {
-    return `1px dashed ${p.theme.blue400}`;
+    return `1px dashed ${p.theme.blue300}`;
   }
 
   return 'none';
@@ -123,7 +123,7 @@ const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
 const Wrapper = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   letter-spacing: -0.25px;
   width: 100%;
   flex-grow: 0;

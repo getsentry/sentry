@@ -1,9 +1,7 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {Organization, SavedSearch} from 'app/types';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -11,9 +9,11 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Organization, SavedSearch} from 'app/types';
 
 type Props = {
   organization: Organization;
@@ -104,29 +104,24 @@ export default class SavedSearchSelector extends React.Component<Props> {
 
   render() {
     return (
-      <Container>
-        <DropdownControl
-          menuWidth="35vw"
-          blendWithActor
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
-              <ButtonTitle>{this.getTitle()}</ButtonTitle>
-            </StyledDropdownButton>
-          )}
-        >
-          {this.renderList()}
-        </DropdownControl>
-      </Container>
+      <DropdownControl
+        menuWidth="35vw"
+        blendWithActor
+        button={({isOpen, getActorProps}) => (
+          <StyledDropdownButton {...getActorProps()} isOpen={isOpen}>
+            <ButtonTitle>{this.getTitle()}</ButtonTitle>
+          </StyledDropdownButton>
+        )}
+      >
+        {this.renderList()}
+      </DropdownControl>
     );
   }
 }
 
-const Container = styled('div')`
-  position: relative;
-  display: block;
-`;
-
 const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.textColor};
+  background-color: ${p => p.theme.background};
   border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
@@ -135,6 +130,7 @@ const StyledDropdownButton = styled(DropdownButton)`
       : `${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
   white-space: nowrap;
   max-width: 200px;
+  margin-right: 0;
 
   &:hover,
   &:active {
@@ -147,7 +143,7 @@ const ButtonTitle = styled('span')`
 `;
 
 const SearchTitle = styled('strong')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
 
@@ -157,19 +153,19 @@ const SearchTitle = styled('strong')`
 `;
 
 const SearchQuery = styled('code')`
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   padding: 0;
   background: inherit;
 `;
 
 const TooltipSearchQuery = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-weight: normal;
   font-family: ${p => p.theme.text.familyMono};
 `;
 
 const DeleteButton = styled(Button)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   background: transparent;
   flex-shrink: 0;
   padding: ${space(1.5)} ${space(1.5)} ${space(1)} 0;
@@ -182,14 +178,15 @@ const DeleteButton = styled(Button)`
 
 const MenuItem = styled('li')<{last: boolean}>`
   display: flex;
+  background-color: ${p => p.theme.background};
 
   position: relative;
-  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.borderLight}` : null)};
+  border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
   & :hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 

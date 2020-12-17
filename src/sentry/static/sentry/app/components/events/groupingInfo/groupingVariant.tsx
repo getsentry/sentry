@@ -2,19 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {t} from 'app/locale';
-import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
-import {EventGroupVariant, EventGroupVariantType, EventGroupComponent} from 'app/types';
-import ButtonBar from 'app/components/buttonBar';
 import Button from 'app/components/button';
-import {IconCheckmark, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import Tooltip from 'app/components/tooltip';
+import ButtonBar from 'app/components/buttonBar';
+import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import QuestionTooltip from 'app/components/questionTooltip';
+import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {EventGroupComponent, EventGroupVariant, EventGroupVariantType} from 'app/types';
 
-import {hasNonContributingComponent} from './utils';
 import GroupingComponent from './groupingComponent';
+import {hasNonContributingComponent} from './utils';
 
 type Props = {
   variant: EventGroupVariant;
@@ -26,6 +26,40 @@ type State = {
 };
 
 type VariantData = [string, React.ReactNode][];
+
+function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
+  if (variant.matched_rule) {
+    data.push([
+      t('Fingerprint rule'),
+      <TextWithQuestionTooltip key="type">
+        {variant.matched_rule}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t('The server-side fingerprinting rule that produced the fingerprint.')}
+        />
+      </TextWithQuestionTooltip>,
+    ]);
+  }
+  if (variant.values) {
+    data.push([t('Fingerprint values'), variant.values]);
+  }
+  if (variant.client_values) {
+    data.push([
+      t('Client fingerprint values'),
+      <TextWithQuestionTooltip key="type">
+        {variant.client_values}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t(
+            'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
+          )}
+        />
+      </TextWithQuestionTooltip>,
+    ]);
+  }
+}
 
 class GroupVariant extends React.Component<Props, State> {
   state = {
@@ -102,9 +136,7 @@ class GroupVariant extends React.Component<Props, State> {
             />
           </TextWithQuestionTooltip>,
         ]);
-        if (variant.values) {
-          data.push([t('Fingerprint values'), variant.values]);
-        }
+        addFingerprintInfo(data, variant);
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
@@ -121,9 +153,7 @@ class GroupVariant extends React.Component<Props, State> {
             />
           </TextWithQuestionTooltip>,
         ]);
-        if (variant.values) {
-          data.push([t('Fingerprint values'), variant.values]);
-        }
+        addFingerprintInfo(data, variant);
         if (showGroupingConfig && variant.config?.id) {
           data.push([t('Grouping Config'), variant.config.id]);
         }
@@ -231,7 +261,7 @@ const VariantTitle = styled('h5')`
 
 const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
-    <IconCheckmark size="sm" isCircled color="green400" {...p} />
+    <IconCheckmark size="sm" isCircled color="green300" {...p} />
   ) : (
     <IconClose size="sm" isCircled color="red" {...p} />
   )

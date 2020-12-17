@@ -2,12 +2,12 @@ import React from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {PanelItem} from 'app/components/panels';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import PluginIcon from 'app/plugins/components/pluginIcon';
 import {openModal} from 'app/actionCreators/modal';
 import SentryAppPublishRequestModal from 'app/components/modals/sentryAppPublishRequestModal';
+import {PanelItem} from 'app/components/panels';
+import {t} from 'app/locale';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import space from 'app/styles/space';
 import {Organization, SentryApp} from 'app/types';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
@@ -122,7 +122,7 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   </CenterFlex>
 ))`
   color: ${(props: PublishStatusProps) =>
-    props.status === 'published' ? props.theme.success : props.theme.gray500};
+    props.status === 'published' ? props.theme.success : props.theme.gray300};
   font-weight: light;
   margin-right: ${space(0.75)};
 `;

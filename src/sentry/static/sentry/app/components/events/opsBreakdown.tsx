@@ -2,17 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
-import {Event, SentryTransactionEvent} from 'app/types';
+import {SectionHeading} from 'app/components/charts/styles';
 import {
-  SpanEntry,
   RawSpanType,
+  SpanEntry,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
-import QuestionTooltip from 'app/components/questionTooltip';
-import {SectionHeading} from 'app/components/charts/styles';
 import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Event, SentryTransactionEvent} from 'app/types';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -69,7 +69,9 @@ class OpsBreakdown extends React.Component<Props> {
     }
 
     const spanEntry: SpanEntry | undefined = event.entries.find(
-      (entry: {type: string}) => entry.type === 'spans'
+      (entry: SpanEntry | any): entry is SpanEntry => {
+        return entry.type === 'spans';
+      }
     );
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];
@@ -258,7 +260,6 @@ class OpsBreakdown extends React.Component<Props> {
 }
 
 const StyledBreakdown = styled('div')`
-  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(4)};
 `;
@@ -299,7 +300,7 @@ const OpsName = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const Pct = styled('div')`

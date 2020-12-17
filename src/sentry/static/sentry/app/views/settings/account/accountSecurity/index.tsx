@@ -1,27 +1,27 @@
-import * as ReactRouter from 'react-router';
 import React from 'react';
+import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
-import {Authenticator, OrganizationSummary} from 'app/types';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import Field from 'app/views/settings/components/forms/field';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
-import PasswordForm from 'app/views/settings/account/passwordForm';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Authenticator, OrganizationSummary} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import AsyncView from 'app/views/asyncView';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
+import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
+import PasswordForm from 'app/views/settings/account/passwordForm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import Tooltip from 'app/components/tooltip';
-import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
-import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
 
 type Props = {
   authenticators: Authenticator[] | null;
@@ -40,7 +40,7 @@ class AccountSecurity extends AsyncView<Props> {
     return t('Security');
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [];
   }
 

@@ -1,41 +1,53 @@
 import React from 'react';
-import {Location} from 'history';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import throttle from 'lodash/throttle';
 
-import {Organization} from 'app/types';
+import Feature from 'app/components/acl/feature';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
-import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
-import Tag from 'app/components/tagDeprecated';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import DiscoverButton from 'app/components/discoverButton';
+import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
-import {tokenizeSearch, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import theme from 'app/utils/theme';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
-import {NUM_BUCKETS} from './constants';
-import {Card, CardSummary, CardSectionHeading, StatNumber, Description} from './styles';
-import {HistogramData, Vital, Rectangle} from './types';
-import {findNearestBucketIndex, getRefRect, asPixelRect, mapPoint} from './utils';
+import {
+  VitalState,
+  vitalStateColors,
+  webVitalMeh,
+  webVitalPoor,
+} from '../vitalDetail/utils';
+import VitalInfo from '../vitalDetail/vitalInfo';
+
+import {NUM_BUCKETS, PERCENTILE} from './constants';
+import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
+import {HistogramData, Rectangle, Vital} from './types';
+import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
   location: Location;
   organization: Organization;
   isLoading: boolean;
   error: boolean;
-  vital: Vital;
+  vital: WebVital;
+  vitalDetails: Vital;
   summary: number | null;
   failureRate: number;
   chartData: HistogramData[];
@@ -100,8 +112,24 @@ class VitalCard extends React.Component<Props, State> {
     return {...prevState};
   }
 
+  showVitalColours() {
+    return this.props.organization.features.includes('performance-vitals-overview');
+  }
+
+  trackOpenInDiscoverClicked = () => {
+    const {organization} = this.props;
+    const {vitalDetails: vital} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.open_in_discover',
+      eventName: 'Performance Views: Open vitals in discover',
+      organization_id: organization.id,
+      vital: vital.slug,
+    });
+  };
+
   getFormattedStatNumber() {
-    const {summary, vital} = this.props;
+    const {summary, vitalDetails: vital} = this.props;
     const {type} = vital;
 
     return summary === null
@@ -112,7 +140,15 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {summary, vital, colors, eventView, organization, min, max} = this.props;
+    const {
+      summary,
+      vitalDetails: vital,
+      colors,
+      eventView,
+      organization,
+      min,
+      max,
+    } = this.props;
     const {slug, name, description, failureThreshold} = vital;
 
     const column = `measurements.${slug}`;
@@ -120,40 +156,48 @@ class VitalCard extends React.Component<Props, State> {
     const newEventView = eventView
       .withColumns([
         {kind: 'field', field: 'transaction'},
-        {kind: 'field', field: 'user.display'},
-        {kind: 'field', field: column},
+        {kind: 'function', function: ['percentile', column, PERCENTILE.toString()]},
+        {kind: 'function', function: ['count', '', '']},
       ])
-      .withSorts([{kind: 'desc', field: column}]);
+      .withSorts([
+        {
+          kind: 'desc',
+          field: getAggregateAlias(`percentile(${column},${PERCENTILE.toString()})`),
+        },
+      ]);
 
+    const query = tokenizeSearch(newEventView.query ?? '');
+    query.addTagValues('has', [column]);
     // add in any range constraints if any
     if (min !== undefined || max !== undefined) {
-      const query = tokenizeSearch(newEventView.query ?? '');
       if (min !== undefined) {
         query.addTagValues(column, [`>=${min}`]);
       }
       if (max !== undefined) {
         query.addTagValues(column, [`<=${max}`]);
       }
-      newEventView.query = stringifyQueryObject(query);
     }
+    newEventView.query = stringifyQueryObject(query);
 
     return (
       <CardSummary>
-        <Indicator color={colors[0]} />
-        <CardSectionHeading>
-          {`${name} (${slug.toUpperCase()})`}
-          {summary === null ? null : summary < failureThreshold ? (
-            <StyledTag color={theme.purple500}>{t('pass')}</StyledTag>
+        {!this.showVitalColours() && <Indicator color={colors[0]} />}
+        <SummaryHeading>
+          <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
+          {summary === null || this.showVitalColours() ? null : summary <
+            failureThreshold ? (
+            <Tag>{t('Pass')}</Tag>
           ) : (
-            <StyledTag color={theme.red400}>{t('fail')}</StyledTag>
+            <StyledTag>{t('Fail')}</StyledTag>
           )}
-        </CardSectionHeading>
+        </SummaryHeading>
         <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
         <Description>{description}</Description>
         <div>
           <DiscoverButton
             size="small"
             to={newEventView.getResultsViewUrlTarget(organization.slug)}
+            onClick={this.trackOpenInDiscoverClicked}
           >
             {t('Open in Discover')}
           </DiscoverButton>
@@ -163,13 +207,13 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   /**
-   * This callback happens everytime ECharts finishes rendering. This includes
-   * when it finishes rendering tooltips, so it can be called quite frequently.
-   * The calculations here can get expensive if done frequently, furthermore,
-   * this can trigger a state change leading to a re-render. So slow down the
-   * updates here as they do not need to be updated every single time.
+   * This callback happens everytime ECharts renders. This is NOT when ECharts
+   * finishes rendering, so it can be called quite frequently. The calculations
+   * here can get expensive if done frequently, furthermore, this can trigger a
+   * state change leading to a re-render. So slow down the updates here as they
+   * do not need to be updated every single time.
    */
-  handleFinished = debounce(
+  handleRendered = throttle(
     (_, chartRef) => {
       const {chartData} = this.props;
       const {refDataRect} = this.state;
@@ -185,23 +229,30 @@ class VitalCard extends React.Component<Props, State> {
       }
     },
     200,
-    {leading: true, trailing: true, maxWait: 1000}
+    {leading: true}
   );
 
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, colors, vital, precision = 0} = this.props;
-    const {slug} = vital;
+    const {
+      location,
+      organization,
+      isLoading,
+      error,
+      colors,
+      vital,
+      vitalDetails,
+      eventView,
+      precision = 0,
+    } = this.props;
+    const {slug} = vitalDetails;
 
-    const series = this.getTransformedData();
+    const series = this.getSeries();
 
     const xAxis = {
-      type: 'category',
+      type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         alignWithLabel: true,
       },
@@ -211,13 +262,27 @@ class VitalCard extends React.Component<Props, State> {
     const max = values.length ? Math.max(...values) : undefined;
 
     const yAxis = {
-      type: 'value',
+      type: 'value' as const,
       max,
       axisLabel: {
-        color: theme.gray400,
+        color: theme.chartLabel,
         formatter: formatAbbreviatedNumber,
       },
     };
+
+    const allSeries = [series];
+    if (!isLoading && !error) {
+      const baselineSeries = this.getBaselineSeries();
+      if (baselineSeries !== null) {
+        allSeries.push(baselineSeries);
+      }
+      if (!this.showVitalColours()) {
+        const failureSeries = this.getFailureSeries();
+        if (failureSeries !== null) {
+          allSeries.push(failureSeries);
+        }
+      }
+    }
 
     return (
       <BarChartZoom
@@ -230,15 +295,32 @@ class VitalCard extends React.Component<Props, State> {
         onDataZoomCancelled={this.handleDataZoomCancelled}
       >
         {zoomRenderProps => (
-          <BarChart
-            series={[series]}
-            xAxis={xAxis}
-            yAxis={yAxis}
-            colors={colors}
-            onFinished={this.handleFinished}
-            grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
-            {...zoomRenderProps}
-          />
+          <Container>
+            <TransparentLoadingMask visible={isLoading} />
+            <Feature features={['organizations:performance-vitals-overview']}>
+              <PercentContainer>
+                <VitalInfo
+                  eventView={eventView}
+                  organization={organization}
+                  location={location}
+                  vitalName={vital}
+                  hideBar
+                  hideVitalPercentNames
+                  hideDurationDetail
+                />
+              </PercentContainer>
+            </Feature>
+            <BarChart
+              series={allSeries}
+              xAxis={xAxis}
+              yAxis={yAxis}
+              colors={colors}
+              onRendered={this.handleRendered}
+              grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
+              stacked
+              {...zoomRenderProps}
+            />
+          </Container>
         )}
       </BarChartZoom>
     );
@@ -265,15 +347,15 @@ class VitalCard extends React.Component<Props, State> {
     });
   }
 
-  getTransformedData() {
-    const {chartData, vital} = this.props;
+  getSeries() {
+    const {chartData, vitalDetails, vital} = this.props;
     const bucketWidth = this.bucketWidth();
 
     const seriesData = chartData.map(item => {
       const bucket = item.histogram;
       const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
       const name =
-        vital.type === 'duration'
+        vitalDetails.type === 'duration'
           ? formatDuration(midPoint)
           : // This is trying to avoid some of potential rounding errors that cause bins
             // have the same label, if the number of bins doesn't visually match what is
@@ -281,32 +363,51 @@ class VitalCard extends React.Component<Props, State> {
             // consider formatting the bin as a string in the response
             (Math.round((midPoint + Number.EPSILON) * 100) / 100).toLocaleString();
 
+      const value = item.count;
+
+      if (this.showVitalColours()) {
+        return {
+          value,
+          name,
+          itemStyle: {color: this.getVitalsColor(vital, midPoint)},
+        };
+      }
+
       return {
-        value: item.count,
+        value,
         name,
       };
     });
 
-    const series = {
+    return {
       seriesName: t('Count'),
       data: seriesData,
     };
-
-    this.drawBaselineValue(series);
-    this.drawFailRegion(series);
-
-    return series;
   }
 
-  drawBaselineValue(series) {
+  getVitalsColor(vital: WebVital, value: number) {
+    const poorThreshold = webVitalPoor[vital];
+    const mehThreshold = webVitalMeh[vital];
+
+    if (value > poorThreshold) {
+      return vitalStateColors[VitalState.POOR];
+    } else if (value > mehThreshold) {
+      return vitalStateColors[VitalState.MEH];
+    } else {
+      return vitalStateColors[VitalState.GOOD];
+    }
+  }
+  d;
+
+  getBaselineSeries() {
     const {chartData, summary} = this.props;
     if (summary === null || this.state.refPixelRect === null) {
-      return;
+      return null;
     }
 
     const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
     if (summaryBucket === null || summaryBucket === -1) {
-      return;
+      return null;
     }
 
     const thresholdPixelBottom = mapPoint(
@@ -319,7 +420,7 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refPixelRect!
     );
     if (thresholdPixelBottom === null) {
-      return;
+      return null;
     }
 
     const thresholdPixelTop = mapPoint(
@@ -332,16 +433,17 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refPixelRect!
     );
     if (thresholdPixelTop === null) {
-      return;
+      return null;
     }
 
-    series.markLine = MarkLine({
+    const markLine = MarkLine({
+      animationDuration: 200,
       data: [[thresholdPixelBottom, thresholdPixelTop] as any],
       label: {
         show: false,
       },
       lineStyle: {
-        color: theme.gray700,
+        color: theme.textColor,
         type: 'solid',
       },
     });
@@ -349,7 +451,7 @@ class VitalCard extends React.Component<Props, State> {
     // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
     // if we add it in the constructor. So we opt to add it here so typescript
     // doesn't complain.
-    series.markLine.tooltip = {
+    (markLine as any).tooltip = {
       formatter: () => {
         return [
           '<div class="tooltip-series tooltip-series-solo">',
@@ -361,13 +463,19 @@ class VitalCard extends React.Component<Props, State> {
         ].join('');
       },
     };
+
+    return {
+      seriesName: t('Baseline'),
+      data: [],
+      markLine,
+    };
   }
 
-  drawFailRegion(series) {
-    const {chartData, vital, failureRate} = this.props;
+  getFailureSeries() {
+    const {chartData, vitalDetails: vital, failureRate} = this.props;
     const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
-      return;
+      return null;
     }
 
     let failureBucket = findNearestBucketIndex(
@@ -376,7 +484,7 @@ class VitalCard extends React.Component<Props, State> {
       failureThreshold
     );
     if (failureBucket === null) {
-      return;
+      return null;
     }
     failureBucket = failureBucket === -1 ? 0 : failureBucket;
 
@@ -393,28 +501,67 @@ class VitalCard extends React.Component<Props, State> {
       this.state.refPixelRect!
     );
     if (failurePixel === null) {
-      return;
+      return null;
     }
 
-    series.markArea = MarkArea({
+    const topRightPixel = mapPoint(
+      {
+        // subtract 0.5 to get on the right side of the right most bar
+        x: chartData.length - 0.5,
+        y: Math.max(...chartData.map(data => data.count)) || 1,
+      },
+      this.state.refDataRect!,
+      this.state.refPixelRect!
+    );
+    if (topRightPixel === null) {
+      return null;
+    }
+
+    // Using a MarkArea means that hovering over the interior of the area
+    // will trigger the tooltip for the MarkArea, making it impossible to
+    // see outliers with the tooltip. So we get around this using lines.
+    const markLine = MarkLine({
+      animation: false,
       data: [
+        // left
         [
-          {x: failurePixel.x, yAxis: 0},
-          {x: 'max', y: 'max'},
+          {x: failurePixel.x, y: failurePixel.y},
+          {x: failurePixel.x, y: topRightPixel.y},
         ] as any,
+        // top
+        [
+          {x: failurePixel.x, y: topRightPixel.y},
+          {x: topRightPixel.x, y: topRightPixel.y},
+        ] as any,
+        // right
+        [
+          {x: topRightPixel.x, y: topRightPixel.y},
+          {x: topRightPixel.x, y: failurePixel.y},
+        ] as any,
+        // We do not draw the bottom line of the the box because it
+        // partially obscures possible outliers.
       ],
-      itemStyle: {
-        color: 'transparent',
-        borderColor: theme.red400,
-        borderWidth: 1.5,
-        borderType: 'dashed',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        color: theme.red300,
+        type: 'dashed',
+        width: 1.5,
+        // prevent each individual line from looking emphasized
+        // by styling it the same as the unemphasized line
+        emphasis: {
+          color: theme.red300,
+          type: 'dashed',
+          width: 1.5,
+        },
       },
     });
 
-    // TODO(tonyx): This conflicts with the types declaration of `MarkArea`
+    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
     // if we add it in the constructor. So we opt to add it here so typescript
     // doesn't complain.
-    series.markArea.tooltip = {
+    (markLine as any).tooltip = {
       formatter: () =>
         [
           '<div class="tooltip-series tooltip-series-solo">',
@@ -433,22 +580,10 @@ class VitalCard extends React.Component<Props, State> {
         ].join(''),
     };
 
-    const topRightPixel = mapPoint(
-      {
-        // subtract 0.5 to get on the right side of the right most bar
-        x: chartData.length - 0.5,
-        y: Math.max(...chartData.map(data => data.count)) || 1,
-      },
-      this.state.refDataRect!,
-      this.state.refPixelRect!
-    );
-    if (topRightPixel === null) {
-      return;
-    }
-
-    series.markPoint = MarkPoint({
+    const markPoint = MarkPoint({
+      animationDuration: 200,
       data: [{x: topRightPixel.x - 16, y: topRightPixel.y + 16}] as any,
-      itemStyle: {color: theme.red400},
+      itemStyle: {color: theme.red300},
       silent: true,
       symbol: `path://${FIRE_SVG_PATH}`,
       symbolKeepAspect: true,
@@ -458,6 +593,13 @@ class VitalCard extends React.Component<Props, State> {
         position: 'left',
       },
     });
+
+    return {
+      seriesName: t('Failure Region'),
+      data: [],
+      markLine,
+      markPoint,
+    };
   }
 
   render() {
@@ -479,20 +621,34 @@ const Indicator = styled('div')<IndicatorProps>`
   top: 20px;
   left: 0px;
   width: 6px;
-  height: 18px;
+  height: 20px;
   border-radius: 0 3px 3px 0;
   background-color: ${p => p.color};
 `;
 
-type TagProps = {
-  color: string;
-};
+const SummaryHeading = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
 
-const StyledTag = styled(Tag)<TagProps>`
+const Container = styled('div')`
+  position: relative;
+`;
+
+const PercentContainer = styled('div')`
   position: absolute;
+  top: ${space(2)};
   right: ${space(3)};
-  background-color: ${p => p.color};
-  color: ${p => p.theme.white};
+  z-index: 2;
+`;
+
+const StyledTag = styled(Tag)`
+  div {
+    background-color: ${p => p.theme.red300};
+  }
+  span {
+    color: ${p => p.theme.white};
+  }
 `;
 
 function formatDuration(duration: number) {

@@ -1,28 +1,35 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Project, Organization} from 'app/types';
-import {analytics} from 'app/utils/analytics';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import OnboardingPanel from 'app/components/onboardingPanel';
-import withProject from 'app/utils/withProject';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FeatureTourModal, {
-  TourStep,
   TourImage,
+  TourStep,
   TourText,
 } from 'app/components/modals/featureTourModal';
+import OnboardingPanel from 'app/components/onboardingPanel';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncView from 'app/views/asyncView';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
 import commitImage from '../../../../images/spot/releases-tour-commits.svg';
-import statsImage from '../../../../images/spot/releases-tour-stats.svg';
-import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
 import emailImage from '../../../../images/spot/releases-tour-email.svg';
+import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
+import statsImage from '../../../../images/spot/releases-tour-stats.svg';
 
-const TOUR_STEPS: TourStep[] = [
+const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
+
+const docsLink = (
+  <Button external href={releasesSetupUrl}>
+    {t('Setup')}
+  </Button>
+);
+
+export const RELEASES_TOUR_STEPS: TourStep[] = [
   {
     title: t('Suspect Commits'),
     image: <TourImage src={commitImage} />,
@@ -33,6 +40,7 @@ const TOUR_STEPS: TourStep[] = [
         )}
       </TourText>
     ),
+    actions: docsLink,
   },
   {
     title: t('Release Stats'),
@@ -44,6 +52,7 @@ const TOUR_STEPS: TourStep[] = [
         )}
       </TourText>
     ),
+    actions: docsLink,
   },
   {
     title: t('Easily Resolve'),
@@ -55,6 +64,7 @@ const TOUR_STEPS: TourStep[] = [
         )}
       </TourText>
     ),
+    actions: docsLink,
   },
   {
     title: t('Deploy Emails'),
@@ -69,11 +79,9 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const setupDocs = 'https://docs.sentry.io/product/releases/';
-
 type Props = {
   organization: Organization;
-  project: Project;
+  projectId?: number;
 } & AsyncView['props'];
 
 class ReleaseLanding extends AsyncView<Props> {
@@ -90,10 +98,10 @@ class ReleaseLanding extends AsyncView<Props> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {organization, projectId} = this.props;
 
     if (this.state.releases.length === 0) {
-      return <Promo organization={organization} project={project} />;
+      return <Promo organization={organization} projectId={projectId} />;
     }
 
     return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
@@ -102,27 +110,44 @@ class ReleaseLanding extends AsyncView<Props> {
 
 type PromoProps = {
   organization: Organization;
-  project: Project;
+  projectId?: number;
 };
 
 class Promo extends React.Component<PromoProps> {
   componentDidMount() {
-    const {organization, project} = this.props;
+    const {organization, projectId} = this.props;
 
-    analytics('releases.landing_card_viewed', {
-      org_id: parseInt(organization.id, 10),
-      project_id: project && parseInt(project.id, 10),
+    trackAnalyticsEvent({
+      eventKey: 'releases.landing_card_viewed',
+      eventName: 'Releases: Landing Card Viewed',
+      organization_id: parseInt(organization.id, 10),
+      project_id: projectId,
     });
   }
 
-  handleAdvance = (index: number) => {
-    const {organization, project} = this.props;
+  handleTourAdvance = (step: number, duration: number) => {
+    const {organization, projectId} = this.props;
 
-    analytics('releases.landing_card_clicked', {
-      org_id: parseInt(organization.id, 10),
-      project_id: project && parseInt(project.id, 10),
-      step_id: index,
-      step_title: TOUR_STEPS[index].title,
+    trackAnalyticsEvent({
+      eventKey: 'releases.tour.advance',
+      eventName: 'Releases: Tour Advance',
+      organization_id: parseInt(organization.id, 10),
+      project_id: projectId,
+      step,
+      duration,
+    });
+  };
+
+  handleClose = (step: number, duration: number) => {
+    const {organization, projectId} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'releases.tour.close',
+      eventName: 'Releases: Tour Close',
+      organization_id: parseInt(organization.id, 10),
+      project_id: projectId,
+      step,
+      duration,
     });
   };
 
@@ -136,14 +161,20 @@ class Promo extends React.Component<PromoProps> {
           )}
         </p>
         <ButtonList gap={1}>
-          <FeatureTourModal steps={TOUR_STEPS} onAdvance={this.handleAdvance}>
+          <FeatureTourModal
+            steps={RELEASES_TOUR_STEPS}
+            onAdvance={this.handleTourAdvance}
+            onCloseModal={this.handleClose}
+            doneText={t('Start Setup')}
+            doneUrl={releasesSetupUrl}
+          >
             {({showModal}) => (
               <Button priority="default" onClick={showModal}>
                 {t('Take a Tour')}
               </Button>
             )}
           </FeatureTourModal>
-          <Button priority="primary" href={setupDocs} external>
+          <Button priority="primary" href={releasesSetupUrl} external>
             {t('Start Setup')}
           </Button>
         </ButtonList>
@@ -156,4 +187,4 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-export default withProject(ReleaseLanding);
+export default ReleaseLanding;

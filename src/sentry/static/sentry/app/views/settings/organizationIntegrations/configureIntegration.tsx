@@ -1,26 +1,28 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
-import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import {IconAdd} from 'app/icons';
-import Form from 'app/views/settings/components/forms/form';
-import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
-import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, IntegrationWithConfig, IntegrationProvider} from 'app/types';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
+import NavTabs from 'app/components/navTabs';
+import {IconAdd, IconArrow} from 'app/icons';
+import {t} from 'app/locale';
+import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
-import Alert from 'app/components/alert';
-import NavTabs from 'app/components/navTabs';
+import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
+import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
+import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 type RouteParams = {
   orgId: string;
@@ -38,13 +40,20 @@ type State = AsyncView['state'] & {
   tab?: Tab;
 };
 class ConfigureIntegration extends AsyncView<Props, State> {
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, integrationId} = this.props.params;
 
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integration', `/organizations/${orgId}/integrations/${integrationId}/`],
     ];
+  }
+
+  componentDidMount() {
+    const {location} = this.props;
+    const value = location.query.tab === 'codeMappings' ? 'codeMappings' : 'repos';
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({tab: value});
   }
 
   onRequestSuccess({stateKey, data}) {
@@ -114,6 +123,9 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     const {orgId} = this.props.params;
     const {integration} = this.state;
 
+    const instructions =
+      integration.dynamicDisplayInformation?.configure_integration?.instructions;
+
     return (
       <React.Fragment>
         <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
@@ -137,12 +149,24 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           </Form>
         )}
 
-        {integration.dynamicDisplayInformation?.configure_integration?.instructions.map(
-          (instruction, i) => (
-            <Alert type="info" key={i}>
-              <span dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}} />
-            </Alert>
-          )
+        {instructions && instructions.length > 0 && (
+          <Alert type="info">
+            {instructions?.length === 1 ? (
+              <span
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0])}}
+              />
+            ) : (
+              <List symbol={<IconArrow size="xs" direction="right" />}>
+                {instructions?.map((instruction, i) => (
+                  <ListItem key={i}>
+                    <span
+                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
+                    />
+                  </ListItem>
+                )) ?? []}
+              </List>
+            )}
+          </Alert>
         )}
 
         {provider.features.includes('alert-rule') && (

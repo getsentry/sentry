@@ -1,17 +1,18 @@
 import React from 'react';
-import {MultiGrid, AutoSizer} from 'react-virtualized';
+import {AutoSizer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
-import {t} from 'app/locale';
-import ExternalLink from 'app/components/links/externalLink';
-import Tooltip from 'app/components/tooltip';
-import Panel from 'app/components/panels/panel';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ExternalLink from 'app/components/links/externalLink';
+import Panel from 'app/components/panels/panel';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import {getDisplayValue, getDisplayText} from './utils';
 import {Query, SnubaResult} from '../types';
+
+import {getDisplayText, getDisplayValue} from './utils';
 
 const TABLE_ROW_HEIGHT = 30;
 const TABLE_ROW_BORDER = 1;
@@ -328,13 +329,13 @@ const Grid = styled('div')<{visibleRows: number}>`
 ` as any;
 
 const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
-  ${p => !p.isOddRow && `background-color: ${p.theme.gray100};`};
+  ${p => !p.isOddRow && `background-color: ${p.theme.backgroundSecondary};`};
   ${p => `text-align: ${p.align};`};
   overflow: scroll;
   font-size: 14px;
   line-height: ${TABLE_ROW_HEIGHT}px;
   padding: 0 10px;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   ::-webkit-scrollbar {
     display: none;
@@ -348,10 +349,10 @@ const Cell = styled('div')<{isOddRow: boolean; align: 'right' | 'left'}>`
 ` as any;
 
 const TableHeader = styled(Cell)`
-  background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
   border-top: none;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   &:first-of-type {
     border-top-left-radius: 3px;
   }

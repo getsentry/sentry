@@ -1,13 +1,13 @@
 import React from 'react';
 
+import {getTraceContext} from 'app/components/events/interfaces/spans/utils';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {Event} from 'app/types';
-import {IconWarning} from 'app/icons';
-import {getTraceContext} from 'app/components/events/interfaces/spans/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-import {isTransactionEvent} from './utils';
 import SpanTree from './spanTree';
+import {isTransactionEvent} from './utils';
 
 type Props = {
   baselineEvent: Event;
@@ -20,7 +20,7 @@ const TraceView = (props: Props) => {
   if (!isTransactionEvent(baselineEvent) || !isTransactionEvent(regressionEvent)) {
     return (
       <EmptyMessage>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
         <p>{t('One of the given events is not a transaction.')}</p>
       </EmptyMessage>
     );
@@ -32,7 +32,7 @@ const TraceView = (props: Props) => {
   if (!baselineTraceContext || !regressionTraceContext) {
     return (
       <EmptyMessage>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
         <p>{t('There is no trace found in either of the given transactions.')}</p>
       </EmptyMessage>
     );

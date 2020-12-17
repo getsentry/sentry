@@ -1,19 +1,19 @@
-import {browserHistory} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
-import {t, tct} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
-import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import AsyncView from 'app/views/asyncView';
+import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import FormModel from 'app/views/settings/components/forms/model';
 
 const userEditForm = {
   title: 'User details',
@@ -196,7 +196,7 @@ const ModalFooter = styled('div')`
   justify-content: end;
   padding: 20px 30px;
   margin: 20px -30px -30px;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
 `;
 
 export default AdminUserEdit;

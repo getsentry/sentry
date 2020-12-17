@@ -2,13 +2,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import Button from 'app/components/button';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import Button from 'app/components/button';
 import theme from 'app/utils/theme';
-import {IconAdd} from 'app/icons';
 
 import SelectorItem from './selectorItem';
 
@@ -28,11 +28,11 @@ type Props = {
   /**
    * Allow selecting multiple projects
    */
-  multi: boolean;
+  multi?: boolean;
   /**
    * Represents if a search is taking place
    */
-  searching: boolean;
+  searching?: boolean;
   /**
    * Represents if the current project selector is paginated or fully loaded.
    * Currently only used to ensure that in an empty state the input is not
@@ -40,7 +40,7 @@ type Props = {
    * does not exist. If we hide the input due to no results, the user cannot
    * recover
    */
-  paginated: boolean;
+  paginated?: boolean;
   /**
    * Callback when a project is selected
    */
@@ -48,7 +48,7 @@ type Props = {
   /**
    * Callback when the input filter changes
    */
-  onFilterChange: () => void;
+  onFilterChange?: () => void;
   /**
    * Callback when projects are selected via the multiple project selector
    * Calls back with (projects[], event)
@@ -221,15 +221,15 @@ export default ProjectSelector;
 
 const Label = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const AddButton = styled(Button)`
   display: block;
   margin: 0 ${space(1)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   :hover {
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.subText};
   }
 `;
 

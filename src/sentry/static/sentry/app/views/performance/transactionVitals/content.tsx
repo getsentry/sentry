@@ -1,23 +1,25 @@
 import React from 'react';
-import {Location} from 'history';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import Button from 'app/components/button';
-import CreateAlertButton from 'app/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import SearchBar from 'app/views/events/searchBar';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 
-import VitalsPanel from './vitalsPanel';
 import TransactionHeader, {Tab} from '../transactionSummary/header';
+
 import {FILTER_OPTIONS, ZOOM_KEYS} from './constants';
+import VitalsPanel from './vitalsPanel';
 
 type Props = {
   location: Location;
@@ -54,7 +56,7 @@ class VitalsContent extends React.Component<Props, State> {
   };
 
   handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertButton
+    typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
     const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
       this.setState({incompatibleAlertNotice: null})
@@ -63,7 +65,13 @@ class VitalsContent extends React.Component<Props, State> {
   };
 
   handleResetView = () => {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.reset_view',
+      eventName: 'Performance Views: Reset vitals view',
+      organization_id: organization.id,
+    });
 
     const query = {...location.query};
     // reset all zoom parameters when resetting the view
@@ -85,7 +93,14 @@ class VitalsContent extends React.Component<Props, State> {
   }
 
   handleFilterChange = (value: string) => {
-    const {location} = this.props;
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.filter_changed',
+      eventName: 'Performance Views: Change vitals filter',
+      organization_id: organization.id,
+      value,
+    });
 
     const query = {
       ...location.query,

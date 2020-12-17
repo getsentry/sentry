@@ -11,8 +11,8 @@ describe('generatePerformanceEventView()', function () {
     expect(result.id).toBeUndefined();
     expect(result.name).toEqual('Performance');
     expect(result.fields.length).toBeGreaterThanOrEqual(7);
-    expect(result.query).toEqual('event.type:transaction');
-    expect(result.sorts).toEqual([{kind: 'desc', field: 'epm'}]);
+    expect(result.query).toEqual('event.type:transaction transaction.duration:<15m');
+    expect(result.sorts).toEqual([{kind: 'desc', field: 'tpm'}]);
     expect(result.statsPeriod).toEqual('24h');
   });
 

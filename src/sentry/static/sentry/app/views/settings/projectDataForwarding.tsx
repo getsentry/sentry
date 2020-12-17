@@ -1,25 +1,24 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import ExternalLink from 'app/components/links/externalLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import {IconInfo} from 'app/icons';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import PluginList from 'app/components/pluginList';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Alert from 'app/components/alert';
+import AsyncComponent from 'app/components/asyncComponent';
 import MiniBarChart from 'app/components/charts/miniBarChart';
-import TextBlock from 'app/views/settings/components/text/textBlock';
-import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
+import ExternalLink from 'app/components/links/externalLink';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginList from 'app/components/pluginList';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {Series} from 'app/types/echarts';
+import {IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
 import {Organization, Plugin, Project, TimeseriesValue} from 'app/types';
+import {Series} from 'app/types/echarts';
+import withOrganization from 'app/utils/withOrganization';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 type RouteParams = {projectId: string; orgId: string};
 
@@ -93,7 +92,7 @@ type State = AsyncComponent['state'] & {
 };
 
 class ProjectDataForwarding extends AsyncComponent<Props, State> {
-  getEndpoints(): [[string, string]] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
 
     return [['plugins', `/projects/${orgId}/${projectId}/plugins/`]];
@@ -191,4 +190,4 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
   }
 }
 
-export default withProject(withOrganization(ProjectDataForwarding));
+export default withOrganization(ProjectDataForwarding);

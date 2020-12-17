@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import * as PopperJS from 'popper.js';
-import {Manager, Reference, Popper} from 'react-popper';
 
-import {t} from 'app/locale';
 import {IconEllipsis} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
 import {TableColumn} from './types';
@@ -355,7 +355,7 @@ class CellAction extends React.Component<Props, State> {
           <Reference>
             {({ref}) => (
               <MenuButton ref={ref} onClick={this.handleMenuToggle}>
-                <IconEllipsis size="sm" data-test-id="cell-action" color="blue400" />
+                <IconEllipsis size="sm" data-test-id="cell-action" color="blue300" />
               </MenuButton>
             )}
           </Reference>
@@ -402,8 +402,8 @@ const Menu = styled('div')`
 `;
 
 const MenuButtons = styled('div')`
-  background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.borderLight};
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   overflow: hidden;
@@ -419,13 +419,13 @@ const MenuArrow = styled('span')`
     margin-top: -9px;
     &::before {
       border-width: 0 9px 9px 9px;
-      border-color: transparent transparent ${p => p.theme.borderLight} transparent;
+      border-color: transparent transparent ${p => p.theme.border} transparent;
     }
     &::after {
       top: 1px;
       left: 1px;
       border-width: 0 8px 8px 8px;
-      border-color: transparent transparent #fff transparent;
+      border-color: transparent transparent ${p => p.theme.background} transparent;
     }
   }
   &[data-placement*='top'] {
@@ -433,13 +433,13 @@ const MenuArrow = styled('span')`
     bottom: 0;
     &::before {
       border-width: 9px 9px 0 9px;
-      border-color: ${p => p.theme.borderLight} transparent transparent transparent;
+      border-color: ${p => p.theme.border} transparent transparent transparent;
     }
     &::after {
       bottom: 1px;
       left: 1px;
       border-width: 8px 8px 0 8px;
-      border-color: #fff transparent transparent transparent;
+      border-color: ${p => p.theme.background} transparent transparent transparent;
     }
   }
 
@@ -462,14 +462,14 @@ const ActionItem = styled('button')`
 
   outline: none;
   border: 0;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: left;
   line-height: 1.2;
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 
   &:last-child {
@@ -487,7 +487,7 @@ const MenuButton = styled('button')`
 
   background: rgba(255, 255, 255, 0.85);
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   cursor: pointer;
   outline: none;
 `;

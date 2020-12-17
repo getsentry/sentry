@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -30,13 +30,13 @@ const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.lightText ? p.theme.gray500 : p.theme.gray600)};
+  color: ${p => (p.lightText ? p.theme.gray300 : p.theme.gray400)};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   line-height: 1;
   position: relative;
   ${getPadding};

@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {t} from '../../locale';
 import ExternalLink from '../links/externalLink';
@@ -46,8 +46,8 @@ export default SidebarPanelItem;
 const SidebarPanelItemRoot = styled('div')`
   padding: 15px 20px;
   line-height: 1.2;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.white};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  background: ${p => p.theme.background};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   font-size: 14px;
 `;
@@ -61,7 +61,7 @@ const ImageBox = styled('div')`
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: 15px;
   margin-bottom: 5px;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
   ${p => !p.hasSeen && 'font-weight: 600;'};
 
   .culprit {
@@ -78,5 +78,5 @@ const Text = styled('div')`
 `;
 
 const Message = styled(Text)`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;

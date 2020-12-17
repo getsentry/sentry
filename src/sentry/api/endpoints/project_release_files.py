@@ -36,7 +36,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         :qparam string query: If set, this parameter is used to search files.
         :auth: required
         """
-        query = request.GET.get("query")
+        query = request.GET.getlist("query")
 
         try:
             release = Release.objects.get(
@@ -50,7 +50,13 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         )
 
         if query:
-            file_list = file_list.filter(Q(name__icontains=query))
+            if not isinstance(query, list):
+                query = [query]
+
+            condition = Q(name__icontains=query[0])
+            for name in query[1:]:
+                condition |= Q(name__icontains=name)
+            file_list = file_list.filter(condition)
 
         return self.paginate(
             request=request,

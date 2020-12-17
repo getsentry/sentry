@@ -1,63 +1,62 @@
 import React from 'react';
-import {Location, Query} from 'history';
-import styled from '@emotion/styled';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
+import {Location, Query} from 'history';
 
-import {Panel} from 'app/components/panels';
-import Pagination from 'app/components/pagination';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, Project, AvatarProject} from 'app/types';
-import {decodeScalar} from 'app/utils/queryString';
-import space from 'app/styles/space';
-import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
-import Link from 'app/components/links/link';
+import {Client} from 'app/api';
+import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import Button from 'app/components/button';
+import Count from 'app/components/count';
+import DropdownLink from 'app/components/dropdownLink';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import Link from 'app/components/links/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/components/menuItem';
+import Pagination from 'app/components/pagination';
+import {Panel} from 'app/components/panels';
+import QuestionTooltip from 'app/components/questionTooltip';
 import Radio from 'app/components/radio';
 import Tooltip from 'app/components/tooltip';
-import Count from 'app/components/count';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {formatPercentage, getDuration} from 'app/utils/formatters';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withProjects from 'app/utils/withProjects';
 import {IconEllipsis} from 'app/icons';
-import MenuItem from 'app/components/menuItem';
-import DropdownLink from 'app/components/dropdownLink';
-import ProjectAvatar from 'app/components/avatar/projectAvatar';
-import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import QuestionTooltip from 'app/components/questionTooltip';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {AvatarProject, Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {formatPercentage, getDuration} from 'app/utils/formatters';
+import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
+import withProjects from 'app/utils/withProjects';
+import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
 
-import TrendsDiscoverQuery from './trendsDiscoverQuery';
+import {HeaderTitleLegend} from '../styles';
+import {DisplayModes} from '../transactionSummary/charts';
+import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+
 import Chart from './chart';
+import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import {
-  TrendChangeType,
-  TrendView,
   NormalizedTrendsTransaction,
+  TrendChangeType,
   TrendFunctionField,
   TrendsStats,
+  TrendView,
 } from './types';
 import {
-  trendToColor,
-  transformValueDelta,
-  transformDeltaSpread,
+  getCurrentConfidenceLevel,
+  getCurrentTrendFunction,
+  getSelectedQueryKey,
+  getTrendProjectId,
   modifyTrendView,
   normalizeTrends,
-  getSelectedQueryKey,
-  getCurrentTrendFunction,
-  getCurrentConfidenceLevel,
-  getTrendBaselinesForTransaction,
-  getIntervalRatio,
   StyledIconArrow,
-  getTrendProjectId,
+  transformDeltaSpread,
+  transformValueDelta,
   trendCursorNames,
+  trendToColor,
 } from './utils';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-import {HeaderTitleLegend} from '../styles';
-import {getTransactionComparisonUrl} from '../utils';
 
 type Props = {
   api: Client;
@@ -67,6 +66,7 @@ type Props = {
   trendView: TrendView;
   location: Location;
   projects: Project[];
+  setError: (msg: string | undefined) => void;
 };
 
 type TrendsCursorQuery = {
@@ -122,7 +122,8 @@ function getSelectedTransaction(
   }
 
   const selectedTransaction = transactions.find(
-    transaction => transaction.transaction === selectedTransactionName
+    transaction =>
+      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
   );
 
   if (selectedTransaction) {
@@ -141,7 +142,9 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
     if (!transaction) {
       delete query[selectedQueryKey];
     } else {
-      query[selectedQueryKey] = transaction?.transaction;
+      query[selectedQueryKey] = transaction
+        ? `${transaction.transaction}-${transaction.project}`
+        : undefined;
     }
     browserHistory.push({
       pathname: location.pathname,
@@ -221,6 +224,7 @@ function ChangedTransactions(props: Props) {
     previousTrendFunction,
     organization,
     projects,
+    setError,
   } = props;
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
@@ -237,18 +241,12 @@ function ChangedTransactions(props: Props) {
       trendChangeType={trendChangeType}
       cursor={cursor}
       limit={5}
+      setError={setError}
     >
       {({isLoading, trendsData, pageLinks}) => {
-        if (isLoading) {
-          return null;
-        }
-        if (!trendsData) {
-          return null;
-        }
         const trendFunction = getCurrentTrendFunction(location);
         const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || [],
-          trendFunction
+          (trendsData && trendsData.events && trendsData.events.data) || []
         );
         const selectedTransaction = getSelectedTransaction(
           location,
@@ -256,7 +254,7 @@ function ChangedTransactions(props: Props) {
           events
         );
 
-        const statsData = trendsData?.stats;
+        const statsData = trendsData?.stats || {};
         const transactionsList = events && events.slice ? events.slice(0, 5) : [];
 
         const currentTrendFunction =
@@ -273,7 +271,7 @@ function ChangedTransactions(props: Props) {
           <TransactionsListContainer>
             <TrendsTransactionPanel>
               <StyledHeaderTitleLegend>
-                {chartTitle}{' '}
+                {chartTitle}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
               {isLoading ? (
@@ -379,13 +377,8 @@ function TrendsListItem(props: TrendsListItemProps) {
   const currentPeriodValue = transaction.aggregate_range_2;
   const previousPeriodValue = transaction.aggregate_range_1;
 
-  const percentChange = formatPercentage(
-    transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-    0
-  );
-
   const absolutePercentChange = formatPercentage(
-    Math.abs(transaction.percentage_aggregate_range_2_aggregate_range_1 - 1),
+    Math.abs(transaction.trend_percentage - 1),
     0
   );
 
@@ -440,23 +433,10 @@ function TrendsListItem(props: TrendsListItemProps) {
       <TransactionSummaryLink {...props} />
       <ItemTransactionPercentage>
         <Tooltip title={percentChangeExplanation}>
-          {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
-            <React.Fragment>
-              {transformValueDelta(
-                transaction.minus_aggregate_range_2_aggregate_range_1,
-                trendChangeType,
-                currentTrendFunction
-              )}
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-              {formatPercentage(
-                transaction.percentage_aggregate_range_2_aggregate_range_1 - 1,
-                0
-              )}
-            </React.Fragment>
-          )}
+          <React.Fragment>
+            {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
+            {formatPercentage(transaction.trend_percentage - 1, 0)}
+          </React.Fragment>
         </Tooltip>
       </ItemTransactionPercentage>
       <DropdownLink
@@ -469,7 +449,6 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        <CompareLink {...props} />
         <MenuItem
           onClick={() =>
             handleFilterDuration(
@@ -507,20 +486,9 @@ function TrendsListItem(props: TrendsListItemProps) {
         <CompareDurations {...props} />
       </ItemTransactionDurationChange>
       <ItemTransactionStatus color={color}>
-        {currentTrendFunction === TrendFunctionField.USER_MISERY ? (
-          <React.Fragment>
-            {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-            {percentChange}
-          </React.Fragment>
-        ) : (
-          <React.Fragment>
-            {transformValueDelta(
-              transaction.minus_aggregate_range_2_aggregate_range_1,
-              trendChangeType,
-              currentTrendFunction
-            )}
-          </React.Fragment>
-        )}
+        <React.Fragment>
+          {transformValueDelta(transaction.trend_difference, trendChangeType)}
+        </React.Fragment>
       </ItemTransactionStatus>
     </ListItemContainer>
   );
@@ -528,52 +496,12 @@ function TrendsListItem(props: TrendsListItemProps) {
 
 type CompareLinkProps = TrendsListItemProps & {};
 
-const CompareLink = (props: CompareLinkProps) => {
-  const {organization, trendView: eventView, transaction, api, location} = props;
-  const intervalRatio = getIntervalRatio(location);
-
-  async function onLinkClick() {
-    const baselines = await getTrendBaselinesForTransaction(
-      api,
-      organization,
-      eventView,
-      intervalRatio,
-      transaction
-    );
-    if (baselines) {
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.trends.compare_baselines',
-        eventName: 'Performance Views: Comparing baselines',
-        organization_id: parseInt(organization.id, 10),
-      });
-
-      const {previousPeriod, currentPeriod} = baselines;
-
-      const target = getTransactionComparisonUrl({
-        organization,
-        baselineEventSlug: `${previousPeriod.project}:${previousPeriod.id}`,
-        regressionEventSlug: `${currentPeriod.project}:${currentPeriod.id}`,
-        transaction: transaction.transaction,
-        query: location.query,
-      });
-
-      browserHistory.push(target);
-    }
-  }
-
-  return <MenuItem onClick={onLinkClick}>{t('Compare baselines')}</MenuItem>;
-};
-
 const CompareDurations = (props: CompareLinkProps) => {
-  const {transaction, currentTrendFunction} = props;
+  const {transaction} = props;
 
   return (
     <DurationChange>
-      {transformDeltaSpread(
-        transaction.aggregate_range_1,
-        transaction.aggregate_range_2,
-        currentTrendFunction
-      )}
+      {transformDeltaSpread(transaction.aggregate_range_1, transaction.aggregate_range_2)}
     </DurationChange>
   );
 };
@@ -581,7 +509,14 @@ const CompareDurations = (props: CompareLinkProps) => {
 type TransactionSummaryLinkProps = TrendsListItemProps & {};
 
 const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
-  const {organization, trendView: eventView, transaction, projects, location} = props;
+  const {
+    organization,
+    trendView: eventView,
+    transaction,
+    projects,
+    location,
+    currentTrendFunction,
+  } = props;
   const confidenceLevel = getCurrentConfidenceLevel(location).label;
 
   const summaryView = eventView.clone();
@@ -591,6 +526,8 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     transaction: String(transaction.transaction),
     query: summaryView.generateQueryStringObject(),
     projectID,
+    display: DisplayModes.TREND,
+    trendDisplay: currentTrendFunction,
   });
 
   return (
@@ -615,8 +552,7 @@ const ChartContainer = styled('div')`
 `;
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
-  padding: 0;
-  margin: ${space(3)};
+  padding: ${space(2)} ${space(3)};
 `;
 
 const StyledButton = styled(Button)`
@@ -638,7 +574,7 @@ const ListItemContainer = styled('div')`
   grid-template-columns: 24px auto 100px 30px;
   grid-template-rows: repeat(2, auto);
   grid-column-gap: ${space(1)};
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -665,7 +601,7 @@ const ItemTransactionDurationChange = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin: 0 ${space(1)};
 `;
 

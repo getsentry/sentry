@@ -1,11 +1,26 @@
 import React from 'react';
 import {Location} from 'history';
 
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 
+import {
+  Body,
+  Grid,
+  GridBody,
+  GridBodyCell,
+  GridBodyCellStatus,
+  GridHead,
+  GridHeadCell,
+  GridHeadCellStatic,
+  GridResizer,
+  GridRow,
+  Header,
+  HeaderButtonContainer,
+  HeaderTitle,
+} from './styles';
 import {
   GridColumn,
   GridColumnHeader,
@@ -13,21 +28,6 @@ import {
   GridColumnSortBy,
   ObjectKey,
 } from './types';
-import {
-  Header,
-  HeaderTitle,
-  HeaderButtonContainer,
-  Body,
-  Grid,
-  GridRow,
-  GridHead,
-  GridHeadCell,
-  GridHeadCellStatic,
-  GridBody,
-  GridBodyCell,
-  GridBodyCellStatus,
-  GridResizer,
-} from './styles';
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED, ColResizeMetadata} from './utils';
 
 type GridEditableProps<DataRow, ColumnKey> = {
@@ -76,7 +76,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => void;
     renderPrependColumns?: (
       isHeader: boolean,
-      dataRow?: any,
+      dataRow?: DataRow,
       rowIndex?: number
     ) => React.ReactNode[];
     prependColumnWidths?: string[];
@@ -251,8 +251,7 @@ class GridEditable<
     const widths = columnOrder.map(item => {
       if (item.width === COL_WIDTH_UNDEFINED) {
         return `minmax(${COL_WIDTH_MINIMUM}px, auto)`;
-      }
-      if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
+      } else if (typeof item.width === 'number' && item.width > COL_WIDTH_MINIMUM) {
         return `${item.width}px`;
       }
       return `${COL_WIDTH_MINIMUM}px`;
@@ -348,7 +347,7 @@ class GridEditable<
     return (
       <GridRow>
         <GridBodyCellStatus>
-          <IconWarning color="gray500" size="lg" />
+          <IconWarning color="gray300" size="lg" />
         </GridBodyCellStatus>
       </GridRow>
     );

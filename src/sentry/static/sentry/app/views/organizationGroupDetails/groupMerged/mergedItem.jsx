@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Reflux from 'reflux';
-import createReactClass from 'create-react-class';
 import styled from '@emotion/styled';
+import createReactClass from 'create-react-class';
+import PropTypes from 'prop-types';
+import Reflux from 'reflux';
 
-import {IconChevron} from 'app/icons';
+import GroupingActions from 'app/actions/groupingActions';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import FlowLayout from 'app/components/flowLayout';
-import GroupingActions from 'app/actions/groupingActions';
+import {IconChevron} from 'app/icons';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 
@@ -154,10 +154,10 @@ const ActionColumn = styled('div')`
 const Controls = styled('div')`
   display: flex;
   justify-content: space-between;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: #f3f1f6;
   padding: ${space(0.5)} 0;
-  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.borderLight}`};
+  ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
 
   ${MergedGroup} {
     &:first-child & {
@@ -165,7 +165,7 @@ const Controls = styled('div')`
     }
     &:last-child & {
       border-top: none;
-      border-bottom: 1px solid ${p => p.theme.borderLight};
+      border-bottom: 1px solid ${p => p.theme.innerBorder};
     }
   }
 `;

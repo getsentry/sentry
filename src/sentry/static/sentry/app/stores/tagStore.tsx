@@ -1,8 +1,7 @@
 import Reflux from 'reflux';
-import reduce from 'lodash/reduce';
 
-import {Tag, TagCollection} from 'app/types';
 import TagActions from 'app/actions/tagActions';
+import {Tag, TagCollection} from 'app/types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -46,7 +45,7 @@ const BUILTIN_TAGS = [
   'stack.module',
   'stack.function',
   'stack.stack_level',
-].reduce((acc, tag) => {
+].reduce<TagCollection>((acc, tag) => {
   acc[tag] = {key: tag, name: tag};
   return acc;
 }, {});
@@ -82,10 +81,10 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
           'resolved',
           'unresolved',
           'ignored',
-          // TODO(dcramer): remove muted once data is migrated and 9.0+
-          'muted',
           'assigned',
           'unassigned',
+          'linked',
+          'unlinked',
         ],
         predefined: true,
       },
@@ -139,6 +138,13 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
         values: [],
         predefined: true,
       },
+      owner: {
+        key: 'owner',
+        name: 'Owner',
+        isInput: true,
+        values: [],
+        predefined: true,
+      },
     };
   },
 
@@ -152,25 +158,15 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
   },
 
   onLoadTagsSuccess(data) {
-    this.state = Object.assign(
-      {},
-      this.state,
-      reduce(
-        data,
-        (obj, tag) => {
-          tag = Object.assign(
-            {
-              values: [],
-            },
-            tag
-          );
-          obj[tag.key] = tag;
+    const newTags = data.reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = {
+        values: [],
+        ...tag,
+      };
 
-          return obj;
-        },
-        {}
-      )
-    );
+      return acc;
+    }, {});
+    this.state = {...this.state, ...newTags};
     this.trigger(this.state);
   },
 };

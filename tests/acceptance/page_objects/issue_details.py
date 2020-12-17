@@ -56,8 +56,8 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="button-unresolve"]')
 
     def bookmark_issue(self):
-        self.browser.click(".group-bookmark")
-        self.browser.wait_until(".group-bookmark.active")
+        self.browser.click('[aria-label="Bookmark"]')
+        self.browser.wait_until('[aria-label="Remove bookmark"]')
 
     def assign_to(self, user):
         assignee = self.browser.find_element_by_css_selector(".assigned-to")
@@ -87,3 +87,4 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_test_id("loaded-device-name")
         if self.browser.element_exists("#grouping-info"):
             self.browser.wait_until_test_id("loaded-grouping-info")
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')

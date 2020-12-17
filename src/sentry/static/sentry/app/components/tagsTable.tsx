@@ -5,11 +5,11 @@ import {LocationDescriptor} from 'history';
 import {SectionHeading} from 'app/components/charts/styles';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Event, EventTag} from 'app/types';
 import Version from 'app/components/version';
+import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {Event, EventTag} from 'app/types';
 
 type Props = {
   event: Event;
@@ -77,12 +77,11 @@ const StyledTable = styled('table')`
 
 const StyledTr = styled('tr')`
   &:nth-child(2n + 1) td {
-    background-color: ${p => p.theme.gray100};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
 const TagKey = styled('td')`
-  color: ${p => p.theme.gray600};
   padding: ${space(0.5)} ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   white-space: nowrap;

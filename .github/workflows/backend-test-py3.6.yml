@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        instance: [0, 1, 2]
+        instance: [0, 1]
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
@@ -40,7 +40,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -67,7 +67,6 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         id: setup
         with:
-          python: 3
           snuba: true
 
       - name: Run backend test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
@@ -75,4 +74,7 @@ jobs:
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
-          make travis-test-postgres
+          make test-python-ci
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts

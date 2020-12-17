@@ -1,13 +1,13 @@
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {selectByValue} from 'sentry-test/select-new';
 
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');
@@ -75,12 +75,15 @@ describe('ProjectAlerts -> IssueEditor', function () {
   const createWrapper = (props = {}) => {
     const {organization, project, routerContext} = initializeOrg(props);
     const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
+    const onChangeTitleMock = jest.fn();
     const wrapper = mountWithTheme(
       <ProjectAlerts organization={organization} params={params}>
         <IssueEditor
           params={params}
           location={{pathname: ''}}
           routes={projectAlertRuleDetailsRoutes}
+          onChangeTitle={onChangeTitleMock}
+          project={project}
         />
       </ProjectAlerts>,
       routerContext
@@ -101,6 +104,20 @@ describe('ProjectAlerts -> IssueEditor', function () {
         method: 'PUT',
         body: TestStubs.ProjectAlertRule(),
       });
+    });
+
+    it('gets correct rule name', async function () {
+      const rule = TestStubs.ProjectAlertRule();
+      mock = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: rule,
+      });
+      const {wrapper} = createWrapper();
+      expect(mock).toHaveBeenCalled();
+      expect(wrapper.find('IssueRuleEditor').prop('onChangeTitle')).toHaveBeenCalledWith(
+        rule.name
+      );
     });
 
     it('deletes rule', async function () {

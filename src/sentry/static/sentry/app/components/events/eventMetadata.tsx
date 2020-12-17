@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {Event, OrganizationSummary} from 'app/types';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
-import ExternalLink from 'app/components/links/externalLink';
 import FileSize from 'app/components/fileSize';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import ExternalLink from 'app/components/links/externalLink';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Event, OrganizationSummary} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
 
@@ -62,7 +62,6 @@ const MetaDataID = styled('div')`
 const MetadataContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  color: ${p => p.theme.gray600};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

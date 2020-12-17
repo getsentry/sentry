@@ -1,161 +1,120 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import Modal from 'react-bootstrap/lib/Modal';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {openModal} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
-import ExternalIssueForm from 'app/components/group/externalIssueForm';
-import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Group, GroupIntegration, IntegrationExternalIssue} from 'app/types';
+import {Group, GroupIntegration} from 'app/types';
+import withApi from 'app/utils/withApi';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
+
+import ExternalIssueForm from './externalIssueForm';
 
 type Props = AsyncComponent['props'] & {
-  integration: GroupIntegration;
+  api: Client;
+  configurations: GroupIntegration[];
   group: Group;
+  onChange: (onSuccess?: () => void, onError?: () => void) => void;
 };
 
-type State = AsyncComponent['state'] & {
-  showModal: boolean;
-  action: 'create' | 'link' | null;
-  selectedIntegration: GroupIntegration;
-  issue: IntegrationExternalIssue | null;
+type LinkedIssues = {
+  linked: GroupIntegration[];
+  unlinked: GroupIntegration[];
 };
-class ExternalIssueActions extends AsyncComponent<Props, State> {
-  static propTypes = {
-    group: PropTypes.object.isRequired,
-    integration: PropTypes.object.isRequired,
-  };
 
-  constructor(props: Props, context) {
-    super(props, context);
+const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => {
+  const {linked, unlinked} = configurations
+    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+    .reduce(
+      (acc: LinkedIssues, curr) => {
+        if (curr.externalIssues.length) {
+          acc.linked.push(curr);
+        } else {
+          acc.unlinked.push(curr);
+        }
+        return acc;
+      },
+      {linked: [], unlinked: []}
+    );
 
-    this.state = {
-      showModal: false,
-      action: 'create',
-      selectedIntegration: this.props.integration,
-      issue: this.getIssue(),
-      ...this.getDefaultState(),
-    };
-  }
+  const deleteIssue = (integration: GroupIntegration) => {
+    const {externalIssues} = integration;
+    // Currently we do not support a case where there is multiple external issues.
+    // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
+    const issue = externalIssues[0];
+    const {id} = issue;
+    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
 
-  getEndpoints() {
-    return [];
-  }
-
-  getIssue() {
-    return this.props.integration && this.props.integration.externalIssues
-      ? this.props.integration.externalIssues[0]
-      : null;
-  }
-
-  deleteIssue(issueId: string) {
-    const {group, integration} = this.props;
-    const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${issueId}`;
-    this.api.request(endpoint, {
+    api.request(endpoint, {
       method: 'DELETE',
       success: () => {
-        addSuccessMessage(t('Successfully unlinked issue.'));
-        this.setState({
-          issue: null,
-        });
+        onChange(
+          () => addSuccessMessage(t('Successfully unlinked issue.')),
+          () => addErrorMessage(t('Unable to unlink issue.'))
+        );
       },
       error: () => {
         addErrorMessage(t('Unable to unlink issue.'));
       },
     });
-  }
-
-  openModal = () => {
-    const {integration} = this.props;
-    this.setState({
-      showModal: true,
-      selectedIntegration: integration,
-      action: 'create',
-    });
   };
 
-  closeModal = data => {
-    this.setState({
-      showModal: false,
-      action: null,
-      issue: data && data.id ? data : null,
-    });
-  };
+  const doOpenModal = (integration: GroupIntegration) =>
+    openModal(deps => (
+      <ExternalIssueForm {...deps} {...{group, onChange, integration}} />
+    ));
 
-  handleClick = (action: 'create' | 'link') => {
-    this.setState({action});
-  };
-
-  renderBody() {
-    const {action, selectedIntegration, issue} = this.state;
-
-    return (
-      <React.Fragment>
-        <IssueSyncListElement
-          onOpen={this.openModal}
-          externalIssueLink={issue ? issue.url : null}
-          externalIssueId={issue ? issue.id : null}
-          externalIssueKey={issue ? issue.key : null}
-          externalIssueDisplayName={issue ? issue.displayName : null}
-          onClose={this.deleteIssue.bind(this)}
-          integrationType={selectedIntegration.provider.key}
-          hoverCardHeader={t('Linked %s Integration', selectedIntegration.provider.name)}
-          hoverCardBody={
-            issue && issue.title ? (
+  return (
+    <React.Fragment>
+      {linked.map(config => {
+        const {provider, externalIssues} = config;
+        const issue = externalIssues[0];
+        return (
+          <IssueSyncListElement
+            key={issue.id}
+            externalIssueLink={issue.url}
+            externalIssueId={issue.id}
+            externalIssueKey={issue.key}
+            externalIssueDisplayName={issue.displayName}
+            onClose={() => deleteIssue(config)}
+            integrationType={provider.key}
+            hoverCardHeader={t('Linked %s Integration', provider.name)}
+            hoverCardBody={
               <div>
                 <IssueTitle>{issue.title}</IssueTitle>
                 {issue.description && (
                   <IssueDescription>{issue.description}</IssueDescription>
                 )}
               </div>
-            ) : (
-              <IntegrationItem integration={selectedIntegration} />
-            )
+            }
+          />
+        );
+      })}
+
+      {unlinked.length > 0 && (
+        <IssueSyncListElement
+          integrationType={unlinked[0].provider.key}
+          hoverCardHeader={t('Linked %s Integration', unlinked[0].provider.name)}
+          hoverCardBody={
+            <Container>
+              {unlinked.map(config => (
+                <Wrapper onClick={() => doOpenModal(config)} key={config.id}>
+                  <IntegrationItem integration={config} />
+                </Wrapper>
+              ))}
+            </Container>
           }
+          onOpen={unlinked.length === 1 ? () => doOpenModal(unlinked[0]) : undefined}
         />
-        {selectedIntegration && (
-          <Modal
-            show={this.state.showModal}
-            onHide={this.closeModal}
-            animation={false}
-            enforceFocus={false}
-            backdrop="static"
-          >
-            <Modal.Header closeButton>
-              <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
-            </Modal.Header>
-            <NavTabs underlined>
-              <li className={action === 'create' ? 'active' : ''}>
-                <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
-              </li>
-              <li className={action === 'link' ? 'active' : ''}>
-                <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
-              </li>
-            </NavTabs>
-            <Modal.Body>
-              {action && (
-                <ExternalIssueForm
-                  // need the key here so React will re-render
-                  // with a new action prop
-                  key={action}
-                  group={this.props.group}
-                  integration={selectedIntegration}
-                  action={action}
-                  onSubmitSuccess={this.closeModal}
-                />
-              )}
-            </Modal.Body>
-          </Modal>
-        )}
-      </React.Fragment>
-    );
-  }
-}
+      )}
+    </React.Fragment>
+  );
+};
 
 const IssueTitle = styled('div')`
   font-size: 1.1em;
@@ -168,4 +127,15 @@ const IssueDescription = styled('div')`
   ${overflowEllipsis};
 `;
 
-export default ExternalIssueActions;
+const Wrapper = styled('div')`
+  margin-bottom: ${space(2)};
+  cursor: pointer;
+`;
+
+const Container = styled('div')`
+  & > div:last-child {
+    margin-bottom: ${space(1)};
+  }
+`;
+
+export default withApi(ExternalIssueActions);

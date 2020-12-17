@@ -1,8 +1,8 @@
-import OrganizationStore from 'app/stores/organizationStore';
-import OrganizationActions from 'app/actions/organizationActions';
-import TeamActions from 'app/actions/teamActions';
-import ProjectActions from 'app/actions/projectActions';
 import {updateOrganization} from 'app/actionCreators/organizations';
+import OrganizationActions from 'app/actions/organizationActions';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
+import OrganizationStore from 'app/stores/organizationStore';
 
 describe('OrganizationStore', function () {
   beforeEach(function () {

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import NavTabs from 'app/components/navTabs';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 /**
  * Base container for 66/33 containers.
@@ -10,7 +10,7 @@ import NavTabs from 'app/components/navTabs';
 export const Body = styled('div')`
   padding: ${space(2)};
   margin: 0;
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -69,7 +69,7 @@ export const Title = styled('h2')`
   font-size: ${p => p.theme.headerFontSize};
   font-weight: normal;
   line-height: 1.2;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   margin-top: ${space(3)};
   /* TODO(bootstrap) Remove important when bootstrap headings are removed */
   margin-bottom: 0 !important;
@@ -99,7 +99,7 @@ export const Header = styled('div')`
   margin: 0;
 
   background-color: transparent;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
+  border-bottom: 1px solid ${p => p.theme.border};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     padding: ${space(2)} ${space(2)} 0 ${space(2)};
@@ -116,11 +116,17 @@ export const Header = styled('div')`
 export const HeaderNavTabs = styled(NavTabs)`
   margin: 0;
   border-bottom: 0 !important;
+
   li {
-    margin-right: ${space(0.5)};
+    margin-right: ${space(3)};
   }
   li > a {
-    padding: ${space(1)} ${space(2)};
+    padding: ${space(1)} 0;
+    font-size: ${p => p.theme.fontSizeLarge};
+    margin-bottom: 4px;
+  }
+  li.active > a {
+    margin-bottom: 0;
   }
 `;
 

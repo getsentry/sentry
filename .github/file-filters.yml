@@ -2,22 +2,42 @@
 
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
-frontend:
+frontend_lintable: &frontend_lintable
   - '**/*.[tj]{s,sx}'
-  - '**/*.less'
   - '**/tsconfig*.json'
-  - 'yarn.lock'
   - '{package,now,vercel}.json'
+  - '.github/workflows/js-*.yml'
+
+frontend: &frontend
+  - *frontend_lintable
+  - '**/*.less'
+  - 'yarn.lock'
   - '.eslint*'
   - 'docs-ui/**'
   - 'src/sentry/static/sentry/**'
   - 'tests/js/**'
-  - '.github/workflows/js-*.yml'
 
-backend:
+frontend_modified_lintable:
+  - added|modified: *frontend_lintable
+
+backend_lintable: &backend_lintable
   - '**/*.py'
+
+backend: &backend
+  - *backend_lintable
+  - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
   - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+  - 'config/**/*'
+
+plugins:
+  - *backend
+  - 'src/sentry_plugins/**/*.html'
+
+api_docs:
+  - *backend
+  - 'api-docs/**'
+  - 'tests/apidocs/**'

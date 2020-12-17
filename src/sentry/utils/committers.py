@@ -48,12 +48,37 @@ def _get_frame_paths(event):
     return get_path(data, "exception", "values", 0, "stacktrace", "frames", filter=True) or []
 
 
+def release_cache_key(release):
+    return "release_commits:{}".format(release.id)
+
+
 def _get_commits(releases):
-    return list(
-        Commit.objects.filter(
-            releasecommit__in=ReleaseCommit.objects.filter(release__in=releases)
-        ).select_related("author")
-    )
+    commits = []
+
+    fetched = cache.get_many([release_cache_key(release) for release in releases])
+    if fetched:
+        missed = []
+        for release in releases:
+            cached_commits = fetched.get(release_cache_key(release))
+            if cached_commits is None:
+                missed.append(release)
+            else:
+                commits += [c for c in cached_commits if c not in commits]
+    else:
+        missed = releases
+
+    if missed:
+        release_commits = ReleaseCommit.objects.filter(release__in=missed).select_related(
+            "commit", "release", "commit__author"
+        )
+        to_cache = defaultdict(list)
+        for rc in release_commits:
+            to_cache[release_cache_key(rc.release)].append(rc.commit)
+            if rc.commit not in commits:
+                commits.append(rc.commit)
+        cache.set_many(to_cache)
+
+    return commits
 
 
 def _get_commit_file_changes(commits, path_name_set):
@@ -165,7 +190,7 @@ def get_previous_releases(project, start_version, limit=5):
 
 
 def get_event_file_committers(project, event, frame_limit=25):
-    group = Group.objects.get(id=event.group_id)
+    group = Group.objects.get_from_cache(id=event.group_id)
 
     first_release_version = group.get_first_release()
 

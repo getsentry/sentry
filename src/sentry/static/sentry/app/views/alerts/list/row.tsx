@@ -1,29 +1,29 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment';
-import styled from '@emotion/styled';
 
-import {IconWarning} from 'app/icons';
-import {PanelItem} from 'app/components/panels';
-import {Project} from 'app/types';
-import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import theme from 'app/utils/theme';
+import {PanelItem} from 'app/components/panels';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
-import getDynamicText from 'app/utils/getDynamicText';
+import {IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
+import theme from 'app/utils/theme';
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 import {getIncidentMetricPreset} from '../utils';
-import {TableLayout, TitleAndSparkLine} from './styles';
+
 import SparkLine from './sparkLine';
+import {TableLayout, TitleAndSparkLine} from './styles';
 
 type Props = {
   incident: Incident;
@@ -73,9 +73,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
   renderTimeSince(date: string) {
     return (
       <CreatedResolvedTime>
-        <Tooltip title={<DateTime date={date} utc={false} />} position="top">
-          <TimeSince title="" date={date} />
-        </Tooltip>
+        <TimeSince date={date} />
       </CreatedResolvedTime>
     );
   }
@@ -85,7 +83,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const isResolved = status === IncidentStatus.CLOSED;
     const isWarning = status === IncidentStatus.WARNING;
 
-    const color = isResolved ? theme.gray400 : isWarning ? theme.orange300 : theme.red300;
+    const color = isResolved ? theme.gray200 : isWarning ? theme.orange300 : theme.red200;
     const text = isResolved ? t('Resolved') : isWarning ? t('Warning') : t('Critical');
 
     return (

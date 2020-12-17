@@ -1,12 +1,12 @@
-import ReactDOM from 'react-dom';
 import React from 'react';
-import styled from '@emotion/styled';
+import ReactDOM from 'react-dom';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {Theme} from 'app/utils/theme';
-import space from 'app/styles/space';
 import {IconClose} from 'app/icons';
 import {slideInLeft} from 'app/styles/animations';
+import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 
 import {CommonSidebarProps} from './types';
 
@@ -81,9 +81,9 @@ const PanelContainer = styled('div')`
   display: flex;
   flex-direction: column;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.sidebar.background};
-  border-right: 1px solid ${p => p.theme.borderLight};
+  border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
   line-height: 24px;
@@ -93,9 +93,9 @@ const PanelContainer = styled('div')`
 `;
 
 const SidebarPanelHeader = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(3)};
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   height: 62px;
   display: flex;
@@ -110,13 +110,13 @@ const SidebarPanelBody = styled('div')<{hasHeader: boolean}>`
 `;
 
 const PanelClose = styled(IconClose)`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   cursor: pointer;
   position: relative;
   padding: ${space(0.75)};
 
   &:hover {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.textColor};
   }
 `;
 

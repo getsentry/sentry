@@ -1,22 +1,21 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import {SentryTransactionEvent} from 'app/types';
 import {defined} from 'app/utils';
 import {
-  WEB_VITAL_ACRONYMS,
   LONG_WEB_VITAL_NAMES,
+  WEB_VITAL_ACRONYMS,
 } from 'app/views/performance/transactionVitals/constants';
-import Tooltip from 'app/components/tooltip';
 
 import {
-  getMeasurements,
-  toPercent,
   getMeasurementBounds,
+  getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  toPercent,
 } from './utils';
-import * as MeasurementsManager from './measurementsManager';
 
 type Props = {
   event: SentryTransactionEvent;
@@ -36,16 +35,16 @@ class MeasurementsPanel extends React.PureComponent<Props> {
           width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
         }}
       >
-        {Array.from(measurements).map(([timestamp, names]) => {
+        {Array.from(measurements).map(([timestamp, verticalMark]) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
-          if (!shouldDisplay) {
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
 
-          const hoverMeasurementName = names.join('');
+          const names = Object.keys(verticalMark.marks);
 
           // generate vertical marker label
           const acronyms = names.map(name => WEB_VITAL_ACRONYMS[name]);
@@ -62,24 +61,13 @@ class MeasurementsPanel extends React.PureComponent<Props> {
             : lastName;
 
           return (
-            <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering}) => {
-                return (
-                  <LabelContainer
-                    key={label}
-                    label={label}
-                    tooltipLabel={tooltipLabel}
-                    left={toPercent(bounds.left || 0)}
-                    onMouseLeave={() => {
-                      notHovering();
-                    }}
-                    onMouseOver={() => {
-                      hoveringMeasurement(hoverMeasurementName);
-                    }}
-                  />
-                );
-              }}
-            </MeasurementsManager.Consumer>
+            <LabelContainer
+              key={String(timestamp)}
+              failedThreshold={verticalMark.failedThreshold}
+              label={label}
+              tooltipLabel={tooltipLabel}
+              left={toPercent(bounds.left || 0)}
+            />
           );
         })}
       </Container>
@@ -99,11 +87,14 @@ const StyledLabelContainer = styled('div')`
   top: 0;
   height: 100%;
   user-select: none;
+  white-space: nowrap;
 `;
 
-const Label = styled('div')`
+const Label = styled('div')<{failedThreshold: boolean}>`
   transform: translateX(-50%);
   font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
+  ${p => (p.failedThreshold ? `color: ${p.theme.red300};` : null)}
 `;
 
 export default MeasurementsPanel;
@@ -112,8 +103,7 @@ type LabelContainerProps = {
   left: string;
   label: string;
   tooltipLabel: string;
-  onMouseLeave: () => void;
-  onMouseOver: () => void;
+  failedThreshold: boolean;
 };
 
 type LabelContainerState = {
@@ -138,7 +128,7 @@ class LabelContainer extends React.Component<LabelContainerProps> {
   elementDOMRef = React.createRef<HTMLDivElement>();
 
   render() {
-    const {left, onMouseLeave, onMouseOver, label, tooltipLabel} = this.props;
+    const {left, label, tooltipLabel, failedThreshold} = this.props;
 
     return (
       <StyledLabelContainer
@@ -146,14 +136,8 @@ class LabelContainer extends React.Component<LabelContainerProps> {
         style={{
           left: `clamp(calc(0.5 * ${this.state.width}px), ${left}, calc(100% - 0.5 * ${this.state.width}px))`,
         }}
-        onMouseLeave={() => {
-          onMouseLeave();
-        }}
-        onMouseOver={() => {
-          onMouseOver();
-        }}
       >
-        <Label>
+        <Label failedThreshold={failedThreshold}>
           <Tooltip
             title={tooltipLabel}
             position="top"

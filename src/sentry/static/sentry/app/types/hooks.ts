@@ -1,11 +1,11 @@
 import {Route} from 'react-router';
 
-import {NavigationSection} from 'app/views/settings/types';
-import {User, Organization, Project, IntegrationProvider} from 'app/types';
-import {ExperimentKey} from 'app/types/experiments';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
+import {IntegrationProvider, Organization, Project, User} from 'app/types';
+import {ExperimentKey} from 'app/types/experiments';
 import {StepProps} from 'app/views/onboarding/types';
+import {NavigationSection} from 'app/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
 //
@@ -93,6 +93,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
@@ -163,10 +164,6 @@ type FeatureDisabledHook = (opts: {
    */
   organization: Organization;
   /**
-   * The project that is associated to this feature.
-   */
-  project: Project;
-  /**
    * The list of features that are controlled by this hook.
    */
   features: string[];
@@ -176,6 +173,11 @@ type FeatureDisabledHook = (opts: {
   hasFeature: boolean;
 
   children: FeatureDisabled['props']['children'];
+
+  /**
+   * The project that is associated to this feature.
+   */
+  project?: Project;
 }) => React.ReactNode;
 
 /**

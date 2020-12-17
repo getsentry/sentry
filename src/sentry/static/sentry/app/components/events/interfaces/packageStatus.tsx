@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {IconCircle, IconCheckmark, IconFlag} from 'app/icons';
 import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconCircle, IconFlag} from 'app/icons';
 import space from 'app/styles/space';
 
 type Props = {
@@ -14,12 +14,12 @@ const PackageStatus = ({status, tooltip}: Props) => {
   const getIcon = () => {
     switch (status) {
       case 'success':
-        return <IconCheckmark isCircled color="green500" size="xs" />;
+        return <IconCheckmark isCircled color="green300" size="xs" />;
       case 'empty':
         return <IconCircle size="xs" />;
       case 'error':
       default:
-        return <IconFlag color="red400" size="xs" />;
+        return <IconFlag color="red300" size="xs" />;
     }
   };
 

@@ -404,6 +404,18 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("is:assigned")
         assert result == {"unassigned": False, "tags": {}, "query": ""}
 
+    def test_is_inbox(self):
+        result = self.parse_query("is:needs_review")
+        assert result == {"needs_review": True, "tags": {}, "query": ""}
+
+    def test_is_unlinked(self):
+        result = self.parse_query("is:unlinked")
+        assert result == {"linked": False, "tags": {}, "query": ""}
+
+    def test_is_linked(self):
+        result = self.parse_query("is:linked")
+        assert result == {"linked": True, "tags": {}, "query": ""}
+
     def test_age_from(self):
         result = self.parse_query("age:-24h")
         assert result["age_from"] > timezone.now() - timedelta(hours=25)
@@ -503,6 +515,34 @@ class ParseQueryTest(TestCase):
         result = self.parse_query("country:canada :unresolved")
         assert result["query"] == ":unresolved"
         assert result["tags"]["country"] == "canada"
+
+    def test_owner_me(self):
+        result = self.parse_query("owner:me")
+        assert result == {"owner": self.user, "tags": {}, "query": ""}
+
+    def test_owner_email(self):
+        result = self.parse_query("owner:%s" % (self.user.email,))
+        assert result == {"owner": self.user, "tags": {}, "query": ""}
+
+    def test_owner_unknown_user(self):
+        result = self.parse_query("owner:fake@example.com")
+        assert isinstance(result["owner"], User)
+        assert result["owner"].id == 0
+
+    def test_owner_valid_team(self):
+        result = self.parse_query(u"owner:#{}".format(self.team.slug))
+        assert result["owner"] == self.team
+
+    def test_owner_unassociated_team(self):
+        team2 = self.create_team(organization=self.organization)
+        result = self.parse_query(u"owner:#{}".format(team2.slug))
+        assert isinstance(result["owner"], Team)
+        assert result["owner"].id == 0
+
+    def test_owner_invalid_team(self):
+        result = self.parse_query("owner:#invalid")
+        assert isinstance(result["owner"], Team)
+        assert result["owner"].id == 0
 
 
 class GetLatestReleaseTest(TestCase):

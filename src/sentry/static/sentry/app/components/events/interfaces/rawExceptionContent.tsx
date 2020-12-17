@@ -1,27 +1,26 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import LoadingError from 'app/components/loadingError';
+import {Client} from 'app/api';
+import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
+import {Event, ExceptionType, Organization, PlatformType, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import Button from 'app/components/button';
-import {t} from 'app/locale';
-import {Event, Project, Organization, PlatformType, ExceptionType} from 'app/types';
-import {Client} from 'app/api';
 
 type Props = {
   projectId: Project['id'];
-  values: Array<ExceptionType>;
   api: Client;
   type: 'original' | 'minified';
   platform: PlatformType;
   eventId: Event['id'];
   // XXX: Organization is NOT available for Shared Issues!
   organization: Organization;
-};
+} & Pick<ExceptionType, 'values'>;
 
 type State = {
   loading: boolean;
@@ -153,6 +152,10 @@ class RawExceptionContent extends React.Component<Props, State> {
   render() {
     const {values} = this.props;
     const isNative = this.isNative();
+
+    if (!values) {
+      return null;
+    }
 
     return (
       <React.Fragment>

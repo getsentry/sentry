@@ -44,7 +44,7 @@ describe('ProjectMapperField', () => {
     selectByValue(wrapper, '24', {control: true, name: 'project'});
     selectByValue(wrapper, '1', {control: true, name: 'mappedDropdown'});
 
-    wrapper.find('StyledAddProjectButton').simulate('click');
+    wrapper.find('AddProjectWrapper Button').simulate('click');
 
     expect(onBlur).toHaveBeenCalledWith(
       [
@@ -68,7 +68,7 @@ describe('ProjectMapperField', () => {
       ['24', '1'],
     ];
     wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
-    wrapper.find('DeleteButton').first().simulate('click');
+    wrapper.find('Button[aria-label="Delete"]').first().simulate('click');
 
     expect(onBlur).toHaveBeenCalledWith([['24', '1']], []);
     expect(onChange).toHaveBeenCalledWith([['24', '1']], []);

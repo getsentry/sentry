@@ -1,17 +1,16 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Form from 'app/views/settings/components/forms/form';
-import projectSecurityAndPrivacyGroups from 'app/data/forms/projectSecurityAndPrivacyGroups';
 import ProjectActions from 'app/actions/projectActions';
-import {Organization, Project} from 'app/types';
-import withProject from 'app/utils/withProject';
+import Link from 'app/components/links/link';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import projectSecurityAndPrivacyGroups from 'app/data/forms/projectSecurityAndPrivacyGroups';
+import {t, tct} from 'app/locale';
+import {Organization, Project} from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import DataScrubbing from '../components/dataScrubbing';
 
@@ -87,4 +86,4 @@ class ProjectSecurityAndPrivacy extends React.Component<ProjectSecurityAndPrivac
   }
 }
 
-export default withProject(ProjectSecurityAndPrivacy);
+export default ProjectSecurityAndPrivacy;

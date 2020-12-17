@@ -295,6 +295,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
             "transaction.status", qs_params={"query": "o"}, expected=[("unknown", 1), ("ok", 1)],
         )
         self.run_test("transaction.status", qs_params={"query": "ow"}, expected=[("unknown", 1)])
+        self.run_test("transaction.status", qs_params={"query": "does-not-exist"}, expected=[])
 
     def test_op(self):
         self.run_test("transaction.op", expected=[("bar.server", 1), ("http.server", 1)])

@@ -1,9 +1,8 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
-import {PageContent} from 'app/styles/organization';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {Organization} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withOrganization, {isLightweightOrganization} from 'app/utils/withOrganization';
@@ -45,11 +44,9 @@ class IssueListContainer extends React.Component<Props> {
     return (
       <DocumentTitle title={this.getTitle()}>
         <GlobalSelectionHeader>
-          <PageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              {children}
-            </LightWeightNoProjectMessage>
-          </PageContent>
+          <LightWeightNoProjectMessage organization={organization}>
+            {children}
+          </LightWeightNoProjectMessage>
         </GlobalSelectionHeader>
       </DocumentTitle>
     );

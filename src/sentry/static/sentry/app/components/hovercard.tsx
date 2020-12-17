@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import classNames from 'classnames';
-import {Manager, Reference, Popper, PopperProps} from 'react-popper';
-import styled from '@emotion/styled';
+import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {keyframes} from '@emotion/core';
+import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -108,12 +108,8 @@ class Hovercard extends React.Component<Props, State> {
   handleToggleOff = () => this.toggleHovercard(false);
 
   toggleHovercard = (visible: boolean) => {
-    const {header, body, displayTimeout} = this.props;
+    const {displayTimeout} = this.props;
 
-    // Don't toggle hovercard if both of these are null
-    if (!header && !body) {
-      return;
-    }
     if (this.hoverWait) {
       clearTimeout(this.hoverWait);
     }
@@ -168,6 +164,7 @@ class Hovercard extends React.Component<Props, State> {
           )}
         </Reference>
         {visible &&
+          (header || body) &&
           ReactDOM.createPortal(
             <Popper placement={position} modifiers={modifiers}>
               {({ref, style, placement, arrowProps}) => (
@@ -235,9 +232,9 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
   /* Some hovercards overlap the toplevel header and sidebar, and we need to appear on top */
   z-index: ${p => p.theme.zIndex.hovercard};
   white-space: initial;
-  color: ${p => p.theme.gray800};
-  border: 1px solid ${p => p.theme.borderLight};
-  background: ${p => p.theme.white};
+  color: ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
   background-clip: padding-box;
   box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
   width: 295px;
@@ -260,8 +257,8 @@ const StyledHovercard = styled('div')<StyledHovercardProps>`
 
 const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  background: ${p => p.theme.gray100};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  background: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusTop};
   font-weight: 600;
   word-wrap: break-word;
@@ -302,7 +299,7 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::before {
     top: 1px;
     border: 10px solid transparent;
-    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.borderLight};
+    border-${getTipDirection}-color: ${p => p.tipColor || p.theme.border};
 
     ${p => (p.placement === 'bottom' ? 'top: -1px' : '')};
     ${p => (p.placement === 'left' ? 'top: 0; left: 1px;' : '')};
@@ -311,9 +308,9 @@ const HovercardArrow = styled('span')<HovercardArrowProps>`
   &::after {
     border: 10px solid transparent;
     border-${getTipDirection}-color: ${p =>
-  p.tipColor || (p.placement === 'bottom' ? p.theme.gray100 : p.theme.white)};
+  p.tipColor || (p.placement === 'bottom' ? p.theme.backgroundSecondary : p.theme.white)};
   }
 `;
 
-export {Hovercard, Body};
+export {Body, Header, Hovercard};
 export default Hovercard;

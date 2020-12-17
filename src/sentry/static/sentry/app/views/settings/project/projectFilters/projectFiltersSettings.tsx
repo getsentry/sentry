@@ -1,8 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Project} from 'app/types';
+import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import AsyncComponent from 'app/components/asyncComponent';
 import {
   Panel,
   PanelAlert,
@@ -10,18 +13,15 @@ import {
   PanelHeader,
   PanelItem,
 } from 'app/components/panels';
+import Switch from 'app/components/switch';
+import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
 import {t} from 'app/locale';
-import Access from 'app/components/acl/access';
-import AsyncComponent from 'app/components/asyncComponent';
-import Feature from 'app/components/acl/feature';
-import FeatureDisabled from 'app/components/acl/featureDisabled';
+import HookStore from 'app/stores/hookStore';
+import {Project} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
-import HookStore from 'app/stores/hookStore';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import Switch from 'app/components/switch';
-import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
@@ -380,7 +380,7 @@ const FilterGrid = styled('div')`
 const FilterGridItem = styled('div')`
   display: flex;
   align-items: center;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: 3px;
   flex: 1;
   padding: 12px;
@@ -417,7 +417,7 @@ const FilterTitle = styled('div')`
 `;
 
 const FilterDescription = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;

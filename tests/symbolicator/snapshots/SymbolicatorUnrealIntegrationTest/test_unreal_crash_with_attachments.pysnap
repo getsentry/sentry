@@ -1,5 +1,5 @@
 ---
-created: '2020-08-27T15:59:49.734047Z'
+created: '2020-10-31T11:13:16.442847Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -21,7 +21,6 @@ contexts:
     build_configuration: Development
     build_version: ++UE4+Release-4.20-CL-4369336
     crash_guid: UE4CC-Windows-63456D684167A2659DE73EA3517BEDC4_0000
-    crash_reporter_client_version: '1.0'
     crash_type: Crash
     custom:
       CommandLine: ''
@@ -159,6 +158,9 @@ exception:
     type: EXCEPTION_ACCESS_VIOLATION_READ
     value: 'Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ'
 extra: null
+sdk:
+  name: unreal.crashreporter
+  version: '1.0'
 stacktrace: null
 threads:
   values:

@@ -1,21 +1,21 @@
-import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import AutoSelectText from 'app/components/autoSelectText';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import PlatformPicker from 'app/components/platformPicker';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {PlatformKey} from 'app/data/platformCategories';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import recreateRoute from 'app/utils/recreateRoute';
+import withOrganization from 'app/utils/withOrganization';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
-import withOrganization from 'app/utils/withOrganization';
-import {Organization, PlatformType} from 'app/types';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
@@ -36,7 +36,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
     return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
   }
 
-  redirectToDocs = (platform: PlatformType) => {
+  redirectToDocs = (platform: PlatformKey | null) => {
     const {orgId, projectId} = this.props.params;
 
     const installUrl = this.isGettingStarted

@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
 import EventDataSection from 'app/components/events/eventDataSection';
-import plugins from 'app/plugins';
 import {t} from 'app/locale';
+import plugins from 'app/plugins';
+import {defined, objectIsEmpty, toTitleCase} from 'app/utils';
 
 const CONTEXT_TYPES = {
   default: require('app/components/events/contexts/default').default,
@@ -152,6 +152,12 @@ class ContextChunk extends React.Component {
 
     const evt = this.props.event;
     const {type, alias, value = {}} = this.props;
+
+    // we intentionally hide reprocessing context to not imply it was sent by the SDK.
+    if (alias === 'reprocessing') {
+      return null;
+    }
+
     const Component =
       type === 'default'
         ? getContextComponent(alias) || getContextComponent(type)

@@ -1,8 +1,8 @@
-import Reflux from 'reflux';
-import isUndefined from 'lodash/isUndefined';
 import * as Sentry from '@sentry/react';
+import isUndefined from 'lodash/isUndefined';
+import Reflux from 'reflux';
 
-import {Hooks, HookName} from 'app/types/hooks';
+import {HookName, Hooks} from 'app/types/hooks';
 
 /**
  * See types/hooks for hook usage reference.
@@ -30,6 +30,7 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:events-sidebar-item',
   'feature-disabled:grid-editable-actions',
   'feature-disabled:incidents-sidebar-item',
+  'feature-disabled:performance-new-project',
   'feature-disabled:performance-page',
   'feature-disabled:performance-sidebar-item',
   'feature-disabled:project-selector-checkbox',

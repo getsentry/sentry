@@ -1,8 +1,8 @@
 beautifulsoup4>=4.7.1,<4.8
-boto3>=1.4.1,<1.4.6
-botocore<1.5.71
+boto3>=1.10.1,<1.11
+botocore>1.13.0,<1.14.0
 celery==4.4.7
-click>=5.0,<7.0
+click>=7.0,<8.0
 confluent-kafka==1.5.0
 croniter>=0.3.34,<0.4.0
 datadog>=0.15.0,<0.31.0
@@ -52,14 +52,14 @@ rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
 sentry-relay>=0.8.1,<0.9.0
-sentry-sdk>=0.17.7,<0.18.0
+sentry-sdk>=0.19.5,<0.20.0
 simplejson>=3.11.0,<3.12.0
 six>=1.11.0,<1.12.0
 sqlparse>=0.2.0,<0.3.0
 statsd>=3.1.0,<3.2.0
 structlog==17.1.0
-symbolic>=7.3.5,<8.0.0
-toronado>=0.0.11,<0.1.0
+symbolic>=8.0.0,<9.0.0
+toronado==0.1.0
 ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
 urllib3==1.24.2
@@ -84,10 +84,6 @@ uwsgi>2.0.0,<2.1.0
 msgpack>=0.6.1,<0.7.0; python_version < '3.0'
 msgpack>=1.0.0,<1.1.0; python_version >= '3.0'
 
-# celery
-# We specifically pin to 3.5.0.4 to avoid the issue in
-# https://github.com/celery/billiard/issues/260. Once we upgrade to Celery 4.3+ we can
-# use a newer version of billiard that has a proper fix.
 billiard==3.6.3
 kombu==4.6.11
 
@@ -105,7 +101,7 @@ cssselect==1.0.3
 setproctitle>=1.1.7,<1.2.0
 
 # sentry-plugins specific dependencies
-phabricator>=0.6.0,<1.0
+phabricator>=0.6.0,<0.8
 
 # test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
 mock==3.0.5 ; python_version < "3.3"

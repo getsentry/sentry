@@ -2,10 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
-import {t} from 'app/locale';
-import {IconChevron, IconSentry} from 'app/icons';
+import {Client} from 'app/api';
 import Avatar from 'app/components/avatar';
-import ConfigStore from 'app/stores/configStore';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Hook from 'app/components/hook';
 import IdBadge from 'app/components/idBadge';
@@ -14,14 +12,17 @@ import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styl
 import SidebarMenuItem, {menuItemStyles} from 'app/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'app/components/textOverflow';
-import withApi from 'app/utils/withApi';
-import {Organization, User, Config} from 'app/types';
-import {Client} from 'app/api';
+import {IconChevron, IconSentry} from 'app/icons';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
+import {Config, Organization, User} from 'app/types';
+import withApi from 'app/utils/withApi';
 
 import {CommonSidebarProps} from '../types';
-import SwitchOrganization from './switchOrganization';
+
 import Divider from './divider.styled';
+import SwitchOrganization from './switchOrganization';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
@@ -205,7 +206,7 @@ const SidebarDropdownActor = styled('button')`
       text-shadow: 0 0 6px rgba(255, 255, 255, 0.1);
     }
     ${UserNameOrEmail} {
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.gray200};
     }
   }
 `;

@@ -57,14 +57,6 @@ STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_IGNORED = 2
 
-STATUS_CHOICES = {
-    "resolved": STATUS_RESOLVED,
-    "unresolved": STATUS_UNRESOLVED,
-    "ignored": STATUS_IGNORED,
-    # TODO(dcramer): remove in 9.0
-    "muted": STATUS_IGNORED,
-}
-
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A
 # value of 0 would store counts for every minute, and is the lowest level of
 # accuracy provided.
@@ -153,6 +145,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "sentry-apps",
         "resources",
         "integration-platform",
+        "trust",
+        "legal",
+        "community",
     )
 )
 
@@ -175,8 +170,6 @@ RESERVED_PROJECT_SLUGS = frozenset(
         "integrations",
         "developer-settings",
         "usage",
-        "trust",
-        "legal",
     )
 )
 
@@ -281,6 +274,7 @@ KNOWN_DIF_FORMATS = {
     "application/x-elf-binary": "elf",
     "application/x-dosexec": "pe",
     "application/x-ms-pdb": "pdb",
+    "application/wasm": "wasm",
     "text/x-proguard+plain": "proguard",
     "application/x-sentry-bundle+zip": "sourcebundle",
 }
@@ -429,9 +423,11 @@ class SentryAppStatus(object):
     UNPUBLISHED = 0
     PUBLISHED = 1
     INTERNAL = 2
+    PUBLISH_REQUEST_INPROGRESS = 3
     UNPUBLISHED_STR = "unpublished"
     PUBLISHED_STR = "published"
     INTERNAL_STR = "internal"
+    PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
 
     @classmethod
     def as_choices(cls):
@@ -439,6 +435,7 @@ class SentryAppStatus(object):
             (cls.UNPUBLISHED, six.text_type(cls.UNPUBLISHED_STR)),
             (cls.PUBLISHED, six.text_type(cls.PUBLISHED_STR)),
             (cls.INTERNAL, six.text_type(cls.INTERNAL_STR)),
+            (cls.PUBLISH_REQUEST_INPROGRESS, six.text_type(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
         )
 
     @classmethod
@@ -449,6 +446,8 @@ class SentryAppStatus(object):
             return cls.PUBLISHED_STR
         elif status == cls.INTERNAL:
             return cls.INTERNAL_STR
+        elif status == cls.PUBLISH_REQUEST_INPROGRESS:
+            return cls.PUBLISH_REQUEST_INPROGRESS_STR
 
 
 class SentryAppInstallationStatus(object):

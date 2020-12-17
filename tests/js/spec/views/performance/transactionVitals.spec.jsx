@@ -1,8 +1,8 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionVitals from 'app/views/performance/transactionVitals';
@@ -12,7 +12,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
-  features = features || ['measurements'];
+  features = features || ['performance-view'];
   project = project || TestStubs.Project();
   query = query || {};
   const data = initializeOrg({
@@ -42,31 +42,31 @@ const vitals = [
   {
     slug: 'fp',
     heading: 'First Paint (FP)',
-    state: 'fail',
+    state: 'Fail',
     baseline: '4.57s',
   },
   {
     slug: 'fcp',
     heading: 'First Contentful Paint (FCP)',
-    state: 'pass',
+    state: 'Pass',
     baseline: '1.46s',
   },
   {
     slug: 'lcp',
     heading: 'Largest Contentful Paint (LCP)',
-    state: 'pass',
+    state: 'Pass',
     baseline: '1.34s',
   },
   {
     slug: 'fid',
     heading: 'First Input Delay (FID)',
-    state: 'fail',
+    state: 'Fail',
     baseline: '987.00ms',
   },
   {
     slug: 'cls',
     heading: 'Cumulative Layout Shift (CLS)',
-    state: 'pass',
+    state: 'Pass',
     baseline: '0.02',
   },
 ];
@@ -142,29 +142,6 @@ describe('Performance > Web Vitals', function () {
     expect(wrapper.text()).toEqual("You don't have access to this feature");
   });
 
-  it('redirects to transaction summary if possible', async function () {
-    const {organization, router} = initialize({
-      features: ['performance-view'],
-    });
-
-    const wrapper = mountWithTheme(
-      <TransactionVitals
-        organization={organization}
-        location={router.location}
-        router={router}
-      />
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/performance/summary/',
-      })
-    );
-  });
-
   it('renders the basic UI components', async function () {
     const {organization, router, routerContext} = initialize();
 
@@ -227,16 +204,14 @@ describe('Performance > Web Vitals', function () {
       expect(vitalCard.find('CardSectionHeading').text()).toEqual(
         expect.stringContaining(vitals[i].heading)
       );
-      expect(vitalCard.find('CardSectionHeading').text()).toEqual(
-        expect.stringContaining(vitals[i].state)
-      );
+      expect(vitalCard.find('Tag').text()).toEqual(vitals[i].state);
       expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
     });
     expect(vitalCards.find('BarChart')).toHaveLength(5);
   });
 
   describe('Open in Discover button', function () {
-    it('renders open in discover buttons with required props', function () {
+    it('renders open in discover buttons with required props', async function () {
       const {project, organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
@@ -248,6 +223,9 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(5);
 
@@ -256,8 +234,10 @@ describe('Performance > Web Vitals', function () {
           expect.objectContaining({
             pathname: '/organizations/org-slug/discover/results/',
             query: expect.objectContaining({
-              field: expect.arrayContaining([`measurements.${vitals[i].slug}`]),
-              sort: [`-measurements.${vitals[i].slug}`],
+              field: expect.arrayContaining([
+                `percentile(measurements.${vitals[i].slug},0.75)`,
+              ]),
+              sort: [`-percentile_measurements_${vitals[i].slug}_0_75`],
               query: expect.stringContaining('transaction:/'),
               project: [parseInt(project.id, 10)],
             }),
@@ -266,7 +246,7 @@ describe('Performance > Web Vitals', function () {
       });
     });
 
-    it('renders open in discover buttons with greater than condition', function () {
+    it('renders open in discover buttons with greater than condition', async function () {
       const query = {
         fpStart: '10',
         fcpStart: '10',
@@ -284,6 +264,9 @@ describe('Performance > Web Vitals', function () {
         />,
         routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(5);
@@ -302,7 +285,7 @@ describe('Performance > Web Vitals', function () {
       });
     });
 
-    it('renders open in discover buttons with less than condition', function () {
+    it('renders open in discover buttons with less than condition', async function () {
       const query = {
         fpEnd: '20',
         fcpEnd: '20',
@@ -321,6 +304,9 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(5);
 
@@ -338,7 +324,7 @@ describe('Performance > Web Vitals', function () {
       });
     });
 
-    it('renders open in discover buttons with both condition', function () {
+    it('renders open in discover buttons with both condition', async function () {
       const query = {
         fpStart: '10',
         fpEnd: '20',
@@ -361,6 +347,9 @@ describe('Performance > Web Vitals', function () {
         />,
         routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       const buttons = wrapper.find('DiscoverButton');
       expect(buttons).toHaveLength(5);
@@ -389,7 +378,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   describe('reset view', function () {
-    it('disables button on default view', function () {
+    it('disables button on default view', async function () {
       const {organization, router, routerContext} = initialize();
 
       const wrapper = mountWithTheme(
@@ -401,12 +390,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeTruthy();
     });
 
-    it('enables button on left zoom', function () {
+    it('enables button on left zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           lcpStart: '20',
@@ -422,12 +414,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeFalsy();
     });
 
-    it('enables button on right zoom', function () {
+    it('enables button on right zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fpEnd: '20',
@@ -443,12 +438,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeFalsy();
     });
 
-    it('enables button on left and right zoom', function () {
+    it('enables button on left and right zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fcpStart: '20',
@@ -465,12 +463,15 @@ describe('Performance > Web Vitals', function () {
         routerContext
       );
 
+      await tick();
+      wrapper.update();
+
       expect(
         wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
       ).toBeFalsy();
     });
 
-    it('resets view properly', function () {
+    it('resets view properly', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -486,6 +487,9 @@ describe('Performance > Web Vitals', function () {
         />,
         routerContext
       );
+
+      await tick();
+      wrapper.update();
 
       wrapper.find('Button[data-test-id="reset-view"]').simulate('click');
       expect(browserHistory.push).toHaveBeenCalledWith({

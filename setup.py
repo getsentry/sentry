@@ -4,11 +4,19 @@ from __future__ import absolute_import
 import os
 import sys
 
-if os.environ.get("SENTRY_PYTHON3") == "1" and sys.version_info[:2] != (3, 6):
-    sys.exit("Error: Sentry [In EXPERIMENTAL python 3 mode] requires Python 3.6.")
+version = sys.version_info
+if os.environ.get("SENTRY_PYTHON2") == "1" and version[:2] != (2, 7):
+    sys.exit("Error: Sentry [In DEPRECATED Python 2 mode] requires Python 2.7.")
 
-if os.environ.get("SENTRY_PYTHON3") != "1" and sys.version_info[:2] != (2, 7):
-    sys.exit("Error: Sentry requires Python 2.7.")
+if os.environ.get("SENTRY_PYTHON2") != "1" and version[:2] != (2, 7):
+    if version[:2] < (3, 6):
+        sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
+    if version[:2] > (3, 6):
+        import logging
+
+        logger = logging.getLogger()
+        logger.warning("A Python version different than 3.6 is being used ({})".format(version[:2]))
+
 
 from distutils.command.build import build as BuildCommand
 from setuptools import setup, find_packages
@@ -28,7 +36,7 @@ from sentry.utils.distutils import (
 )
 
 
-VERSION = "20.10.1"
+VERSION = "21.1.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 

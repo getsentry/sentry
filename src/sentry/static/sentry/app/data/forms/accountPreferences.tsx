@@ -1,7 +1,7 @@
-import timezones from 'app/data/timezones';
 import languages from 'app/data/languages';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import timezones from 'app/data/timezones';
 import {t} from 'app/locale';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';
@@ -16,6 +16,21 @@ const formGroups: JsonFormObject[] = [
     title: 'Preferences',
     fields: [
       {
+        name: 'theme',
+        type: 'choice',
+        label: t('Theme'),
+        visible: ({user}) => user.isStaff,
+        help: t(
+          "Select your theme preference. It can be synced to your system's theme, always Light mode, or always Dark mode."
+        ),
+        choices: [
+          ['light', t('Light')],
+          ['dark', t('Dark')],
+          ['system', t('Default to system')],
+        ],
+        getData: transformOptions,
+      },
+      {
         name: 'stacktraceOrder',
         type: 'choice',
         required: false,
@@ -24,8 +39,8 @@ const formGroups: JsonFormObject[] = [
           ['1', t('Most recent call last')],
           ['2', t('Most recent call first')],
         ],
-        label: t('Stacktrace Order'),
-        help: t('Choose the default ordering of frames in stacktraces'),
+        label: t('Stack Trace Order'),
+        help: t('Choose the default ordering of frames in stack traces'),
         getData: transformOptions,
       },
       {

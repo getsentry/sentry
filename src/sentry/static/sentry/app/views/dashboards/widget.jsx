@@ -1,11 +1,11 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingMask from 'app/components/loadingMask';
+import {Panel, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -97,7 +97,7 @@ const StyledPanelBody = styled(PanelBody)`
 `;
 
 const Placeholder = styled('div')`
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   height: 237px;
 `;
 
@@ -128,6 +128,6 @@ const WidgetHeader = styled('div')`
   padding: ${space(1)} ${space(2)};
 `;
 const WidgetFooter = styled(WidgetHeader)`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: 0;
 `;

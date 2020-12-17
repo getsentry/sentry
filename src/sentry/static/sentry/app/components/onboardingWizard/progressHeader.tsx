@@ -1,12 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 
-import {OnboardingTaskStatus, OnboardingTaskDescriptor} from 'app/types';
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
 import ProgressRing from 'app/components/progressRing';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'app/types';
+import theme from 'app/utils/theme';
 
 type Props = {
   allTasks: OnboardingTaskDescriptor[];
@@ -21,10 +21,10 @@ const ProgressHeader = ({allTasks, completedTasks}: Props) => (
       animateText
       value={(completedTasks.length / allTasks.length) * 100}
       progressEndcaps="round"
-      backgroundColor={theme.gray300}
+      backgroundColor={theme.gray200}
       textCss={() => css`
         font-size: 26px;
-        color: ${theme.gray500};
+        color: ${theme.gray300};
       `}
     />
     <HeadingText>
@@ -51,7 +51,7 @@ const HeadingText = styled('div')`
   }
 
   p {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
     margin: 0;
     line-height: 2rem;
   }

@@ -3,26 +3,26 @@ import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
 import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {Organization, Event, EventTag} from 'app/types';
-import SentryTypes from 'app/sentryTypes';
-import EventMetadata from 'app/components/events/eventMetadata';
-import {BorderlessEventEntries} from 'app/components/events/eventEntries';
-import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import Button from 'app/components/button';
-import LoadingError from 'app/components/loadingError';
-import NotFound from 'app/components/errors/notFound';
 import AsyncComponent from 'app/components/asyncComponent';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import Button from 'app/components/button';
+import NotFound from 'app/components/errors/notFound';
+import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import EventMetadata from 'app/components/events/eventMetadata';
+import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import RealUserMonitoring from 'app/components/events/realUserMonitoring';
-import TagsTable from 'app/components/tagsTable';
-import Projects from 'app/utils/projects';
+import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import * as Layout from 'app/components/layouts/thirds';
+import LoadingError from 'app/components/loadingError';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import TagsTable from 'app/components/tagsTable';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import {Event, EventTag, Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import Projects from 'app/utils/projects';
+import {appendTagCondition, decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
-import {decodeScalar, appendTagCondition} from 'app/utils/queryString';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
@@ -62,7 +62,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     this.setState({isSidebarVisible: !this.state.isSidebarVisible});
   };
 
-  getEndpoints(): Array<[string, string]> {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const {eventSlug} = params;
 
@@ -156,7 +156,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   <BorderlessEventEntries
                     organization={organization}
                     event={event}
-                    project={projects[0]}
+                    project={projects[0] as Project}
                     showExampleCommit={false}
                     showTagSummary={false}
                     location={location}
@@ -174,7 +174,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
-              <RealUserMonitoring organization={organization} event={event} />
+              <RealUserMonitoring event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}

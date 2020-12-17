@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Organization} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
-import releasesImg from '../../../images/spot/releases.svg';
 import breadcrumbsImg from '../../../images/spot/breadcrumbs-generic.svg';
 import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
+import releasesImg from '../../../images/spot/releases.svg';
 
 type Props = {
   organization: Organization;
@@ -55,7 +55,7 @@ class Resources extends React.Component<Props> {
 export default Resources;
 
 const ResourcesWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   padding: 25px 30px 10px 30px;
 `;
 

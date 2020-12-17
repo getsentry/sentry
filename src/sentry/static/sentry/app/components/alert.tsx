@@ -1,8 +1,8 @@
-import {css} from '@emotion/core';
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -56,8 +56,8 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: any})
   font-size: 15px;
   box-shadow: ${theme.dropShadowLight};
   border-radius: ${theme.borderRadius};
-  background: ${theme.gray100};
-  border: 1px solid ${theme.borderDark};
+  background: ${theme.backgroundSecondary};
+  border: 1px solid ${theme.border};
 
   a:not([role='button']) {
     color: ${theme.textColor};

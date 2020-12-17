@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import ReactSelect, {Async, Creatable, AsyncCreatable} from 'react-select-legacy';
-import styled from '@emotion/styled';
+import ReactSelect, {Async, AsyncCreatable, Creatable} from 'react-select-legacy';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import {IconChevron} from 'app/icons';
-import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
+import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
 /**
  * The library has `value` defined as `PropTypes.object`, but this
@@ -65,7 +65,7 @@ class SelectControlLegacy extends React.Component<Props> {
   static defaultProps = {
     clearable: false,
     multiple: false,
-    height: 36,
+    height: 38,
   };
 
   renderArrow = () => <StyledIconChevron direction="down" size="xs" />;
@@ -147,14 +147,14 @@ const StyledSelect = styled(SelectPicker)`
   font-size: 15px;
 
   .Select-control {
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.border};
     height: ${p => p.height}px;
     overflow: visible;
   }
 
   &.Select.is-focused > .Select-control {
-    border: 1px solid ${p => p.theme.borderDark};
-    border-color: ${p => p.theme.gray700};
+    border: 1px solid ${p => p.theme.border};
+    border-color: ${p => p.theme.textColor};
     box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
   }
 
@@ -180,7 +180,7 @@ const StyledSelect = styled(SelectPicker)`
     height: ${p => p.height}px;
     line-height: ${p => p.height}px;
     &:focus {
-      border: 1px solid ${p => p.theme.gray700};
+      border: 1px solid ${p => p.theme.gray500};
     }
   }
 
@@ -189,8 +189,8 @@ const StyledSelect = styled(SelectPicker)`
   }
 
   .Select-option.is-focused {
-    color: white;
-    background-color: ${p => p.theme.purple400};
+    color: ${p => p.theme.white};
+    background-color: ${p => p.theme.purple300};
   }
   .Select-multi-value-wrapper {
     > a {

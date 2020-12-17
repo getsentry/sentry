@@ -12,9 +12,10 @@ from sentry.api.event_search import (
     SearchValue,
     SearchVisitor,
 )
-from sentry.constants import STATUS_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
+    parse_owner_value,
     parse_user_value,
     parse_release,
     parse_status_value,
@@ -27,6 +28,7 @@ class IssueSearchVisitor(SearchVisitor):
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
         "subscribed_by": ["subscribed"],
+        "owner": ["owner"],
         "first_release": ["first-release", "firstRelease"],
         "first_seen": ["age", "firstSeen"],
         "last_seen": ["lastSeen"],
@@ -45,8 +47,11 @@ class IssueSearchVisitor(SearchVisitor):
         is_filter_translators = {
             "assigned": (SearchKey("unassigned"), SearchValue(False)),
             "unassigned": (SearchKey("unassigned"), SearchValue(True)),
+            "needs_review": (SearchKey("needs_review"), SearchValue(True)),
+            "linked": (SearchKey("linked"), SearchValue(True)),
+            "unlinked": (SearchKey("linked"), SearchValue(False)),
         }
-        for status_key, status_value in STATUS_CHOICES.items():
+        for status_key, status_value in STATUS_QUERY_CHOICES.items():
             is_filter_translators[status_key] = (SearchKey("status"), SearchValue(status_value))
         return is_filter_translators
 
@@ -91,6 +96,10 @@ def convert_actor_value(value, projects, user, environments):
     return parse_actor_value(projects, value, user)
 
 
+def convert_owner_value(value, projects, user, environments):
+    return parse_owner_value(projects, value, user)
+
+
 def convert_user_value(value, projects, user, environments):
     return parse_user_value(value, user)
 
@@ -107,6 +116,7 @@ def convert_status_value(value, projects, user, environments):
 
 
 value_converters = {
+    "owner": convert_owner_value,
     "assigned_to": convert_actor_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,

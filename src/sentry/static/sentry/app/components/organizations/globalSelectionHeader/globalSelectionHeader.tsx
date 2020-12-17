@@ -1,20 +1,9 @@
-import {WithRouterProps} from 'react-router/lib/withRouter';
-import PropTypes from 'prop-types';
 import React from 'react';
-import debounce from 'lodash/debounce';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
+import PropTypes from 'prop-types';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
-import {
-  GlobalSelection,
-  Environment,
-  Organization,
-  MinimalProject,
-  Project,
-} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {callIfFunction} from 'app/utils/callIfFunction';
-import {t} from 'app/locale';
 import {
   updateDateTime,
   updateEnvironments,
@@ -23,14 +12,25 @@ import {
 import BackToIssues from 'app/components/organizations/backToIssues';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
-import {IconArrow} from 'app/icons';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import Projects from 'app/utils/projects';
-import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconArrow} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {
+  Environment,
+  GlobalSelection,
+  MinimalProject,
+  Organization,
+  Project,
+} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import Projects from 'app/utils/projects';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Header from './header';
@@ -57,7 +57,7 @@ const defaultProps = {
    * Reset these URL params when we fire actions
    * (custom routing only)
    */
-  resetParamsOnChange: [],
+  resetParamsOnChange: [] as string[],
 
   /**
    * Remove ability to select multiple projects even if organization has feature 'global-views'
@@ -372,7 +372,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
               limit={PROJECTS_PER_PAGE}
               slugs={specificProjectSlugs}
             >
-              {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
+              {({projects, hasMore, onSearch, fetching}) => {
                 const paginatedProjectSelectorCallbacks = {
                   onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
                     // check if no new projects are being fetched and the user has
@@ -398,9 +398,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     organization={organization}
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
-                    projects={loadingProjects ? projects : memberProjects}
+                    projects={loadingProjects ? (projects as Project[]) : memberProjects}
                     isGlobalSelectionReady={isGlobalSelectionReady}
-                    isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}

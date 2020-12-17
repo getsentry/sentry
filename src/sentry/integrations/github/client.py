@@ -4,7 +4,6 @@ from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
-from sentry.web.decorators import transaction_start
 
 
 class GitHubClientMixin(ApiClient):
@@ -113,10 +112,10 @@ class GitHubClientMixin(ApiClient):
             },
         )
 
-    @transaction_start("GitHubClientMixin.check_file")
     def check_file(self, repo, path, version):
+        repo_name = repo.name
         return self.head_cached(
-            path="/repos/{}/contents/{}".format(repo, path), params={"ref": version}
+            path="/repos/{}/contents/{}".format(repo_name, path), params={"ref": version}
         )
 
 

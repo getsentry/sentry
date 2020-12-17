@@ -2,9 +2,9 @@ import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import {IconSearch} from 'app/icons';
 import Search from 'app/components/search';
+import {IconSearch} from 'app/icons';
+import {t} from 'app/locale';
 
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
@@ -62,19 +62,21 @@ const SearchInputWrapper = styled('div')`
 `;
 
 const SearchInputIcon = styled(IconSearch)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   position: absolute;
   left: 10px;
   top: 8px;
 `;
 
 const SearchInput = styled('input')`
+  color: ${p => p.theme.formText};
+  background-color: ${p => p.theme.background};
   transition: border-color 0.15s ease;
   font-size: 14px;
   width: 260px;
   line-height: 1;
   padding: 5px 8px 4px 28px;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 30px;
   height: 28px;
 
@@ -82,10 +84,10 @@ const SearchInput = styled('input')`
 
   &:focus {
     outline: none;
-    border: 1px solid ${p => p.theme.borderDark};
+    border: 1px solid ${p => p.theme.border};
   }
 
   &::placeholder {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.formPlaceholder};
   }
 `;

@@ -63,9 +63,13 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert not response.data["config"]
+        assert response.data == {
+            "config": None,
+            "sourceUrl": None,
+            "integrations": [self._serialized_integration()],
+        }
 
-    def test_config_but_no_source_url(self):
+    def test_file_not_found_error(self):
         self.login_as(user=self.user)
         url = u"{}?file={}".format(self.url, self.filepath)
 
@@ -78,12 +82,54 @@ class ProjectStacktraceLinkTest(APITestCase):
             "projectSlug": self.project.slug,
             "repoId": six.text_type(self.repo.id),
             "repoName": self.repo.name,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "Example",
+                "canDisable": False,
+                "key": "example",
+                "slug": "example",
+                "canAdd": True,
+            },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "organizationIntegrationId": six.text_type(self.oi.id),
+            "integrationId": six.text_type(self.integration.id),
             "defaultBranch": None,
         }
-        assert not response.data["source_url"]
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "file_not_found"
+        assert response.data["integrations"] == [self._serialized_integration()]
+
+    def test_stack_root_mismatch_error(self):
+        self.login_as(user=self.user)
+        url = u"{}?file={}".format(self.url, "wrong/file/path")
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["config"] == {
+            "id": six.text_type(self.config.id),
+            "projectId": six.text_type(self.project.id),
+            "projectSlug": self.project.slug,
+            "repoId": six.text_type(self.repo.id),
+            "repoName": self.repo.name,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "Example",
+                "canDisable": False,
+                "key": "example",
+                "slug": "example",
+                "canAdd": True,
+            },
+            "sourceRoot": self.config.source_root,
+            "stackRoot": self.config.stack_root,
+            "integrationId": six.text_type(self.integration.id),
+            "defaultBranch": None,
+        }
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
+        assert response.data["integrations"] == [self._serialized_integration()]
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
@@ -100,9 +146,38 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "projectSlug": self.project.slug,
                 "repoId": six.text_type(self.repo.id),
                 "repoName": self.repo.name,
+                "provider": {
+                    "aspects": {},
+                    "features": ["commits", "issue-basic"],
+                    "name": "Example",
+                    "canDisable": False,
+                    "key": "example",
+                    "slug": "example",
+                    "canAdd": True,
+                },
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "organizationIntegrationId": six.text_type(self.oi.id),
+                "integrationId": six.text_type(self.integration.id),
                 "defaultBranch": None,
             }
-            assert response.data["source_url"] == "https://sourceurl.com/"
+            assert response.data["sourceUrl"] == "https://sourceurl.com/"
+            assert response.data["integrations"] == [self._serialized_integration()]
+
+    def _serialized_integration(self):
+        return {
+            "status": "active",
+            "name": "Example",
+            "domainName": None,
+            "accountType": None,
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "Example",
+                "canDisable": False,
+                "key": "example",
+                "slug": "example",
+                "canAdd": True,
+            },
+            "id": six.text_type(self.integration.id),
+            "icon": None,
+        }

@@ -2,14 +2,14 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {IconUser, IconLocation, IconSpan, IconSwitch, IconFix, IconFire} from 'app/icons';
 import Filter from 'app/components/events/interfaces/breadcrumbs/filter';
-import Level from 'app/components/events/interfaces/breadcrumbs/level';
 import Icon from 'app/components/events/interfaces/breadcrumbs/icon';
+import Level from 'app/components/events/interfaces/breadcrumbs/level';
 import {
-  BreadcrumbType,
   BreadcrumbLevelType,
+  BreadcrumbType,
 } from 'app/components/events/interfaces/breadcrumbs/types';
+import {IconFire, IconFix, IconLocation, IconSpan, IconSwitch, IconUser} from 'app/icons';
 
 const options: React.ComponentProps<typeof Filter>['options'] = [
   [
@@ -17,42 +17,42 @@ const options: React.ComponentProps<typeof Filter>['options'] = [
       type: BreadcrumbType.HTTP,
       description: 'HTTP request',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="green400" icon={IconSwitch} size="xs" />,
+      symbol: <Icon color="green300" icon={IconSwitch} size="xs" />,
       isChecked: true,
     },
     {
       type: BreadcrumbType.TRANSACTION,
       description: 'Transaction',
       levels: [BreadcrumbLevelType.ERROR],
-      symbol: <Icon color="pink400" icon={IconSpan} size="xs" />,
+      symbol: <Icon color="pink300" icon={IconSpan} size="xs" />,
       isChecked: true,
     },
     {
       type: BreadcrumbType.UI,
       description: 'User Action',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="purple400" icon={IconUser} size="xs" />,
+      symbol: <Icon color="purple300" icon={IconUser} size="xs" />,
       isChecked: true,
     },
     {
       type: BreadcrumbType.NAVIGATION,
       description: 'Navigation',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="green500" icon={IconLocation} size="xs" />,
+      symbol: <Icon color="green300" icon={IconLocation} size="xs" />,
       isChecked: true,
     },
     {
       type: BreadcrumbType.DEBUG,
       description: 'Debug',
       levels: [BreadcrumbLevelType.INFO],
-      symbol: <Icon color="purple500" icon={IconFix} size="xs" />,
+      symbol: <Icon color="purple300" icon={IconFix} size="xs" />,
       isChecked: true,
     },
     {
       type: BreadcrumbType.ERROR,
       description: 'Error',
       levels: [BreadcrumbLevelType.ERROR],
-      symbol: <Icon color="red400" icon={IconFire} size="xs" />,
+      symbol: <Icon color="red300" icon={IconFire} size="xs" />,
       isChecked: true,
     },
   ],

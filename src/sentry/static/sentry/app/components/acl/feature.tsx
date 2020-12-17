@@ -1,14 +1,14 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import {Project, Organization, Config} from 'app/types';
-import {FeatureDisabledHooks} from 'app/types/hooks';
-import HookStore from 'app/stores/hookStore';
 import SentryTypes from 'app/sentryTypes';
+import HookStore from 'app/stores/hookStore';
+import {Config, Organization, Project} from 'app/types';
+import {FeatureDisabledHooks} from 'app/types/hooks';
+import {isRenderFunc} from 'app/utils/isRenderFunc';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 import withProject from 'app/utils/withProject';
-import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 import ComingSoon from './comingSoon';
 
@@ -18,7 +18,6 @@ type Props = {
    */
 
   organization: Organization;
-  project: Project;
   config: Config;
   /**
    * List of required feature tags. Note we do not enforce uniqueness of tags anywhere.
@@ -67,6 +66,7 @@ type Props = {
    * all the required feature.
    */
   children: React.ReactNode | ChildrenRenderFn;
+  project?: Project;
 };
 
 type ChildrenRenderFn = (
@@ -75,9 +75,9 @@ type ChildrenRenderFn = (
 
 type FeatureRenderProps = {
   organization: Organization;
-  project: Project;
   features: string[];
   hasFeature: boolean;
+  project?: Project;
 };
 
 type AllFeatures = {

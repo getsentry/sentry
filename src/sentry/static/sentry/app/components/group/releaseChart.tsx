@@ -1,12 +1,13 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {t} from 'app/locale';
-import theme from 'app/utils/theme';
-import space from 'app/styles/space';
+import {Group, Release, TimeseriesValue} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {Group, TimeseriesValue, Release} from 'app/types';
+import {formatVersion} from 'app/utils/formatters';
+import theme from 'app/utils/theme';
+
+import SidebarSection from './sidebarSection';
 
 type Markers = React.ComponentProps<typeof MiniBarChart>['markers'];
 
@@ -68,7 +69,7 @@ function GroupReleaseChart(props: Props) {
 
   if (release && releaseStats) {
     series.push({
-      seriesName: t('Events in %s', release.version),
+      seriesName: t('Events in release %s', formatVersion(release.version)),
       data: releaseStats[statsPeriod].map(point => ({
         name: point[0] * 1000,
         value: point[1],
@@ -83,7 +84,7 @@ function GroupReleaseChart(props: Props) {
       markers.push({
         name: t('First seen'),
         value: firstSeenX,
-        color: theme.pink400,
+        color: theme.pink300,
       });
     }
   }
@@ -94,14 +95,13 @@ function GroupReleaseChart(props: Props) {
       markers.push({
         name: t('Last seen'),
         value: lastSeenX,
-        color: theme.green400,
+        color: theme.green300,
       });
     }
   }
 
   return (
-    <Wrapper className={className}>
-      <h6>{title}</h6>
+    <SidebarSection secondary title={title} className={className}>
       <MiniBarChart
         isGroupedByDate
         showTimeInTooltip
@@ -109,12 +109,8 @@ function GroupReleaseChart(props: Props) {
         series={series}
         markers={markers}
       />
-    </Wrapper>
+    </SidebarSection>
   );
 }
 
 export default GroupReleaseChart;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;

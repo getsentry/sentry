@@ -3,11 +3,11 @@ import * as ReactRouter from 'react-router';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import {Series} from 'app/types/echarts';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import {Series} from 'app/types/echarts';
+import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateOutputType} from 'app/utils/discover/fields';
-import {tooltipFormatter, axisLabelFormatter} from 'app/utils/discover/charts';
 import theme from 'app/utils/theme';
 
 type Props = {
@@ -87,11 +87,11 @@ class Chart extends React.Component<Props> {
       xAxes: [
         {
           gridIndex: 0,
-          type: 'time',
+          type: 'time' as const,
         },
         {
           gridIndex: 1,
-          type: 'time',
+          type: 'time' as const,
         },
       ],
       yAxes: [
@@ -100,7 +100,7 @@ class Chart extends React.Component<Props> {
           scale: true,
           max: dataMax,
           axisLabel: {
-            color: theme.gray400,
+            color: theme.chartLabel,
             formatter(value: number) {
               return axisLabelFormatter(value, data[0].seriesName);
             },
@@ -111,7 +111,7 @@ class Chart extends React.Component<Props> {
           scale: true,
           max: dataMax,
           axisLabel: {
-            color: theme.gray400,
+            color: theme.chartLabel,
             formatter(value: number) {
               return axisLabelFormatter(value, data[1].seriesName);
             },
@@ -121,9 +121,11 @@ class Chart extends React.Component<Props> {
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      colors: [colors[0], colors[1]],
+      colors: [colors[0], colors[1]] as string[],
       tooltip: {
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(value, seriesName);
+        },
         nameFormatter(value: string) {
           return value === 'epm()' ? 'tpm()' : value;
         },

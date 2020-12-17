@@ -1,83 +1,78 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {defined, objectIsEmpty} from 'app/utils';
-import {t} from 'app/locale';
-import TogglableAddress, {
-  AddressToggleIcon,
-} from 'app/components/events/interfaces/togglableAddress';
+import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
+import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
 import PackageLink from 'app/components/events/interfaces/packageLink';
 import PackageStatus, {
   PackageStatusIcon,
 } from 'app/components/events/interfaces/packageStatus';
-import StrictClick from 'app/components/strictClick';
-import space from 'app/styles/space';
-import withSentryAppComponents from 'app/utils/withSentryAppComponents';
-import {DebugMetaActions} from 'app/stores/debugMetaStore';
+import TogglableAddress, {
+  AddressToggleIcon,
+} from 'app/components/events/interfaces/togglableAddress';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
-import {combineStatus} from 'app/components/events/interfaces/debugMeta/utils';
-import {IconRefresh, IconChevron} from 'app/icons';
+import StrictClick from 'app/components/strictClick';
+import {IconChevron, IconRefresh} from 'app/icons';
+import {t} from 'app/locale';
+import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Frame, SentryAppComponent, PlatformType} from 'app/types';
-import DebugImage from 'app/components/events/interfaces/debugMeta/debugImage';
+import space from 'app/styles/space';
+import {Event, Frame, PlatformType, SentryAppComponent} from 'app/types';
+import {defined, objectIsEmpty} from 'app/utils';
+import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from './context';
-import {getPlatform} from './utils';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
+import {getPlatform} from './utils';
 
 type Props = {
   data: Frame;
-  nextFrame: Frame;
-  prevFrame: Frame;
-  platform: PlatformType;
-  emptySourceNotation: boolean;
-  isOnlyFrame: boolean;
-  timesRepeated: number;
+  event: Event;
   registers: Record<string, string>;
   components: Array<SentryAppComponent>;
-  showingAbsoluteAddress: boolean;
-  onAddressToggle: (event: React.MouseEvent<SVGElement>) => void;
-  onFunctionNameToggle: (event: React.MouseEvent<SVGElement>) => void;
-  showCompleteFunctionName: boolean;
-  image: React.ComponentProps<typeof DebugImage>['image'];
-  maxLengthOfRelativeAddress: number;
-  isFrameAfterLastNonApp: boolean;
-  includeSystemFrames: boolean;
+  nextFrame?: Frame;
+  prevFrame?: Frame;
+  platform?: PlatformType;
+  emptySourceNotation?: boolean;
+  isOnlyFrame?: boolean;
+  timesRepeated?: number;
+  showingAbsoluteAddress?: boolean;
+  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  showCompleteFunctionName?: boolean;
+  image?: React.ComponentProps<typeof DebugImage>['image'];
+  maxLengthOfRelativeAddress?: number;
+  isFrameAfterLastNonApp?: boolean;
+  includeSystemFrames?: boolean;
   isExpanded?: boolean;
+  hideStacktraceLink?: boolean;
 };
 
 type State = {
   isExpanded?: boolean;
 };
 
-export class Line extends React.Component<Props, State> {
-  static propTypes: any = {
-    data: PropTypes.object.isRequired,
-    nextFrame: PropTypes.object,
-    prevFrame: PropTypes.object,
-    platform: PropTypes.string,
-    isExpanded: PropTypes.bool,
-    emptySourceNotation: PropTypes.bool,
-    isOnlyFrame: PropTypes.bool,
-    timesRepeated: PropTypes.number,
-    registers: PropTypes.objectOf(PropTypes.string.isRequired),
-    components: PropTypes.array.isRequired,
-    showingAbsoluteAddress: PropTypes.bool,
-    onFunctionNameToggle: PropTypes.func,
-    image: PropTypes.object,
-    maxLengthOfRelativeAddress: PropTypes.number,
-    onAddressToggle: PropTypes.func,
-    showCompleteFunctionName: PropTypes.bool,
-  };
+function makeFilter(
+  addr: string,
+  addrMode: string | undefined,
+  image?: React.ComponentProps<typeof DebugImage>['image']
+): string {
+  if (!(!addrMode || addrMode === 'abs') && image) {
+    return `${image.debug_id}!${addr}`;
+  }
 
+  return addr;
+}
+
+export class Line extends React.Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,
+    hideStacktraceLink: false,
   };
 
   // isExpanded can be initialized to true via parent component;
@@ -123,8 +118,8 @@ export class Line extends React.Component<Props, State> {
 
   getPlatform() {
     // prioritize the frame platform but fall back to the platform
-    // of the stacktrace / exception
-    return getPlatform(this.props.data.platform, this.props.platform);
+    // of the stack trace / exception
+    return getPlatform(this.props.data.platform, this.props.platform ?? 'other');
   }
 
   isInlineFrame() {
@@ -164,7 +159,12 @@ export class Line extends React.Component<Props, State> {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
-    DebugMetaActions.updateFilter(this.props.data.instructionAddr);
+    const {instructionAddr, addrMode} = this.props.data;
+    if (instructionAddr) {
+      DebugMetaActions.updateFilter(
+        makeFilter(instructionAddr, addrMode, this.props.image)
+      );
+    }
     scrollToElement('#packages');
   };
 
@@ -187,11 +187,7 @@ export class Line extends React.Component<Props, State> {
           title={t('Toggle Context')}
           onClick={this.toggleContext}
         >
-          <StyledIconChevron
-            isExpanded={!!isExpanded}
-            direction={isExpanded ? 'up' : 'down'}
-            size="8px"
-          />
+          <IconChevron direction={isExpanded ? 'down' : 'up'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
@@ -234,7 +230,7 @@ export class Line extends React.Component<Props, State> {
 
   renderRepeats() {
     const timesRepeated = this.props.timesRepeated;
-    if (timesRepeated > 0) {
+    if (timesRepeated && timesRepeated > 0) {
       return (
         <RepeatedFrames
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
@@ -257,7 +253,10 @@ export class Line extends React.Component<Props, State> {
           <VertCenterWrapper>
             <div>
               {this.renderLeadHint()}
-              <DefaultTitle frame={this.props.data} platform={this.props.platform} />
+              <DefaultTitle
+                frame={this.props.data}
+                platform={this.props.platform ?? 'other'}
+              />
             </div>
             {this.renderRepeats()}
           </VertCenterWrapper>
@@ -286,11 +285,11 @@ export class Line extends React.Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title as-table">
-          <NativeLineContent isFrameAfterLastNonApp={isFrameAfterLastNonApp}>
+          <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
             <PackageInfo>
               {leadHint}
               <PackageLink
-                includeSystemFrames={includeSystemFrames}
+                includeSystemFrames={!!includeSystemFrames}
                 withLeadHint={leadHint !== null}
                 packagePath={data.package}
                 onClick={this.scrollToImage}
@@ -303,16 +302,16 @@ export class Line extends React.Component<Props, State> {
               <TogglableAddress
                 address={data.instructionAddr}
                 startingAddress={image ? image.image_addr : null}
-                isAbsolute={showingAbsoluteAddress}
+                isAbsolute={!!showingAbsoluteAddress}
                 isFoundByStackScanning={this.isFoundByStackScanning()}
-                isInlineFrame={this.isInlineFrame()}
+                isInlineFrame={!!this.isInlineFrame()}
                 onToggle={onAddressToggle}
                 relativeAddressMaxlength={maxLengthOfRelativeAddress}
               />
             )}
             <Symbol
               frame={data}
-              showCompleteFunctionName={showCompleteFunctionName}
+              showCompleteFunctionName={!!showCompleteFunctionName}
               onFunctionNameToggle={onFunctionNameToggle}
             />
           </NativeLineContent>
@@ -354,6 +353,7 @@ export class Line extends React.Component<Props, State> {
         {this.renderLine()}
         <Context
           frame={data}
+          event={this.props.event}
           registers={this.props.registers}
           components={this.props.components}
           hasContextSource={this.hasContextSource()}
@@ -363,6 +363,7 @@ export class Line extends React.Component<Props, State> {
           hasAssembly={this.hasAssembly()}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
+          hideStacktraceLink={this.props.hideStacktraceLink}
         />
       </StyledLi>
     );
@@ -380,7 +381,7 @@ const RepeatedFrames = styled('div')`
   border-style: solid;
   border-color: ${p => p.theme.orange500};
   color: ${p => p.theme.orange500};
-  background-color: ${p => p.theme.gray100};
+  background-color: ${p => p.theme.backgroundSecondary};
   white-space: nowrap;
 `;
 
@@ -434,13 +435,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 const LeadHint = styled('div')<{width?: string}>`
   ${overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
-`;
-
-const StyledIconChevron = styled(IconChevron, {
-  shouldForwardProp: prop => prop !== 'isExpanded',
-})<{isExpanded: boolean}>`
-  transform: rotate(${p => (p.isExpanded ? '180deg' : '0deg')});
-  transition: 0.1s all;
 `;
 
 const ToggleContextButtonWrapper = styled('span')`

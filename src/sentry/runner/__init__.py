@@ -19,7 +19,7 @@ else:
     version_string = "%s (%s)" % (sentry.VERSION, sentry.__build__[:12])
 
 
-@click.group()
+@click.group(context_settings={"max_content_width": 150})
 @click.option(
     "--config",
     default="",

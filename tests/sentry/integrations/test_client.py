@@ -48,18 +48,17 @@ class ApiClientTest(TestCase):
         resp = ApiClient().patch("http://example.com")
         assert resp.status_code == 200
 
-    @mock.patch("django.core.cache.cache.set")
-    @mock.patch("django.core.cache.cache.get")
+    @mock.patch("sentry.shared_integrations.client.cache")
     @responses.activate
-    def test_cache_mocked(self, cache_get, cache_set):
-        cache_get.return_value = None
+    def test_cache_mocked(self, cache):
+        cache.get.return_value = None
         responses.add(responses.GET, "http://example.com", json={"key": "value1"})
         resp = ApiClient().get_cached("http://example.com")
         assert resp == {"key": "value1"}
 
         key = "integration.undefined.client:a9b9f04336ce0181a08e774e01113b31"
-        cache_get.assert_called_with(key)
-        cache_set.assert_called_with(key, {"key": "value1"}, 900)
+        cache.get.assert_called_with(key)
+        cache.set.assert_called_with(key, {"key": "value1"}, 900)
 
     @responses.activate
     def test_get_cached_basic(self):
@@ -92,6 +91,20 @@ class ApiClientTest(TestCase):
         assert len(responses.calls) == 1
 
         ApiClient().get_cached("http://example.com", params={"param": "different"})
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_head_cached_query_param(self):
+        responses.add(responses.HEAD, "http://example.com?param=val", json={})
+        responses.add(responses.HEAD, "http://example.com?param=different", json={})
+
+        ApiClient().head_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().head_cached("http://example.com", params={"param": "val"})
+        assert len(responses.calls) == 1
+
+        ApiClient().head_cached("http://example.com", params={"param": "different"})
         assert len(responses.calls) == 2
 
 

@@ -1,9 +1,9 @@
 import React from 'react';
 import styled, {SerializedStyles} from '@emotion/styled';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
-import theme, {Theme} from 'app/utils/theme';
 import testableTransition from 'app/utils/testableTransition';
+import theme, {Theme} from 'app/utils/theme';
 
 type TextProps = {
   textCss?: Props['textCss'];
@@ -57,7 +57,7 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   justify-content: center;
   height: 100%;
   width: 100%;
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding-top: 1px;
   transition: color 100ms;
@@ -82,8 +82,8 @@ const ProgressRing = ({
   text,
   textCss,
   animateText = false,
-  progressColor = theme.green400,
-  backgroundColor = theme.gray300,
+  progressColor = theme.green300,
+  backgroundColor = theme.gray200,
   progressEndcaps,
   ...p
 }: Props) => {
@@ -166,4 +166,4 @@ const RingBar = styled('circle')<{
 export default ProgressRing;
 
 // We export components to allow for css selectors
-export {RingBar, RingBackground, Text as RingText};
+export {RingBackground, RingBar, Text as RingText};

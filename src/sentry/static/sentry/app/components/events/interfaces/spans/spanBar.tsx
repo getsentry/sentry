@@ -1,50 +1,50 @@
-import React from 'react';
-import styled from '@emotion/styled';
 import 'intersection-observer'; // this is a polyfill
 
-import {Organization, SentryTransactionEvent} from 'app/types';
-import {t} from 'app/locale';
-import {defined, OmitHtmlDivProps} from 'app/utils';
-import space from 'app/styles/space';
+import React from 'react';
+import styled from '@emotion/styled';
+
 import Count from 'app/components/count';
 import Tooltip from 'app/components/tooltip';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {IconChevron, IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Organization, SentryTransactionEvent} from 'app/types';
+import {defined, OmitHtmlDivProps} from 'app/utils';
+import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import globalTheme from 'app/utils/theme';
 
-import {
-  toPercent,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  SpanViewBoundsType,
-  getHumanDuration,
-  getSpanID,
-  getSpanOperation,
-  isOrphanSpan,
-  unwrapTreeDepth,
-  isOrphanTreeDepth,
-  isEventFromBrowserJavaScriptSDK,
-  durationlessBrowserOps,
-  getMeasurements,
-  getMeasurementBounds,
-} from './utils';
-import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
+import SpanDetail from './spanDetail';
 import {
+  getHatchPattern,
   SPAN_ROW_HEIGHT,
   SPAN_ROW_PADDING,
   SpanRow,
   zIndex,
-  getHatchPattern,
 } from './styles';
-import * as DividerHandlerManager from './dividerHandlerManager';
-import * as CursorGuideHandler from './cursorGuideHandler';
-import * as MeasurementsManager from './measurementsManager';
-import SpanDetail from './spanDetail';
+import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import {
+  durationlessBrowserOps,
+  getHumanDuration,
+  getMeasurementBounds,
+  getMeasurements,
+  getSpanID,
+  getSpanOperation,
+  isEventFromBrowserJavaScriptSDK,
+  isOrphanSpan,
+  isOrphanTreeDepth,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  SpanViewBoundsType,
+  toPercent,
+  unwrapTreeDepth,
+} from './utils';
 
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
@@ -192,13 +192,13 @@ export const getBackgroundColor = ({
   theme: any;
 }) => {
   if (!theme) {
-    return theme.white;
+    return theme.background;
   }
 
   if (showDetail) {
-    return theme.gray800;
+    return theme.textColor;
   }
-  return showStriping ? theme.gray100 : theme.white;
+  return showStriping ? theme.backgroundSecondary : theme.background;
 };
 
 type SpanBarProps = {
@@ -351,9 +351,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderMeasurements() {
-    const {organization, event, generateBounds} = this.props;
+    const {event, generateBounds} = this.props;
 
-    if (!organization.features.includes('measurements') || this.state.showDetail) {
+    if (this.state.showDetail) {
       return null;
     }
 
@@ -361,39 +361,23 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
     return (
       <React.Fragment>
-        {Array.from(measurements).map(([timestamp, names]) => {
+        {Array.from(measurements).map(([timestamp, verticalMark]) => {
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
 
-          if (!shouldDisplay) {
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
             return null;
           }
 
-          const measurementName = names.join('');
-
           return (
-            <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering, currentHoveredMeasurement}) => {
-                return (
-                  <MeasurementMarker
-                    hovering={currentHoveredMeasurement === measurementName}
-                    style={{
-                      left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-                    }}
-                    onMouseEnter={() => {
-                      hoveringMeasurement(measurementName);
-                    }}
-                    onMouseLeave={() => {
-                      notHovering();
-                    }}
-                    onMouseOver={() => {
-                      hoveringMeasurement(measurementName);
-                    }}
-                  />
-                );
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
               }}
-            </MeasurementsManager.Consumer>
+              failedThreshold={verticalMark.failedThreshold}
+            />
           );
         })}
       </React.Fragment>
@@ -799,9 +783,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderHeader(
-    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
+  renderHeader({
+    dividerHandlerChildrenProps,
+  }: {
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+  }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -819,6 +805,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           showDetail={this.state.showDetail}
           style={{
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+            paddingTop: 0,
           }}
           onClick={() => {
             this.toggleDisplayDetail();
@@ -903,7 +890,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerHandlerManager.Consumer>
           {(
             dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) => this.renderHeader(dividerHandlerChildrenProps)}
+          ) =>
+            this.renderHeader({
+              dividerHandlerChildrenProps,
+            })
+          }
         </DividerHandlerManager.Consumer>
         {this.renderDetail({isVisible: isSpanVisible})}
       </SpanRow>
@@ -922,7 +913,7 @@ export const SpanRowCell = styled('div')<SpanRowCellProps>`
   overflow: hidden;
   background-color: ${p => getBackgroundColor(p)};
   transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.white : 'inherit')};
+  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
 `;
 
 export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
@@ -930,10 +921,14 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
 
+  /* for virtual scrollbar */
+  overflow: hidden;
+
   user-select: none;
 
   &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p => (p.showDetail ? p.theme.gray800 : p.theme.gray200)};
+    background-color: ${p =>
+      p.showDetail ? p.theme.textColor : p.theme.backgroundSecondary};
   }
 `;
 
@@ -941,13 +936,13 @@ const CursorGuide = styled('div')`
   position: absolute;
   top: 0;
   width: 1px;
-  background-color: ${p => p.theme.red400};
+  background-color: ${p => p.theme.red300};
   transform: translateX(-50%);
   height: 100%;
 `;
 
 export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray400};
+  background-color: ${p => p.theme.gray200};
   position: absolute;
   height: 100%;
   width: 1px;
@@ -966,7 +961,7 @@ export const DividerLine = styled('div')`
   }
 
   &.hovering {
-    background-color: ${p => p.theme.gray800};
+    background-color: ${p => p.theme.textColor};
     width: 3px;
     transform: translateX(-1px);
     margin-right: -2px;
@@ -989,7 +984,7 @@ export const DividerLineGhostContainer = styled('div')`
 export const SpanBarTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  height: 100%;
+  height: ${SPAN_ROW_HEIGHT}px;
   position: absolute;
   left: 0;
   top: 0;
@@ -1027,8 +1022,7 @@ export const SpanTreeTogglerContainer = styled('div')<TogglerTypes>`
 export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boolean}>`
   height: ${p => (p.isLast ? SPAN_ROW_HEIGHT / 2 : SPAN_ROW_HEIGHT)}px;
   width: 100%;
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-    ${p => p.theme.borderDark};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   position: absolute;
   top: 0;
 
@@ -1036,7 +1030,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
     content: '';
     height: 1px;
     border-bottom: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-      ${p => p.theme.borderDark};
+      ${p => p.theme.border};
 
     width: 100%;
     position: absolute;
@@ -1045,7 +1039,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 
   &:after {
     content: '';
-    background-color: ${p => p.theme.gray400};
+    background-color: ${p => p.theme.gray200};
     border-radius: 4px;
     height: 3px;
     width: 3px;
@@ -1058,8 +1052,7 @@ export const SpanTreeConnector = styled('div')<TogglerTypes & {orphanBranch: boo
 export const ConnectorBar = styled('div')<{orphanBranch: boolean}>`
   height: 250%;
 
-  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')}
-    ${p => p.theme.borderDark};
+  border-left: 1px ${p => (p.orphanBranch ? 'dashed' : 'solid')} ${p => p.theme.border};
   top: -5px;
   position: absolute;
 `;
@@ -1078,7 +1071,7 @@ const getTogglerTheme = ({
   if (disabled) {
     return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.borderDark};
+    border: 1px solid ${theme.border};
     color: ${buttonTheme.color};
     cursor: default;
   `;
@@ -1086,7 +1079,7 @@ const getTogglerTheme = ({
 
   return `
     background: ${buttonTheme.background};
-    border: 1px solid ${theme.borderDark};
+    border: 1px solid ${theme.border};
     color: ${buttonTheme.color};
   `;
 };
@@ -1129,7 +1122,7 @@ const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray500 : theme.white};
+        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
       `;
   }
 };
@@ -1146,7 +1139,7 @@ const DurationPill = styled('div')<{
   transform: translateY(-50%);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail === true ? p.theme.gray400 : p.theme.gray500)};
+  color: ${p => (p.showDetail === true ? p.theme.gray200 : p.theme.gray300)};
 
   ${getDurationPillAlignment}
 
@@ -1166,29 +1159,20 @@ export const SpanBarRectangle = styled('div')<{spanBarHatch: boolean}>`
   ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
 `;
 
-const MeasurementMarker = styled('div')<{hovering: boolean}>`
+const MeasurementMarker = styled('div')<{failedThreshold: boolean}>`
   position: absolute;
   top: 0;
   height: ${SPAN_ROW_HEIGHT}px;
-  width: 1px;
   user-select: none;
-  background-color: ${p => p.theme.gray800};
-
-  transition: opacity 125ms ease-in-out;
+  width: 1px;
+  background: repeating-linear-gradient(
+      to bottom,
+      transparent 0 4px,
+      ${p => (p.failedThreshold ? p.theme.red300 : 'black')} 4px 8px
+    )
+    80%/2px 100% no-repeat;
   z-index: ${zIndex.dividerLine};
-
-  /* enhanced hit-box */
-  &:after {
-    content: '';
-    z-index: -1;
-    position: absolute;
-    left: -2px;
-    top: 0;
-    width: 9px;
-    height: 100%;
-  }
-
-  opacity: ${({hovering}) => (hovering ? '1' : '0.25')};
+  color: ${p => p.theme.textColor};
 `;
 
 const StyledIconWarning = styled(IconWarning)`

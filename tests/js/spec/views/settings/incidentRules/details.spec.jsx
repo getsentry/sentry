@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'app/components/globalModal';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
@@ -25,6 +25,10 @@ describe('Incident Rules Details', function () {
       body: null,
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
@@ -40,8 +44,9 @@ describe('Incident Rules Details', function () {
   it('renders and edits trigger', async function () {
     const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
+    const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
+      url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
     });
 
@@ -66,6 +71,8 @@ describe('Incident Rules Details', function () {
             ruleId: rule.id,
           }}
           organization={organization}
+          onChangeTitle={onChangeTitleMock}
+          project={project}
         />
       </React.Fragment>,
       routerContext
@@ -83,6 +90,9 @@ describe('Incident Rules Details', function () {
     );
 
     expect(req).toHaveBeenCalled();
+
+    // Check correct rule name is called
+    expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
     wrapper
       .find('input[name="warningThreshold"]')

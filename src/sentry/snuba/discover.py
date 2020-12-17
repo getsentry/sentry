@@ -17,6 +17,7 @@ from sentry.api.event_search import (
     get_json_meta_type,
     is_function,
     InvalidSearchQuery,
+    parse_function,
     resolve_field_list,
 )
 
@@ -41,7 +42,6 @@ __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
     "query",
-    "key_transaction_query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
@@ -77,11 +77,9 @@ def is_real_column(col):
 # calculate the entire bucket width. If we could do that in a smarter way,
 # we could avoid this whole calculation.
 def find_histogram_buckets(field, params, conditions):
-    match = is_function(field)
-    if not match:
-        raise InvalidSearchQuery(u"received {}, expected histogram function".format(field))
-
-    columns = [c.strip() for c in match.group("columns").split(",") if len(c.strip()) > 0]
+    _, columns, _ = parse_function(
+        field, err_msg=u"received {}, expected histogram function".format(field)
+    )
 
     if len(columns) != 2:
         raise InvalidSearchQuery(
@@ -438,7 +436,8 @@ def query(
                     for arg in args:
                         if arg[0] in [SNUBA_AND, SNUBA_OR]:
                             args_to_check.extend(arg[1])
-                        else:
+                        # Only need to iterate on arg[1] if its a list
+                        elif isinstance(arg[1], (list, tuple)):
                             alias = arg[1][0]
                             found = any(
                                 alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
@@ -492,52 +491,6 @@ def query(
         )
 
 
-def key_transaction_conditions(queryset):
-    """
-        The snuba query for transactions is of the form
-        (transaction="1" AND project=1) OR (transaction="2" and project=2) ...
-        which the schema intentionally doesn't support so we cannot do an AND in OR
-        so here the "and" operator is being instead to do an AND in OR query
-    """
-    return [
-        [
-            # First layer is Ands
-            [
-                # Second layer is Ors
-                [
-                    "and",
-                    [
-                        [
-                            "equals",
-                            # Without the outer ' here, the transaction will be treated as another column
-                            # instead of a string. This isn't an injection risk since snuba is smart enough to
-                            # handle escaping for us.
-                            ["transaction", u"'{}'".format(transaction.transaction)],
-                        ],
-                        ["equals", ["project_id", transaction.project.id]],
-                    ],
-                ],
-                "=",
-                1,
-            ]
-            for transaction in queryset
-        ]
-    ]
-
-
-def key_transaction_query(selected_columns, user_query, params, orderby, referrer, queryset):
-    return query(
-        selected_columns,
-        user_query,
-        params,
-        orderby=orderby,
-        referrer=referrer,
-        conditions=key_transaction_conditions(queryset),
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
-    )
-
-
 def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
@@ -556,54 +509,6 @@ def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default
         snuba_filter.aggregations[0][2] = "count"
 
     return snuba_filter, translated_columns
-
-
-def key_transaction_timeseries_query(selected_columns, query, params, rollup, referrer, queryset):
-    """ Given a queryset of KeyTransactions perform a timeseries query
-
-        This function is intended to match the `timeseries_query` function,
-        but exists to avoid including conditions as a parameter on that function.
-
-        selected_columns (Sequence[str]) List of public aliases to fetch.
-        query (str) Filter query string to create conditions from.
-        params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-        rollup (int) The bucket width in seconds
-        referrer (str|None) A referrer string to help locate the origin of this query.
-        queryset (QuerySet) Filtered QuerySet of KeyTransactions
-    """
-    with sentry_sdk.start_span(
-        op="discover.discover", description="kt_timeseries.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
-
-    if queryset.exists():
-        snuba_filter.conditions.extend(key_transaction_conditions(queryset))
-
-        with sentry_sdk.start_span(op="discover.discover", description="kt_timeseries.snuba_query"):
-            result = raw_query(
-                aggregations=snuba_filter.aggregations,
-                conditions=snuba_filter.conditions,
-                filter_keys=snuba_filter.filter_keys,
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                rollup=rollup,
-                orderby="time",
-                groupby=["time"],
-                dataset=Dataset.Discover,
-                limit=10000,
-                referrer=referrer,
-            )
-    else:
-        result = {"data": []}
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="kt_timeseries.transform_results"
-    ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        result = zerofill(result["data"], snuba_filter.start, snuba_filter.end, rollup, "time")
-
-        return SnubaTSResult({"data": result}, snuba_filter.start, snuba_filter.end, rollup)
 
 
 def timeseries_query(selected_columns, query, params, rollup, referrer=None):

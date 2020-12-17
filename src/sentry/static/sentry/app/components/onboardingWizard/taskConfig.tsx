@@ -1,24 +1,24 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import {sourceMaps} from 'app/data/platformCategories';
-import {
-  Organization,
-  OnboardingTaskDescriptor,
-  OnboardingTaskKey,
-  OnboardingTask,
-  Project,
-  OnboardingSupplementComponentProps,
-} from 'app/types';
-import withApi from 'app/utils/withApi';
 import {Client} from 'app/api';
-import withProjects from 'app/utils/withProjects';
-import EventWaiter from 'app/utils/eventWaiter';
 import {taskIsDone} from 'app/components/onboardingWizard/utils';
+import {sourceMaps} from 'app/data/platformCategories';
+import {t} from 'app/locale';
 import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
 import space from 'app/styles/space';
+import {
+  OnboardingSupplementComponentProps,
+  OnboardingTask,
+  OnboardingTaskDescriptor,
+  OnboardingTaskKey,
+  Organization,
+  Project,
+} from 'app/types';
+import EventWaiter from 'app/utils/eventWaiter';
+import withApi from 'app/utils/withApi';
+import withProjects from 'app/utils/withProjects';
 
 function hasPlatformWithSourceMaps(organization: Organization): boolean {
   const projects = organization?.projects;
@@ -249,7 +249,7 @@ const EventWaitingIndicator = styled(p => (
   </div>
 ))`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   display: grid;
   grid-template-columns: max-content max-content;
   grid-gap: ${space(1)};

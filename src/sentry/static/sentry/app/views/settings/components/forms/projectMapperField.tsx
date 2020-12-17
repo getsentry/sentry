@@ -1,21 +1,29 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {components} from 'react-select';
+import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
-import InputField from 'app/views/settings/components/forms/inputField';
-import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
-import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
-import FormModel from 'app/views/settings/components/forms/model';
-import {ProjectMapperType} from 'app/views/settings/components/forms/type';
+import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
-import Button from 'app/components/button';
-import {IconVercel, IconGeneric, IconDelete, IconOpen, IconAdd} from 'app/icons';
 import ExternalLink from 'app/components/links/externalLink';
+import {PanelAlert} from 'app/components/panels';
+import {
+  IconAdd,
+  IconArrow,
+  IconDelete,
+  IconGeneric,
+  IconOpen,
+  IconVercel,
+} from 'app/icons';
 import {t} from 'app/locale';
-import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
+import space from 'app/styles/space';
 import {safeGetQsParam} from 'app/utils/integrationUtil';
+import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
+import InputField from 'app/views/settings/components/forms/inputField';
+import FormModel from 'app/views/settings/components/forms/model';
+import {ProjectMapperType} from 'app/views/settings/components/forms/type';
 
 type MappedValue = string | number;
 
@@ -47,7 +55,7 @@ export class RenderField extends React.Component<RenderProps, State> {
       value: incomingValues,
       sentryProjects,
       mappedDropdown: {items: mappedDropdownItems, placeholder: mappedValuePlaceholder},
-      nextButton: {text: nextButtonText, allowedDomain},
+      nextButton: {text: nextButtonText, description: nextDescription, allowedDomain},
       iconType,
       model,
       id: formElementId,
@@ -120,37 +128,36 @@ export class RenderField extends React.Component<RenderProps, State> {
       const mappedItem = mappedItemsByValue[mappedValue];
       return (
         <Item key={index}>
-          <SentryProjectValue>
+          <MappedProjectWrapper>
             {project ? (
-              <StyledIdBadge
+              <IdBadge
                 project={project}
                 avatarSize={20}
                 displayName={project.slug}
                 avatarProps={{consistentWidth: true}}
               />
             ) : (
-              <ItemValue>{t('Deleted')}</ItemValue>
+              t('Deleted')
             )}
-          </SentryProjectValue>
+            <IconArrow size="xs" direction="right" />
+          </MappedProjectWrapper>
           <MappedItemValue>
             {mappedItem ? (
               <React.Fragment>
                 <IntegrationIconWrapper>{getIcon(iconType)}</IntegrationIconWrapper>
-                <MappedValueLabel>{mappedItem.label}</MappedValueLabel>
-                <ExternalLinkWrapper>
-                  <StyledExternalLink href={mappedItem.url}>
-                    <IconOpen />
-                  </StyledExternalLink>
-                </ExternalLinkWrapper>
+                {mappedItem.label}
+                <StyledExternalLink href={mappedItem.url}>
+                  <IconOpen size="xs" />
+                </StyledExternalLink>
               </React.Fragment>
             ) : (
               t('Deleted')
             )}
           </MappedItemValue>
           <DeleteButtonWrapper>
-            <DeleteButton
+            <Button
               onClick={() => handleDelete(index)}
-              icon={<IconDelete color="gray500" />}
+              icon={<IconDelete color="gray300" />}
               size="small"
               type="button"
               aria-label={t('Delete')}
@@ -225,10 +232,9 @@ export class RenderField extends React.Component<RenderProps, State> {
       <React.Fragment>
         {existingValues.map(renderItem)}
         <Item>
-          <StyledProjectSelectControl
+          <SelectControl
             placeholder={t('Sentry project\u2026')}
             name="project"
-            openMenuOnFocus
             options={projectOptions}
             components={{
               Option: customOptionProject,
@@ -237,10 +243,9 @@ export class RenderField extends React.Component<RenderProps, State> {
             onChange={handleSelectProject}
             value={selectedSentryProjectId}
           />
-          <MappedValueSelectControl
+          <SelectControl
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
-            openMenuOnFocus
             options={mappedItemsToShow}
             components={{
               Option: customOptionMappedValue,
@@ -250,7 +255,7 @@ export class RenderField extends React.Component<RenderProps, State> {
             value={selectedMappedValue}
           />
           <AddProjectWrapper>
-            <StyledAddProjectButton
+            <Button
               type="button"
               disabled={!selectedSentryProjectId || !selectedMappedValue}
               size="small"
@@ -267,20 +272,23 @@ export class RenderField extends React.Component<RenderProps, State> {
               </div>
             )}
           </FieldControlWrapper>
-          {nextUrl && (
-            <StyledNextButtonWrapper>
-              <StyledNextButton
+        </Item>
+        {nextUrl && (
+          <NextButtonPanelAlert icon={false} type="muted">
+            <NextButtonWrapper>
+              {nextDescription ?? ''}
+              <Button
                 type="button"
                 size="small"
-                priority="default"
-                icon={<IconOpen />}
+                priority="primary"
+                icon={<IconOpen size="xs" color="white" />}
                 href={nextUrl}
               >
                 {nextButtonText}
-              </StyledNextButton>
-            </StyledNextButtonWrapper>
-          )}
-        </Item>
+              </Button>
+            </NextButtonWrapper>
+          </NextButtonPanelAlert>
+        )}
       </React.Fragment>
     );
   }
@@ -299,48 +307,40 @@ const ProjectMapperField = (props: Props) => (
 
 export default ProjectMapperField;
 
-const StyledProjectSelectControl = styled(SelectControl)`
-  grid-area: sentry-project;
-`;
-
-const MappedValueSelectControl = styled(SelectControl)`
-  grid-area: mapped-value;
+const MappedProjectWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-right: ${space(1)};
 `;
 
 const Item = styled('div')`
-  margin: -1px;
-  border: 1px solid ${p => p.theme.gray400};
   min-height: 60px;
-  padding: ${space(1)};
+  padding: ${space(2)};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
 
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2.5fr 2.5fr 0.8fr 0.3fr 1.1fr;
-  grid-template-areas: 'sentry-project mapped-value add-project field-control right-button';
+  grid-template-columns: 2.5fr 2.5fr max-content 30px;
+  grid-template-areas: 'sentry-project mapped-value manage-project field-control';
 `;
 
-const ItemValue = styled('div')``;
-
 const MappedItemValue = styled('div')`
-  display: flex;
-  grid-area: mapped-value;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  grid-gap: ${space(1)};
   width: 100%;
 `;
 
-const SentryProjectValue = styled('div')`
-  grid-area: sentry-project;
-`;
-
 const DeleteButtonWrapper = styled('div')`
-  grid-area: right-button;
+  grid-area: manage-project;
 `;
-
-const DeleteButton = styled(Button)`
-  float: right;
-`;
-
-const StyledIdBadge = styled(IdBadge)``;
 
 const IntegrationIconWrapper = styled('span')`
   display: flex;
@@ -348,40 +348,19 @@ const IntegrationIconWrapper = styled('span')`
 `;
 
 const AddProjectWrapper = styled('div')`
-  grid-area: add-project;
+  grid-area: manage-project;
 `;
 
 const OptionLabelWrapper = styled('div')`
   margin-left: ${space(0.5)};
 `;
 
-const StyledAddProjectButton = styled(Button)`
-  float: right;
-`;
-
-const StyledNextButtonWrapper = styled('div')`
-  grid-area: right-button;
-`;
-
-const StyledNextButton = styled(Button)`
-  grid-area: right-button;
-`;
-
 const StyledInputField = styled(InputField)`
   padding: 0;
 `;
 
-const ExternalLinkWrapper = styled('div')`
-  height: 100%;
+const StyledExternalLink = styled(ExternalLink)`
   display: flex;
-  align-items: center;
-  margin-left: ${space(0.5)};
-`;
-
-const StyledExternalLink = styled(ExternalLink)``;
-
-const MappedValueLabel = styled('span')`
-  margin-left: ${space(0.5)};
 `;
 
 const OptionWrapper = styled('div')`
@@ -392,6 +371,20 @@ const OptionWrapper = styled('div')`
 const FieldControlWrapper = styled('div')`
   position: relative;
   grid-area: field-control;
+`;
+
+const NextButtonPanelAlert = styled(PanelAlert)`
+  align-items: center;
+  margin-bottom: -1px;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+`;
+
+const NextButtonWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(1)};
+  align-items: center;
 `;
 
 const StyledFieldErrorReason = styled(FieldErrorReason)``;

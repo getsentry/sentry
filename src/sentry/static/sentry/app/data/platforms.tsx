@@ -1,14 +1,15 @@
 /* eslint import/no-unresolved:0 import/order:0 */
-import {PlatformIntegration} from 'app/types';
 import {platforms} from 'integration-docs-platforms';
+
 import {t} from 'app/locale';
+import {PlatformIntegration} from 'app/types';
 
 import {tracing} from './platformCategories';
 
 const otherPlatform = {
   integrations: [
     {
-      link: 'https://docs.sentry.io/clients/',
+      link: 'https://docs.sentry.io/platforms/',
       type: 'language',
       id: 'other',
       name: t('Other'),

@@ -1,5 +1,5 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import FormField from 'app/components/forms/formField';
 
@@ -11,6 +11,7 @@ type InputFieldProps = FormField['props'] & {
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   autoComplete?: string;
+  min?: number;
 };
 
 class InputField<
@@ -40,6 +41,7 @@ class InputField<
         onFocus={this.props.onFocus}
         onKeyPress={this.props.onKeyPress}
         onKeyDown={this.props.onKeyDown}
+        min={this.props.min}
       />
     );
   }

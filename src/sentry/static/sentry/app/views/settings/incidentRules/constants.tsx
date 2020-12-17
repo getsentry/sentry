@@ -1,18 +1,31 @@
-import {
-  AlertRuleThresholdType,
-  UnsavedIncidentRule,
-  Trigger,
-  Dataset,
-} from 'app/views/settings/incidentRules/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
+import {
+  DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
+  getQueryDatasource,
+} from 'app/views/alerts/utils';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {
+  AlertRuleThresholdType,
+  Dataset,
+  Datasource,
+  EventTypes,
+  Trigger,
+  UnsavedIncidentRule,
+} from 'app/views/settings/incidentRules/types';
 
 export const DEFAULT_AGGREGATE = 'count()';
 
 export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
+} as const;
+
+export const DATASOURCE_EVENT_TYPE_FILTERS = {
+  [Datasource.ERROR_DEFAULT]: '(event.type:error OR event.type:default)',
+  [Datasource.ERROR]: 'event.type:error',
+  [Datasource.DEFAULT]: 'event.type:default',
+  [Datasource.TRANSACTION]: 'event.type:transaction',
 } as const;
 
 type OptionConfig = {
@@ -60,6 +73,7 @@ export function createDefaultTrigger(label: 'critical' | 'warning'): Trigger {
 export function createDefaultRule(): UnsavedIncidentRule {
   return {
     dataset: Dataset.ERRORS,
+    eventTypes: [EventTypes.ERROR],
     aggregate: DEFAULT_AGGREGATE,
     query: '',
     timeWindow: 1,
@@ -75,15 +89,14 @@ export function createDefaultRule(): UnsavedIncidentRule {
  * Create an unsaved alert from a discover EventView object
  */
 export function createRuleFromEventView(eventView: EventView): UnsavedIncidentRule {
+  const parsedQuery = getQueryDatasource(eventView.query);
+  const datasetAndEventtypes = parsedQuery
+    ? DATA_SOURCE_TO_SET_AND_EVENT_TYPES[parsedQuery.source]
+    : DATA_SOURCE_TO_SET_AND_EVENT_TYPES.error;
   return {
     ...createDefaultRule(),
-    dataset: eventView.query.includes(DATASET_EVENT_TYPE_FILTERS[Dataset.TRANSACTIONS])
-      ? Dataset.TRANSACTIONS
-      : Dataset.ERRORS,
-    query: eventView.query
-      .slice()
-      .replace(/event\.type:(transaction|error)/, '')
-      .trim(),
+    ...datasetAndEventtypes,
+    query: parsedQuery?.query ?? eventView.query,
     aggregate: eventView.getYAxis(),
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };

@@ -1,20 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import space from 'app/styles/space';
 import Tooltip from 'app/components/tooltip';
+import {IconFilter} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Frame} from 'app/types';
 import {defined} from 'app/utils';
-import {t} from 'app/locale';
-import {IconFilter} from 'app/icons';
 
 import FunctionName from './functionName';
 import {getFrameHint} from './utils';
 
 type Props = {
   frame: Frame;
-  onFunctionNameToggle: (event: React.MouseEvent<SVGElement>) => void;
   showCompleteFunctionName: boolean;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
 };
 
 const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) => {
@@ -49,7 +49,7 @@ const Symbol = ({frame, onFunctionNameToggle, showCompleteFunctionName}: Props) 
           hasFunctionNameHiddenDetails={hasFunctionNameHiddenDetails}
           onClick={hasFunctionNameHiddenDetails ? onFunctionNameToggle : undefined}
           size="xs"
-          color="purple400"
+          color="purple300"
         />
       </FunctionNameToggleTooltip>
       <Data>
@@ -89,7 +89,7 @@ const Wrapper = styled('div')`
 
   code {
     background: transparent;
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.textColor};
     padding-right: ${space(0.5)};
   }
 
@@ -119,7 +119,7 @@ const FileNameTooltip = styled(Tooltip)`
 `;
 
 const Filename = styled('span')`
-  color: ${p => p.theme.purple400};
+  color: ${p => p.theme.purple300};
 `;
 
 const FunctionNameToggleIcon = styled(IconFilter, {

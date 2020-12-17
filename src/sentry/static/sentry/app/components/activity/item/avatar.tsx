@@ -1,12 +1,12 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {AvatarUser} from 'app/types';
 import UserAvatar from 'app/components/avatar/userAvatar';
-import {IconSentry} from 'app/icons';
 import Placeholder from 'app/components/placeholder';
+import {IconSentry} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
+import {AvatarUser} from 'app/types';
 
 type Props = {
   type: 'system' | 'user';
@@ -57,8 +57,8 @@ const SystemAvatar = styled('span')<SystemAvatarProps>`
   align-items: center;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
-  background-color: ${p => p.theme.gray800};
-  color: ${p => p.theme.white};
+  background-color: ${p => p.theme.textColor};
+  color: ${p => p.theme.background};
   border-radius: 50%;
 `;
 

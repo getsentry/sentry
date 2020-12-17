@@ -2,15 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import Count from 'app/components/count';
 import {t, tn} from 'app/locale';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {CrashFreeTimeBreakdown} from 'app/types';
 import {defined} from 'app/utils';
-import Count from 'app/components/count';
+
+import {displayCrashFreePercent} from '../../utils';
 
 import {SectionHeading, Wrapper} from './styles';
-import {displayCrashFreePercent} from '../../utils';
 
 type Props = {
   crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
@@ -71,14 +72,13 @@ const TotalCrashFreeUsers = ({crashFreeTimeBreakdown}: Props) => {
 };
 
 const Timeline = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray600};
-  line-height: 1;
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.2;
 `;
 
 const DOT_SIZE = 10;
 const Row = styled('div')`
-  border-left: 1px solid ${p => p.theme.borderLight};
+  border-left: 1px solid ${p => p.theme.border};
   padding-left: ${space(2)};
   padding-bottom: ${space(1)};
   margin-left: ${space(1)};
@@ -89,7 +89,7 @@ const Row = styled('div')`
     width: ${DOT_SIZE}px;
     height: ${DOT_SIZE}px;
     border-radius: 100%;
-    background-color: ${p => p.theme.purple400};
+    background-color: ${p => p.theme.purple300};
     position: absolute;
     top: 0;
     left: -${Math.floor(DOT_SIZE / 2)}px;
@@ -109,9 +109,8 @@ const InnerRow = styled('div')`
 `;
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
-  font-weight: ${p => (p.bold ? 600 : 400)};
   text-align: ${p => (p.right ? 'right' : 'left')};
-  color: ${p => (p.bold ? p.theme.gray600 : p.theme.gray500)};
+  color: ${p => (p.bold ? p.theme.textColor : p.theme.gray300)};
   padding-bottom: ${space(0.25)};
   ${overflowEllipsis};
 `;

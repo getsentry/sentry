@@ -2,9 +2,9 @@ import React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 import Panel from './panel';
@@ -134,7 +134,7 @@ const Wrapper = styled(Panel, {
     ${p => (p.disablePadding ? '' : `padding: ${space(2)};`)}
 
     &:nth-last-child(n + ${p => (p.hasRows ? p.columns + 1 : 0)}) {
-      border-bottom: 1px solid ${p => p.theme.borderDark};
+      border-bottom: 1px solid ${p => p.theme.border};
     }
   }
 
@@ -148,12 +148,12 @@ const Wrapper = styled(Panel, {
 `;
 
 export const PanelTableHeader = styled('div')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   line-height: 1;
 `;
 

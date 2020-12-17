@@ -67,9 +67,6 @@ external_install = {
 
 
 configure_integration = {"title": _("Connect Your Projects")}
-connect_project_instruction = _(
-    "To complete installation, please connect your Sentry and Vercel projects."
-)
 create_project_instruction = _("Don't have a project yet? Click [here]({}) to create one.")
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
@@ -120,12 +117,23 @@ class VercelIntegration(IntegrationInstallation):
         return {
             "configure_integration": {
                 "instructions": [
-                    connect_project_instruction,
                     create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
-            }
+            },
+            "integration_detail": {"uninstallationUrl": self.get_manage_url()},
         }
+
+    def get_manage_url(self):
+        slug = self.get_slug()
+        configuration_id = self.get_configuration_id()
+        if configuration_id:
+            if self.metadata["installation_type"] == "team":
+                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
+            else:
+                dashboard_url = "https://vercel.com/dashboard/"
+            return u"%sintegrations/%s" % (dashboard_url, configuration_id)
+        return None
 
     def get_client(self):
         access_token = self.metadata["access_token"]
@@ -165,15 +173,6 @@ class VercelIntegration(IntegrationInstallation):
             for p in vercel_client.get_projects()
         ]
 
-        manage_url = None
-        configuration_id = self.get_configuration_id()
-        if configuration_id:
-            if self.metadata["installation_type"] == "team":
-                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
-            else:
-                dashboard_url = "https://vercel.com/dashboard/"
-            manage_url = u"%s/integrations/%s" % (dashboard_url, configuration_id)
-
         proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = map(
             lambda proj: {key: proj[key] for key in proj_fields},
@@ -195,9 +194,14 @@ class VercelIntegration(IntegrationInstallation):
                     "placeholder": _("Vercel project..."),
                 },
                 "sentryProjects": sentry_projects,
-                "nextButton": {"allowedDomain": "https://vercel.com", "text": _("To Vercel")},
+                "nextButton": {
+                    "allowedDomain": "https://vercel.com",
+                    "description": _(
+                        "Link your Sentry projects to complete your installation on Vercel"
+                    ),
+                    "text": _("Complete on Vercel"),
+                },
                 "iconType": "vercel",
-                "manageUrl": manage_url,
             }
         ]
 

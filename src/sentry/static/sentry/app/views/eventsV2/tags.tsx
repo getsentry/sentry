@@ -1,23 +1,23 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor} from 'history';
 import * as Sentry from '@sentry/react';
+import {Location, LocationDescriptor} from 'history';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import space from 'app/styles/space';
-import {Client} from 'app/api';
 import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
-import SentryTypes from 'app/sentryTypes';
+import {Client} from 'app/api';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {IconWarning} from 'app/icons';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
-import withApi from 'app/utils/withApi';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
+import withApi from 'app/utils/withApi';
 
 type Props = {
   api: Client;
@@ -160,7 +160,7 @@ class Tags extends React.Component<Props, State> {
     } else {
       return (
         <StyledError>
-          <StyledIconWarning color="gray500" size="lg" />
+          <StyledIconWarning color="gray300" size="lg" />
           {t('No tags found')}
         </StyledError>
       );
@@ -178,7 +178,7 @@ class Tags extends React.Component<Props, State> {
 }
 
 const StyledError = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   display: flex;
   align-items: center;
 `;

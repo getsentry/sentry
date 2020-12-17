@@ -1,22 +1,22 @@
-import {Link} from 'react-router';
 import React from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Activity, Organization} from 'app/types';
-import {t, tn, tct} from 'app/locale';
+import ActivityAvatar from 'app/components/activity/item/avatar';
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
-import ExternalLink from 'app/components/links/externalLink';
 import IssueLink from 'app/components/issueLink';
-import MemberListStore from 'app/stores/memberListStore';
+import ExternalLink from 'app/components/links/externalLink';
 import PullRequestLink from 'app/components/pullRequestLink';
-import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import VersionHoverCard from 'app/components/versionHoverCard';
-import marked from 'app/utils/marked';
+import {t, tct, tn} from 'app/locale';
+import MemberListStore from 'app/stores/memberListStore';
+import TeamStore from 'app/stores/teamStore';
 import space from 'app/styles/space';
-import ActivityAvatar from 'app/components/activity/item/avatar';
+import {Activity, Organization} from 'app/types';
+import marked from 'app/utils/marked';
 
 const defaultProps = {
   defaultClipped: false,
@@ -305,7 +305,11 @@ class ActivityItem extends React.Component<Props, State> {
     const {className, item} = this.props;
 
     const avatar = (
-      <ActivityAvatar type={!item.user ? 'system' : 'user'} user={item.user} size={36} />
+      <ActivityAvatar
+        type={!item.user ? 'system' : 'user'}
+        user={item.user ?? undefined}
+        size={36}
+      />
     );
     const author = {
       name: item.user ? item.user.name : 'Sentry',
@@ -360,7 +364,7 @@ export default styled(ActivityItem)`
   position: relative;
   margin: 0;
   padding: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   line-height: 1.4;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -370,7 +374,7 @@ const ActivityAuthor = styled('span')`
 `;
 
 const Meta = styled('div')`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 const Project = styled('span')`
@@ -378,10 +382,10 @@ const Project = styled('span')`
 `;
 
 const Bubble = styled('div')<{clipped: boolean}>`
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   margin: ${space(0.5)} 0;
   padding: ${space(1)} ${space(2)};
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.border};
   border-radius: 3px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   position: relative;
@@ -421,6 +425,6 @@ const Bubble = styled('div')<{clipped: boolean}>`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-left: ${space(1)};
 `;

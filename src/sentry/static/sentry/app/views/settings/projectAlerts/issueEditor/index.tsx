@@ -1,12 +1,27 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
-import classNames from 'classnames';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import omit from 'lodash/omit';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
+import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import Access from 'app/components/acl/access';
+import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import LoadingMask from 'app/components/loadingMask';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
-import {Environment, Organization, Project, OnboardingTaskKey} from 'app/types';
+import {IconChevron, IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {Environment, OnboardingTaskKey, Organization, Project} from 'app/types';
 import {
   IssueAlertRule,
   IssueAlertRuleAction,
@@ -14,31 +29,14 @@ import {
   IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'app/types/alerts';
-import {IconWarning, IconChevron} from 'app/icons';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import Input from 'app/views/settings/components/forms/controls/input';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
 import {getDisplayName} from 'app/utils/environment';
-import {t, tct} from 'app/locale';
-import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import Form from 'app/views/settings/components/forms/form';
-import LoadingMask from 'app/components/loadingMask';
-import SelectField from 'app/views/settings/components/forms/selectField';
 import recreateRoute from 'app/utils/recreateRoute';
-import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
-import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
+import AsyncView from 'app/views/asyncView';
+import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
+import Form from 'app/views/settings/components/forms/form';
+import SelectField from 'app/views/settings/components/forms/selectField';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -89,10 +87,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -121,7 +120,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {ruleId, projectId, orgId} = this.props.params;
 
     const endpoints = [
@@ -134,6 +133,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
 
     return endpoints as [string, string][];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle?.(data.name);
+    }
   }
 
   pollHandler = async (quitTime: number) => {
@@ -509,7 +514,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   <StepContainer>
                     <ChevronContainer>
                       <IconChevron
-                        color="gray400"
+                        color="gray200"
                         isCircled
                         direction="right"
                         size="sm"
@@ -598,7 +603,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <StepContainer>
                       <ChevronContainer>
                         <IconChevron
-                          color="gray400"
+                          color="gray200"
                           isCircled
                           direction="right"
                           size="sm"
@@ -664,7 +669,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <ChevronContainer>
                       <IconChevron
                         isCircled
-                        color="gray400"
+                        color="gray200"
                         direction="right"
                         size="sm"
                       />
@@ -678,6 +683,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                       <RuleNodeList
                         nodes={this.state.configs?.actions ?? null}
+                        selectType="grouped"
                         items={actions ?? []}
                         placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
@@ -724,7 +730,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withProject(withOrganization(IssueRuleEditor));
+export default withOrganization(IssueRuleEditor);
 
 const StyledForm = styled(Form)`
   position: relative;
@@ -757,7 +763,7 @@ const StepConnector = styled('div')`
   height: 100%;
   top: 28px;
   left: 19px;
-  border-right: 1px ${p => p.theme.gray500} dashed;
+  border-right: 1px ${p => p.theme.gray300} dashed;
 `;
 
 const StepLead = styled('div')`
@@ -773,7 +779,7 @@ const ChevronContainer = styled('div')`
 const Badge = styled('span')`
   display: inline-block;
   min-width: 56px;
-  background-color: ${p => p.theme.purple400};
+  background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.white};

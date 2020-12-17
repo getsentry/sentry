@@ -1,3 +1,5 @@
+import React from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
@@ -5,9 +7,6 @@ import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
-import React from 'react';
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
 
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -154,7 +153,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }
 
-  getEndpoints(): ([string, string, any] | [string, string])[] {
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId} = this.props.params;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${orgId}/config/integrations/`],
@@ -561,7 +560,7 @@ const EmptyResultsContainer = styled('div')`
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-bottom: ${space(2)};
 `;
 

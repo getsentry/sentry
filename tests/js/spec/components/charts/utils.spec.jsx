@@ -1,7 +1,7 @@
 import {
   canIncludePreviousPeriod,
-  getInterval,
   getDiffInMinutes,
+  getInterval,
 } from 'app/components/charts/utils';
 
 describe('Chart Utils', function () {
@@ -17,11 +17,17 @@ describe('Chart Utils', function () {
       it('between 30 minutes and 24 hours', function () {
         expect(getInterval({period: '12h'}, true)).toBe('5m');
       });
+      it('more than 30 days', function () {
+        expect(getInterval({period: '30d'}, true)).toBe('1h');
+      });
+      it('more than 60 days', function () {
+        expect(getInterval({period: '90d'}, true)).toBe('4h');
+      });
     });
 
     describe('with low fidelity', function () {
       it('greater than 24 hours', function () {
-        expect(getInterval({period: '25h'})).toBe('24h');
+        expect(getInterval({period: '25h'})).toBe('1h');
       });
 
       it('less than 30 minutes', function () {
@@ -29,6 +35,12 @@ describe('Chart Utils', function () {
       });
       it('between 30 minutes and 24 hours', function () {
         expect(getInterval({period: '12h'})).toBe('15m');
+      });
+      it('more than 30 days', function () {
+        expect(getInterval({period: '30d'})).toBe('4h');
+      });
+      it('more than 90 days', function () {
+        expect(getInterval({period: '90d'})).toBe('1d');
       });
     });
   });

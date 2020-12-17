@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import ControlState from 'app/views/settings/components/forms/field/controlState';
-import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
-import {IconClose, IconCheckmark} from 'app/icons';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
+import ControlState from 'app/views/settings/components/forms/field/controlState';
 
 import {EventIdStatus} from '../../types';
 
@@ -28,7 +28,7 @@ const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
     case EventIdStatus.LOADING:
       return <ControlState isSaving />;
     case EventIdStatus.LOADED:
-      return <IconCheckmark color="green400" />;
+      return <IconCheckmark color="green300" />;
     default:
       return null;
   }
@@ -43,9 +43,9 @@ const CloseIcon = styled('div')`
 `;
 
 const StyledIconClose = styled(IconClose)`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.gray200};
   :hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
   cursor: pointer;
 `;

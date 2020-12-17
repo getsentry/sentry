@@ -1,17 +1,17 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
+import Checkbox from 'app/components/checkbox';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 import {
   DESCRIPTIONS,
   EVENT_CHOICES,
 } from 'app/views/settings/organizationDeveloperSettings/constants';
-import Checkbox from 'app/components/checkbox';
-import Tooltip from 'app/components/tooltip';
-import withOrganization from 'app/utils/withOrganization';
-import SentryTypes from 'app/sentryTypes';
-import {Organization} from 'app/types';
 
 type Resource = typeof EVENT_CHOICES[number];
 
@@ -100,7 +100,7 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   opacity: ${({disabled}: {disabled: boolean}) => (disabled ? 0.3 : 1)};
   border-radius: 3px;
   flex: 1;
@@ -116,7 +116,7 @@ const SubscriptionGridItemWrapper = styled('div')`
 const SubscriptionDescription = styled('div')`
   font-size: 12px;
   line-height: 1;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   white-space: nowrap;
 `;
 

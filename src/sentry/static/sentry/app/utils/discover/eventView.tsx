@@ -1,38 +1,39 @@
 import {Location, Query} from 'history';
-import isString from 'lodash/isString';
 import cloneDeep from 'lodash/cloneDeep';
-import pick from 'lodash/pick';
 import isEqual from 'lodash/isEqual';
+import isString from 'lodash/isString';
 import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
 
-import {DEFAULT_PER_PAGE} from 'app/constants';
 import {EventQuery} from 'app/actionCreators/events';
-import {GlobalSelection, SavedQuery, NewQuery, SelectValue, User} from 'app/types';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {DEFAULT_PER_PAGE} from 'app/constants';
+import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
 import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-import {decodeScalar, decodeList} from 'app/utils/queryString';
 
-import {
-  Sort,
-  Field,
-  Column,
-  ColumnType,
-  isAggregateField,
-  getAggregateAlias,
-  generateFieldAsString,
-} from './fields';
+import {statsPeriodToDays} from '../dates';
+
 import {getSortField} from './fieldRenderers';
 import {
+  Column,
+  ColumnType,
+  Field,
+  generateFieldAsString,
+  getAggregateAlias,
+  isAggregateField,
+  Sort,
+} from './fields';
+import {
   CHART_AXIS_OPTIONS,
-  DisplayModes,
-  DISPLAY_MODE_OPTIONS,
   DISPLAY_MODE_FALLBACK_OPTIONS,
+  DISPLAY_MODE_OPTIONS,
+  DisplayModes,
 } from './types';
-import {statsPeriodToDays} from '../dates';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType>;
@@ -912,7 +913,12 @@ class EventView {
       utc: decodeScalar(query.utc),
     });
 
-    const sort = this.sorts.length > 0 ? encodeSort(this.sorts[0]) : undefined;
+    const sort =
+      this.sorts.length <= 0
+        ? undefined
+        : this.sorts.length > 1
+        ? encodeSorts(this.sorts)
+        : encodeSort(this.sorts[0]);
     const fields = this.getFields();
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];

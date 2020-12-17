@@ -1,16 +1,16 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Organization, Project} from 'app/types';
-import {PageContent, PageHeader} from 'app/styles/organization';
+import PageHeading from 'app/components/pageHeading';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
 import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
-import PageHeading from 'app/components/pageHeading';
-import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 
 type RouteParams = {
   orgId: string;
@@ -24,36 +24,71 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
 };
 
-function ProjectAlertsEditor(props: Props) {
-  const {hasMetricAlerts, location, params, organization, project} = props;
-  const {projectId} = params;
-  const alertType = location.pathname.includes('/alerts/metric-rules/')
-    ? 'metric'
-    : 'issue';
-  const title = t('Edit Alert Rule');
+type State = {
+  alertType: string;
+  ruleName: string;
+};
 
-  return (
-    <React.Fragment>
-      <SentryDocumentTitle title={title} objSlug={projectId} />
-      <PageContent>
-        <BuilderBreadCrumbs
-          hasMetricAlerts={hasMetricAlerts}
-          orgSlug={organization.slug}
-          title={title}
-        />
-        <StyledPageHeader>
-          <PageHeading>{title}</PageHeading>
-        </StyledPageHeader>
-        {(!hasMetricAlerts || alertType === 'issue') && (
-          <IssueEditor {...props} project={project} />
-        )}
+class ProjectAlertsEditor extends React.Component<Props, State> {
+  state: State = {
+    alertType: '',
+    ruleName: '',
+  };
 
-        {hasMetricAlerts && alertType === 'metric' && (
-          <IncidentRulesDetails {...props} project={project} />
-        )}
-      </PageContent>
-    </React.Fragment>
-  );
+  handleChangeTitle = ruleName => {
+    this.setState({ruleName});
+  };
+
+  getTitle() {
+    const {ruleName} = this.state;
+    const defaultTitle = t('Edit Alert Rule');
+
+    if (!ruleName) {
+      return defaultTitle;
+    }
+
+    const title = `${ruleName}`;
+
+    return `${defaultTitle}: ${title}`;
+  }
+
+  render() {
+    const {hasMetricAlerts, location, params, organization, project} = this.props;
+    const {projectId} = params;
+    const alertType = location.pathname.includes('/alerts/metric-rules/')
+      ? 'metric'
+      : 'issue';
+
+    return (
+      <React.Fragment>
+        <SentryDocumentTitle title={this.getTitle()} objSlug={projectId} />
+        <PageContent>
+          <BuilderBreadCrumbs
+            hasMetricAlerts={hasMetricAlerts}
+            orgSlug={organization.slug}
+            title={this.getTitle()}
+          />
+          <StyledPageHeader>
+            <PageHeading>{this.getTitle()}</PageHeading>
+          </StyledPageHeader>
+          {(!hasMetricAlerts || alertType === 'issue') && (
+            <IssueEditor
+              {...this.props}
+              project={project}
+              onChangeTitle={this.handleChangeTitle}
+            />
+          )}
+          {hasMetricAlerts && alertType === 'metric' && (
+            <IncidentRulesDetails
+              {...this.props}
+              project={project}
+              onChangeTitle={this.handleChangeTitle}
+            />
+          )}
+        </PageContent>
+      </React.Fragment>
+    );
+  }
 }
 
 const StyledPageHeader = styled(PageHeader)`

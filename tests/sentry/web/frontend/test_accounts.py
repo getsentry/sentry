@@ -12,6 +12,9 @@ class TestAccounts(TestCase):
     def path(self):
         return reverse("sentry-account-recover")
 
+    def password_recover_path(self, user_id, hash_):
+        return reverse("sentry-account-recover-confirm", kwargs={"user_id": user_id, "hash": hash_})
+
     def test_get_renders_form(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -55,3 +58,21 @@ class TestAccounts(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/account/recover/index.html")
         assert 0 == len(LostPasswordHash.objects.all())
+
+    def test_leaking_recovery_hash(self):
+        user = self.create_user()
+
+        resp = self.client.post(self.path, {"user": user.email})
+        assert resp.status_code == 200
+
+        lost_password = LostPasswordHash.objects.get(user=user)
+
+        resp = self.client.post(
+            self.password_recover_path(lost_password.user_id, lost_password.hash),
+            {"password": "test_password"},
+        )
+
+        header_name = "Referrer-Policy"
+
+        assert resp.has_header(header_name)
+        assert resp[header_name] == "strict-origin-when-cross-origin"

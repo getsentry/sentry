@@ -1,8 +1,8 @@
 import React from 'react';
-import styled from '@emotion/styled';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named
 import {components, OptionProps} from 'react-select';
+import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
@@ -67,7 +67,7 @@ class SelectField extends React.Component<Props> {
 export default SelectField;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const Wrapper = styled('div')<{isSelected?: boolean}>`

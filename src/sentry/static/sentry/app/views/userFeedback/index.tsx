@@ -1,27 +1,28 @@
-import {Link} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
 import React from 'react';
-import omit from 'lodash/omit';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import omit from 'lodash/omit';
 
-import {Organization, UserReport} from 'app/types';
-import {PageContent} from 'app/styles/organization';
-import {Panel, PanelBody} from 'app/components/panels';
-import {t} from 'app/locale';
-import AsyncView from 'app/views/asyncView';
-import CompactIssue from 'app/components/issues/compactIssue';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import EventUserFeedback from 'app/components/events/userFeedback';
-import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import CompactIssue from 'app/components/issues/compactIssue';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
+import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
+import {Organization, UserReport} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
+import AsyncView from 'app/views/asyncView';
 
-import {getQuery} from './utils';
 import UserFeedbackEmpty from './userFeedbackEmpty';
+import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {
   reportList: UserReport[];
@@ -32,7 +33,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
-  getEndpoints(): [string, string, any][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       organization,
       location: {search},
@@ -119,25 +120,18 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
             <div data-test-id="user-feedback">
               <Header>
                 <PageHeading>{t('User Feedback')}</PageHeading>
-                <div className="btn-group">
-                  <Link
+                <ButtonBar active={!Array.isArray(status) ? status || '' : ''} merged>
+                  <Button
+                    size="small"
+                    barId="unresolved"
                     to={{pathname, query: unresolvedQuery}}
-                    className={
-                      'btn btn-sm btn-default' +
-                      (status === 'unresolved' ? ' active' : '')
-                    }
                   >
                     {t('Unresolved')}
-                  </Link>
-                  <Link
-                    to={{pathname, query: allIssuesQuery}}
-                    className={
-                      'btn btn-sm btn-default' + (status === '' ? ' active' : '')
-                    }
-                  >
+                  </Button>
+                  <Button size="small" barId="" to={{pathname, query: allIssuesQuery}}>
                     {t('All Issues')}
-                  </Link>
-                </div>
+                  </Button>
+                </ButtonBar>
               </Header>
               <Panel>
                 <PanelBody className="issue-list">{this.renderStreamBody()}</PanelBody>

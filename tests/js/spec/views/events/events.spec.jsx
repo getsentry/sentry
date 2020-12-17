@@ -1,15 +1,15 @@
-import {withRouter, browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory, withRouter} from 'react-router';
 
 import {chart, doZoom} from 'sentry-test/charts';
+import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
-import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {getUtcToLocalDateObject} from 'app/utils/dates';
-import Events, {parseRowFromLinks} from 'app/views/events/events';
-import EventsContainer from 'app/views/events';
 import ProjectsStore from 'app/stores/projectsStore';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import EventsContainer from 'app/views/events';
+import Events, {parseRowFromLinks} from 'app/views/events/events';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -269,14 +269,10 @@ describe('EventsErrors', function () {
       await tick();
       wrapper.update();
 
-      chartRender = jest.spyOn(wrapper.find('AreaChart').instance(), 'render');
-
       doZoom(wrapper.find('EventsChart').first(), chart);
       await tick();
       wrapper.update();
 
-      // After zooming, line chart should re-render once, but table does
-      expect(chartRender).toHaveBeenCalledTimes(1);
       expect(tableRender).toHaveBeenCalledTimes(2);
 
       newParams = {

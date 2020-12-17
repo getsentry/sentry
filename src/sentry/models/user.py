@@ -239,10 +239,13 @@ class User(BaseModel, AbstractBaseUser):
             try:
                 with transaction.atomic():
                     obj.update(user=to_user)
+            # this will error if both users are members of obj.org
             except IntegrityError:
                 pass
 
             # identify the highest priority membership
+            # only applies if both users are members of obj.org
+            # if roles are different, grants combined user the higher of the two
             to_member = OrganizationMember.objects.get(
                 organization=obj.organization_id, user=to_user
             )
@@ -255,6 +258,8 @@ class User(BaseModel, AbstractBaseUser):
                         OrganizationMemberTeam.objects.create(
                             organizationmember=to_member, team=team
                         )
+                # this will error if both users are on the same team in obj.org,
+                # in which case, no need to update anything
                 except IntegrityError:
                     pass
 
@@ -280,11 +285,13 @@ class User(BaseModel, AbstractBaseUser):
                     pass
 
         Activity.objects.filter(user=from_user).update(user=to_user)
+        # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)
 
-        # remove any duplicate identities that exist on the current user that
-        # might conflict w/ the new users existing SSO
+        # remove any SSO identities that exist on from_user that might conflict
+        # with to_user's existing identities (only applies if both users have
+        # SSO identities in the same org), then pass the rest on to to_user
         AuthIdentity.objects.filter(
             user=from_user,
             auth_provider__organization__in=AuthIdentity.objects.filter(user=to_user).values(

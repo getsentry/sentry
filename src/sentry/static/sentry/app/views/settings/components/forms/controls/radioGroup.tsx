@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import styled from '@emotion/styled';
 import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import Radio from 'app/components/radio';
 import space from 'app/styles/space';
@@ -104,7 +104,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4em;
 `;

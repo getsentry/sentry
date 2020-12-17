@@ -1,4 +1,4 @@
-name: acceptance
+name: acceptance [py3.6]
 on:
   push:
     branches:
@@ -7,7 +7,6 @@ on:
   pull_request:
 
 jobs:
-  # TODO(billy): Currently, keeping name the same because of `required` status checks
   py3-acceptance:
     name: python3.6 acceptance
     runs-on: ubuntu-16.04
@@ -18,6 +17,7 @@ jobs:
 
     env:
       MIGRATIONS_TEST_MIGRATE: 1
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@v2
@@ -44,7 +44,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(awk 'FNR == 2' .python-version)"
+          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -71,7 +71,6 @@ jobs:
         id: setup
         if: steps.changes.outputs.backend == 'true'
         with:
-          python: 3
           snuba: true
 
       - name: yarn cache
@@ -91,6 +90,9 @@ jobs:
 
       - name: webpack
         if: steps.changes.outputs.backend == 'true'
+        env:
+          SENTRY_INSTRUMENTATION: 1
+          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn webpack --display errors-only
 
@@ -104,5 +106,8 @@ jobs:
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
           USE_SNUBA: 1
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
 
       # TODO(joshuarli): snapshots, visual-diff needs py3-acceptance.

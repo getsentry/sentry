@@ -22,8 +22,7 @@ sentry-package.json
 /dist
 /env
 /tmp
-/node_modules/
-/docs-ui/node_modules/
+node_modules
 /src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/
@@ -33,6 +32,7 @@ sentry-package.json
 /src/sentry/integration-docs
 /src/sentry/loader/_registry.json
 /tests/apidocs/openapi-derefed.json
+tests/fixtures/integrations/*/data/**
 /wheelhouse
 /test_cli/
 Gemfile.lock

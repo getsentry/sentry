@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import GroupActions from 'app/views/organizationGroupDetails/actions';
 import ConfigStore from 'app/stores/configStore';
+import GroupActions from 'app/views/organizationGroupDetails/actions';
 
 describe('GroupActions', function () {
   beforeEach(function () {
@@ -65,7 +65,7 @@ describe('GroupActions', function () {
           })}
         />
       );
-      const btn = wrapper.find('.group-subscribe');
+      const btn = wrapper.find('button[aria-label="Subscribe"]');
       btn.simulate('click');
 
       expect(issuesApi).toHaveBeenCalledWith(
@@ -106,7 +106,7 @@ describe('GroupActions', function () {
           })}
         />
       );
-      const btn = wrapper.find('.group-bookmark');
+      const btn = wrapper.find('BookmarkButton');
       btn.simulate('click');
 
       expect(issuesApi).toHaveBeenCalledWith(

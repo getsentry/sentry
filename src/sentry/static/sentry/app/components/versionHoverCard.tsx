@@ -1,24 +1,25 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import AvatarList from 'app/components/avatar/avatarList';
 import Button from 'app/components/button';
+import Clipboard from 'app/components/clipboard';
 import Hovercard from 'app/components/hovercard';
 import LastCommit from 'app/components/lastCommit';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import RepoLabel from 'app/components/repoLabel';
 import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import {IconCopy} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Deploy, Release, Repository} from 'app/types';
+import {defined} from 'app/utils';
 import withApi from 'app/utils/withApi';
 import withRelease from 'app/utils/withRelease';
 import withRepositories from 'app/utils/withRepositories';
-import Clipboard from 'app/components/clipboard';
-import {IconCopy} from 'app/icons';
-import Version from 'app/components/version';
-import {Client} from 'app/api';
-import {Deploy, Release, Repository} from 'app/types';
 
 type Props = {
   api: Client;
@@ -73,7 +74,7 @@ class VersionHoverCard extends React.Component<Props, State> {
 
   getBody() {
     const {releaseVersion, release, deploys} = this.props;
-    if (release === undefined || deploys === undefined) {
+    if (release === undefined || !defined(deploys)) {
       return {header: null, body: null};
     }
 
@@ -203,7 +204,7 @@ const VersionRepoLabel = styled(RepoLabel)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   position: absolute;
   left: 98px;
   width: 50%;

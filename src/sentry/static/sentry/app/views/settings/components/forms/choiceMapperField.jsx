@@ -1,16 +1,16 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {defined, objectIsEmpty} from 'app/utils';
-import {t} from 'app/locale';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
-import InputField from 'app/views/settings/components/forms/inputField';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconAdd, IconDelete} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {defined, objectIsEmpty} from 'app/utils';
+import InputField from 'app/views/settings/components/forms/inputField';
 
 const selectControlShape = PropTypes.shape(SelectControl.propTypes);
 
@@ -261,7 +261,7 @@ const LabelColumn = styled('div')`
 const HeadingItem = styled('div')`
   font-size: 0.8em;
   text-transform: uppercase;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 const Actions = styled('div')`

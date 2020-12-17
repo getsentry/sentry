@@ -1,15 +1,15 @@
-import {withRouter, Link} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {Link, withRouter} from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
 import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -194,7 +194,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const TableRow = styled(TableLayout)`
   font-size: ${p => p.theme.fontSizeMedium};
-  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.borderLight)};
+  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.innerBorder)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
 `;
@@ -209,6 +209,6 @@ const EventTitle = styled(TableData)`
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   ${overflowEllipsis};
 `;

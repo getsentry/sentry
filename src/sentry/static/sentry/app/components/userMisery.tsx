@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {tct} from 'app/locale';
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
+import {tct} from 'app/locale';
 import theme from 'app/utils/theme';
 
 type Props = {
@@ -17,7 +17,7 @@ type Props = {
 function UserMisery(props: Props) {
   const {bars, barHeight, miserableUsers, miseryLimit, totalUsers} = props;
 
-  const palette = new Array(bars).fill(theme.purple500);
+  const palette = new Array(bars).fill(theme.purple300);
   const rawScore = Math.floor(
     (miserableUsers / Math.max(totalUsers, 1)) * palette.length
   );

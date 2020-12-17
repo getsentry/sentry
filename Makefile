@@ -1,8 +1,15 @@
 PIP := python -m pip --disable-pip-version-check
-WEBPACK := NODE_ENV=production yarn webpack
+WEBPACK := yarn build-acceptance
 
 # Currently, this is only required to install black via pre-commit.
-REQUIRED_PY3_VERSION := $(shell awk 'FNR == 2' .python-version)
+REQUIRED_PY3_VERSION := $(shell grep "3.6" .python-version)
+
+UNAME := $(shell command -v uname 2> /dev/null)
+ifdef UNAME
+	ifeq ($(shell uname), Darwin)
+		BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.")
+	endif
+endif
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
@@ -49,7 +56,19 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
+ifdef BIG_SUR
+	# NOTE: Once we have a new release of pyenv and once a newer Python version we can remove these
+	# https://github.com/pyenv/pyenv/pull/1711
+	# cat is used since pyenv would finish to soon when the Python version is already installed
+	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
+		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
+		pyenv install --skip-existing --patch 3.6.10
+	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
+		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
+		pyenv install --skip-existing --patch 2.7.16
+else
 	@cat .python-version | xargs -n1 pyenv install --skip-existing
+endif
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
@@ -145,7 +164,7 @@ test-js-build: node-version-check
 	@echo "--> Running type check"
 	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
-	@$(WEBPACK) --profile --json > .artifacts/webpack-stats.json
+	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
 
 test-js: node-version-check
 	@echo "--> Running JavaScript tests"
@@ -180,12 +199,10 @@ test-symbolicator:
 
 test-acceptance: node-version-check
 	@echo "--> Building static assets"
-	@$(WEBPACK) --display errors-only
+	@$(WEBPACK)
 	make run-acceptance
 
 test-plugins:
-	@echo "--> Building static assets"
-	@$(WEBPACK) --display errors-only
 	@echo "--> Running plugin tests"
 	py.test tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml" --junit-xml=".artifacts/plugins.junit.xml" || exit 1
 	@echo ""
@@ -222,27 +239,3 @@ lint-js:
 
 
 .PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
-
-
-############################
-# Halt, Travis stuff below #
-############################
-
-.PHONY: travis-noop
-travis-noop:
-	@echo "nothing to do here."
-
-.PHONY: travis-test-lint-js
-travis-test-lint-js: lint-js
-
-.PHONY: travis-test-postgres travis-test-acceptance travis-test-snuba travis-test-symbolicator travis-test-js travis-test-js-build
-.PHONY: travis-test-cli travis-test-relay-integration
-travis-test-postgres: test-python-ci
-travis-test-acceptance: test-acceptance
-travis-test-snuba: test-snuba
-travis-test-symbolicator: test-symbolicator
-travis-test-js: test-js-ci
-travis-test-js-build: test-js-build
-travis-test-cli: test-cli
-travis-test-plugins: test-plugins
-travis-test-relay-integration: test-relay-integration

@@ -1,13 +1,13 @@
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
-import {Client} from 'app/api';
-import {Guide, GuidesServerData, GuidesContent} from 'app/components/assistant/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import ConfigStore from 'app/stores/configStore';
-import getGuidesContent from 'app/components/assistant/getGuidesContent';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
+import {Client} from 'app/api';
+import getGuidesContent from 'app/components/assistant/getGuidesContent';
+import {Guide, GuidesContent, GuidesServerData} from 'app/components/assistant/types';
+import ConfigStore from 'app/stores/configStore';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 const guidesContent: GuidesContent = getGuidesContent();
 

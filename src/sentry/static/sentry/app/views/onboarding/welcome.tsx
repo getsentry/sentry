@@ -1,12 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {analytics} from 'app/utils/analytics';
-import {t, tct} from 'app/locale';
 import Button from 'app/components/button';
+import {t, tct} from 'app/locale';
+import {Config, Organization} from 'app/types';
+import {analytics} from 'app/utils/analytics';
 import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
-import {Config, Organization} from 'app/types';
 
 import {StepProps} from './types';
 
@@ -31,9 +31,9 @@ const OnboardingWelcome = ({organization, onComplete, config, active}: Props) =>
       </p>
       <p>
         {t(
-          `With Sentry, you can find and fix bugs before your customers even
-             notice a problem. When things go to hell, we'll help you fight the
-             fires. In the next two steps you will…`
+          `With Sentry, find and fix bugs and hunt down performance slowdowns
+             before customers even notice a problem. When things go to hell
+             we’ll help fight the fires. In the next two steps you will…`
         )}
       </p>
       <ul>
@@ -71,7 +71,7 @@ const ActionGroup = styled('div')`
 `;
 
 const SecondaryAction = styled('small')`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
 export default withOrganization(withConfig(OnboardingWelcome));

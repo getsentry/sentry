@@ -1,15 +1,15 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import classNames from 'classnames';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 import {motion} from 'framer-motion';
+import PropTypes from 'prop-types';
 
 import {Indicator} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import {IconCheckmark, IconClose} from 'app/icons';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import testableTransition from 'app/utils/testableTransition';
+import {IconCheckmark, IconClose} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import testableTransition from 'app/utils/testableTransition';
 
 const Toast = styled(motion.div)`
   display: flex;
@@ -17,7 +17,7 @@ const Toast = styled(motion.div)`
   height: 40px;
   padding: 0 15px 0 10px;
   margin-top: 15px;
-  background: ${p => p.theme.gray800};
+  background: ${p => p.theme.gray500};
   color: #fff;
   border-radius: 44px 7px 7px 44px;
   box-shadow: 0 4px 12px 0 rgba(47, 40, 55, 0.16);
@@ -50,7 +50,7 @@ const Icon = styled('div', {shouldForwardProp: p => p !== 'type'})<{type: string
     display: block;
   }
 
-  color: ${p => (p.type === 'success' ? p.theme.green400 : p.theme.red400)};
+  color: ${p => (p.type === 'success' ? p.theme.green300 : p.theme.red300)};
 `;
 
 const Message = styled('div')`
@@ -59,21 +59,21 @@ const Message = styled('div')`
 
 const Undo = styled('div')`
   display: inline-block;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   padding-left: ${space(2)};
   margin-left: ${space(2)};
-  border-left: 1px solid ${p => p.theme.gray300};
+  border-left: 1px solid ${p => p.theme.gray200};
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.gray400};
+    color: ${p => p.theme.gray200};
   }
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
-    border-color: ${p => p.theme.gray700};
-    border-left-color: ${p => p.theme.purple400};
+    border-color: ${p => p.theme.gray500};
+    border-left-color: ${p => p.theme.purple300};
   }
 `;
 

@@ -1,15 +1,16 @@
 import React from 'react';
+import {Modal as BoostrapModal} from 'react-bootstrap';
 import {css} from '@emotion/core';
-import {ModalHeader, ModalBody, ModalFooter} from 'react-bootstrap';
 
 import ModalActions from 'app/actions/modalActions';
-import {Organization, SentryApp, Project, Team, Group, Event} from 'app/types';
+import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
+import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
 
 export type ModalRenderProps = {
   closeModal: () => void;
-  Header: typeof ModalHeader;
-  Body: typeof ModalBody;
-  Footer: typeof ModalFooter;
+  Header: typeof BoostrapModal.Header;
+  Body: typeof BoostrapModal.Body;
+  Footer: typeof BoostrapModal.Footer;
 };
 
 export type ModalOptions = {
@@ -119,10 +120,14 @@ export async function openCommandPalette(options: ModalOptions = {}) {
   );
   const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal Body={deps.Body} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export async function openRecoveryOptions(options: ModalOptions = {}) {
+type RecoveryModalOptions = {
+  authenticatorName: string;
+};
+
+export async function openRecoveryOptions(options: RecoveryModalOptions) {
   const mod = await import(
     /* webpackChunkName: "RecoveryOptionsModal" */ 'app/components/modals/recoveryOptionsModal'
   );
@@ -199,4 +204,13 @@ export async function openInviteMembersModal(options = {}) {
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
+export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
+  const mod = await import(
+    /* webpackChunkName: "AddDashboardWidgetModal" */ 'app/components/modals/addDashboardWidgetModal'
+  );
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {});
 }

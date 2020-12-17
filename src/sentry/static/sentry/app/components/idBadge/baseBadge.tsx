@@ -2,9 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Avatar from 'app/components/avatar';
-import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Team, Organization, AvatarProject} from 'app/types';
+import space from 'app/styles/space';
+import {AvatarProject, Organization, Team} from 'app/types';
 
 type Props = {
   displayName: React.ReactNode;
@@ -84,7 +84,7 @@ const DisplayName = styled('span')`
 const Description = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   line-height: 14px;
   ${overflowEllipsis};
 `;

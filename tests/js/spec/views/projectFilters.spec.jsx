@@ -26,6 +26,7 @@ describe('ProjectFilters', function () {
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
+          project={project}
         />,
         TestStubs.routerContext()
       );
@@ -202,6 +203,7 @@ describe('ProjectFilters', function () {
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
+          project={project}
         />,
         {
           context: {
@@ -247,6 +249,7 @@ describe('ProjectFilters', function () {
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         location={{}}
+        project={project}
       />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );

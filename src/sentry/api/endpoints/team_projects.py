@@ -15,7 +15,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '
 
 
 class ProjectSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=True)
+    name = serializers.CharField(max_length=50, required=True)
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     default_rules = serializers.BooleanField(required=False, initial=True)

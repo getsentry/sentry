@@ -18,6 +18,7 @@ const GroupActions = Reflux.createActions([
   'merge',
   'mergeError',
   'mergeSuccess',
+  'populateStats',
 ]);
 
 export default GroupActions;

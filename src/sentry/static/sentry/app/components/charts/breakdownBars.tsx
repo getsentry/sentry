@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {formatPercentage} from 'app/utils/formatters';
 import space from 'app/styles/space';
+import {formatPercentage} from 'app/utils/formatters';
 
 type Point = {
   label: string;
@@ -56,14 +56,14 @@ const BarContainer = styled('div')`
 
 const Label = styled('span')`
   position: relative;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
   z-index: 2;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Bar = styled('div')`
   border-radius: 2px;
-  background-color: ${p => p.theme.gray300};
+  background-color: ${p => p.theme.gray100};
   position: absolute;
   top: 0;
   left: 0;

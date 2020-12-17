@@ -63,20 +63,6 @@
         {% block content %}{% endblock %}
       </div>
     </div>
-    <footer>
-      <div class="container">
-        {% block footer %}
-        <div class="pull-right">
-          <a href="https://docs.sentry.io/api/">{% trans "API" %}</a>
-          <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
-          <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
-          {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
-        </div>
-        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} ({{ sentry_version.build }}) {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
-        <a href="/" class="icon-sentry-logo"></a>
-        {% endblock %}
-      </div>
-    </footer>
   </div>
   {% endblock %}
 

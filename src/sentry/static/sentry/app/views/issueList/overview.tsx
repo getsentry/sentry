@@ -1,63 +1,71 @@
-import {browserHistory} from 'react-router';
-import {RouteComponentProps} from 'react-router/lib/Router';
-import Cookies from 'js-cookie';
 import React from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
+import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import {withProfiler} from '@sentry/react';
+import {Location} from 'history';
+import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
-import {withProfiler} from '@sentry/react';
-import {Location} from 'history';
-import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {Panel, PanelBody} from 'app/components/panels';
-import {analytics, metric} from 'app/utils/analytics';
-import {defined} from 'app/utils';
+import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
 import {
   deleteSavedSearch,
   fetchSavedSearches,
   resetSavedSearches,
 } from 'app/actionCreators/savedSearches';
-import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
-import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
-import {loadOrganizationTags, fetchTagValues} from 'app/actionCreators/tags';
-import {getUtcDateString} from 'app/utils/dates';
-import CursorPoller from 'app/utils/cursorPoller';
-import GroupStore from 'app/stores/groupStore';
+import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
+import GroupActions from 'app/actions/groupActions';
+import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
+import QueryCount from 'app/components/queryCount';
+import StreamGroup from 'app/components/stream/group';
 import ProcessingIssueList from 'app/components/stream/processingIssueList';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {tct} from 'app/locale';
+import GroupStore from 'app/stores/groupStore';
+import {PageContent} from 'app/styles/organization';
+import space from 'app/styles/space';
 import {
+  BaseGroup,
   GlobalSelection,
   Member,
   Organization,
   SavedSearch,
   TagCollection,
 } from 'app/types';
-import StreamGroup from 'app/components/stream/group';
-import StreamManager from 'app/utils/streamManager';
+import {defined} from 'app/utils';
+import {analytics, metric} from 'app/utils/analytics';
+import {callIfFunction} from 'app/utils/callIfFunction';
+import CursorPoller from 'app/utils/cursorPoller';
+import {getUtcDateString} from 'app/utils/dates';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
+import StreamManager from 'app/utils/streamManager';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withIssueTags from 'app/utils/withIssueTags';
 import withOrganization from 'app/utils/withOrganization';
 import withSavedSearches from 'app/utils/withSavedSearches';
-import withIssueTags from 'app/utils/withIssueTags';
-import {callIfFunction} from 'app/utils/callIfFunction';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
-import IssueListSidebar from './sidebar';
+import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
+import IssueListSidebar from './sidebar';
+import {Query} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
-const STATS_PERIODS = new Set(['14d', '24h']);
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 
 type Params = {
@@ -103,8 +111,12 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   page?: number | string;
 };
 
+type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
+  groups: string[];
+};
+
 class IssueListOverview extends React.Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -136,12 +148,11 @@ class IssueListOverview extends React.Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
-    this.fetchTags();
-    this.fetchMemberList();
-
     // Start by getting searches first so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     this.fetchSavedSearches();
+    this.fetchTags();
+    this.fetchMemberList();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -244,12 +255,25 @@ class IssueListOverview extends React.Component<Props, State> {
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
-    if (this.props.savedSearch) {
-      return this.props.savedSearch.query;
+    const {savedSearch, organization, location} = this.props;
+    if (savedSearch) {
+      return savedSearch.query;
     }
 
-    const {query} = this.props.location.query;
-    return typeof query === 'undefined' ? DEFAULT_QUERY : (query as string);
+    const {query} = location.query;
+    if (query !== undefined) {
+      return query as string;
+    }
+
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default')
+    ) {
+      // TODO(scttcper): Use constant added in #22641
+      return 'is:needs_review is:unresolved';
+    }
+
+    return DEFAULT_QUERY;
   }
 
   getSort(): string {
@@ -261,10 +285,7 @@ class IssueListOverview extends React.Component<Props, State> {
       typeof this.props.location.query?.groupStatsPeriod === 'string'
         ? this.props.location.query?.groupStatsPeriod
         : DEFAULT_GRAPH_STATS_PERIOD;
-    return (this.props.organization.features.includes('dynamic-issue-counts')
-      ? DYNAMIC_COUNTS_STATS_PERIODS
-      : STATS_PERIODS
-    ).has(currentPeriod)
+    return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
       : DEFAULT_GRAPH_STATS_PERIOD;
   }
@@ -309,7 +330,9 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchMemberList() {
-    const projectIds = this.getGlobalSearchProjectIds();
+    const projectIds = this.getGlobalSearchProjectIds()?.map(projectId =>
+      String(projectId)
+    );
 
     fetchOrgMembers(this.props.api, this.props.organization.slug, projectIds).then(
       members => {
@@ -325,6 +348,32 @@ class IssueListOverview extends React.Component<Props, State> {
       this.setState({tagsLoading: false})
     );
   }
+
+  fetchStats = async (groups: string[]) => {
+    // If we have no groups to fetch, just skip stats
+    if (!groups.length) {
+      return;
+    }
+    const requestParams: StatEndpointParams = {
+      ...this.getEndpointParams(),
+      groups,
+    };
+    // If no stats period values are set, use default
+    if (!requestParams.statsPeriod && !requestParams.start) {
+      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+    }
+    try {
+      const response = await this.props.api.requestPromise(this.getGroupStatsEndpoint(), {
+        method: 'GET',
+        data: qs.stringify(requestParams),
+      });
+      GroupActions.populateStats(groups, response);
+    } catch (e) {
+      this.setState({
+        error: parseApiError(e),
+      });
+    }
+  };
 
   fetchData = () => {
     GroupStore.loadInitialData([]);
@@ -350,6 +399,19 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
+
+    const orgFeatures = new Set(this.props.organization.features);
+    const expandParams: string[] = [];
+    if (orgFeatures.has('inbox')) {
+      expandParams.push('inbox');
+    }
+    if (orgFeatures.has('workflow-owners')) {
+      expandParams.push('owners');
+    }
+    if (expandParams.length) {
+      requestParams.expand = expandParams;
+    }
+    requestParams.collapse = 'stats';
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
@@ -385,6 +447,7 @@ class IssueListOverview extends React.Component<Props, State> {
         }
 
         this._streamManager.push(data);
+        this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const queryCount = jqXHR.getResponseHeader('X-Hits');
         const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
@@ -435,6 +498,12 @@ class IssueListOverview extends React.Component<Props, State> {
     const params = this.props.params;
 
     return `/organizations/${params.orgId}/issues/`;
+  }
+
+  getGroupStatsEndpoint(): string {
+    const {orgId} = this.props.params;
+
+    return `/organizations/${orgId}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -572,8 +641,12 @@ class IssueListOverview extends React.Component<Props, State> {
   renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
     const topIssue = ids[0];
     const {memberList} = this.state;
+    const {organization} = this.props;
+    const query = this.getQuery();
+    const isReprocessingQuery =
+      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
-    const groupNodes = ids.map(id => {
+    return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
       const group = GroupStore.get(id);
       let members: Member['user'][] | undefined;
@@ -586,14 +659,14 @@ class IssueListOverview extends React.Component<Props, State> {
           key={id}
           id={id}
           statsPeriod={groupStatsPeriod}
-          query={this.getQuery()}
+          query={query}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
+          isReprocessingQuery={isReprocessingQuery}
           useFilteredStats
         />
       );
     });
-    return <PanelBody>{groupNodes}</PanelBody>;
   };
 
   renderLoading(): React.ReactNode {
@@ -601,25 +674,35 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   renderStreamBody(): React.ReactNode {
-    let body: React.ReactNode;
-    if (this.state.issuesLoading) {
-      body = this.renderLoading();
-    } else if (this.state.error) {
-      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    } else if (this.state.groupIds.length > 0) {
-      body = this.renderGroupNodes(this.state.groupIds, this.getGroupStatsPeriod());
-    } else {
-      body = (
-        <NoGroupsHandler
-          api={this.props.api}
-          organization={this.props.organization}
-          query={this.getQuery()}
-          selectedProjectIds={this.props.selection.projects}
-          groupIds={this.state.groupIds}
-        />
+    const {issuesLoading, error, groupIds} = this.state;
+
+    if (issuesLoading) {
+      return this.renderLoading();
+    }
+
+    if (error) {
+      return <LoadingError message={error} onRetry={this.fetchData} />;
+    }
+
+    if (groupIds.length > 0) {
+      return (
+        <PanelBody>
+          {this.renderGroupNodes(groupIds, this.getGroupStatsPeriod())}
+        </PanelBody>
       );
     }
-    return body;
+
+    const {api, organization, selection} = this.props;
+
+    return (
+      <NoGroupsHandler
+        api={api}
+        organization={organization}
+        query={this.getQuery()}
+        selectedProjectIds={selection.projects}
+        groupIds={groupIds}
+      />
+    );
   }
 
   fetchSavedSearches = () => {
@@ -643,6 +726,10 @@ class IssueListOverview extends React.Component<Props, State> {
         () => this.transitionTo({}, null)
       );
     });
+  };
+
+  handleTabClick = (query: string) => {
+    this.transitionTo({query}, null);
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -675,70 +762,135 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds,
       queryMaxCount,
     } = this.state;
-    const {organization, savedSearch, savedSearches, tags, selection} = this.props;
+    const {
+      organization,
+      savedSearch,
+      savedSearches,
+      tags,
+      selection,
+      location,
+      router,
+    } = this.props;
     const query = this.getQuery();
+    const queryPageInt = parseInt(location.query.page, 10);
+    const page = isNaN(queryPageInt) ? 0 : queryPageInt;
+    const pageCount = page * MAX_ITEMS + groupIds?.length;
+
+    // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
+    if (
+      organization.features.includes('inbox') &&
+      !tags?.is?.values?.includes('needs_review')
+    ) {
+      tags?.is?.values?.push('needs_review');
+    }
+
+    const projectIds = selection?.projects?.map(p => p.toString());
+    const orgSlug = organization.slug;
+    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
 
     return (
-      <StreamRow>
-        <StreamContent showSidebar={isSidebarVisible}>
-          <IssueListFilters
-            organization={organization}
-            query={query}
-            savedSearch={savedSearch}
-            sort={this.getSort()}
-            queryCount={queryCount}
-            queryMaxCount={queryMaxCount}
-            onSortChange={this.onSortChange}
-            onSearch={this.onSearch}
-            onSavedSearchSelect={this.onSavedSearchSelect}
-            onSavedSearchDelete={this.onSavedSearchDelete}
-            onSidebarToggle={this.onSidebarToggle}
-            isSearchDisabled={isSidebarVisible}
-            savedSearchList={savedSearches}
-            tagValueLoader={this.tagValueLoader}
-            tags={tags}
-          />
-
-          <Panel>
-            <IssueListActions
-              organization={organization}
-              orgId={organization.slug}
-              selection={selection}
-              query={query}
-              queryCount={queryCount}
-              onSelectStatsPeriod={this.onSelectStatsPeriod}
-              onRealtimeChange={this.onRealtimeChange}
-              realtimeActive={realtimeActive}
-              statsPeriod={this.getGroupStatsPeriod()}
-              groupIds={groupIds}
-              allResultsVisible={this.allResultsVisible()}
-            />
-            <PanelBody>
-              <ProcessingIssueList
-                organization={organization}
-                projectIds={selection?.projects?.map(p => p.toString())}
-                showProject
+      <Feature organization={organization} features={['organizations:inbox']}>
+        {({hasFeature}) => (
+          <React.Fragment>
+            {hasFeature && (
+              <IssueListHeader
+                query={query}
+                queryCount={queryCount}
+                queryMaxCount={queryMaxCount}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={this.onRealtimeChange}
+                onTabChange={this.handleTabClick}
+                projectIds={projectIds}
+                orgSlug={orgSlug}
+                router={router}
+                hasReprocessingV2Feature={hasReprocessingV2Feature}
               />
-              {this.renderStreamBody()}
-            </PanelBody>
-          </Panel>
-          <Pagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
-        </StreamContent>
+            )}
+            <StyledPageContent isInbox={hasFeature}>
+              <StreamContent showSidebar={isSidebarVisible}>
+                <IssueListFilters
+                  organization={organization}
+                  query={query}
+                  savedSearch={savedSearch}
+                  sort={this.getSort()}
+                  queryCount={queryCount}
+                  queryMaxCount={queryMaxCount}
+                  onSortChange={this.onSortChange}
+                  onSearch={this.onSearch}
+                  onSavedSearchSelect={this.onSavedSearchSelect}
+                  onSavedSearchDelete={this.onSavedSearchDelete}
+                  onSidebarToggle={this.onSidebarToggle}
+                  isSearchDisabled={isSidebarVisible}
+                  savedSearchList={savedSearches}
+                  tagValueLoader={this.tagValueLoader}
+                  tags={tags}
+                />
 
-        <SidebarContainer showSidebar={isSidebarVisible}>
-          {/* Avoid rendering sidebar until first accessed */}
-          {renderSidebar && (
-            <IssueListSidebar
-              loading={tagsLoading}
-              tags={tags}
-              query={query}
-              onQueryChange={this.onIssueListSidebarSearch}
-              orgId={organization.slug}
-              tagValueLoader={this.tagValueLoader}
-            />
-          )}
-        </SidebarContainer>
-      </StreamRow>
+                <Panel>
+                  <IssueListActions
+                    organization={organization}
+                    selection={selection}
+                    query={query}
+                    queryCount={queryCount}
+                    queryMaxCount={queryMaxCount}
+                    pageCount={pageCount}
+                    onSelectStatsPeriod={this.onSelectStatsPeriod}
+                    onRealtimeChange={this.onRealtimeChange}
+                    realtimeActive={realtimeActive}
+                    statsPeriod={this.getGroupStatsPeriod()}
+                    groupIds={groupIds}
+                    allResultsVisible={this.allResultsVisible()}
+                    hasInbox={hasFeature}
+                  />
+                  <PanelBody>
+                    <ProcessingIssueList
+                      organization={organization}
+                      projectIds={projectIds}
+                      showProject
+                    />
+                    {this.renderStreamBody()}
+                  </PanelBody>
+                </Panel>
+                <PaginationWrapper>
+                  {hasFeature && groupIds?.length > 0 && (
+                    <div>
+                      {/* total includes its own space */}
+                      {tct('Showing [count] of [total] issues', {
+                        count: <React.Fragment>{pageCount}</React.Fragment>,
+                        total: (
+                          <StyledQueryCount
+                            hideParens
+                            count={queryCount}
+                            max={queryMaxCount}
+                          />
+                        ),
+                      })}
+                    </div>
+                  )}
+                  <StyledPagination
+                    pageLinks={pageLinks}
+                    onCursor={this.onCursorChange}
+                  />
+                </PaginationWrapper>
+              </StreamContent>
+
+              <SidebarContainer showSidebar={isSidebarVisible}>
+                {/* Avoid rendering sidebar until first accessed */}
+                {renderSidebar && (
+                  <IssueListSidebar
+                    loading={tagsLoading}
+                    tags={tags}
+                    query={query}
+                    onQueryChange={this.onIssueListSidebarSearch}
+                    orgId={orgSlug}
+                    tagValueLoader={this.tagValueLoader}
+                  />
+                )}
+              </SidebarContainer>
+            </StyledPageContent>
+          </React.Fragment>
+        )}
+      </Feature>
     );
   }
 }
@@ -751,9 +903,20 @@ export default withApi(
 
 export {IssueListOverview};
 
-const StreamRow = styled('div')`
+// TODO(workflow): Replace PageContent with thirds body
+const StyledPageContent = styled(PageContent)<{isInbox: boolean}>`
   display: flex;
   flex-direction: row;
+  ${p =>
+    p.isInbox &&
+    css`
+      background-color: ${p.theme.background};
+    `}
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    /* Matches thirds layout */
+    padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  }
 `;
 
 const StreamContent = styled('div')<{showSidebar: boolean}>`
@@ -776,4 +939,20 @@ const SidebarContainer = styled('div')<{showSidebar: boolean}>`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
+`;
+
+const PaginationWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: ${space(2)};
+`;
+
+const StyledQueryCount = styled(QueryCount)`
+  margin-left: 0;
 `;

@@ -20,7 +20,7 @@ import logging
 import six
 from requests.exceptions import ReadTimeout
 
-from sentry import http, tagstore
+from sentry import http, tagstore, tsdb
 from sentry.app import ratelimiter
 from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
@@ -195,7 +195,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
             elif key in ("csp", "expectct", "expectstable", "hpkp"):
                 props.update(
                     {
-                        "{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
+                        u"{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
                         for k, v in six.iteritems(value.to_json())
                     }
                 )
@@ -232,7 +232,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
 
         source = self.get_option("source", event.project) or "sentry"
 
-        rl_key = "splunk:{}".format(md5_text(token).hexdigest())
+        rl_key = u"splunk:{}".format(md5_text(token).hexdigest())
         # limit splunk to 50 requests/second
         if ratelimiter.is_limited(rl_key, limit=1000, window=1):
             metrics.incr(
@@ -263,7 +263,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                 json=payload,
                 # Splunk cloud instances certifcates dont play nicely
                 verify=False,
-                headers={"Authorization": "Splunk {}".format(token)},
+                headers={"Authorization": u"Splunk {}".format(token)},
                 timeout=5,
             )
             if resp.status_code != 200:
@@ -285,6 +285,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                     "instance": instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
+                    "error": six.text_type(exc),
                 },
             )
 
@@ -307,3 +308,4 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                 "event_type": event.get_event_type(),
             },
         )
+        tsdb.incr(tsdb.models.project_total_forwarded, event.project.id, count=1)

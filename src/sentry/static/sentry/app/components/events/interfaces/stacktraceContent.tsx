@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
+import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {parseAddress, getImageRange} from 'app/components/events/interfaces/utils';
+import {Event, Frame, PlatformType} from 'app/types';
 import {StacktraceType} from 'app/types/stacktrace';
-import {PlatformType, Event, Frame} from 'app/types';
 
 const defaultProps = {
   includeSystemFrames: true,
@@ -19,6 +19,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
+  hideStacktraceLink?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -77,14 +78,18 @@ export default class StacktraceContent extends React.Component<Props, State> {
     );
   };
 
-  findImageForAddress(address: Frame['instructionAddr']) {
+  findImageForAddress(address: Frame['instructionAddr'], addrMode: Frame['addrMode']) {
     const images = this.props.event.entries.find(entry => entry.type === 'debugmeta')
       ?.data?.images;
 
     return images && address
-      ? images.find(img => {
-          const [startAddress, endAddress] = getImageRange(img);
-          return address >= startAddress && address < endAddress;
+      ? images.find((img, idx) => {
+          if (!addrMode || addrMode === 'abs') {
+            const [startAddress, endAddress] = getImageRange(img);
+            return address >= (startAddress as any) && address < (endAddress as any);
+          }
+
+          return addrMode === `rel:${idx}`;
         })
       : null;
   }
@@ -117,10 +122,12 @@ export default class StacktraceContent extends React.Component<Props, State> {
   render() {
     const {
       data,
+      event,
       newestFirst,
       expandFirstFrame,
       platform,
       includeSystemFrames,
+      hideStacktraceLink,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -149,7 +156,10 @@ export default class StacktraceContent extends React.Component<Props, State> {
 
     const maxLengthOfAllRelativeAddresses = data.frames.reduce(
       (maxLengthUntilThisPoint, frame) => {
-        const correspondingImage = this.findImageForAddress(frame.instructionAddr);
+        const correspondingImage = this.findImageForAddress(
+          frame.instructionAddr,
+          frame.addrMode
+        );
 
         try {
           const relativeAddress = (
@@ -185,11 +195,12 @@ export default class StacktraceContent extends React.Component<Props, State> {
       }
 
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
-        const image = this.findImageForAddress(frame.instructionAddr);
+        const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
 
         frames.push(
           <Line
             key={frameIdx}
+            event={event}
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
@@ -207,6 +218,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
+            hideStacktraceLink={hideStacktraceLink}
           />
         );
       }

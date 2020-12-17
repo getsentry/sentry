@@ -1,4 +1,3 @@
-@import url('components/charts.less');
 @import url('components/statuspage.less');
 
 dl.flat {
@@ -52,11 +51,12 @@ dl.flat dd {
   .transition(all 0.1s);
 
   &.disabled,
-  &.btn-disabled {
-    color: #ced3d6;
-    border-color: #e3e5e6;
-    box-shadow: none;
-    cursor: default;
+  &.disabled:hover {
+    color: #ced3d6 !important;
+    border-color: #e3e5e6 !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+    background: none !important;
   }
 }
 
@@ -165,8 +165,18 @@ dl.flat dd {
 }
 
 // Align the dropdown menu tip to the center of the open button
-.btn-group > .dropdown.open > .dropdown-menu {
-  left: -5px;
+.btn-group > .dropdown.open {
+  &:not(.anchor-right) {
+    > .dropdown-menu {
+      left: -5px;
+    }
+  }
+
+  &.anchor-right {
+    > .dropdown-menu {
+      right: -5px;
+    }
+  }
 }
 
 // Disabled buttons
@@ -1373,7 +1383,8 @@ header + .alert {
   letter-spacing: 0.1px;
   .clearfix;
 
-  a.help-link {
+  a.help-link,
+  span.help-link a {
     color: inherit;
     border-bottom: 1px dotted @gray-light;
   }
@@ -1519,7 +1530,7 @@ header + .alert {
 */
 
 ul.radio-inputs {
-  .list-unstyled;
+  list-style: none;
   position: relative;
   display: inline-block;
   margin-bottom: 10px;

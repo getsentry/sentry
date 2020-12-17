@@ -1,10 +1,10 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {IconSearch} from 'app/icons';
 import space from 'app/styles/space';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 type Props = {
   small?: boolean;
@@ -22,7 +22,7 @@ const EmptyStateWarning = ({
   small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
-        {withIcon && <StyledIconSearch color="gray500" size="lg" />}
+        {withIcon && <StyledIconSearch color="gray300" size="lg" />}
         {children}
       </SmallMessage>
     </EmptyMessage>
@@ -51,7 +51,7 @@ const EmptyStreamWrapper = styled('div')`
   }
 
   svg {
-    fill: ${p => p.theme.gray400};
+    fill: ${p => p.theme.gray200};
     margin-bottom: ${space(2)};
   }
 `;
@@ -59,7 +59,7 @@ const EmptyStreamWrapper = styled('div')`
 const SmallMessage = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1em;
 `;

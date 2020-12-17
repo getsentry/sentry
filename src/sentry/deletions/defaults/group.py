@@ -8,8 +8,10 @@ from sentry import models
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
 
-GROUP_RELATED_MODELS = (
-    # prioritize GroupHash
+# Group models that relate only to groups and not to events. We assume those to
+# be safe to delete/mutate within a single transaction for user-triggered
+# actions (delete/reprocess/merge/unmerge)
+DIRECT_GROUP_RELATED_MODELS = (
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -24,8 +26,14 @@ GROUP_RELATED_MODELS = (
     models.GroupSeen,
     models.GroupShare,
     models.GroupSnooze,
+    models.GroupInbox,
+    models.GroupOwner,
     models.GroupEmailThread,
     models.GroupSubscription,
+)
+
+_GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
+    # prioritize GroupHash
     models.UserReport,
     models.EventAttachment,
 )
@@ -77,7 +85,7 @@ class EventDataDeletionTask(BaseDeletionTask):
 
         from sentry.reprocessing2 import delete_unprocessed_events
 
-        delete_unprocessed_events(events)
+        delete_unprocessed_events(self.project_id, [event.event_id for event in events])
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
@@ -99,7 +107,7 @@ class GroupDeletionTask(ModelDeletionTask):
         relations = []
 
         relations.extend(
-            [ModelRelation(m, {"group_id": instance.id}) for m in GROUP_RELATED_MODELS]
+            [ModelRelation(m, {"group_id": instance.id}) for m in _GROUP_RELATED_MODELS]
         )
 
         # Skip EventDataDeletionTask if this is being called from cleanup.py

@@ -1,23 +1,23 @@
+import React from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 import PropTypes from 'prop-types';
-import React from 'react';
 
+import {doEventsRequest} from 'app/actionCreators/events';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
+import LoadingPanel from 'app/components/charts/loadingPanel';
+import {canIncludePreviousPeriod, isMultiSeriesStats} from 'app/components/charts/utils';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import {
   DateString,
   EventsStats,
   EventsStatsData,
-  OrganizationSummary,
   MultiSeriesEventsStats,
+  OrganizationSummary,
 } from 'app/types';
 import {Series, SeriesDataUnit} from 'app/types/echarts';
-import LoadingPanel from 'app/components/charts/loadingPanel';
-import {Client} from 'app/api';
-import {doEventsRequest} from 'app/actionCreators/events';
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
-import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 
 export type TimeSeriesData = {
   // timeseries data
@@ -94,11 +94,11 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: number[];
+  project?: Readonly<number[]>;
   /**
    * List of environments to query
    */
-  environment?: string[];
+  environment?: Readonly<string[]>;
   /**
    * List of fields to group with when doing a topEvents request.
    */
@@ -122,10 +122,6 @@ type EventsRequestPartialProps = {
   currentSeriesName?: string;
   previousSeriesName?: string;
   children: (renderProps: RenderProps) => React.ReactNode;
-  /**
-   * Determines if the "key transactions" version of the event-stats endpoint should be used
-   */
-  keyTransactions?: boolean;
   /**
    * The number of top results to get. When set a multi-series result will be returned
    * in the `results` child render function.
@@ -152,17 +148,12 @@ type EventsRequestState = {
   reloading: boolean;
   errored: boolean;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
+  fetchedWithPrevious: boolean;
 };
 
 const propNamesToIgnore = ['api', 'children', 'organization', 'loading'];
 const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
-
-function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null
-): data is MultiSeriesEventsStats {
-  return data !== null && data.data === undefined && data.totals === undefined;
-}
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
   static propTypes = {
@@ -196,7 +187,6 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
 
     field: PropTypes.arrayOf(PropTypes.string),
-    keyTransactions: PropTypes.bool,
     topEvents: PropTypes.number,
     orderby: PropTypes.string,
 
@@ -218,6 +208,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     reloading: !!this.props.loading,
     errored: false,
     timeseriesData: null,
+    fetchedWithPrevious: false,
   };
 
   componentDidMount() {
@@ -271,6 +262,7 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     this.setState({
       reloading: false,
       timeseriesData,
+      fetchedWithPrevious: props.includePrevious,
     });
   };
 
@@ -284,9 +276,11 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
   getData = (
     data: EventsStatsData
   ): {previous: EventsStatsData | null; current: EventsStatsData} => {
+    const {fetchedWithPrevious} = this.state;
     const {period, includePrevious} = this.props;
 
-    const hasPreviousPeriod = canIncludePreviousPeriod(includePrevious, period);
+    const hasPreviousPeriod =
+      fetchedWithPrevious || canIncludePreviousPeriod(includePrevious, period);
     // Take the floor just in case, but data should always be divisible by 2
     const dataMiddleIndex = Math.floor(data.length / 2);
     return {

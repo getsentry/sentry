@@ -3,19 +3,19 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
+import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import QuestionTooltip from 'app/components/questionTooltip';
-import AsyncComponent from 'app/components/asyncComponent';
+import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import theme from 'app/utils/theme';
+import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
-import BarChartZoom from 'app/components/charts/barChartZoom';
+import theme from 'app/utils/theme';
 
 import {HeaderTitleLegend} from '../styles';
 
@@ -144,7 +144,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
     // Don't call super as we don't really need issues for this.
     return (
       <ErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconWarning color="gray300" size="lg" />
       </ErrorPanel>
     );
   }
@@ -156,17 +156,14 @@ class LatencyChart extends AsyncComponent<Props, State> {
       return null;
     }
     const xAxis = {
-      type: 'category',
+      type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         interval: 0,
         alignWithLabel: true,
       },
     };
-    const colors = theme.charts.getColorPalette(1);
+    const colors = [...theme.charts.getColorPalette(1)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.

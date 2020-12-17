@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment-timezone';
+import PropTypes from 'prop-types';
 
 import ConfigStore from 'app/stores/configStore';
 
@@ -64,8 +64,9 @@ class DateTime extends React.Component<Props> {
       return 'MM/DD/YYYY';
     }
 
+    // Oct 26, 2017 11:30
     if (clock24Hours) {
-      return 'MMMM D YYYY HH:mm:ss z';
+      return 'MMM D, YYYY HH:mm';
     }
 
     // Oct 26, 2017 11:30:30 AM

@@ -1,22 +1,30 @@
 import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import {Event, Group} from 'app/types';
+import EventAnnotation from 'app/components/events/eventAnnotation';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
+import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
+import Times from 'app/components/group/times';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Placeholder from 'app/components/placeholder';
+import ShortId from 'app/components/shortId';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
-import EventAnnotation from 'app/components/events/eventAnnotation';
-import ProjectBadge from 'app/components/idBadge/projectBadge';
-import ShortId from 'app/components/shortId';
-import Times from 'app/components/group/times';
 import space from 'app/styles/space';
+import {Event, Group, Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
   showAssignee?: boolean;
+  organization: Organization;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
+function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Props) {
   const {
     id,
     lastSeen,
@@ -29,37 +37,64 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
     shortId,
     project,
     lifetime,
+    isUnhandled,
+    inbox,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
+  const hasInbox = organization.features.includes('inbox');
 
   return (
-    <GroupExtra>
-      {shortId && (
-        <GroupShortId
-          shortId={shortId}
-          avatar={project && <ProjectBadge project={project} avatarSize={14} hideName />}
-          onClick={e => {
-            // prevent the clicks from propagating so that the short id can be selected
-            e.stopPropagation();
-          }}
+    <GroupExtra hasInbox={hasInbox}>
+      {shortId &&
+        (hasInbox ? (
+          <InboxShortId
+            shortId={shortId}
+            avatar={
+              project && (
+                <ShadowlessProjectBadge project={project} avatarSize={12} hideName />
+              )
+            }
+          />
+        ) : (
+          <GroupShortId
+            shortId={shortId}
+            avatar={
+              project && <ProjectBadge project={project} avatarSize={14} hideName />
+            }
+            onClick={e => {
+              // prevent the clicks from propagating so that the short id can be selected
+              e.stopPropagation();
+            }}
+          />
+        ))}
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {!lifetime && !firstSeen && !lastSeen ? (
+        <Placeholder height="14px" width="100px" />
+      ) : hasInbox ? (
+        <TimesTag
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      ) : (
+        <StyledTimes
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
-      <StyledTimes
-        lastSeen={lifetime?.lastSeen || lastSeen}
-        firstSeen={lifetime?.firstSeen || firstSeen}
-      />
+      {/* Always display comment count on inbox */}
       {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
             size="xs"
-            color={subscriptionDetails?.reason === 'mentioned' ? 'green400' : undefined}
+            color={subscriptionDetails?.reason === 'mentioned' ? 'green300' : undefined}
           />
           <span>{numComments}</span>
         </CommentsLink>
       )}
       {logger && (
-        <LoggerAnnotation>
+        <LoggerAnnotation hasInbox={hasInbox}>
           <Link
             to={{
               pathname: issuesPath,
@@ -72,15 +107,15 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
           </Link>
         </LoggerAnnotation>
       )}
-      {annotations &&
-        annotations.map((annotation, key) => (
-          <AnnotationNoMargin
-            dangerouslySetInnerHTML={{
-              __html: annotation,
-            }}
-            key={key}
-          />
-        ))}
+      {annotations?.map((annotation, key) => (
+        <AnnotationNoMargin
+          hasInbox={hasInbox}
+          dangerouslySetInnerHTML={{
+            __html: annotation,
+          }}
+          key={key}
+        />
+      ))}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
@@ -89,13 +124,13 @@ function EventOrGroupExtraDetails({data, showAssignee, params}: Props) {
   );
 }
 
-const GroupExtra = styled('div')`
+const GroupExtra = styled('div')<{hasInbox: boolean}>`
   display: inline-grid;
   grid-auto-flow: column dense;
-  grid-gap: ${space(2)};
+  grid-gap: ${p => (p.hasInbox ? space(1.5) : space(2))};
   justify-content: start;
   align-items: center;
-  color: ${p => p.theme.gray600};
+  color: ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
   font-size: ${p => p.theme.fontSizeSmall};
   position: relative;
   min-width: 500px;
@@ -103,6 +138,12 @@ const GroupExtra = styled('div')`
 
   a {
     color: inherit;
+  }
+`;
+
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
   }
 `;
 
@@ -115,22 +156,31 @@ const CommentsLink = styled(Link)`
   grid-gap: ${space(0.5)};
   align-items: center;
   grid-auto-flow: column;
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
 const GroupShortId = styled(ShortId)`
   flex-shrink: 0;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
 `;
 
-const AnnotationNoMargin = styled(EventAnnotation)`
+const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
   margin-left: 0;
-  padding-left: ${space(2)};
+  padding-left: ${p => (p.hasInbox ? 0 : space(2))};
+  ${p => p.hasInbox && `border-left: none;`};
+
+  ${p =>
+    p.hasInbox &&
+    css`
+      & > a {
+        color: ${p.theme.textColor};
+      }
+    `}
 `;
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
-  color: ${p => p.theme.gray700};
+  color: ${p => p.theme.textColor};
 `;
 
-export default withRouter(EventOrGroupExtraDetails);
+export default withRouter(withOrganization(EventOrGroupExtraDetails));

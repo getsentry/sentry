@@ -1,15 +1,15 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
+import {selectByValue} from 'sentry-test/select-new';
 
 import * as memberActionCreators from 'app/actionCreators/members';
-import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
+import ProjectsStore from 'app/stores/projectsStore';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
-import ProjectsStore from 'app/stores/projectsStore';
+import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
 
 jest.unmock('app/utils/recreateRoute');
 
@@ -147,6 +147,10 @@ describe('ProjectAlertsCreate', function () {
           url: '/organizations/org-slug/events-stats/',
           body: TestStubs.EventsStats(),
         });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-meta/',
+          body: {count: 5},
+        });
       });
       it('forces user to select Metric or Issue alert', async function () {
         const {wrapper} = createWrapper({
@@ -200,6 +204,7 @@ describe('ProjectAlertsCreate', function () {
 
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         // Change target environment
+
         selectByValue(wrapper, 'production', {control: true, name: 'environment'});
         // Change actionMatch and filterMatch dropdown
         selectByValue(wrapper, 'any', {name: 'actionMatch'});
@@ -209,7 +214,6 @@ describe('ProjectAlertsCreate', function () {
         wrapper
           .find('input[name="name"]')
           .simulate('change', {target: {value: 'My Rule Name'}});
-
         // Add a condition and remove it
         selectByValue(
           wrapper,

@@ -1,19 +1,19 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router/lib/Router';
+import {RouteComponentProps} from 'react-router';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
-import {t} from 'app/locale';
+import {Client} from 'app/api';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {t} from 'app/locale';
 import OrganizationEnvironmentsStore from 'app/stores/organizationEnvironmentsStore';
-import {Client} from 'app/api';
 import {
-  GlobalSelection,
-  Organization,
   Environment,
-  Project,
-  Group,
   Event,
+  GlobalSelection,
+  Group,
+  Organization,
+  Project,
 } from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -31,6 +31,9 @@ type Props = RouteComponentProps<
   project: Project;
   group: Group;
   event: Event;
+  loadingEvent: boolean;
+  eventError: boolean;
+  onRetry: () => void;
 };
 
 type State = typeof OrganizationEnvironmentsStore['state'];

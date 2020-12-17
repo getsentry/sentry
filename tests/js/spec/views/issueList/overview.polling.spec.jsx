@@ -1,11 +1,11 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import IssueList from 'app/views/issueList/overview';
 import StreamGroup from 'app/components/stream/group';
 import TagStore from 'app/stores/tagStore';
+import IssueList from 'app/views/issueList/overview';
 
 // Mock <IssueListSidebar> (need <IssueListActions> to toggling real time polling)
 jest.mock('app/views/issueList/sidebar', () => jest.fn(() => null));
@@ -125,6 +125,11 @@ describe('IssueList -> Polling', function () {
       headers: {
         Link: DEFAULT_LINKS_HEADER,
       },
+    });
+    const groupStats = TestStubs.GroupStats();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-stats/',
+      body: [groupStats],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,

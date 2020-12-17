@@ -1,16 +1,17 @@
 import React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {tct} from 'app/locale';
-import {Event, Group, GroupTombstone, Level} from 'app/types';
-import {IconMute, IconStar} from 'app/icons';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
-import Tooltip from 'app/components/tooltip';
-import {getMessage, getLocation} from 'app/utils/events';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import Tooltip from 'app/components/tooltip';
+import {IconMute, IconStar} from 'app/icons';
+import {tct} from 'app/locale';
+import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
+import {getLocation, getMessage} from 'app/utils/events';
+import withOrganization from 'app/utils/withOrganization';
 import UnhandledTag, {
   TagAndMessageWrapper,
 } from 'app/views/organizationGroupDetails/unhandledTag';
@@ -21,6 +22,7 @@ type DefaultProps = {
 };
 
 type Props = WithRouterProps<{orgId: string}> & {
+  organization: Organization;
   data: Event | Group | GroupTombstone;
   hideIcons?: boolean;
   hideLevel?: boolean;
@@ -52,12 +54,12 @@ class EventOrGroupHeader extends React.Component<Props> {
         )}
         {!hideIcons && status === 'ignored' && (
           <IconWrapper>
-            <IconMute color="red400" />
+            <IconMute color="red300" />
           </IconWrapper>
         )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="orange300" />
+            <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
         <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
@@ -102,18 +104,19 @@ class EventOrGroupHeader extends React.Component<Props> {
   }
 
   render() {
-    const {className, size, data} = this.props;
+    const {className, size, data, organization} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
     const {isUnhandled} = data as Group;
+    const showUnhandled = isUnhandled && !organization.features.includes('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {(message || isUnhandled) && (
+        {(message || showUnhandled) && (
           <StyledTagAndMessageWrapper size={size}>
-            {isUnhandled && <UnhandledTag />}
+            {showUnhandled && <UnhandledTag />}
             {message && <Message>{message}</Message>}
           </StyledTagAndMessageWrapper>
         )}
@@ -144,7 +147,7 @@ const Title = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
     font-weight: 300;
-    color: ${p => p.theme.gray600};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -154,7 +157,7 @@ const LocationWrapper = styled('div')`
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   span {
     direction: ltr;
   }
@@ -197,17 +200,17 @@ const GroupLevel = styled('div')<{level: Level}>`
   background-color: ${p => {
     switch (p.level) {
       case 'sample':
-        return p.theme.purple400;
+        return p.theme.purple300;
       case 'info':
-        return p.theme.blue400;
+        return p.theme.blue300;
       case 'warning':
-        return p.theme.yellow400;
+        return p.theme.yellow300;
       case 'error':
         return p.theme.orange400;
       case 'fatal':
-        return p.theme.red400;
+        return p.theme.red300;
       default:
-        return p.theme.gray500;
+        return p.theme.gray300;
     }
   }};
 
@@ -218,4 +221,4 @@ const GroupLevel = styled('div')<{level: Level}>`
   }
 `;
 
-export default withRouter(EventOrGroupHeader);
+export default withRouter(withOrganization(EventOrGroupHeader));

@@ -27,7 +27,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.common_timezones:
+    for tz in pytz.all_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, "(UTC%s) %s" % (offset, tz)))
@@ -53,6 +53,10 @@ class UserOptionsSerializer(serializers.Serializer):
     )
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
+    theme = serializers.ChoiceField(
+        choices=(("light", _("Light")), ("dark", _("Dark")), ("system", _("Default to system")),),
+        required=False,
+    )
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -131,6 +135,7 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string stacktrace_order: One of -1 (default), 1 (most recent call last), 2 (most recent call first).
         :param string timezone: timezone option
         :param clock_24_hours boolean: use 24 hour clock
+        :param string theme: UI theme, either "light", "dark", or "system"
         :auth: required
         """
 
@@ -150,6 +155,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         # map API keys to keys in model
         key_map = {
+            "theme": "theme",
             "language": "language",
             "timezone": "timezone",
             "stacktraceOrder": "stacktrace_order",

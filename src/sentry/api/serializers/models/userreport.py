@@ -10,9 +10,15 @@ from sentry.utils.compat import zip
 @register(UserReport)
 class UserReportSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        queryset = list(EventUser.objects.filter(id__in=[i.event_user_id for i in item_list]))
+        event_user_ids = {i.event_user_id for i in item_list if i.event_user_id}
 
-        event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
+        # Avoid querying if there aren't any to actually query, it's possible
+        # for event_user_id to be None.
+        if event_user_ids:
+            queryset = list(EventUser.objects.filter(id__in=event_user_ids))
+            event_users = {e.id: d for e, d in zip(queryset, serialize(queryset, user))}
+        else:
+            event_users = {}
 
         attrs = {}
         for item in item_list:
@@ -23,15 +29,18 @@ class UserReportSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
+        name = obj.name or obj.email
+        email = obj.email
+        if attrs["event_user"]:
+            event_user = attrs["event_user"]
+            if isinstance(event_user, dict):
+                name = name or event_user.get("name")
+                email = email or event_user.get("email")
         return {
             "id": six.text_type(obj.id),
             "eventID": obj.event_id,
-            "name": (
-                obj.name
-                or obj.email
-                or (attrs["event_user"].get_display_name() if attrs["event_user"] else None)
-            ),
-            "email": (obj.email or (attrs["event_user"].email if attrs["event_user"] else None)),
+            "name": name,
+            "email": email,
             "comments": obj.comments,
             "dateCreated": obj.date_added,
             "user": attrs["event_user"],

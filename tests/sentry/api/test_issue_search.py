@@ -18,7 +18,7 @@ from sentry.api.issue_search import (
     parse_search_query,
     value_converters,
 )
-from sentry.constants import STATUS_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
 
 
@@ -57,8 +57,23 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(key=SearchKey(name="unassigned"), operator="!=", value=SearchValue(False))
         ]
 
+    def test_is_query_linked(self):
+        assert parse_search_query("is:linked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="=", value=SearchValue(True))
+        ]
+        assert parse_search_query("is:unlinked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="=", value=SearchValue(False))
+        ]
+
+        assert parse_search_query("!is:linked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="!=", value=SearchValue(True))
+        ]
+        assert parse_search_query("!is:unlinked") == [
+            SearchFilter(key=SearchKey(name="linked"), operator="!=", value=SearchValue(False))
+        ]
+
     def test_is_query_status(self):
-        for status_string, status_val in STATUS_CHOICES.items():
+        for status_string, status_val in STATUS_QUERY_CHOICES.items():
             assert parse_search_query("is:%s" % status_string) == [
                 SearchFilter(
                     key=SearchKey(name="status"), operator="=", value=SearchValue(status_val)
@@ -77,6 +92,11 @@ class ParseSearchQueryTest(TestCase):
         assert six.text_type(cm.exception).startswith(
             'Invalid value for "is" search, valid values are'
         )
+
+    def test_is_query_inbox(self):
+        assert parse_search_query("is:needs_review") == [
+            SearchFilter(key=SearchKey(name="needs_review"), operator="=", value=SearchValue(True))
+        ]
 
     def test_numeric_filter(self):
         # test numeric format
@@ -158,7 +178,7 @@ class ConvertQueryValuesTest(TestCase):
 
 class ConvertStatusValueTest(TestCase):
     def test_valid(self):
-        for status_string, status_val in STATUS_CHOICES.items():
+        for status_string, status_val in STATUS_QUERY_CHOICES.items():
             filters = [SearchFilter(SearchKey("status"), "=", SearchValue(status_string))]
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == status_val

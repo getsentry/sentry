@@ -1,8 +1,8 @@
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import SettingsHeader from 'app/views/settings/components/settingsHeader';
 import {Theme} from 'app/utils/theme';
+import SettingsHeader from 'app/views/settings/components/settingsHeader';
 
 type Params = {
   /**
@@ -59,7 +59,7 @@ const getMenuBorderRadius = ({
   `;
 };
 
-const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
+const getMenuArrow = ({menuWithArrow, alignMenu, theme}: Params & {theme: Theme}) => {
   if (!menuWithArrow) {
     return '';
   }
@@ -89,7 +89,7 @@ const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
       height: 0;
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-bottom: 8px solid #fff;
+      border-bottom: 8px solid ${theme.background};
       content: '';
       display: block;
       position: absolute;
@@ -103,8 +103,9 @@ const getMenuArrow = ({menuWithArrow, alignMenu}: Params) => {
 };
 
 const DropdownBubble = styled('div')<Params>`
-  background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.borderDark};
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.border};
   position: absolute;
   top: calc(100% - 1px);
   ${p => (p.width ? `width: ${p.width}` : '')};

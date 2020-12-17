@@ -13,8 +13,8 @@ from sentry.models import (
     ReleaseEnvironment,
     Repository,
     ScheduledDeletion,
-    Widget,
-    WidgetDataSource,
+    DashboardWidget,
+    DashboardWidgetQuery,
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -53,20 +53,20 @@ class DeleteOrganizationTest(TestCase):
         dashboard = Dashboard.objects.create(
             organization_id=org.id, title="The Dashboard", created_by=self.user
         )
-        widget_1 = Widget.objects.create(
+        widget_1 = DashboardWidget.objects.create(
             dashboard=dashboard, order=1, title="Widget 1", display_type=0
         )
-        widget_2 = Widget.objects.create(
+        widget_2 = DashboardWidget.objects.create(
             dashboard=dashboard, order=2, title="Widget 2", display_type=5
         )
-        widget_1_data = WidgetDataSource.objects.create(
-            widget=widget_1, order=1, type=0, name="Incoming data"
+        widget_1_data = DashboardWidgetQuery.objects.create(
+            widget=widget_1, order=1, name="Incoming data"
         )
-        widget_2_data_1 = WidgetDataSource.objects.create(
-            widget=widget_2, order=1, type=0, name="Incoming data"
+        widget_2_data_1 = DashboardWidgetQuery.objects.create(
+            widget=widget_2, order=1, name="Incoming data"
         )
-        widget_2_data_2 = WidgetDataSource.objects.create(
-            widget=widget_2, order=2, type=0, name="Outcoming data"
+        widget_2_data_2 = DashboardWidgetQuery.objects.create(
+            widget=widget_2, order=2, name="Outcoming data"
         )
 
         deletion = ScheduledDeletion.schedule(org, days=0)
@@ -88,7 +88,7 @@ class DeleteOrganizationTest(TestCase):
         assert not PullRequest.objects.filter(id=pull_request.id).exists()
         assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
         assert not Dashboard.objects.filter(id=dashboard.id).exists()
-        assert not Widget.objects.filter(id__in=[widget_1.id, widget_2.id]).exists()
-        assert not WidgetDataSource.objects.filter(
+        assert not DashboardWidget.objects.filter(id__in=[widget_1.id, widget_2.id]).exists()
+        assert not DashboardWidgetQuery.objects.filter(
             id__in=[widget_1_data.id, widget_2_data_1.id, widget_2_data_2.id]
         ).exists()

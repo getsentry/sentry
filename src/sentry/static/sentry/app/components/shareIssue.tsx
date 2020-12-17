@@ -1,10 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
-import {t} from 'app/locale';
-import {IconCopy, IconRefresh} from 'app/icons';
-import space from 'app/styles/space';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
@@ -12,7 +9,10 @@ import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Switch from 'app/components/switch';
+import {IconCopy, IconRefresh} from 'app/icons';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 type ContainerProps = {
   shareUrl: string;
@@ -90,6 +90,7 @@ type Props = {
    */
   isShared?: boolean;
   shareUrl?: string | null;
+  disabled?: boolean;
 };
 
 class ShareIssue extends React.Component<Props> {
@@ -99,6 +100,7 @@ class ShareIssue extends React.Component<Props> {
     shareUrl: PropTypes.string,
     onToggle: PropTypes.func.isRequired,
     onReshare: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
   };
 
   hasConfirmModal = false;
@@ -125,7 +127,7 @@ class ShareIssue extends React.Component<Props> {
   };
 
   render() {
-    const {loading, isShared, shareUrl, onReshare} = this.props;
+    const {loading, isShared, shareUrl, onReshare, disabled} = this.props;
 
     return (
       <DropdownLink
@@ -138,6 +140,7 @@ class ShareIssue extends React.Component<Props> {
           </DropdownTitleContent>
         }
         onOpen={this.handleOpen}
+        disabled={disabled}
         keepMenuOpen
       >
         <DropdownContent>
@@ -171,7 +174,7 @@ export default ShareIssue;
 const UrlContainer = styled('div')`
   display: flex;
   align-items: stretch;
-  border: 1px solid ${p => p.theme.borderDark};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${space(0.5)};
 `;
 
@@ -211,7 +214,7 @@ const IndicatorDot = styled('span')<{isShared?: boolean}>`
   border-radius: 50%;
   width: 10px;
   height: 10px;
-  background: ${p => (p.isShared ? p.theme.green400 : p.theme.borderDark)};
+  background: ${p => (p.isShared ? p.theme.green300 : p.theme.border)};
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)<
@@ -227,17 +230,17 @@ const TextContainer = styled('div')`
   display: flex;
   flex: 1;
   background-color: transparent;
-  border-right: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.border};
   max-width: 288px;
 `;
 
 const ClipboardButton = styled(Button)`
   border-radius: 0;
-  border-right: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.border};
   height: 100%;
 
   &:hover {
-    border-right: 1px solid ${p => p.theme.borderDark};
+    border-right: 1px solid ${p => p.theme.border};
   }
 `;
 

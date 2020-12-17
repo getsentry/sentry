@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {ActivityType} from 'app/views/alerts/types';
-import {User} from 'app/types';
-import {NoteType} from 'app/types/alerts';
 import ActivityItem, {ActivityAuthorType} from 'app/components/activity/item';
 import space from 'app/styles/space';
+import {User} from 'app/types';
+import {NoteType} from 'app/types/alerts';
+import {ActivityType} from 'app/views/alerts/types';
 
-import EditorTools from './editorTools';
 import NoteBody from './body';
+import EditorTools from './editorTools';
 import NoteHeader from './header';
 import NoteInput from './input';
 
@@ -190,7 +190,7 @@ const StyledActivityItem = styled(ActivityItem)`
 
   blockquote {
     font-size: 15px;
-    background: ${p => p.theme.gray300};
+    background: ${p => p.theme.gray200};
 
     p:last-child {
       margin-bottom: 0;

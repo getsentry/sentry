@@ -1,14 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 
 import ModalManager from '../modalManager';
-import Terminal from './terminal';
+
 import Item from './item';
+import Terminal from './terminal';
 
 class Add extends ModalManager {
   getTitle() {
@@ -64,8 +65,8 @@ const StyledList = styled(List)`
 `;
 
 const CredentialsLink = styled(ExternalLink)`
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.active};
   :hover {
-    color: ${p => p.theme.pink400};
+    color: ${p => p.theme.active};
   }
 `;

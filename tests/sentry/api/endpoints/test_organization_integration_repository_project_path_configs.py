@@ -67,7 +67,16 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "projectSlug": self.project1.slug,
             "repoId": six.text_type(self.repo1.id),
             "repoName": self.repo1.name,
-            "organizationIntegrationId": six.text_type(self.org_integration.id),
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "GitHub",
+                "canDisable": False,
+                "key": "github",
+                "slug": "github",
+                "canAdd": True,
+            },
+            "integrationId": six.text_type(self.integration.id),
             "stackRoot": "stack/root",
             "sourceRoot": "source/root",
             "defaultBranch": "master",
@@ -79,7 +88,16 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "projectSlug": self.project2.slug,
             "repoId": six.text_type(self.repo1.id),
             "repoName": self.repo1.name,
-            "organizationIntegrationId": six.text_type(self.org_integration.id),
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "GitHub",
+                "canDisable": False,
+                "key": "github",
+                "slug": "github",
+                "canAdd": True,
+            },
+            "integrationId": six.text_type(self.integration.id),
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
             "defaultBranch": None,
@@ -94,7 +112,16 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "projectSlug": self.project1.slug,
             "repoId": six.text_type(self.repo1.id),
             "repoName": self.repo1.name,
-            "organizationIntegrationId": six.text_type(self.org_integration.id),
+            "provider": {
+                "aspects": {},
+                "features": ["commits", "issue-basic"],
+                "name": "GitHub",
+                "canDisable": False,
+                "key": "github",
+                "slug": "github",
+                "canAdd": True,
+            },
+            "integrationId": six.text_type(self.integration.id),
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
@@ -127,7 +154,9 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 400
         assert response.data == {
-            "nonFieldErrors": [u"Code path config already exists with this project and input path"]
+            "nonFieldErrors": [
+                u"Code path config already exists with this project and stack trace root"
+            ]
         }
 
     def test_space_in_stack_root(self):

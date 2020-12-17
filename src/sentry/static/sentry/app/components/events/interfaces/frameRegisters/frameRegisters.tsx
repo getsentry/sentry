@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {defined} from 'app/utils';
-import {t} from 'app/locale';
 import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/frameRegistersValue';
 import {getMeta} from 'app/components/events/meta/metaProxy';
+import {t} from 'app/locale';
+import {defined} from 'app/utils';
 
 type Props = {
   data: {[key: string]: string};
@@ -38,7 +38,7 @@ const FrameRegisters = ({data}: Props) => {
 };
 
 const RegistersWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   padding-top: 10px;
 `;
 

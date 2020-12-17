@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactSelect, {components as selectComponents} from 'react-select';
 import Async from 'react-select/async';
-import Creatable from 'react-select/creatable';
 import AsyncCreatable from 'react-select/async-creatable';
+import Creatable from 'react-select/creatable';
 
-import theme from 'app/utils/theme';
 import {IconChevron, IconClose} from 'app/icons';
+import space from 'app/styles/space';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import theme from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
 
@@ -45,20 +46,20 @@ const defaultStyles = {
   control: (_, state) => ({
     height: '100%',
     fontSize: '15px',
-    color: theme.gray800,
+    color: theme.formText,
     display: 'flex',
-    background: '#fff',
-    border: `1px solid ${theme.borderDark}`,
+    background: theme.background,
+    border: `1px solid ${theme.border}`,
     borderRadius: theme.borderRadius,
     boxShadow: `inset ${theme.dropShadowLight}`,
     transition: 'border 0.1s linear',
     alignItems: 'center',
-    minHeight: '36px',
+    minHeight: '40px',
     '&:hover': {
-      borderColor: theme.borderDark,
+      borderColor: theme.border,
     },
     ...(state.isFocused && {
-      border: `1px solid ${theme.borderDark}`,
+      border: `1px solid ${theme.border}`,
       boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
     }),
     ...(state.menuIsOpen && {
@@ -67,9 +68,9 @@ const defaultStyles = {
       boxShadow: 'none',
     }),
     ...(state.isDisabled && {
-      borderColor: theme.borderDark,
-      background: theme.gray100,
-      color: theme.gray500,
+      borderColor: theme.border,
+      background: theme.backgroundSecondary,
+      color: theme.disabled,
       cursor: 'not-allowed',
     }),
     ...(!state.isSearchable && {
@@ -81,10 +82,10 @@ const defaultStyles = {
     ...provided,
     zIndex: theme.zIndex.dropdown,
     marginTop: '-1px',
-    background: '#fff',
-    border: `1px solid ${theme.borderDark}`,
+    background: theme.background,
+    border: `1px solid ${theme.border}`,
     borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
-    borderTop: `1px solid ${theme.borderLight}`,
+    borderTop: `1px solid ${theme.border}`,
     boxShadow: theme.dropShadowLight,
   }),
   option: (provided, state) => ({
@@ -95,15 +96,15 @@ const defaultStyles = {
     color: state.isFocused
       ? theme.textColor
       : state.isSelected
-      ? theme.white
+      ? theme.background
       : theme.textColor,
     backgroundColor: state.isFocused
-      ? theme.gray200
+      ? theme.backgroundSecondary
       : state.isSelected
-      ? theme.purple400
+      ? theme.purple300
       : 'transparent',
     '&:active': {
-      backgroundColor: theme.gray200,
+      backgroundColor: theme.backgroundSecondary,
     },
   }),
   valueContainer: provided => ({
@@ -148,6 +149,46 @@ const defaultStyles = {
   clearIndicator: indicatorStyles,
   dropdownIndicator: indicatorStyles,
   loadingIndicator: indicatorStyles,
+  groupHeading: provided => ({
+    ...provided,
+    lineHeight: '1.5',
+    fontWeight: '600',
+    backgroundColor: theme.backgroundSecondary,
+    color: theme.textColor,
+    marginBottom: 0,
+    padding: `${space(1)} ${space(1.5)}`,
+  }),
+  group: provided => ({
+    ...provided,
+    padding: 0,
+  }),
+};
+
+const getFieldLabelStyle = label => ({
+  ':before': {
+    content: `"${label}"`,
+    color: theme.gray300,
+    fontWeight: 600,
+  },
+});
+
+/**
+ * Applies one set of styles onto the other while maintaining the same function
+ * interface that is used by react-styled.
+ * @param {*} newStyles the styles to apply on top of base
+ * @param {*} baseStyles the style to override
+ */
+const combineStyles = (newStyles, baseStyles) => {
+  return Object.keys(newStyles || {}).reduce((computedStyles, key) => {
+    const styleFunc = (provided, state) =>
+      newStyles[key](
+        computedStyles[key] === undefined
+          ? provided
+          : computedStyles[key](provided, state),
+        state
+      );
+    return {...computedStyles, [key]: styleFunc};
+  }, baseStyles);
 };
 
 const SelectControl = props => {
@@ -168,6 +209,7 @@ const SelectControl = props => {
     components,
     styles,
     value,
+    inFieldLabel,
     ...rest
   } = props;
 
@@ -186,25 +228,31 @@ const SelectControl = props => {
      * because the select component fetches the options finding the mappedValue will fail
      * and the component won't work
      */
+    const flatOptions = choicesOrOptions.flatMap(option => option.options || option);
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => choicesOrOptions.find(option => option.value === val))
-        : choicesOrOptions.find(opt => opt.value === value) || value;
+        ? value.map(val => flatOptions.find(option => option.value === val))
+        : flatOptions.find(opt => opt.value === value) || value;
   }
 
+  // Override the default style with in-field labels if they are provided
+  const inFieldLabelStyles = {
+    singleValue: base => ({
+      ...base,
+      ...getFieldLabelStyle(inFieldLabel),
+    }),
+    placeholder: base => ({
+      ...base,
+      ...getFieldLabelStyle(inFieldLabel),
+    }),
+  };
+  const labelOrDefaultStyles = inFieldLabel
+    ? combineStyles(inFieldLabelStyles, defaultStyles)
+    : defaultStyles;
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = Object.keys(styles || {}).reduce((computedStyles, key) => {
-    const styleFunc = (provided, state) =>
-      styles[key](
-        computedStyles[key] === undefined
-          ? provided
-          : computedStyles[key](provided, state),
-        state
-      );
-    return {...computedStyles, [key]: styleFunc};
-  }, defaultStyles);
+  const mappedStyles = combineStyles(styles, labelOrDefaultStyles);
 
   const replacedComponents = {
     ClearIndicator,
@@ -225,6 +273,7 @@ const SelectControl = props => {
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
       options={choicesOrOptions}
+      openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
       {...rest}
     />
   );

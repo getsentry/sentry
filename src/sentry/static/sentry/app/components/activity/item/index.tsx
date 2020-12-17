@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
+import PropTypes from 'prop-types';
 
-import {AvatarUser} from 'app/types';
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
+import {AvatarUser} from 'app/types';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 
 import ActivityAvatar from './avatar';
@@ -161,7 +161,7 @@ const HeaderAndFooter = styled('div')`
 
 const ActivityHeader = styled(HeaderAndFooter)`
   display: flex;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeMedium};
 
   &:last-child {
@@ -175,7 +175,7 @@ const ActivityHeaderContent = styled('div')`
 
 const ActivityFooter = styled(HeaderAndFooter)`
   display: flex;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
@@ -189,15 +189,15 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledDateTimeWindow = styled('div')`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledActivityBubble = styled(ActivityBubble)`

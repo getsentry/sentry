@@ -1,25 +1,25 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
-import DocumentTitle from 'react-document-title';
 import React from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
-import scrollToElement from 'scroll-to-element';
+import DocumentTitle from 'react-document-title';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
+import scrollToElement from 'scroll-to-element';
 
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
-import {analytics} from 'app/utils/analytics';
-import {t} from 'app/locale';
 import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
 import PageHeading from 'app/components/pageHeading';
+import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
+import {analytics} from 'app/utils/analytics';
+import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
-import testableTransition from 'app/utils/testableTransition';
-import {Organization, Project} from 'app/types';
 
-import {StepDescriptor, StepData} from './types';
 import OnboardingPlatform from './platform';
 import OnboardingProjectSetup from './projectSetup';
+import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
 
 type AnalyticsOpts = {
@@ -222,7 +222,7 @@ class Onboarding extends React.Component<Props, State> {
 
 const OnboardingWrapper = styled('main')`
   flex-grow: 1;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.backgroundSecondary};
   padding-bottom: 50vh;
 `;
 
@@ -234,7 +234,7 @@ const Container = styled('div')`
 `;
 
 const Header = styled('header')`
-  background: #fff;
+  background: ${p => p.theme.background};
   padding: ${space(4)} 0;
   position: sticky;
   top: 0;
@@ -251,7 +251,7 @@ const Header = styled('header')`
 const LogoSvg = styled(InlineSvg)`
   width: 130px;
   height: 30px;
-  color: ${p => p.theme.gray800};
+  color: ${p => p.theme.textColor};
 `;
 
 const ProgressBar = styled('div')`
@@ -265,7 +265,7 @@ const ProgressBar = styled('div')`
     display: block;
     content: '';
     height: 4px;
-    background: ${p => p.theme.borderLight};
+    background: ${p => p.theme.inactive};
     left: 2px;
     right: 2px;
     top: 50%;
@@ -278,12 +278,12 @@ const ProgressStep = styled('div')<{active: boolean}>`
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 4px solid ${p => (p.active ? p.theme.pink400 : p.theme.borderLight)};
-  background: #fff;
+  border: 4px solid ${p => (p.active ? p.theme.active : p.theme.inactive)};
+  background: ${p => p.theme.background};
 `;
 
 const ProgressStatus = styled(motion.div)`
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: right;
   grid-column: 3;
@@ -314,7 +314,7 @@ const OnboardingStep = styled(motion.div)<{active: boolean}>`
     height: 30px;
     top: -5px;
     left: -30px;
-    background-color: ${p => (p.active ? p.theme.pink400 : p.theme.gray500)};
+    background-color: ${p => (p.active ? p.theme.active : p.theme.gray300)};
     border-radius: 50%;
     color: #fff;
     font-size: 1.5rem;

@@ -1,6 +1,6 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -42,12 +42,12 @@ const StyledSelectorItem = styled(SelectorItem)`
   padding: ${space(1)};
   align-items: center;
   flex: 1;
-  background-color: ${p => (p.selected ? p.theme.gray100 : 'transparent')};
+  background-color: ${p => (p.selected ? p.theme.backgroundSecondary : 'transparent')};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
-  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
+  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.innerBorder)};
 
   &:hover {
-    background: ${p => p.theme.gray100};
+    background: ${p => p.theme.backgroundSecondary};
   }
 `;
 

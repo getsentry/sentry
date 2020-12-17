@@ -1,7 +1,15 @@
-import capitalize from 'lodash/capitalize';
 import React from 'react';
+import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
+import {
+  IconBitbucket,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconVsts,
+} from 'app/icons';
 import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
@@ -103,18 +111,37 @@ type IntegrationCategorySelectEvent = {
   category: string;
 };
 
+type IntegrationStacktraceLinkEvent = {
+  eventKey:
+    | 'integrations.stacktrace_start_setup'
+    | 'integrations.stacktrace_automatic_setup'
+    | 'integrations.stacktrace_manual_setup'
+    | 'integrations.stacktrace_link_clicked'
+    | 'integrations.reconfigure_stacktrace_setup';
+  eventName:
+    | 'Integrations: Stacktrace Start Setup'
+    | 'Integrations: Stacktrace Automatic Setup'
+    | 'Integrations: Stacktrace Manual Setup'
+    | 'Integrations: Stacktrace Link Clicked'
+    | 'Integrations: Reconfigure Stacktrace Setup';
+  provider?: string;
+  error_reason?: 'file_not_found' | 'stack_root_mismatch';
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
   | IntegrationSearchEvent
   | IntegrationCategorySelectEvent
+  | IntegrationStacktraceLinkEvent
 ) & {
   view?:
     | 'external_install'
     | 'legacy_integrations'
     | 'plugin_details'
     | 'integrations_directory'
-    | 'integrations_directory_integration_detail';
+    | 'integrations_directory_integration_detail'
+    | 'stacktrace_issue_details';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
@@ -332,5 +359,25 @@ export const safeGetQsParam = (param: string) => {
     return query[param];
   } catch {
     return undefined;
+  }
+};
+
+export const getIntegrationIcon = (integrationType?: string, size?: string) => {
+  const iconSize = size || 'md';
+  switch (integrationType) {
+    case 'bitbucket':
+      return <IconBitbucket size={iconSize} />;
+    case 'gitlab':
+      return <IconGitlab size={iconSize} />;
+    case 'github':
+    case 'github_enterprise':
+      return <IconGithub size={iconSize} />;
+    case 'jira':
+    case 'jira_server':
+      return <IconJira size={iconSize} />;
+    case 'vsts':
+      return <IconVsts size={iconSize} />;
+    default:
+      return <IconGeneric size={iconSize} />;
   }
 };

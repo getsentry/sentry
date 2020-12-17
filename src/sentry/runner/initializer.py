@@ -130,6 +130,7 @@ options_mapper = {
     "mail.username": "EMAIL_HOST_USER",
     "mail.password": "EMAIL_HOST_PASSWORD",
     "mail.use-tls": "EMAIL_USE_TLS",
+    "mail.use-ssl": "EMAIL_USE_SSL",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
     "github-login.client-id": "GITHUB_APP_ID",
@@ -140,15 +141,6 @@ options_mapper = {
     "github-login.extended-permissions": "GITHUB_EXTENDED_PERMISSIONS",
     "github-login.organization": "GITHUB_ORGANIZATION",
 }
-
-
-# Just reuse the integration app for Single Org / Self-Hosted as
-# it doesn't make much sense to use 2 separate apps for SSO and
-# integration.
-if settings.SENTRY_SINGLE_ORGANIZATION:
-    options_mapper.update(
-        {"github-app.client-id": "GITHUB_APP_ID", "github-app.client-secret": "GITHUB_API_SECRET"}
-    )
 
 
 def bootstrap_options(settings, config=None):
@@ -283,6 +275,17 @@ def configure_structlog():
 def initialize_app(config, skip_service_validation=False):
     settings = config["settings"]
 
+    # Just reuse the integration app for Single Org / Self-Hosted as
+    # it doesn't make much sense to use 2 separate apps for SSO and
+    # integration.
+    if settings.SENTRY_SINGLE_ORGANIZATION:
+        options_mapper.update(
+            {
+                "github-app.client-id": "GITHUB_APP_ID",
+                "github-app.client-secret": "GITHUB_API_SECRET",
+            }
+        )
+
     bootstrap_options(settings, config["options"])
 
     configure_structlog()
@@ -313,7 +316,9 @@ def initialize_app(config, skip_service_validation=False):
     if not hasattr(settings, "CSRF_COOKIE_PATH"):
         settings.CSRF_COOKIE_PATH = getattr(settings, "SESSION_COOKIE_PATH", "/")
 
-    settings.CACHES["default"]["VERSION"] = settings.CACHE_VERSION
+    for key in settings.CACHES:
+        if not hasattr(settings.CACHES[key], "VERSION"):
+            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)

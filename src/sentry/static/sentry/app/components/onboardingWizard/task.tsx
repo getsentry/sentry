@@ -1,25 +1,25 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import moment from 'moment';
 
-import {tct, t} from 'app/locale';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
-import withOrganization from 'app/utils/withOrganization';
-import space from 'app/styles/space';
-import {OnboardingTask, Organization, OnboardingTaskKey, AvatarUser} from 'app/types';
 import {navigateTo} from 'app/actionCreators/navigation';
-import Card from 'app/components/card';
-import Tooltip from 'app/components/tooltip';
-import Button from 'app/components/button';
-import {IconLock, IconCheckmark, IconClose, IconEvent} from 'app/icons';
 import Avatar from 'app/components/avatar';
+import Button from 'app/components/button';
+import Card from 'app/components/card';
 import LetterAvatar from 'app/components/letterAvatar';
+import Tooltip from 'app/components/tooltip';
+import {IconCheckmark, IconClose, IconEvent, IconLock} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import testableTransition from 'app/utils/testableTransition';
+import withOrganization from 'app/utils/withOrganization';
 
-import {taskIsDone} from './utils';
 import SkipConfirm from './skipConfirm';
+import {taskIsDone} from './utils';
 
 const recordAnalytics = (
   task: OnboardingTask,
@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red400" />
+      <IconLock size="xs" color="red300" />
     </Tooltip>
   );
 
@@ -170,13 +170,13 @@ const Description = styled('p')`
   padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.75rem;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const ActionBar = styled('div')`
   height: 40px;
-  border-top: 1px solid ${p => p.theme.borderLight};
+  border-top: 1px solid ${p => p.theme.border};
   margin: ${space(3)} -${space(3)} -${space(3)};
   display: flex;
   justify-content: space-between;
@@ -212,18 +212,19 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 `;
 
 const CTA = styled('div')`
-  color: ${p => p.theme.blue400};
+  color: ${p => p.theme.blue300};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
 `;
 
 const SkipButton = styled(Button)`
-  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray300};
 `;
 
 const ItemComplete = styled(Card)`
   cursor: pointer;
-  color: ${p => p.theme.gray600};
+  color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(1.5)};
   display: grid;
   grid-template-columns: max-content 1fr max-content 20px;
@@ -247,7 +248,7 @@ StatusIndicator.defaultProps = {
 const CompleteIndicator = styled(IconCheckmark)``;
 CompleteIndicator.defaultProps = {
   isCircled: true,
-  color: 'green400',
+  color: 'green300',
 };
 
 const SkippedIndicator = styled(IconClose)``;
@@ -262,7 +263,7 @@ const completedItemAnimation = {
 };
 
 const CompletedDate = styled(motion.div)`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 CompletedDate.defaultProps = {

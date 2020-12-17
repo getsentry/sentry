@@ -1,14 +1,14 @@
-import {withRouter} from 'react-router';
-import PropTypes from 'prop-types';
 import React from 'react';
+import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import IdBadge from 'app/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'app/icons';
 import PluginIcon from 'app/plugins/components/pluginIcon';
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
-import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 import space from 'app/styles/space';
+import highlightFuseMatches from 'app/utils/highlightFuseMatches';
+import SettingsSearch from 'app/views/settings/components/settingsSearch';
 
 class SearchResult extends React.Component {
   static propTypes = {
@@ -166,13 +166,13 @@ const SearchDetail = styled('div')`
 
 const ExtraDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   margin-top: ${space(0.5)};
 `;
 
 const BadgeDetail = styled('div')`
   line-height: 1.3;
-  color: ${p => (p.highlighted ? p.theme.purple500 : null)};
+  color: ${p => (p.highlighted ? p.theme.purple300 : null)};
 `;
 
 const Wrapper = styled('div')`
@@ -200,5 +200,5 @@ const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
   font-weight: bold;
-  color: ${p => p.theme.pink400};
+  color: ${p => p.theme.active};
 `;

@@ -1,14 +1,13 @@
-import {RouteComponentProps} from 'react-router/lib/Router';
-import {browserHistory} from 'react-router';
 import React from 'react';
+import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import KeySettings from 'app/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'app/views/settings/project/projectKeys/details/keyStats';
-import PermissionAlert from 'app/views/settings/project/permissionAlert';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 
 type Props = RouteComponentProps<
   {
@@ -28,7 +27,7 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
     return t('Key Details');
   }
 
-  getEndpoints(): [string, string][] {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {keyId, orgId, projectId} = this.props.params;
     return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
   }

@@ -1,10 +1,10 @@
-import {Link} from 'react-router';
 import React from 'react';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
-import HookOrDefault from 'app/components/hookOrDefault';
 import FeatureBadge from 'app/components/featureBadge';
+import HookOrDefault from 'app/components/hookOrDefault';
 
 type Props = {
   to: React.ComponentProps<Link>['to'];
@@ -35,23 +35,23 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
 
 const StyledNavItem = styled(Link)`
   display: block;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.gray300};
   font-size: 14px;
   line-height: 30px;
   position: relative;
 
   &.active {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.textColor};
 
     &:before {
-      background: ${p => p.theme.purple400};
+      background: ${p => p.theme.purple300};
     }
   }
 
   &:hover,
   &:focus,
   &:active {
-    color: ${p => p.theme.gray800};
+    color: ${p => p.theme.textColor};
     outline: none;
   }
 

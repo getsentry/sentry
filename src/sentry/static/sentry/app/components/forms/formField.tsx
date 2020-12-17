@@ -1,12 +1,12 @@
-import classNames from 'classnames';
-import PropTypes from 'prop-types';
 import React from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import {defined} from 'app/utils';
-import QuestionTooltip from 'app/components/questionTooltip';
 import {Context} from 'app/components/forms/form';
+import QuestionTooltip from 'app/components/questionTooltip';
 import {Meta} from 'app/types';
+import {defined} from 'app/utils';
 
 type Value = string | number | boolean;
 
@@ -198,5 +198,5 @@ export default class FormField<
 
 const ErrorMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.red300};
 `;

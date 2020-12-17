@@ -6,13 +6,15 @@ import pytz
 import sentry_sdk
 import six
 from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
+from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
 from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
-from sentry.utils import metrics, json
+from sentry.utils import metrics, json, kafka_config
+from sentry.utils.batching_kafka_consumer import wait_for_topics
 
 logger = logging.getLogger(__name__)
 
@@ -51,41 +53,71 @@ class QuerySubscriptionConsumer(object):
     }
 
     def __init__(
-        self, group_id, topic=None, commit_batch_size=100, initial_offset_reset="earliest"
+        self,
+        group_id,
+        topic=None,
+        commit_batch_size=100,
+        initial_offset_reset="earliest",
+        force_offset_reset=None,
     ):
         self.group_id = group_id
         if not topic:
             topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.topic = topic
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-        self.bootstrap_servers = settings.KAFKA_CLUSTERS[cluster_name]["bootstrap.servers"]
         self.commit_batch_size = commit_batch_size
         self.initial_offset_reset = initial_offset_reset
         self.offsets = {}
         self.consumer = None
+        self.cluster_options = kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+            {
+                "group.id": self.group_id,
+                "session.timeout.ms": 6000,
+                "auto.offset.reset": self.initial_offset_reset,
+                "enable.auto.commit": "false",
+                "enable.auto.offset.store": "false",
+                "enable.partition.eof": "false",
+                "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
+            },
+        )
+        self.admin_cluster_options = kafka_config.get_kafka_admin_cluster_options(
+            cluster_name, {"allow.auto.create.topics": "true"}
+        )
+        self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
+
+    def offset_reset_name_to_func(self, offset_reset):
+        if offset_reset in {"smallest", "earliest", "beginning"}:
+            return self.resolve_partition_offset_earliest
+        elif offset_reset in {"largest", "latest", "end"}:
+            return self.resolve_partition_offset_latest
+
+    def resolve_partition_offset_earliest(self, partition):
+        low, high = self.consumer.get_watermark_offsets(partition)
+        return TopicPartition(partition.topic, partition.partition, low)
+
+    def resolve_partition_offset_latest(self, partition):
+        low, high = self.consumer.get_watermark_offsets(partition)
+        return TopicPartition(partition.topic, partition.partition, high)
 
     def run(self):
         logger.debug("Starting snuba query subscriber")
         self.offsets.clear()
 
-        conf = {
-            "bootstrap.servers": self.bootstrap_servers,
-            "group.id": self.group_id,
-            "session.timeout.ms": 6000,
-            "auto.offset.reset": self.initial_offset_reset,
-            "enable.auto.commit": "false",
-            "enable.auto.offset.store": "false",
-            "enable.partition.eof": "false",
-            "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
-        }
-
         def on_assign(consumer, partitions):
+            updated_partitions = []
             for partition in partitions:
+                if self.resolve_partition_force_offset:
+                    partition = self.resolve_partition_force_offset(partition)
+                    updated_partitions.append(partition)
+
                 if partition.offset == OFFSET_INVALID:
                     updated_offset = None
                 else:
                     updated_offset = partition.offset
                 self.offsets[partition.partition] = updated_offset
+            if updated_partitions:
+                self.consumer.assign(updated_partitions)
             logger.info(
                 "query-subscription-consumer.on_assign",
                 extra={
@@ -107,7 +139,13 @@ class QuerySubscriptionConsumer(object):
                 },
             )
 
-        self.consumer = Consumer(conf)
+        self.consumer = Consumer(self.cluster_options)
+        if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS:
+            # This is required for confluent-kafka>=1.5.0, otherwise the topics will
+            # not be automatically created.
+            admin_client = AdminClient(self.admin_cluster_options)
+            wait_for_topics(admin_client, [self.topic])
+
         self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
 
         try:

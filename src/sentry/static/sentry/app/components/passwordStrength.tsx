@@ -1,13 +1,13 @@
-import throttle from 'lodash/throttle';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import zxcvbn from 'zxcvbn';
-import styled from '@emotion/styled';
 import {css} from '@emotion/core';
+import styled from '@emotion/styled';
+import throttle from 'lodash/throttle';
+import zxcvbn from 'zxcvbn';
 
 import {tct} from 'app/locale';
-import theme from 'app/utils/theme';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 /**
  * NOTE: Do not import this component synchronously. The zxcvbn library is
@@ -37,7 +37,7 @@ type Props = {
 const PasswordStrength = ({
   value,
   labels = ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'],
-  colors = [theme.red400, theme.red400, theme.yellow400, theme.green400, theme.green400],
+  colors = [theme.red300, theme.red300, theme.yellow300, theme.green300, theme.green300],
 }: Props) => {
   if (value === '') {
     return null;
@@ -78,7 +78,7 @@ const PasswordStrength = ({
 };
 
 const StrengthProgress = styled('div')`
-  background: ${theme.gray300};
+  background: ${theme.gray200};
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
@@ -87,7 +87,7 @@ const StrengthProgress = styled('div')`
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
   margin-top: ${space(0.25)};
-  color: ${theme.gray600};
+  color: ${theme.gray400};
 `;
 
 const ScoreText = styled('strong')`

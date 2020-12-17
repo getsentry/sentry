@@ -1,53 +1,53 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
-import theme from 'app/utils/theme';
-import space from 'app/styles/space';
 import Count from 'app/components/count';
-import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
+import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import {
-  SPAN_ROW_HEIGHT,
-  SPAN_ROW_PADDING,
-  SpanRow,
-  getHatchPattern,
-} from 'app/components/events/interfaces/spans/styles';
-import {
-  TOGGLE_BORDER_BOX,
-  SpanRowCellContainer,
-  SpanRowCell,
-  SpanBarTitleContainer,
-  SpanBarTitle,
-  OperationName,
-  StyledIconChevron,
-  SpanTreeTogglerContainer,
   ConnectorBar,
-  SpanTreeConnector,
-  SpanTreeToggler,
   DividerLine,
   DividerLineGhostContainer,
   getBackgroundColor,
+  OperationName,
+  SpanBarTitle,
+  SpanBarTitleContainer,
+  SpanRowCell,
+  SpanRowCellContainer,
+  SpanTreeConnector,
+  SpanTreeToggler,
+  SpanTreeTogglerContainer,
+  StyledIconChevron,
+  TOGGLE_BORDER_BOX,
 } from 'app/components/events/interfaces/spans/spanBar';
 import {
+  getHatchPattern,
+  SPAN_ROW_HEIGHT,
+  SPAN_ROW_PADDING,
+  SpanRow,
+} from 'app/components/events/interfaces/spans/styles';
+import {TreeDepthType} from 'app/components/events/interfaces/spans/types';
+import {
+  getHumanDuration,
+  isOrphanTreeDepth,
   toPercent,
   unwrapTreeDepth,
-  isOrphanTreeDepth,
-  getHumanDuration,
 } from 'app/components/events/interfaces/spans/utils';
-import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
+import SpanDetail from './spanDetail';
+import {SpanBarRectangle} from './styles';
 import {
   DiffSpanType,
+  generateCSSWidth,
+  getSpanDescription,
+  getSpanDuration,
   getSpanID,
   getSpanOperation,
-  getSpanDescription,
   isOrphanDiffSpan,
   SpanGeneratedBoundsType,
-  getSpanDuration,
-  generateCSSWidth,
 } from './utils';
-import {SpanBarRectangle} from './styles';
-import SpanDetail from './spanDetail';
 
 type Props = {
   span: Readonly<DiffSpanType>;
@@ -296,7 +296,7 @@ class SpanBar extends React.Component<Props, State> {
           return {
             background: {
               // baseline
-              color: theme.gray700,
+              color: theme.textColor,
               width: normalizePadding(generateCSSWidth(bounds.background)),
             },
             foreground: {
@@ -313,7 +313,7 @@ class SpanBar extends React.Component<Props, State> {
         return {
           background: {
             // regression
-            color: theme.purple300,
+            color: theme.purple200,
             width: normalizePadding(generateCSSWidth(bounds.background)),
           },
           foreground: {
@@ -327,7 +327,7 @@ class SpanBar extends React.Component<Props, State> {
       case 'regression': {
         return {
           background: {
-            color: theme.purple300,
+            color: theme.purple200,
             width: normalizePadding(generateCSSWidth(bounds.background)),
           },
           foreground: undefined,
@@ -336,7 +336,7 @@ class SpanBar extends React.Component<Props, State> {
       case 'baseline': {
         return {
           background: {
-            color: theme.gray700,
+            color: theme.textColor,
             width: normalizePadding(generateCSSWidth(bounds.background)),
           },
           foreground: undefined,
@@ -518,7 +518,7 @@ const ComparisonSpanBarRectangle = styled(SpanBarRectangle)<{spanBarHatch: boole
   position: absolute;
   left: 0;
   height: 16px;
-  ${p => getHatchPattern(p, theme.purple300, theme.gray700)}
+  ${p => getHatchPattern(p, theme.purple200, theme.gray500)}
 `;
 
 const ComparisonLabel = styled('div')`

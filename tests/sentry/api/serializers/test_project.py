@@ -30,121 +30,120 @@ from sentry.models import (
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
+from sentry.utils.compat import mock
 
 
 class ProjectSerializerTest(TestCase):
+    def setUp(self):
+        super(ProjectSerializerTest, self).setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization()
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(teams=[self.team], organization=self.organization)
+
     def test_simple(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization(owner=user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(teams=[team], organization=organization, name="foo")
+        result = serialize(self.project, self.user)
 
-        result = serialize(project, user)
-
-        assert result["slug"] == project.slug
-        assert result["name"] == project.name
-        assert result["id"] == six.text_type(project.id)
+        assert result["slug"] == self.project.slug
+        assert result["name"] == self.project.name
+        assert result["id"] == six.text_type(self.project.id)
 
     def test_member_access(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        self.create_member(user=user, organization=organization)
-        team = self.create_team(organization=organization)
-        project = self.create_project(teams=[team])
+        self.create_member(user=self.user, organization=self.organization)
 
-        result = serialize(project, user)
+        result = serialize(self.project, self.user)
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(project, user)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
-        self.create_team_membership(user=user, team=team)
-        result = serialize(project, user)
+        self.create_team_membership(user=self.user, team=self.team)
+        result = serialize(self.project, self.user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
     def test_admin_access(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        self.create_member(user=user, organization=organization, role="admin")
-        team = self.create_team(organization=organization)
-        project = self.create_project(teams=[team])
+        self.create_member(user=self.user, organization=self.organization, role="admin")
 
-        result = serialize(project, user)
+        result = serialize(self.project, self.user)
         result.pop("dateCreated")
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(project, user)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is False
         assert result["isMember"] is False
 
-        self.create_team_membership(user=user, team=team)
-        result = serialize(project, user)
+        self.create_team_membership(user=self.user, team=self.team)
+        result = serialize(self.project, self.user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
     def test_manager_access(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        self.create_member(user=user, organization=organization, role="manager")
-        team = self.create_team(organization=organization)
-        project = self.create_project(teams=[team])
+        self.create_member(user=self.user, organization=self.organization, role="manager")
 
-        result = serialize(project, user)
+        result = serialize(self.project, self.user)
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(project, user)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.create_team_membership(user=user, team=team)
-        result = serialize(project, user)
+        self.create_team_membership(user=self.user, team=self.team)
+        result = serialize(self.project, self.user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
     def test_owner_access(self):
-        user = self.create_user(username="foo")
-        organization = self.create_organization()
-        self.create_member(user=user, organization=organization, role="owner")
-        team = self.create_team(organization=organization)
-        project = self.create_project(teams=[team])
+        self.create_member(user=self.user, organization=self.organization, role="owner")
 
-        result = serialize(project, user)
+        result = serialize(self.project, self.user)
 
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        organization.flags.allow_joinleave = False
-        organization.save()
-        result = serialize(project, user)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
         # after changing to allow_joinleave=False
         assert result["hasAccess"] is True
         assert result["isMember"] is False
 
-        self.create_team_membership(user=user, team=team)
-        result = serialize(project, user)
+        self.create_team_membership(user=self.user, team=self.team)
+        result = serialize(self.project, self.user)
         # after giving them access to team
         assert result["hasAccess"] is True
         assert result["isMember"] is True
+
+    @mock.patch("sentry.features.batch_has")
+    def test_project_batch_has(self, mock_batch):
+        mock_batch.return_value = {
+            "project:{}".format(self.project.id): {
+                "projects:test-feature": True,
+                "projects:disabled-feature": False,
+            }
+        }
+        result = serialize(self.project, self.user)
+        assert "test-feature" in result["features"]
+        assert "disabled-feature" not in result["features"]
 
     def test_project_features(self):
         early_flag = "projects:TEST_early"

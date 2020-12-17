@@ -1,5 +1,5 @@
-import {css} from '@emotion/core';
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'app/icons/iconClose';
@@ -66,7 +66,7 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
           background-position: center center;
         `
       : css`
-          background: ${p.theme.gray700};
+          background: ${p.theme.gray500};
         `}
 
   ${p =>

@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
 import {IconSwitch} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 import {GridCell} from './styles';
 
@@ -41,9 +41,9 @@ const StyledGridCell = styled(GridCell)`
   position: sticky;
   z-index: ${p => p.theme.zIndex.breadcrumbs.header};
   top: 0;
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  background: ${p => p.theme.gray100};
-  color: ${p => p.theme.gray600};
+  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
   font-weight: 600;
   text-transform: uppercase;
   line-height: 1;
@@ -71,6 +71,6 @@ const Time = styled(StyledGridCell)`
 const StyledIconSwitch = styled(IconSwitch)`
   transition: 0.15s color;
   &:hover {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.gray300};
   }
 `;
