@@ -682,7 +682,7 @@ def top_events_timeseries(
             referrer=referrer,
         )
 
-    if not allow_empty and not result.get("data", []):
+    if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
             {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
             snuba_filter.start,
