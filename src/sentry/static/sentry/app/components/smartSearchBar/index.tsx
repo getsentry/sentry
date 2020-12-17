@@ -1340,6 +1340,6 @@ const SearchLabel = styled('label')`
   display: flex;
   align-items: center;
   margin: 0;
-  padding-left: ${space(1)};
+  padding-left: ${space(1.5)};
   color: ${p => p.theme.gray300};
 `;
