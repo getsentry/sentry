@@ -6,6 +6,7 @@ if [[ "$SENTRY_NO_VIRTUALENV_CREATION" == "1" ]]; then
     exit 0
 fi
 
+red="$(tput setaf 1)"
 yellow="$(tput setaf 3)"
 bold="$(tput bold)"
 reset="$(tput sgr0)"
@@ -40,10 +41,26 @@ EOF
         # If .venv is less than Python 3.6 fail
         [[ "$minor" -lt 6 ]] &&
             die "Remove $VIRTUAL_ENV and try again since the Python version installed should be at least 3.6."
-        # If .venv is created with Python 3.9 or higher you might encounter problems and we want to ask you to downgrade
-        # At the moment, Pillow does not install with Python 3.9 and requires adding more build dependencies.
-        [[ "$minor" -ge 9 ]] &&
-            die "We recommend you create this virtualenv with a Python version between 3.6 and 3.8. Remove $VIRTUAL_ENV and start again."
+        # If .venv is created with Python greater than 3.6 you might encounter problems and we want to ask you to downgrade
+        # unless you explicitely set an environment variable
+        if [[ "$minor" -gt 6 ]]; then
+            if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
+                cat << EOF
+${yellow}${bold}
+You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
+${reset}
+EOF
+            else
+                cat << EOF
+${red}${bold}
+ERROR! You are running a virtualenv with a Python version different than 3.6
+We recommend you start with a fresh virtualenv or to set the variable SENTRY_PYTHON_VERSION
+to the Python version you want to use (e.g. 3.7).
+${reset}
+EOF
+                exit 1
+            fi
+        fi
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then

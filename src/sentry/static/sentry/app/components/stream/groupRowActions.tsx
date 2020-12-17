@@ -73,11 +73,12 @@ class GroupRowActions extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <Tooltip title={t('Mark Reviewed')}>
+        <Tooltip title={group.inbox ? t('Mark Reviewed') : null}>
           <ActionLink
             className="btn btn-default btn-sm"
             onAction={() => this.handleUpdate({inbox: false})}
             shouldConfirm={false}
+            disabled={!group.inbox}
             title={t('Mark Reviewed')}
           >
             <IconIssues size="sm" color="gray300" />

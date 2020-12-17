@@ -255,14 +255,21 @@ class IssueListOverview extends React.Component<Props, State> {
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
-    if (this.props.savedSearch) {
-      return this.props.savedSearch.query;
+    const {savedSearch, organization, location} = this.props;
+    if (savedSearch) {
+      return savedSearch.query;
     }
 
-    const {query} = this.props.location.query;
-
+    const {query} = location.query;
     if (query !== undefined) {
       return query as string;
+    }
+
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default')
+    ) {
+      return Query.NEEDS_REVIEW;
     }
 
     return DEFAULT_QUERY;
