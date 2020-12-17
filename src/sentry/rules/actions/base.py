@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 import operator
 import functools
+import six
 
 from sentry.constants import ObjectStatus
 from sentry.models.integration import Integration
@@ -163,6 +164,31 @@ def create_issue(event, futures):
 
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
+
+    def __init__(self, *args, **kwargs):
+        super(IntegrationEventAction, self).__init__(*args, **kwargs)
+        integration_choices = [
+            (i.id, self.translate_integration(i)) for i in self.get_integrations()
+        ]
+
+        if not self.get_integration_id() and integration_choices:
+            self.data[self.integration_key] = integration_choices[0][0]
+
+        self.form_fields = {
+            self.integration_key: {
+                "choices": integration_choices,
+                "initial": six.text_type(self.get_integration_id()),
+                "type": "choice",
+                "updatesForm": True,
+            }
+        }
+
+        dynamic_fields = self.get_dynamic_form_fields()
+        if dynamic_fields:
+            self.form_fields.update(dynamic_fields)
+
+    def translate_integration(self, integration):
+        return integration
 
     @property
     def prompt(self):

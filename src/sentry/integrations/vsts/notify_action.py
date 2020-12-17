@@ -42,27 +42,6 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
     provider = "vsts"
     integration_key = INTEGRATION_KEY
 
-    def __init__(self, *args, **kwargs):
-        super(AzureDevopsCreateTicketAction, self).__init__(*args, **kwargs)
-        integration_choices = [(i.id, i.name) for i in self.get_integrations()]
-
-        if not self.get_integration_id() and integration_choices:
-            self.data[self.integration_key] = integration_choices[0][0]
-
-        self.form_fields = {
-            self.integration_key: {
-                "choices": integration_choices,
-                "initial": six.text_type(self.get_integration_id()),
-                "type": "choice",
-                "updatesForm": True,
-            },
-        }
-
-        dynamic_fields = self.get_dynamic_form_fields()
-        if dynamic_fields:
-            for field in dynamic_fields:
-                self.form_fields[field["name"]] = field
-
     def render_label(self):
         return self.label.format(integration=self.get_integration_name())
 

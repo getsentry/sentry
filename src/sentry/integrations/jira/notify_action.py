@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.integrations.jira.utils import (
     get_name_for_jira,
+    transform_jira_fields_to_form_fields,
     transform_jira_choices_to_strings,
 )
 from sentry.models.integration import Integration
@@ -42,27 +42,6 @@ class JiraCreateTicketAction(TicketEventAction):
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
     integration_key = INTEGRATION_KEY
-
-    def __init__(self, *args, **kwargs):
-        super(JiraCreateTicketAction, self).__init__(*args, **kwargs)
-        integration_choices = [(i.id, get_name_for_jira(i)) for i in self.get_integrations()]
-
-        if not self.get_integration_id() and integration_choices:
-            self.data[self.integration_key] = integration_choices[0][0]
-
-        self.form_fields = {
-            self.integration_key: {
-                "choices": integration_choices,
-                "initial": six.text_type(self.get_integration_id()),
-                "type": "choice",
-                "updatesForm": True,
-                "name": "integration",
-            }
-        }
-
-        dynamic_fields = self.get_dynamic_form_fields()
-        if dynamic_fields:
-            self.form_fields.update(dynamic_fields)
 
     def render_label(self):
         # Make a copy of data.
@@ -106,6 +85,10 @@ class JiraCreateTicketAction(TicketEventAction):
         return u"This ticket was automatically created by Sentry via [{}|{}]".format(
             self.rule.label, absolute_uri(rule_url),
         )
+
+    def translate_integration(self, integration):
+        name = integration.metadata.get("domain_name", integration.name)
+        return name.replace(".atlassian.net", "")
 
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
