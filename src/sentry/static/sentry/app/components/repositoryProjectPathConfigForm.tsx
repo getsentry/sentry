@@ -9,10 +9,10 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {FieldFromConfig} from 'app/views/settings/components/forms';
 import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
-import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
