@@ -218,6 +218,7 @@ const CTA = styled('div')`
 `;
 
 const SkipButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray300};
 `;
 
