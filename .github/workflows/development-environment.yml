@@ -42,14 +42,19 @@ jobs:
           brew bundle --verbose
 
       - name: Set up Python environment (as per docs)
-        env:
-          SENTRY_PYTHON_VERSION: yes  # This permits using non-default Python
-        run: | # Not using pyenv for now & make bootstrap
+        # make bootstrap will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
+        run: |
+          make setup-pyenv
+          which python && python -V
           python -m pip install virtualenv
           python -m virtualenv .venv
           source .venv/bin/activate
           make install-py-dev
           make setup-git
+          curl https://get.volta.sh | bash
+          echo $PATH
+          node -v
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
           touch foo.txt && git add foo.txt && git commit -m "Test git hooks"
+          make bootstrap
