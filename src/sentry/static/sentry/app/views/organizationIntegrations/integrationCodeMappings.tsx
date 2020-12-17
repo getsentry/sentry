@@ -124,6 +124,16 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_start_setup',
+        eventName: 'Integrations: Stacktrace Start Setup',
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: this.props.integration.provider.key,
+      },
+      this.props.organization
+    );
 
     openModal(({Body, Header, closeModal}) => (
       <React.Fragment>

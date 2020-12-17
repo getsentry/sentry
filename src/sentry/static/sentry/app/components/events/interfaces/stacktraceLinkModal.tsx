@@ -44,8 +44,8 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
   onManualSetup(provider: string) {
     trackIntegrationEvent(
       {
-        eventKey: 'integrations.stacktrace_start_setup',
-        eventName: 'Integrations: Stacktrace Start Setup',
+        eventKey: 'integrations.stacktrace_manual_option_clicked',
+        eventName: 'Integrations: Stacktrace Manual Option Clicked',
         view: 'stacktrace_issue_details',
         setup_type: 'manual',
         provider,
@@ -57,15 +57,6 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
     const {organization, filename, project} = this.props;
-    trackIntegrationEvent(
-      {
-        eventKey: 'integrations.stacktrace_start_setup',
-        eventName: 'Integrations: Stacktrace Start Setup',
-        view: 'stacktrace_issue_details',
-        setup_type: 'automatic',
-      },
-      this.props.organization
-    );
     trackIntegrationEvent(
       {
         eventKey: 'integrations.stacktrace_submit_config',

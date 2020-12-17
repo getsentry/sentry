@@ -161,8 +161,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
             onClick={() => {
               trackIntegrationEvent(
                 {
-                  eventKey: 'integrations.stacktrace_open_modal',
-                  eventName: 'Integrations: Stacktrace Open Modal',
+                  eventKey: 'integrations.stacktrace_start_setup',
+                  eventName: 'Integrations: Stacktrace Start Setup',
                   view: 'stacktrace_issue_details',
                   platform,
                 },

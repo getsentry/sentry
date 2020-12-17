@@ -113,17 +113,17 @@ type IntegrationCategorySelectEvent = {
 
 type IntegrationStacktraceLinkEvent = {
   eventKey:
-    | 'integrations.stacktrace_open_modal'
     | 'integrations.stacktrace_start_setup'
     | 'integrations.stacktrace_submit_config'
     | 'integrations.stacktrace_complete_setup'
+    | 'integrations.stacktrace_manual_option_clicked'
     | 'integrations.stacktrace_link_clicked'
     | 'integrations.reconfigure_stacktrace_setup';
   eventName:
-    | 'Integrations: Stacktrace Open Modal'
     | 'Integrations: Stacktrace Start Setup'
     | 'Integrations: Stacktrace Submit Config'
     | 'Integrations: Stacktrace Complete Setup'
+    | 'Integrations: Stacktrace Manual Option Clicked'
     | 'Integrations: Stacktrace Link Clicked'
     | 'Integrations: Reconfigure Stacktrace Setup';
   provider?: string;
