@@ -41,7 +41,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const utc = decodeScalar(router.location.query.utc);
+  const utc = decodeScalar(router.location.query.utc) !== 'false';
 
   const colors = theme.charts.getColorPalette(3);
   const axisLineConfig = {
@@ -184,8 +184,8 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             api={api}
             organization={organization}
             period={statsPeriod}
-            project={[...project]}
-            environment={[...environment]}
+            project={project}
+            environment={environment}
             start={start}
             end={end}
             interval={getInterval(datetimeSelection)}

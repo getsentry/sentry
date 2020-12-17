@@ -8,10 +8,11 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
+import withProjects from 'app/utils/withProjects';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import ColorBar from './vitalDetail/colorBar';
@@ -37,11 +38,34 @@ type Props = {
   showVitalPercentNames?: boolean;
   showDurationDetail?: boolean;
   hasCondensedVitals?: boolean;
+  projects: Project[];
 };
 
-export default function VitalsCards(props: Props) {
-  const {eventView, organization, location} = props;
+// Temporary list of platforms to only show web vitals for.
+const VITALS_PLATFORMS = [
+  'javascript',
+  'javascript-react',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-vue',
+];
+
+function VitalsCards(props: Props) {
+  const {eventView, organization, location, projects} = props;
   const vitalsView = eventView.clone();
+
+  const showVitalsCard = vitalsView.project.some(projectId =>
+    VITALS_PLATFORMS.includes(
+      projects.find(project => project.id === `${projectId}`)?.platform || ''
+    )
+  );
+
+  if (!showVitalsCard) {
+    return null;
+  }
 
   const shownVitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
@@ -77,6 +101,8 @@ export default function VitalsCards(props: Props) {
   );
 }
 
+export default withProjects(VitalsCards);
+
 const VitalsContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
@@ -91,7 +117,7 @@ const VitalsContainer = styled('div')`
   }
 `;
 
-type CardProps = Props & {
+type CardProps = Omit<Props, 'projects'> & {
   vitalName: WebVital;
   tableData: any;
   isLoading?: boolean;
@@ -331,7 +357,7 @@ const BlankCard = (props: BlankCardProps) => {
   );
 };
 
-type VitalLinkProps = Props & {
+type VitalLinkProps = Omit<Props, 'projects'> & {
   vitalName: WebVital;
   children: React.ReactNode;
 };

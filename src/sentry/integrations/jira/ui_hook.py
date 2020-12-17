@@ -13,6 +13,7 @@ from sentry.utils import json
 from sentry.utils.signing import sign
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
+from sentry.utils.assets import get_asset_url
 
 
 class JiraUiHookView(View):
@@ -41,4 +42,6 @@ class JiraUiHookView(View):
         finish_link = u"{}.?signed_params={}".format(
             absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
         )
-        return self.get_response({"finish_link": finish_link})
+
+        image_path = absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png"))
+        return self.get_response({"finish_link": finish_link, "image_path": image_path})

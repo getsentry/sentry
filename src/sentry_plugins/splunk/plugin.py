@@ -20,7 +20,7 @@ import logging
 import six
 from requests.exceptions import ReadTimeout
 
-from sentry import http, tagstore
+from sentry import http, tagstore, tsdb
 from sentry.app import ratelimiter
 from sentry.plugins.base import Plugin
 from sentry.plugins.base.configuration import react_plugin_config
@@ -308,3 +308,4 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                 "event_type": event.get_event_type(),
             },
         )
+        tsdb.incr(tsdb.models.project_total_forwarded, event.project.id, count=1)

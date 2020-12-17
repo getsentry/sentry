@@ -2,6 +2,8 @@ import React from 'react';
 
 import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
 
+import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
+import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
 
 /**
@@ -10,6 +12,8 @@ import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
 
 const pipelineMapper = {
   awsLambdaProjectSelect: AwsLambdaProjectSelect,
+  awsLambdaFunctionSelect: AwsLambdaFunctionSelect,
+  awsLambdaFailureDetails: AwsLambdaFailureDetails,
 };
 
 type Props = {
