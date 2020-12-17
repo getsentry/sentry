@@ -36,7 +36,7 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        run:
+        run: |
           xcode-select --install
           brew bundle --verbose
 
