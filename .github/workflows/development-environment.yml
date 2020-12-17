@@ -36,6 +36,7 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
+        continue-on-error: true
         run: |  # Xcode CLI is already installed
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           brew bundle --verbose
