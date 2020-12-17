@@ -486,7 +486,7 @@ export default withGlobalSelection(withOrganization(StreamGroup));
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{reviewed: boolean}>`
   position: relative;
-  padding: ${space(1)} 0;
+  padding: ${space(1.5)} 0;
   line-height: 1.1;
 
   ${p =>
