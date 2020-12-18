@@ -96,37 +96,45 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def get_autoassign_owner(cls, project_id, data):
+    def get_autoassign_owners(cls, project_id, data, limit=2):
         """
         Get the auto-assign owner for a project if there are any.
 
-        Will return None if there are no owners, or a list of owners.
+        Returns a tuple of (auto_assignment_enabled, list_of_owners).
         """
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
-            if not ownership or not ownership.auto_assignment:
-                return None
+            if not ownership:
+                return False, []
 
             rules = cls._matching_ownership_rules(ownership, project_id, data)
             if not rules:
-                return None
+                return ownership.auto_assignment, []
 
-            score = 0
-            owners = None
+            owners = []
             # Automatic assignment prefers the owner with the longest
             # matching pattern as the match is more specific.
             for rule in rules:
                 candidate = len(rule.matcher.pattern)
-                if candidate > score:
-                    score = candidate
-                    owners = rule.owners
-            actors = [_f for _f in resolve_actors(owners, project_id).values() if _f]
+                for i, owner in enumerate(rule.owners):
+                    owners.append((candidate, -i, owner))
+
+            owners.sort(reverse=True)
+            actors = {
+                key: val
+                for key, val in resolve_actors(
+                    set([owner[2] for owner in owners]), project_id
+                ).items()
+                if val
+            }
+            actors = [actors[owner[2]] for owner in owners if owner[2] in actors][:limit]
 
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
             if not actors:
-                return None
-            return actors[0].resolve()
+                return ownership.auto_assignment, []
+
+            return ownership.auto_assignment, actors[0].resolve_many(actors)
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):

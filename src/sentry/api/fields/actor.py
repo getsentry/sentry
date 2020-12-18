@@ -4,9 +4,9 @@ import six
 
 from collections import defaultdict, namedtuple
 from rest_framework import serializers
-
 from sentry.models import User, Team
 from sentry.utils.auth import find_users
+from sentry.utils.compat import filter
 
 
 class Actor(namedtuple("Actor", "id type")):
@@ -52,6 +52,12 @@ class Actor(namedtuple("Actor", "id type")):
 
     @classmethod
     def resolve_many(cls, actors):
+        """
+        Resolve multiple actors at the same time. Returns the result in the same order
+        as the input, minus any actors we couldn't resolve.
+        :param actors:
+        :return:
+        """
         if not actors:
             return []
 
@@ -59,11 +65,12 @@ class Actor(namedtuple("Actor", "id type")):
         for actor in actors:
             actors_by_type[actor.type].append(actor)
 
-        results = []
-        for type, actors in actors_by_type.items():
-            results.extend(list(type.objects.filter(id__in=[a.id for a in actors])))
+        results = {}
+        for type, _actors in actors_by_type.items():
+            for instance in type.objects.filter(id__in=[a.id for a in _actors]):
+                results[(type, instance.id)] = instance
 
-        return results
+        return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
     @classmethod
     def resolve_dict(cls, actor_dict):
