@@ -35,15 +35,12 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        # TODO: CHECK FOR IDEMPOTENT COMMAND
-        # We either remove python3.9 with --ignore-dependencies or brew bundle cleanup to start from fresh state
+        # We need to install again python@3.9 as it conflicts with python 3.9.1 and watchman
+        # not installing properly.
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          brew list --formula -1 | sort
-          brew bundle -f cleanup
-          brew list --formula -1 | sort
-          brew bundle check
+          brew uninstall --ignore-dependencies python@3.9
           brew bundle --verbose
 
       - name: Install Python via Pyenv
