@@ -37,16 +37,22 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         # I have noticed the installation being a little flaky
         continue-on-error: true
+        # Installing Python 3.9 does not link (collition with /usr/local/bin/2to3) and it then affects
+        # installing watchman. We can solve this forcing the linking
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          brew install python@3.9
+          brew link --overwrite python@3.9
           brew bundle
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
         run: |
           make setup-pyenv
+          echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
+          exec "$SHELL"
           which python && python -V
           which pip && pip freeze
 
