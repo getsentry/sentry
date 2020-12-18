@@ -63,8 +63,6 @@ import IssueListSidebar from './sidebar';
 import {Query} from './utils';
 
 const MAX_ITEMS = 25;
-// the tab counts will look like 99+
-const TAB_MAX_COUNT = 99;
 const DEFAULT_SORT = 'date';
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
@@ -852,7 +850,6 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListHeader
                 query={query}
                 queryCounts={queryCounts}
-                queryMaxCount={TAB_MAX_COUNT}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
                 onTabChange={this.handleTabClick}

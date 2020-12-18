@@ -17,10 +17,12 @@ import withProjects from 'app/utils/withProjects';
 
 import {Query} from './utils';
 
+// the tab counts will look like 99+
+const TAB_MAX_COUNT = 99;
+
 type Props = {
   query: string;
   queryCounts: Record<string, number>;
-  queryMaxCount: number;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
   router: InjectedRouter;
@@ -41,7 +43,6 @@ const queries = [
 function IssueListHeader({
   query,
   queryCounts,
-  queryMaxCount,
   orgSlug,
   projectIds,
   realtimeActive,
@@ -122,7 +123,7 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}
-                <StyledQueryCount count={queryCounts[tabQuery]} max={queryMaxCount} />
+                <StyledQueryCount count={queryCounts[tabQuery]} max={TAB_MAX_COUNT} />
               </a>
             </li>
           ))}
