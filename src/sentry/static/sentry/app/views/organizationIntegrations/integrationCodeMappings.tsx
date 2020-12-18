@@ -90,7 +90,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     const {referrer} = qs.parse(window.location.search) || {};
     // We don't start new session if the user was coming from choosing
     // the manual setup option flow from the issue details page
-    const startSession = referrer == 'stacktrace-issue-details' ? false : true;
+    const startSession = referrer === 'stacktrace-issue-details' ? false : true;
     trackIntegrationEvent(
       {
         eventKey: 'integrations.code_mappings_viewed',
