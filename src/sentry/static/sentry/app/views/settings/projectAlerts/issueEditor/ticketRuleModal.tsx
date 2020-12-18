@@ -196,7 +196,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return (
       <BodyText>
         {tct(
-          'When this alert is triggered a {ticketType} will be ' +
+          'When this alert is triggered a [ticketType] will be ' +
             'created with the following fields. It will also [linkToDocs] ' +
             'with the new Sentry Issue.',
           {
