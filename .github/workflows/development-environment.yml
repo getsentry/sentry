@@ -35,11 +35,13 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
+        # I have noticed the installation being a little flaky
+        continue-on-error: true
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          brew bundle --verbose
+          brew bundle
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
