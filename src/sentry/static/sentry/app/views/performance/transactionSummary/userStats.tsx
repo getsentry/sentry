@@ -107,7 +107,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
       </SidebarWrapper>
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
-          if (hasFeature) {
+          if (vitalsPassRate !== null && hasFeature) {
             return (
               <SidebarWrapper>
                 <VitalsHeading>
