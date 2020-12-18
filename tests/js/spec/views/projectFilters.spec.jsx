@@ -287,7 +287,7 @@ describe('ProjectFilters', function () {
     expect(
       wrapper.find('PanelAlert[data-test-id="error-message-disclaimer"]').text()
     ).toBe(
-      "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot by filtered by message."
+      "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
     );
   });
 });
