@@ -96,6 +96,7 @@ const Context = ({
                 !hideStacktraceLink &&
                 isActive &&
                 isExpanded &&
+                frame.inApp &&
                 frame.filename && (
                   <ErrorBoundary mini>
                     <StacktraceLink
