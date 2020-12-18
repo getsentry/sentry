@@ -7,7 +7,11 @@ import IssueListHeader from 'app/views/issueList/header';
 const queryCounts = {
   'is:needs_review is:unresolved': 1,
   'is:unresolved': 1,
-  'is:ignored': 1,
+}
+
+const queryCountsMaxed = {
+  'is:needs_review is:unresolved': 1000,
+  'is:unresolved': 1000,
 }
 
 describe('IssueListHeader', () => {
@@ -35,7 +39,16 @@ describe('IssueListHeader', () => {
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review (1)');
     expect(wrapper.find('li').at(1).text()).toBe('Unresolved (1)');
-    expect(wrapper.find('li').at(2).text()).toBe('Ignored (1)');
+    expect(wrapper.find('li').at(2).text()).toBe('Ignored');
+  });
+
+  it('renders limited counts for tabs', () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader query="" queryCounts={queryCountsMaxed} />
+    );
+    expect(wrapper.find('li').at(0).text()).toBe('Needs Review (99+)');
+    expect(wrapper.find('li').at(1).text()).toBe('Unresolved (99+)');
+    expect(wrapper.find('li').at(2).text()).toBe('Ignored');
   });
 
   it('transitions to new query on tab click', () => {
