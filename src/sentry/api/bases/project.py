@@ -115,6 +115,15 @@ class RelaxedSearchPermission(ProjectPermission):
     }
 
 
+class ProjectAlertRulePermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin", "alerts:read"],
+        "POST": ["project:read", "project:write", "project:admin", "alerts:write"],
+        "PUT": ["project:read", "project:write", "project:admin", "alerts:write"],
+        "DELETE": ["project:read", "project:write", "project:admin", "alerts:write"],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 

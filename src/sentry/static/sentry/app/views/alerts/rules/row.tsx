@@ -59,7 +59,7 @@ class RuleListRow extends React.Component<Props, State> {
         <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>
         <div>{dateCreated}</div>
         <RightColumn>
-          <Access access={['project:write']}>
+          <Access access={['alerts:write']}>
             {({hasAccess}) => (
               <ButtonBar gap={1}>
                 <Confirm
