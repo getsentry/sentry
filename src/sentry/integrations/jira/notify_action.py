@@ -70,6 +70,28 @@ class JiraCreateTicketAction(TicketEventAction):
             if "name" in field:
                 fields[field["name"]] = field
         return fields
+        # if "dynamic_form_fields" in self.data:
+        #     return self.data["dynamic_form_fields"]
+
+        # try:
+        #     integration = self.get_integration()
+        # except Integration.DoesNotExist:
+        #     pass
+        # else:
+        #     installation = integration.get_installation(self.project.organization.id)
+        #     if installation:
+        #         try:
+        #             fields = installation.get_create_issue_config_no_params()
+        #         except IntegrationError as e:
+        #             # TODO log when the API call fails.
+        #             logger.info(e)
+        #         else:
+        #             dynamic_form_fields = transform_jira_fields_to_form_fields(fields)
+        #             print("jira form fields: ", dynamic_form_fields)
+        #             self.data["dynamic_form_fields"] = dynamic_form_fields
+        #             # TODO should I wipe out the rest of the data?
+        #             return dynamic_form_fields
+        # return None
 
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
