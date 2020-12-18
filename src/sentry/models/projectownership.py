@@ -11,6 +11,7 @@ from django.utils import timezone
 from sentry.db.models import Model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.ownership.grammar import load_schema
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from functools import reduce
 
@@ -101,30 +102,31 @@ class ProjectOwnership(Model):
 
         Will return None if there are no owners, or a list of owners.
         """
-        ownership = cls.get_ownership_cached(project_id)
-        if not ownership or not ownership.auto_assignment:
-            return None
+        with metrics.timer("projectownership.get_autoassign_owners"):
+            ownership = cls.get_ownership_cached(project_id)
+            if not ownership or not ownership.auto_assignment:
+                return None
 
-        rules = cls._matching_ownership_rules(ownership, project_id, data)
-        if not rules:
-            return None
+            rules = cls._matching_ownership_rules(ownership, project_id, data)
+            if not rules:
+                return None
 
-        score = 0
-        owners = None
-        # Automatic assignment prefers the owner with the longest
-        # matching pattern as the match is more specific.
-        for rule in rules:
-            candidate = len(rule.matcher.pattern)
-            if candidate > score:
-                score = candidate
-                owners = rule.owners
-        actors = [_f for _f in resolve_actors(owners, project_id).values() if _f]
+            score = 0
+            owners = None
+            # Automatic assignment prefers the owner with the longest
+            # matching pattern as the match is more specific.
+            for rule in rules:
+                candidate = len(rule.matcher.pattern)
+                if candidate > score:
+                    score = candidate
+                    owners = rule.owners
+            actors = [_f for _f in resolve_actors(owners, project_id).values() if _f]
 
-        # Can happen if the ownership rule references a user/team that no longer
-        # is assigned to the project or has been removed from the org.
-        if not actors:
-            return None
-        return actors[0].resolve()
+            # Can happen if the ownership rule references a user/team that no longer
+            # is assigned to the project or has been removed from the org.
+            if not actors:
+                return None
+            return actors[0].resolve()
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):

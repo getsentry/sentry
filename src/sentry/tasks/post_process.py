@@ -81,19 +81,20 @@ def _capture_stats(event, is_new):
 def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
-    # Is the issue already assigned to a team or user?
-    key = "assignee_exists:1:%s" % (group.id)
-    assignee_exists = cache.get(key)
-    if assignee_exists is None:
-        assignee_exists = group.assignee_set.exists()
-        # Cache for an hour if it's assigned. We don't need to move that fast.
-        cache.set(key, assignee_exists, 3600 if assignee_exists else 60)
-    if assignee_exists:
-        return
+    with metrics.timer("post_process.handle_owner_assignment"):
+        # Is the issue already assigned to a team or user?
+        key = "assignee_exists:1:%s" % (group.id)
+        assignee_exists = cache.get(key)
+        if assignee_exists is None:
+            assignee_exists = group.assignee_set.exists()
+            # Cache for an hour if it's assigned. We don't need to move that fast.
+            cache.set(key, assignee_exists, 3600 if assignee_exists else 60)
+        if assignee_exists:
+            return
 
-    owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
-    if owner is not None:
-        GroupAssignee.objects.assign(group, owner)
+        owner = ProjectOwnership.get_autoassign_owner(group.project_id, event.data)
+        if owner is not None:
+            GroupAssignee.objects.assign(group, owner)
 
 
 def update_existing_attachments(event):
