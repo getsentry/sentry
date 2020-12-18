@@ -16,7 +16,11 @@ type Props = {
   noTitleStyles?: boolean;
   className?: string;
 
+  // CTA button
   action?: React.ReactNode;
+
+  body?: React.ReactNode;
+
   tabs?: React.ReactNode;
 };
 
@@ -26,7 +30,17 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
   };
 
   render() {
-    const {icon, title, subtitle, action, tabs, noTitleStyles, ...props} = this.props;
+    const {
+      icon,
+      title,
+      subtitle,
+      action,
+      tabs,
+      noTitleStyles,
+      body,
+      ...props
+    } = this.props;
+
     return (
       <div {...props}>
         <TitleAndActions>
@@ -39,10 +53,12 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
               </Title>
             )}
           </TitleWrapper>
-          {action && <Action tabs={tabs}>{action}</Action>}
+          {action && <Action>{action}</Action>}
         </TitleAndActions>
 
-        {tabs && <div>{tabs}</div>}
+        {body}
+
+        {tabs}
       </div>
     );
   }
