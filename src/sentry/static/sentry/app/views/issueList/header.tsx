@@ -121,7 +121,8 @@ function IssueListHeader({
           {tabs.map(([tabQuery, queryName]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
-                {queryName}{' '}<StyledQueryCount count={queryCounts[tabQuery]} max={queryMaxCount} />
+                {queryName}{' '}
+                <StyledQueryCount count={queryCounts[tabQuery]} max={queryMaxCount} />
               </a>
             </li>
           ))}
