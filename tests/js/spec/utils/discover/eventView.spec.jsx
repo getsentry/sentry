@@ -2338,6 +2338,8 @@ describe('EventView.getYAxisOptions()', function () {
         'count_unique(issue)',
         'last_seen()',
         'latest_event()',
+        'min(time)',
+        'max(timestamp)',
       ]),
     });
 
