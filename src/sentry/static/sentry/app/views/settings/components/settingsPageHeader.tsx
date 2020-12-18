@@ -71,7 +71,7 @@ type TitleProps = {
 
 const TitleAndActions = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 `;
 const TitleWrapper = styled('div')`
   flex: 1;
