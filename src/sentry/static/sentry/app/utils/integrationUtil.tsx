@@ -64,7 +64,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.resolve_now_clicked'
     | 'integrations.reauth_start'
     | 'integrations.reauth_complete'
-    | 'integrations.request_install';
+    | 'integrations.request_install'
+    | 'integrations.code_mappings_viewed';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -82,7 +83,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Resolve Now Clicked'
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete'
-    | 'Integrations: Request Install';
+    | 'Integrations: Request Install'
+    | 'Integrations: Code Mappings Viewed';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
@@ -118,14 +120,16 @@ type IntegrationStacktraceLinkEvent = {
     | 'integrations.stacktrace_complete_setup'
     | 'integrations.stacktrace_manual_option_clicked'
     | 'integrations.stacktrace_link_clicked'
-    | 'integrations.reconfigure_stacktrace_setup';
+    | 'integrations.reconfigure_stacktrace_setup'
+    | 'integrations.stacktrace_docs_clicked';
   eventName:
     | 'Integrations: Stacktrace Start Setup'
     | 'Integrations: Stacktrace Submit Config'
     | 'Integrations: Stacktrace Complete Setup'
     | 'Integrations: Stacktrace Manual Option Clicked'
     | 'Integrations: Stacktrace Link Clicked'
-    | 'Integrations: Reconfigure Stacktrace Setup';
+    | 'Integrations: Reconfigure Stacktrace Setup'
+    | 'Integrations: Stacktrace Docs Clicked';
   provider?: string;
   setup_type?: 'automatic' | 'manual';
   error_reason?: 'file_not_found' | 'stack_root_mismatch';

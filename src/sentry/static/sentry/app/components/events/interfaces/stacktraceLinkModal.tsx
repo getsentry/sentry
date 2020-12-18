@@ -166,7 +166,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
                   key={integration.id}
                   type="button"
                   onClick={() => this.onManualSetup(integration.provider.key)}
-                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings`}
+                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=stacktrace-issue-details`}
                 >
                   {getIntegrationIcon(integration.provider.key)}
                   <IntegrationName>{integration.name}</IntegrationName>

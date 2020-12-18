@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
@@ -83,6 +84,23 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   getMatchingProject(pathConfig: RepositoryProjectPathConfig) {
     return this.projects.find(project => project.id === pathConfig.projectId);
+  }
+
+  componentDidMount() {
+    const {referrer} = qs.parse(window.location.search) || {};
+    // We don't start new session if the user was coming from choosing
+    // the manual setup option flow from the issue details page
+    const startSession = referrer == 'stacktrace-issue-details' ? false : true;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.code_mappings_viewed',
+        eventName: 'Integrations: Code Mappings Viewed',
+        integration: this.props.integration.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization,
+      {startSession}
+    );
   }
 
   handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
@@ -193,6 +211,17 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                   <Button
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
+                    onClick={() => {
+                      trackIntegrationEvent(
+                        {
+                          eventKey: 'integrations.stacktrace_docs_clicked',
+                          eventName: 'Integrations: Stacktrace Docs Clicked',
+                          view: 'integration_configuration_detail',
+                          provider: this.props.integration.provider.key,
+                        },
+                        this.props.organization
+                      );
+                    }}
                   >
                     View Documentation
                   </Button>

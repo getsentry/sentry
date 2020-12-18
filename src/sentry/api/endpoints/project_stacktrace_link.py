@@ -91,6 +91,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 provider=result["config"]["provider"]["key"],
                 config_id=result["config"]["id"],
                 project_id=project.id,
+                organization_id=project.organization_id,
                 filepath=filepath,
                 status=result.get("error") or "success",
             )

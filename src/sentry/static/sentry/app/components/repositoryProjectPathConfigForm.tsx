@@ -101,8 +101,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
         view: 'integration_configuration_detail',
         provider: this.props.integration.provider.key,
       },
-      this.props.organization,
-      {startSession: true}
+      this.props.organization
     );
   }
 
