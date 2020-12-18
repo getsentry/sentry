@@ -7,13 +7,12 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.models import Integration, Repository
 from sentry.utils.compat import filter, map
-from sentry.web.decorators import transaction_start
 
 
 def find_roots(stack_path, source_path):
     """
-        Returns a tuple containing the stack_root, and the source_root.
-        If there is no overlap, raise an exception since this should not happen
+    Returns a tuple containing the stack_root, and the source_root.
+    If there is no overlap, raise an exception since this should not happen
     """
     overlap_to_check = stack_path
     stack_root = ""
@@ -92,13 +91,12 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     """
-        Returns the parameters associated with the RepositoryProjectPathConfig
-        we would create based on a particular stack trace and source code URL.
-        Does validation to make sure we have an integration and repo
-        depending on the source code URL
+    Returns the parameters associated with the RepositoryProjectPathConfig
+    we would create based on a particular stack trace and source code URL.
+    Does validation to make sure we have an integration and repo
+    depending on the source code URL
     """
 
-    @transaction_start("ProjectRepoPathParsingEndpoint")
     def post(self, request, project):
         serializer = PathMappingSerializer(
             context={"organization_id": project.organization_id}, data=request.data,
