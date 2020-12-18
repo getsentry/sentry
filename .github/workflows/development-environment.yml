@@ -54,15 +54,12 @@ jobs:
         # XXX: For some reason is not quite working
         run: |
           make setup-pyenv
+          ls -la $HOME
           pyenv versions
-          which python && python -V
-          which pip && pip freeze
-          exec "$SHELL"
-          pyenv versions
-          which python && python -V
+          pwd
+          python -V
           pyenv local 3.6.10
-          pyenv versions
-          which python && python -V
+          python -V
 
       - name: Set python-version
         id: python-version
