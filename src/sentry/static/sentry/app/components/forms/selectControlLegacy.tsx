@@ -145,6 +145,8 @@ SelectPicker.propTypes = {
 
 const StyledSelect = styled(SelectPicker)`
   .Select-control {
+    background-color: ${p => p.theme.background};
+    color: ${p => p.theme.formText};
     border: 1px solid ${p => p.theme.border};
     height: ${p => p.height}px;
     overflow: visible;
@@ -158,6 +160,17 @@ const StyledSelect = styled(SelectPicker)`
           .Select-value {
             .Select-value-label {
               color: ${p => p.theme.formText};
+            }
+          }
+        }
+        &.is-disabled {
+          .Select-control {
+            cursor: not-allowed;
+            background-color: ${p => p.theme.backgroundSecondary};
+            .Select-value {
+              .Select-value-label {
+                color: ${p => p.theme.disabled};
+              }
             }
           }
         }
@@ -192,15 +205,16 @@ const StyledSelect = styled(SelectPicker)`
     background: ${p => p.theme.background};
     color: ${p => p.theme.textColor};
 
-    &.is-focused.is-selected {
-      color: ${p => p.theme.textColor};
+    &.is-focused {
+      color: ${p => p.theme.black};
+      background-color: ${p => p.theme.focus};
     }
     &.is-selected {
       background-color: ${p => p.theme.active};
-      color: ${p => p.theme.black};
+      color: ${p => p.theme.white};
     }
-    &.is-focused {
-      background-color: ${p => p.theme.focus};
+    &.is-focused.is-selected {
+      color: ${p => p.theme.black};
     }
   }
 

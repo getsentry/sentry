@@ -187,11 +187,22 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
+  &:hover {
+    ${SearchTitle}, ${SearchQuery} {
+      color: ${p => p.theme.black};
+    }
+  }
+
   ${p =>
     p.isActive &&
     `
   ${SearchTitle}, ${SearchQuery} {
     color: ${p.theme.white};
+  }
+  &:hover {
+    ${SearchTitle}, ${SearchQuery} {
+      color: ${p.theme.black};
+    }
   }
   `}
 `;

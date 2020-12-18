@@ -161,9 +161,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           background-color: ${theme.backgroundSecondary};
           color: ${theme.textColor};
         }
-        .search .search-input,
-        .Select-control,
-        .Select-menu-outer {
+        .search .search-input {
           background: ${theme.background};
           color: ${theme.formText};
         }
