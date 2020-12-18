@@ -35,15 +35,15 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        continue-on-error: true
-        # I can't get watchman to install. I will only add missing brew packages
+        continue-on-error: true  # I can't get watchman to install
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          brew install pyenv
-          brew install geoip
-          brew install librdkafka
-          brew bundle check
+          brew bundle verbose
+          brew list --formula -1 | sort
+          pyenv
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PATH"
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
