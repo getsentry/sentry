@@ -8,7 +8,7 @@ import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
 import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
-import ActionLink from 'app/components/issueActions/actionLink';
+import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconMute, IconNot} from 'app/icons';
 import {t, tn} from 'app/locale';

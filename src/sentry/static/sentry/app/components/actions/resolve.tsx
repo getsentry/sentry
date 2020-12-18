@@ -5,7 +5,7 @@ import {openModal} from 'app/actionCreators/modal';
 import ButtonBar from 'app/components/buttonBar';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import DropdownLink from 'app/components/dropdownLink';
-import ActionLink from 'app/components/issueActions/actionLink';
+import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconChevron} from 'app/icons';
 import {t} from 'app/locale';

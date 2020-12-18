@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import ActionLink from 'app/components/issueActions/actionLink';
+import ActionLink from 'app/components/actions/actionLink';
 import MenuItem from 'app/components/menuItem';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ResolveActions from 'app/components/issueActions/resolve';
+import ResolveActions from 'app/components/actions/resolve';
 import {Organization} from 'app/types';
 
 import {ConfirmAction} from './utils';

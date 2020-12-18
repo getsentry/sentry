@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import DropdownLink from 'app/components/dropdownLink';
-import ActionLink from 'app/components/issueActions/actionLink';
-import ResolveActions from 'app/components/issueActions/resolve';
+import ActionLink from 'app/components/actions/actionLink';
+import ResolveActions from 'app/components/actions/resolve';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
@@ -15,8 +15,8 @@ import {GlobalSelection, Group, Project, Release, ResolutionStatus} from 'app/ty
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
 
-import ActionButton from '../issueActions/button';
-import MenuItemActionLink from '../issueActions/menuItemActionLink';
+import ActionButton from '../actions/button';
+import MenuItemActionLink from '../actions/menuItemActionLink';
 
 type Props = {
   api: Client;

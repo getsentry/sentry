@@ -3,10 +3,10 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import DropdownLink from 'app/components/dropdownLink';
-import ActionLink from 'app/components/issueActions/actionLink';
-import ActionButton from 'app/components/issueActions/button';
-import IgnoreActions from 'app/components/issueActions/ignore';
-import MenuItemActionLink from 'app/components/issueActions/menuItemActionLink';
+import ActionLink from 'app/components/actions/actionLink';
+import ActionButton from 'app/components/actions/button';
+import IgnoreActions from 'app/components/actions/ignore';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues, IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';

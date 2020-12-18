@@ -206,6 +206,7 @@ describe('Performance > Trends', function () {
     await tick();
     wrapper.update();
 
+    console.log(wrapper.debug());
     wrapper.find('DropdownLink').first().simulate('click');
 
     const firstTransaction = wrapper.find('TrendsListItem').first();
