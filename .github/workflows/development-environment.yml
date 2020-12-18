@@ -51,7 +51,8 @@ jobs:
         # pyenv needs to be setup here in order that we can use the correct Pip cache
         run: |
           echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
-          exec "$SHELL"
+          pyenv versions
+          echo $PATH
           make setup-pyenv
           which python && python -V
           which pip && pip freeze
@@ -60,6 +61,12 @@ jobs:
         id: python-version
         shell: bash
         run: |
+          echo $PATH
+          which python && python -V
+          env | sort
+          eval "$(pyenv init -)"
+          echo $PATH
+          which python && python -V
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
