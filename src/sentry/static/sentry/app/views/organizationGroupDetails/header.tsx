@@ -132,7 +132,6 @@ class GroupHeader extends React.Component<Props, State> {
               <h3>
                 <EventOrGroupTitle hasGuideAnchor data={group} />
               </h3>
-
               {hasInbox && group.inbox && (
                 <InboxReasonWrapper>
                   <InboxReason inbox={group.inbox} fontSize="md" />
@@ -145,9 +144,6 @@ class GroupHeader extends React.Component<Props, State> {
                   <ErrorLevel level={group.level} size="11px" />
                 </div>
               )}
-              <div>
-                <UnhandledInboxTag organization={organization} />
-              </div>
               {group.isUnhandled &&
                 (hasInbox ? (
                   <UnhandledInboxTag organization={organization} />
