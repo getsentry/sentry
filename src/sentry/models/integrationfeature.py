@@ -26,7 +26,7 @@ class Feature(object):
             (cls.PROJECT_MANAGEMENT, u"integrations-project-management"),
             (cls.INCIDENT_MANAGEMENT, u"integrations-incident-management"),
             (cls.FEATURE_FLAG, u"integrations-feature-flag"),
-            (cls.ALERTS, u"integrations-alerts"),
+            (cls.ALERTS, u"integrations-alert-rule"),
         )
 
     @classmethod
@@ -44,7 +44,7 @@ class Feature(object):
         if feature == cls.FEATURE_FLAG:
             return "integrations-feature-flag"
         if feature == cls.ALERTS:
-            return "integrations-alerts"
+            return "integrations-alert-rule"
         return "integrations-api"
 
     @classmethod
