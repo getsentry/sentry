@@ -35,15 +35,15 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        # Installing Python 3.9 does not link (collition with /usr/local/bin/2to3) and it then affects
-        # installing watchman. We can solve this forcing the linking
+        # TODO: CHECK FOR IDEMPOTENT COMMAND
+        # We either remove python3.9 with --ignore-dependencies or brew bundle cleanup to start from fresh state
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          which brew
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          brew list -1 | sort
-          brew reinstall python@3.9
+          brew list --formula -1 | sort
+          brew bundle -f cleanup
+          brew list --formula -1 | sort
+          brew bundle check
           brew bundle --verbose
 
       - name: Install Python via Pyenv
