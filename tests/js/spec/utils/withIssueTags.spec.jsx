@@ -55,7 +55,7 @@ describe('withIssueTags HoC', function () {
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
     TeamStore.loadInitialData([
-      {slug: 'best-team-na', name: 'best-team-na', isMember: true},
+      {slug: 'best-team-na', name: 'Best Team NA', isMember: true},
     ]);
     MemberListStore.loadInitialData(users);
     await wrapper.update();
