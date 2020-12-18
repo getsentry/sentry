@@ -93,6 +93,7 @@ def build_query_params_from_request(request, organization, projects, environment
             query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
+
     query = request.GET.get("query", "is:unresolved").strip()
     if query:
         try:

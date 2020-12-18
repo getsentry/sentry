@@ -19,7 +19,7 @@ import {Query} from './utils';
 
 type Props = {
   query: string;
-  queryCount: number;
+  queryCounts: Record<string, number>;
   queryMaxCount: number;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
@@ -40,7 +40,7 @@ const queries = [
 
 function IssueListHeader({
   query,
-  queryCount,
+  queryCounts,
   queryMaxCount,
   orgSlug,
   projectIds,
@@ -121,10 +121,7 @@ function IssueListHeader({
           {tabs.map(([tabQuery, queryName]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
-                {queryName}{' '}
-                {query === tabQuery && (
-                  <StyledQueryCount count={queryCount} max={queryMaxCount} />
-                )}
+                {queryName}{' '}<StyledQueryCount count={queryCounts[tabQuery]} max={queryMaxCount} hideIfEmpty={false}/>
               </a>
             </li>
           ))}

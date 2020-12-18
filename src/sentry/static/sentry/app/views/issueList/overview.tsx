@@ -90,6 +90,7 @@ type State = {
   realtimeActive: boolean;
   pageLinks: string;
   queryCount: number;
+  queryCounts: Record<string, number>;
   queryMaxCount: number;
   error: string | null;
   isSidebarVisible: boolean;
@@ -131,6 +132,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       pageLinks: '',
       queryCount: 0,
+      queryCounts: {},
       queryMaxCount: 0,
       error: null,
       isSidebarVisible: false,
@@ -449,6 +451,7 @@ class IssueListOverview extends React.Component<Props, State> {
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const queryCount = jqXHR.getResponseHeader('X-Hits');
+        const queryCounts = jqXHR.getResponseHeader('X-All-Hits');
         const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
         const pageLinks = jqXHR.getResponseHeader('Link');
 
@@ -459,6 +462,10 @@ class IssueListOverview extends React.Component<Props, State> {
             typeof queryCount !== 'undefined' && queryCount
               ? parseInt(queryCount, 10) || 0
               : 0,
+          queryCounts:
+            typeof queryCounts !== 'undefined' && queryCounts
+              ? JSON.parse(queryCounts.replaceAll("'", '"'))
+              : {},
           queryMaxCount:
             typeof queryMaxCount !== 'undefined' && queryMaxCount
               ? parseInt(queryMaxCount, 10) || 0
@@ -757,6 +764,7 @@ class IssueListOverview extends React.Component<Props, State> {
       tagsLoading,
       pageLinks,
       queryCount,
+      queryCounts,
       realtimeActive,
       groupIds,
       queryMaxCount,
@@ -794,7 +802,7 @@ class IssueListOverview extends React.Component<Props, State> {
             {hasFeature && (
               <IssueListHeader
                 query={query}
-                queryCount={queryCount}
+                queryCounts={queryCounts}
                 queryMaxCount={queryMaxCount}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
