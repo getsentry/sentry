@@ -271,7 +271,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
             />
           ))}
 
-          {this.props.project.options?.['filters:error_messages'] && (
+          {hasFeature && this.props.project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">
               {t(
                 "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
