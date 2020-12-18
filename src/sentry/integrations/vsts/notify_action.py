@@ -54,7 +54,7 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
             return None
         vsts_integration = VstsIntegration(integration, self.project.organization.id)
         try:
-            fields = vsts_integration.get_create_issue_config_no_group(project=self.project)
+            fields = vsts_integration.get_create_issue_config_no_group(self.project)
         except IntegrationError as e:
             # TODO log when the API call fails.
             logger.info(e)
