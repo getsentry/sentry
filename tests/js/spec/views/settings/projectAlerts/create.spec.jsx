@@ -194,7 +194,6 @@ describe('ProjectAlertsCreate', function () {
         const {wrapper, router} = createWrapper({
           organization: {
             features: ['alert-filters'],
-            access: ['alerts:write'],
           },
         });
         const mock = MockApiClient.addMockResponse({
