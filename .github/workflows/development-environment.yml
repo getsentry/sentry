@@ -34,11 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
-
-      - name: pip cache
+      - name: Cache
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
@@ -54,7 +50,9 @@ jobs:
           brew bundle --verbose
 
       - name: Set up Python environment (as per docs)
-        # make bootstrap will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
+        # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
+        # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
+        # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
         run: |
           make setup-pyenv
           which python && python -V
@@ -71,4 +69,4 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
           touch foo.txt && git add foo.txt && git commit -m "Test git hooks"
-          make bootstrap
+          make develop init-config
