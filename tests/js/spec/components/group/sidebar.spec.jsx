@@ -42,6 +42,11 @@ describe('GroupSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
+      url: '/issues/1/current-release/',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
       url: '/groups/1/external-issues/',
       body: [],
     });
