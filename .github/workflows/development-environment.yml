@@ -40,7 +40,14 @@ jobs:
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
+          brew update
+          brew install watchman
+          brew info python@3.9
           brew uninstall --ignore-dependencies python@3.9
+          brew install watchman
+          /usr/local/bin/python3.9 -c "import platform; print(platform.platform())"
+          brew link --overwrite python@3.9
+          brew install watchman
           brew bundle --verbose
 
       - name: Install Python via Pyenv
