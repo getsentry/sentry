@@ -17,9 +17,10 @@ const GroupInboxReason = {
 
 type Props = {
   inbox: InboxDetails;
+  fontSize?: 'sm' | 'md';
 };
 
-function InboxReason({inbox}: Props) {
+function InboxReason({inbox, fontSize = 'sm'}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
 
   function getReasonDetails(): {
@@ -79,7 +80,7 @@ function InboxReason({inbox}: Props) {
 
   return (
     <Tag type={tagType} tooltipText={tooltip}>
-      {reasonBadgeText}
+      <TextWrapper fontSize={fontSize}>{reasonBadgeText}</TextWrapper>
     </Tag>
   );
 }
@@ -92,4 +93,9 @@ const DateWrapper = styled('div')`
 
 const TooltipWrapper = styled('div')`
   text-align: left;
+`;
+
+const TextWrapper = styled('span')<{fontSize: 'sm' | 'md'}>`
+  font-size: ${p =>
+    p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;

@@ -30,6 +30,7 @@ import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import ReviewAction from 'app/views/issueList/actions/reviewAction';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
 import SubscribeAction from '../subscribeAction';
@@ -110,7 +111,11 @@ class Actions extends React.Component<Props, State> {
   };
 
   onUpdate = (
-    data: {isBookmarked: boolean} | {isSubscribed: boolean} | UpdateResolutionStatus
+    data:
+      | {isBookmarked: boolean}
+      | {isSubscribed: boolean}
+      | {inbox: boolean}
+      | UpdateResolutionStatus
   ) => {
     const {group, project, organization, api} = this.props;
 
@@ -232,6 +237,13 @@ class Actions extends React.Component<Props, State> {
 
     return (
       <Wrapper>
+        {orgFeatures.has('inbox') && (
+          <ReviewAction
+            orgSlug={organization.slug}
+            onUpdate={this.onUpdate}
+            disabled={!group.inbox}
+          />
+        )}
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
@@ -336,6 +348,7 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   margin-top: ${space(2)};
+  white-space: nowrap;
 `;
 
 export {Actions};

@@ -7,13 +7,16 @@ import IgnoreActions from 'app/components/actions/ignore';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
-import {IconEllipsis, IconIssues, IconPause, IconPlay} from 'app/icons';
+import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 
+import {Query} from '../utils';
+
 import ResolveActions from './resolveActions';
+import ReviewAction from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -62,21 +65,15 @@ function ActionSet({
   return (
     <Wrapper hasInbox={hasInbox}>
       {hasInbox && (
-        <div className="hidden-sm hidden-xs">
-          <StyledActionLink
-            className="btn btn-primary btn-sm action-merge"
-            data-test-id="button-acknowledge"
-            disabled={!anySelected}
-            onAction={() => onUpdate({inbox: false})}
-            shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
-            message={confirm('mark', false, ' as reviewed')}
-            confirmLabel={label('Mark', ' as reviewed')}
-            title={t('Mark Reviewed')}
-          >
-            <StyledIconIssues size="xs" />
-            {t('Mark Reviewed')}
-          </StyledActionLink>
-        </div>
+        <ReviewAction
+          orgSlug={orgSlug}
+          primary={query === Query.NEEDS_REVIEW}
+          disabled={!anySelected}
+          confirm={confirm}
+          label={label}
+          onUpdate={onUpdate}
+          onShouldConfirm={onShouldConfirm}
+        />
       )}
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
@@ -259,22 +256,12 @@ function ActionSet({
 
 export default ActionSet;
 
-const StyledActionLink = styled(ActionLink)`
-  display: flex;
-  align-items: center;
-  transition: none;
-`;
-
 // New icons are misaligned inside bootstrap buttons.
 // This is a shim that can be removed when buttons are upgraded
 // to styled components.
 const IconPad = styled('span')`
   position: relative;
   top: ${space(0.25)};
-`;
-
-const StyledIconIssues = styled(IconIssues)`
-  margin-right: ${space(0.5)};
 `;
 
 const Wrapper = styled('div')<{hasInbox?: boolean}>`
