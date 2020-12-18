@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
+import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
@@ -53,6 +54,8 @@ export default class SavedSearchSelector extends React.Component<Props> {
       onSavedSearchDelete,
       onSavedSearchSelect,
       organization,
+      query,
+      searchId,
     } = this.props;
 
     if (savedSearchList.length === 0) {
@@ -71,7 +74,10 @@ export default class SavedSearchSelector extends React.Component<Props> {
         delay={1000}
         key={search.id}
       >
-        <MenuItem last={index === savedSearchList.length - 1}>
+        <StyledMenuItem
+          isActive={search.id === searchId || search.query === query}
+          last={index === savedSearchList.length - 1}
+        >
           <MenuItemLink tabIndex={-1} onClick={() => onSavedSearchSelect(search)}>
             <SearchTitle>{search.name}</SearchTitle>
             <SearchQuery>{search.query}</SearchQuery>
@@ -97,7 +103,7 @@ export default class SavedSearchSelector extends React.Component<Props> {
               </Confirm>
             </Access>
           )}
-        </MenuItem>
+        </StyledMenuItem>
       </Tooltip>
     ));
   }
@@ -176,24 +182,24 @@ const DeleteButton = styled(Button)`
   }
 `;
 
-const MenuItem = styled('li')<{last: boolean}>`
-  display: flex;
-  background-color: ${p => p.theme.background};
-
-  position: relative;
+const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
   border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
 
-  & :hover {
-    background: ${p => p.theme.backgroundSecondary};
+  ${p =>
+    p.isActive &&
+    `
+  ${SearchTitle}, ${SearchQuery} {
+    color: ${p.theme.white};
   }
+  `}
 `;
 
 const MenuItemLink = styled('a')`
   display: block;
   flex-grow: 1;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(0.5)} 0;
 
   ${overflowEllipsis}
 `;
