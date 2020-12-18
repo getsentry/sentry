@@ -17,7 +17,9 @@ logger = logging.getLogger("sentry.rules")
 INTEGRATION_KEY = "integration"
 
 
-class NotifyServiceForm(forms.Form):
+class IntegrationNotifyServiceForm(forms.Form):
+    integration = forms.ChoiceField(choices=(), widget=forms.Select())
+
     def __init__(self, *args, **kwargs):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(forms.Form, self).__init__(*args, **kwargs)
@@ -26,6 +28,9 @@ class NotifyServiceForm(forms.Form):
 
         self.fields[INTEGRATION_KEY].choices = integrations
         self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
+
+    def clean(self):
+        return super(IntegrationNotifyServiceForm, self).clean()
 
 
 class EventAction(RuleBase):
@@ -108,7 +113,7 @@ class IntegrationEventAction(EventAction):
 def _linked_issues(event, integration):
     return ExternalIssue.objects.filter(
         id__in=GroupLink.objects.filter(
-            project_id=event.group.project.id,
+            project_id=event.group.project_id,
             group_id=event.group.id,
             linked_type=GroupLink.LinkedType.issue,
         ).values_list("linked_id", flat=True),
