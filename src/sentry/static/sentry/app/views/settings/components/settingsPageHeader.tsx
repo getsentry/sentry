@@ -78,15 +78,8 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
-  ${p =>
-    !p.styled &&
-    `
-    font-size: 20px;
-    font-weight: bold;`};
-  margin: ${p =>
-    p.tabs
-      ? `${space(4)} ${space(2)} ${space(2)} 0`
-      : `${space(4)} ${space(2)} ${space(4)} 0`};
+  ${p => !p.styled && `font-size: 20px; font-weight: bold;`};
+  margin: ${space(4)} ${space(2)} ${space(4)} 0;
 `;
 const Subtitle = styled('div')`
   color: ${p => p.theme.gray400};
@@ -99,8 +92,8 @@ const Icon = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const Action = styled('div')<{tabs?: React.ReactNode}>`
-  ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
+const Action = styled('div')`
+  margin-top: ${space(4)};
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
