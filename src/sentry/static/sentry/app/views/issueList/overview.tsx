@@ -412,7 +412,7 @@ class IssueListOverview extends React.Component<Props, State> {
         response[currentTabQuery] = currentQueryCount;
       }
 
-      this.setState({queryCounts})
+      this.setState({queryCounts: response})
     } catch (e) {
       this.setState({
         error: parseApiError(e),
