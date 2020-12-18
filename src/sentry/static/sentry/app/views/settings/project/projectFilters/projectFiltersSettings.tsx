@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import ProjectActions from 'app/actions/projectActions';
 import Access from 'app/components/acl/access';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -206,14 +207,11 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
-    return [
-      ['filterList', `/projects/${orgId}/${projectId}/filters/`],
-      ['project', `/projects/${orgId}/${projectId}/`],
-    ];
+    return [['filterList', `/projects/${orgId}/${projectId}/filters/`]];
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevProps.project !== this.props.project) {
+    if (prevProps.project.slug !== this.props.project.slug) {
       this.reloadData();
     }
     super.componentDidUpdate(prevProps, prevState);
@@ -228,6 +226,11 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
   ) => {
     onChange?.(subfilters, e);
     onBlur?.(subfilters, e);
+  };
+
+  handleSubmit = (response: Project) => {
+    // This will update our project context
+    ProjectActions.updateSuccess(response);
   };
 
   renderDisabledCustomFilters = p => (
@@ -267,19 +270,23 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
               disabled={disabled || !hasFeature}
             />
           ))}
+
+          {hasFeature && this.props.project.options?.['filters:error_messages'] && (
+            <PanelAlert type="warning" data-test-id="error-message-disclaimer">
+              {t(
+                "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot by filtered by message."
+              )}
+            </PanelAlert>
+          )}
         </React.Fragment>
       )}
     </Feature>
   );
 
   renderBody() {
-    const {features, params} = this.props;
+    const {features, params, project} = this.props;
     const {orgId, projectId} = params;
-    const {project} = this.state;
 
-    if (!project) {
-      return null;
-    }
     const projectEndpoint = `/projects/${orgId}/${projectId}/`;
     const filtersEndpoint = `${projectEndpoint}filters/`;
 
@@ -349,8 +356,9 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
             <Form
               apiMethod="PUT"
               apiEndpoint={projectEndpoint}
-              initialData={this.state.project.options}
+              initialData={project.options}
               saveOnBlur
+              onSubmitSuccess={this.handleSubmit}
             >
               <JsonForm
                 features={features}
