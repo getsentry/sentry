@@ -28,35 +28,47 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        python-version: [ 3.6 ]  # It does not matter since we use pyenv
         os: [ macos-11.0 ]
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
-
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        continue-on-error: true
-        # Xcode CLI is already installed
-        # pyenv needs to configure the right Python for the rest of the workflow
+        # Xcode CLI is already installed; No need to call xcode-select install
+        # XXX: Can the Brew set up be cached?
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           brew bundle --verbose
+
+      - name: Install Python via Pyenv
+        # pyenv needs to be setup here in order that we can use the correct Pip cache
+        run: |
           make setup-pyenv
           which python && python -V
           which pip && pip freeze
 
+      - name: Set python-version
+        id: python-version
+        shell: bash
+        run: |
+          echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
+
       - name: Setup pip
         uses: ./.github/actions/setup-pip
         id: pip
+
+      # XXX: Will it work to cache ~/.venv ?
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip.outputs.pip-cache-dir }}
+            ~/.pyenv
+            .venv
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ matrix.python-version }}
 
       - name: Set up Python environment (as per docs)
         # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
