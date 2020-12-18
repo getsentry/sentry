@@ -132,7 +132,10 @@ class DurationAverageField(object):
     def extract_from_row(self, row, group):
         if row is None:
             return None
-        return row["duration_avg"]
+        status = group.get("session.status")
+        if status is None or status == "healthy":
+            return row["duration_avg"]
+        return None
 
 
 class DurationQuantileField(object):
@@ -145,7 +148,10 @@ class DurationQuantileField(object):
     def extract_from_row(self, row, group):
         if row is None:
             return None
-        return row["duration_quantiles"][self.quantile_index]
+        status = group.get("session.status")
+        if status is None or status == "healthy":
+            return row["duration_quantiles"][self.quantile_index]
+        return None
 
 
 COLUMN_MAP = {
