@@ -999,7 +999,7 @@ class EventView {
     // Make option set and add the default options in.
     return uniqBy(
       this.getAggregateFields()
-        // Exclude aggregates on dates as they don't produce useful graphs.
+        // Only include aggregates that make sense to be graphable (eg. not string or date)
         .filter((field: Field) =>
           ['number', 'integer', 'duration', 'percentage'].includes(
             aggregateOutputType(field.field)
