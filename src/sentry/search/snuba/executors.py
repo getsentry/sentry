@@ -383,7 +383,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             search_filters,
             start,
             end,
-            max_hits,
         )
         if count_hits and hits == 0:
             return self.empty_result
