@@ -54,8 +54,6 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
         :return: Django form fields dictionary
         """
         if "dynamic_form_fields" in self.data:
-            print("already have this")
-            print(self.data["dynamic_form_fields"])
             return self.data["dynamic_form_fields"]
 
         try:
@@ -66,17 +64,14 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
         try:
             fields = vsts_integration.get_create_issue_config_no_group(self.project)
         except IntegrationError as e:
-            print("error ", e)
             # TODO log when the API call fails.
             logger.info(e)
             return self.error(six.text_type(e))
         else:
-            print("vsts fields: ", fields)
             form_fields = {}
             for field in fields:
                 if "name" in field:
                     form_fields[field["name"]] = field
-            print("form fields: ", form_fields)
             self.data["dynamic_form_fields"] = form_fields
             return form_fields
         return None

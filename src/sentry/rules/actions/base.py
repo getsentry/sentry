@@ -212,12 +212,7 @@ class TicketEventAction(IntegrationEventAction):
 
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
-            print("dynamic_fields: ", dynamic_fields)
-            fields = {}
-            for field in dynamic_fields:
-                if "name" in field:
-                    fields[field["name"]] = field
-            self.form_fields.update(fields)
+            self.form_fields.update(dynamic_fields)
 
     def translate_integration(self, integration):
         return integration.name
