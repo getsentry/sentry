@@ -111,7 +111,7 @@ def has_linked_issue(event, integration):
 
 def create_link(key, integration, installation, event):
     external_issue = ExternalIssue.objects.create(
-        organization_id=event.group.project.organization.id,
+        organization_id=event.group.project.organization_id,
         integration_id=integration.id,
         key=key,
         title=event.title,
@@ -119,7 +119,7 @@ def create_link(key, integration, installation, event):
     )
     GroupLink.objects.create(
         group_id=event.group.id,
-        project_id=event.group.project.id,
+        project_id=event.group.project_id,
         linked_type=GroupLink.LinkedType.issue,
         linked_id=external_issue.id,
         relationship=GroupLink.Relationship.references,
@@ -165,17 +165,12 @@ def create_issue(event, futures):
         data["title"] = event.title
         data["description"] = build_description(event, rule_id, installation, generate_footer)
 
-        # HACK to get fixVersion in the correct format
-        if data.get("fixVersions"):
-            if not isinstance(data["fixVersions"], list):
-                data["fixVersions"] = [data["fixVersions"]]
-
         if data.get("dynamic_form_fields"):
             del data["dynamic_form_fields"]
 
         if has_linked_issue(event, integration):
             logger.info(
-                "{}.rule_trigger.link_already_exists".format(integration.provider),
+                u"{}.rule_trigger.link_already_exists".format(integration.provider),
                 extra={
                     "rule_id": rule_id,
                     "project_id": event.group.project.id,
@@ -216,6 +211,9 @@ class TicketEventAction(IntegrationEventAction):
 
     def translate_integration(self, integration):
         return integration.name
+
+    def fix_data_for_issue(self):
+        raise NotImplementedError
 
     @property
     def prompt(self):

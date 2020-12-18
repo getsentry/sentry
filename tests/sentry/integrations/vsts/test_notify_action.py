@@ -130,8 +130,8 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "integration": self.integration.model.id,
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
                 "project": "0987654321",
-                "dynamic_form_fields": [
-                    {
+                "dynamic_form_fields": {
+                    "project": {
                         "name": "project",
                         "required": True,
                         "type": "choice",
@@ -141,21 +141,35 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                         "placeholder": "ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
                         "updatesForm": True,
                     },
-                    {
+                    "work_item_type": {
                         "name": "work_item_type",
                         "required": True,
                         "type": "choice",
                         "choices": [
-                            ("Microsoft.VSTS.WorkItemTypes.Bug", "Bug"),
-                            ("Some-Thing.GIssue", "G Issue"),
+                            ("Microsoft.VSTS.WorkItemTypes.Issue", "Issue"),
+                            ("Microsoft.VSTS.WorkItemTypes.Epic", "Epic"),
+                            ("Microsoft.VSTS.WorkItemTypes.TestCase", "Test Case"),
+                            ("Microsoft.VSTS.WorkItemTypes.SharedStep", "Shared Steps"),
+                            ("Microsoft.VSTS.WorkItemTypes.SharedParameter", "Shared Parameter"),
+                            (
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewRequest",
+                                "Code Review Request",
+                            ),
+                            (
+                                "Microsoft.VSTS.WorkItemTypes.CodeReviewResponse",
+                                "Code Review Response",
+                            ),
+                            ("Microsoft.VSTS.WorkItemTypes.FeedbackRequest", "Feedback Request"),
+                            ("Microsoft.VSTS.WorkItemTypes.FeedbackResponse", "Feedback Response"),
+                            ("Microsoft.VSTS.WorkItemTypes.TestPlan", "Test Plan"),
+                            ("Microsoft.VSTS.WorkItemTypes.TestSuite", "Test Suite"),
                             ("Microsoft.VSTS.WorkItemTypes.Task", "Task"),
-                            ("Microsoft.VSTS.WorkItemTypes.UserStory", "User Story"),
                         ],
-                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Bug",
+                        "defaultValue": "Microsoft.VSTS.WorkItemTypes.Issue",
                         "label": "Work Item Type",
                         "placeholder": "Bug",
                     },
-                ],
+                },
             }
         )
 

@@ -131,10 +131,18 @@ class JiraCreateTicketAction(TicketEventAction):
             self.rule.label, absolute_uri(rule_url),
         )
 
+    def fix_data_for_issue(self):
+        # HACK to get fixVersion in the correct format
+        if self.data.get("fixVersions"):
+            if not isinstance(self.data["fixVersions"], list):
+                self.data["fixVersions"] = [self.data["fixVersions"]]
+        return self.data
+
     def translate_integration(self, integration):
         name = integration.metadata.get("domain_name", integration.name)
         return name.replace(".atlassian.net", "")
 
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
+        self.fix_data_for_issue()
         yield super(JiraCreateTicketAction, self).after(event, state)
