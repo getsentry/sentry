@@ -48,12 +48,14 @@ jobs:
           brew bundle
 
       - name: Install Python via Pyenv
+        # Temp:
+        continue-on-error: true
         # pyenv needs to be setup here in order that we can use the correct Pip cache
         run: |
           echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
-          pyenv versions
           echo $PATH
           make setup-pyenv
+          pyenv versions
           which python && python -V
           which pip && pip freeze
 
