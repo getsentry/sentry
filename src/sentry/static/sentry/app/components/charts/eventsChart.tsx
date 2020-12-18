@@ -181,6 +181,7 @@ class Chart extends React.Component<ChartProps, State> {
       itemGap: 12,
       align: 'left',
       textStyle: {
+        color: theme.textColor,
         verticalAlign: 'top',
         fontSize: 11,
         fontFamily: 'Rubik',
@@ -191,7 +192,9 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const chartOptions = {
-      colors: colors ?? theme.charts.getColorPalette(timeseriesData.length - 2),
+      colors:
+        colors?.slice(0, timeseriesData.length) ??
+        theme.charts.getColorPalette(timeseriesData.length - 2),
       grid: {
         left: '24px',
         right: '24px',

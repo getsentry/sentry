@@ -79,11 +79,28 @@ const styles = (theme: Theme, isDark: boolean) => css`
           color: ${theme.textColor};
         }
 
+        .exception {
+          border-color: ${theme.innerBorder};
+        }
+
         .traceback {
           border-color: ${theme.border};
-          background-color: ${theme.background};
+
           ol.context > li {
             color: ${theme.subText};
+          }
+
+          &.in-app-traceback {
+            .frame {
+              &.leads-to-app {
+                &.collapsed {
+                  .title {
+                    border-color: ${theme.border};
+                    background: ${theme.background};
+                  }
+                }
+              }
+            }
           }
 
           .frame,
@@ -94,13 +111,17 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background-color: ${theme.background};
             }
             .btn-toggle {
+              color: ${theme.textColor};
               background: transparent;
-            }
-            .context {
-              background-color: ${theme.background};
             }
             .title {
               background-color: ${theme.backgroundSecondary};
+            }
+            &.is-expandable .title {
+              background-color: ${theme.backgroundSecondary};
+            }
+            .context {
+              background: ${theme.background};
             }
           }
         }
@@ -132,7 +153,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         pre,
         code {
           background-color: ${theme.backgroundSecondary};
-          color: ${theme.subText};
+          color: ${theme.textColor};
         }
         .search .search-input,
         .Select-control,

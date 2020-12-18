@@ -180,7 +180,7 @@ describe('groupDetails', function () {
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(issueDetailsMock).toHaveBeenCalledTimes(1);
     expect(MockComponent).not.toHaveBeenCalled();
-    expect(wrapper.find('MissingProjectMembership').prop('projectId')).toEqual(
+    expect(wrapper.find('MissingProjectMembership').prop('projectSlug')).toEqual(
       'project-slug'
     );
 

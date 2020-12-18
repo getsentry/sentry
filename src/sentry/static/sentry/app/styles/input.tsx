@@ -18,7 +18,7 @@ const inputStyles = (props: Props) =>
     border: 1px solid ${props.theme.border};
     border-radius: ${props.theme.borderRadius};
     box-shadow: inset ${props.theme.dropShadowLight};
-    padding: 0.5em;
+    padding: 10px;
     transition: border 0.1s linear;
     resize: vertical;
     min-height: 40px;

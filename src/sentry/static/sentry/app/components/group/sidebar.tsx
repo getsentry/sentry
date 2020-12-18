@@ -19,6 +19,7 @@ import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
+  CurrentRelease,
   Environment,
   Event,
   Group,
@@ -42,6 +43,7 @@ type Props = {
 
 type State = {
   environments: Environment[];
+  currentRelease?: CurrentRelease;
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
   tagsWithTopValues?: Record<string, TagWithTopValues>;
@@ -54,29 +56,44 @@ class GroupSidebar extends React.Component<Props, State> {
     environments: this.props.environments,
   };
 
-  async componentDidMount() {
-    const {group, api} = this.props;
-
+  componentDidMount() {
+    this.fetchAllEnvironmentsGroupData();
+    this.fetchCurrentRelease();
     this.fetchParticipants();
     this.fetchTagData();
-
-    try {
-      const allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`);
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        allEnvironmentsGroupData,
-      });
-    } catch {
-      // eslint-disable-next-line react/no-did-mount-set-state
-      this.setState({
-        error: true,
-      });
-    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (!isEqual(nextProps.environments, this.props.environments)) {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
+    }
+  }
+
+  async fetchAllEnvironmentsGroupData() {
+    const {group, api} = this.props;
+
+    // Fetch group data for all environments since the one passed in props is filtered for the selected environment
+    // The charts rely on having all environment data as well as the data for the selected env
+    try {
+      const allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`);
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({allEnvironmentsGroupData});
+    } catch {
+      // eslint-disable-next-line react/no-did-mount-set-state
+      this.setState({error: true});
+    }
+  }
+
+  async fetchCurrentRelease() {
+    const {group, api} = this.props;
+
+    try {
+      const currentRelease = await api.requestPromise(
+        `/issues/${group.id}/current-release/`
+      );
+      this.setState({currentRelease});
+    } catch {
+      this.setState({error: true});
     }
   }
 
@@ -189,7 +206,7 @@ class GroupSidebar extends React.Component<Props, State> {
 
   render() {
     const {className, event, group, organization, project, environments} = this.props;
-    const {allEnvironmentsGroupData, tagsWithTopValues} = this.state;
+    const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
     return (
@@ -202,6 +219,7 @@ class GroupSidebar extends React.Component<Props, State> {
           environments={environments}
           allEnvironments={allEnvironmentsGroupData}
           group={group}
+          currentRelease={currentRelease}
         />
 
         {event && (
