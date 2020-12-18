@@ -39,18 +39,17 @@ jobs:
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          brew bundle verbose
+          brew bundle --verbose
           brew list --formula -1 | sort
           pyenv
           export PYENV_ROOT="$HOME/.pyenv"
           export PATH="$PYENV_ROOT/bin:$PATH"
+          pyenv
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
         run: |
-          echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
-          env | grep PYENV
-          env | grep pyenv
+          env | sort
           echo $PATH
           make setup-pyenv
           pyenv versions
