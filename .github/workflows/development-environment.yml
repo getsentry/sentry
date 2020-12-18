@@ -52,6 +52,8 @@ jobs:
           make install-py-dev
           make setup-git
           curl https://get.volta.sh | bash
+          export VOLTA_HOME="~/.volta"
+          export PATH="$VOLTA_HOME/bin:$PATH"
           echo $PATH
           node -v
           git config --global user.email "you@example.com"
