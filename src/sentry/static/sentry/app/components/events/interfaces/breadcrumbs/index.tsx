@@ -11,7 +11,7 @@ import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Event, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -33,7 +33,7 @@ type FilterOptions = FilterProps['options'];
 
 type Props = {
   event: Event;
-  orgId: string | null;
+  organization: Organization;
   type: string;
   data: {
     values: Array<Breadcrumb>;
@@ -335,7 +335,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   render() {
-    const {type, event, orgId} = this.props;
+    const {type, event, organization} = this.props;
     const {
       filterOptions,
       searchTerm,
@@ -369,7 +369,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             <List
               breadcrumbs={filteredBySearch}
               event={event}
-              orgId={orgId}
+              orgId={organization.slug}
               onSwitchTimeFormat={this.handleSwitchTimeFormat}
               displayRelativeTime={displayRelativeTime}
               searchTerm={searchTerm}
