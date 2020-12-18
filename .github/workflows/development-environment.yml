@@ -45,14 +45,24 @@ jobs:
           brew bundle
           echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
           echo "PYENV_ROOT/bin:$PATH" >> $GITHUB_ENV
+          echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bash_profile
+          echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
+        # XXX: Locally pyenv makes 3.6.10 be the Python version in use because of the order within .python-version
+        # XXX: For some reason is not quite working
         run: |
           make setup-pyenv
           pyenv versions
           which python && python -V
           which pip && pip freeze
+          exec "$SHELL"
+          pyenv versions
+          which python && python -V
+          pyenv local 3.6.10
+          pyenv versions
+          which python && python -V
 
       - name: Set python-version
         id: python-version
