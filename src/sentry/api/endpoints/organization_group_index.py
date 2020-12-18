@@ -50,12 +50,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         "first_seen",
     }
 
-    inbox_queries = {
-        "is:inbox is:unresolved",
-        "is:unresolved",
-        "is:ignored",
-    }
-
     def _search(self, request, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = build_query_params_from_request(request, organization, projects, environments)
         if extra_query_kwargs is not None:

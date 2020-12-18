@@ -27,10 +27,10 @@ search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
-    def _count(self, request, organization, projects, environments, extra_query_kwargs=None):
+    def _count(self, request, query, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = {"projects": projects}
 
-        query = request.GET.get("query").strip()
+        query = query.strip()
         if query:
             search_filters = convert_query_values(
                 parse_search_query(query), projects, request.user, environments
@@ -44,7 +44,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
 
         query_kwargs["environments"] = environments if environments else None
 
-        return search.query(**query_kwargs)
+        result = search.query(**query_kwargs)
+        return result.hits
 
     @rate_limit_endpoint(limit=10, window=1)
     def get(self, request, organization):
@@ -70,15 +71,20 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
             )
 
-        try:
-            cursor_result = self._count(
-                request,
-                organization,
-                projects,
-                environments,
-                {"count_hits": True, "date_to": end, "date_from": start},
-            )
-        except (ValidationError, discover.InvalidSearchQuery) as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+        queries = request.GET.getlist("query")
+        response = {}
+        for query in queries:
+            try:
+                count = self._count(
+                    request,
+                    query,
+                    organization,
+                    projects,
+                    environments,
+                    {"count_hits": True, "date_to": end, "date_from": start},
+                )
+                response[query] = count
+            except (ValidationError, discover.InvalidSearchQuery) as exc:
+                return Response({"detail": six.text_type(exc)}, status=400)
 
-        return Response(cursor_result.hits)
+        return Response(response)

@@ -866,10 +866,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/issues/count/$",
-                    OrganizationIssuesCountEndpoint.as_view(),
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
                     OrganizationIssuesNewEndpoint.as_view(),
                 ),
@@ -877,6 +873,10 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
                     OrganizationGroupIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/issues-counts/$",
+                    OrganizationIssuesCountEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues-stats/$",

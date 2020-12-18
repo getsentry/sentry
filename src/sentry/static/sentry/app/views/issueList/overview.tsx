@@ -7,6 +7,7 @@ import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import pickBy from 'lodash/pickBy';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
@@ -110,6 +111,10 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   groupStatsPeriod?: string;
   cursor?: string;
   page?: number | string;
+};
+
+type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
+  query: string[];
 };
 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
@@ -376,6 +381,45 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
+  fetchCounts = async (currentQueryCount: number) => {
+    const {queryCounts} = this.state;
+
+    // If all tabs' counts are fetched, skip
+    const countTabQueries: string[] = [Query.NEEDS_REVIEW, Query.UNRESOLVED];
+    if (countTabQueries.every(tabQuery => (queryCounts[tabQuery] !== undefined))) {
+      return;
+    }
+
+    const endpointParams: EndpointParams = this.getEndpointParams();
+    const currentTabQuery = endpointParams.query && countTabQueries.includes(endpointParams.query)
+      ? endpointParams.query
+      : null;
+    const requestParams: CountsEndpointParams = {
+      ...omit(endpointParams, 'query'),
+      query: countTabQueries.filter(_query => _query !== currentTabQuery)
+    };
+
+    // If no stats period values are set, use default
+    if (!requestParams.statsPeriod && !requestParams.start) {
+      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+    }
+    try {
+      const response = await this.props.api.requestPromise(this.getGroupCountsEndpoint(), {
+        method: 'GET',
+        data: qs.stringify(requestParams),
+      });
+      if (currentTabQuery) {
+        response[currentTabQuery] = queryCounts;
+      }
+
+      this.setState({queryCounts})
+    } catch (e) {
+      this.setState({
+        error: parseApiError(e),
+      });
+    }
+  };
+
   fetchData = () => {
     GroupStore.loadInitialData([]);
 
@@ -449,9 +493,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
+        this.fetchCounts(data.length);
 
         const queryCount = jqXHR.getResponseHeader('X-Hits');
-        const queryCounts = jqXHR.getResponseHeader('X-All-Hits');
         const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
         const pageLinks = jqXHR.getResponseHeader('Link');
 
@@ -462,10 +506,6 @@ class IssueListOverview extends React.Component<Props, State> {
             typeof queryCount !== 'undefined' && queryCount
               ? parseInt(queryCount, 10) || 0
               : 0,
-          queryCounts:
-            typeof queryCounts !== 'undefined' && queryCounts
-              ? JSON.parse(queryCounts.replaceAll("'", '"'))
-              : {},
           queryMaxCount:
             typeof queryMaxCount !== 'undefined' && queryMaxCount
               ? parseInt(queryMaxCount, 10) || 0
@@ -501,9 +541,15 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   getGroupListEndpoint(): string {
-    const params = this.props.params;
+    const {orgId} = this.props.params;
 
-    return `/organizations/${params.orgId}/issues/`;
+    return `/organizations/${orgId}/issues/`;
+  }
+
+  getGroupCountsEndpoint(): string {
+    const {orgId} = this.props.params;
+
+    return `/organizations/${orgId}/issues-counts/`;
   }
 
   getGroupStatsEndpoint(): string {
