@@ -294,7 +294,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if (
                 cursor is None
                 and sort_by == "date"
-                and not environments
                 and
                 # This handles tags and date parameters for search filters.
                 not [
