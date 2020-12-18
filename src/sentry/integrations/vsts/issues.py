@@ -28,7 +28,7 @@ class VstsIssueSync(IssueSyncMixin):
         project = self.get_client().get_project(self.instance, default_repo)
         return (project["id"], project["name"])
 
-    def get_project_choices(self, group=None, project_id=None, **kwargs):
+    def get_project_choices(self, group=None, **kwargs):
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)
@@ -41,7 +41,8 @@ class VstsIssueSync(IssueSyncMixin):
         if group:
             default_project_id = group.project.id
         else:
-            default_project_id = project_id
+            project = kwargs.get("project")
+            default_project_id = project.id
         defaults = self.get_project_defaults(default_project_id)
         try:
             default_project = params.get(
@@ -103,8 +104,7 @@ class VstsIssueSync(IssueSyncMixin):
             fields = super(VstsIssueSync, self).get_create_issue_config(group, user, **kwargs)
             # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
             # Workitems (issues) are associated with the project not the repository.
-        project = kwargs.get("project")
-        default_project, project_choices = self.get_project_choices(group, project.id, **kwargs)
+        default_project, project_choices = self.get_project_choices(group, **kwargs)
 
         work_item_choices = []
         default_work_item = None
