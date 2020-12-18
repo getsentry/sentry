@@ -255,7 +255,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${!borderless && (borderActive || border)
+      border-color: ${priority !== 'link' && !borderless && (borderActive || border)
         ? borderActive || border
         : 'transparent'};
     }
