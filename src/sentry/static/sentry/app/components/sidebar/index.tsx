@@ -306,6 +306,236 @@ class Sidebar extends React.Component<Props, State> {
 
     const discoverState = this.discoverSidebarState();
 
+    const projects = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        index
+        onClick={this.hidePanel}
+        icon={<IconProject size="md" />}
+        label={t('Projects')}
+        to={`/organizations/${organization.slug}/projects/`}
+        id="projects"
+      />
+    );
+
+    const issues = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/issues/`,
+            evt
+          )
+        }
+        icon={<IconIssues size="md" />}
+        label={t('Issues')}
+        to={`/organizations/${organization.slug}/issues/`}
+        id="issues"
+      />
+    );
+
+    const events = hasOrganization && discoverState.events && (
+      <Feature
+        features={['events']}
+        hookName="feature-disabled:events-sidebar-item"
+        organization={organization}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/events/`,
+              evt
+            )
+          }
+          icon={<IconStack size="md" />}
+          label={t('Events')}
+          to={`/organizations/${organization.slug}/events/`}
+          id="events"
+        />
+      </Feature>
+    );
+
+    const discover1 = hasOrganization && discoverState.discover1 && (
+      <Feature
+        features={['discover']}
+        hookName="feature-disabled:discover-sidebar-item"
+        organization={organization}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={this.hidePanel}
+          icon={<IconTelescope size="md" />}
+          label={t('Discover')}
+          to={`/organizations/${organization.slug}/discover/`}
+          id="discover"
+        />
+      </Feature>
+    );
+
+    const discover2 = hasOrganization && discoverState.discover2 && (
+      <Feature
+        hookName="feature-disabled:discover2-sidebar-item"
+        features={['discover-basic']}
+        organization={organization}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(getDiscoverLandingUrl(organization), evt)
+          }
+          icon={<IconTelescope size="md" />}
+          label={t('Discover')}
+          to={getDiscoverLandingUrl(organization)}
+          id="discover-v2"
+        />
+      </Feature>
+    );
+
+    const performance = hasOrganization && (
+      <Feature
+        hookName="feature-disabled:performance-sidebar-item"
+        features={['performance-view']}
+        organization={organization}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/performance/`,
+              evt
+            )
+          }
+          icon={<IconLightning size="md" />}
+          label={t('Performance')}
+          to={`/organizations/${organization.slug}/performance/`}
+          id="performance"
+        />
+      </Feature>
+    );
+
+    const releases = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/releases/`,
+            evt
+          )
+        }
+        icon={<IconReleases size="md" />}
+        label={t('Releases')}
+        to={`/organizations/${organization.slug}/releases/`}
+        id="releases"
+      />
+    );
+
+    const userFeedback = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={(_id, evt) =>
+          this.navigateWithGlobalSelection(
+            `/organizations/${organization.slug}/user-feedback/`,
+            evt
+          )
+        }
+        icon={<IconSupport size="md" />}
+        label={t('User Feedback')}
+        to={`/organizations/${organization.slug}/user-feedback/`}
+        id="user-feedback"
+      />
+    );
+
+    const alerts = hasOrganization && (
+      <Feature features={['incidents']}>
+        {({hasFeature}) => {
+          const alertsPath = hasFeature
+            ? `/organizations/${organization.slug}/alerts/`
+            : `/organizations/${organization.slug}/alerts/rules/`;
+          return (
+            <SidebarItem
+              {...sidebarItemProps}
+              onClick={(_id, evt) => this.navigateWithGlobalSelection(alertsPath, evt)}
+              icon={<IconSiren size="md" />}
+              label={t('Alerts')}
+              to={alertsPath}
+              id="alerts"
+              isNew
+            />
+          );
+        }}
+      </Feature>
+    );
+
+    const monitors = hasOrganization && (
+      <Feature features={['monitors']} organization={organization}>
+        <SidebarItem
+          {...sidebarItemProps}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/monitors/`,
+              evt
+            )
+          }
+          icon={<IconLab size="md" />}
+          label={t('Monitors')}
+          to={`/organizations/${organization.slug}/monitors/`}
+          id="monitors"
+        />
+      </Feature>
+    );
+
+    const dashboards = hasOrganization && (
+      <Feature
+        features={['discover', 'discover-query']}
+        organization={organization}
+        requireAll={false}
+      >
+        <SidebarItem
+          {...sidebarItemProps}
+          index
+          onClick={this.hidePanel}
+          icon={<IconGraph size="md" />}
+          label={t('Dashboards')}
+          to={`/organizations/${organization.slug}/dashboards/`}
+          id="customizable-dashboards"
+        />
+      </Feature>
+    );
+
+    const activity = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={this.hidePanel}
+        icon={<IconActivity size="md" />}
+        label={t('Activity')}
+        to={`/organizations/${organization.slug}/activity/`}
+        id="activity"
+      />
+    );
+
+    const stats = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={this.hidePanel}
+        icon={<IconStats size="md" />}
+        label={t('Stats')}
+        to={`/organizations/${organization.slug}/stats/`}
+        id="stats"
+      />
+    );
+
+    const settings = hasOrganization && (
+      <SidebarItem
+        {...sidebarItemProps}
+        onClick={this.hidePanel}
+        icon={<IconSettings size="md" />}
+        label={t('Settings')}
+        to={`/settings/${organization.slug}/`}
+        id="settings"
+      />
+    );
+
     return (
       <StyledSidebar ref={this.sidebarRef} collapsed={collapsed}>
         <SidebarSectionGroupPrimary>
@@ -323,216 +553,28 @@ class Sidebar extends React.Component<Props, State> {
             {hasOrganization && (
               <React.Fragment>
                 <SidebarSection>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    index
-                    onClick={this.hidePanel}
-                    icon={<IconProject size="md" />}
-                    label={t('Projects')}
-                    to={`/organizations/${organization.slug}/projects/`}
-                    id="projects"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/issues/`,
-                        evt
-                      )
-                    }
-                    icon={<IconIssues size="md" />}
-                    label={t('Issues')}
-                    to={`/organizations/${organization.slug}/issues/`}
-                    id="issues"
-                  />
-                  {discoverState.events && (
-                    <Feature
-                      features={['events']}
-                      hookName="feature-disabled:events-sidebar-item"
-                      organization={organization}
-                    >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            `/organizations/${organization.slug}/events/`,
-                            evt
-                          )
-                        }
-                        icon={<IconStack size="md" />}
-                        label={t('Events')}
-                        to={`/organizations/${organization.slug}/events/`}
-                        id="events"
-                      />
-                    </Feature>
-                  )}
-                  {discoverState.discover2 && (
-                    <Feature
-                      hookName="feature-disabled:discover2-sidebar-item"
-                      features={['discover-basic']}
-                      organization={organization}
-                    >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={(_id, evt) =>
-                          this.navigateWithGlobalSelection(
-                            getDiscoverLandingUrl(organization),
-                            evt
-                          )
-                        }
-                        icon={<IconTelescope size="md" />}
-                        label={t('Discover')}
-                        to={getDiscoverLandingUrl(organization)}
-                        id="discover-v2"
-                      />
-                    </Feature>
-                  )}
-                  <Feature
-                    hookName="feature-disabled:performance-sidebar-item"
-                    features={['performance-view']}
-                    organization={organization}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/performance/`,
-                          evt
-                        )
-                      }
-                      icon={<IconLightning size="md" />}
-                      label={t('Performance')}
-                      to={`/organizations/${organization.slug}/performance/`}
-                      id="performance"
-                    />
-                  </Feature>
-                  <Feature features={['incidents']}>
-                    {({hasFeature}) => {
-                      const alertsPath = hasFeature
-                        ? `/organizations/${organization.slug}/alerts/`
-                        : `/organizations/${organization.slug}/alerts/rules/`;
-                      return (
-                        <SidebarItem
-                          {...sidebarItemProps}
-                          onClick={(_id, evt) =>
-                            this.navigateWithGlobalSelection(alertsPath, evt)
-                          }
-                          icon={<IconSiren size="md" />}
-                          label={t('Alerts')}
-                          to={alertsPath}
-                          id="alerts"
-                          isNew
-                        />
-                      );
-                    }}
-                  </Feature>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/releases/`,
-                        evt
-                      )
-                    }
-                    icon={<IconReleases size="md" />}
-                    label={t('Releases')}
-                    to={`/organizations/${organization.slug}/releases/`}
-                    id="releases"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={(_id, evt) =>
-                      this.navigateWithGlobalSelection(
-                        `/organizations/${organization.slug}/user-feedback/`,
-                        evt
-                      )
-                    }
-                    icon={<IconSupport size="md" />}
-                    label={t('User Feedback')}
-                    to={`/organizations/${organization.slug}/user-feedback/`}
-                    id="user-feedback"
-                  />
+                  {projects}
+                  {issues}
+                  {performance}
+                  {releases}
+                  {userFeedback}
+                  {alerts}
+                  {discover1}
+                  {discover2}
+                  {events}
                 </SidebarSection>
 
                 <SidebarSection>
-                  <Feature
-                    features={['discover', 'discover-query']}
-                    organization={organization}
-                    requireAll={false}
-                  >
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      index
-                      onClick={this.hidePanel}
-                      icon={<IconGraph size="md" />}
-                      label={t('Dashboards')}
-                      to={`/organizations/${organization.slug}/dashboards/`}
-                      id="customizable-dashboards"
-                    />
-                  </Feature>
-
-                  {discoverState.discover1 && (
-                    <Feature
-                      features={['discover']}
-                      hookName="feature-disabled:discover-sidebar-item"
-                      organization={organization}
-                    >
-                      <SidebarItem
-                        {...sidebarItemProps}
-                        onClick={this.hidePanel}
-                        icon={<IconTelescope size="md" />}
-                        label={t('Discover')}
-                        to={`/organizations/${organization.slug}/discover/`}
-                        id="discover"
-                      />
-                    </Feature>
-                  )}
-                  <Feature features={['monitors']} organization={organization}>
-                    <SidebarItem
-                      {...sidebarItemProps}
-                      onClick={(_id, evt) =>
-                        this.navigateWithGlobalSelection(
-                          `/organizations/${organization.slug}/monitors/`,
-                          evt
-                        )
-                      }
-                      icon={<IconLab size="md" />}
-                      label={t('Monitors')}
-                      to={`/organizations/${organization.slug}/monitors/`}
-                      id="monitors"
-                    />
-                  </Feature>
+                  {dashboards}
+                  {monitors}
                 </SidebarSection>
 
                 <SidebarSection>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<IconActivity size="md" />}
-                    label={t('Activity')}
-                    to={`/organizations/${organization.slug}/activity/`}
-                    id="activity"
-                  />
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<IconStats size="md" />}
-                    label={t('Stats')}
-                    to={`/organizations/${organization.slug}/stats/`}
-                    id="stats"
-                  />
+                  {activity}
+                  {stats}
                 </SidebarSection>
 
-                <SidebarSection>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<IconSettings size="md" />}
-                    label={t('Settings')}
-                    to={`/settings/${organization.slug}/`}
-                    id="settings"
-                  />
-                </SidebarSection>
+                <SidebarSection>{settings}</SidebarSection>
               </React.Fragment>
             )}
           </PrimaryItems>

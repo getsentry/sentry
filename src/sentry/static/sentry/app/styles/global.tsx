@@ -153,7 +153,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
         pre,
         code {
           background-color: ${theme.backgroundSecondary};
-          color: ${theme.subText};
+          color: ${theme.textColor};
         }
         .search .search-input,
         .Select-control,

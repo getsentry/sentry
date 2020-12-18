@@ -144,8 +144,6 @@ SelectPicker.propTypes = {
 };
 
 const StyledSelect = styled(SelectPicker)`
-  font-size: 15px;
-
   .Select-control {
     border: 1px solid ${p => p.theme.border};
     height: ${p => p.height}px;

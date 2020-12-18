@@ -2,19 +2,6 @@
 // Dropdown menus
 // --------------------------------------------------
 
-// Dropdown arrow/caret
-.caret {
-  display: inline-block;
-  width: 0;
-  height: 0;
-  margin-left: 2px;
-  vertical-align: middle;
-  border-top: @caret-width-base dashed;
-  border-top: @caret-width-base solid ~'\9'; // IE8
-  border-right: @caret-width-base solid transparent;
-  border-left: @caret-width-base solid transparent;
-}
-
 // The dropdown wrapper (div)
 .dropup,
 .dropdown {
@@ -178,13 +165,6 @@
 
 .dropup,
 .navbar-fixed-bottom .dropdown {
-  // Reverse the caret
-  .caret {
-    content: '';
-    border-top: 0;
-    border-bottom: @caret-width-base dashed;
-    border-bottom: @caret-width-base solid ~'\9'; // IE8
-  }
   // Different positioning for bottom up menu
   .dropdown-menu {
     top: auto;
