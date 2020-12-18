@@ -1,9 +1,39 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import classNames from 'classnames';
+import {withTheme} from 'emotion-theming';
 import PropTypes from 'prop-types';
 
 import DropdownMenu from 'app/components/dropdownMenu';
 import {IconChevron} from 'app/icons';
+import {Theme} from 'app/utils/theme';
+
+const getRootCss = (theme: Theme) => css`
+  .dropdown-menu {
+    & > li > a {
+      color: ${theme.textColor};
+
+      &:hover,
+      &:focus {
+        color: inherit;
+        background-color: ${theme.focus};
+      }
+    }
+
+    & .disabled {
+      cursor: not-allowed;
+      &:hover {
+        background: inherit;
+        color: inherit;
+      }
+    }
+  }
+
+  .dropdown-submenu:hover > span {
+    color: ${theme.textColor};
+    background: ${theme.focus};
+  }
+`;
 
 // .dropdown-actor-title = flexbox to fix vertical alignment on firefox Need
 // the extra container because dropdown-menu alignment is off if
@@ -14,7 +44,8 @@ type Props = Omit<
   keyof typeof DropdownMenu.defaultProps
 > &
   Partial<typeof DropdownMenu.defaultProps> & {
-    title: React.ReactNode;
+    theme: Theme;
+    title?: React.ReactNode;
     customTitle?: React.ReactNode;
     children: React.ReactNode;
     /**
@@ -37,7 +68,7 @@ type Props = Omit<
     className?: string;
   };
 
-const DropdownLink = ({
+const DropdownLinkBase = ({
   anchorRight,
   disabled,
   title,
@@ -48,6 +79,7 @@ const DropdownLink = ({
   className,
   alwaysRenderMenu,
   topLevelClasses,
+  theme,
   ...otherProps
 }: Props) => (
   <DropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
@@ -67,6 +99,7 @@ const DropdownLink = ({
 
       return (
         <span
+          css={getRootCss(theme)}
           {...getRootProps({
             className: topLevelCx,
           })}
@@ -99,14 +132,14 @@ const DropdownLink = ({
   </DropdownMenu>
 );
 
-DropdownLink.defaultProps = {
+DropdownLinkBase.defaultProps = {
   alwaysRenderMenu: true,
   disabled: false,
   anchorRight: false,
   caret: true,
 };
 
-DropdownLink.propTypes = {
+DropdownLinkBase.propTypes = {
   ...DropdownMenu.propTypes,
   title: PropTypes.node,
   caret: PropTypes.bool,
@@ -116,5 +149,7 @@ DropdownLink.propTypes = {
   topLevelClasses: PropTypes.string,
   menuClasses: PropTypes.string,
 };
+
+const DropdownLink = withTheme(DropdownLinkBase);
 
 export default DropdownLink;
