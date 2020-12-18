@@ -493,23 +493,24 @@ class IssueListOverview extends React.Component<Props, State> {
 
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
-        this.fetchCounts(data.length);
 
-        const queryCount = jqXHR.getResponseHeader('X-Hits');
-        const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
+        const hits = jqXHR.getResponseHeader('X-Hits');
+        const queryCount = typeof hits !== 'undefined' && hits
+          ? parseInt(hits, 10) || 0
+          : 0
+        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const queryMaxCount = typeof maxHits !== 'undefined' && maxHits
+          ? parseInt(maxHits, 10) || 0
+          : 0
         const pageLinks = jqXHR.getResponseHeader('Link');
+
+        this.fetchCounts(queryCount);
 
         this.setState({
           error: null,
           issuesLoading: false,
-          queryCount:
-            typeof queryCount !== 'undefined' && queryCount
-              ? parseInt(queryCount, 10) || 0
-              : 0,
-          queryMaxCount:
-            typeof queryMaxCount !== 'undefined' && queryMaxCount
-              ? parseInt(queryMaxCount, 10) || 0
-              : 0,
+          queryCount,
+          queryMaxCount,
           pageLinks: pageLinks !== null ? pageLinks : '',
         });
       },
