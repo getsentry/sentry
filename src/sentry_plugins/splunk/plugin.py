@@ -224,7 +224,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         return u"{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
 
     def is_ratelimited(self, event):
-        if super().is_ratelimited(event):
+        if super(SplunkPlugin, self).is_ratelimited(event):
             metrics.incr(
                 "integrations.splunk.forward-event.rate-limited",
                 tags={
