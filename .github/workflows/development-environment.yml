@@ -35,20 +35,15 @@ jobs:
 
       - name: Install pre-requisites
         if: ${{ runner.os == 'macOS' }}
-        # We need to install again python@3.9 as it conflicts with python 3.9.1 and watchman
-        # not installing properly.
+        continue-on-error: true
+        # I can't get watchman to install. I will only add missing brew packages
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          brew update
-          brew install watchman
-          brew info python@3.9
-          brew uninstall --ignore-dependencies python@3.9
-          brew install watchman
-          /usr/local/bin/python3.9 -c "import platform; print(platform.platform())"
-          brew link --overwrite python@3.9
-          brew install watchman
-          brew bundle --verbose
+          brew install pyenv
+          brew install geoip
+          brew install librdkafka
+          brew bundle check
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
