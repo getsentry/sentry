@@ -25,7 +25,7 @@ jobs:
   dev-environment:
     name: Python set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       matrix:
         os: [ macos-11.0 ]
@@ -33,24 +33,22 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install pre-requisites
+      - name: Install prerequisites
         if: ${{ runner.os == 'macOS' }}
-        continue-on-error: true  # I can't get watchman to install
+        # Depending on the host watchman will not install (read intermittent)
+        # The other option is to call brew bundle -f clean which clears all other
+        # installed packages
+        continue-on-error: true
         # Xcode CLI is already installed; No need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          brew bundle --verbose
-          brew list --formula -1 | sort
-          pyenv
-          export PYENV_ROOT="$HOME/.pyenv"
-          export PATH="$PYENV_ROOT/bin:$PATH"
-          pyenv
+          brew bundle
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+          echo "PYENV_ROOT/bin:$PATH" >> $GITHUB_ENV
 
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
         run: |
-          env | sort
-          echo $PATH
           make setup-pyenv
           pyenv versions
           which python && python -V
@@ -60,12 +58,6 @@ jobs:
         id: python-version
         shell: bash
         run: |
-          echo $PATH
-          which python && python -V
-          env | sort
-          eval "$(pyenv init -)"
-          echo $PATH
-          which python && python -V
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
