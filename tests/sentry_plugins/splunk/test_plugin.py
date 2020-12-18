@@ -36,12 +36,7 @@ class SplunkPluginTest(PluginTestCase):
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
-        assert payload == {
-            "index": "main",
-            "source": "sentry",
-            "time": int(event.datetime.strftime("%s")),
-            "event": self.plugin.get_event_payload(event),
-        }
+        assert payload == self.plugin.get_event_payload(event)
         headers = request.headers
         assert headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"
 
@@ -58,9 +53,9 @@ class SplunkPluginTest(PluginTestCase):
         )
 
         result = self.plugin.get_event_payload(event)
-        assert result["request_url"] == "http://example.com/"
-        assert result["request_method"] == "POST"
-        assert result["request_referer"] == "http://example.com/foo"
+        assert result["event"]["request_url"] == "http://example.com/"
+        assert result["event"]["request_method"] == "POST"
+        assert result["event"]["request_referer"] == "http://example.com/foo"
 
     def test_error_payload(self):
         event = self.store_event(
@@ -72,9 +67,9 @@ class SplunkPluginTest(PluginTestCase):
         )
 
         result = self.plugin.get_event_payload(event)
-        assert result["type"] == "error"
-        assert result["exception_type"] == "ValueError"
-        assert result["exception_value"] == "foo bar"
+        assert result["event"]["type"] == "error"
+        assert result["event"]["exception_type"] == "ValueError"
+        assert result["event"]["exception_value"] == "foo bar"
 
     def test_csp_payload(self):
         event = self.store_event(
@@ -91,11 +86,11 @@ class SplunkPluginTest(PluginTestCase):
         )
 
         result = self.plugin.get_event_payload(event)
-        assert result["type"] == "csp"
-        assert result["csp_document_uri"] == "http://example.com/"
-        assert result["csp_violated_directive"] == "style-src cdn.example.com"
-        assert result["csp_blocked_uri"] == "http://example.com/style.css"
-        assert result["csp_effective_directive"] == "style-src"
+        assert result["event"]["type"] == "csp"
+        assert result["event"]["csp_document_uri"] == "http://example.com/"
+        assert result["event"]["csp_violated_directive"] == "style-src cdn.example.com"
+        assert result["event"]["csp_blocked_uri"] == "http://example.com/style.css"
+        assert result["event"]["csp_effective_directive"] == "style-src"
 
     def test_user_payload(self):
         event = self.store_event(
@@ -104,6 +99,6 @@ class SplunkPluginTest(PluginTestCase):
         )
 
         result = self.plugin.get_event_payload(event)
-        assert result["user_id"] == "1"
-        assert result["user_email_hash"] == "b48def645758b95537d4424c84d1a9ff"
-        assert result["user_ip_trunc"] == "127.0.0.0"
+        assert result["event"]["user_id"] == "1"
+        assert result["event"]["user_email_hash"] == "b48def645758b95537d4424c84d1a9ff"
+        assert result["event"]["user_ip_trunc"] == "127.0.0.0"
