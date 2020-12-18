@@ -27,6 +27,7 @@ search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
+
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
     def _count(self, request, query, organization, projects, environments, extra_query_kwargs=None):
         query_kwargs = {"projects": projects}
