@@ -17,7 +17,14 @@ type Props = AsyncComponent['props'];
 
 type State = {
   action: ExternalIssueAction;
+  /**
+   * Fetched via endpoint, null until set.
+   */
   integrationDetails: IntegrationIssueConfig | null;
+  /**
+   * Object of fields where `updatesFrom` is true, by field name. Derived from
+   * `integrationDetails` when it loads. Null until set.
+   */
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
 } & AsyncComponent['state'];
 
@@ -35,9 +42,7 @@ export default class AbstractExternalIssueForm<
     return {
       ...super.getDefaultState(),
       action: 'create',
-      // This is derived from integrationDetails when it loads.
       dynamicFieldValues: null,
-      // This is fetched by AsyncComponent.getEndpoints.
       integrationDetails: null,
     };
   }
@@ -59,7 +64,7 @@ export default class AbstractExternalIssueForm<
     });
   };
 
-  getConfigName = (): string => {
+  getConfigName = (): 'createIssueConfig' | 'linkIssueConfig' => {
     // Explicitly returning a non-interpolated string for clarity.
     const {action} = this.state;
     switch (action) {
@@ -87,12 +92,16 @@ export default class AbstractExternalIssueForm<
 
   onRequestSuccess = ({stateKey, data}) => {
     if (stateKey === 'integrationDetails') {
+      this.handleReceiveIntegrationDetails(data);
       this.setState({
         dynamicFieldValues: this.getDynamicFields(data),
       });
     }
   };
 
+  /**
+   * If this field should updateFrom, updateForm. Otherwise, do nothing.
+   */
   onFieldChange = (label: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
     const dynamicFields = this.getDynamicFields();
@@ -110,7 +119,10 @@ export default class AbstractExternalIssueForm<
     }
   };
 
-  updateDynamicFieldChoices = (_field: IssueConfigField, _result: any): void => {
+  updateFetchedFieldOptionsCache = (
+    _field: IssueConfigField,
+    _result: {options: {value: string; label: string}[]}
+  ): void => {
     // Do nothing.
   };
 
@@ -126,7 +138,7 @@ export default class AbstractExternalIssueForm<
         if (err) {
           reject(err);
         } else {
-          this.updateDynamicFieldChoices(field, result);
+          this.updateFetchedFieldOptionsCache(field, result);
           resolve(result);
         }
       });
@@ -174,7 +186,12 @@ export default class AbstractExternalIssueForm<
       : {};
 
   // Abstract methods.
-  getEndPointString = () => '';
+  handleReceiveIntegrationDetails = (_data: any) => {
+    // Do nothing.
+  };
+  getEndPointString = (): string => {
+    throw new Error("Method 'getEndPointString()' must be implemented.");
+  };
   renderNavTabs = (): React.ReactNode => null;
   renderBodyText = (): React.ReactNode => null;
   getTitle = () => tct('Issue Link Settings', {});

@@ -53,6 +53,8 @@ class JiraCreateTicketActionTest(RuleTestCase):
         )
 
         jira_rule.data["key"] = "APP-123"
+
+        # Add two mocks: one for POSTing the issue and a GET to confirm it's there.
         responses.add(
             method=responses.POST,
             url="https://example.atlassian.net/rest/api/2/issue",
@@ -75,7 +77,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
         results[0].callback(event, futures=[])
 
         # Make assertions about what would be sent.
-        data = json.loads(responses.calls[2].request.body)
+        data = json.loads(responses.calls[1].request.body)
         assert data["fields"]["summary"] == event.title
         assert event.message in data["fields"]["description"]
         assert data["fields"]["issuetype"]["id"] == "1"
@@ -123,7 +125,9 @@ class JiraCreateTicketActionTest(RuleTestCase):
         results = list(jira_rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
         results[0].callback(event, futures=[])
-        assert len(responses.calls) == 1
+
+        # Assert that we don't POST to create the issue.
+        assert len(responses.calls) == 0
 
     def test_render_label(self):
         rule = self.get_rule(

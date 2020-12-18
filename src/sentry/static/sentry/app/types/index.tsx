@@ -1660,7 +1660,7 @@ export type SelectValue<T> = {
  */
 export type IssueConfigField = Field & {
   name: string;
-  default?: string;
+  default?: string | number;
   choices?: [number | string, number | string][];
   url?: string;
   multiple?: boolean;

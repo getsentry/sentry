@@ -44,11 +44,18 @@ def transform_jira_fields_to_form_fields(fields_list):
 
 
 def transform_jira_choices_to_strings(fields, data):
+    """
+    Transform to strings so that an AlertRule can be serialized.
+    :param fields: Object
+    :param data: Object
+    :return:
+    """
     choices = {}
     for key, value in data.items():
         if key in ["integration", "dynamic_form_fields"] or not value:
             continue
-        if key in fields and fields[key]["type"] == "choice":
+
+        if key in fields and "type" in fields[key] and fields[key]["type"] == "choice":
             temp_dict = {k: v for (k, v) in fields[key]["choices"]}
             if fields[key].get("multiple") and type(value) == list:
                 choices[key] = [temp_dict[v] for v in value]
