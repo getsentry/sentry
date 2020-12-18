@@ -50,9 +50,9 @@ jobs:
       - name: Install Python via Pyenv
         # pyenv needs to be setup here in order that we can use the correct Pip cache
         run: |
-          make setup-pyenv
           echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
           exec "$SHELL"
+          make setup-pyenv
           which python && python -V
           which pip && pip freeze
 
