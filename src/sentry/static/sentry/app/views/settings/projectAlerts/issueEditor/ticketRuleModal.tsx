@@ -80,7 +80,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   /**
    * Clean up the form data before saving it to state.
-   * @param data
    */
   cleanData = (data: {
     [key: string]: string;
@@ -196,13 +195,15 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     const {ticketType, link} = this.props;
     return (
       <BodyText>
-        {t(
-          'When this alert is triggered a %s will be created with the following fields. ',
-          ticketType
+        {tct(
+          'When this alert is triggered a {ticketType} will be ' +
+            'created with the following fields. It will also [linkToDocs] ' +
+            'with the new Sentry Issue.',
+          {
+            linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
+            ticketType,
+          }
         )}
-        {tct("It'll also [linkToDocs] with the new Sentry Issue.", {
-          linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-        })}
       </BodyText>
     );
   };

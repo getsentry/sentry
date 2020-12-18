@@ -101,8 +101,6 @@ export default class AbstractExternalIssueForm<
 
   /**
    * If this field should updateFrom, updateForm. Otherwise, do nothing.
-   * @param label
-   * @param value
    */
   onFieldChange = (label: string, value: FieldValue) => {
     const {dynamicFieldValues} = this.state;
