@@ -65,18 +65,24 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .modal .modal-footer {
           border-top-color: ${theme.border};
         }
-        .nav-tabs > li > a:hover,
-        .nav-tabs > li > a:active,
-        .nav-tabs > li > a:focus {
-          border-bottom-color: ${theme.purple300} !important; /* TODO(dark): active */
-          color: ${theme.textColor} !important;
+
+        .nav-tabs {
+          & > li {
+            &.active {
+              a {
+                color: ${theme.textColor} !important;
+                border-bottom-color: ${theme.active} !important;
+              }
+            }
+
+            a:hover {
+              color: ${theme.textColor} !important;
+            }
+          }
         }
+
         ul.crumbs li .table.key-value pre {
           color: ${theme.subText};
-        }
-        .nav-tabs > li.active a,
-        .nav-tabs > li.active a:hover {
-          color: ${theme.textColor};
         }
 
         .exception {
@@ -155,9 +161,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
           background-color: ${theme.backgroundSecondary};
           color: ${theme.textColor};
         }
-        .search .search-input,
-        .Select-control,
-        .Select-menu-outer {
+        .search .search-input {
           background: ${theme.background};
           color: ${theme.formText};
         }

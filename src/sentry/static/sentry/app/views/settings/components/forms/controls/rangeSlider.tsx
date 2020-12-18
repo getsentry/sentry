@@ -260,7 +260,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.border};
     border-radius: 3px;
     border: 0;
   }
@@ -269,7 +269,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.border};
     border-radius: 3px;
     border: 0;
   }
@@ -278,17 +278,17 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     width: 100%;
     height: 3px;
     cursor: pointer;
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.border};
     border-radius: 3px;
     border: 0;
   }
 
   &::-webkit-slider-thumb {
-    box-shadow: 0 0 0 3px #fff;
+    box-shadow: 0 0 0 3px ${p => p.theme.background};
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme.active};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -297,11 +297,11 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &::-moz-range-thumb {
-    box-shadow: 0 0 0 3px #fff;
+    box-shadow: 0 0 0 3px ${p => p.theme.background};
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme.active};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -310,11 +310,11 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &::-ms-thumb {
-    box-shadow: 0 0 0 3px #fff;
+    box-shadow: 0 0 0 3px ${p => p.theme.background};
     height: 17px;
     width: 17px;
     border-radius: 50%;
-    background: ${p => p.theme.purple300};
+    background: ${p => p.theme.active};
     cursor: pointer;
     /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
@@ -323,13 +323,13 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &::-ms-fill-lower {
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.border};
     border: 0;
     border-radius: 50%;
   }
 
   &::-ms-fill-upper {
-    background: ${p => p.theme.gray200};
+    background: ${p => p.theme.border};
     border: 0;
     border-radius: 50%;
   }
@@ -338,31 +338,31 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     outline: none;
 
     &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.gray200};
+      background: ${p => p.theme.border};
     }
 
     &::-ms-fill-upper {
-      background: ${p => p.theme.gray200};
+      background: ${p => p.theme.border};
     }
 
     &::-ms-fill-lower {
-      background: ${p => p.theme.gray200};
+      background: ${p => p.theme.border};
     }
   }
 
   &[disabled] {
     &::-webkit-slider-thumb {
-      background: ${p => p.theme.gray200};
+      background: ${p => p.theme.border};
       cursor: default;
     }
 
     &::-moz-range-thumb {
-      background: ${p => p.theme.gray200};
+      background: ${p => p.theme.border};
       cursor: default;
     }
 
     &::-ms-thumb {
-      background: ${p => p.theme.gray200};
+      background: ${p => p.theme.border};
       cursor: default;
     }
 

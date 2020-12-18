@@ -42,12 +42,14 @@ const StyledSelectorItem = styled(SelectorItem)`
   padding: ${space(1)};
   align-items: center;
   flex: 1;
-  background-color: ${p => (p.selected ? p.theme.backgroundSecondary : 'transparent')};
+  background-color: ${p => (p.selected ? p.theme.active : 'transparent')};
+  color: ${p => (p.selected ? p.theme.white : 'inherit')};
   font-weight: ${p => (p.selected ? 'bold' : 'normal')};
   border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.innerBorder)};
 
   &:hover {
-    background: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.black};
+    background: ${p => p.theme.focus};
   }
 `;
 
