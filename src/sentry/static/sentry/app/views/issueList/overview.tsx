@@ -409,7 +409,7 @@ class IssueListOverview extends React.Component<Props, State> {
         data: qs.stringify(requestParams),
       });
       if (currentTabQuery) {
-        response[currentTabQuery] = queryCounts;
+        response[currentTabQuery] = currentQueryCount;
       }
 
       this.setState({queryCounts})
