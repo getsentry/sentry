@@ -1,9 +1,9 @@
 import React from 'react';
 import {withInfo} from '@storybook/addon-info';
-import {text, boolean, select} from '@storybook/addon-knobs';
+import {boolean, select, text} from '@storybook/addon-knobs';
 
-import Tooltip from 'app/components/tooltip';
 import Button from 'app/components/button';
+import Tooltip from 'app/components/tooltip';
 
 class CustomThing extends React.Component {
   render() {
@@ -31,7 +31,9 @@ export const _Tooltip = withInfo({
     {top: 'top', bottom: 'bottom', left: 'left', right: 'right'},
     'top'
   );
+
   const isHoverable = boolean('isHoverable', false);
+  const variant = isHoverable ? 'hoverable' : 'default';
 
   return (
     <React.Fragment>
@@ -42,7 +44,7 @@ export const _Tooltip = withInfo({
           position={position}
           disabled={disabled}
           containerDisplayMode={displayMode}
-          isHoverable={isHoverable}
+          variant={variant}
         >
           <Button>Styled button</Button>
         </Tooltip>
@@ -50,12 +52,7 @@ export const _Tooltip = withInfo({
 
       <h3>With class component trigger</h3>
       <p>
-        <Tooltip
-          title={title}
-          position={position}
-          disabled={disabled}
-          isHoverable={isHoverable}
-        >
+        <Tooltip title={title} position={position} disabled={disabled} variant={variant}>
           <CustomThing>Custom React Component</CustomThing>
         </Tooltip>
       </p>
@@ -73,7 +70,7 @@ export const _Tooltip = withInfo({
             position={position}
             disabled={disabled}
             containerDisplayMode={displayMode}
-            isHoverable={isHoverable}
+            variant={variant}
           >
             <circle cx="50" cy="50" r="50" />
           </Tooltip>
@@ -91,9 +88,22 @@ export const _Tooltip = withInfo({
           containerDisplayMode={displayMode}
           position={position}
           disabled={disabled}
-          isHoverable={isHoverable}
+          variant={variant}
         >
           <button>Native button</button>
+        </Tooltip>
+      </p>
+
+      <h3>With a copy to clipboard button</h3>
+      <p>
+        <Tooltip
+          title="This is a description"
+          containerDisplayMode={displayMode}
+          position={position}
+          disabled={disabled}
+          variant="copyable"
+        >
+          The tooltip of this text has a copy to clipboard button
         </Tooltip>
       </p>
     </React.Fragment>

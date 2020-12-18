@@ -6,12 +6,24 @@ import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
 
+import Clipboard from 'app/components/clipboard';
+import TextOverflow from 'app/components/textOverflow';
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {IconCopy} from 'app/icons';
+import space from 'app/styles/space';
 import {domId} from 'app/utils/domId';
 
 const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
-type DefaultProps = {
+/**
+ * hoverable: If true, user is able to hover tooltip without it disappearing.
+ * (nice if you want to be able to copy tooltip contents to clipboard)
+ *
+ * copyable: Displays a hoverable tooltip with a copy to clipboard button.
+ */
+type Variant = 'default' | 'hoverable' | 'copyable';
+
+type DefaultProps<V extends Variant = 'default'> = {
   /**
    * Position for the tooltip.
    */
@@ -21,9 +33,11 @@ type DefaultProps = {
    * Display mode for the container element
    */
   containerDisplayMode?: React.CSSProperties['display'];
+
+  variant?: V;
 };
 
-type Props = DefaultProps & {
+type Props<V extends Variant = 'default'> = DefaultProps<V> & {
   /**
    * The node to attach the Tooltip to
    */
@@ -37,7 +51,7 @@ type Props = DefaultProps & {
   /**
    * The content to show in the tooltip popover
    */
-  title: React.ReactNode;
+  title: V extends 'copyable' ? string : React.ReactNode;
 
   /**
    * Additional style rules for the tooltip content.
@@ -48,12 +62,6 @@ type Props = DefaultProps & {
    * Time to wait (in milliseconds) before showing the tooltip
    */
   delay?: number;
-
-  /**
-   * If true, user is able to hover tooltip without it disappearing.
-   * (nice if you want to be able to copy tooltip contents to clipboard)
-   */
-  isHoverable?: boolean;
 
   /**
    * If child node supports ref forwarding, you can skip apply a wrapper
@@ -73,7 +81,7 @@ type State = {
   usesGlobalPortal: boolean;
 };
 
-class Tooltip extends React.Component<Props, State> {
+class Tooltip<V extends Variant = 'default'> extends React.Component<Props<V>, State> {
   static propTypes = {
     disabled: PropTypes.bool,
     title: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
@@ -102,6 +110,7 @@ class Tooltip extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',
+    variant: 'default',
   };
 
   state: State = {
@@ -162,14 +171,14 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay, isHoverable} = this.props;
+    const {delay} = this.props;
 
     if (this.delayHideTimeout) {
       window.clearTimeout(this.delayHideTimeout);
       this.delayHideTimeout = null;
     }
 
-    if (delay || isHoverable) {
+    if (delay || this.isHoverable()) {
       this.delayTimeout = window.setTimeout(this.setOpen, delay || IS_HOVERABLE_DELAY);
     } else {
       this.setOpen();
@@ -177,19 +186,48 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleClose = () => {
-    const {isHoverable} = this.props;
-
     if (this.delayTimeout) {
       window.clearTimeout(this.delayTimeout);
       this.delayTimeout = null;
     }
 
-    if (isHoverable) {
+    if (this.isHoverable()) {
       this.delayHideTimeout = window.setTimeout(this.setClose, IS_HOVERABLE_DELAY);
     } else {
       this.setClose();
     }
   };
+
+  isHoverable() {
+    const {variant} = this.props;
+    const isCopyable = variant === 'copyable';
+    return variant === 'hoverable' || isCopyable;
+  }
+
+  getTooltipContent() {
+    const {variant, title} = this.props;
+
+    if (variant !== 'copyable') {
+      return title;
+    }
+
+    // if variant equals copyable, the title has to be of type string,
+    // but as the compiler does not process this info correctly a parser is needed
+    return (
+      <TooltipClipboardWrapper
+        onClick={event => {
+          event.stopPropagation();
+        }}
+      >
+        <TextOverflow>{title}</TextOverflow>
+        <Clipboard value={String(title)}>
+          <TooltipClipboardIconWrapper>
+            <IconCopy size="xs" color="white" />
+          </TooltipClipboardIconWrapper>
+        </Clipboard>
+      </TooltipClipboardWrapper>
+    );
+  }
 
   renderTrigger(children: React.ReactNode, ref: React.Ref<HTMLElement>) {
     const propList: {[key: string]: any} = {
@@ -225,8 +263,9 @@ class Tooltip extends React.Component<Props, State> {
   }
 
   render() {
-    const {disabled, children, title, position, popperStyle, isHoverable} = this.props;
+    const {disabled, children, position, popperStyle} = this.props;
     const {isOpen, usesGlobalPortal} = this.state;
+
     if (disabled) {
       return children;
     }
@@ -241,6 +280,9 @@ class Tooltip extends React.Component<Props, State> {
       },
     };
 
+    const isHoverable = this.isHoverable();
+    const tooltipContent = this.getTooltipContent();
+
     if (isOpen) {
       tip = ReactDOM.createPortal(
         <Popper placement={position} modifiers={modifiers}>
@@ -251,13 +293,13 @@ class Tooltip extends React.Component<Props, State> {
               aria-hidden={!isOpen}
               ref={ref}
               style={style}
-              hide={!title}
+              hide={!tooltipContent}
               data-placement={placement}
               popperStyle={popperStyle}
               onMouseEnter={() => isHoverable && this.handleOpen()}
               onMouseLeave={() => isHoverable && this.handleClose()}
             >
-              {title}
+              {tooltipContent}
               <TooltipArrow
                 ref={arrowProps.ref}
                 data-placement={placement}
@@ -289,7 +331,11 @@ const Container = styled('span')<{
   max-width: 100%;
 `;
 
-const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+type TooltipContentProps = Pick<Props, 'popperStyle'> & {
+  hide: boolean;
+};
+
+const TooltipContent = styled('div')<TooltipContentProps>`
   color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
@@ -360,6 +406,22 @@ const TooltipArrow = styled('span')<{background: string | number}>`
     width: 0;
     height: 0;
     border-style: solid;
+  }
+`;
+
+// Copyable variant components
+const TooltipClipboardWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: auto max-content;
+  align-items: center;
+  grid-gap: ${space(0.5)};
+`;
+
+const TooltipClipboardIconWrapper = styled('span')`
+  position: relative;
+  bottom: -${space(0.25)};
+  :hover {
+    cursor: pointer;
   }
 `;
 

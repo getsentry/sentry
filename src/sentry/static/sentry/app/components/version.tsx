@@ -5,14 +5,10 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import Clipboard from 'app/components/clipboard';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
-import {IconCopy} from 'app/icons';
 import SentryTypes from 'app/sentryTypes';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
@@ -111,22 +107,6 @@ const Version = ({
     );
   };
 
-  const renderTooltipContent = () => (
-    <TooltipContent
-      onClick={e => {
-        e.stopPropagation();
-      }}
-    >
-      <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-
-      <Clipboard value={version}>
-        <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" color="white" />
-        </TooltipClipboardIconWrapper>
-      </Clipboard>
-    </TooltipContent>
-  );
-
   const getPopperStyles = () => {
     // if the version name is not a hash (sha1 or sha265) and we are not on mobile, allow tooltip to be as wide as 500px
     if (/(^[a-f0-9]{40}$)|(^[a-f0-9]{64}$)/.test(version)) {
@@ -142,11 +122,11 @@ const Version = ({
 
   return (
     <Tooltip
-      title={renderTooltipContent()}
+      title={version}
       disabled={!tooltipRawVersion}
-      isHoverable
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
       popperStyle={getPopperStyles()}
+      variant="copyable"
     >
       {renderVersion()}
     </Tooltip>
@@ -181,25 +161,6 @@ const VersionText = styled('span')<{truncate?: boolean}>`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;`}
-`;
-
-const TooltipContent = styled('span')`
-  display: flex;
-  align-items: center;
-`;
-
-const TooltipVersionWrapper = styled('span')`
-  ${overflowEllipsis}
-`;
-
-const TooltipClipboardIconWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-  position: relative;
-  bottom: -${space(0.25)};
-
-  &:hover {
-    cursor: pointer;
-  }
 `;
 
 type PropsWithoutOrg = Omit<Props, 'organization'>;

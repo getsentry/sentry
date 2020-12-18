@@ -33,8 +33,8 @@ describe('Version', () => {
   it('shows raw version in tooltip', () => {
     const wrapper = mount(<Version version={VERSION} tooltipRawVersion />, routerContext);
 
-    const tooltipContent = mount(wrapper.find('Tooltip').prop('title'));
+    const tooltipContent = wrapper.find('Tooltip').prop('title');
 
-    expect(tooltipContent.text()).toBe(VERSION);
+    expect(tooltipContent).toBe(VERSION);
   });
 });
