@@ -1340,7 +1340,6 @@ SENTRY_ROLES = (
                 "org:read",
                 "member:read",
                 "team:read",
-                "alerts:write",
                 "alerts:read",
             ]
         ),
