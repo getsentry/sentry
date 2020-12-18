@@ -20,10 +20,10 @@ import {statsPeriodToDays} from '../dates';
 
 import {getSortField} from './fieldRenderers';
 import {
+  aggregateOutputType,
   Column,
   ColumnType,
   Field,
-  aggregateOutputType,
   generateFieldAsString,
   getAggregateAlias,
   isAggregateField,
