@@ -875,7 +875,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-group-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/issues-counts/$",
+                    r"^(?P<organization_slug>[^\/]+)/issues-count/$",
                     OrganizationIssuesCountEndpoint.as_view(),
                 ),
                 url(

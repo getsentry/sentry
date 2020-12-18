@@ -550,7 +550,7 @@ class IssueListOverview extends React.Component<Props, State> {
   getGroupCountsEndpoint(): string {
     const {orgId} = this.props.params;
 
-    return `/organizations/${orgId}/issues-counts/`;
+    return `/organizations/${orgId}/issues-count/`;
   }
 
   getGroupStatsEndpoint(): string {
