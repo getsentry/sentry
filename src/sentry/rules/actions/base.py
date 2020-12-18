@@ -229,6 +229,25 @@ class TicketEventAction(IntegrationEventAction):
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
 
+    def get_dynamic_form_fields(self):
+        """
+        Either get the dynamic form fields cached on the DB return `None`.
+
+        :return: (Option) Django form fields dictionary
+        """
+        form_fields = self.data.get("dynamic_form_fields")
+        if not form_fields:
+            return None
+
+        # Although this can be done with dict comprehension, looping for clarity.
+        if isinstance(form_fields, list):
+            fields = {}
+            for field in form_fields:
+                if "name" in field:
+                    fields[field["name"]] = field
+            return fields
+        return form_fields
+
     def translate_integration(self, integration):
         return integration.name
 

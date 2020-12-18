@@ -44,12 +44,6 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     def test_create_issue(self):
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
         event = self.get_event()
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects?stateFilter=WellFormed&%24skip=0&%24top=100",
-            body=GET_PROJECTS_RESPONSE,
-            content_type="application/json",
-        )
         azuredevops_rule = self.get_rule(
             data={
                 "title": "Hello",
@@ -73,7 +67,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         # Trigger rule callback
         rule_future = RuleFuture(rule=azuredevops_rule, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
-        data = json.loads(responses.calls[2].response.text)
+        data = json.loads(responses.calls[0].response.text)
 
         assert data["fields"]["System.Title"] == "Hello"
         assert data["fields"]["System.Description"] == "Fix this."
@@ -122,7 +116,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         results = list(azuredevops_rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
         results[0].callback(event, futures=[])
-        assert len(responses.calls) == 2
+        assert len(responses.calls) == 0
 
     def test_render_label(self):
         azuredevops_rule = self.get_rule(

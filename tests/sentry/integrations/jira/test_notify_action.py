@@ -88,7 +88,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
         results[0].callback(event, futures=[rule_future])
 
         # Make assertions about what would be POSTed to api/2/issue.
-        data = json.loads(responses.calls[2].request.body)
+        data = json.loads(responses.calls[1].request.body)
         assert data["fields"]["summary"] == event.title
         assert event.message in data["fields"]["description"]
         assert data["fields"]["issuetype"]["id"] == "1"
