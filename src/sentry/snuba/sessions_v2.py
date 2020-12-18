@@ -3,10 +3,10 @@ from __future__ import absolute_import
 from datetime import datetime
 
 import six
+import itertools
 
 from sentry.api.event_search import get_filter, InvalidSearchQuery
 from sentry.api.utils import get_date_range_from_params
-from sentry.utils.compat import filter
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.snuba import Dataset, raw_query, to_naive_timestamp, naiveify_datetime
 
@@ -79,85 +79,118 @@ Is then "exploded" into something like:
 """
 
 
-class ColumnDefinition(object):
-    """
-    This defines the column mapping from a discover-like `name` to the
-    `snuba_columns` that feed into it.
+class SessionsField(object):
+    def get_snuba_columns(self, raw_groupby):
+        if "session.status" in raw_groupby:
+            return ["sessions", "sessions_abnormal", "sessions_crashed", "sessions_errored"]
+        return ["sessions"]
 
-    An `extractor` function can be given that transforms the raw data columns
-    into the expected output. By default, it will just use the single `snuba_columns`.
-
-    A `default` must also be provided which is used when the row does not contain
-    any data.
-    """
-
-    def __init__(self, name, snuba_columns, default, extractor=None):
-        self.name = name
-        self.snuba_columns = snuba_columns
-        self.default = default
-        self.extractor = extractor
-
-    def extract(self, row):
+    def extract_from_row(self, row, group):
         if row is None:
-            return self.default
-
-        if self.extractor is not None:
-            value = self.extractor(row)
-        elif len(self.snuba_columns) == 1:
-            value = row[self.snuba_columns[0]]
-        else:
-            return self.default
-
-        return value if value is not None else self.default
-
-
-# Lets assume we have a recent enough snuba.
-# TODO: Also, maybe we can run a custom aggregation over the `duration_quantiles`?
-QUANTILE_MAP = {50: 0, 75: 1, 90: 2, 95: 3, 99: 4, 100: 5}
+            return 0
+        status = group.get("session.status")
+        if status is None:
+            return row["sessions"]
+        if status == "healthy":
+            return row["sessions"] - row["sessions_errored"]
+        if status == "abnormal":
+            return row["sessions_abnormal"]
+        if status == "crashed":
+            return row["sessions_crashed"]
+        if status == "errored":
+            return row["sessions_errored"]
+        return 0
 
 
-def extract_quantile(num):
-    def inner(row):
-        return row["duration_quantiles"][QUANTILE_MAP[num]]
+class UsersField(object):
+    def get_snuba_columns(self, raw_groupby):
+        if "session.status" in raw_groupby:
+            return ["users", "users_abnormal", "users_crashed", "users_errored"]
+        return ["users"]
 
-    return inner
+    def extract_from_row(self, row, group):
+        if row is None:
+            return 0
+        status = group.get("session.status")
+        if status is None:
+            return row["users"]
+        if status == "healthy":
+            return row["users"] - row["users_errored"]
+        if status == "abnormal":
+            return row["users_abnormal"]
+        if status == "crashed":
+            return row["users_crashed"]
+        if status == "errored":
+            return row["users_errored"]
+        return 0
 
 
-COLUMNS = [
-    ColumnDefinition("sum(session)", ["sessions"], 0),
-    ColumnDefinition(
-        "sum(session.healthy)",
-        ["sessions", "sessions_errored"],
-        0,
-        lambda row: row["sessions"] - row["sessions_errored"],
-    ),
-    ColumnDefinition("sum(session.errored)", ["sessions_errored"], 0),
-    ColumnDefinition("sum(session.abnormal)", ["sessions_abnormal"], 0),
-    ColumnDefinition("sum(session.crashed)", ["sessions_crashed"], 0),
-    ColumnDefinition("count_unique(user)", ["users"], 0),
-    ColumnDefinition(
-        "count_unique(user.healthy)",
-        ["users", "users_errored"],
-        0,
-        lambda row: row["users"] - row["users_errored"],
-    ),
-    ColumnDefinition("count_unique(user.errored)", ["users_errored"], 0),
-    ColumnDefinition("count_unique(user.abnormal)", ["users_abnormal"], 0),
-    ColumnDefinition("count_unique(user.crashed)", ["users_crashed"], 0),
-    ColumnDefinition("p50(session.duration)", ["duration_quantiles"], None, extract_quantile(50)),
-    ColumnDefinition("p75(session.duration)", ["duration_quantiles"], None, extract_quantile(75)),
-    ColumnDefinition("p90(session.duration)", ["duration_quantiles"], None, extract_quantile(90)),
-    ColumnDefinition("p95(session.duration)", ["duration_quantiles"], None, extract_quantile(95)),
-    ColumnDefinition("p99(session.duration)", ["duration_quantiles"], None, extract_quantile(99)),
-    ColumnDefinition("max(session.duration)", ["duration_quantiles"], None, extract_quantile(100)),
-    ColumnDefinition("avg(session.duration)", ["duration_avg"], None),
-    ColumnDefinition("release", ["release"], ""),
-    ColumnDefinition("environment", ["environment"], ""),
-    ColumnDefinition("user_agent", ["user_agent"], ""),
-    ColumnDefinition("os", ["os"], ""),
-]
+class DurationAverageField(object):
+    def get_snuba_columns(self, raw_groupby):
+        return ["duration_avg"]
 
-COLUMN_MAP = {column.name: column for column in COLUMNS}
+    def extract_from_row(self, row, group):
+        if row is None:
+            return None
+        return row["duration_avg"]
+
+
+class DurationQuantileField(object):
+    def __init__(self, quantile_index):
+        self.quantile_index = quantile_index
+
+    def get_snuba_columns(self, raw_groupby):
+        return ["duration_quantiles"]
+
+    def extract_from_row(self, row, group):
+        if row is None:
+            return None
+        return row["duration_quantiles"][self.quantile_index]
+
+
+COLUMN_MAP = {
+    "sum(session)": SessionsField(),
+    "count_unique(user)": UsersField(),
+    "avg(session.duration)": DurationAverageField(),
+    "p50(session.duration)": DurationQuantileField(0),
+    "p75(session.duration)": DurationQuantileField(1),
+    "p90(session.duration)": DurationQuantileField(2),
+    "p95(session.duration)": DurationQuantileField(3),
+    "p99(session.duration)": DurationQuantileField(4),
+    "max(session.duration)": DurationQuantileField(5),
+}
+
+
+class SimpleGroupBy(object):
+    def __init__(self, name):
+        self.name = name
+
+    def get_snuba_columns(self):
+        return [self.name]
+
+    def get_snuba_groupby(self):
+        return [self.name]
+
+    def get_keys_for_row(self, row):
+        return [(self.name, row[self.name])]
+
+
+class SessionStatusGroupBy(object):
+    def get_snuba_columns(self):
+        return []
+
+    def get_snuba_groupby(self):
+        return []
+
+    def get_keys_for_row(self, row):
+        return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
+
+
+GROUPBY_MAP = {
+    "environment": SimpleGroupBy("environment"),
+    "release": SimpleGroupBy("release"),
+    "session.status": SessionStatusGroupBy(),
+}
 
 
 class QueryDefinition(object):
@@ -176,8 +209,8 @@ class QueryDefinition(object):
         raw_groupby = request.GET.getlist("groupBy", [])
 
         # TODO: maybe show a proper error message for unknown fields/groupby
-        self.fields = filter(None, (COLUMN_MAP.get(field) for field in raw_fields))
-        self.groupby = filter(None, (COLUMN_MAP.get(field) for field in raw_groupby))
+        self.fields = {field: COLUMN_MAP.get(field) for field in raw_fields}
+        self.groupby = [GROUPBY_MAP.get(field) for field in raw_groupby]
 
         rollup = get_rollup_from_request(
             request,
@@ -191,16 +224,17 @@ class QueryDefinition(object):
         # The minimum interval is one hour on the server
         self.rollup = max(rollup, 3600)
 
-        def extract_columns(lists):
-            columns = set()
-            for l in lists:
-                for field in l:
-                    for column in field.snuba_columns:
-                        columns.add(column)
-            return list(columns)
+        query_columns = set()
+        for field in self.fields.values():
+            query_columns.update(field.get_snuba_columns(raw_groupby))
+        for groupby in self.groupby:
+            query_columns.update(groupby.get_snuba_columns())
+        self.query_columns = list(query_columns)
 
-        self.query_columns = extract_columns([self.fields, self.groupby])
-        self.query_groupby = extract_columns([self.groupby])
+        query_groupby = set()
+        for groupby in self.groupby:
+            query_groupby.update(groupby.get_snuba_groupby())
+        self.query_groupby = list(query_groupby)
 
         snuba_filter = get_timeseries_snuba_filter(
             self.query_columns, self.query, params, self.rollup
@@ -304,50 +338,52 @@ def massage_sessions_result(query, result_totals, result_timeseries):
     """
     timestamps = _get_timestamps(query)
 
-    def group_fn(row):
-        return tuple(field.extract(row) for field in query.groupby)
+    total_groups = _split_rows_groupby(result_totals, query.groupby)
+    timeseries_groups = _split_rows_groupby(result_timeseries, query.groupby)
 
-    total_groups = sane_groupby(result_totals, group_fn)
-    timeseries_groups = sane_groupby(result_timeseries, group_fn)
-
-    def make_timeseries(group):
-        for row in group:
+    def make_timeseries(rows, group):
+        for row in rows:
             row[TS_COL] = row[TS_COL][:19] + "Z"
 
-        group.sort(key=lambda row: row[TS_COL])
-        fields = [(field, list()) for field in query.fields]
+        rows.sort(key=lambda row: row[TS_COL])
+        fields = [(name, field, list()) for name, field in query.fields.items()]
         group_index = 0
 
-        while group_index < len(group):
-            row = group[group_index]
+        while group_index < len(rows):
+            row = rows[group_index]
             if row[TS_COL] < timestamps[0]:
                 group_index += 1
             else:
                 break
 
         for ts in timestamps:
-            row = group[group_index] if group_index < len(group) else None
+            row = rows[group_index] if group_index < len(rows) else None
             if row is not None and row[TS_COL] == ts:
                 group_index += 1
             else:
                 row = None
 
-            for (field, series) in fields:
-                series.append(field.extract(row))
+            for (name, field, series) in fields:
+                series.append(field.extract_from_row(row, group))
 
-        return {field.name: series for (field, series) in fields}
+        return {name: series for (name, field, series) in fields}
 
-    def make_totals(totals):
-        return {field.name: field.extract(totals[0]) for field in query.fields}
-
-    groups = [
-        {
-            "by": {field.name: key[i] for i, field in enumerate(query.groupby)},
-            "totals": make_totals(totals),
-            "series": make_timeseries(timeseries_groups[key]),
+    def make_totals(totals, group):
+        return {
+            name: field.extract_from_row(totals[0], group) for name, field in query.fields.items()
         }
-        for key, totals in total_groups.items()
-    ]
+
+    groups = []
+    for key, totals in total_groups.items():
+        by = dict(key)
+
+        group = {
+            "by": by,
+            "totals": make_totals(totals, by),
+            "series": make_timeseries(timeseries_groups[key], by),
+        }
+
+        groups.append(group)
 
     return {
         # "query": query.query,
@@ -370,17 +406,17 @@ def _get_timestamps(query):
     ]
 
 
-def sane_groupby(it, keyfn):
-    """
-    Basically the same as `itertools.groupby`, but without the requirement to
-    have the iterable sorted already by the keys, which can be super confusing
-    and breaks in surprising ways.
-    """
+def _split_rows_groupby(rows, groupby):
     groups = {}
-    for elem in it:
-        key = keyfn(elem)
-        if key not in groups:
-            groups[key] = []
-        groups[key].append(elem)
+    for row in rows:
+        key_parts = (group.get_keys_for_row(row) for group in groupby)
+        keys = itertools.product(*key_parts)
+
+        for key in keys:
+            key = frozenset(key)
+
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(row)
 
     return groups

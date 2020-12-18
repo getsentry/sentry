@@ -26,6 +26,47 @@ def test_timestamps():
     assert actual_timestamps == expected_timestamps
 
 
+def test_simple_query():
+    query = _get_query_from_request(MockRequest("statsPeriod=1d&interval=12h&field=sum(session)"))
+
+    assert query.query_columns == ["sessions"]
+
+
+def test_groupby_query():
+    query = _get_query_from_request(
+        MockRequest("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=release")
+    )
+
+    assert sorted(query.query_columns) == ["release", "sessions"]
+    assert query.query_groupby == ["release"]
+
+
+def test_virtual_groupby_query():
+    query = _get_query_from_request(
+        MockRequest("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=session.status")
+    )
+
+    assert sorted(query.query_columns) == [
+        "sessions",
+        "sessions_abnormal",
+        "sessions_crashed",
+        "sessions_errored",
+    ]
+    assert query.query_groupby == []
+
+    query = _get_query_from_request(
+        MockRequest("statsPeriod=1d&interval=12h&field=count_unique(user)&groupBy=session.status")
+    )
+
+    assert sorted(query.query_columns) == [
+        "users",
+        "users_abnormal",
+        "users_crashed",
+        "users_errored",
+    ]
+    assert query.query_groupby == []
+
+
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_simple_timeseries():
     """A timeseries is filled up when it only receives partial data"""
@@ -58,8 +99,6 @@ def test_massage_simple_timeseries():
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_groupby_timeseries():
-    """A timeseries is filled up when it only receives partial data"""
-
     query = _get_query_from_request(
         MockRequest("statsPeriod=1d&interval=6h&field=sum(session)&groupBy=release")
     )
@@ -104,6 +143,92 @@ def test_massage_groupby_timeseries():
                 "series": {"sum(session)": [0, 0, 0, 0, 1]},
                 "by": {"release": "test-example-release-2"},
                 "totals": {"sum(session)": 1},
+            },
+        ],
+    }
+
+    actual_result = massage_sessions_result(query, result_totals, result_timeseries)
+
+    assert actual_result == expected_result
+
+
+@freeze_time("2020-12-18T13:25:15.769Z")
+def test_massage_virtual_groupby_timeseries():
+    query = _get_query_from_request(
+        MockRequest(
+            "statsPeriod=1d&interval=6h&field=sum(session)&field=count_unique(user)&groupBy=session.status"
+        )
+    )
+    result_totals = [
+        {
+            "users": 1,
+            "users_crashed": 1,
+            "sessions": 6,
+            "sessions_errored": 1,
+            "users_errored": 1,
+            "sessions_abnormal": 0,
+            "sessions_crashed": 1,
+            "users_abnormal": 0,
+        }
+    ]
+    # snuba returns the datetimes as strings for now
+    result_timeseries = [
+        {
+            "sessions_errored": 1,
+            "users": 1,
+            "users_crashed": 1,
+            "sessions_abnormal": 0,
+            "sessions": 3,
+            "users_errored": 1,
+            "users_abnormal": 0,
+            "sessions_crashed": 1,
+            "bucketed_started": "2020-12-18T12:00:00+00:00",
+        },
+        {
+            "sessions_errored": 0,
+            "users": 1,
+            "users_crashed": 0,
+            "sessions_abnormal": 0,
+            "sessions": 3,
+            "users_errored": 0,
+            "users_abnormal": 0,
+            "sessions_crashed": 0,
+            "bucketed_started": "2020-12-18T06:00:00+00:00",
+        },
+    ]
+
+    expected_result = {
+        "intervals": [
+            "2020-12-17T12:00:00Z",
+            "2020-12-17T18:00:00Z",
+            "2020-12-18T00:00:00Z",
+            "2020-12-18T06:00:00Z",
+            "2020-12-18T12:00:00Z",
+        ],
+        "groups": [
+            {
+                "series": {"count_unique(user)": [0, 0, 0, 1, 0], "sum(session)": [0, 0, 0, 3, 2]},
+                "by": {"session.status": "healthy"},
+                # while in one of the time slots, we have a healthy user, it is
+                # the *same* user as the one experiencing a crash later on,
+                # so in the *whole* time window, that one user is not counted as healthy,
+                # so the `0` here is expected, as thats an example of the `count_unique` behavior.
+                "totals": {"count_unique(user)": 0, "sum(session)": 5},
+            },
+            {
+                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
+                "by": {"session.status": "crashed"},
+                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+            },
+            {
+                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
+                "by": {"session.status": "errored"},
+                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+            },
+            {
+                "series": {"count_unique(user)": [0, 0, 0, 0, 0], "sum(session)": [0, 0, 0, 0, 0]},
+                "by": {"session.status": "abnormal"},
+                "totals": {"count_unique(user)": 0, "sum(session)": 0},
             },
         ],
     }
