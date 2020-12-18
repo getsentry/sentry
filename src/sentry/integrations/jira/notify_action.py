@@ -11,7 +11,7 @@ from sentry.integrations.jira.utils import (
     transform_jira_choices_to_strings,
 )
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import TicketEventAction
+from sentry.rules.actions.base import TicketEventAction, NotifyServiceForm, INTEGRATION_KEY
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -19,20 +19,12 @@ from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger("sentry.rules")
 
-INTEGRATION_KEY = "integration"
 
-
-class JiraNotifyServiceForm(forms.Form):
+class JiraNotifyServiceForm(NotifyServiceForm):
     integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args, **kwargs):
-        integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(JiraNotifyServiceForm, self).__init__(*args, **kwargs)
-        if integrations:
-            self.fields[INTEGRATION_KEY].initial = integrations[0][0]
-
-        self.fields[INTEGRATION_KEY].choices = integrations
-        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
 
 class JiraCreateTicketAction(TicketEventAction):

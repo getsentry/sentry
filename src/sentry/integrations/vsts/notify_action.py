@@ -6,7 +6,7 @@ import six
 from django import forms
 
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import TicketEventAction
+from sentry.rules.actions.base import TicketEventAction, NotifyServiceForm, INTEGRATION_KEY
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -15,20 +15,12 @@ from sentry.integrations.vsts.integration import VstsIntegration
 
 logger = logging.getLogger("sentry.rules")
 
-INTEGRATION_KEY = "integration"
 
-
-class AzureDevopsNotifyServiceForm(forms.Form):
+class AzureDevopsNotifyServiceForm(NotifyServiceForm):
     integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args, **kwargs):
-        integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         super(AzureDevopsNotifyServiceForm, self).__init__(*args, **kwargs)
-        if integrations:
-            self.fields[INTEGRATION_KEY].initial = integrations[0][0]
-
-        self.fields[INTEGRATION_KEY].choices = integrations
-        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
     def clean(self):
         return super(AzureDevopsNotifyServiceForm, self).clean()

@@ -5,12 +5,27 @@ import logging
 import operator
 import six
 
+from django import forms
+
 from sentry.constants import ObjectStatus
 from sentry.models.integration import Integration
 from sentry.models import ExternalIssue, GroupLink
 from sentry.rules.base import RuleBase
 
 logger = logging.getLogger("sentry.rules")
+
+INTEGRATION_KEY = "integration"
+
+
+class NotifyServiceForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
+        super(forms.Form, self).__init__(*args, **kwargs)
+        if integrations:
+            self.fields[INTEGRATION_KEY].initial = integrations[0][0]
+
+        self.fields[INTEGRATION_KEY].choices = integrations
+        self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
 
 class EventAction(RuleBase):
