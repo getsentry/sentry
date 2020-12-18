@@ -1,9 +1,25 @@
 name: Development Environment
 on:
   push:
+    paths:
+    - 'Brewfile'
+    - 'Makefile'
+    - 'setup.py'  # For changes in the sentry CLI used in make bootstrap
+    - 'requirements-*.txt'
+    - 'scripts/*'
+    - 'src/sentry/*'  # Imported in setup.py
+    - '.github/workflows/development-environment.yml'
     branches:
       - master
   pull_request:
+    paths:
+    - 'Brewfile'
+    - 'Makefile'
+    - 'setup.py'  # For changes in the sentry CLI used in make bootstrap
+    - 'requirements-*.txt'
+    - 'scripts/*'
+    - 'src/sentry/*'  # Imported in setup.py
+    - '.github/workflows/development-environment.yml'
 
 jobs:
   dev-environment:
@@ -12,15 +28,11 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        python-version: [ 3.6 ]
+        python-version: [ 3.6 ]  # It does not matter since we use pyenv
         os: [ macos-11.0 ]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
