@@ -25,6 +25,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 
 search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
+ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
     def _count(self, request, query, organization, projects, environments, extra_query_kwargs=None):
@@ -43,6 +44,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
             query_kwargs.update(extra_query_kwargs)
 
         query_kwargs["environments"] = environments if environments else None
+
+        query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
         result = search.query(**query_kwargs)
         return result.hits

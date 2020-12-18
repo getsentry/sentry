@@ -275,6 +275,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         search_filters,
         date_from,
         date_to,
+        max_hits=None,
     ):
 
         now = timezone.now()
@@ -305,7 +306,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 group_queryset = group_queryset.order_by("-last_seen")
                 paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
                 # When its a simple django-only search, we count_hits like normal
-                return paginator.get_result(limit, cursor, count_hits=count_hits)
+                return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -383,6 +384,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             search_filters,
             start,
             end,
+            max_hits,
         )
         if count_hits and hits == 0:
             return self.empty_result
@@ -467,7 +469,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
-            ).get_result(limit, cursor, known_hits=hits)
+            ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
 
             if group_ids or len(paginator_results.results) >= limit or not more_results:
                 break
