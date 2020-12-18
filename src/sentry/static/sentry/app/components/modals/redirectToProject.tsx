@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import recreateRoute from 'app/utils/recreateRoute';
 
 type Props = ModalRenderProps &
