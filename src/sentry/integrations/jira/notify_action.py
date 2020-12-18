@@ -7,13 +7,11 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.integrations.jira.utils import (
-    transform_jira_fields_to_form_fields,
-    transform_jira_choices_to_strings,
     get_name_for_jira,
+    transform_jira_choices_to_strings,
 )
 from sentry.models.integration import Integration
 from sentry.rules.actions.base import TicketEventAction
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
@@ -57,6 +55,7 @@ class JiraCreateTicketAction(TicketEventAction):
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
                 "updatesForm": True,
+                "name": "integration",
             }
         }
 
@@ -76,32 +75,20 @@ class JiraCreateTicketAction(TicketEventAction):
 
     def get_dynamic_form_fields(self):
         """
-        Either get the dynamic form fields cached on the DB or make an API call
-        to Jira to get them for the selected integration. If both fail, return `None`.
+        Either get the dynamic form fields cached on the DB return `None`.
 
-        :return: Django form fields dictionary
+        :return: (Option) Django form fields dictionary
         """
-        if "dynamic_form_fields" in self.data:
-            return self.data["dynamic_form_fields"]
+        fields_list = self.data.get("dynamic_form_fields")
+        if not fields_list:
+            return None
 
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
-            pass
-        else:
-            installation = integration.get_installation(self.project.organization.id)
-            if installation:
-                try:
-                    fields = installation.get_create_issue_config_no_params()
-                except IntegrationError as e:
-                    # TODO log when the API call fails.
-                    logger.info(e)
-                else:
-                    dynamic_form_fields = transform_jira_fields_to_form_fields(fields)
-                    self.data["dynamic_form_fields"] = dynamic_form_fields
-                    # TODO should I wipe out the rest of the data?
-                    return dynamic_form_fields
-        return None
+        # Although this can be done with dict comprehension, looping for clarity.
+        fields = {}
+        for field in fields_list:
+            if "name" in field:
+                fields[field["name"]] = field
+        return fields
 
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
