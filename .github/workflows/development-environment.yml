@@ -72,9 +72,9 @@ jobs:
       #     cd ~/work/sentry/sentry
       #     echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
+      # - name: Setup pip
+      #   uses: ./.github/actions/setup-pip
+      #   id: pip
 
       # XXX: Will it work to cache ~/.venv ?
       # - name: Cache
