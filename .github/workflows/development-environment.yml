@@ -49,26 +49,27 @@ jobs:
           echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
 
       - name: Install Python via Pyenv
-        # pyenv needs to be setup here in order that we can use the correct Pip cache
-        # XXX: Locally pyenv makes 3.6.10 be the Python version in use because of the order within .python-version
-        # XXX: For some reason is not quite working
-        run: |
-          make setup-pyenv
-          ls -la $HOME
-          pyenv versions
-          pwd
-          python -V
-          echo $PATH
-          export PATH=$HOME/.pyenv/shims:$PATH
-          pyenv local 3.6.10
-          pyenv versions
-          python -V
-
-      - name: Set python-version
         id: python-version
         shell: bash
+        # pyenv needs to be setup here in order that we can use the correct Pip cache
+        # We set the global version to be 3.6.10 since in order for that version to be picked we need
+        # to be inside the source checkout (that's how pyenv activates it)
+        # XXX: Locally pyenv makes 3.6.10 be the Python version in use because of the order within .python-version
         run: |
+          make setup-pyenv
+          export PATH=$HOME/.pyenv/shims:$PATH
+          echo $PATH
+          pyenv global 3.6.10
+          python -V
+          env | sort
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
+
+      # - name: Set python-version
+      #   id: python-version
+      #   shell: bash
+      #   run: |
+      #     cd ~/work/sentry/sentry
+      #     echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
