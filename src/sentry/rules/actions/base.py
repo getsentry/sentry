@@ -251,9 +251,6 @@ class TicketEventAction(IntegrationEventAction):
     def translate_integration(self, integration):
         return integration.name
 
-    def fix_data_for_issue(self):
-        raise NotImplementedError
-
     @property
     def prompt(self):
         return u"Create {}".format(self.ticket_type)
