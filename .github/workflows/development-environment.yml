@@ -72,16 +72,16 @@ jobs:
         id: pip
 
       # XXX: Will it work to cache ~/.venv ?
-      - name: Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ${{ steps.pip.outputs.pip-cache-dir }}
-            ~/.pyenv
-            .venv
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-py${{ matrix.python-version }}
+      # - name: Cache
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ${{ steps.pip.outputs.pip-cache-dir }}
+      #       ~/.pyenv
+      #       .venv
+      #     key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-pip-py${{ matrix.python-version }}
 
       - name: Set up Python environment (as per docs)
         # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
