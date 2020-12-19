@@ -43,12 +43,15 @@ jobs:
         # XXX: Can the Brew set up be cached?
         run: |
           brew bundle
-          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
-          echo "PATH=$PYENV_ROOT/shims:$PATH" >> $GITHUB_ENV
-          echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bash_profile
-          echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
 
-      - name: Install Python via Pyenv
+      - name: Set environment variables
+        shell: bash
+        run: |
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
+          echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Install Python (via Pyenv)
         id: python-version
         shell: bash
         # pyenv needs to be setup here in order that we can use the correct Pip cache
@@ -57,12 +60,15 @@ jobs:
         # XXX: Locally pyenv makes 3.6.10 be the Python version in use because of the order within .python-version
         run: |
           echo $PATH
+          which python && python -V
           make setup-pyenv
+          echo $PATH
+          which python && python -V
           export PATH=$HOME/.pyenv/shims:$PATH
           echo $PATH
+          which python && python -V
           pyenv global 3.6.10
-          python -V
-          which python
+          which python && python -V
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       # - name: Set python-version
@@ -94,6 +100,7 @@ jobs:
         # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
         run: |
           echo $PATH
+          which python && python -V
           export PATH=$HOME/.pyenv/shims:$PATH
           pwd
           which python && python -V
@@ -103,11 +110,17 @@ jobs:
           source .venv/bin/activate
           make install-py-dev
           make setup-git
+
+      - name: Set up Node environment (as per docs)
+        # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
+        # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
+        # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
+        run: |
           curl https://get.volta.sh | bash
-          export VOLTA_HOME="~/.volta"
-          export PATH="$VOLTA_HOME/bin:$PATH"
-          echo $PATH
           node -v
+
+      - name: Set up Sentry and others
+        run: |
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
           touch foo.txt && git add foo.txt && git commit -m "Test git hooks"
