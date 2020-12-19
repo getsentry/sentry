@@ -58,7 +58,10 @@ jobs:
           pyenv versions
           pwd
           python -V
+          echo $PATH
+          export PATH=$HOME/.pyenv/shims:$PATH
           pyenv local 3.6.10
+          pyenv versions
           python -V
 
       - name: Set python-version
