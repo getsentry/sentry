@@ -68,78 +68,80 @@ type Props = Omit<
     className?: string;
   };
 
-const DropdownLinkBase = ({
-  anchorRight,
-  disabled,
-  title,
-  customTitle,
-  caret,
-  children,
-  menuClasses,
-  className,
-  alwaysRenderMenu,
-  topLevelClasses,
-  theme,
-  ...otherProps
-}: Props) => (
-  <DropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
-    {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
-      const shouldRenderMenu = alwaysRenderMenu || isOpen;
-      const cx = classNames('dropdown-actor', className, {
-        'dropdown-menu-right': anchorRight,
-        'dropdown-toggle': true,
-        hover: isOpen,
-        disabled,
-      });
-      const topLevelCx = classNames('dropdown', topLevelClasses, {
-        'pull-right': anchorRight,
-        'anchor-right': anchorRight,
-        open: isOpen,
-      });
+const DropdownLink = withTheme(
+  ({
+    anchorRight,
+    disabled,
+    title,
+    customTitle,
+    caret,
+    children,
+    menuClasses,
+    className,
+    alwaysRenderMenu,
+    topLevelClasses,
+    theme,
+    ...otherProps
+  }: Props) => (
+    <DropdownMenu alwaysRenderMenu={alwaysRenderMenu} {...otherProps}>
+      {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
+        const shouldRenderMenu = alwaysRenderMenu || isOpen;
+        const cx = classNames('dropdown-actor', className, {
+          'dropdown-menu-right': anchorRight,
+          'dropdown-toggle': true,
+          hover: isOpen,
+          disabled,
+        });
+        const topLevelCx = classNames('dropdown', topLevelClasses, {
+          'pull-right': anchorRight,
+          'anchor-right': anchorRight,
+          open: isOpen,
+        });
 
-      return (
-        <span
-          css={getRootCss(theme)}
-          {...getRootProps({
-            className: topLevelCx,
-          })}
-        >
-          <a
-            {...getActorProps({
-              className: cx,
+        return (
+          <span
+            css={getRootCss(theme)}
+            {...getRootProps({
+              className: topLevelCx,
             })}
           >
-            {customTitle || (
-              <div className="dropdown-actor-title">
-                <span>{title}</span>
-                {caret && <IconChevron direction="down" size="xs" />}
-              </div>
-            )}
-          </a>
-
-          {shouldRenderMenu && (
-            <ul
-              {...getMenuProps({
-                className: classNames(menuClasses, 'dropdown-menu'),
+            <a
+              {...getActorProps({
+                className: cx,
               })}
             >
-              {children}
-            </ul>
-          )}
-        </span>
-      );
-    }}
-  </DropdownMenu>
+              {customTitle || (
+                <div className="dropdown-actor-title">
+                  <span>{title}</span>
+                  {caret && <IconChevron direction="down" size="xs" />}
+                </div>
+              )}
+            </a>
+
+            {shouldRenderMenu && (
+              <ul
+                {...getMenuProps({
+                  className: classNames(menuClasses, 'dropdown-menu'),
+                })}
+              >
+                {children}
+              </ul>
+            )}
+          </span>
+        );
+      }}
+    </DropdownMenu>
+  )
 );
 
-DropdownLinkBase.defaultProps = {
+DropdownLink.defaultProps = {
   alwaysRenderMenu: true,
   disabled: false,
   anchorRight: false,
   caret: true,
 };
 
-DropdownLinkBase.propTypes = {
+DropdownLink.propTypes = {
   ...DropdownMenu.propTypes,
   title: PropTypes.node,
   caret: PropTypes.bool,
@@ -150,6 +152,6 @@ DropdownLinkBase.propTypes = {
   menuClasses: PropTypes.string,
 };
 
-const DropdownLink = withTheme(DropdownLinkBase);
+DropdownLink.displayName = 'DropdownLink';
 
 export default DropdownLink;

@@ -30,10 +30,6 @@ export default function ActionLink({
   shouldConfirm,
   ...props
 }: Props) {
-  const testId = title
-    ? 'action-link-' + title.toLowerCase().replace(/ /g, '-')
-    : 'action-link';
-
   return (
     <ConfirmableAction
       shouldConfirm={shouldConfirm}
@@ -44,7 +40,6 @@ export default function ActionLink({
     >
       <ActionLinkAnchor
         as={type === 'button' ? ActionButton : 'a'}
-        data-test-id={testId}
         aria-label={title}
         className={classNames(className, {disabled})}
         onClick={disabled ? undefined : onAction}
