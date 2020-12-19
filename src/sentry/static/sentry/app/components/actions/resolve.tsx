@@ -2,10 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
+import ActionLink from 'app/components/actions/actionLink';
 import ButtonBar from 'app/components/buttonBar';
 import CustomResolutionModal from 'app/components/customResolutionModal';
 import DropdownLink from 'app/components/dropdownLink';
-import ActionLink from 'app/components/actions/actionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconChevron} from 'app/icons';
 import {t} from 'app/locale';
@@ -111,7 +111,8 @@ class ResolveActions extends React.Component<Props> {
         customTitle={
           !hasInbox && (
             <MoreButton
-              disabled={disabled}
+              label={t('More resolve options')}
+              disabled={!projectId ? disabled : disableDropdown}
               icon={<IconChevron direction="down" size="xs" />}
             />
           )

@@ -65,7 +65,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
         await tick();
         wrapper.update();
@@ -133,7 +133,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
         await tick();
         wrapper.update();
@@ -349,14 +349,18 @@ describe('IssueListActions', function () {
     });
 
     it('should disable merge button', function () {
-      const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
-      expect(merge.props().disabled).toBe(true);
+      expect(
+        wrapper.find('button[aria-label="Merge Selected Issues"]').props()[
+          'aria-disabled'
+        ]
+      ).toBe(true);
     });
   });
 
   describe('with inbox feature', function () {
-    beforeEach(() => {
-      SelectedGroupStore.records = {};
+    beforeEach(async () => {
+      SelectedGroupStore.init();
+      await tick();
       const {organization} = TestStubs.routerContext().context;
       wrapper = mountWithTheme(
         <React.Fragment>
@@ -398,15 +402,18 @@ describe('IssueListActions', function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
+
+      await tick();
+      wrapper.update();
+
       const apiMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
-      console.log(wrapper.find('button[aria-label="Mark Reviewed"]').debug());
-      wrapper.find('[aria-label="Mark Reviewed"]').simulate('click');
+      wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
 
       expect(wrapper.find('Modal')).toSnapshot();
-      wrapper.find('Button[priority="primary"]').simulate('click');
+      wrapper.find('Modal Button[priority="primary"]').simulate('click');
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

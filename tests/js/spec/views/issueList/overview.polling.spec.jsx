@@ -163,10 +163,14 @@ describe('IssueList -> Polling', function () {
     );
 
     // Enable real time control
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
-    wrapper.find('[data-test-id="realtime-control"]').simulate('click');
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(1);
+    wrapper.find('button[aria-label="Enable real-time updates"]').simulate('click');
 
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -175,8 +179,10 @@ describe('IssueList -> Polling', function () {
     expect(pollRequest).toHaveBeenCalledTimes(2);
 
     // Pauses
-    wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
+    wrapper.find('button[aria-label="Pause real-time updates"]').simulate('click');
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(1);
 
     jest.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
@@ -192,8 +198,10 @@ describe('IssueList -> Polling', function () {
     await createWrapper();
 
     // Enable real time control
-    wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
+    wrapper.find('button[aria-label="Enable real-time updates"]').simulate('click');
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -212,9 +220,13 @@ describe('IssueList -> Polling', function () {
     await createWrapper();
 
     // Enable real time control
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(1);
-    wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(1);
+    wrapper.find('button[aria-label="Enable real-time updates"]').simulate('click');
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -233,8 +245,10 @@ describe('IssueList -> Polling', function () {
     await createWrapper();
 
     // Enable real time control
-    wrapper.find('[data-test-id="realtime-control"]').simulate('click');
-    expect(wrapper.find('[data-test-id="realtime-control"] IconPlay')).toHaveLength(0);
+    wrapper.find('button[aria-label="Enable real-time updates"]').simulate('click');
+    expect(
+      wrapper.find('button[aria-label="Enable real-time updates"] IconPlay')
+    ).toHaveLength(0);
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
