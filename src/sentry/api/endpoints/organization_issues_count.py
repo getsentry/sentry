@@ -2,12 +2,10 @@ from __future__ import absolute_import, division, print_function
 
 import six
 
-from django.conf import settings
-
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, search
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import (
     rate_limit_endpoint,
@@ -16,14 +14,11 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.snuba import discover
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
-
-search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
