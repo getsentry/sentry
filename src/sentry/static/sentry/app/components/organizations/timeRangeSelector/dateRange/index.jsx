@@ -233,10 +233,43 @@ const StyledDateRange = styled(DateRange)`
 const StyledDateRangePicker = styled(DateRangePicker)`
   padding: 21px; /* this is specifically so we can align borders */
 
+  .rdrSelected,
+  .rdrInRange,
+  .rdrStartEdge,
+  .rdrEndEdge {
+    background-color: ${p => p.theme.active};
+  }
+
+  .rdrDayHovered .rdrDayStartPreview,
+  .rdrDayHovered .rdrDayEndPreview,
+  .rdrDay .rdrDayInPreview {
+    background-color: ${p => p.theme.focus};
+  }
+
+  .rdrStartEdge + .rdrDayStartPreview {
+    background-color: transparent;
+  }
+
+  .rdrDayToday .rdrDayNumber span {
+    color: ${p => p.theme.active};
+  }
+
+  .rdrDayNumber span:after {
+    background-color: ${p => p.theme.active};
+  }
+
   .rdrDefinedRangesWrapper,
   .rdrDateDisplayWrapper,
   .rdrWeekDays {
     display: none;
+  }
+
+  .rdrInRange {
+    background: ${p => p.theme.active};
+  }
+
+  .rdrDayInPreview {
+    background: ${p => p.theme.focus};
   }
 
   .rdrMonth {
