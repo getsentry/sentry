@@ -139,7 +139,7 @@ class GroupHeader extends React.Component<Props, State> {
               )}
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
-              {hasInbox && (
+              {hasInbox && group.level && (
                 <div>
                   <ErrorLevel level={group.level} size="11px" />
                 </div>

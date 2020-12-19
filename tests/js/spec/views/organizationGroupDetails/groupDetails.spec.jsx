@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -270,5 +271,28 @@ describe('groupDetails', function () {
       }),
       {}
     );
+  });
+
+  it('renders inbox reason', async function () {
+    organization.features = ['inbox'];
+    issueDetailsMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/`,
+      body: {
+        ...group,
+        inbox: {
+          date_added: '2020-11-24T13:17:42.248751Z',
+          reason: 0,
+          reason_details: null,
+        },
+      },
+    });
+    ProjectsStore.reset();
+    wrapper = createWrapper();
+
+    ProjectsStore.loadInitialData(organization.projects);
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('InboxReason').text()).toBe('New Issue');
   });
 });
