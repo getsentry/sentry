@@ -1,13 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import Tag from 'app/components/tag';
 import {defined} from 'app/utils';
+import {Theme} from 'app/utils/theme';
 
 type Props = {
   count?: number;
   max?: number;
   hideIfEmpty?: boolean;
   hideParens?: boolean;
+  useTagType?: keyof Theme['tag'];
 };
 
 /**
@@ -17,11 +20,17 @@ type Props = {
  * Render nothing by default if `count` is falsy.
  */
 
-const QueryCount = ({count, max, hideIfEmpty = true, hideParens = false}: Props) => {
+const QueryCount = ({count, max, hideIfEmpty = true, hideParens = false, useTagType}: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
   if (hideIfEmpty && !count) {
     return null;
+  }
+
+  if (useTagType) {
+    return <Tag type={useTagType}>
+      {countOrMax}
+    </Tag>
   }
 
   return (

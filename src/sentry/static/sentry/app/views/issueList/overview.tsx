@@ -60,7 +60,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {Query} from './utils';
+import {Query, QueryCounts, TabQueriesWithCounts} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -91,7 +91,7 @@ type State = {
   realtimeActive: boolean;
   pageLinks: string;
   queryCount: number;
-  queryCounts: Record<string, number>;
+  queryCounts: QueryCounts;
   queryMaxCount: number;
   error: string | null;
   isSidebarVisible: boolean;
@@ -382,42 +382,48 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchCounts = async (currentQueryCount: number) => {
-    const {queryCounts} = this.state;
-
-    // If all tabs' counts are fetched, skip
-    const countTabQueries: string[] = [Query.NEEDS_REVIEW, Query.UNRESOLVED];
-    if (countTabQueries.every(tabQuery => (queryCounts[tabQuery] !== undefined))) {
-      return;
-    }
+    const {queryCounts: _queryCounts} = this.state;
+    let queryCounts: QueryCounts = { ..._queryCounts }
 
     const endpointParams: EndpointParams = this.getEndpointParams();
-    const currentTabQuery = endpointParams.query && countTabQueries.includes(endpointParams.query)
+    const currentTabQuery = endpointParams.query && TabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
-    const requestParams: CountsEndpointParams = {
-      ...omit(endpointParams, 'query'),
-      query: countTabQueries.filter(_query => _query !== currentTabQuery)
-    };
 
-    // If no stats period values are set, use default
-    if (!requestParams.statsPeriod && !requestParams.start) {
-      requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-    }
-    try {
-      const response = await this.props.api.requestPromise(this.getGroupCountsEndpoint(), {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-      });
-      if (currentTabQuery) {
-        response[currentTabQuery] = currentQueryCount;
+    // If all tabs' counts are fetched, skip and only set
+    if (!TabQueriesWithCounts.every(tabQuery => (queryCounts[tabQuery] !== undefined))) {
+      const requestParams: CountsEndpointParams = {
+        ...omit(endpointParams, 'query'),
+        // fetch the counts for the tabs whose counts haven't been fetched yet
+        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery)
+      };
+
+      // If no stats period values are set, use default
+      if (!requestParams.statsPeriod && !requestParams.start) {
+        requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
-
-      this.setState({queryCounts: response})
-    } catch (e) {
-      this.setState({
-        error: parseApiError(e),
-      });
+      try {
+        const response = await this.props.api.requestPromise(this.getGroupCountsEndpoint(), {
+          method: 'GET',
+          data: qs.stringify(requestParams),
+        });
+        queryCounts = {
+          ...queryCounts,
+          ...response,
+        }
+      } catch (e) {
+        this.setState({
+          error: parseApiError(e),
+        });
+        return;
+      }
     }
+
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = currentQueryCount;
+    }
+
+    this.setState({queryCounts});
   };
 
   fetchData = () => {
