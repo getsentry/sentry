@@ -44,7 +44,7 @@ jobs:
         run: |
           brew bundle
           echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
-          echo "PATH=$PYENV_ROOT/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=$PYENV_ROOT/shims:$PATH" >> $GITHUB_ENV
           echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.bash_profile
           echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> ~/.zshrc
 
@@ -56,12 +56,13 @@ jobs:
         # to be inside the source checkout (that's how pyenv activates it)
         # XXX: Locally pyenv makes 3.6.10 be the Python version in use because of the order within .python-version
         run: |
+          echo $PATH
           make setup-pyenv
           export PATH=$HOME/.pyenv/shims:$PATH
           echo $PATH
           pyenv global 3.6.10
           python -V
-          env | sort
+          which python
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       # - name: Set python-version
@@ -92,6 +93,9 @@ jobs:
         # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
         # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
         run: |
+          echo $PATH
+          export PATH=$HOME/.pyenv/shims:$PATH
+          pwd
           which python && python -V
           which pip && pip freeze
           python -m pip install virtualenv
