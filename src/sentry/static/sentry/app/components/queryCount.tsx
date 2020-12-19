@@ -20,7 +20,13 @@ type Props = {
  * Render nothing by default if `count` is falsy.
  */
 
-const QueryCount = ({count, max, hideIfEmpty = true, hideParens = false, useTagType}: Props) => {
+const QueryCount = ({
+  count,
+  max,
+  hideIfEmpty = true,
+  hideParens = false,
+  useTagType,
+}: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
   if (hideIfEmpty && !count) {
@@ -28,9 +34,7 @@ const QueryCount = ({count, max, hideIfEmpty = true, hideParens = false, useTagT
   }
 
   if (useTagType) {
-    return <Tag type={useTagType}>
-      {countOrMax}
-    </Tag>
+    return <Tag type={useTagType}>{countOrMax}</Tag>;
   }
 
   return (
