@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import DropdownLink from 'app/components/dropdownLink';
 import ActionLink from 'app/components/actions/actionLink';
 import ResolveActions from 'app/components/actions/resolve';
+import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
