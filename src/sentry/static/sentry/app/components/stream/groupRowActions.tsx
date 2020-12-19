@@ -99,7 +99,6 @@ class GroupRowActions extends React.Component<Props> {
           anchorRight
         >
           <MenuItemActionLink
-            className="action-resolve"
             onAction={() => this.handleUpdate({status: ResolutionStatus.RESOLVED})}
             shouldConfirm={false}
             title={t('Resolve')}
@@ -138,7 +137,6 @@ class GroupRowActions extends React.Component<Props> {
           </StyledMenuItem>
 
           <MenuItemActionLink
-            className="action-delete"
             onAction={this.handleDelete}
             shouldConfirm={false}
             title={t('Delete')}

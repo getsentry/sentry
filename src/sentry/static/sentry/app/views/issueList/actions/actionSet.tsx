@@ -154,7 +154,7 @@ function ActionSet({
         }
       >
         <MenuItemActionLink
-          className="action-merge hidden-lg hidden-xl"
+          className="hidden-lg hidden-xl"
           disabled={mergeDisabled}
           onAction={onMerge}
           shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
@@ -166,7 +166,7 @@ function ActionSet({
         </MenuItemActionLink>
         {hasInbox && (
           <MenuItemActionLink
-            className="action-acknowledge hidden-md hidden-lg hidden-xl"
+            className="hidden-md hidden-lg hidden-xl"
             disabled={!anySelected}
             onAction={() => onUpdate({inbox: false})}
             shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
@@ -178,7 +178,6 @@ function ActionSet({
           </MenuItemActionLink>
         )}
         <MenuItemActionLink
-          className="action-bookmark"
           disabled={!anySelected}
           onAction={() => onUpdate({isBookmarked: true})}
           shouldConfirm={onShouldConfirm(ConfirmAction.BOOKMARK)}
@@ -189,7 +188,6 @@ function ActionSet({
           {t('Add to Bookmarks')}
         </MenuItemActionLink>
         <MenuItemActionLink
-          className="action-remove-bookmark"
           disabled={!anySelected}
           onAction={() => onUpdate({isBookmarked: false})}
           shouldConfirm={onShouldConfirm(ConfirmAction.UNBOOKMARK)}
@@ -201,7 +199,6 @@ function ActionSet({
         </MenuItemActionLink>
 
         <MenuItemActionLink
-          className="action-unresolve"
           disabled={!anySelected}
           onAction={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
           shouldConfirm={onShouldConfirm(ConfirmAction.UNRESOLVE)}
@@ -212,7 +209,6 @@ function ActionSet({
           {t('Set status to: Unresolved')}
         </MenuItemActionLink>
         <MenuItemActionLink
-          className="action-delete"
           disabled={!anySelected}
           onAction={onDelete}
           shouldConfirm={onShouldConfirm(ConfirmAction.DELETE)}
