@@ -152,8 +152,6 @@ class Symbolicator(object):
                 # If there is no response attached, it's a connection error.
                 raise RetrySymbolication(retry_after=settings.SYMBOLICATOR_MAX_RETRY_AFTER)
 
-            raise Exception(create_task.__name__)
-
             metrics.incr(
                 "events.symbolicator.response",
                 tags={"response": json_response.get("status") or "null", "task_name": task_name},
