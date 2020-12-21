@@ -13,7 +13,7 @@ import theme from 'app/utils/theme';
 
 import NotAvailable from './notAvailable';
 import Table from './table';
-import UplodadedDebugFilesTable from './uploadedDebugFilesTable';
+import UploadedDebugFilesTable from './uploadedDebugFilesTable';
 
 const UPLOADED_TO_SENTRY = 'sentry:project';
 
