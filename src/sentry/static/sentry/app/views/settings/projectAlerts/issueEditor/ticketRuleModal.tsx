@@ -1,55 +1,86 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import debounce from 'lodash/debounce';
 import set from 'lodash/set';
-import * as queryString from 'query-string';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExternalIssueForm';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IssueConfigField} from 'app/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'app/types/alerts';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import {IssueConfigField, Organization} from 'app/types';
+import {IssueAlertRuleAction} from 'app/types/alerts';
+import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
-import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 type Props = ModalRenderProps & {
+  // Comes from the in-code definition of a `TicketEventAction`.
   formFields: {[key: string]: any};
+  index: number;
+  // The AlertRuleAction from DB.
+  instance: IssueAlertRuleAction;
   link?: string;
-  ticketType?: string;
-  instance?: IssueAlertRuleAction | IssueAlertRuleCondition;
   onSubmitAction: (
     data: {[key: string]: string},
-    dynamicFieldChoices: {[key: string]: string[]}
+    fetchedFieldOptionsCache: {[key: string]: [string, string][]}
   ) => void;
-  onPropertyChange: (rowIndex: number, name: string, value: string) => void;
-  index: number;
-};
+  organization: Organization;
+  ticketType?: string;
+} & AbstractExternalIssueForm['props'];
 
 type State = {
-  dynamicFieldChoices: {[key: string]: string[]};
-};
+  issueConfigFieldsCache: IssueConfigField[];
+  fetchedFieldOptionsCache: {[key: string]: [string, string][]};
+} & AbstractExternalIssueForm['state'];
 
-class TicketRuleModal extends React.Component<Props, State> {
-  state: State = {
-    dynamicFieldChoices: {},
+class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
+  getDefaultState(): State {
+    const {instance} = this.props;
+    const issueConfigFieldsCache = Object.values(instance?.dynamic_form_fields || {});
+    return {
+      ...super.getDefaultState(),
+      fetchedFieldOptionsCache: Object.fromEntries(
+        issueConfigFieldsCache.map(field => [field.name, field.choices])
+      ),
+      issueConfigFieldsCache,
+    };
+  }
+
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {instance, organization} = this.props;
+    return [
+      [
+        'integrationDetails',
+        `/organizations/${organization.slug}/integrations/${instance.integration}/?action=create`,
+      ],
+    ];
+  }
+
+  handleReceiveIntegrationDetails = (integrationDetails: any) => {
+    this.setState({
+      issueConfigFieldsCache: integrationDetails[this.getConfigName()],
+    });
   };
 
-  getNames = (): string[] => {
-    const {formFields} = this.props;
-
-    const names: string[] = [];
-    for (const name in formFields) {
-      if (formFields[name].hasOwnProperty('name')) {
-        names.push(formFields[name].name);
-      }
-    }
-    return names;
+  /**
+   * Get a list of formFields names with valid config data.
+   */
+  getValidAndSavableFieldNames = (): string[] => {
+    const {issueConfigFieldsCache} = this.state;
+    return (issueConfigFieldsCache || [])
+      .filter(field => field.hasOwnProperty('name'))
+      .map(field => field.name);
   };
 
+  getEndPointString = (): string => {
+    const {instance, organization} = this.props;
+    return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
+  };
+
+  /**
+   * Clean up the form data before saving it to state.
+   */
   cleanData = (data: {
     [key: string]: string;
   }): {
@@ -57,14 +88,16 @@ class TicketRuleModal extends React.Component<Props, State> {
     [key: string]: any;
   } => {
     const {instance} = this.props;
-    const names: string[] = this.getNames();
+    const {issueConfigFieldsCache} = this.state;
+    const names: string[] = this.getValidAndSavableFieldNames();
     const formData: {
       integration?: string | number;
       [key: string]: any;
     } = {};
     if (instance?.hasOwnProperty('integration')) {
-      formData.integration = instance?.integration;
+      formData.integration = instance.integration;
     }
+    formData.dynamic_form_fields = issueConfigFieldsCache;
     for (const [key, value] of Object.entries(data)) {
       if (names.includes(key)) {
         formData[key] = value;
@@ -73,158 +106,110 @@ class TicketRuleModal extends React.Component<Props, State> {
     return formData;
   };
 
-  onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e) => {
+  onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e, model) => {
     const {onSubmitAction, closeModal} = this.props;
+    const {fetchedFieldOptionsCache} = this.state;
 
+    // This is a "fake form", so don't actually POST to an endpoint.
     e.preventDefault();
     e.stopPropagation();
 
-    const formData = this.cleanData(data);
-    onSubmitAction(formData, this.state.dynamicFieldChoices);
-    addSuccessMessage(t('Changes applied.'));
-    closeModal();
+    if (model.validateForm()) {
+      onSubmitAction(this.cleanData(data), fetchedFieldOptionsCache);
+      addSuccessMessage(t('Changes applied.'));
+      closeModal();
+    }
   };
 
-  debouncedOptionLoad = debounce(
-    async (
-      field: IssueConfigField,
-      input: string,
-      cb: (err: Error | null, result?: any) => void
-    ) => {
-      const options = this.props.instance;
-      const query = queryString.stringify({
-        project: options?.project,
-        issuetype: options?.issuetype,
-        field: field.name,
-        query: input,
-      });
-
-      const url = field.url || '';
-      const separator = url.includes('?') ? '&' : '?';
-      // We can't use the API client here since the URL is not scoped under the
-      // API endpoints (which the client prefixes)
-      try {
-        const response = await fetch(url + separator + query);
-        cb(null, {options: response.ok ? await response.json() : []});
-      } catch (err) {
-        cb(err);
-      }
-    },
-    200,
-    {trailing: true}
-  );
-
-  getOptions = (field: IssueConfigField, input: string) =>
-    new Promise((resolve, reject) => {
-      if (!input) {
-        const choices =
-          (field.choices as Array<[number | string, number | string]>) || [];
-        const options = choices.map(([value, label]) => ({value, label}));
-        return resolve({options});
-      }
-
-      return this.debouncedOptionLoad(field, input, (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          const dynamicFieldChoices = result.options.map(obj => [obj.value, obj.label]);
-          this.setState(prevState => {
-            const newState = cloneDeep(prevState);
-            set(newState, `dynamicFieldChoices[${field.name}]`, dynamicFieldChoices);
-            return newState;
-          });
-          resolve(result);
-        }
-      });
+  updateFetchedFieldOptionsCache = (
+    field: IssueConfigField,
+    result: {options: {value: string; label: string}[]}
+  ): void => {
+    const fetchedFieldOptionsCache = result.options.map(obj => [obj.value, obj.label]);
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);
+      return newState;
     });
+  };
 
-  getFieldProps = (field: IssueConfigField) =>
-    field.url
-      ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
-          async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
-          autoload: true,
-        }
-      : {};
+  getFormProps = (): Form['props'] => {
+    const {closeModal} = this.props;
 
-  addFields = (fields: FormField[]): void => {
-    const title = {
-      name: 'title',
-      label: 'Title',
-      type: 'string',
-      default: 'This will be the same as the Sentry Issue.',
-      disabled: true,
+    return {
+      ...this.getDefaultFormProps(),
+      cancelLabel: t('Close'),
+      onCancel: closeModal,
+      onSubmit: this.onFormSubmit,
+      submitLabel: t('Apply Changes'),
     };
-    const description = {
-      name: 'description',
-      label: 'Description',
-      type: 'string',
-      default: 'This will be generated from the Sentry Issue details.',
-      disabled: true,
-    };
-    fields.unshift(description);
-    fields.unshift(title);
+  };
+
+  /**
+   * Set the initial data from the Rule, replace `title` and `description` with
+   * disabled inputs, and use the cached dynamic choices.
+   */
+  cleanFields = (): IssueConfigField[] => {
+    const {instance} = this.props;
+    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
+
+    const fields: IssueConfigField[] = [
+      {
+        name: 'title',
+        label: 'Title',
+        type: 'string',
+        default: 'This will be the same as the Sentry Issue.',
+        disabled: true,
+      } as IssueConfigField,
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'string',
+        default: 'This will be generated from the Sentry Issue details.',
+        disabled: true,
+      } as IssueConfigField,
+    ];
+
+    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    return fields.concat(
+      (configsFromAPI || [])
+        // Skip fields if they already exist.
+        .filter(field => !fields.map(f => f.name).includes(field.name))
+        .map(field => {
+          // Overwrite defaults from cache.
+          if (instance.hasOwnProperty(field.name)) {
+            field.default = instance[field.name] || field.default;
+          }
+
+          // Overwrite choices from cache.
+          if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+            field.choices = fetchedFieldOptionsCache[field.name];
+          }
+
+          return field;
+        })
+    );
+  };
+
+  renderBodyText = () => {
+    const {ticketType, link} = this.props;
+    return (
+      <BodyText>
+        {tct(
+          'When this alert is triggered a [ticketType] will be ' +
+            'created with the following fields. It will also [linkToDocs] ' +
+            'with the new Sentry Issue.',
+          {
+            linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
+            ticketType,
+          }
+        )}
+      </BodyText>
+    );
   };
 
   render() {
-    const {Header, Body, formFields, closeModal, link, ticketType, instance} = this.props;
-
-    const text = t(
-      'When this alert is triggered %s will be created with the following fields. ',
-      ticketType
-    );
-
-    const submitLabel = t('Apply Changes');
-    const cancelLabel = t('Close');
-    const fields = Object.values(formFields);
-    this.addFields(fields);
-    const initialData = instance || {};
-    fields.forEach((field: FormField) => {
-      // passing an empty array breaks multi select
-      // TODO(jess): figure out why this is breaking and fix
-      if (!initialData.hasOwnProperty(field.name)) {
-        initialData[field.name] = field.multiple ? '' : field.default;
-      }
-    });
-
-    return (
-      <React.Fragment>
-        <Header closeButton>{t('Issue Link Settings')}</Header>
-        <Body>
-          <BodyText>
-            {text}
-            {tct("It'll also [linkToDocs] with the new Sentry Issue.", {
-              linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
-            })}
-          </BodyText>
-          <Form
-            onSubmit={this.onFormSubmit}
-            initialData={initialData}
-            submitLabel={submitLabel}
-            cancelLabel={cancelLabel}
-            footerClass="modal-footer"
-            onCancel={closeModal}
-          >
-            {fields
-              .filter((field: FormField) => field.hasOwnProperty('name'))
-              .map((field: IssueConfigField) => (
-                <FieldFromConfig
-                  key={`${field.name}-${field.default}-${field.required}`}
-                  field={field}
-                  inline={false}
-                  stacked
-                  flexibleControlStateSize
-                  {...this.getFieldProps(field)}
-                />
-              ))}
-          </Form>
-        </Body>
-      </React.Fragment>
-    );
+    return this.renderForm(this.cleanFields());
   }
 }
 

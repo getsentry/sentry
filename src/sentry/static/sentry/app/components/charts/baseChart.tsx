@@ -429,7 +429,7 @@ class BaseChart extends React.Component<Props> {
                     ...tooltip,
                   })
                 : undefined,
-            legend: legend ? Legend({...legend}) : undefined,
+            legend: legend ? Legend({theme, ...legend}) : undefined,
             yAxis: yAxisOrCustom,
             xAxis: xAxisOrCustom,
             series: this.getSeries(),

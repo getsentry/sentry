@@ -62,7 +62,7 @@ function ActionSet({
   return (
     <Wrapper hasInbox={hasInbox}>
       {hasInbox && (
-        <div className="btn-group hidden-sm hidden-xs">
+        <div className="hidden-sm hidden-xs">
           <StyledActionLink
             className="btn btn-primary btn-sm action-merge"
             data-test-id="button-acknowledge"
@@ -127,7 +127,7 @@ function ActionSet({
         confirmLabel={label('ignore')}
         disabled={!anySelected}
       />
-      <div className="btn-group hidden-md hidden-sm hidden-xs">
+      <div className="hidden-md hidden-sm hidden-xs">
         <ActionLink
           className="btn btn-default btn-sm action-merge"
           disabled={mergeDisabled}
@@ -140,122 +140,118 @@ function ActionSet({
           {t('Merge')}
         </ActionLink>
       </div>
-      <div className="btn-group">
-        <DropdownLink
-          key="actions"
-          caret={false}
-          className="btn btn-sm btn-default action-more"
-          title={
-            <IconPad>
-              <IconEllipsis size="xs" />
-            </IconPad>
-          }
-        >
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-merge hidden-lg hidden-xl"
-              disabled={mergeDisabled}
-              onAction={onMerge}
-              shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-              message={confirm(ConfirmAction.MERGE, false)}
-              confirmLabel={label('merge')}
-              title={t('Merge Selected Issues')}
-            >
-              {t('Merge')}
-            </ActionLink>
-          </MenuItem>
-          {hasInbox && (
-            <React.Fragment>
-              <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
-              <MenuItem noAnchor>
-                <ActionLink
-                  className="action-acknowledge hidden-md hidden-lg hidden-xl"
-                  disabled={!anySelected}
-                  onAction={() => onUpdate({inbox: false})}
-                  shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
-                  message={confirm(ConfirmAction.ACKNOWLEDGE, false)}
-                  confirmLabel={label('acknowledge')}
-                  title={t('Acknowledge')}
-                >
-                  {t('Acknowledge')}
-                </ActionLink>
-              </MenuItem>
-            </React.Fragment>
-          )}
-          <MenuItem divider className="hidden-lg hidden-xl" />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-bookmark"
-              disabled={!anySelected}
-              onAction={() => onUpdate({isBookmarked: true})}
-              shouldConfirm={onShouldConfirm(ConfirmAction.BOOKMARK)}
-              message={confirm(ConfirmAction.BOOKMARK, false)}
-              confirmLabel={label('bookmark')}
-              title={t('Add to Bookmarks')}
-            >
-              {t('Add to Bookmarks')}
-            </ActionLink>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-remove-bookmark"
-              disabled={!anySelected}
-              onAction={() => onUpdate({isBookmarked: false})}
-              shouldConfirm={onShouldConfirm(ConfirmAction.UNBOOKMARK)}
-              message={confirm('remove', false, ' from your bookmarks')}
-              confirmLabel={label('remove', ' from your bookmarks')}
-              title={t('Remove from Bookmarks')}
-            >
-              {t('Remove from Bookmarks')}
-            </ActionLink>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-unresolve"
-              disabled={!anySelected}
-              onAction={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
-              shouldConfirm={onShouldConfirm(ConfirmAction.UNRESOLVE)}
-              message={confirm(ConfirmAction.UNRESOLVE, true)}
-              confirmLabel={label('unresolve')}
-              title={t('Set status to: Unresolved')}
-            >
-              {t('Set status to: Unresolved')}
-            </ActionLink>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-delete"
-              disabled={!anySelected}
-              onAction={onDelete}
-              shouldConfirm={onShouldConfirm(ConfirmAction.DELETE)}
-              message={confirm(ConfirmAction.DELETE, false)}
-              confirmLabel={label('delete')}
-              title={t('Delete Issues')}
-            >
-              {t('Delete Issues')}
-            </ActionLink>
-          </MenuItem>
-        </DropdownLink>
-      </div>
-      {!hasInbox && (
-        <div className="btn-group">
-          <Tooltip
-            title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
+      <DropdownLink
+        key="actions"
+        caret={false}
+        className="btn btn-sm btn-default action-more"
+        title={
+          <IconPad>
+            <IconEllipsis size="xs" />
+          </IconPad>
+        }
+      >
+        <MenuItem noAnchor>
+          <ActionLink
+            className="action-merge hidden-lg hidden-xl"
+            disabled={mergeDisabled}
+            onAction={onMerge}
+            shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
+            message={confirm(ConfirmAction.MERGE, false)}
+            confirmLabel={label('merge')}
+            title={t('Merge Selected Issues')}
           >
-            <a
-              data-test-id="realtime-control"
-              className="btn btn-default btn-sm hidden-xs"
-              onClick={onRealtimeChange}
-            >
-              <IconPad>
-                {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
-              </IconPad>
-            </a>
-          </Tooltip>
-        </div>
+            {t('Merge')}
+          </ActionLink>
+        </MenuItem>
+        {hasInbox && (
+          <React.Fragment>
+            <MenuItem divider className="hidden-md hidden-lg hidden-xl" />
+            <MenuItem noAnchor>
+              <ActionLink
+                className="action-acknowledge hidden-md hidden-lg hidden-xl"
+                disabled={!anySelected}
+                onAction={() => onUpdate({inbox: false})}
+                shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
+                message={confirm(ConfirmAction.ACKNOWLEDGE, false)}
+                confirmLabel={label('acknowledge')}
+                title={t('Acknowledge')}
+              >
+                {t('Acknowledge')}
+              </ActionLink>
+            </MenuItem>
+          </React.Fragment>
+        )}
+        <MenuItem divider className="hidden-lg hidden-xl" />
+        <MenuItem noAnchor>
+          <ActionLink
+            className="action-bookmark"
+            disabled={!anySelected}
+            onAction={() => onUpdate({isBookmarked: true})}
+            shouldConfirm={onShouldConfirm(ConfirmAction.BOOKMARK)}
+            message={confirm(ConfirmAction.BOOKMARK, false)}
+            confirmLabel={label('bookmark')}
+            title={t('Add to Bookmarks')}
+          >
+            {t('Add to Bookmarks')}
+          </ActionLink>
+        </MenuItem>
+        <MenuItem divider />
+        <MenuItem noAnchor>
+          <ActionLink
+            className="action-remove-bookmark"
+            disabled={!anySelected}
+            onAction={() => onUpdate({isBookmarked: false})}
+            shouldConfirm={onShouldConfirm(ConfirmAction.UNBOOKMARK)}
+            message={confirm('remove', false, ' from your bookmarks')}
+            confirmLabel={label('remove', ' from your bookmarks')}
+            title={t('Remove from Bookmarks')}
+          >
+            {t('Remove from Bookmarks')}
+          </ActionLink>
+        </MenuItem>
+        <MenuItem divider />
+        <MenuItem noAnchor>
+          <ActionLink
+            className="action-unresolve"
+            disabled={!anySelected}
+            onAction={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
+            shouldConfirm={onShouldConfirm(ConfirmAction.UNRESOLVE)}
+            message={confirm(ConfirmAction.UNRESOLVE, true)}
+            confirmLabel={label('unresolve')}
+            title={t('Set status to: Unresolved')}
+          >
+            {t('Set status to: Unresolved')}
+          </ActionLink>
+        </MenuItem>
+        <MenuItem divider />
+        <MenuItem noAnchor>
+          <ActionLink
+            className="action-delete"
+            disabled={!anySelected}
+            onAction={onDelete}
+            shouldConfirm={onShouldConfirm(ConfirmAction.DELETE)}
+            message={confirm(ConfirmAction.DELETE, false)}
+            confirmLabel={label('delete')}
+            title={t('Delete Issues')}
+          >
+            {t('Delete Issues')}
+          </ActionLink>
+        </MenuItem>
+      </DropdownLink>
+      {!hasInbox && (
+        <Tooltip
+          title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
+        >
+          <a
+            data-test-id="realtime-control"
+            className="btn btn-default btn-sm hidden-xs"
+            onClick={onRealtimeChange}
+          >
+            <IconPad>
+              {realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+            </IconPad>
+          </a>
+        </Tooltip>
       )}
     </Wrapper>
   );
@@ -291,17 +287,16 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
   flex: 1;
   margin-left: ${space(1)};
   margin-right: ${space(1)};
-  display: flex;
+  display: grid;
+  gap: ${space(0.5)};
+  grid-auto-flow: column;
+  justify-content: flex-start;
+
   ${p =>
     p.hasInbox &&
     css`
       animation: 0.15s linear ZoomUp forwards;
     `};
-
-  .btn-group {
-    display: flex;
-    margin-right: 6px;
-  }
 
   @keyframes ZoomUp {
     0% {

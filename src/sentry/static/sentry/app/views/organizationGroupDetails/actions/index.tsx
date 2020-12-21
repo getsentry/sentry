@@ -201,11 +201,8 @@ class Actions extends React.Component<Props, State> {
     });
   };
 
-  handleClick(
-    disabled: boolean,
-    onClick: (event: React.MouseEvent<HTMLDivElement>) => void
-  ) {
-    return function (event: React.MouseEvent<HTMLDivElement>) {
+  handleClick(disabled: boolean, onClick: (event: React.MouseEvent) => void) {
+    return function (event: React.MouseEvent) {
       if (disabled) {
         event.preventDefault();
         event.stopPropagation();
@@ -221,7 +218,6 @@ class Actions extends React.Component<Props, State> {
     const {status, isBookmarked} = group;
 
     const orgFeatures = new Set(organization.features);
-    const projectFeatures = new Set(project.features);
 
     let buttonClassName = 'btn btn-default btn-sm';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -235,7 +231,7 @@ class Actions extends React.Component<Props, State> {
     }
 
     return (
-      <div className="group-actions">
+      <Wrapper>
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
@@ -265,62 +261,54 @@ class Actions extends React.Component<Props, State> {
           onDiscard={this.onDiscard}
         />
         {orgFeatures.has('shared-issues') && (
-          <div className="btn-group">
-            <ShareIssue
-              disabled={disabled}
-              loading={this.state.shareBusy}
-              isShared={group.isPublic}
-              shareUrl={this.getShareUrl(group.shareId)}
-              onToggle={this.onToggleShare}
-              onReshare={() => this.onShare(true)}
-            />
-          </div>
+          <ShareIssue
+            disabled={disabled}
+            loading={this.state.shareBusy}
+            isShared={group.isPublic}
+            shareUrl={this.getShareUrl(group.shareId)}
+            onToggle={this.onToggleShare}
+            onReshare={() => this.onShare(true)}
+          />
         )}
         {orgFeatures.has('discover-basic') && (
-          <div className="btn-group">
-            <Link
-              className={buttonClassName}
-              title={t('Open in Discover')}
-              to={disabled ? '' : this.getDiscoverUrl()}
-            >
-              {t('Open in Discover')}
-            </Link>
-          </div>
-        )}
-        <div className="btn-group">
-          <BookmarkButton
+          <Link
             className={buttonClassName}
-            role="button"
-            isActive={group.isBookmarked}
-            title={bookmarkTitle}
-            aria-label={bookmarkTitle}
-            onClick={this.handleClick(disabled, this.onToggleBookmark)}
+            title={t('Open in Discover')}
+            to={disabled ? '' : this.getDiscoverUrl()}
           >
-            <IconWrapper>
-              <IconStar isSolid size="xs" />
-            </IconWrapper>
-          </BookmarkButton>
-        </div>
+            {t('Open in Discover')}
+          </Link>
+        )}
+        <BookmarkButton
+          className={buttonClassName}
+          role="button"
+          isActive={group.isBookmarked}
+          title={bookmarkTitle}
+          aria-label={bookmarkTitle}
+          onClick={this.handleClick(disabled, this.onToggleBookmark)}
+        >
+          <IconWrapper>
+            <IconStar isSolid size="xs" />
+          </IconWrapper>
+        </BookmarkButton>
         <SubscribeAction
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-          className={buttonClassName}
         />
-        {projectFeatures.has('reprocessing-v2') && (
-          <div className="btn-group">
-            <Tooltip title={t('Reprocess this issue')}>
-              <div
-                className={buttonClassName}
-                onClick={this.handleClick(disabled, this.onReprocess)}
-              >
-                <IconWrapper>
-                  <IconRefresh size="xs" />
-                </IconWrapper>
-              </div>
-            </Tooltip>
-          </div>
+
+        {orgFeatures.has('reprocessing-v2') && (
+          <Tooltip title={t('Reprocess this issue')}>
+            <div
+              className={buttonClassName}
+              onClick={this.handleClick(disabled, this.onReprocess)}
+            >
+              <IconWrapper>
+                <IconRefresh size="xs" />
+              </IconWrapper>
+            </div>
+          </Tooltip>
         )}
-      </div>
+      </Wrapper>
     );
   }
 }
@@ -339,6 +327,15 @@ const BookmarkButton = styled('div')<{isActive: boolean}>`
     border-color: ${p.theme.yellow300};
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
   `}
+`;
+
+const Wrapper = styled('div')`
+  display: grid;
+  justify-content: flex-start;
+  align-items: center;
+  grid-auto-flow: column;
+  gap: ${space(0.5)};
+  margin-top: ${space(2)};
 `;
 
 export {Actions};

@@ -6,6 +6,7 @@ import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
@@ -59,7 +60,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {Query} from './utils';
+import {Query, QueryCounts, TabQueriesWithCounts} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -90,6 +91,7 @@ type State = {
   realtimeActive: boolean;
   pageLinks: string;
   queryCount: number;
+  queryCounts: QueryCounts;
   queryMaxCount: number;
   error: string | null;
   isSidebarVisible: boolean;
@@ -109,6 +111,10 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   groupStatsPeriod?: string;
   cursor?: string;
   page?: number | string;
+};
+
+type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
+  query: string[];
 };
 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
@@ -131,6 +137,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       pageLinks: '',
       queryCount: 0,
+      queryCounts: {},
       queryMaxCount: 0,
       error: null,
       isSidebarVisible: false,
@@ -269,8 +276,7 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default')
     ) {
-      // TODO(scttcper): Use constant added in #22641
-      return 'is:needs_review is:unresolved';
+      return Query.NEEDS_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -375,6 +381,54 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
+  fetchCounts = async (currentQueryCount: number) => {
+    const {queryCounts: _queryCounts} = this.state;
+    let queryCounts: QueryCounts = {..._queryCounts};
+
+    const endpointParams = this.getEndpointParams();
+    const currentTabQuery = TabQueriesWithCounts.includes(endpointParams.query as Query)
+      ? endpointParams.query
+      : null;
+
+    // If all tabs' counts are fetched, skip and only set
+    if (!TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)) {
+      const requestParams: CountsEndpointParams = {
+        ...omit(endpointParams, 'query'),
+        // fetch the counts for the tabs whose counts haven't been fetched yet
+        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
+      };
+
+      // If no stats period values are set, use default
+      if (!requestParams.statsPeriod && !requestParams.start) {
+        requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+      }
+      try {
+        const response = await this.props.api.requestPromise(
+          this.getGroupCountsEndpoint(),
+          {
+            method: 'GET',
+            data: qs.stringify(requestParams),
+          }
+        );
+        queryCounts = {
+          ...queryCounts,
+          ...response,
+        };
+      } catch (e) {
+        this.setState({
+          error: parseApiError(e),
+        });
+        return;
+      }
+    }
+
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = currentQueryCount;
+    }
+
+    this.setState({queryCounts});
+  };
+
   fetchData = () => {
     GroupStore.loadInitialData([]);
 
@@ -449,21 +503,23 @@ class IssueListOverview extends React.Component<Props, State> {
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
-        const queryCount = jqXHR.getResponseHeader('X-Hits');
-        const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
+        const hits = jqXHR.getResponseHeader('X-Hits');
+        const queryCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const queryMaxCount =
+          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = jqXHR.getResponseHeader('Link');
+
+        if (this.props.organization.features.includes('inbox')) {
+          this.fetchCounts(queryCount);
+        }
 
         this.setState({
           error: null,
           issuesLoading: false,
-          queryCount:
-            typeof queryCount !== 'undefined' && queryCount
-              ? parseInt(queryCount, 10) || 0
-              : 0,
-          queryMaxCount:
-            typeof queryMaxCount !== 'undefined' && queryMaxCount
-              ? parseInt(queryMaxCount, 10) || 0
-              : 0,
+          queryCount,
+          queryMaxCount,
           pageLinks: pageLinks !== null ? pageLinks : '',
         });
       },
@@ -495,9 +551,15 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   getGroupListEndpoint(): string {
-    const params = this.props.params;
+    const {orgId} = this.props.params;
 
-    return `/organizations/${params.orgId}/issues/`;
+    return `/organizations/${orgId}/issues/`;
+  }
+
+  getGroupCountsEndpoint(): string {
+    const {orgId} = this.props.params;
+
+    return `/organizations/${orgId}/issues-count/`;
   }
 
   getGroupStatsEndpoint(): string {
@@ -758,6 +820,7 @@ class IssueListOverview extends React.Component<Props, State> {
       tagsLoading,
       pageLinks,
       queryCount,
+      queryCounts,
       realtimeActive,
       groupIds,
       queryMaxCount,
@@ -795,8 +858,7 @@ class IssueListOverview extends React.Component<Props, State> {
             {hasFeature && (
               <IssueListHeader
                 query={query}
-                queryCount={queryCount}
-                queryMaxCount={queryMaxCount}
+                queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
                 onTabChange={this.handleTabClick}
