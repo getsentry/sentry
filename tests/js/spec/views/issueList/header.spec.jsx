@@ -35,7 +35,7 @@ describe('IssueListHeader', () => {
 
   it('renders all tabs with counts', () => {
     const wrapper = mountWithTheme(
-      <IssueListHeader query="" queryCounts={queryCounts} />
+      <IssueListHeader query="" queryCounts={queryCounts} projectIds={[]} />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review (1)');
     expect(wrapper.find('li').at(1).text()).toBe('Unresolved (1)');
@@ -44,7 +44,7 @@ describe('IssueListHeader', () => {
 
   it('renders limited counts for tabs', () => {
     const wrapper = mountWithTheme(
-      <IssueListHeader query="" queryCounts={queryCountsMaxed} />
+      <IssueListHeader query="" queryCounts={queryCountsMaxed} projectIds={[]} />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review (99+)');
     expect(wrapper.find('li').at(1).text()).toBe('Unresolved (99+)');
