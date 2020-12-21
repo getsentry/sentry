@@ -79,7 +79,7 @@ function DebugFileDetails({
             <Label>{t('Architecture')}</Label>
             <Value>{architecture ?? <NotAvailable />}</Value>
           </GeneralInfo>
-          <UplodadedDebugFilesTable
+          <UploadedDebugFilesTable
             candidates={uploadedCandidates}
             organization={organization}
             projectId={projectId}
