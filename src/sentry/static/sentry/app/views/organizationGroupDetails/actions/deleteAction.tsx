@@ -87,13 +87,18 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         onConfirm={onDelete}
         disabled={disabled}
       >
-        <DeleteButton label={t('Delete issue')} icon={<IconDelete size="xs" />} />
+        <DeleteButton
+          disabled={disabled}
+          label={t('Delete issue')}
+          icon={<IconDelete size="xs" />}
+        />
       </Confirm>
       <DropdownLink
         caret={false}
         disabled={disabled}
         customTitle={
           <ActionButton
+            disabled={disabled}
             label={t('More delete options')}
             icon={<IconChevron direction="down" size="xs" />}
           />
@@ -109,11 +114,15 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
 }
 
 const DeleteButton = styled(ActionButton)`
+  ${p =>
+    !p.disabled &&
+    `
   &:hover {
     background-color: ${p => p.theme.button.danger.background};
     color: ${p => p.theme.button.danger.color};
     border-color: ${p => p.theme.button.danger.border};
   }
+  `}
 `;
 
 export default DeleteAction;

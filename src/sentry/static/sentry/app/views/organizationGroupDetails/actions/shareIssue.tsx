@@ -134,7 +134,7 @@ class ShareIssue extends React.Component<Props> {
       <DropdownLink
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
         customTitle={
-          <ActionButton>
+          <ActionButton disabled={disabled}>
             <DropdownTitleContent>
               <IndicatorDot isShared={isShared} />
               {t('Share')}
