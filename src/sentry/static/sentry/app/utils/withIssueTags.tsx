@@ -89,6 +89,7 @@ const withIssueTags = <P extends InjectedTagsProps>(
       const allAssigned = usernames.concat(teamnames);
       allAssigned.unshift('me');
       usernames.unshift('me');
+      const allOwners = ['me_or_none', ...allAssigned];
 
       this.setState({
         tags: {
@@ -103,7 +104,7 @@ const withIssueTags = <P extends InjectedTagsProps>(
           },
           owner: {
             ...tags.owner,
-            values: allAssigned,
+            values: allOwners,
           },
         },
       });
