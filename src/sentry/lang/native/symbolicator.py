@@ -367,9 +367,8 @@ class SymbolicatorSession(object):
 
         for module in json.get("modules") or ():
             for candidate in module.get("candidates") or ():
-                candidate["source_name"] = (
-                    source_names.get(candidate["source"]) or "Unnamed Repository"
-                )
+                if candidate.get("source"):
+                    candidate["source_name"] = source_names.get(candidate["source"])
 
         return json
 
