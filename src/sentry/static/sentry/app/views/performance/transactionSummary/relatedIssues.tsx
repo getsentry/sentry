@@ -40,8 +40,15 @@ class RelatedIssues extends React.Component<Props> {
     };
     const currentFilter = tokenizeSearch(decodeScalar(location.query.query) || '');
     currentFilter.getTagKeys().forEach(tagKey => {
-      // Remove aggregates and transaction event fields..
-      if (tagKey.match(/\w+\(.*\)/) || TRACING_FIELDS.includes(tagKey)) {
+      // Remove aggregates and transaction event fields
+      if (
+        // aggregates
+        tagKey.match(/\w+\(.*\)/) ||
+        // transaction event fields
+        TRACING_FIELDS.includes(tagKey) ||
+        // event type can be "transaction" but we're searching for issues
+        tagKey === 'event.type'
+      ) {
         currentFilter.removeTag(tagKey);
       }
     });
