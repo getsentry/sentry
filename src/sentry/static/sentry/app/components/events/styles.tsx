@@ -14,10 +14,9 @@ export const DataSection = styled('div')`
 
 type BannerProps = {
   priority: 'default' | 'danger' | 'success';
-  theme: Theme;
 };
 
-function getColors({priority, theme}: BannerProps) {
+function getColors({priority, theme}: BannerProps & {theme: Theme}) {
   const COLORS = {
     default: {
       background: theme.backgroundSecondary,
