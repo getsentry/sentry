@@ -7,6 +7,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import {GlobalSelection, Tag} from 'app/types';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 
 const MAX_TAGS = 1000;
 
@@ -44,9 +45,16 @@ export function loadOrganizationTags(
   const promise = api.requestPromise(url, {
     method: 'GET',
     query,
-  });
+  }).then(tagFetchSuccess, TagActions.loadTagsError).catch(
+    response => {
+      const errorResponse = response?.responseJSON ?? null;
 
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+      if (errorResponse) {
+        addErrorMessage(errorResponse);
+      } else {
+        addErrorMessage(t('Unable to load organization tags'));
+      }
+    });
 
   return promise;
 }
@@ -71,7 +79,15 @@ export function fetchOrganizationTags(
     method: 'GET',
     query,
   });
-  promise.then(tagFetchSuccess, TagActions.loadTagsError);
+  promise.then(tagFetchSuccess, TagActions.loadTagsError).catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      addErrorMessage(errorResponse);
+    } else {
+      addErrorMessage(t('Unable to fetch organization tags'));
+    }
+  });
 
   return promise;
 }
@@ -116,5 +132,13 @@ export function fetchTagValues(
   return api.requestPromise(url, {
     method: 'GET',
     query,
+  }).catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      addErrorMessage(errorResponse);
+    } else {
+      addErrorMessage(t('Unable to fetch tag values'));
+    }
   });
 }
