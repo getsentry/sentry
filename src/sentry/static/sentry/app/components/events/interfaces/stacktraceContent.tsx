@@ -19,7 +19,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
-  hideStacktraceLink?: boolean;
+  isHoverPreviewed?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -127,7 +127,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       expandFirstFrame,
       platform,
       includeSystemFrames,
-      hideStacktraceLink,
+      isHoverPreviewed,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -218,7 +218,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
-            hideStacktraceLink={hideStacktraceLink}
+            isHoverPreviewed={isHoverPreviewed}
+            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
           />
         );
       }

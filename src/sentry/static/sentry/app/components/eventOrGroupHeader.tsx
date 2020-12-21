@@ -62,7 +62,11 @@ class EventOrGroupHeader extends React.Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
+        <EventOrGroupTitle
+          {...this.props}
+          style={{fontWeight: hasSeen ? 400 : 600}}
+          withStackTracePreview
+        />
       </React.Fragment>
     );
   }
