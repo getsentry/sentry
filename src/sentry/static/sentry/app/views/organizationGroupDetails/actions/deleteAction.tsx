@@ -5,11 +5,13 @@ import styled from '@emotion/styled';
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import ActionButton from 'app/components/actions/button';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
-import {IconDelete} from 'app/icons';
+import {IconChevron, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -78,30 +80,36 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
 
   return (
     <DeleteDiscardWrapper>
-      <StyledLinkWithConfirmation
-        className="group-remove btn btn-default btn-sm"
-        title={t('Delete')}
-        message={t(
-          'Deleting this issue is permanent. Are you sure you wish to continue?'
-        )}
-        onConfirm={onDelete}
-        disabled={disabled}
-      >
-        <IconWrapper>
-          <IconDelete size="xs" />
-        </IconWrapper>
-      </StyledLinkWithConfirmation>
-      <StyledDropdownLink
-        title=""
-        caret
-        className="group-delete btn btn-default btn-sm"
-        disabled={disabled}
-      >
-        <StyledMenuItemHeader header>{t('Delete & Discard')}</StyledMenuItemHeader>
-        <StyledMenuItem onClick={openDiscardModal}>
-          <span>{t('Delete and discard future events')}</span>
-        </StyledMenuItem>
-      </StyledDropdownLink>
+      <ButtonBar merged>
+        <Confirm
+          message={t(
+            'Deleting this issue is permanent. Are you sure you wish to continue?'
+          )}
+          onConfirm={onDelete}
+          disabled={disabled}
+        >
+          <ActionButton
+            className="group-remove"
+            label={t('Delete issue')}
+            icon={<IconDelete size="xs" />}
+          />
+        </Confirm>
+        <DropdownLink
+          caret={false}
+          disabled={disabled}
+          customTitle={
+            <ActionButton
+              label={t('More delete options')}
+              icon={<IconChevron direction="down" size="xs" />}
+            />
+          }
+        >
+          <StyledMenuItemHeader header>{t('Delete & Discard')}</StyledMenuItemHeader>
+          <StyledMenuItem onClick={openDiscardModal}>
+            <span>{t('Delete and discard future events')}</span>
+          </StyledMenuItem>
+        </DropdownLink>
+      </ButtonBar>
     </DeleteDiscardWrapper>
   );
 }
@@ -117,11 +125,6 @@ const dropdownTipCss = p => css`
       border-bottom: 8px solid ${p.theme.bodyBackground};
     }
   }
-`;
-
-const IconWrapper = styled('span')`
-  position: relative;
-  top: 1px;
 `;
 
 const StyledMenuItemHeader = styled(MenuItem)`
@@ -153,12 +156,6 @@ const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
-`;
-
-const StyledLinkWithConfirmation = styled(LinkWithConfirmation)`
-  border-top-right-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-  border-right: 0;
 `;
 
 const DeleteDiscardWrapper = styled('div')`
