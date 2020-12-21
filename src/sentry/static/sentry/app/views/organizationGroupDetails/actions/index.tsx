@@ -10,6 +10,7 @@ import {
 import {openModal} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
+import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -271,13 +272,9 @@ class Actions extends React.Component<Props, State> {
           />
         )}
         {orgFeatures.has('discover-basic') && (
-          <Link
-            className={buttonClassName}
-            title={t('Open in Discover')}
-            to={disabled ? '' : this.getDiscoverUrl()}
-          >
+          <ActionButton to={disabled ? '' : this.getDiscoverUrl()}>
             {t('Open in Discover')}
-          </Link>
+          </ActionButton>
         )}
         <BookmarkButton
           className={buttonClassName}
@@ -336,6 +333,7 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   margin-top: ${space(2)};
+  white-space: nowrap;
 `;
 
 export {Actions};
