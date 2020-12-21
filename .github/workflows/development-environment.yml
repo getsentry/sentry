@@ -1,29 +1,18 @@
-name: Development Environment
+name: development environment
 on:
-  push:
-    paths:
-    - 'Brewfile'
-    - 'Makefile'
-    - 'setup.py'  # For changes in the sentry CLI used in make bootstrap
-    - 'requirements-*.txt'
-    - 'scripts/*'
-    - 'src/sentry/*'  # Imported in setup.py
-    - '.github/workflows/development-environment.yml'
-    branches:
-      - master
   pull_request:
     paths:
     - 'Brewfile'
     - 'Makefile'
-    - 'setup.py'  # For changes in the sentry CLI used in make bootstrap
+    - '.github/workflows/development-environment.yml'
+    - '.pre-commit-config.yaml'
+    - 'config/hooks/pre-commit'
     - 'requirements-*.txt'
     - 'scripts/*'
-    - 'src/sentry/*'  # Imported in setup.py
-    - '.github/workflows/development-environment.yml'
 
 jobs:
   dev-environment:
-    name: Python set up
+    name: python set up
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
