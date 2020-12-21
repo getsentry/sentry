@@ -1,5 +1,6 @@
 import {Query} from 'history';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import AlertActions from 'app/actions/alertActions';
 import TagActions from 'app/actions/tagActions';
 import {Client} from 'app/api';
@@ -7,7 +8,6 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {t} from 'app/locale';
 import TagStore from 'app/stores/tagStore';
 import {GlobalSelection, Tag} from 'app/types';
-import {addErrorMessage} from 'app/actionCreators/indicator';
 
 const MAX_TAGS = 1000;
 
@@ -42,11 +42,13 @@ export function loadOrganizationTags(
   if (selection.projects) {
     query.project = selection.projects.map(String);
   }
-  const promise = api.requestPromise(url, {
-    method: 'GET',
-    query,
-  }).then(tagFetchSuccess, TagActions.loadTagsError).catch(
-    response => {
+  const promise = api
+    .requestPromise(url, {
+      method: 'GET',
+      query,
+    })
+    .then(tagFetchSuccess, TagActions.loadTagsError)
+    .catch(response => {
       const errorResponse = response?.responseJSON ?? null;
 
       if (errorResponse) {
@@ -129,16 +131,18 @@ export function fetchTagValues(
     query.includeTransactions = '1';
   }
 
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  }).catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
+  return api
+    .requestPromise(url, {
+      method: 'GET',
+      query,
+    })
+    .catch(response => {
+      const errorResponse = response?.responseJSON ?? null;
 
-    if (errorResponse) {
-      addErrorMessage(errorResponse);
-    } else {
-      addErrorMessage(t('Unable to fetch tag values'));
-    }
-  });
+      if (errorResponse) {
+        addErrorMessage(errorResponse);
+      } else {
+        addErrorMessage(t('Unable to fetch tag values'));
+      }
+    });
 }
