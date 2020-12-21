@@ -6,8 +6,8 @@ import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
-import pickBy from 'lodash/pickBy';
 import omit from 'lodash/omit';
+import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'app/actionCreators/members';
@@ -383,7 +383,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   fetchCounts = async (currentQueryCount: number) => {
     const {queryCounts: _queryCounts} = this.state;
-    let queryCounts: QueryCounts = { ..._queryCounts }
+    let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
     const currentTabQuery = TabQueriesWithCounts.includes(endpointParams.query as Query)
@@ -391,11 +391,11 @@ class IssueListOverview extends React.Component<Props, State> {
       : null;
 
     // If all tabs' counts are fetched, skip and only set
-    if (!TabQueriesWithCounts.every(tabQuery => (queryCounts[tabQuery] !== undefined))) {
+    if (!TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)) {
       const requestParams: CountsEndpointParams = {
         ...omit(endpointParams, 'query'),
         // fetch the counts for the tabs whose counts haven't been fetched yet
-        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery)
+        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
       };
 
       // If no stats period values are set, use default
@@ -403,14 +403,17 @@ class IssueListOverview extends React.Component<Props, State> {
         requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
       try {
-        const response = await this.props.api.requestPromise(this.getGroupCountsEndpoint(), {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-        });
+        const response = await this.props.api.requestPromise(
+          this.getGroupCountsEndpoint(),
+          {
+            method: 'GET',
+            data: qs.stringify(requestParams),
+          }
+        );
         queryCounts = {
           ...queryCounts,
           ...response,
-        }
+        };
       } catch (e) {
         this.setState({
           error: parseApiError(e),
@@ -501,13 +504,11 @@ class IssueListOverview extends React.Component<Props, State> {
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = jqXHR.getResponseHeader('X-Hits');
-        const queryCount = typeof hits !== 'undefined' && hits
-          ? parseInt(hits, 10) || 0
-          : 0
+        const queryCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
-        const queryMaxCount = typeof maxHits !== 'undefined' && maxHits
-          ? parseInt(maxHits, 10) || 0
-          : 0
+        const queryMaxCount =
+          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = jqXHR.getResponseHeader('Link');
 
         this.fetchCounts(queryCount);
