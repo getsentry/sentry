@@ -126,7 +126,7 @@ function IssueListHeader({
                 <StyledQueryCount
                   count={queryCounts[tabQuery]}
                   max={TAB_MAX_COUNT}
-                  useTagType={
+                  tagType={
                     (tabQuery === Query.NEEDS_REVIEW && 'warning')
                     || (tabQuery === Query.UNRESOLVED && 'default')
                     || undefined

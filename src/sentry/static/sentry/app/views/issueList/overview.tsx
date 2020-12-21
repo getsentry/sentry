@@ -385,8 +385,8 @@ class IssueListOverview extends React.Component<Props, State> {
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = { ..._queryCounts }
 
-    const endpointParams: EndpointParams = this.getEndpointParams();
-    const currentTabQuery = endpointParams.query && TabQueriesWithCounts.includes(endpointParams.query as Query)
+    const endpointParams = this.getEndpointParams();
+    const currentTabQuery = TabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
 

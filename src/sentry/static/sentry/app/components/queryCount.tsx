@@ -10,7 +10,7 @@ type Props = {
   max?: number;
   hideIfEmpty?: boolean;
   hideParens?: boolean;
-  useTagType?: keyof Theme['tag'];
+  tagType?: keyof Theme['tag'];
 };
 
 /**
@@ -25,7 +25,7 @@ const QueryCount = ({
   max,
   hideIfEmpty = true,
   hideParens = false,
-  useTagType,
+  tagType,
 }: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
@@ -33,8 +33,8 @@ const QueryCount = ({
     return null;
   }
 
-  if (useTagType) {
-    return <Tag type={useTagType}>{countOrMax}</Tag>;
+  if (tagType) {
+    return <Tag type={tagType}>{countOrMax}</Tag>;
   }
 
   return (
