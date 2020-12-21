@@ -120,6 +120,7 @@ from .endpoints.organization_integration_repository_project_path_config_details 
 )
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
+from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
@@ -872,6 +873,10 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
                     OrganizationGroupIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/issues-count/$",
+                    OrganizationIssuesCountEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
