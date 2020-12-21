@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 
 import responses
+from collections import namedtuple
 
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
 from sentry.models import Integration, ExternalIssue, GroupLink, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
 from tests.fixtures.integrations.mock_service import StubService
+
+RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class JiraCreateTicketActionTest(RuleTestCase):
@@ -29,6 +32,21 @@ class JiraCreateTicketActionTest(RuleTestCase):
     @responses.activate
     def test_creates_issue(self):
         event = self.get_event()
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            body=StubService.get_stub_json("jira", "project_list_response.json"),
+            content_type="application/json",
+            match_querystring=False,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+            match_querystring=False,
+        )
         jira_rule = self.get_rule(
             data={
                 "issuetype": "1",
@@ -44,14 +62,6 @@ class JiraCreateTicketActionTest(RuleTestCase):
         )
         jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
 
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/issue/createmeta",
-            body=StubService.get_stub_json("jira", "createmeta_response.json"),
-            content_type="json",
-            match_querystring=False,
-        )
-
         jira_rule.data["key"] = "APP-123"
 
         # Add two mocks: one for POSTing the issue and a GET to confirm it's there.
@@ -66,7 +76,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/APP-123",
             body=StubService.get_stub_json("jira", "get_issue_response.json"),
-            content_type="json",
+            content_type="application/json",
             match_querystring=False,
         )
 
@@ -74,9 +84,10 @@ class JiraCreateTicketActionTest(RuleTestCase):
         assert len(results) == 1
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        rule_future = RuleFuture(rule=jira_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
 
-        # Make assertions about what would be sent.
+        # Make assertions about what would be POSTed to api/2/issue.
         data = json.loads(responses.calls[1].request.body)
         assert data["fields"]["summary"] == event.title
         assert event.message in data["fields"]["description"]

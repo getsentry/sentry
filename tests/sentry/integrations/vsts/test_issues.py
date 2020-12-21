@@ -69,6 +69,64 @@ class VstsIssueBase(TestCase):
         )
         self.project_id_with_states = "c0bf429a-c03c-4a99-9336-d45be74db5a6"
 
+    def mock_categories(self, project):
+        responses.add(
+            responses.GET,
+            u"https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
+                project
+            ),
+            json={
+                "value": [
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
+                                    project
+                                ),
+                                "name": "Bug",
+                            }
+                        ],
+                    },
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
+                                    project
+                                ),
+                                "name": "Issue Bug",
+                            },
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
+                                    project
+                                ),
+                                "name": "G Issue",
+                            },
+                        ],
+                    },
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
+                                    project
+                                ),
+                                "name": "Task",
+                            }
+                        ],
+                    },
+                    {
+                        "workItemTypes": [
+                            {
+                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
+                                    project
+                                ),
+                                "name": "User Story",
+                            }
+                        ],
+                    },
+                ]
+            },
+        )
+
 
 class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self):
@@ -373,64 +431,6 @@ class VstsIssueFormTest(VstsIssueBase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
         self.group = event.group
-
-    def mock_categories(self, project):
-        responses.add(
-            responses.GET,
-            u"https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
-                project
-            ),
-            json={
-                "value": [
-                    {
-                        "workItemTypes": [
-                            {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
-                                "name": "Bug",
-                            }
-                        ],
-                    },
-                    {
-                        "workItemTypes": [
-                            {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
-                                "name": "Issue Bug",
-                            },
-                            {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
-                                    project
-                                ),
-                                "name": "G Issue",
-                            },
-                        ],
-                    },
-                    {
-                        "workItemTypes": [
-                            {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
-                                    project
-                                ),
-                                "name": "Task",
-                            }
-                        ],
-                    },
-                    {
-                        "workItemTypes": [
-                            {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
-                                    project
-                                ),
-                                "name": "User Story",
-                            }
-                        ],
-                    },
-                ]
-            },
-        )
 
     def tearDown(self):
         responses.reset()
