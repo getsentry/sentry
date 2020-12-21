@@ -229,6 +229,7 @@ class Actions extends React.Component<Props, State> {
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
+            disableDropdown={disabled}
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
             onUpdate={this.onUpdate}
