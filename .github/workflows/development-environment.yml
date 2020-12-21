@@ -5,8 +5,6 @@ on:
     - 'Brewfile'
     - 'Makefile'
     - '.github/workflows/development-environment.yml'
-    - '.pre-commit-config.yaml'
-    - 'config/hooks/pre-commit'
     - 'requirements-*.txt'
     - 'scripts/*'
 
@@ -81,6 +79,3 @@ jobs:
         run: |
           source .venv/bin/activate
           make develop init-config
-          git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
-          touch foo.txt && git add foo.txt && git commit -m "Test git hooks"
