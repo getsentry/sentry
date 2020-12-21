@@ -4,7 +4,6 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
 import ProjectsStore from 'app/stores/projectsStore';
