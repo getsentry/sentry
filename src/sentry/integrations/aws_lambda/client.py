@@ -18,7 +18,7 @@ def gen_aws_client(arn, aws_external_id, service_name="lambda"):
     account_id = parsed_arn["account"]
     region = parsed_arn["region"]
 
-    role_arn = "arn:aws:iam::%s:role/SentryRole" % (account_id)
+    role_arn = u"arn:aws:iam::%s:role/SentryRole" % (account_id)
 
     client = boto3.client(
         service_name="sts",
@@ -33,13 +33,9 @@ def gen_aws_client(arn, aws_external_id, service_name="lambda"):
 
     credentials = assumed_role_object["Credentials"]
 
-    tmp_access_key = credentials["AccessKeyId"]
-    tmp_secret_key = credentials["SecretAccessKey"]
-    security_token = credentials["SessionToken"]
-
     boto3_session = boto3.Session(
-        aws_access_key_id=tmp_access_key,
-        aws_secret_access_key=tmp_secret_key,
-        aws_session_token=security_token,
+        aws_access_key_id=credentials["AccessKeyId"],
+        aws_secret_access_key=credentials["SecretAccessKey"],
+        aws_session_token=credentials["SessionToken"],
     )
     return boto3_session.client(service_name=service_name, region_name=region)

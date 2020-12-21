@@ -131,6 +131,8 @@ def pytest_configure(config):
             "vercel.client-secret": "vercel-client-secret",
             "msteams.client-id": "msteams-client-id",
             "msteams.client-secret": "msteams-client-secret",
+            "aws-lambda.access-key-id": "aws-key-id",
+            "aws-lambda.secret-access-key": "aws-secret-access-key",
             "aws-lambda.node-layer-name": "my-layer",
             "aws-lambda.node-layer-version": "3",
             "aws-lambda.host-account-id": "1234",
