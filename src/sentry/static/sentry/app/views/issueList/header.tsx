@@ -127,9 +127,9 @@ function IssueListHeader({
                   count={queryCounts[tabQuery]}
                   max={TAB_MAX_COUNT}
                   tagType={
-                    (tabQuery === Query.NEEDS_REVIEW && 'warning')
-                    || (tabQuery === Query.UNRESOLVED && 'default')
-                    || undefined
+                    (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
+                    (tabQuery === Query.UNRESOLVED && 'default') ||
+                    undefined
                   }
                 />
               </a>
