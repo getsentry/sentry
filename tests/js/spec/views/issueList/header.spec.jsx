@@ -39,7 +39,7 @@ describe('IssueListHeader', () => {
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 1');
     expect(wrapper.find('li').at(1).text()).toBe('Unresolved 1');
-    expect(wrapper.find('li').at(2).text()).toBe('Ignored');
+    expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
   });
 
   it('renders limited counts for tabs', () => {
@@ -48,7 +48,7 @@ describe('IssueListHeader', () => {
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 99+');
     expect(wrapper.find('li').at(1).text()).toBe('Unresolved 99+');
-    expect(wrapper.find('li').at(2).text()).toBe('Ignored');
+    expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
   });
 
   it('transitions to new query on tab click', () => {
