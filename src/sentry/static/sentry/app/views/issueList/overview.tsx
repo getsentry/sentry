@@ -511,7 +511,9 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = jqXHR.getResponseHeader('Link');
 
-        this.fetchCounts(queryCount);
+        if (this.props.organization.features.includes('inbox')) {
+          this.fetchCounts(queryCount);
+        }
 
         this.setState({
           error: null,
