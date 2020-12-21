@@ -23,8 +23,8 @@ from sentry.web.helpers import render_to_response
 from sentry.utils.compat import filter, map
 from sentry.utils import json
 
-from .client import gen_aws_lambda_client
-from .utils import parse_arn
+from .client import gen_aws_client
+from .utils import parse_arn, get_index_of_sentry_layer, get_aws_node_arn
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
@@ -76,20 +76,24 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
-        # TODO: unhardcode
-        integration_name = "Serverless Hack Bootstrap"
-
         arn = state["arn"]
+        aws_external_id = state["aws_external_id"]
+
         parsed_arn = parse_arn(arn)
         account_id = parsed_arn["account"]
         region = parsed_arn["region"]
+
+        org_client = gen_aws_client(arn, aws_external_id, service_name="organizations")
+        account = org_client.describe_account(AccountId=account_id)["Account"]
+
+        integration_name = u"{} {}".format(account["Name"], region)
 
         external_id = u"{}-{}".format(account_id, region)
 
         integration = {
             "name": integration_name,
             "external_id": external_id,
-            "metadata": {"arn": state["arn"], "aws_external_id": state["aws_external_id"]},
+            "metadata": {"arn": arn, "aws_external_id": aws_external_id},
         }
         return integration
 
@@ -102,7 +106,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
         organization = pipeline.organization
         # TODO: check status of project
-        projects = Project.objects.filter(organization=organization)
+        projects = Project.objects.filter(organization=organization).order_by("id")
         serialized_projects = map(lambda x: serialize(x, request.user), projects)
 
         return self.render_react_view(
@@ -144,17 +148,21 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        if request.method == "POST":
-            # TODO: find better way to determine if the POST is from the previous step
-            if not request.POST.get("aws_external_id"):
-                data = json.loads(request.body)
-                pipeline.bind_state("enabled_lambdas", data)
-                return pipeline.next_step()
+        # the previous pipeline step will have be POST and will reach this line here
+        # we need to check our state to determine what to do
+        if request.method == "POST" and pipeline.fetch_state("ready_for_enabled_lambdas_post"):
+            # accept form data or json data
+            data = request.POST or json.loads(request.body)
+            pipeline.bind_state("enabled_lambdas", data)
+            return pipeline.next_step()
+
+        # bind the state now so we are ready to accept the enabled_lambdas in the post pdy
+        pipeline.bind_state("ready_for_enabled_lambdas_post", True)
 
         arn = pipeline.fetch_state("arn")
         aws_external_id = pipeline.fetch_state("aws_external_id")
 
-        lambda_client = gen_aws_lambda_client(arn, aws_external_id)
+        lambda_client = gen_aws_client(arn, aws_external_id)
 
         lambda_functions = filter(
             lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
@@ -174,6 +182,10 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         organization = pipeline.organization
 
         arn = pipeline.fetch_state("arn")
+        region = parse_arn(arn)["region"]
+        # the layer ARN has to be located within a specific region
+        node_layer_arn = get_aws_node_arn(region)
+
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
         enabled_lambdas = pipeline.fetch_state("enabled_lambdas")
@@ -188,7 +200,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             raise IntegrationError("Project does not have DSN enabled")
         sentry_project_dsn = enabled_dsn.get_dsn(public=True)
 
-        lambda_client = gen_aws_lambda_client(arn, aws_external_id)
+        lambda_client = gen_aws_client(arn, aws_external_id)
 
         lambda_functions = filter(
             lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
@@ -203,18 +215,27 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             # check to see if the user wants to enable this function
             if not enabled_lambdas.get(name):
                 continue
-            # TODO: load existing layers and environment and append to them
             try:
+                # update the env variables
+                env_variables = function.get("Environment", {}).get("Variables", {})
+                env_variables.update(
+                    {
+                        "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+                        "SENTRY_DSN": sentry_project_dsn,
+                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+                    }
+                )
+
+                # find the sentry layer and update it or insert new layer to end
+                layers = function.get("Layers", [])
+                sentry_layer_index = get_index_of_sentry_layer(layers, node_layer_arn)
+                if sentry_layer_index > -1:
+                    layers[sentry_layer_index] = node_layer_arn
+                else:
+                    layers.append(node_layer_arn)
+
                 lambda_client.update_function_configuration(
-                    FunctionName=name,
-                    Layers=[options.get("aws-lambda.node-layer-arn")],
-                    Environment={
-                        "Variables": {
-                            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
-                            "SENTRY_DSN": sentry_project_dsn,
-                            "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                        }
-                    },
+                    FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
                 )
             except Exception as e:
                 failures.append(function)

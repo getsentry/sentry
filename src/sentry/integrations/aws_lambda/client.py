@@ -7,12 +7,12 @@ from sentry import options
 from .utils import parse_arn
 
 
-def gen_aws_lambda_client(arn, aws_external_id, session_name="MySession"):
+def gen_aws_client(arn, aws_external_id, service_name="lambda"):
     """
-        arn - the arn of the cloudformation stack
-        aws_external_id - the external_id used to assume the role
+    arn - the arn of the cloudformation stack
+    aws_external_id - the external_id used to assume the role
 
-        Returns an aws_lambda_client
+    Returns an aws_lambda_client
     """
     parsed_arn = parse_arn(arn)
     account_id = parsed_arn["account"]
@@ -24,11 +24,11 @@ def gen_aws_lambda_client(arn, aws_external_id, session_name="MySession"):
         service_name="sts",
         aws_access_key_id=options.get("aws-lambda.access-key-id"),
         aws_secret_access_key=options.get("aws-lambda.secret-access-key"),
-        region_name=options.get("aws-lambda.region"),
+        region_name=options.get("aws-lambda.host-region"),
     )
 
     assumed_role_object = client.assume_role(
-        RoleSessionName="MySession", RoleArn=role_arn, ExternalId=aws_external_id
+        RoleSessionName="Sentry", RoleArn=role_arn, ExternalId=aws_external_id
     )
 
     credentials = assumed_role_object["Credentials"]
@@ -42,4 +42,4 @@ def gen_aws_lambda_client(arn, aws_external_id, session_name="MySession"):
         aws_secret_access_key=tmp_secret_key,
         aws_session_token=security_token,
     )
-    return boto3_session.client(service_name="lambda", region_name=region)
+    return boto3_session.client(service_name=service_name, region_name=region)
