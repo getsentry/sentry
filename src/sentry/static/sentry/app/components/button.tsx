@@ -369,3 +369,8 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   margin-right: ${getIconMargin};
   height: ${getFontSize};
 `;
+
+/**
+ * Also export these styled components so we can use them as selectors
+ */
+export {StyledButton, ButtonLabel, Icon};
