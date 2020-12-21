@@ -173,7 +173,9 @@ const DebugImage = React.memo(
       );
     };
 
-    const hasImagesLoadedV2Feature = organization.features.includes('images-loaded-v2');
+    const hasImagesLoadedV2Feature = !!organization?.features.includes(
+      'images-loaded-v2'
+    );
 
     return (
       <DebugImageItem style={style}>
