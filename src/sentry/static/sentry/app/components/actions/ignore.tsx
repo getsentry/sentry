@@ -134,7 +134,7 @@ const IgnoreActions = ({
           hasInbox ? (
             <IconMute size="xs" color="gray300" />
           ) : (
-            <MoreButton
+            <ActionButton
               disabled={disabled}
               icon={<IconChevron direction="down" size="xs" />}
             />
@@ -313,12 +313,6 @@ const IgnoreActions = ({
 };
 
 export default IgnoreActions;
-
-const MoreButton = styled(ActionButton)`
-  border-left: none;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-`;
 
 const actionLinkCss = p => css`
   color: ${p.theme.subText};

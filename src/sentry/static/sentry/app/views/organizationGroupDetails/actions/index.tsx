@@ -14,9 +14,7 @@ import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Link from 'app/components/links/link';
 import ShareIssue from 'app/components/shareIssue';
-import Tooltip from 'app/components/tooltip';
 import {IconRefresh, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -271,51 +269,40 @@ class Actions extends React.Component<Props, State> {
             onReshare={() => this.onShare(true)}
           />
         )}
+
         {orgFeatures.has('discover-basic') && (
           <ActionButton to={disabled ? '' : this.getDiscoverUrl()}>
             {t('Open in Discover')}
           </ActionButton>
         )}
+
         <BookmarkButton
-          className={buttonClassName}
-          role="button"
           isActive={group.isBookmarked}
           title={bookmarkTitle}
-          aria-label={bookmarkTitle}
+          label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
-        >
-          <IconWrapper>
-            <IconStar isSolid size="xs" />
-          </IconWrapper>
-        </BookmarkButton>
+          icon={<IconStar isSolid size="xs" />}
+        />
+
         <SubscribeAction
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
 
         {orgFeatures.has('reprocessing-v2') && (
-          <Tooltip title={t('Reprocess this issue')}>
-            <div
-              className={buttonClassName}
-              onClick={this.handleClick(disabled, this.onReprocess)}
-            >
-              <IconWrapper>
-                <IconRefresh size="xs" />
-              </IconWrapper>
-            </div>
-          </Tooltip>
+          <ActionButton
+            icon={<IconRefresh size="xs" />}
+            title={t('Reprocess this issue')}
+            label={t('Reprocess this issue')}
+            onClick={this.handleClick(disabled, this.onReprocess)}
+          />
         )}
       </Wrapper>
     );
   }
 }
 
-const IconWrapper = styled('span')`
-  position: relative;
-  top: 1px;
-`;
-
-const BookmarkButton = styled('div')<{isActive: boolean}>`
+const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>
     p.isActive &&
     `

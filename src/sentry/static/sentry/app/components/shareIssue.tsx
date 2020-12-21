@@ -9,10 +9,12 @@ import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Switch from 'app/components/switch';
-import {IconCopy, IconRefresh} from 'app/icons';
+import {IconChevron, IconCopy, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+
+import ActionButton from './actions/button';
 
 type ContainerProps = {
   shareUrl: string;
@@ -131,13 +133,16 @@ class ShareIssue extends React.Component<Props> {
 
     return (
       <DropdownLink
-        className="share-issue btn-sm btn btn-default"
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
-        title={
-          <DropdownTitleContent>
-            <IndicatorDot isShared={isShared} />
-            {t('Share')}
-          </DropdownTitleContent>
+        customTitle={
+          <ActionButton>
+            <DropdownTitleContent>
+              <IndicatorDot isShared={isShared} />
+              {t('Share')}
+            </DropdownTitleContent>
+
+            <IconChevron direction="down" size="xs" />
+          </ActionButton>
         }
         onOpen={this.handleOpen}
         disabled={disabled}

@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import {openModal} from 'app/actionCreators/modal';
 import ActionLink from 'app/components/actions/actionLink';
@@ -110,7 +109,7 @@ class ResolveActions extends React.Component<Props> {
       <DropdownLink
         customTitle={
           !hasInbox && (
-            <MoreButton
+            <ActionButton
               label={t('More resolve options')}
               disabled={!projectId ? disabled : disableDropdown}
               icon={<IconChevron direction="down" size="xs" />}
@@ -242,11 +241,5 @@ class ResolveActions extends React.Component<Props> {
     );
   }
 }
-
-const MoreButton = styled(ActionButton)`
-  border-left: none;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-`;
 
 export default ResolveActions;

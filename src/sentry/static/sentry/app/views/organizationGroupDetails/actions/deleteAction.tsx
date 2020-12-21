@@ -1,16 +1,16 @@
 import React from 'react';
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import ActionButton from 'app/components/actions/button';
+import MenuHeader from 'app/components/actions/menuHeader';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
 import {IconChevron, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -79,88 +79,41 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
   }
 
   return (
-    <DeleteDiscardWrapper>
-      <ButtonBar merged>
-        <Confirm
-          message={t(
-            'Deleting this issue is permanent. Are you sure you wish to continue?'
-          )}
-          onConfirm={onDelete}
-          disabled={disabled}
-        >
+    <ButtonBar merged>
+      <Confirm
+        message={t(
+          'Deleting this issue is permanent. Are you sure you wish to continue?'
+        )}
+        onConfirm={onDelete}
+        disabled={disabled}
+      >
+        <DeleteButton label={t('Delete issue')} icon={<IconDelete size="xs" />} />
+      </Confirm>
+      <DropdownLink
+        caret={false}
+        disabled={disabled}
+        customTitle={
           <ActionButton
-            className="group-remove"
-            label={t('Delete issue')}
-            icon={<IconDelete size="xs" />}
+            label={t('More delete options')}
+            icon={<IconChevron direction="down" size="xs" />}
           />
-        </Confirm>
-        <DropdownLink
-          caret={false}
-          disabled={disabled}
-          customTitle={
-            <ActionButton
-              label={t('More delete options')}
-              icon={<IconChevron direction="down" size="xs" />}
-            />
-          }
-        >
-          <StyledMenuItemHeader header>{t('Delete & Discard')}</StyledMenuItemHeader>
-          <StyledMenuItem onClick={openDiscardModal}>
-            <span>{t('Delete and discard future events')}</span>
-          </StyledMenuItem>
-        </DropdownLink>
-      </ButtonBar>
-    </DeleteDiscardWrapper>
+        }
+      >
+        <MenuHeader>{t('Delete & Discard')}</MenuHeader>
+        <MenuItemActionLink title="" onAction={openDiscardModal}>
+          {t('Delete and discard future events')}
+        </MenuItemActionLink>
+      </DropdownLink>
+    </ButtonBar>
   );
 }
 
+const DeleteButton = styled(ActionButton)`
+  &:hover {
+    background-color: ${p => p.theme.button.danger.background};
+    color: ${p => p.theme.button.danger.color};
+    border-color: ${p => p.theme.button.danger.border};
+  }
+`;
+
 export default DeleteAction;
-
-const dropdownTipCss = p => css`
-  & ul {
-    padding: 0;
-    border-radius: ${p.theme.borderRadius};
-    top: 40px;
-    &:after {
-      border-bottom: 8px solid ${p.theme.bodyBackground};
-    }
-  }
-`;
-
-const StyledMenuItemHeader = styled(MenuItem)`
-  text-transform: uppercase;
-  padding: ${space(1)} 0 ${space(1)} 10px;
-  font-weight: 600;
-  color: ${p => p.theme.gray400};
-  background: ${p => p.theme.bodyBackground};
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-top-left-radius: ${p => p.theme.borderRadius};
-  border-top-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledMenuItem = styled(MenuItem)`
-  & span {
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-    padding: 5px;
-  }
-  & span:hover {
-    background: ${p => p.theme.bodyBackground};
-  }
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  transition: none;
-  border-top-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
-`;
-
-const DeleteDiscardWrapper = styled('div')`
-  ${dropdownTipCss}
-  & span {
-    position: relative;
-  }
-`;
