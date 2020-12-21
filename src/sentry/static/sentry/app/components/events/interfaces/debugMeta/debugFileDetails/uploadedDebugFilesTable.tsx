@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import Access from 'app/components/acl/access';
 import Role from 'app/components/acl/role';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -47,18 +48,20 @@ class UplodadedDebugFilesTable extends AsyncComponent<Props, State> {
     ];
   }
 
-  handleDelete = (debugId: string) => {
+  handleDelete = async (debugId: string) => {
     const {organization, projectId} = this.props;
 
     this.setState({loading: true});
 
-    this.api.request(
-      `/projects/${organization.slug}/${projectId}/files/dsyms/?id=${debugId}`,
-      {
-        method: 'DELETE',
-        complete: () => this.fetchData(),
-      }
-    );
+    try {
+      await this.api.requestPromise(
+        `/projects/${organization.slug}/${projectId}/files/dsyms/?id=${debugId}`,
+        {method: 'GET'}
+      );
+      this.fetchData();
+    } catch {
+      addErrorMessage(t('An error occurred while deleting the debug file.'));
+    }
   };
 
   getCandidates() {
