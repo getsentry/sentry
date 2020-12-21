@@ -154,7 +154,10 @@ class Symbolicator(object):
 
             metrics.incr(
                 "events.symbolicator.response",
-                tags={"response": json_response.get("status") or "null"},
+                tags={
+                    "response": json_response.get("status") or "null",
+                    "task_type": getattr(create_task, "__name__", None) or "null",
+                },
             )
 
             # Symbolication is still in progress. Bail out and try again
