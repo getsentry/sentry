@@ -31,9 +31,8 @@ import withOrganization from 'app/utils/withOrganization';
 import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
-import SubscribeAction from '../subscribeAction';
-
 import DeleteAction from './deleteAction';
+import SubscribeAction from './subscribeAction';
 
 type Props = {
   api: Client;
@@ -281,6 +280,7 @@ class Actions extends React.Component<Props, State> {
         />
 
         <SubscribeAction
+          disabled={disabled}
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />

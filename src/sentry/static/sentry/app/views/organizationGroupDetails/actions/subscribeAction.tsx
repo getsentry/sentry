@@ -1,19 +1,19 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
-import Button from 'app/components/button';
+import ActionButton from 'app/components/actions/button';
 import {IconBell} from 'app/icons';
 import {t} from 'app/locale';
 import {Group} from 'app/types';
 
-import {getSubscriptionReason} from './utils';
+import {getSubscriptionReason} from '../utils';
 
 type Props = {
   group: Group;
   onClick: (event: React.MouseEvent) => void;
+  disabled?: boolean;
 };
 
-function SubscribeAction({group, onClick}: Props) {
+function SubscribeAction({disabled, group, onClick}: Props) {
   const canChangeSubscriptionState = !(group.subscriptionDetails?.disabled ?? false);
 
   if (!canChangeSubscriptionState) {
@@ -21,7 +21,8 @@ function SubscribeAction({group, onClick}: Props) {
   }
 
   return (
-    <SubscribeButton
+    <ActionButton
+      disabled={disabled}
       title={getSubscriptionReason(group, true)}
       priority={group.isSubscribed ? 'primary' : 'default'}
       size="zero"
@@ -33,7 +34,3 @@ function SubscribeAction({group, onClick}: Props) {
 }
 
 export default SubscribeAction;
-
-const SubscribeButton = styled(Button)`
-  padding: 6px 9px; /* needed to match existing buttons */
-`;
