@@ -191,7 +191,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.GET,
             "https://api.vercel.com/v1/projects/%s"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"link": {"type": "github"}},
+            json={"link": {"type": "github"}, "framework": "nextjs"},
         )
 
         for i, name in enumerate(secret_names):
@@ -299,13 +299,13 @@ class VercelIntegrationTest(IntegrationTestCase):
         secret_names = [
             "sentry_org_%s" % uuid,
             "sentry_project_%s" % uuid,
-            "next_public_sentry_dsn_%s" % uuid,
+            "sentry_dsn_%s" % uuid,
             "sentry_auth_token_%s" % uuid,
         ]
         env_var_names = [
             "SENTRY_ORG",
             "SENTRY_PROJECT",
-            "NEXT_PUBLIC_SENTRY_DSN",
+            "SENTRY_DSN",
             "SENTRY_AUTH_TOKEN",
         ]
 
@@ -313,7 +313,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.GET,
             "https://api.vercel.com/v1/projects/%s"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"link": {"type": "github"}},
+            json={"link": {"type": "github"}, "framework": "gatsby"},
         )
 
         for i, name in enumerate(secret_names):
@@ -384,7 +384,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["target"] == "production"
 
         req_params = json.loads(responses.calls[19].request.body)
-        assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
+        assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == "sec_2"
         assert req_params["target"] == "production"
 
