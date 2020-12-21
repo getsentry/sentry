@@ -167,6 +167,10 @@ class BaseApiClient(TrackResponseMixin):
 
     cache_time = 900
 
+    page_size = 100
+
+    page_number_limit = 10
+
     def __init__(self, verify_ssl=True, logging_context=None):
         self.verify_ssl = verify_ssl
         self.logging_context = logging_context
@@ -313,6 +317,23 @@ class BaseApiClient(TrackResponseMixin):
             result = self.head(path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
+
+    def get_with_pagination(self, path, gen_params, get_results, *args, **kwargs):
+        page_size = self.page_size
+        offset = 0
+        output = []
+
+        for i in range(self.page_number_limit):
+            resp = self.get(path, params=gen_params(i, page_size))
+            results = get_results(resp)
+            num_results = len(results)
+
+            output += results
+            offset += num_results
+            # if the number is lower than our page_size, we can quit
+            if num_results < page_size:
+                return output
+        return output
 
 
 class BaseInternalApiClient(ApiClient, TrackResponseMixin):
