@@ -266,12 +266,13 @@ class Actions extends React.Component<Props, State> {
         )}
 
         {orgFeatures.has('discover-basic') && (
-          <ActionButton to={disabled ? '' : this.getDiscoverUrl()}>
+          <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
             {t('Open in Discover')}
           </ActionButton>
         )}
 
         <BookmarkButton
+          disabled={disabled}
           isActive={group.isBookmarked}
           title={bookmarkTitle}
           label={bookmarkTitle}
@@ -287,6 +288,7 @@ class Actions extends React.Component<Props, State> {
 
         {orgFeatures.has('reprocessing-v2') && (
           <ActionButton
+            disabled={disabled}
             icon={<IconRefresh size="xs" />}
             title={t('Reprocess this issue')}
             label={t('Reprocess this issue')}
