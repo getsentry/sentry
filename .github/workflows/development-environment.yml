@@ -5,7 +5,6 @@ on:
     - 'Brewfile'
     - 'Makefile'
     - '.github/workflows/development-environment.yml'
-    - 'requirements-*.txt'
     - 'scripts/*'
     - 'src/sentry/runner/commands/devserver.py'
     - 'src/sentry/runner/commands/devservices.py'
