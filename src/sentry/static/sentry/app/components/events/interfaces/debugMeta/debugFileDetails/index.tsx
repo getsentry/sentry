@@ -68,7 +68,7 @@ function DebugFileDetails({
         <Content>
           <GeneralInfo>
             <Label>{t('Address Range')}</Label>
-            <Value>{image_addr}</Value>
+            <Value>{image_addr ?? <NotAvailable />}</Value>
 
             <Label coloredBg>{t('Architecture')}</Label>
             <Value coloredBg>{architecture ?? <NotAvailable />}</Value>

@@ -83,11 +83,11 @@ export type Image = {
   code_file: string;
   code_id: string;
   type: string;
-  image_addr: string;
   image_size: number;
   debug_status: ImageStackTraceInfo;
   unwind_status: ImageStackTraceInfo;
   features: Features;
   candidates: Array<Candidate>;
   arch?: string;
+  image_addr?: string;
 };
