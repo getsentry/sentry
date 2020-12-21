@@ -218,16 +218,11 @@ class Actions extends React.Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
-    let buttonClassName = 'btn btn-default btn-sm';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
-
-    if (disabled) {
-      buttonClassName = `${buttonClassName} disabled`;
-    }
 
     return (
       <Wrapper>
