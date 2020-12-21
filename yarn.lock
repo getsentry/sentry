@@ -11947,10 +11947,10 @@ pkg-up@2.0.0:
   dependencies:
     find-up "^2.1.0"
 
-platformicons@^3.5.1:
-  version "3.5.1"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.5.1.tgz#dc896f6d6af2696ab6053c4078ff4efc9d6a14ca"
-  integrity sha512-njKCWGoVOcLoV+3d/qiWOX9Ck8aaV0FABV0oFpsd8ZKUbReVUNChXjwGBc0bBXQxAL/pDtQb08TITzfNUON61g==
+platformicons@^3.5.2:
+  version "3.5.2"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-3.5.2.tgz#4ce5de7be29ff9307f5d24e601eb244e5dde42b3"
+  integrity sha512-d5o2yLx9Jm9i2tfyPRYEx6lV0kFafNmJeZekPld0/UziNfOcAfsMODzAKjYT+JEpgzZuuLTpEakTgQTOAgTW8Q==
   dependencies:
     "@types/node" "*"
     "@types/react" "^16 || ^17"
