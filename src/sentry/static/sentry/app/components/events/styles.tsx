@@ -1,22 +1,7 @@
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import theme from 'app/utils/theme';
-
-const COLORS = {
-  default: {
-    background: theme.backgroundSecondary,
-    border: theme.border,
-  },
-  danger: {
-    background: theme.alert.error.backgroundLight,
-    border: theme.alert.error.border,
-  },
-  success: {
-    background: theme.alert.success.backgroundLight,
-    border: theme.alert.success.border,
-  },
-} as const;
+import {Theme} from 'app/utils/theme';
 
 export const DataSection = styled('div')`
   padding: ${space(2)} 0;
@@ -29,14 +14,34 @@ export const DataSection = styled('div')`
 
 type BannerProps = {
   priority: 'default' | 'danger' | 'success';
+  theme: Theme;
 };
+
+function getColors({priority, theme}: BannerProps) {
+  const COLORS = {
+    default: {
+      background: theme.backgroundSecondary,
+      border: theme.border,
+    },
+    danger: {
+      background: theme.alert.error.backgroundLight,
+      border: theme.alert.error.border,
+    },
+    success: {
+      background: theme.alert.success.backgroundLight,
+      border: theme.alert.success.border,
+    },
+  } as const;
+
+  return COLORS[priority];
+}
 
 export const BannerContainer = styled('div')<BannerProps>`
   font-size: ${p => p.theme.fontSizeMedium};
 
-  background: ${p => COLORS[p.priority].background};
-  border-top: 1px solid ${p => COLORS[p.priority].border};
-  border-bottom: 1px solid ${p => COLORS[p.priority].border};
+  background: ${p => getColors(p).background};
+  border-top: 1px solid ${p => getColors(p).border};
+  border-bottom: 1px solid ${p => getColors(p).border};
 
   /* Muted box & processing errors are in different parts of the DOM */
   &
