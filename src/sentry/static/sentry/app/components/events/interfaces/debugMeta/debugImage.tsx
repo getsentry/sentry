@@ -2,17 +2,20 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
+import {openModal} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import DebugFileFeature from 'app/components/debugFileFeature';
 import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import {PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'app/icons';
+import {IconCheckmark, IconCircle, IconFlag, IconSearch, IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {Image} from 'app/types/debugImage';
 
+import DebugFileDetails, {modalCss} from './debugFileDetails';
 import {DebugImage as DebugImageType, DebugStatus} from './types';
 import {combineStatus, getFileName} from './utils';
 
@@ -61,189 +64,227 @@ function getImageStatusDetails(status: Status) {
 type Props = {
   image: DebugImageType;
   showDetails: boolean;
+  organization: Organization;
+  projectId: Project['id'];
   style?: React.CSSProperties;
-  orgId?: Organization['id'];
-  projectId?: Project['id'];
 };
 
-const DebugImage = React.memo(({image, orgId, projectId, showDetails, style}: Props) => {
-  const getSettingsLink = () => {
-    if (!orgId || !projectId || !image.debug_id) {
-      return null;
-    }
-    return `/settings/${orgId}/projects/${projectId}/debug-symbols/?query=${image.debug_id}`;
-  };
+const DebugImage = React.memo(
+  ({image, organization, projectId, showDetails, style}: Props) => {
+    const orgSlug = organization.slug;
 
-  const renderStatus = (title: string, status: DebugStatus) => {
-    if (isNil(status)) {
-      return null;
-    }
+    const getSettingsLink = () => {
+      if (!orgSlug || !projectId || !image.debug_id) {
+        return null;
+      }
+      return `/settings/${orgSlug}/projects/${projectId}/debug-symbols/?query=${image.debug_id}`;
+    };
 
-    const text = getImageStatusText(status);
-    if (!text) {
-      return null;
-    }
+    const renderStatus = (title: string, status: DebugStatus) => {
+      if (isNil(status)) {
+        return null;
+      }
+
+      const text = getImageStatusText(status);
+      if (!text) {
+        return null;
+      }
+
+      return (
+        <SymbolicationStatus>
+          <Tooltip title={getImageStatusDetails(status)}>
+            <span>
+              <ImageProp>{title}</ImageProp>: {text}
+            </span>
+          </Tooltip>
+        </SymbolicationStatus>
+      );
+    };
+
+    const combinedStatus = combineStatus(image.debug_status, image.unwind_status);
+    const [startAddress, endAddress] = getImageRange(image);
+
+    const renderIconElement = () => {
+      switch (combinedStatus) {
+        case 'unused':
+          return (
+            <IconWrapper>
+              <IconCircle />
+            </IconWrapper>
+          );
+        case 'found':
+          return (
+            <IconWrapper>
+              <IconCheckmark isCircled color="green300" />
+            </IconWrapper>
+          );
+        default:
+          return (
+            <IconWrapper>
+              <IconFlag color="red300" />
+            </IconWrapper>
+          );
+      }
+    };
+
+    const codeFile = getFileName(image.code_file);
+    const debugFile = image.debug_file && getFileName(image.debug_file);
+
+    // The debug file is only realistically set on Windows. All other platforms
+    // either leave it empty or set it to a filename thats equal to the code
+    // file name. In this case, do not show it.
+    const showDebugFile = debugFile && codeFile !== debugFile;
+
+    // Availability only makes sense if the image is actually referenced.
+    // Otherwise, the processing pipeline does not resolve this kind of
+    // information and it will always be false.
+    const showAvailability = !isNil(image.features) && combinedStatus !== 'unused';
+
+    // The code id is sometimes missing, and sometimes set to the equivalent of
+    // the debug id (e.g. for Mach symbols). In this case, it is redundant
+    // information and we do not want to show it.
+    const showCodeId = !!image.code_id && image.code_id !== image.debug_id;
+
+    // Old versions of the event pipeline did not store the symbolication
+    // status. In this case, default to display the debug_id instead of stack
+    // unwind information.
+    const legacyRender = isNil(image.debug_status);
+
+    const debugIdElement = (
+      <ImageSubtext>
+        <ImageProp>{t('Debug ID')}</ImageProp>: <Formatted>{image.debug_id}</Formatted>
+      </ImageSubtext>
+    );
+
+    const handleOpenDebugFileDetails = () => {
+      openModal(
+        modalProps => (
+          <DebugFileDetails
+            {...modalProps}
+            image={image as Image}
+            title={codeFile}
+            organization={organization}
+            projectId={projectId}
+          />
+        ),
+        {
+          modalCss,
+        }
+      );
+    };
+
+    const hasImagesLoadedV2Feature = organization.features.includes('images-loaded-v2');
 
     return (
-      <SymbolicationStatus>
-        <Tooltip title={getImageStatusDetails(status)}>
-          <span>
-            <ImageProp>{title}</ImageProp>: {text}
-          </span>
-        </Tooltip>
-      </SymbolicationStatus>
+      <DebugImageItem style={style}>
+        <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
+
+        <ImageInfoGroup>
+          {startAddress && endAddress ? (
+            <React.Fragment>
+              <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+              <AddressDivider />
+              <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+            </React.Fragment>
+          ) : null}
+        </ImageInfoGroup>
+
+        <ImageInfoGroup fullWidth>
+          <ImageTitle>
+            <Tooltip title={image.code_file}>
+              <CodeFile>{codeFile}</CodeFile>
+            </Tooltip>
+            {showDebugFile && <DebugFile> ({debugFile})</DebugFile>}
+          </ImageTitle>
+
+          {legacyRender ? (
+            debugIdElement
+          ) : (
+            <StatusLine>
+              {renderStatus(t('Stack Unwinding'), image.unwind_status)}
+              {renderStatus(t('Symbolication'), image.debug_status)}
+            </StatusLine>
+          )}
+
+          {showDetails && (
+            <React.Fragment>
+              {showAvailability && (
+                <ImageSubtext>
+                  <ImageProp>{t('Availability')}</ImageProp>:
+                  <DebugFileFeature
+                    feature="symtab"
+                    available={image.features.has_symbols}
+                  />
+                  <DebugFileFeature
+                    feature="debug"
+                    available={image.features.has_debug_info}
+                  />
+                  <DebugFileFeature
+                    feature="unwind"
+                    available={image.features.has_unwind_info}
+                  />
+                  <DebugFileFeature
+                    feature="sources"
+                    available={image.features.has_sources}
+                  />
+                </ImageSubtext>
+              )}
+
+              {!legacyRender && debugIdElement}
+
+              {showCodeId && (
+                <ImageSubtext>
+                  <ImageProp>{t('Code ID')}</ImageProp>:{' '}
+                  <Formatted>{image.code_id}</Formatted>
+                </ImageSubtext>
+              )}
+
+              {!!image.arch && (
+                <ImageSubtext>
+                  <ImageProp>{t('Architecture')}</ImageProp>: {image.arch}
+                </ImageSubtext>
+              )}
+            </React.Fragment>
+          )}
+        </ImageInfoGroup>
+
+        <Access access={['project:releases']}>
+          {({hasAccess}) => {
+            if (!hasAccess) {
+              return null;
+            }
+            const settingsUrl = getSettingsLink();
+            if (!settingsUrl) {
+              return null;
+            }
+
+            return (
+              <ImageActions>
+                {hasImagesLoadedV2Feature ? (
+                  <Button
+                    size="xsmall"
+                    icon={<IconStack size="xs" />}
+                    onClick={handleOpenDebugFileDetails}
+                  >
+                    {t('View')}
+                  </Button>
+                ) : (
+                  <Tooltip title={t('Search for debug files in settings')}>
+                    <Button
+                      size="xsmall"
+                      icon={<IconSearch size="xs" />}
+                      to={settingsUrl}
+                    />
+                  </Tooltip>
+                )}
+              </ImageActions>
+            );
+          }}
+        </Access>
+      </DebugImageItem>
     );
-  };
-
-  const combinedStatus = combineStatus(image?.debug_status, image.unwind_status);
-  const [startAddress, endAddress] = getImageRange(image);
-
-  const renderIconElement = () => {
-    switch (combinedStatus) {
-      case 'unused':
-        return (
-          <IconWrapper>
-            <IconCircle />
-          </IconWrapper>
-        );
-      case 'found':
-        return (
-          <IconWrapper>
-            <IconCheckmark isCircled color="green300" />
-          </IconWrapper>
-        );
-      default:
-        return (
-          <IconWrapper>
-            <IconFlag color="red300" />
-          </IconWrapper>
-        );
-    }
-  };
-
-  const codeFile = getFileName(image.code_file);
-  const debugFile = image.debug_file && getFileName(image.debug_file);
-
-  // The debug file is only realistically set on Windows. All other platforms
-  // either leave it empty or set it to a filename thats equal to the code
-  // file name. In this case, do not show it.
-  const showDebugFile = debugFile && codeFile !== debugFile;
-
-  // Availability only makes sense if the image is actually referenced.
-  // Otherwise, the processing pipeline does not resolve this kind of
-  // information and it will always be false.
-  const showAvailability = !isNil(image.features) && combinedStatus !== 'unused';
-
-  // The code id is sometimes missing, and sometimes set to the equivalent of
-  // the debug id (e.g. for Mach symbols). In this case, it is redundant
-  // information and we do not want to show it.
-  const showCodeId = !!image.code_id && image.code_id !== image.debug_id;
-
-  // Old versions of the event pipeline did not store the symbolication
-  // status. In this case, default to display the debug_id instead of stack
-  // unwind information.
-  const legacyRender = isNil(image.debug_status);
-
-  const debugIdElement = (
-    <ImageSubtext>
-      <ImageProp>{t('Debug ID')}</ImageProp>: <Formatted>{image.debug_id}</Formatted>
-    </ImageSubtext>
-  );
-
-  return (
-    <DebugImageItem style={style}>
-      <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
-
-      <ImageInfoGroup>
-        {startAddress && endAddress ? (
-          <React.Fragment>
-            <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
-            <AddressDivider />
-            <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
-          </React.Fragment>
-        ) : null}
-      </ImageInfoGroup>
-
-      <ImageInfoGroup fullWidth>
-        <ImageTitle>
-          <Tooltip title={image.code_file}>
-            <CodeFile>{codeFile}</CodeFile>
-          </Tooltip>
-          {showDebugFile && <DebugFile> ({debugFile})</DebugFile>}
-        </ImageTitle>
-
-        {legacyRender ? (
-          debugIdElement
-        ) : (
-          <StatusLine>
-            {renderStatus(t('Stack Unwinding'), image.unwind_status)}
-            {renderStatus(t('Symbolication'), image.debug_status)}
-          </StatusLine>
-        )}
-
-        {showDetails && (
-          <React.Fragment>
-            {showAvailability && (
-              <ImageSubtext>
-                <ImageProp>{t('Availability')}</ImageProp>:
-                <DebugFileFeature
-                  feature="symtab"
-                  available={image.features.has_symbols}
-                />
-                <DebugFileFeature
-                  feature="debug"
-                  available={image.features.has_debug_info}
-                />
-                <DebugFileFeature
-                  feature="unwind"
-                  available={image.features.has_unwind_info}
-                />
-                <DebugFileFeature
-                  feature="sources"
-                  available={image.features.has_sources}
-                />
-              </ImageSubtext>
-            )}
-
-            {!legacyRender && debugIdElement}
-
-            {showCodeId && (
-              <ImageSubtext>
-                <ImageProp>{t('Code ID')}</ImageProp>:{' '}
-                <Formatted>{image.code_id}</Formatted>
-              </ImageSubtext>
-            )}
-
-            {!!image.arch && (
-              <ImageSubtext>
-                <ImageProp>{t('Architecture')}</ImageProp>: {image.arch}
-              </ImageSubtext>
-            )}
-          </React.Fragment>
-        )}
-      </ImageInfoGroup>
-
-      <Access access={['project:releases']}>
-        {({hasAccess}) => {
-          if (!hasAccess) {
-            return null;
-          }
-          const settingsUrl = getSettingsLink();
-          if (!settingsUrl) {
-            return null;
-          }
-          return (
-            <ImageActions>
-              <Tooltip title={t('Search for debug files in settings')}>
-                <Button size="xsmall" icon={<IconSearch size="xs" />} to={settingsUrl} />
-              </Tooltip>
-            </ImageActions>
-          );
-        }}
-      </Access>
-    </DebugImageItem>
-  );
-});
+  }
+);
 
 export default DebugImage;
 
