@@ -156,6 +156,14 @@ const DebugImage = React.memo(
       </ImageSubtext>
     );
 
+    const formattedImageStartAddress = startAddress ? (
+      <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted>
+    ) : null;
+
+    const formattedImageEndAddress = endAddress ? (
+      <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+    ) : null;
+
     const handleOpenDebugFileDetails = () => {
       openModal(
         modalProps => (
@@ -165,6 +173,8 @@ const DebugImage = React.memo(
             title={codeFile}
             organization={organization}
             projectId={projectId}
+            imageStartAddress={formattedImageStartAddress}
+            imageEndAddress={formattedImageEndAddress}
           />
         ),
         {
@@ -182,13 +192,14 @@ const DebugImage = React.memo(
         <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
 
         <ImageInfoGroup>
-          {startAddress && endAddress ? (
+          {startAddress && endAddress && (
             <React.Fragment>
-              <Formatted>{formatAddress(startAddress, IMAGE_ADDR_LEN)}</Formatted> &ndash;{' '}
+              {formattedImageStartAddress}
+              {' \u2013'}
               <AddressDivider />
-              <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
+              {formattedImageEndAddress}
             </React.Fragment>
-          ) : null}
+          )}
         </ImageInfoGroup>
 
         <ImageInfoGroup fullWidth>
@@ -320,6 +331,8 @@ const ImageActions = styled(ImageInfoGroup)`
     top: 15px;
     right: 20px;
   }
+  display: flex;
+  align-items: center;
 `;
 
 const ImageTitle = styled('div')`
