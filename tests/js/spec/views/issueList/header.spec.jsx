@@ -7,12 +7,12 @@ import IssueListHeader from 'app/views/issueList/header';
 const queryCounts = {
   'is:needs_review is:unresolved': 1,
   'is:unresolved': 1,
-}
+};
 
 const queryCountsMaxed = {
   'is:needs_review is:unresolved': 1000,
   'is:unresolved': 1000,
-}
+};
 
 describe('IssueListHeader', () => {
   it('renders active tab with count when query matches inbox', () => {
@@ -54,7 +54,11 @@ describe('IssueListHeader', () => {
   it('transitions to new query on tab click', () => {
     const handleTabChange = jest.fn();
     const wrapper = mountWithTheme(
-      <IssueListHeader onTabChange={handleTabChange} queryCounts={queryCounts} projectIds={[]} />
+      <IssueListHeader
+        onTabChange={handleTabChange}
+        queryCounts={queryCounts}
+        projectIds={[]}
+      />
     );
     wrapper.find('a').at(0).simulate('click');
     expect(handleTabChange).toHaveBeenCalledWith('is:needs_review is:unresolved');
