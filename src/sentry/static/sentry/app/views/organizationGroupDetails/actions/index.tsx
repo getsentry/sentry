@@ -14,7 +14,6 @@ import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import ShareIssue from 'app/components/shareIssue';
 import {IconRefresh, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -29,6 +28,7 @@ import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
 import SubscribeAction from '../subscribeAction';

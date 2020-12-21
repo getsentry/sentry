@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import ActionButton from 'app/components/actions/button';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
@@ -13,8 +14,6 @@ import {IconChevron, IconCopy, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-
-import ActionButton from './actions/button';
 
 type ContainerProps = {
   shareUrl: string;
