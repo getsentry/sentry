@@ -118,9 +118,9 @@ const DeleteButton = styled(ActionButton)`
     !p.disabled &&
     `
   &:hover {
-    background-color: ${p => p.theme.button.danger.background};
-    color: ${p => p.theme.button.danger.color};
-    border-color: ${p => p.theme.button.danger.border};
+    background-color: ${p.theme.button.danger.background};
+    color: ${p.theme.button.danger.color};
+    border-color: ${p.theme.button.danger.border};
   }
   `}
 `;
