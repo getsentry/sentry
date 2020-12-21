@@ -29,9 +29,6 @@ class IntegrationNotifyServiceForm(forms.Form):
         self.fields[INTEGRATION_KEY].choices = integrations
         self.fields[INTEGRATION_KEY].widget.choices = self.fields[INTEGRATION_KEY].choices
 
-    def clean(self):
-        return super(IntegrationNotifyServiceForm, self).clean()
-
 
 class EventAction(RuleBase):
     rule_type = "action/event"
