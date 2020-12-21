@@ -541,10 +541,23 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config_no_params(self):
-        return self.get_create_issue_config(None, None, params={})
-
     def get_create_issue_config(self, group, user, **kwargs):
+        """
+        We use the `group` to get three things: organization_slug, project
+        defaults, and default title and description. In the case where we're
+        getting `createIssueConfig` from Jira for Ticket Rules, we don't know
+        the issue group beforehand.
+
+        :param group: (Optional) Group model.
+        :param user: User model. TODO Make this the first parameter.
+        :param kwargs: (Optional) Object
+            * params: (Optional) Object
+            * params.project: (Optional) Sentry Project object
+            * params.issuetype: (Optional) String. The Jira issue type. For
+                example: "Bug", "Epic", "Story".
+        :return:
+        """
+        kwargs = kwargs or {}
         kwargs["link_referrer"] = "jira_integration"
         params = kwargs.get("params", {})
         fields = []

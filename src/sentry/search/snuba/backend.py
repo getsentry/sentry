@@ -267,6 +267,7 @@ class SnubaSearchBackendBase(SearchBackend):
         search_filters=None,
         date_from=None,
         date_to=None,
+        max_hits=None,
     ):
         search_filters = search_filters if search_filters is not None else []
 
@@ -319,6 +320,7 @@ class SnubaSearchBackendBase(SearchBackend):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
+            max_hits=max_hits,
         )
 
     def _build_group_queryset(

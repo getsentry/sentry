@@ -119,7 +119,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     };
 
     return (
-      <Layout.Body>
+      <StyledLayoutBody>
         <Layout.Main fullWidth>
           <StyledPanelTable
             headers={[
@@ -168,7 +168,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
           </StyledPanelTable>
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
-      </Layout.Body>
+      </StyledLayoutBody>
     );
   }
 
@@ -215,6 +215,10 @@ class AlertRulesListContainer extends React.Component<Props> {
 }
 
 export default AlertRulesListContainer;
+
+const StyledLayoutBody = styled(Layout.Body)`
+  margin-bottom: -20px;
+`;
 
 const StyledSortLink = styled(Link)`
   color: inherit;
