@@ -29,24 +29,22 @@ function ReviewAction({
   label,
 }: Props) {
   return (
-    <div className="hidden-sm hidden-xs">
-      <StyledActionLink
-        className={classNames('btn btn-sm action-merge', {
-          'btn-primary': primary,
-          'btn-default': !primary,
-        })}
-        data-test-id="button-acknowledge"
-        disabled={disabled}
-        onAction={() => onUpdate({inbox: false})}
-        shouldConfirm={onShouldConfirm?.(ConfirmAction.ACKNOWLEDGE)}
-        message={confirm?.('mark', false, ' as reviewed')}
-        confirmLabel={label?.('Mark', ' as reviewed')}
-        title={t('Mark Reviewed')}
-      >
-        <StyledIconIssues size="xs" />
-        {t('Mark Reviewed')}
-      </StyledActionLink>
-    </div>
+    <StyledActionLink
+      className={classNames('btn btn-sm action-merge', {
+        'btn-primary': primary,
+        'btn-default': !primary,
+      })}
+      data-test-id="button-acknowledge"
+      disabled={disabled}
+      onAction={() => onUpdate({inbox: false})}
+      shouldConfirm={onShouldConfirm?.(ConfirmAction.ACKNOWLEDGE)}
+      message={confirm?.('mark', false, ' as reviewed')}
+      confirmLabel={label?.('Mark', ' as reviewed')}
+      title={t('Mark Reviewed')}
+    >
+      <StyledIconIssues size="xs" />
+      {t('Mark Reviewed')}
+    </StyledActionLink>
   );
 }
 

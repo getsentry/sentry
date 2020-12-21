@@ -65,15 +65,17 @@ function ActionSet({
   return (
     <Wrapper hasInbox={hasInbox}>
       {hasInbox && (
-        <ReviewAction
-          orgSlug={orgSlug}
-          primary={query === Query.NEEDS_REVIEW}
-          disabled={!anySelected}
-          confirm={confirm}
-          label={label}
-          onUpdate={onUpdate}
-          onShouldConfirm={onShouldConfirm}
-        />
+        <div className="hidden-sm hidden-xs">
+          <ReviewAction
+            orgSlug={orgSlug}
+            primary={query === Query.NEEDS_REVIEW}
+            disabled={!anySelected}
+            confirm={confirm}
+            label={label}
+            onUpdate={onUpdate}
+            onShouldConfirm={onShouldConfirm}
+          />
+        </div>
       )}
       {selectedProjectSlug ? (
         <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
@@ -170,10 +172,10 @@ function ActionSet({
                 onAction={() => onUpdate({inbox: false})}
                 shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
                 message={confirm(ConfirmAction.ACKNOWLEDGE, false)}
-                confirmLabel={label('acknowledge')}
-                title={t('Acknowledge')}
+                confirmLabel={label('Mark', ' as reviewed')}
+                title={t('Mark Reviewed')}
               >
-                {t('Acknowledge')}
+                {t('Mark Reviewed')}
               </ActionLink>
             </MenuItem>
           </React.Fragment>
