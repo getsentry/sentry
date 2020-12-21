@@ -342,7 +342,8 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   }
 
   .rdrNextPrevButton {
-    background-color: ${p => p.theme.gray200};
+    background-color: transparent;
+    border: 1px solid ${p => p.theme.border};
   }
 
   .rdrPprevButton i {
