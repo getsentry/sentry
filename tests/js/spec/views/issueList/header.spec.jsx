@@ -23,7 +23,7 @@ describe('IssueListHeader', () => {
         projectIds={[]}
       />
     );
-    expect(wrapper.find('.active').text()).toBe('Needs Review (1)');
+    expect(wrapper.find('.active').text()).toBe('Needs Review 1');
   });
 
   it("renders all tabs inactive when query doesn't match", () => {
@@ -37,8 +37,8 @@ describe('IssueListHeader', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader query="" queryCounts={queryCounts} projectIds={[]} />
     );
-    expect(wrapper.find('li').at(0).text()).toBe('Needs Review (1)');
-    expect(wrapper.find('li').at(1).text()).toBe('Unresolved (1)');
+    expect(wrapper.find('li').at(0).text()).toBe('Needs Review 1');
+    expect(wrapper.find('li').at(1).text()).toBe('Unresolved 1');
     expect(wrapper.find('li').at(2).text()).toBe('Ignored');
   });
 
@@ -46,8 +46,8 @@ describe('IssueListHeader', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader query="" queryCounts={queryCountsMaxed} projectIds={[]} />
     );
-    expect(wrapper.find('li').at(0).text()).toBe('Needs Review (99+)');
-    expect(wrapper.find('li').at(1).text()).toBe('Unresolved (99+)');
+    expect(wrapper.find('li').at(0).text()).toBe('Needs Review 99+');
+    expect(wrapper.find('li').at(1).text()).toBe('Unresolved 99+');
     expect(wrapper.find('li').at(2).text()).toBe('Ignored');
   });
 
