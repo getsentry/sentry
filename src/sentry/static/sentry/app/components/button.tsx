@@ -255,7 +255,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${!borderless && (borderActive || border)
+      border-color: ${priority !== 'link' && !borderless && (borderActive || border)
         ? borderActive || border
         : 'transparent'};
     }
@@ -369,3 +369,8 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   margin-right: ${getIconMargin};
   height: ${getFontSize};
 `;
+
+/**
+ * Also export these styled components so we can use them as selectors
+ */
+export {StyledButton, ButtonLabel, Icon};
