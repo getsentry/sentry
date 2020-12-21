@@ -164,8 +164,8 @@ class EventEntries extends React.Component<Props> {
         return (
           <Component
             key={'entry-' + entryIdx}
-            projectId={project ? project.slug : null}
-            orgId={organization ? organization.slug : null}
+            projectId={project?.slug ?? null}
+            organization={organization}
             event={event}
             type={entry.type}
             data={entry.data}
