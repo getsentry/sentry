@@ -24,6 +24,7 @@ from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
+INTERNAL_SOURCE_NAME = "sentry:project"
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +224,7 @@ def get_internal_source(project):
 
     return {
         "type": "sentry",
-        "id": "sentry:project",
+        "id": INTERNAL_SOURCE_NAME,
         "url": sentry_source_url,
         "token": get_system_token(),
     }
@@ -360,6 +361,18 @@ class SymbolicatorSession(object):
         if not self.session:
             raise RuntimeError("Session not opened")
 
+    def _process_response(self, json):
+        source_names = {source["id"]: source.get("name") for source in self.sources}
+        source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+        for module in json.get("modules") or ():
+            for candidate in module.get("candidates") or ():
+                candidate["source_name"] = (
+                    source_names.get(candidate["source"]) or "Unnamed Repository"
+                )
+
+        return json
+
     def _request(self, method, path, **kwargs):
         self._ensure_open()
 
@@ -405,7 +418,7 @@ class SymbolicatorSession(object):
                 else:
                     json = {"status": "failed", "message": "internal server error"}
 
-                return json
+                return self._process_response(json)
             except (IOError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
