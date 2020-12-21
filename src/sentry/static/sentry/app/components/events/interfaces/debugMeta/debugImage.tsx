@@ -173,7 +173,7 @@ const DebugImage = React.memo(
       );
     };
 
-    const hasImagesLoadedV2Feature = !!organization?.features.includes(
+    const hasImagesLoadedV2Feature = !!organization.features?.includes(
       'images-loaded-v2'
     );
 
