@@ -6,7 +6,7 @@ import ClipboardTooltip from 'app/components/clipboardTooltip';
 import {IS_HOVERABLE_DELAY} from 'app/components/tooltip';
 
 describe('ClipboardTooltip', function () {
-  it('renders', function (done) {
+  it('renders', function () {
     const title = 'tooltip content';
     const wrapper = mountWithTheme(
       <ClipboardTooltip title={title}>
@@ -14,25 +14,25 @@ describe('ClipboardTooltip', function () {
       </ClipboardTooltip>
     );
 
+    jest.useFakeTimers();
+
     const trigger = wrapper.find('span');
     trigger.simulate('mouseEnter');
 
-    setTimeout(() => {
-      wrapper.update();
-      const tooltipClipboardWrapper = wrapper.find('TooltipClipboardWrapper');
-      expect(tooltipClipboardWrapper.length).toEqual(1);
+    jest.advanceTimersByTime(IS_HOVERABLE_DELAY);
+    wrapper.update();
 
-      const tooltipTextContent = tooltipClipboardWrapper.find('TextOverflow');
-      expect(tooltipTextContent.length).toEqual(1);
+    const tooltipClipboardWrapper = wrapper.find('TooltipClipboardWrapper');
+    expect(tooltipClipboardWrapper.length).toEqual(1);
 
-      const clipboardContent = tooltipClipboardWrapper.find('Clipboard');
-      expect(clipboardContent.length).toEqual(1);
-      expect(clipboardContent.props().value).toEqual(title);
+    const tooltipTextContent = tooltipClipboardWrapper.find('TextOverflow');
+    expect(tooltipTextContent.length).toEqual(1);
 
-      const iconCopy = clipboardContent.find('IconCopy');
-      expect(iconCopy.length).toEqual(1);
+    const clipboardContent = tooltipClipboardWrapper.find('Clipboard');
+    expect(clipboardContent.length).toEqual(1);
+    expect(clipboardContent.props().value).toEqual(title);
 
-      done();
-    }, IS_HOVERABLE_DELAY);
+    const iconCopy = clipboardContent.find('IconCopy');
+    expect(iconCopy.length).toEqual(1);
   });
 });
