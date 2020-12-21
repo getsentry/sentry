@@ -125,7 +125,7 @@ class Symbolicator(object):
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
 
-    def _process(self, create_task):
+    def _process(self, create_task, task_name):
         task_id = default_cache.get(self.task_id_cache_key)
         json_response = None
 
@@ -152,12 +152,11 @@ class Symbolicator(object):
                 # If there is no response attached, it's a connection error.
                 raise RetrySymbolication(retry_after=settings.SYMBOLICATOR_MAX_RETRY_AFTER)
 
+            raise Exception(create_task.__name__)
+
             metrics.incr(
                 "events.symbolicator.response",
-                tags={
-                    "response": json_response.get("status") or "null",
-                    "task_type": getattr(create_task, "__name__", None) or "null",
-                },
+                tags={"response": json_response.get("status") or "null", "task_name": task_name},
             )
 
             # Symbolication is still in progress. Bail out and try again
@@ -178,16 +177,19 @@ class Symbolicator(object):
                 return json_response
 
     def process_minidump(self, minidump):
-        return self._process(lambda: self.sess.upload_minidump(minidump))
+        return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
 
     def process_applecrashreport(self, report):
-        return self._process(lambda: self.sess.upload_applecrashreport(report))
+        return self._process(
+            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+        )
 
     def process_payload(self, stacktraces, modules, signal=None):
         return self._process(
             lambda: self.sess.symbolicate_stacktraces(
                 stacktraces=stacktraces, modules=modules, signal=signal
-            )
+            ),
+            "symbolicate_stacktraces",
         )
 
 
