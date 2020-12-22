@@ -185,7 +185,7 @@ function Table({
         isLoading={isLoading}
       >
         {candidates.map((candidate, index) => {
-          const {location, download, source_name = 'test', source} = candidate;
+          const {location, download, source_name, source} = candidate;
           const isInternalSource = source === INTERNAL_SOURCE_NAME;
           const {status} = download;
           return (
@@ -206,10 +206,7 @@ function Table({
                   <SourceName>{t('Unknown')}</SourceName>
                 )}
                 {location && !isInternalSource && (
-                  <ClipboardTooltip
-                    title={location}
-                    onSuccess={() => onCopy(source_name)}
-                  >
+                  <ClipboardTooltip title={location} onSuccess={() => onCopy(location)}>
                     <Location>{location}</Location>
                   </ClipboardTooltip>
                 )}
