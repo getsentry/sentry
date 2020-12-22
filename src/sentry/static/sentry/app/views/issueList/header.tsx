@@ -120,16 +120,18 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}
-                {queryCounts[tabQuery] && <StyledQueryCount
-                  count={queryCounts[tabQuery].count}
-                  max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                  tagType={
-                    (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
-                    (tabQuery === Query.UNRESOLVED && 'default') ||
-                    (tabQuery === Query.IGNORED && 'default') ||
-                    undefined
-                  }
-                />}
+                {queryCounts[tabQuery] && (
+                  <StyledQueryCount
+                    count={queryCounts[tabQuery].count}
+                    max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                    tagType={
+                      (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
+                      (tabQuery === Query.UNRESOLVED && 'default') ||
+                      (tabQuery === Query.IGNORED && 'default') ||
+                      undefined
+                    }
+                  />
+                )}
               </a>
             </li>
           ))}
