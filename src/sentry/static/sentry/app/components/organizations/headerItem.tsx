@@ -191,7 +191,9 @@ const ChevronWrapper = styled('div')`
   justify-content: center;
 `;
 
-const StyledChevron = styled(IconChevron)<{isOpen: boolean}>`
+const StyledChevron = styled(IconChevron, {shouldForwardProp: isPropValid})<{
+  isOpen: boolean;
+}>`
   color: ${getColor};
 `;
 

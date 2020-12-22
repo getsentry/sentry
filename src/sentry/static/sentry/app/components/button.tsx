@@ -44,7 +44,14 @@ type Url = ButtonProps['to'] | ButtonProps['href'];
 
 class BaseButton extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
-    priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
+    priority: PropTypes.oneOf([
+      'default',
+      'primary',
+      'danger',
+      'link',
+      'success',
+      'form',
+    ]),
     size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
