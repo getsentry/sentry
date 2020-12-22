@@ -45,9 +45,9 @@ type Props = Omit<
 > &
   Partial<typeof DropdownMenu.defaultProps> & {
     theme: Theme;
+    children: React.ReactNode;
     title?: React.ReactNode;
     customTitle?: React.ReactNode;
-    children: React.ReactNode;
     /**
      * display dropdown caret
      */
