@@ -11,13 +11,13 @@ import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {DebugFile} from 'app/types/debugFiles';
+import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
 import NotAvailable from './notAvailable';
 import Table from './table';
-import {INTERNAL_SOURCE_NAME} from './utils';
+import {INTERNAL_SOURCE} from './utils';
 
 type Candidates = Image['candidates'];
 
@@ -33,6 +33,7 @@ type Props = AsyncComponent['props'] &
 
 type State = AsyncComponent['state'] & {
   debugFiles: Array<DebugFile> | null;
+  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
 };
 
 class DebugFileDetails extends AsyncComponent<Props, State> {
@@ -40,25 +41,24 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
       debugFiles: [],
+      builtinSymbolSources: [],
     };
   }
 
   getUplodedDebugFiles(candidates: Candidates) {
-    return candidates.find(candidate => candidate.source === INTERNAL_SOURCE_NAME);
+    return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, projectId, image} = this.props;
     const {debug_id, candidates = []} = image;
+    const {builtinSymbolSources} = this.state || {};
 
     const uploadedDebugFiles = this.getUplodedDebugFiles(candidates);
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
 
-    if (!uploadedDebugFiles) {
-      return [];
-    }
-
-    return [
-      [
+    if (uploadedDebugFiles) {
+      endpoints.push([
         'debugFiles',
         `/projects/${organization.slug}/${projectId}/files/dsyms/?debug_id=${debug_id}`,
         {
@@ -68,8 +68,14 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               : undefined,
           },
         },
-      ],
-    ];
+      ]);
+    }
+
+    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
+      endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
+    }
+
+    return endpoints;
   }
 
   getCandidates() {
@@ -129,7 +135,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       organization,
       projectId,
     } = this.props;
-    const {loading} = this.state;
+    const {loading, builtinSymbolSources} = this.state;
 
     const {debug_id, arch: architecture, code_file, code_id} = image;
 
@@ -174,6 +180,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               baseUrl={baseUrl}
               onDelete={this.handleDelete}
               isLoading={loading}
+              builtinSymbolSources={builtinSymbolSources}
             />
           </Content>
         </Body>

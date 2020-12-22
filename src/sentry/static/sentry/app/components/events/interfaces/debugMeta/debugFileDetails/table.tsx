@@ -1,5 +1,7 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Role from 'app/components/acl/role';
@@ -17,27 +19,33 @@ import {t, tct} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
+import {Theme} from 'app/utils/theme';
 
 import StacktraceStatusIcon from './candidate/stacktraceStatusIcon';
 import StatusTag from './candidate/statusTag';
 import NotAvailable from './notAvailable';
-import {INTERNAL_SOURCE_NAME, onCopy} from './utils';
+import {INTERNAL_SOURCE, onCopy} from './utils';
 
 type Props = {
+  theme: Theme;
   candidates: Image['candidates'];
   organization: Organization;
   projectId: Project['id'];
   baseUrl: string;
+  builtinSymbolSources: Array<BuiltinSymbolSource> | null;
   onDelete: (debugId: string) => void;
   isLoading: boolean;
 };
 
 function Table({
+  theme,
   candidates,
   organization,
   projectId,
   baseUrl,
+  builtinSymbolSources,
   onDelete,
   isLoading,
 }: Props) {
@@ -155,6 +163,20 @@ function Table({
     return <Tooltip title={t('Actions not available.')}>{actions}</Tooltip>;
   }
 
+  function getSourceTooltipDescription(source: string) {
+    if (source === INTERNAL_SOURCE) {
+      return t('This debug information file was uploaded via Sentry CLI.');
+    }
+
+    if (
+      builtinSymbolSources?.find(builtinSymbolSource => builtinSymbolSource.id === source)
+    ) {
+      return t('This debug information file is from a built-in symbol server.');
+    }
+
+    return t('This debug information file is from a custom symbol server.');
+  }
+
   return (
     <Wrapper>
       <Title>
@@ -170,6 +192,11 @@ function Table({
           )}
           size="xs"
           position="top"
+          popperStyle={css`
+            @media (min-width: ${theme.breakpoints[0]}) {
+              max-width: 500px;
+            }
+          `}
           isHoverable
         />
       </Title>
@@ -186,25 +213,17 @@ function Table({
       >
         {candidates.map((candidate, index) => {
           const {location, download, source_name, source} = candidate;
-          const isInternalSource = source === INTERNAL_SOURCE_NAME;
-          const {status} = download;
+          const isInternalSource = source === INTERNAL_SOURCE;
           return (
             <React.Fragment key={index}>
               <StatusColumn>
-                <StatusTag status={status} />
+                <StatusTag candidate={candidate} />
               </StatusColumn>
 
               <DebugFileColumn>
-                {source_name ? (
-                  <ClipboardTooltip
-                    title={source_name}
-                    onSuccess={() => onCopy(source_name)}
-                  >
-                    <SourceName>{source_name}</SourceName>
-                  </ClipboardTooltip>
-                ) : (
-                  <SourceName>{t('Unknown')}</SourceName>
-                )}
+                <Tooltip title={getSourceTooltipDescription(source)}>
+                  <SourceName>{source_name ?? t('Unknown')}</SourceName>
+                </Tooltip>
                 {location && !isInternalSource && (
                   <ClipboardTooltip title={location} onSuccess={() => onCopy(location)}>
                     <Location>{location}</Location>
@@ -217,7 +236,7 @@ function Table({
               <FeaturesColumn>{renderFeatures(download)}</FeaturesColumn>
 
               <ActionsColumn>
-                {isInternalSource ? renderActions(candidate) : null}
+                {isInternalSource && renderActions(candidate)}
               </ActionsColumn>
             </React.Fragment>
           );
@@ -227,7 +246,7 @@ function Table({
   );
 }
 
-export default Table;
+export default withTheme(Table);
 
 Table.propTypes = {
   organization: SentryTypes.Organization,

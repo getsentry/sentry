@@ -58,15 +58,16 @@ type CandidateDownloadOtherStatus = {
     | CandidateDownloadStatus.MALFORMED
     | CandidateDownloadStatus.NO_PERMISSION
     | CandidateDownloadStatus.ERROR;
+  details?: string;
 };
 
-export type CandidateDownload =
+type CandidateDownload =
   | CandidateDownloadNotFoundStatus
   | CandidateDownloadOkStatus
   | CandidateDownloadDeletedStatus
   | CandidateDownloadOtherStatus;
 
-type Candidate = {
+export type Candidate = {
   download: CandidateDownload;
   source: string;
   source_name?: string;
@@ -74,7 +75,7 @@ type Candidate = {
 };
 
 // Debug Status
-export enum ImageStackTraceInfo {
+enum ImageStackTraceInfo {
   FOUND = 'found',
   UNUSED = 'unused',
   MISSING = 'missing',
