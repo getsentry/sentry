@@ -108,6 +108,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       this.fetchData();
     } catch {
       addErrorMessage(t('An error occurred while deleting the debug file.'));
+      this.setState({loading: false});
     }
   };
 
@@ -180,7 +181,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
           <ButtonBar gap={1}>
             <Button
               href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
-              target="_blank"
+              external
             >
               {'Read the docs'}
             </Button>
