@@ -39,7 +39,12 @@ function StatusTag({candidate}: Props) {
       const {details} = download;
       return (
         <StatusTagTooltip
-          label={t('No debug file was not found at this location:')}
+          label={
+            <React.Fragment>
+              {t('No debug file was not found at this location')}
+              {':'}
+            </React.Fragment>
+          }
           description={
             <React.Fragment>
               <div>{location}</div>
