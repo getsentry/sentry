@@ -413,6 +413,7 @@ class IssueListOverview extends React.Component<Props, State> {
             data: qs.stringify(requestParams),
           }
         );
+        // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
         queryCounts = {
           ...queryCounts,
           ...mapValues(response, (count: number) => ({count, hasMore: count > TAB_MAX_COUNT})),
@@ -425,6 +426,7 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
+    // Update the count based on the exact number of issues, these shown as is
     if (currentTabQuery) {
       queryCounts[currentTabQuery] = {
         count: currentQueryCount,
