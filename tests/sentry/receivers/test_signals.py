@@ -41,6 +41,6 @@ class SignalsTest(TestCase, SnubaTestCase):
     @patch("sentry.analytics.record")
     def test_mark_reviewed(self, mock_record):
         issue_mark_reviewed.send(
-            project=self.project, group=self.group, user=None,
+            project=self.project, group=self.group, user=None, sender="test_mark_reviewed"
         )
         assert mock_record.called
