@@ -87,18 +87,42 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       return candidates;
     }
 
-    return candidates.map(candidate => {
-      if (!debugFiles.find(debugFile => debugFile.id === candidate.location)) {
+    // Check for unapplied debug files
+    const candidateLocations = new Set(
+      candidates.map(candidate => candidate.location).filter(candidate => !!candidate)
+    );
+
+    const unAppliedDebugFiles = debugFiles
+      .filter(debugFile => !candidateLocations.has(debugFile.id))
+      .map(debugFile => ({
+        download: {
+          status: CandidateDownloadStatus.UNAPPLIED,
+        },
+        location: debugFile.id,
+        source: INTERNAL_SOURCE,
+        source_name: debugFile.objectName,
+      }));
+
+    // Check for deleted debug files
+    const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
+
+    const convertedCandidates = candidates.map(candidate => {
+      if (
+        candidate.source === INTERNAL_SOURCE &&
+        candidate.location &&
+        !debugFileIds.has(candidate.location)
+      ) {
         return {
           ...candidate,
           download: {
             status: CandidateDownloadStatus.DELETED,
-            details: t('This file was deleted'),
           },
         };
       }
       return candidate;
-    }) as Candidates;
+    });
+
+    return [...convertedCandidates, ...unAppliedDebugFiles] as Candidates;
   }
 
   handleDelete = async (debugId: string) => {

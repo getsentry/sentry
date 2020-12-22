@@ -1,7 +1,7 @@
 import React from 'react';
 
 import Tag from 'app/components/tag';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {Candidate, CandidateDownloadStatus} from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
@@ -30,7 +30,11 @@ function StatusTag({candidate}: Props) {
     case CandidateDownloadStatus.MALFORMED: {
       const {details} = download;
       return (
-        <StatusTagTooltip label={t('Download Details')} description={details}>
+        <StatusTagTooltip
+          label={t('Download Details')}
+          description={details}
+          disabled={!details}
+        >
           <Tag type="error">{t('Failed')}</Tag>
         </StatusTagTooltip>
       );
@@ -39,11 +43,16 @@ function StatusTag({candidate}: Props) {
       const {details} = download;
       return (
         <StatusTagTooltip
-          label={t('No debug file was not found at this location.')}
+          label={
+            <React.Fragment>
+              {t('No debug file was not found at this location')}
+              {':'}
+            </React.Fragment>
+          }
           description={
             <React.Fragment>
-              <div>{tct('Location: [location]', {location})}</div>
-              <div>{details}</div>
+              <div>{location}</div>
+              {details && <div>{details}</div>}
             </React.Fragment>
           }
           disabled={!location || source === INTERNAL_SOURCE}
@@ -55,7 +64,11 @@ function StatusTag({candidate}: Props) {
     case CandidateDownloadStatus.NO_PERMISSION: {
       const {details} = download;
       return (
-        <StatusTagTooltip label={t('Permission Error')} description={details}>
+        <StatusTagTooltip
+          label={t('Permission Error')}
+          description={details}
+          disabled={!details}
+        >
           <Tag type="warning">{t('Permissions')}</Tag>
         </StatusTagTooltip>
       );
@@ -69,7 +82,7 @@ function StatusTag({candidate}: Props) {
         </StatusTagTooltip>
       );
     }
-    default:
+    case CandidateDownloadStatus.UNAPPLIED: {
       return (
         <StatusTagTooltip
           label={t(
@@ -79,6 +92,9 @@ function StatusTag({candidate}: Props) {
           <Tag type="highlight">{t('Unapplied')}</Tag>
         </StatusTagTooltip>
       );
+    }
+    default:
+      return <Tag>{t('Unknown')}</Tag>; // This should not happen
   }
 }
 

@@ -26,6 +26,7 @@ export enum CandidateDownloadStatus {
   ERROR = 'error',
   NO_PERMISSION = 'noperm',
   DELETED = 'deleted',
+  UNAPPLIED = 'unapplied',
 }
 
 type Features = {
@@ -50,7 +51,10 @@ type CandidateDownloadNotFoundStatus = {
 
 type CandidateDownloadDeletedStatus = {
   status: CandidateDownloadStatus.DELETED;
-  details: string;
+};
+
+type CandidateDownloadUnAppliedStatus = {
+  status: CandidateDownloadStatus.UNAPPLIED;
 };
 
 type CandidateDownloadOtherStatus = {
@@ -65,6 +69,7 @@ type CandidateDownload =
   | CandidateDownloadNotFoundStatus
   | CandidateDownloadOkStatus
   | CandidateDownloadDeletedStatus
+  | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
 export type Candidate = {
