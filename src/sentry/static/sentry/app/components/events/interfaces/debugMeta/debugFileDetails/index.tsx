@@ -88,12 +88,12 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     }
 
     // Check for unapplied debug files
-    const candidateLocations = candidates
-      .map(candidate => candidate.location)
-      .filter(candidate => !!candidate);
+    const candidateLocations = new Set(
+      candidates.map(candidate => candidate.location).filter(candidate => !!candidate)
+    );
 
     const unAppliedDebugFiles = debugFiles
-      .filter(debugFile => !candidateLocations.includes(debugFile.id))
+      .filter(debugFile => !candidateLocations.has(debugFile.id))
       .map(debugFile => ({
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
@@ -104,13 +104,13 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       }));
 
     // Check for deleted debug files
-    const debugFileIds = debugFiles.map(debugFile => debugFile.id);
+    const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
 
     const convertedCandidates = candidates.map(candidate => {
       if (
         candidate.source === INTERNAL_SOURCE &&
         candidate.location &&
-        !debugFileIds.includes(candidate.location)
+        !debugFileIds.has(candidate.location)
       ) {
         return {
           ...candidate,
