@@ -233,11 +233,7 @@ class Actions extends React.Component<Props, State> {
       <Wrapper>
         {orgFeatures.has('inbox') && (
           <Tooltip disabled={!!group.inbox} title={t('Issue has been reviewed')}>
-            <ReviewAction
-              orgSlug={organization.slug}
-              onUpdate={this.onUpdate}
-              disabled={!group.inbox}
-            />
+            <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox} />
           </Tooltip>
         )}
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>

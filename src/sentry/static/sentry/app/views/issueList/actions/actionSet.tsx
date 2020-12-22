@@ -68,13 +68,9 @@ function ActionSet({
       {hasInbox && (
         <div className="hidden-sm hidden-xs">
           <ReviewAction
-            orgSlug={orgSlug}
             primary={query === Query.NEEDS_REVIEW}
             disabled={!anySelected}
-            confirm={confirm}
-            label={label}
             onUpdate={onUpdate}
-            onShouldConfirm={onShouldConfirm}
           />
         </div>
       )}
@@ -168,9 +164,6 @@ function ActionSet({
             className="hidden-md hidden-lg hidden-xl"
             disabled={!anySelected}
             onAction={() => onUpdate({inbox: false})}
-            shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
-            message={confirm('mark', false, ' as reviewed')}
-            confirmLabel={label('Mark', ' as reviewed')}
             title={t('Mark Reviewed')}
           >
             {t('Mark Reviewed')}

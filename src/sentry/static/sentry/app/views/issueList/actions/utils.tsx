@@ -12,7 +12,6 @@ export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 export enum ConfirmAction {
   RESOLVE = 'resolve',
   UNRESOLVE = 'unresolve',
-  ACKNOWLEDGE = 'acknowledge',
   IGNORE = 'ignore',
   BOOKMARK = 'bookmark',
   UNBOOKMARK = 'unbookmark',

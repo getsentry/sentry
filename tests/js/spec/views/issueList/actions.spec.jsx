@@ -412,8 +412,6 @@ describe('IssueListActions', function () {
       });
       wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
 
-      expect(wrapper.find('Modal')).toSnapshot();
-      wrapper.find('Modal Button[priority="primary"]').simulate('click');
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
