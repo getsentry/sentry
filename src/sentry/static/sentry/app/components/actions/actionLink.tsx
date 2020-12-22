@@ -38,7 +38,7 @@ export default function ActionLink({
       confirmText={confirmLabel}
       onConfirm={onAction}
     >
-      <ActionLinkAnchor
+      <StyledAction
         as={type === 'button' ? ActionButton : 'a'}
         aria-label={title}
         className={classNames(className, {disabled})}
@@ -47,12 +47,12 @@ export default function ActionLink({
         {...props}
       >
         {children}
-      </ActionLinkAnchor>
+      </StyledAction>
     </ConfirmableAction>
   );
 }
 
-const ActionLinkAnchor = styled('a')<{
+const StyledAction = styled('a')<{
   as: any;
   disabled?: boolean;
 }>`
