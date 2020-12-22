@@ -505,6 +505,12 @@ export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
   type: 'error';
 };
 
+export type Item = {
+  id: string;
+  latestEvent: Event;
+  state?: string;
+};
+
 // This type is incomplete
 export type Event =
   | SentryErrorEvent

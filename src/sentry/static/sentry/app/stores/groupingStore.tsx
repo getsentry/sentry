@@ -8,7 +8,7 @@ import {
 } from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
 import {Client} from 'app/api';
-import {Event, Group, Organization, Project} from 'app/types';
+import {Group, Item, Organization, Project} from 'app/types';
 
 // Between 0-100
 const MIN_SCORE = 0.6;
@@ -44,12 +44,6 @@ type State = {
 };
 
 type ScoreMap = Record<string, number | null>;
-
-type Item = {
-  id: string;
-  latestEvent: Event;
-  state?: string;
-};
 
 type ResponseProcessors = {
   merged: (item: Item) => Item;

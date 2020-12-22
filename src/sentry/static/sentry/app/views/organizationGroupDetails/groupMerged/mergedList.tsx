@@ -1,27 +1,27 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {Item, Project} from 'app/types';
 
 import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 
-class MergedList extends React.Component {
-  static propTypes = {
-    onUnmerge: PropTypes.func.isRequired,
-    onToggleCollapse: PropTypes.func.isRequired,
-    items: PropTypes.arrayOf(SentryTypes.Event),
-    pageLinks: PropTypes.string,
-    orgId: PropTypes.string.isRequired,
-    project: SentryTypes.Project.isRequired,
-  };
+// XXX: How do I handle isRequired vs not?
+type Props = {
+  onUnmerge: Function;
+  onToggleCollapse: Function;
+  items: Item[];
+  pageLinks: String;
+  orgId: String;
+  project: Project;
+};
 
+class MergedList extends React.Component<Props> {
   renderEmpty = () => (
     <EmptyStateWarning>
       <p>{t("There don't seem to be any hashes for this issue.")}</p>
