@@ -106,7 +106,7 @@ describe('GroupActions', function () {
           })}
         />
       );
-      const btn = wrapper.find('BookmarkButton');
+      const btn = wrapper.find('button[aria-label="Bookmark"]');
       btn.simulate('click');
 
       expect(issuesApi).toHaveBeenCalledWith(

@@ -22,11 +22,11 @@ describe('ResolveActions', function () {
         />,
         TestStubs.routerContext()
       );
-      button = component.find('StyledActionLink').first();
+      button = component.find('button[aria-label="Resolve"]').first();
     });
 
     it('has disabled prop', function () {
-      expect(button.prop('disabled')).toBe(true);
+      expect(button.props()['aria-disabled']).toBe(true);
     });
 
     it('does not call onUpdate when clicked', function () {
@@ -53,19 +53,19 @@ describe('ResolveActions', function () {
     });
 
     it('main button is enabled', function () {
-      button = component.find('ActionLink[title="Resolve"]');
+      button = component.find('button[aria-label="Resolve"]');
       expect(button.prop('disabled')).toBeFalsy();
     });
 
     it('main button calls onUpdate when clicked', function () {
-      button = component.find('ActionLink[title="Resolve"]');
+      button = component.find('button[aria-label="Resolve"]');
       button.simulate('click');
       expect(spy).toHaveBeenCalled();
     });
 
     it('dropdown menu is disabled', function () {
-      button = component.find('DropdownLink');
-      expect(button.prop('disabled')).toBe(true);
+      button = component.find('button[aria-label="More resolve options"]');
+      expect(button.props()['aria-disabled']).toBe(true);
     });
   });
 
@@ -87,13 +87,13 @@ describe('ResolveActions', function () {
     });
 
     it('displays resolved view', function () {
-      const button = component.find('StyledResolveButton').first();
+      const button = component.find('button[aria-label="Unresolve"]').first();
       expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function () {
-      component.find('StyledResolveButton').last().simulate('click');
+      component.find('button[aria-label="Unresolve"]').last().simulate('click');
       expect(spy).toHaveBeenCalledWith({status: 'unresolved'});
     });
   });
@@ -114,7 +114,7 @@ describe('ResolveActions', function () {
         TestStubs.routerContext()
       );
 
-      component.find('StyledResolveButton').simulate('click');
+      component.find('button[aria-label="Unresolve"]').simulate('click');
       expect(spy).not.toHaveBeenCalled();
     });
   });
@@ -139,7 +139,7 @@ describe('ResolveActions', function () {
     });
 
     it('calls spy with resolved status when clicked', function () {
-      const button = component.find('StyledResolveActionLink');
+      const button = component.find('button[aria-label="Resolve"]');
       button.simulate('click');
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({status: 'resolved'});
@@ -165,7 +165,6 @@ describe('ResolveActions', function () {
         </React.Fragment>,
         TestStubs.routerContext()
       );
-      button = component.find('StyledResolveActionLink').first();
     });
 
     it('renders', function () {
@@ -173,6 +172,7 @@ describe('ResolveActions', function () {
     });
 
     it('displays confirmation modal with message provided', async function () {
+      button = component.find('button[aria-label="Resolve"]').first();
       button.simulate('click');
 
       await tick();

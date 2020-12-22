@@ -1,9 +1,9 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {text} from '@storybook/addon-knobs';
 import {withInfo} from '@storybook/addon-info';
+import {text} from '@storybook/addon-knobs';
 
-import ShareIssue from 'app/components/shareIssue';
+import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 
 export default {
   title: 'Features/Issues/Share Issue',

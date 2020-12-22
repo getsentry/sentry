@@ -237,7 +237,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 height: 1px;
 margin: ${space(0.5)} 0;
 overflow: hidden;
-background-color: ${p.theme.gray200};
+background-color: ${p.theme.innerBorder};
     `}
   ${p =>
     p.header &&
