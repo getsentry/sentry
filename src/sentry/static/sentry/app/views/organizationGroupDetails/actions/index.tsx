@@ -238,7 +238,7 @@ class Actions extends React.Component<Props, State> {
     return (
       <Wrapper>
         {orgFeatures.has('inbox') && (
-          <Tooltip title={!group.inbox ? t('Issue has been reviewed') : undefined}>
+          <Tooltip disabled={!group.inbox} title={t('Issue has been reviewed')}>
             <ReviewAction
               orgSlug={organization.slug}
               onUpdate={this.onUpdate}

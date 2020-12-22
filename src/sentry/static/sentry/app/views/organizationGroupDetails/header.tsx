@@ -139,11 +139,7 @@ class GroupHeader extends React.Component<Props, State> {
               )}
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
-              {hasInbox && group.level && (
-                <div>
-                  <ErrorLevel level={group.level} size="11px" />
-                </div>
-              )}
+              {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
               {group.isUnhandled &&
                 (hasInbox ? (
                   <UnhandledInboxTag organization={organization} />
@@ -331,11 +327,11 @@ const InboxReasonWrapper = styled('div')`
 `;
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  justify-content: flex-start;
   line-height: 1.2;
-
-  & > div:not(:last-child) {
-    margin-right: ${space(1)};
-  }
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-bottom: ${space(2)};
