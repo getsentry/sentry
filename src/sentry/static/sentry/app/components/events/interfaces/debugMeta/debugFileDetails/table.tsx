@@ -53,7 +53,7 @@ function Table({
 
       if (download.unwind) {
         stacktraces.push(
-          <Stacktrace>
+          <Stacktrace key="stack-unwinding">
             <StacktraceStatusIcon stacktraceInfo={download.unwind} />
             {t('Stack unwinding')}
           </Stacktrace>
@@ -62,7 +62,7 @@ function Table({
 
       if (download.debug) {
         stacktraces.push(
-          <Stacktrace>
+          <Stacktrace key="symbolication">
             <StacktraceStatusIcon stacktraceInfo={download.debug} />
             {t('Symbolication')}
           </Stacktrace>

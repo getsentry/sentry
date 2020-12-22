@@ -30,7 +30,11 @@ function StatusTag({candidate}: Props) {
     case CandidateDownloadStatus.MALFORMED: {
       const {details} = download;
       return (
-        <StatusTagTooltip label={t('Download Details')} description={details}>
+        <StatusTagTooltip
+          label={t('Download Details')}
+          description={details}
+          disabled={!details}
+        >
           <Tag type="error">{t('Failed')}</Tag>
         </StatusTagTooltip>
       );
@@ -48,7 +52,7 @@ function StatusTag({candidate}: Props) {
           description={
             <React.Fragment>
               <div>{location}</div>
-              <div>{details}</div>
+              {details && <div>{details}</div>}
             </React.Fragment>
           }
           disabled={!location || source === INTERNAL_SOURCE}
@@ -60,7 +64,11 @@ function StatusTag({candidate}: Props) {
     case CandidateDownloadStatus.NO_PERMISSION: {
       const {details} = download;
       return (
-        <StatusTagTooltip label={t('Permission Error')} description={details}>
+        <StatusTagTooltip
+          label={t('Permission Error')}
+          description={details}
+          disabled={!details}
+        >
           <Tag type="warning">{t('Permissions')}</Tag>
         </StatusTagTooltip>
       );

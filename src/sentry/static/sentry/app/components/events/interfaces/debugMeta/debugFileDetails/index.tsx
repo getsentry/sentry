@@ -88,30 +88,29 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     }
 
     // Check for unapplied debug files
-    const unAppliedDebugFiles: Candidates = [];
+    const candidateLocations = candidates
+      .map(candidate => candidate.location)
+      .filter(candidate => !!candidate);
 
-    for (const debugFileIndex in debugFiles) {
-      const debugFile = debugFiles[debugFileIndex];
-
-      if (candidates.find(candidate => candidate.location === debugFile.id)) {
-        continue;
-      }
-
-      unAppliedDebugFiles.push({
+    const unAppliedDebugFiles = debugFiles
+      .filter(debugFile => !candidateLocations.includes(debugFile.id))
+      .map(debugFile => ({
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
         },
         location: debugFile.id,
         source: INTERNAL_SOURCE,
         source_name: debugFile.objectName,
-      });
-    }
+      }));
 
     // Check for deleted debug files
+    const debugFileIds = debugFiles.map(debugFile => debugFile.id);
+
     const convertedCandidates = candidates.map(candidate => {
       if (
         candidate.source === INTERNAL_SOURCE &&
-        !debugFiles.find(debugFile => debugFile.id === candidate.location)
+        candidate.location &&
+        !debugFileIds.includes(candidate.location)
       ) {
         return {
           ...candidate,
