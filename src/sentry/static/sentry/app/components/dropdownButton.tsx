@@ -41,7 +41,7 @@ const DropdownButton = ({
     ref={forwardedRef}
     {...props}
   >
-    {prefix && <LabelText>{prefix}:</LabelText>}
+    {prefix && <LabelText>{prefix}</LabelText>}
     {children}
     {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
   </StyledButton>
@@ -76,9 +76,12 @@ const StyledButton = styled(Button)<
   }
 `;
 
-const LabelText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.purple200};
+const LabelText = styled('span')`
+  &:after {
+    content: ':';
+  }
+
+  font-weight: normal;
   padding-right: ${space(0.75)};
 `;
 
