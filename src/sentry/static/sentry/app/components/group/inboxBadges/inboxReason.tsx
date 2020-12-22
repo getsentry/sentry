@@ -79,9 +79,9 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
   );
 
   return (
-    <Tag type={tagType} tooltipText={tooltip}>
-      <TextWrapper fontSize={fontSize}>{reasonBadgeText}</TextWrapper>
-    </Tag>
+    <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
+      {reasonBadgeText}
+    </StyledTag>
   );
 }
 
@@ -95,7 +95,7 @@ const TooltipWrapper = styled('div')`
   text-align: left;
 `;
 
-const TextWrapper = styled('span')<{fontSize: 'sm' | 'md'}>`
+const StyledTag = styled(Tag)<{fontSize: 'sm' | 'md'}>`
   font-size: ${p =>
     p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;
