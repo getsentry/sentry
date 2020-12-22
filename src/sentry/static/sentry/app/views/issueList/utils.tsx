@@ -5,10 +5,23 @@ export enum Query {
   REPROCESSING = 'is:reprocessing',
 }
 
-export const TabQueriesWithCounts = [Query.NEEDS_REVIEW, Query.UNRESOLVED];
+// These tabs will have the counts displayed
+export const TabQueriesWithCounts = [Query.NEEDS_REVIEW, Query.UNRESOLVED, Query.IGNORED];
 
-// These two tabs are the only two that will have the counts displayed currently
+// the tab counts will look like 99+
+export const TAB_MAX_COUNT = 99;
+
 export type QueryCounts = {
-  [Query.NEEDS_REVIEW]?: number;
-  [Query.UNRESOLVED]?: number;
+  [Query.NEEDS_REVIEW]?: {
+    count: number;
+    hasMore: boolean;
+  };
+  [Query.UNRESOLVED]?: {
+    count: number;
+    hasMore: boolean;
+  };
+  [Query.IGNORED]?: {
+    count: number;
+    hasMore: boolean;
+  };
 };
