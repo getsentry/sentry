@@ -8,7 +8,7 @@ from sentry.testutils.helpers.faux import Mock
 from sentry.utils.compat.mock import patch, MagicMock
 
 
-class ParseArnTest(TestCase):
+class AwsLambdaClientTest(TestCase):
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")
     def test_simple(self, mock_get_client, mock_get_session):
