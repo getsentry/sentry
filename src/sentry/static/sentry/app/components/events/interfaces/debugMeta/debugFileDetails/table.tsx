@@ -1,7 +1,5 @@
 import React from 'react';
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Role from 'app/components/acl/role';
@@ -21,7 +19,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
-import {Theme} from 'app/utils/theme';
 
 import StacktraceStatusIcon from './candidate/stacktraceStatusIcon';
 import StatusTag from './candidate/statusTag';
@@ -29,7 +26,6 @@ import NotAvailable from './notAvailable';
 import {INTERNAL_SOURCE, onCopy} from './utils';
 
 type Props = {
-  theme: Theme;
   candidates: Image['candidates'];
   organization: Organization;
   projectId: Project['id'];
@@ -40,7 +36,6 @@ type Props = {
 };
 
 function Table({
-  theme,
   candidates,
   organization,
   projectId,
@@ -183,7 +178,7 @@ function Table({
         {t('Debug Files')}
         <QuestionTooltip
           title={tct(
-            "These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.  Often these DIFs need to be looked up in multiple locations on the symbol server but are only present in one of them so there will be many listed as 'Not Found'",
+            'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
             {
               docLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/#symbol-servers" />
@@ -192,11 +187,6 @@ function Table({
           )}
           size="xs"
           position="top"
-          popperStyle={css`
-            @media (min-width: ${theme.breakpoints[0]}) {
-              max-width: 500px;
-            }
-          `}
           isHoverable
         />
       </Title>
@@ -246,7 +236,7 @@ function Table({
   );
 }
 
-export default withTheme(Table);
+export default Table;
 
 Table.propTypes = {
   organization: SentryTypes.Organization,
@@ -259,7 +249,7 @@ const Wrapper = styled('div')`
 
 // TODO(PRISCILA): Make it looks better on smaller devices (still to be decided by Robin)
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: max-content minmax(185px, 0.5fr) 1fr 1fr max-content;
+  grid-template-columns: max-content minmax(185px, 1.5fr) 1fr 1fr max-content;
 `;
 
 // Table Title
