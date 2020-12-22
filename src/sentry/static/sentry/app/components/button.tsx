@@ -17,7 +17,7 @@ import {Theme} from 'app/utils/theme';
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;

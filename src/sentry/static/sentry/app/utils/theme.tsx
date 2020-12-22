@@ -148,6 +148,11 @@ const aliases = {
   formText: colors.gray500,
 
   /**
+   * Form input border
+   */
+  formInputBorder: colors.gray200,
+
+  /**
    *
    */
   rowBackground: backgroundSecondary,
@@ -311,6 +316,15 @@ const generateButtonTheme = alias => ({
     borderActive: alias.disabled,
     background: alias.background,
     backgroundActive: alias.background,
+    focusShadow: false,
+  },
+  form: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: alias.background,
+    backgroundActive: alias.background,
+    border: alias.formInputBorder,
+    borderActive: alias.formInputBorder,
     focusShadow: false,
   },
 });
@@ -494,6 +508,7 @@ const darkAliases = {
   sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
   formPlaceholder: colors.gray400,
   formText: colors.white,
+  formInputBorder: colors.gray400,
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,
