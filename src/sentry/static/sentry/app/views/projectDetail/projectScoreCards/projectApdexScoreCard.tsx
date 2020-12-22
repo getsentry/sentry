@@ -39,7 +39,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {period} = datetime;
     const commonQuery = {
       environment: environments,
-      projects: projects.map(proj => String(proj)),
+      project: projects.map(proj => String(proj)),
       field: [`apdex(${organization.apdexThreshold})`],
       query: 'event.type:transaction count():>0',
     };
@@ -129,15 +129,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    if (this.trend > 0) {
-      return 'bad';
-    }
-
-    if (this.trend < 0) {
-      return 'good';
-    }
-
-    return undefined;
+    return this.trend > 0 ? 'bad' : 'good';
   }
 
   renderLoading() {
