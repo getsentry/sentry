@@ -9,7 +9,7 @@ const queryCounts = {
     count: 1,
     hasMore: false,
   },
-  'is:unresolved':  {
+  'is:unresolved': {
     count: 1,
     hasMore: false,
   },
@@ -20,7 +20,7 @@ const queryCounts = {
 };
 
 const queryCountsMaxed = {
-  'is:unresolved is:needs_review':  {
+  'is:unresolved is:needs_review': {
     count: 321,
     hasMore: false,
   },
