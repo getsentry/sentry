@@ -1,4 +1,4 @@
-import { t } from 'app/locale';
+import {t} from 'app/locale';
 
 const popular = [
   'javascript',
@@ -106,12 +106,12 @@ const desktop = [
 ] as const;
 
 const categoryList = [
-  { id: 'popular', name: t('Popular'), platforms: popular },
-  { id: 'browser', name: t('Browser'), platforms: frontend },
-  { id: 'server', name: t('Server'), platforms: backend },
-  { id: 'mobile', name: t('Mobile'), platforms: mobile },
-  { id: 'desktop', name: t('Desktop'), platforms: desktop },
-  { id: 'serverless', name: t('Serverless'), platforms: serverless },
+  {id: 'popular', name: t('Popular'), platforms: popular},
+  {id: 'browser', name: t('Browser'), platforms: frontend},
+  {id: 'server', name: t('Server'), platforms: backend},
+  {id: 'mobile', name: t('Mobile'), platforms: mobile},
+  {id: 'desktop', name: t('Desktop'), platforms: desktop},
+  {id: 'serverless', name: t('Serverless'), platforms: serverless},
 ] as const;
 
 export const sourceMaps: PlatformKey[] = [
