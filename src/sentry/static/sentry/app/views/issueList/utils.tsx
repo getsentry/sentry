@@ -1,5 +1,5 @@
 export enum Query {
-  NEEDS_REVIEW = 'is:needs_review is:unresolved',
+  NEEDS_REVIEW = 'is:unresolved is:needs_review',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   REPROCESSING = 'is:reprocessing',
