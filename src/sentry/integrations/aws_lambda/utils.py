@@ -2,6 +2,10 @@ from __future__ import absolute_import
 
 from sentry import options
 
+from sentry.utils.compat import filter
+
+SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
+
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
 def parse_arn(arn):
@@ -36,6 +40,10 @@ def get_arn_without_version(arn):
     return arn.rpartition(":")[0]
 
 
+def get_version_of_arn(arn):
+    return int(arn.split(":")[-1])
+
+
 def get_index_of_sentry_layer(layers, arn_to_match):
     """
     Find the index of the Sentry layer in a list of layers.
@@ -50,3 +58,10 @@ def get_index_of_sentry_layer(layers, arn_to_match):
         if local_arn_without_version == target_arn_without_version:
             return i
     return -1
+
+
+def get_supported_functions(lambda_client):
+    return filter(
+        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+        lambda_client.list_functions()["Functions"],
+    )

@@ -16,15 +16,22 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
+from sentry.integrations.serverless import ServerlessMixin
 from sentry.models import Project, ProjectKey
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.web.helpers import render_to_response
-from sentry.utils.compat import filter, map
+from sentry.utils.compat import map
 from sentry.utils import json
 
 from .client import gen_aws_client
-from .utils import parse_arn, get_index_of_sentry_layer, get_aws_node_arn
+from .utils import (
+    parse_arn,
+    get_index_of_sentry_layer,
+    get_aws_node_arn,
+    get_version_of_arn,
+    get_supported_functions,
+)
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
@@ -52,11 +59,49 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
-SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
+class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
+    def get_client(self):
+        arn = self.metadata["arn"]
+        aws_external_id = self.metadata["aws_external_id"]
+        return gen_aws_client(arn, aws_external_id)
 
-class AwsLambdaIntegration(IntegrationInstallation):
-    pass
+    def get_serverless_functions(self):
+        """
+        Returns a list of serverless functions
+        """
+        client = self.get_client()
+        functions = get_supported_functions(client)
+
+        return map(self.map_lambda_function, functions)
+
+    def map_lambda_function(self, function):
+        layers = function.get("Layers", [])
+        region = parse_arn(self.metadata["arn"])["region"]
+
+        node_layer_arn = get_aws_node_arn(region)
+
+        # find our sentry layer
+        sentry_layer_index = get_index_of_sentry_layer(layers, node_layer_arn)
+
+        if sentry_layer_index > -1:
+            sentry_layer = layers[sentry_layer_index]
+
+            # determine the version and if it's out of date
+            latest_version = int(options.get("aws-lambda.node-layer-version"))
+            current_version = get_version_of_arn(sentry_layer["Arn"])
+            out_of_date = latest_version > current_version
+        else:
+            current_version = -1
+            out_of_date = False
+
+        return {
+            "name": function["FunctionName"],
+            "runtime": function["Runtime"],
+            "version": current_version,
+            "outOfDate": out_of_date,
+            "enabled": current_version > -1,  # TODO: check env variables
+        }
 
 
 class AwsLambdaIntegrationProvider(IntegrationProvider):
@@ -164,10 +209,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
         lambda_client = gen_aws_client(arn, aws_external_id)
 
-        lambda_functions = filter(
-            lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
-            lambda_client.list_functions()["Functions"],
-        )
+        lambda_functions = get_supported_functions(lambda_client)
 
         return self.render_react_view(
             request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions}
@@ -202,10 +244,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
 
         lambda_client = gen_aws_client(arn, aws_external_id)
 
-        lambda_functions = filter(
-            lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
-            lambda_client.list_functions()["Functions"],
-        )
+        lambda_functions = get_supported_functions(lambda_client)
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
         failures = []
