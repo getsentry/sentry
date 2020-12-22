@@ -14,6 +14,7 @@ import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Tooltip from 'app/components/tooltip';
 import {IconRefresh, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -28,6 +29,7 @@ import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import ReviewAction from 'app/views/issueList/actions/reviewAction';
 import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
@@ -108,7 +110,11 @@ class Actions extends React.Component<Props, State> {
   };
 
   onUpdate = (
-    data: {isBookmarked: boolean} | {isSubscribed: boolean} | UpdateResolutionStatus
+    data:
+      | {isBookmarked: boolean}
+      | {isSubscribed: boolean}
+      | {inbox: boolean}
+      | UpdateResolutionStatus
   ) => {
     const {group, project, organization, api} = this.props;
 
@@ -225,6 +231,15 @@ class Actions extends React.Component<Props, State> {
 
     return (
       <Wrapper>
+        {orgFeatures.has('inbox') && (
+          <Tooltip disabled={!!group.inbox} title={t('Issue has been reviewed')}>
+            <ReviewAction
+              orgSlug={organization.slug}
+              onUpdate={this.onUpdate}
+              disabled={!group.inbox}
+            />
+          </Tooltip>
+        )}
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
