@@ -82,7 +82,7 @@ const PanelContainer = styled('div')`
   flex-direction: column;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
   background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.sidebar.background};
+  color: ${p => p.theme.textColor};
   border-right: 1px solid ${p => p.theme.border};
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
   text-align: left;
