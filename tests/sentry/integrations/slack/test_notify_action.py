@@ -20,7 +20,10 @@ class SlackNotifyActionTest(RuleTestCase):
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "domain_name": "sentry.slack.com",
+            },
         )
         self.integration.add_organization(event.project.organization, self.user)
 
@@ -288,3 +291,47 @@ class SlackNotifyActionTest(RuleTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert [u"Slack workspace is a required field."] in form.errors.values()
+
+    @responses.activate
+    def test_display_name_conflict(self):
+        rule = self.get_rule(
+            data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
+        )
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/channels.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channels": []}),
+        )
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/groups.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "groups": []}),
+        )
+
+        members = {
+            "ok": "true",
+            "members": [
+                {"name": "first-morty", "id": "morty-id", "profile": {"display_name": "morty"}},
+                {"name": "second-morty", "id": "user-id", "profile": {"display_name": "morty"}},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/users.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(members),
+        )
+
+        form = rule.get_form_instance()
+        assert not form.is_valid()
+        assert [
+            'Multiple users were found with display name "@morty". Please use your username, found at sentry.slack.com/account/settings#username.'
+        ] in form.errors.values()

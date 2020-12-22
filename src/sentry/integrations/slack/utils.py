@@ -374,15 +374,15 @@ def strip_channel_name(name):
 
 def get_channel_id(organization, integration, name, use_async_lookup=False):
     """
-   Fetches the internal slack id of a channel.
-   :param organization: The organization that is using this integration
-   :param integration: The slack integration
-   :param name: The name of the channel
-   :return: a tuple of three values
-       1. prefix: string (`"#"` or `"@"`)
-       2. channel_id: string or `None`
-       3. timed_out: boolean (whether we hit our self-imposed time limit)
-   """
+    Fetches the internal slack id of a channel.
+    :param organization: The organization that is using this integration
+    :param integration: The slack integration
+    :param name: The name of the channel
+    :return: a tuple of three values
+        1. prefix: string (`"#"` or `"@"`)
+        2. channel_id: string or `None`
+        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    """
 
     name = strip_channel_name(name)
 
