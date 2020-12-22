@@ -30,7 +30,9 @@ type QuestionProps = {
   title: React.ReactNode;
   size: string;
 } & Pick<React.ComponentProps<typeof Tooltip>, 'position'> &
-  Partial<Pick<React.ComponentProps<typeof Tooltip>, 'containerDisplayMode'>>;
+  Partial<
+    Pick<React.ComponentProps<typeof Tooltip>, 'containerDisplayMode' | 'isHoverable'>
+  >;
 
 function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProps) {
   return (
