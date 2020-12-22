@@ -100,7 +100,11 @@ class HeaderItem extends React.Component<Props> {
         )}
         {!locked && !loading && (
           <ChevronWrapper>
-            <StyledChevron isOpen={isOpen} direction={isOpen ? 'up' : 'down'} size="sm" />
+            <StyledChevron
+              isOpen={!!isOpen}
+              direction={isOpen ? 'up' : 'down'}
+              size="sm"
+            />
           </ChevronWrapper>
         )}
         {locked && (
