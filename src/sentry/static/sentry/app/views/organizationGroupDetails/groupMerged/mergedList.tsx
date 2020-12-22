@@ -16,7 +16,7 @@ type Props = {
   onUnmerge: Function;
   onToggleCollapse: Function;
   items: Item[];
-  pageLinks: String;
+  pageLinks: string;
   orgId: String;
   project: Project;
 };
