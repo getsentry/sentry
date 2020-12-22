@@ -19,14 +19,14 @@ function ProjectScoreCards({organization, selection}: Props) {
     <CardWrapper>
       <ScoreCard
         title={t('Stability Score')}
-        help={t('Stability score is used to ...')}
+        help={t('Stability score is used to // TODO(project-detail)')}
         score="94.1%"
         trend="+13.5%"
         trendStyle="good"
       />
       <ScoreCard
         title={t('Velocity Score')}
-        help={t('Velocity score is used to ...')}
+        help={t('Velocity score is used to // TODO(project-detail)')}
         score="16"
         trend="-2 releases / 2 wks"
         trendStyle="bad"
@@ -45,7 +45,7 @@ const CardWrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: repeat(3, 1fr);
   }
 `;
 

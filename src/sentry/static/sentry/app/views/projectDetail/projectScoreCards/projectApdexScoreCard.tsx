@@ -21,6 +21,7 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
 };
+
 type State = AsyncComponent['state'] & {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
@@ -85,6 +86,14 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     return this.props.organization.features.includes('performance-view');
   }
 
+  get cardTitle() {
+    return t('Apdex Score');
+  }
+
+  get cardHelp() {
+    return getTermHelp(this.props.organization, 'apdex');
+  }
+
   get currentApdex() {
     const {organization} = this.props;
     const {currentApdex} = this.state;
@@ -109,7 +118,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get trend() {
     if (this.currentApdex && this.previousApdex) {
-      return this.currentApdex - this.previousApdex;
+      return Number(formatAbbreviatedNumber(this.currentApdex - this.previousApdex));
     }
 
     return null;
@@ -139,8 +148,8 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     return (
       <ScoreCard
-        title={t('Apdex Score')}
-        help={getTermHelp(organization, 'apdex')}
+        title={this.cardTitle}
+        help={this.cardHelp}
         score={<MissingPerformanceButtons organization={organization} />}
       />
     );
@@ -152,27 +161,23 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   renderTrend() {
     // we want to show trend only after currentApdex has loaded to prevent jumping
-    return defined(this.currentApdex) &&
-      defined(this.trend) &&
-      formatAbbreviatedNumber(this.trend) !== '0' ? (
+    return defined(this.currentApdex) && defined(this.trend) ? (
       <React.Fragment>
-        {this.trend > 0 && '+'}
-        <Count value={this.trend} />
+        {this.trend >= 0 ? '+' : '-'}
+        <Count value={Math.abs(this.trend)} />
       </React.Fragment>
     ) : null;
   }
 
   renderBody() {
-    const {organization} = this.props;
-
     if (!this.hasFeature()) {
       return this.renderMissingFeatureCard();
     }
 
     return (
       <ScoreCard
-        title={t('Apdex Score')}
-        help={getTermHelp(organization, 'apdex')}
+        title={this.cardTitle}
+        help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
         trendStyle={this.trendStyle}
