@@ -82,7 +82,7 @@ class GroupRowActions extends React.Component<Props> {
           disabled={!group.inbox}
           title={t('Mark Reviewed')}
           tooltipProps={{disabled: !group.inbox}}
-          icon={<IconIssues size="sm" color="gray300" />}
+          icon={<IconIssues size="sm" />}
           onClick={event => this.handleUpdate({inbox: false}, event)}
         />
 
@@ -91,7 +91,7 @@ class GroupRowActions extends React.Component<Props> {
           customTitle={
             <ActionButton
               label={t('More issue actions')}
-              icon={<IconEllipsis size="sm" color="gray300" />}
+              icon={<IconEllipsis size="sm" />}
             />
           }
           anchorRight
