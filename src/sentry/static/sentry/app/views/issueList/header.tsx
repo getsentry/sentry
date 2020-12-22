@@ -15,10 +15,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
-import {Query, QueryCounts} from './utils';
-
-// the tab counts will look like 99+
-const TAB_MAX_COUNT = 99;
+import {Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   query: string;
@@ -123,15 +120,16 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}
-                <StyledQueryCount
-                  count={queryCounts[tabQuery]}
-                  max={TAB_MAX_COUNT}
+                {queryCounts[tabQuery] && <StyledQueryCount
+                  count={queryCounts[tabQuery].count}
+                  max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
                   tagType={
                     (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
                     (tabQuery === Query.UNRESOLVED && 'default') ||
+                    (tabQuery === Query.IGNORED && 'default') ||
                     undefined
                   }
-                />
+                />}
               </a>
             </li>
           ))}
