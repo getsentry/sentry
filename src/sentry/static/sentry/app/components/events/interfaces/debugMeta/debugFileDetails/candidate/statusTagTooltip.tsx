@@ -6,7 +6,7 @@ import space from 'app/styles/space';
 
 type Props = {
   children: React.ReactElement;
-  label: string;
+  label: React.ReactNode;
   description?: React.ReactNode;
   disabled?: boolean;
 };

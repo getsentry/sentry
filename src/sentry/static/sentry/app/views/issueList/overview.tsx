@@ -545,7 +545,10 @@ class IssueListOverview extends React.Component<Props, State> {
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      this._poller.setEndpoint(links.previous.href);
+      // Remove collapse stats from endpoint before supplying to poller
+      const issueEndpoint = new URL(links.previous.href);
+      issueEndpoint.searchParams.delete('collapse');
+      this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
       this._poller.enable();
     }
   };

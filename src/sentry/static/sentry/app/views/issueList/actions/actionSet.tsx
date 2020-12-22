@@ -8,13 +8,16 @@ import IgnoreActions from 'app/components/actions/ignore';
 import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
-import {IconEllipsis, IconIssues, IconPause, IconPlay} from 'app/icons';
+import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 
+import {Query} from '../utils';
+
 import ResolveActions from './resolveActions';
+import ReviewAction from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -64,19 +67,15 @@ function ActionSet({
     <Wrapper hasInbox={hasInbox}>
       {hasInbox && (
         <div className="hidden-sm hidden-xs">
-          <ActionLink
-            type="button"
-            priority="primary"
+          <ReviewAction
+            orgSlug={orgSlug}
+            primary={query === Query.NEEDS_REVIEW}
             disabled={!anySelected}
-            onAction={() => onUpdate({inbox: false})}
-            shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
-            message={confirm('mark', false, ' as reviewed')}
-            confirmLabel={label('Mark', ' as reviewed')}
-            title={t('Mark Reviewed')}
-            icon={<IconIssues size="xs" />}
-          >
-            {t('Mark Reviewed')}
-          </ActionLink>
+            confirm={confirm}
+            label={label}
+            onUpdate={onUpdate}
+            onShouldConfirm={onShouldConfirm}
+          />
         </div>
       )}
       {selectedProjectSlug ? (
@@ -170,11 +169,11 @@ function ActionSet({
             disabled={!anySelected}
             onAction={() => onUpdate({inbox: false})}
             shouldConfirm={onShouldConfirm(ConfirmAction.ACKNOWLEDGE)}
-            message={confirm(ConfirmAction.ACKNOWLEDGE, false)}
-            confirmLabel={label('acknowledge')}
-            title={t('Acknowledge')}
+            message={confirm('mark', false, ' as reviewed')}
+            confirmLabel={label('Mark', ' as reviewed')}
+            title={t('Mark Reviewed')}
           >
-            {t('Acknowledge')}
+            {t('Mark Reviewed')}
           </MenuItemActionLink>
         )}
         <MenuItemActionLink

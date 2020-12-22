@@ -686,7 +686,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(
-                sort_by="date", limit=10, query="is:needs_review is:unresolved", expand=["inbox"]
+                sort_by="date", limit=10, query="is:unresolved is:needs_review", expand=["inbox"]
             )
             assert response.status_code == 200
             assert len(response.data) == 1
