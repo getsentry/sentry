@@ -394,7 +394,10 @@ class IssueListOverview extends React.Component<Props, State> {
       : null;
 
     // If all tabs' counts are fetched, skip and only set
-    if (fetchAllCounts || !TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)) {
+    if (
+      fetchAllCounts ||
+      !TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+    ) {
       const requestParams: CountsEndpointParams = {
         ...omit(endpointParams, 'query'),
         // fetch the counts for the tabs whose counts haven't been fetched yet
@@ -416,8 +419,11 @@ class IssueListOverview extends React.Component<Props, State> {
         // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
         queryCounts = {
           ...queryCounts,
-          ...mapValues(response, (count: number) => ({count, hasMore: count > TAB_MAX_COUNT})),
-        }
+          ...mapValues(response, (count: number) => ({
+            count,
+            hasMore: count > TAB_MAX_COUNT,
+          })),
+        };
       } catch (e) {
         this.setState({
           error: parseApiError(e),
@@ -481,7 +487,8 @@ class IssueListOverview extends React.Component<Props, State> {
 
     this._poller.disable();
 
-    const fetchAllCounts = this.props.organization.features.includes('inbox') && !!selectionChanged;
+    const fetchAllCounts =
+      this.props.organization.features.includes('inbox') && !!selectionChanged;
 
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
