@@ -171,8 +171,11 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.node-layer-arn")
-register("aws-lambda.region", default="us-east-2")
+register("aws-lambda.node-layer-name")
+register("aws-lambda.node-layer-version")
+# the region of the host account we use for assuming the role
+register("aws-lambda.host-account-id")
+register("aws-lambda.host-region", default="us-east-2")
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
