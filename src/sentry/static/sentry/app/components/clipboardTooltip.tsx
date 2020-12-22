@@ -9,9 +9,10 @@ import space from 'app/styles/space';
 
 type Props = Omit<React.ComponentProps<typeof Tooltip>, 'isHoverable' | 'title'> & {
   title: string;
+  onSuccess?: () => void;
 };
 
-function ClipboardTooltip({title, ...props}: Props) {
+function ClipboardTooltip({title, onSuccess, ...props}: Props) {
   return (
     <Tooltip
       {...props}
@@ -22,7 +23,7 @@ function ClipboardTooltip({title, ...props}: Props) {
           }}
         >
           <TextOverflow>{title}</TextOverflow>
-          <Clipboard value={title}>
+          <Clipboard value={title} onSuccess={onSuccess}>
             <TooltipClipboardIconWrapper>
               <IconCopy size="xs" color="white" />
             </TooltipClipboardIconWrapper>
