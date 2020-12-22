@@ -1,11 +1,9 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import ActionLink from 'app/components/actions/actionLink';
 import {IconIssues} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
 import {ConfirmAction, getConfirm, getLabel} from './utils';
@@ -29,7 +27,8 @@ function ReviewAction({
   label,
 }: Props) {
   return (
-    <StyledActionLink
+    <ActionLink
+      type="button"
       className={classNames('btn btn-sm action-merge', {
         'btn-primary': primary,
         'btn-default': !primary,
@@ -41,21 +40,11 @@ function ReviewAction({
       message={confirm?.('mark', false, ' as reviewed')}
       confirmLabel={label?.('Mark', ' as reviewed')}
       title={t('Mark Reviewed')}
+      icon={<IconIssues size="xs" />}
     >
-      <StyledIconIssues size="xs" />
       {t('Mark Reviewed')}
-    </StyledActionLink>
+    </ActionLink>
   );
 }
 
 export default ReviewAction;
-
-const StyledActionLink = styled(ActionLink)`
-  display: flex;
-  align-items: center;
-  transition: none;
-`;
-
-const StyledIconIssues = styled(IconIssues)`
-  margin-right: ${space(0.5)};
-`;
