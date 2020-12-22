@@ -1,4 +1,4 @@
-export const INTERNAL_SOURCE_NAME = 'sentry:project';
+export const INTERNAL_SOURCE = 'sentry:project';
 
 // code below copied from src/sentry/static/sentry/app/views/organizationIntegrations/SplitInstallationIdModal.tsx
 // TODO(PRISCILA): Make this a common function
