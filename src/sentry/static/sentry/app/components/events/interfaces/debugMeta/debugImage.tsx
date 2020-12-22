@@ -192,14 +192,14 @@ const DebugImage = React.memo(
         <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
 
         <ImageInfoGroup>
-          {startAddress && endAddress && (
+          {startAddress && endAddress ? (
             <React.Fragment>
               {formattedImageStartAddress}
-              {' \u2013'}
+              {' \u2013 '}
               <AddressDivider />
               {formattedImageEndAddress}
             </React.Fragment>
-          )}
+          ) : null}
         </ImageInfoGroup>
 
         <ImageInfoGroup fullWidth>
