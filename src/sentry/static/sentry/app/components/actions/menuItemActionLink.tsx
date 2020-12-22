@@ -18,7 +18,6 @@ function MenuItemActionLinkBase({
 }
 const StyledActionLink = styled(ActionLink)`
   color: ${p => p.theme.textColor};
-  white-space: nowrap;
   ${overflowEllipsis}
   &:hover {
     color: ${p => p.theme.textColor};

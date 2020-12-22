@@ -9,8 +9,8 @@ type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
 
 type Props = Omit<ConfirmableActionProps, 'onConfirm' | 'confirmText' | 'children'> & {
   title: string;
-  children?: React.ReactNode;
   onAction: () => void;
+  children?: React.ReactNode;
   type?: 'button';
   disabled?: boolean;
   className?: string;

@@ -9,7 +9,7 @@ const BaseButton = (props: React.ComponentProps<typeof Button>) => (
 );
 
 const ActionButton = styled(BaseButton)`
-  padding: ${p => (p.icon ? '6px' : '7px')} ${space(1)};
+  padding: ${p => (p.icon ? ${space(0.75) : '7px')} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
