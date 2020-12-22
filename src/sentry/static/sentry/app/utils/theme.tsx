@@ -486,7 +486,7 @@ const darkAliases = {
   linkColor: colors.purple200,
   disabled: colors.gray400,
   active: colors.pink300,
-  focus: backgroundSecondary,
+  focus: colors.gray500,
   inactive: colors.gray200,
   error: colors.red300,
   success: colors.green300,
