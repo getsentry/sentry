@@ -298,7 +298,7 @@ class GroupDetails extends React.Component<Props, State> {
     if (itemIds.has(id)) {
       const group = GroupStore.get(id) as Group;
       if (group) {
-        // TODO(ts) This needs a better approach. actions is splicing attributes onto
+        // TODO(ts) This needs a better approach. issueActions is splicing attributes onto
         // group objects to cheat here.
         if ((group as Group & {stale?: boolean}).stale) {
           this.fetchData();
