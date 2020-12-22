@@ -5,12 +5,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import IssueListHeader from 'app/views/issueList/header';
 
 const queryCounts = {
-  'is:needs_review is:unresolved': 1,
+  'is:unresolved is:needs_review': 1,
   'is:unresolved': 1,
 };
 
 const queryCountsMaxed = {
-  'is:needs_review is:unresolved': 1000,
+  'is:unresolved is:needs_review': 1000,
   'is:unresolved': 1000,
 };
 
@@ -18,7 +18,7 @@ describe('IssueListHeader', () => {
   it('renders active tab with count when query matches inbox', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader
-        query="is:needs_review is:unresolved"
+        query="is:unresolved is:needs_review"
         queryCounts={queryCounts}
         projectIds={[]}
       />
@@ -38,7 +38,7 @@ describe('IssueListHeader', () => {
       <IssueListHeader query="" queryCounts={queryCounts} projectIds={[]} />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 1');
-    expect(wrapper.find('li').at(1).text()).toBe('Unresolved 1');
+    expect(wrapper.find('li').at(1).text()).toBe('All Unresolved 1');
     expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
   });
 
@@ -47,7 +47,7 @@ describe('IssueListHeader', () => {
       <IssueListHeader query="" queryCounts={queryCountsMaxed} projectIds={[]} />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 99+');
-    expect(wrapper.find('li').at(1).text()).toBe('Unresolved 99+');
+    expect(wrapper.find('li').at(1).text()).toBe('All Unresolved 99+');
     expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
   });
 
@@ -61,6 +61,6 @@ describe('IssueListHeader', () => {
       />
     );
     wrapper.find('a').at(0).simulate('click');
-    expect(handleTabChange).toHaveBeenCalledWith('is:needs_review is:unresolved');
+    expect(handleTabChange).toHaveBeenCalledWith('is:unresolved is:needs_review');
   });
 });
