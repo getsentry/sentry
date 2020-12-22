@@ -19,12 +19,13 @@ export type CandidateStacktraceInfo =
   | CandidateStacktraceInfoOtherStatus;
 
 // Candidate Download Status
-export enum CandiateDownloadStatus {
+export enum CandidateDownloadStatus {
   OK = 'ok',
   MALFORMED = 'malformed',
   NOT_FOUND = 'notfound',
   ERROR = 'error',
   NO_PERMISSION = 'noperm',
+  DELETED = 'deleted',
 }
 
 type Features = {
@@ -35,7 +36,7 @@ type Features = {
 };
 
 type CandidateDownloadOkStatus = {
-  status: CandiateDownloadStatus.OK;
+  status: CandidateDownloadStatus.OK;
   features: Features;
   details?: string;
   unwind?: CandidateStacktraceInfo;
@@ -43,27 +44,33 @@ type CandidateDownloadOkStatus = {
 };
 
 type CandidateDownloadNotFoundStatus = {
-  status: CandiateDownloadStatus.NOT_FOUND;
+  status: CandidateDownloadStatus.NOT_FOUND;
   details?: string;
+};
+
+type CandidateDownloadDeletedStatus = {
+  status: CandidateDownloadStatus.DELETED;
+  details: string;
 };
 
 type CandidateDownloadOtherStatus = {
   status:
-    | CandiateDownloadStatus.MALFORMED
-    | CandiateDownloadStatus.NO_PERMISSION
-    | CandiateDownloadStatus.ERROR;
+    | CandidateDownloadStatus.MALFORMED
+    | CandidateDownloadStatus.NO_PERMISSION
+    | CandidateDownloadStatus.ERROR;
 };
 
 export type CandidateDownload =
   | CandidateDownloadNotFoundStatus
   | CandidateDownloadOkStatus
+  | CandidateDownloadDeletedStatus
   | CandidateDownloadOtherStatus;
 
 type Candidate = {
   download: CandidateDownload;
-  location: string;
   source: string;
-  source_name: string;
+  source_name?: string;
+  location?: string;
 };
 
 // Debug Status
