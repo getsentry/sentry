@@ -7,7 +7,7 @@ import logging
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb, tagstore
+from sentry import tsdb, tagstore, features
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -29,6 +29,7 @@ from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
+from sentry.models.groupinbox import get_inbox_details
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -165,6 +166,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             organization = group.project.organization
             environments = get_environments(request, organization)
             environment_ids = [e.id for e in environments]
+            expand = request.GET.getlist("expand", [])
+            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
@@ -228,6 +231,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     groupsubscription__is_active=True, groupsubscription__group=group
                 )
             )
+
+            if "inbox" in expand and has_inbox:
+                inbox_map = get_inbox_details([group])
+                inbox_reason = inbox_map.get(group.id)
+                data.update({"inbox": inbox_reason})
 
             data.update(
                 {

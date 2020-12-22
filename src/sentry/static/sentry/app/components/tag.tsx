@@ -116,8 +116,12 @@ function Tag({
     return tag;
   }
 
-  return <span {...props}>{tagWithParent()}</span>;
+  return <TagWrapper {...props}>{tagWithParent()}</TagWrapper>;
 }
+
+const TagWrapper = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
@@ -135,7 +139,6 @@ const IconWrapper = styled('span')`
 
 const Text = styled('span')<{maxWidth: number}>`
   color: ${p => p.theme.gray500};
-  font-size: ${p => p.theme.fontSizeSmall};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;
