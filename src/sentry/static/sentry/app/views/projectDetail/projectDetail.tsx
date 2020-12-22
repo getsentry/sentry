@@ -19,12 +19,12 @@ import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 
+import ProjectScoreCards from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
 import ProjectIssues from './projectIssues';
 import ProjectLatestAlerts from './projectLatestAlerts';
 import ProjectLatestReleases from './projectLatestReleases';
 import ProjectQuickLinks from './projectQuickLinks';
-import ProjectScoreCards from './projectScoreCards';
 import ProjectTeamAccess from './projectTeamAccess';
 
 type RouteParams = {
@@ -119,6 +119,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   organization={organization}
                   projectSlug={params.projectId}
                   projectId={project?.id}
+                  location={location}
                 />
                 {[0, 1].map(id => (
                   <ProjectCharts
