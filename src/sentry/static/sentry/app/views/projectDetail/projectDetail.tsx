@@ -115,12 +115,7 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               <Layout.Main>
-                <ProjectScoreCards
-                  organization={organization}
-                  projectSlug={params.projectId}
-                  projectId={project?.id}
-                  location={location}
-                />
+                <ProjectScoreCards organization={organization} />
                 {[0, 1].map(id => (
                   <ProjectCharts
                     location={location}
