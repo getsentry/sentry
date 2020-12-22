@@ -35,7 +35,7 @@ type Props = {
 
 const queries = [
   [Query.NEEDS_REVIEW, t('Needs Review')],
-  [Query.UNRESOLVED, t('Unresolved')],
+  [Query.UNRESOLVED, t('All Unresolved')],
   [Query.IGNORED, t('Ignored')],
   [Query.REPROCESSING, t('Reprocessing')],
 ];
