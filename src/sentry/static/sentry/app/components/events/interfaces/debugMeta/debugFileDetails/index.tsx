@@ -37,9 +37,8 @@ type State = AsyncComponent['state'] & {
 
 class DebugFileDetails extends AsyncComponent<Props, State> {
   getDefaultState() {
-    const state = super.getDefaultState();
     return {
-      ...state,
+      ...super.getDefaultState(),
       debugFiles: [],
     };
   }
