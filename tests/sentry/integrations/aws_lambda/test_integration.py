@@ -23,11 +23,11 @@ arn = (
 )
 
 
-class AWsLambdaIntegrationTest(IntegrationTestCase):
+class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
     def setUp(self):
-        super(AWsLambdaIntegrationTest, self).setUp()
+        super(AwsLambdaIntegrationTest, self).setUp()
         self.projectA = self.create_project(organization=self.organization)
         self.projectB = self.create_project(organization=self.organization)
 
