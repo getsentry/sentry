@@ -210,34 +210,33 @@ export default class ConditionRow extends React.Component<
   };
 
   render() {
-    const {disabled, value} = this.props;
     return (
       <Box>
         <SelectControl
-          autoBlur
-          backspaceRemoves={false}
-          clearable={false}
-          closeOnSelect
-          creatable
-          deleteRemoves={false}
           deprecatedSelectControl
-          disabled={disabled}
-          filterOptions={this.filterOptions}
-          inputRenderer={this.inputRenderer}
-          isValidNewOption={this.isValidNewOption}
-          newOptionCreator={this.newOptionCreator}
-          onBlur={this.handleBlur}
-          onChange={this.handleChange}
-          onInputChange={this.handleInputChange}
-          onOpen={this.handleOpen}
-          openOnFocus
-          options={this.getOptions()}
-          placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
-          promptTextCreator={(text: string) => text}
           ref={this.selectRef}
-          shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
-          value={getInternal(value)}
+          value={getInternal(this.props.value)}
+          placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
+          options={this.getOptions()}
+          filterOptions={this.filterOptions}
+          onChange={this.handleChange}
+          onOpen={this.handleOpen}
+          closeOnSelect
+          openOnFocus
+          autoBlur
+          clearable={false}
+          backspaceRemoves={false}
+          deleteRemoves={false}
+          isValidNewOption={this.isValidNewOption}
+          inputRenderer={this.inputRenderer}
           valueComponent={this.valueComponent}
+          onInputChange={this.handleInputChange}
+          onBlur={this.handleBlur}
+          creatable
+          promptTextCreator={(text: string) => text}
+          shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
+          disabled={this.props.disabled}
+          newOptionCreator={this.newOptionCreator}
         />
       </Box>
     );
