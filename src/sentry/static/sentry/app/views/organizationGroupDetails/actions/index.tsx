@@ -232,7 +232,7 @@ class Actions extends React.Component<Props, State> {
     return (
       <Wrapper>
         {orgFeatures.has('inbox') && (
-          <Tooltip disabled={!group.inbox} title={t('Issue has been reviewed')}>
+          <Tooltip disabled={!!group.inbox} title={t('Issue has been reviewed')}>
             <ReviewAction
               orgSlug={organization.slug}
               onUpdate={this.onUpdate}
