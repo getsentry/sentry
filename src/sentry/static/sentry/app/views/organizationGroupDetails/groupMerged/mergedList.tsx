@@ -1,11 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import PropTypes from 'prop-types';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
 import {Panel} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
 import {Fingerprint} from 'app/stores/groupingStore';
 import {Project} from 'app/types';
 
@@ -22,13 +24,22 @@ type Props = {
   };
   // From GroupingActions.toggleCollapseFingerprints
   onToggleCollapse: () => void;
-  fingerprints?: Fingerprint[];
-  pageLinks?: string;
   orgId: string;
   project: Project;
+  fingerprints?: Fingerprint[];
+  pageLinks?: string;
 };
 
 class MergedList extends React.Component<Props> {
+  static propTypes = {
+    onUnmerge: PropTypes.func.isRequired,
+    onToggleCollapse: PropTypes.func.isRequired,
+    fingerprints: PropTypes.arrayOf(SentryTypes.Event),
+    pageLinks: PropTypes.string,
+    orgId: PropTypes.string.isRequired,
+    project: SentryTypes.Project.isRequired,
+  };
+
   renderEmpty = () => (
     <EmptyStateWarning>
       <p>{t("There doesn't seem to be any hashes for this issue.")}</p>
