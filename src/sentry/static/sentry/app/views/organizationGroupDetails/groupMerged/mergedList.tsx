@@ -13,8 +13,15 @@ import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 
 type Props = {
-  onUnmerge: Function;
-  onToggleCollapse: Function;
+  // From GroupMergedView -> handleUnmerge
+  onUnmerge: () => {
+    groupId: string;
+    loadingMessage: string;
+    successMessage: string;
+    errorMessage: string;
+  };
+  // From GroupingActions.toggleCollapseFingerprints
+  onToggleCollapse: () => void;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
   orgId: string;
