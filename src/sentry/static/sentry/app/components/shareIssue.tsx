@@ -214,7 +214,7 @@ const IndicatorDot = styled('span')<{isShared?: boolean}>`
   border-radius: 50%;
   width: 10px;
   height: 10px;
-  background: ${p => (p.isShared ? p.theme.green300 : p.theme.border)};
+  background: ${p => (p.isShared ? p.theme.active : p.theme.border)};
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)<
