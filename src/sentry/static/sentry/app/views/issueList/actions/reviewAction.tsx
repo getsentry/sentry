@@ -1,5 +1,4 @@
 import React from 'react';
-import classNames from 'classnames';
 
 import ActionLink from 'app/components/actions/actionLink';
 import {IconIssues} from 'app/icons';
@@ -29,11 +28,7 @@ function ReviewAction({
   return (
     <ActionLink
       type="button"
-      className={classNames('btn btn-sm action-merge', {
-        'btn-primary': primary,
-        'btn-default': !primary,
-      })}
-      data-test-id="button-acknowledge"
+      priority={primary ? 'primary' : 'default'}
       disabled={disabled}
       onAction={() => onUpdate({inbox: false})}
       shouldConfirm={onShouldConfirm?.(ConfirmAction.ACKNOWLEDGE)}
