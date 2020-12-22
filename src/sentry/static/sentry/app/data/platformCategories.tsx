@@ -1,4 +1,4 @@
-import {t} from 'app/locale';
+import { t } from 'app/locale';
 
 const popular = [
   'javascript',
@@ -22,6 +22,7 @@ const popular = [
 ] as const;
 
 const frontend = [
+  'dart',
   'javascript',
   'javascript-react',
   'javascript-angular',
@@ -39,6 +40,7 @@ const mobile = [
   'javascript-cordova',
   'react-native',
   'flutter',
+  'dart-flutter',
 ] as const;
 
 const backend = [
@@ -87,6 +89,7 @@ const serverless = [
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'dotnet-awslambda',
 ] as const;
 
 const desktop = [
@@ -103,12 +106,12 @@ const desktop = [
 ] as const;
 
 const categoryList = [
-  {id: 'popular', name: t('Popular'), platforms: popular},
-  {id: 'browser', name: t('Browser'), platforms: frontend},
-  {id: 'server', name: t('Server'), platforms: backend},
-  {id: 'mobile', name: t('Mobile'), platforms: mobile},
-  {id: 'desktop', name: t('Desktop'), platforms: desktop},
-  {id: 'serverless', name: t('Serverless'), platforms: serverless},
+  { id: 'popular', name: t('Popular'), platforms: popular },
+  { id: 'browser', name: t('Browser'), platforms: frontend },
+  { id: 'server', name: t('Server'), platforms: backend },
+  { id: 'mobile', name: t('Mobile'), platforms: mobile },
+  { id: 'desktop', name: t('Desktop'), platforms: desktop },
+  { id: 'serverless', name: t('Serverless'), platforms: serverless },
 ] as const;
 
 export const sourceMaps: PlatformKey[] = [
