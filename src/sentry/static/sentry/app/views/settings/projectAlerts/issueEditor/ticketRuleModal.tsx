@@ -49,10 +49,21 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {instance, organization} = this.props;
+    const query = ((instance.dynamic_form_fields as {[key: string]: any}) || [])
+      .filter(field => field.updatesForm)
+      .filter(field => instance.hasOwnProperty(field.name))
+      .reduce(
+        (accumulator, {name}) => {
+          accumulator[name] = instance[name];
+          return accumulator;
+        },
+        {action: 'create'}
+      );
     return [
       [
         'integrationDetails',
-        `/organizations/${organization.slug}/integrations/${instance.integration}/?action=create`,
+        `/organizations/${organization.slug}/integrations/${instance.integration}/`,
+        {query},
       ],
     ];
   }

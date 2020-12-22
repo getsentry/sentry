@@ -42,7 +42,7 @@ export type IssueAlertRuleAction = Omit<
   'formFields' | 'enabled'
 > & {
   // These are the same values as the keys in `formFields` for a template
-  [key: string]: number | string;
+  [key: string]: number | string | string[];
 };
 
 export type IssueAlertRuleCondition = Omit<
