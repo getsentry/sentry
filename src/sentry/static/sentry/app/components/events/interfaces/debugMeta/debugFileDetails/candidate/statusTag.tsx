@@ -2,25 +2,28 @@ import React from 'react';
 
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import {CandiateDownloadStatus} from 'app/types/debugImage';
+import {CandidateDownloadStatus} from 'app/types/debugImage';
 
 type Props = {
-  status: CandiateDownloadStatus;
+  status: CandidateDownloadStatus;
 };
 
 function StatusTag({status}: Props) {
   switch (status) {
-    case CandiateDownloadStatus.OK: {
+    case CandidateDownloadStatus.OK: {
       return <Tag type="success">{t('Successful')}</Tag>;
     }
-    case CandiateDownloadStatus.MALFORMED: {
+    case CandidateDownloadStatus.MALFORMED: {
       return <Tag type="error">{t('Failed')}</Tag>;
     }
-    case CandiateDownloadStatus.NOT_FOUND: {
+    case CandidateDownloadStatus.NOT_FOUND: {
       return <Tag>{t('Not Found')}</Tag>;
     }
-    case CandiateDownloadStatus.NO_PERMISSION: {
+    case CandidateDownloadStatus.NO_PERMISSION: {
       return <Tag type="warning">{t('Permission')}</Tag>;
+    }
+    case CandidateDownloadStatus.DELETED: {
+      return <Tag type="error">{t('Deleted')}</Tag>;
     }
     default:
       return <Tag type="highlight">{t('Not applied')}</Tag>;

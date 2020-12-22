@@ -11,6 +11,7 @@ import {fields} from 'app/data/forms/projectDebugFiles';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -20,7 +21,6 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import DebugFileRow from './debugFileRow';
-import {BuiltinSymbolSource, DebugFile} from './types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;

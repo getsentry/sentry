@@ -1,21 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'app/api';
-import Access from 'app/components/acl/access';
-import Role from 'app/components/acl/role';
-import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import Confirm from 'app/components/confirm';
 import PanelTable from 'app/components/panels/panelTable';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconDownload} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
-import {CandiateDownloadStatus, Image} from 'app/types/debugImage';
+import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 
 import StacktraceStatusIcon from './candidate/stacktraceStatusIcon';
 import StatusTag from './candidate/statusTag';
@@ -24,27 +16,23 @@ import NotAvailable from './notAvailable';
 type Props = {
   title: string;
   description: string;
-  api: Client;
   candidates: Image['candidates'];
-  projectId: Project['id'];
-  organization: Organization;
   emptyMessage: string;
-  onDelete?: (debugId: string) => void;
+  isLoading?: boolean;
+  actions?: ({debugId: string, deleted: boolean}) => React.ReactElement;
 };
 
-function Panel({
+function Table({
   title,
   description,
   candidates,
-  projectId,
   emptyMessage,
-  organization,
-  onDelete,
-  api,
+  isLoading,
+  actions,
 }: Props) {
   function renderStacktraces(download: Image['candidates'][0]['download']) {
     if (
-      download.status === CandiateDownloadStatus.OK &&
+      download.status === CandidateDownloadStatus.OK &&
       (download.unwind || download.debug)
     ) {
       const stacktraces: Array<React.ReactElement> = [];
@@ -74,7 +62,7 @@ function Panel({
   }
 
   function renderFeatures(download: Image['candidates'][0]['download']) {
-    if (download.status === CandiateDownloadStatus.OK) {
+    if (download.status === CandidateDownloadStatus.OK) {
       const features = Object.entries(download.features).filter(([_key, value]) => value);
 
       if (!!features.length) {
@@ -102,9 +90,10 @@ function Panel({
         <QuestionTooltip title={description} size="xs" position="top" />
       </Title>
       <StyledPanelTable
-        headers={[t('Status'), t('Debug File'), t('Stacktrace'), t('Features'), ' ']}
+        headers={[t('Status'), t('Location'), t('Stacktrace'), t('Features'), ' ']}
         isEmpty={!candidates.length}
         emptyMessage={emptyMessage}
+        isLoading={isLoading}
       >
         {candidates.map(({location, download, source}) => {
           const {status} = download;
@@ -116,9 +105,11 @@ function Panel({
 
               <DebugFileColumn>
                 <SourceName>{source}</SourceName>
-                <Tooltip title={location} disabled={!location} isHoverable>
-                  <Location>{location}</Location>
-                </Tooltip>
+                {!actions && location && (
+                  <Tooltip title={location} disabled={!location} isHoverable>
+                    <Location>{location}</Location>
+                  </Tooltip>
+                )}
               </DebugFileColumn>
 
               <StacktraceColumn>{renderStacktraces(download)}</StacktraceColumn>
@@ -126,52 +117,10 @@ function Panel({
               <FeaturesColumn>{renderFeatures(download)}</FeaturesColumn>
 
               <ActionsColumn>
-                {onDelete && (
-                  <ButtonBar gap={0.5}>
-                    <Role role={organization.debugFilesRole} organization={organization}>
-                      {({hasRole}) => (
-                        <Tooltip
-                          disabled={hasRole}
-                          title={t('You do not have permission to download debug files.')}
-                        >
-                          <Button
-                            size="xsmall"
-                            icon={<IconDownload size="xs" />}
-                            href={`${api.baseUrl}/projects/${organization.slug}/${projectId}/files/dsyms/?id=${location}`}
-                            disabled={!hasRole}
-                          >
-                            {t('Download')}
-                          </Button>
-                        </Tooltip>
-                      )}
-                    </Role>
-                    <Access access={['project:write']} organization={organization}>
-                      {() => (
-                        <Tooltip
-                          // disabled={hasAccess}
-                          // title={t('You do not have permission to delete debug files.')}
-                          title={t('Deletion is not yet available')}
-                        >
-                          <Confirm
-                            confirmText={t('Delete')}
-                            message={t('Are you sure you wish to delete this file?')}
-                            onConfirm={() => onDelete(location)}
-                            // disabled={!hasAccess}
-                            disabled
-                          >
-                            <Button
-                              priority="danger"
-                              icon={<IconDelete size="xs" />}
-                              size="xsmall"
-                              // disabled={!hasAccess}
-                              disabled
-                            />
-                          </Confirm>
-                        </Tooltip>
-                      )}
-                    </Access>
-                  </ButtonBar>
-                )}
+                {actions?.({
+                  debugId: location,
+                  deleted: status === CandidateDownloadStatus.DELETED,
+                }) ?? null}
               </ActionsColumn>
             </React.Fragment>
           );
@@ -181,7 +130,7 @@ function Panel({
   );
 }
 
-export default Panel;
+export default Table;
 
 const Wrapper = styled('div')`
   display: grid;
@@ -190,7 +139,7 @@ const Wrapper = styled('div')`
 
 // TODO(PRISCILA): Make it looks better on smaller devices (still to be decided by Robin)
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 112px minmax(185px, 1fr) 257px 245px 68px;
+  grid-template-columns: 112px minmax(185px, 1fr) 257px 245px 160px;
 `;
 
 // Table Title
