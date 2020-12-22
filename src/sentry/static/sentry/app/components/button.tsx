@@ -17,7 +17,7 @@ import {Theme} from 'app/utils/theme';
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
@@ -44,7 +44,14 @@ type Url = ButtonProps['to'] | ButtonProps['href'];
 
 class BaseButton extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
-    priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
+    priority: PropTypes.oneOf([
+      'default',
+      'primary',
+      'danger',
+      'link',
+      'success',
+      'form',
+    ]),
     size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,

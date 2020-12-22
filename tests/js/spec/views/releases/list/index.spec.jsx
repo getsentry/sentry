@@ -179,8 +179,8 @@ describe('ReleasesList', function () {
   it('display the right Crash Free column', async function () {
     const displayDropdown = wrapper.find('ReleaseListDisplayOptions');
 
-    const activeDisplay = displayDropdown.find('DropdownButton span');
-    expect(activeDisplay.text()).toEqual('Display:Crash Free Sessions');
+    const activeDisplay = displayDropdown.find('DropdownButton button');
+    expect(activeDisplay.text()).toEqual('DisplayCrash Free Sessions');
 
     const displayOptions = displayDropdown.find('DropdownItem');
     expect(displayOptions).toHaveLength(2);

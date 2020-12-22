@@ -99,13 +99,13 @@ class HeaderItem extends React.Component<Props> {
           <StyledClose {...textColorProps} onClick={this.handleClear} />
         )}
         {!locked && !loading && (
-          <StyledChevron>
-            <IconChevron
+          <ChevronWrapper>
+            <StyledChevron
+              isOpen={!!isOpen}
               direction={isOpen ? 'up' : 'down'}
-              color={isOpen ? 'gray500' : 'gray300'}
               size="sm"
             />
-          </StyledChevron>
+          </ChevronWrapper>
         )}
         {locked && (
           <Tooltip title={lockedMessage || 'This selection is locked'} position="bottom">
@@ -183,12 +183,18 @@ const StyledClose = styled(IconClose, {shouldForwardProp: isPropValid})<ColorPro
   margin: -${space(1)} 0px -${space(1)} -${space(1)};
 `;
 
-const StyledChevron = styled('div')`
+const ChevronWrapper = styled('div')`
   width: ${space(2)};
   height: ${space(2)};
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const StyledChevron = styled(IconChevron, {shouldForwardProp: isPropValid})<{
+  isOpen: boolean;
+}>`
+  color: ${getColor};
 `;
 
 const SettingsIconLink = styled(Link)`
