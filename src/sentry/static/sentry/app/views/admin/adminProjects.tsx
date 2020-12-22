@@ -7,8 +7,6 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 
-const prettyDate = (x: string) => moment(x).format('ll');
-
 type Row = {
   dateCreated: string;
   name: string;
@@ -34,7 +32,7 @@ export default class AdminProjects extends AsyncView<Props, State> {
       {row.status}
     </td>,
     <td key="dateCreated" style={{textAlign: 'right'}}>
-      {prettyDate(row.dateCreated)}
+      {moment(row.dateCreated).format('ll')}
     </td>,
   ];
 
