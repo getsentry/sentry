@@ -412,7 +412,11 @@ class JiraIntegrationTest(APITestCase):
                     "issuetype": "1",
                     "project": "10000",
                 }
-            ) == {"title": "example summary", "description": "example bug report", "key": "APP-123"}
+            ) == {
+                "title": "example summary",
+                "description": "example bug report",
+                "key": "APP-123",
+            }
 
     @responses.activate
     def test_create_issue_labels_and_option(self):
