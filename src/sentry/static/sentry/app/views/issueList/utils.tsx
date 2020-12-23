@@ -17,6 +17,9 @@ type OverviewTab = {
   enabled: boolean;
 };
 
+/**
+ * Get a list of currently active tabs
+ */
 export function getTabs(organization: Organization) {
   const tabs: Array<[string, OverviewTab]> = [
     [
@@ -61,13 +64,15 @@ export function getTabs(organization: Organization) {
     ],
   ];
 
-  return tabs.filter(pair => pair[1].enabled);
+  return tabs.filter(([_query, tab]) => tab.enabled);
 }
 
-// These tabs will have the counts displayed
+/**
+ * @returns queries that should have counts fetched
+ */
 export function getTabsWithCounts(organization: Organization) {
   const tabs = getTabs(organization);
-  return tabs.filter(([_, value]) => value.count).map(([key]) => key);
+  return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
 }
 
 // the tab counts will look like 99+
