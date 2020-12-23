@@ -253,6 +253,7 @@ background-color: ${p.theme.innerBorder};
 
 const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
+  display: flex;
 `;
 
 const MenuLink = styled(Link, {
