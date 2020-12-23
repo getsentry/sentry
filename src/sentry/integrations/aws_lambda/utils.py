@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from sentry import options
 
+from sentry.models import Project, ProjectKey
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.compat import filter
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
@@ -61,7 +63,47 @@ def get_index_of_sentry_layer(layers, arn_to_match):
 
 
 def get_supported_functions(lambda_client):
-    return filter(
-        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
-        lambda_client.list_functions()["Functions"],
+    paginator = lambda_client.get_paginator("list_functions")
+    response_iterator = paginator.paginate()
+    functions = []
+    for page in response_iterator:
+        functions += page["Functions"]
+
+    return filter(lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES, functions,)
+
+
+def get_dsn_for_project(organization_id, project_id):
+    try:
+        project = Project.objects.get(organization_id=organization_id, id=project_id)
+    except Project.DoesNotExist:
+        raise IntegrationError("No valid project")
+
+    enabled_dsn = ProjectKey.get_default(project=project)
+    if not enabled_dsn:
+        raise IntegrationError("Project does not have DSN enabled")
+    return enabled_dsn.get_dsn(public=True)
+
+
+def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn):
+    name = function["FunctionName"]
+    # update the env variables
+    env_variables = function.get("Environment", {}).get("Variables", {})
+    env_variables.update(
+        {
+            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+            "SENTRY_DSN": sentry_project_dsn,
+            "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+        }
+    )
+
+    # find the sentry layer and update it or insert new layer to end
+    layers = function.get("Layers", [])
+    sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+    if sentry_layer_index > -1:
+        layers[sentry_layer_index] = layer_arn
+    else:
+        layers.append(layer_arn)
+
+    return lambda_client.update_function_configuration(
+        FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
     )

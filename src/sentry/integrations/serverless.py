@@ -7,3 +7,6 @@ class ServerlessMixin(object):
         Returns a list of serverless functions
         """
         raise NotImplementedError
+
+    def enable_function(self, target):
+        raise NotImplementedError

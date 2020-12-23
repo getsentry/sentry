@@ -40,20 +40,15 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
 
+    @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
-    def test_lambda_list(self, mock_react_view, mock_gen_aws_client):
-        mock_client = Mock()
-        mock_client.list_functions = MagicMock(
-            return_value={
-                "Functions": [
-                    {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
-                    {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
-                    {"FunctionName": "lambdaC", "Runtime": "python3.6"},
-                ]
-            }
-        )
-        mock_gen_aws_client.return_value = mock_client
+    def test_lambda_list(self, mock_react_view, mock_gen_aws_client, mock_get_supported_functions):
+        mock_get_supported_functions.return_value = [
+            {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
+            {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
+        ]
+
         aws_external_id = "12-323"
         self.pipeline.state.step_index = 2
         self.pipeline.state.data = {
@@ -74,23 +69,18 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             },
         )
 
+    @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
-    def test_lambda_setup_layer_success(self, mock_gen_aws_client):
+    def test_lambda_setup_layer_success(self, mock_gen_aws_client, mock_get_supported_functions):
         mock_client = Mock()
         mock_gen_aws_client.return_value = mock_client
-
-        mock_client.list_functions = MagicMock(
-            return_value={
-                "Functions": [
-                    {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
-                    {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
-                    {"FunctionName": "lambdaC", "Runtime": "python3.6"},
-                ]
-            }
-        )
-
         mock_client.update_function_configuration = MagicMock()
         mock_client.describe_account = MagicMock(return_value={"Account": {"Name": "my_name"}})
+
+        mock_get_supported_functions.return_value = [
+            {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
+            {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
+        ]
 
         aws_external_id = "12-323"
         self.pipeline.state.step_index = 2

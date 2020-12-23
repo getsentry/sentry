@@ -17,9 +17,8 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.integrations.serverless import ServerlessMixin
-from sentry.models import Project, ProjectKey
+from sentry.models import Project, OrganizationIntegration
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.web.helpers import render_to_response
 from sentry.utils.compat import map
 from sentry.utils import json
@@ -31,6 +30,8 @@ from .utils import (
     get_aws_node_arn,
     get_version_of_arn,
     get_supported_functions,
+    enable_single_lambda,
+    get_dsn_for_project,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
@@ -61,6 +62,14 @@ metadata = IntegrationMetadata(
 
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
+    @property
+    def region(self):
+        return parse_arn(self.metadata["arn"])["region"]
+
+    @property
+    def aws_node_arn(self):
+        return get_aws_node_arn(self.region)
+
     def get_client(self):
         arn = self.metadata["arn"]
         aws_external_id = self.metadata["aws_external_id"]
@@ -71,15 +80,14 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         Returns a list of serverless functions
         """
         client = self.get_client()
+
         functions = get_supported_functions(client)
 
         return map(self.map_lambda_function, functions)
 
     def map_lambda_function(self, function):
         layers = function.get("Layers", [])
-        region = parse_arn(self.metadata["arn"])["region"]
-
-        node_layer_arn = get_aws_node_arn(region)
+        node_layer_arn = self.aws_node_arn
 
         # find our sentry layer
         sentry_layer_index = get_index_of_sentry_layer(layers, node_layer_arn)
@@ -102,6 +110,16 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             "outOfDate": out_of_date,
             "enabled": current_version > -1,  # TODO: check env variables
         }
+
+    def enable_function(self, target):
+        config_data = self.get_config_data()
+        project_id = config_data["default_project_id"]
+
+        sentry_project_dsn = get_dsn_for_project(self.organization_id, project_id)
+
+        client = self.get_client()
+        function = client.get_function(FunctionName=target)["Configuration"]
+        enable_single_lambda(client, function, sentry_project_dsn, self.aws_node_arn)
 
 
 class AwsLambdaIntegrationProvider(IntegrationProvider):
@@ -139,8 +157,15 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             "name": integration_name,
             "external_id": external_id,
             "metadata": {"arn": arn, "aws_external_id": aws_external_id},
+            "post_install_data": {"default_project_id": state["project_id"]},
         }
         return integration
+
+    def post_install(self, integration, organization, extra):
+        default_project_id = extra["default_project_id"]
+        OrganizationIntegration.objects.filter(
+            organization=organization, integration=integration
+        ).update(config={"default_project_id": default_project_id})
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
@@ -232,15 +257,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         aws_external_id = pipeline.fetch_state("aws_external_id")
         enabled_lambdas = pipeline.fetch_state("enabled_lambdas")
 
-        try:
-            project = Project.objects.get(organization=organization, id=project_id)
-        except Project.DoesNotExist:
-            raise IntegrationError("No valid project")
-
-        enabled_dsn = ProjectKey.get_default(project=project)
-        if not enabled_dsn:
-            raise IntegrationError("Project does not have DSN enabled")
-        sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+        sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
 
         lambda_client = gen_aws_client(arn, aws_external_id)
 
@@ -255,27 +272,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             if not enabled_lambdas.get(name):
                 continue
             try:
-                # update the env variables
-                env_variables = function.get("Environment", {}).get("Variables", {})
-                env_variables.update(
-                    {
-                        "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
-                        "SENTRY_DSN": sentry_project_dsn,
-                        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                    }
-                )
-
-                # find the sentry layer and update it or insert new layer to end
-                layers = function.get("Layers", [])
-                sentry_layer_index = get_index_of_sentry_layer(layers, node_layer_arn)
-                if sentry_layer_index > -1:
-                    layers[sentry_layer_index] = node_layer_arn
-                else:
-                    layers.append(node_layer_arn)
-
-                lambda_client.update_function_configuration(
-                    FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
-                )
+                enable_single_lambda(lambda_client, function, sentry_project_dsn, node_layer_arn)
             except Exception as e:
                 failures.append(function)
                 logger.info(
