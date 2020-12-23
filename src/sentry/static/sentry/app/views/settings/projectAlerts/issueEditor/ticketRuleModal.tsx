@@ -9,7 +9,7 @@ import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExt
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IssueConfigField, Organization} from 'app/types';
+import {IssueConfigField, IssueConfigFieldChoices, Organization} from 'app/types';
 import {IssueAlertRuleAction} from 'app/types/alerts';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -23,7 +23,7 @@ type Props = ModalRenderProps & {
   link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: [string, string][]}
+    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
   ) => void;
   organization: Organization;
   ticketType?: string;
@@ -31,7 +31,7 @@ type Props = ModalRenderProps & {
 
 type State = {
   issueConfigFieldsCache: IssueConfigField[];
-  fetchedFieldOptionsCache: {[key: string]: [string, string][]};
+  fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices};
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
@@ -41,7 +41,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return {
       ...super.getDefaultState(),
       fetchedFieldOptionsCache: Object.fromEntries(
-        issueConfigFieldsCache.map(field => [field.name, field.choices])
+        issueConfigFieldsCache.map(field => [
+          field.name,
+          field.choices as IssueConfigFieldChoices,
+        ])
       ),
       issueConfigFieldsCache,
     };
@@ -49,10 +52,21 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {instance, organization} = this.props;
+    const query = (instance.dynamic_form_fields || [])
+      .filter(field => field.updatesForm)
+      .filter(field => instance.hasOwnProperty(field.name))
+      .reduce(
+        (accumulator, {name}) => {
+          accumulator[name] = instance[name];
+          return accumulator;
+        },
+        {action: 'create'}
+      );
     return [
       [
         'integrationDetails',
-        `/organizations/${organization.slug}/integrations/${instance.integration}/?action=create`,
+        `/organizations/${organization.slug}/integrations/${instance.integration}/`,
+        {query},
       ],
     ];
   }
