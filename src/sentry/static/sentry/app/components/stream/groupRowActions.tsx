@@ -3,11 +3,9 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import ActionLink from 'app/components/actions/actionLink';
 import ResolveActions from 'app/components/actions/resolve';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
-import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -27,7 +25,8 @@ type Props = {
 };
 
 class GroupRowActions extends React.Component<Props> {
-  handleUpdate = (data?: any) => {
+  handleUpdate = (data?: any, event?: React.MouseEvent) => {
+    event?.stopPropagation();
     const {api, group, orgId, query, selection} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
@@ -77,16 +76,14 @@ class GroupRowActions extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <Tooltip title={group.inbox ? t('Mark Reviewed') : null}>
-          <ActionLink
-            type="button"
-            onAction={() => this.handleUpdate({inbox: false})}
-            shouldConfirm={false}
-            disabled={!group.inbox}
-            title={t('Mark Reviewed')}
-            icon={<IconIssues size="sm" />}
-          />
-        </Tooltip>
+        <ActionButton
+          type="button"
+          disabled={!group.inbox}
+          title={t('Mark Reviewed')}
+          tooltipProps={{disabled: !group.inbox}}
+          icon={<IconIssues size="sm" />}
+          onClick={event => this.handleUpdate({inbox: false}, event)}
+        />
 
         <StyledDropdownLink
           caret={false}
