@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {defined} from 'app/utils';
 import styled from 'app/styled';
 import space from 'app/styles/space';
+import {defined} from 'app/utils';
 
 type Props = {
   count?: number;
@@ -34,9 +34,9 @@ const QueryCount = ({
   }
 
   if (backgroundColor) {
-    return <StyledBackground backgroundColor={backgroundColor}>
-      {countOrMax}
-    </StyledBackground>;
+    return (
+      <StyledBackground backgroundColor={backgroundColor}>{countOrMax}</StyledBackground>
+    );
   }
 
   return (
