@@ -78,7 +78,6 @@ class GroupRowActions extends React.Component<Props> {
       <Wrapper>
         <ActionButton
           type="button"
-          size="zero"
           disabled={!group.inbox}
           title={t('Mark Reviewed')}
           tooltipProps={{disabled: !group.inbox}}
