@@ -132,6 +132,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         sentry_project_dsn = get_dsn_for_project(self.organization_id, project_id)
 
         enable_single_lambda(self.client, function, sentry_project_dsn, layer_arn)
+
         return self.get_serialized_lambda_function(target)
 
     def disable_function(self, target):
