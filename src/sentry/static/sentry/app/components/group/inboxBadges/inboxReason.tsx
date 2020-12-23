@@ -20,10 +20,12 @@ type Props = {
   fontSize?: 'sm' | 'md';
 };
 
+const EVENT_ROUND_LIMIT = 1000;
+
 function InboxReason({inbox, fontSize = 'sm'}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
 
-  const getCountText = (count: number) => count > 1000 ? `More than ${Math.round(count / 1000)}k` : `${count}`;
+  const getCountText = (count: number) => count > EVENT_ROUND_LIMIT ? `More than ${Math.round(count / EVENT_ROUND_LIMIT)}k` : `${count}`;
 
   function getReasonDetails(): {
     tagType: React.ComponentProps<typeof Tag>['type'];
@@ -76,7 +78,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
 
   const {tooltipText, tooltipDescription, reasonBadgeText, tagType} = getReasonDetails();
 
-  const tooltip = (
+  const tooltip = (tooltipText || tooltipDescription) && (
     <TooltipWrapper>
       {tooltipText && <div>{tooltipText}</div>}
       {tooltipDescription && (
