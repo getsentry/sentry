@@ -1653,6 +1653,8 @@ export type SelectValue<T> = {
   tooltip?: string;
 };
 
+export type IssueConfigFieldChoices = [number | string, number | string][];
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
@@ -1661,7 +1663,7 @@ export type SelectValue<T> = {
 export type IssueConfigField = Field & {
   name: string;
   default?: string | number;
-  choices?: [number | string, number | string][];
+  choices?: IssueConfigFieldChoices;
   url?: string;
   multiple?: boolean;
 };

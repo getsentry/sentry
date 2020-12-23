@@ -9,7 +9,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {IssueConfigFieldChoices, Organization, Project} from 'app/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -287,7 +287,7 @@ class RuleNode extends React.Component<Props> {
    */
   updateParent = (
     formData: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: [string, string][]}
+    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
   ): void => {
     const {data, index, onPropertyChange} = this.props;
     for (const [name, value] of Object.entries(formData)) {
