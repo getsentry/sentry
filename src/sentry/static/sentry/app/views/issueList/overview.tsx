@@ -61,7 +61,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {Query, QueryCounts, TAB_MAX_COUNT, TabQueriesWithCounts} from './utils';
+import {getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -279,6 +279,10 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default')
     ) {
+      if (organization.features.includes('inbox-owners-query')) {
+        return Query.NEEDS_REVIEW_OWNER;
+      }
+
       return Query.NEEDS_REVIEW;
     }
 
@@ -385,23 +389,25 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
+    const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
-    const currentTabQuery = TabQueriesWithCounts.includes(endpointParams.query as Query)
+    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
 
     // If all tabs' counts are fetched, skip and only set
     if (
       fetchAllCounts ||
-      !TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+      !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
     ) {
       const requestParams: CountsEndpointParams = {
         ...omit(endpointParams, 'query'),
         // fetch the counts for the tabs whose counts haven't been fetched yet
-        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
+        query: tabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
       };
 
       // If no stats period values are set, use default
@@ -869,7 +875,6 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
 
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
@@ -877,6 +882,7 @@ class IssueListOverview extends React.Component<Props, State> {
           <React.Fragment>
             {hasFeature && (
               <IssueListHeader
+                organization={organization}
                 query={query}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
@@ -885,7 +891,6 @@ class IssueListOverview extends React.Component<Props, State> {
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
-                hasReprocessingV2Feature={hasReprocessingV2Feature}
               />
             )}
             <StyledPageContent isInbox={hasFeature}>
