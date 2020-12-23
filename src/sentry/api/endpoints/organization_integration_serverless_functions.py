@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
-from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.serverless import ServerlessMixin
 from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -13,7 +13,7 @@ ACTIONS = ["enable", "disable", "update"]
 TARGET_ALL = "__ALL__"
 
 
-class ServerlessActionSerializer(CamelSnakeModelSerializer):
+class ServerlessActionSerializer(CamelSnakeSerializer):
     action = serializers.ChoiceField(ACTIONS)
     target = serializers.CharField()
 
@@ -54,5 +54,15 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         action = data["action"]
         target = data["target"]
 
-        if action == "enable":
-            install.enable_function(target)
+        # TODO: error handling
+        try:
+            resp = None
+            if action == "enable":
+                resp = install.enable_function(target)
+            elif action == "disable":
+                resp = install.disable_function(target)
+            elif action == "update":
+                resp = install.update_function_to_latest_version(target)
+            return self.respond(resp)
+        except Exception as e:
+            raise e

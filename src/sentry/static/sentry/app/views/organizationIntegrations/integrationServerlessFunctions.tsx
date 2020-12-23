@@ -3,19 +3,13 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {IntegrationWithConfig, Organization} from 'app/types';
+import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
 
-type ServerlessFunction = {
-  name: string;
-  runtime: string;
-  version: number;
-  outOfDate: boolean;
-  enabled: boolean;
-};
+import IntegrationServerlessRow from './integrationServerlessRow';
 
 type Props = AsyncComponent['props'] & {
   integration: IntegrationWithConfig;
@@ -35,14 +29,20 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const orgId = this.props.organization.slug;
+    const orgSlug = this.props.organization.slug;
     return [
       [
         'serverlessFunctions',
-        `/organizations/${orgId}/integrations/${this.props.integration.id}/serverless-functions/`,
+        `/organizations/${orgSlug}/integrations/${this.props.integration.id}/serverless-functions/`,
       ],
     ];
   }
+
+  handleFunctionUpdate = (serverlessFunction: ServerlessFunction, index: number) => {
+    const [...serverlessFunctions] = this.state.serverlessFunctions;
+    serverlessFunctions[index] = serverlessFunction;
+    this.setState({serverlessFunctions});
+  };
 
   renderBody() {
     const header = (
@@ -55,7 +55,18 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
       <React.Fragment>
         <Panel>
           {header}
-          <PanelBody>Hey</PanelBody>
+          <PanelBody>
+            {this.state.serverlessFunctions.map((serverlessFunction, i) => (
+              <IntegrationServerlessRow
+                key={serverlessFunction.name}
+                serverlessFunction={serverlessFunction}
+                onUpdateFunction={(response: ServerlessFunction) =>
+                  this.handleFunctionUpdate(response, i)
+                }
+                {...this.props}
+              />
+            ))}
+          </PanelBody>
         </Panel>
       </React.Fragment>
     );

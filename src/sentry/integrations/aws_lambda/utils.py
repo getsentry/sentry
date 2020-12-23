@@ -46,6 +46,22 @@ def get_version_of_arn(arn):
     return int(arn.split(":")[-1])
 
 
+def get_latest_layer_for_function(function):
+    region = parse_arn(function["FunctionArn"])["region"]
+    runtime = function["Runtime"]
+    if runtime.startswith("nodejs"):
+        return get_aws_node_arn(region)
+    # update when we can handle other runtimes like Python
+    raise Exception("Unsupported runtime")
+
+
+def get_latest_layer_version(runtime):
+    if runtime.startswith("nodejs"):
+        return int(options.get("aws-lambda.node-layer-version"))
+    # update when we can handle other runtimes like Python
+    raise Exception("Unsupported runtime")
+
+
 def get_index_of_sentry_layer(layers, arn_to_match):
     """
     Find the index of the Sentry layer in a list of layers.

@@ -30,6 +30,8 @@ from .utils import (
     get_aws_node_arn,
     get_version_of_arn,
     get_supported_functions,
+    get_latest_layer_version,
+    get_latest_layer_for_function,
     enable_single_lambda,
     get_dsn_for_project,
 )
@@ -62,41 +64,41 @@ metadata = IntegrationMetadata(
 
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
+    def __init__(self, *args, **kwargs):
+        super(AwsLambdaIntegration, self).__init__(*args, **kwargs)
+        self._client = None
+
     @property
     def region(self):
         return parse_arn(self.metadata["arn"])["region"]
 
     @property
-    def aws_node_arn(self):
-        return get_aws_node_arn(self.region)
+    def client(self):
+        if not self._client:
+            arn = self.metadata["arn"]
+            aws_external_id = self.metadata["aws_external_id"]
+            self._client = gen_aws_client(arn, aws_external_id)
+        return self._client
 
-    def get_client(self):
-        arn = self.metadata["arn"]
-        aws_external_id = self.metadata["aws_external_id"]
-        return gen_aws_client(arn, aws_external_id)
+    def get_one_lambda_function(self, name):
+        return self.client.get_function(FunctionName=name)["Configuration"]
 
-    def get_serverless_functions(self):
-        """
-        Returns a list of serverless functions
-        """
-        client = self.get_client()
+    def get_serialized_lambda_function(self, name):
+        function = self.get_one_lambda_function(name)
+        return self.serialize_lambda_function(function)
 
-        functions = get_supported_functions(client)
-
-        return map(self.map_lambda_function, functions)
-
-    def map_lambda_function(self, function):
+    def serialize_lambda_function(self, function):
         layers = function.get("Layers", [])
-        node_layer_arn = self.aws_node_arn
+        layer_arn = get_latest_layer_for_function(function)
 
         # find our sentry layer
-        sentry_layer_index = get_index_of_sentry_layer(layers, node_layer_arn)
+        sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
 
         if sentry_layer_index > -1:
             sentry_layer = layers[sentry_layer_index]
 
             # determine the version and if it's out of date
-            latest_version = int(options.get("aws-lambda.node-layer-version"))
+            latest_version = get_latest_layer_version(function["Runtime"])
             current_version = get_version_of_arn(sentry_layer["Arn"])
             out_of_date = latest_version > current_version
         else:
@@ -111,15 +113,64 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             "enabled": current_version > -1,  # TODO: check env variables
         }
 
+    # ServerlessMixin interface
+    def get_serverless_functions(self):
+        """
+        Returns a list of serverless functions
+        """
+        functions = get_supported_functions(self.client)
+
+        return map(self.serialize_lambda_function, functions)
+
     def enable_function(self, target):
+        function = self.get_one_lambda_function(target)
+        layer_arn = get_latest_layer_for_function(function)
+
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
 
         sentry_project_dsn = get_dsn_for_project(self.organization_id, project_id)
 
-        client = self.get_client()
-        function = client.get_function(FunctionName=target)["Configuration"]
-        enable_single_lambda(client, function, sentry_project_dsn, self.aws_node_arn)
+        enable_single_lambda(self.client, function, sentry_project_dsn, layer_arn)
+        return self.get_serialized_lambda_function(target)
+
+    def disable_function(self, target):
+        function = self.get_one_lambda_function(target)
+        layer_arn = get_latest_layer_for_function(function)
+
+        layers = function.get("Layers", [])
+        env_variables = function.get("Environment", {}).get("Variables", {})
+
+        # find our sentry layer
+        sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+        if sentry_layer_index > -1:
+            layers.pop(sentry_layer_index)
+
+        # remove our env variables
+        for env_name in ["NODE_OPTIONS", "SENTRY_DSN", "SENTRY_TRACES_SAMPLE_RATE"]:
+            if env_name in env_variables:
+                del env_variables[env_name]
+
+        self.client.update_function_configuration(
+            FunctionName=target, Layers=layers, Environment={"Variables": env_variables},
+        )
+        return self.get_serialized_lambda_function(target)
+
+    def update_function_to_latest_version(self, target):
+        function = self.get_one_lambda_function(target)
+        layer_arn = get_latest_layer_for_function(function)
+
+        layers = function.get("Layers", [])
+
+        # update our layer if we find it
+        sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+        if sentry_layer_index > -1:
+            layers[sentry_layer_index] = layer_arn
+
+        self.client.update_function_configuration(
+            FunctionName=target, Layers=layers,
+        )
+        return self.get_serialized_lambda_function(target)
 
 
 class AwsLambdaIntegrationProvider(IntegrationProvider):

@@ -2072,3 +2072,11 @@ export type PromptActivity = {
     dismissed_ts?: number;
   };
 };
+
+export type ServerlessFunction = {
+  name: string;
+  runtime: string;
+  version: number;
+  outOfDate: boolean;
+  enabled: boolean;
+};
