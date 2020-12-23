@@ -22,7 +22,7 @@ class PromptsConfig(object):
 
     def add(self, name, config):
         if self.has(name):
-            raise Exception(u"Prompt key {} is already in use".format(name))
+            raise Exception("Prompt key {} is already in use".format(name))
         if "required_fields" not in config:
             raise Exception("'required_fields' must be present in the config dict")
 

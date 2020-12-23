@@ -29,7 +29,7 @@ class ReleaseProjectEnvironment(Model):
 
     @classmethod
     def get_cache_key(cls, release_id, project_id, environment_id):
-        return u"releaseprojectenv:{}:{}:{}".format(release_id, project_id, environment_id)
+        return "releaseprojectenv:{}:{}:{}".format(release_id, project_id, environment_id)
 
     @classmethod
     def get_or_create(cls, release, project, environment, datetime, **kwargs):

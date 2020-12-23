@@ -29,10 +29,10 @@ code review, repository hosting, bug tracking, project management, and more.
 
 def query_to_result(field, result):
     if field == "issue_id":
-        return u"T{}: {}".format(result["id"], result["fields"]["name"])
+        return "T{}: {}".format(result["id"], result["fields"]["name"])
 
     if field == "assignee":
-        return u"{} ({})".format(result["fields"]["realName"], result["fields"]["username"])
+        return "{} ({})".format(result["fields"]["realName"], result["fields"]["username"])
 
     return result["fields"]["name"]
 
@@ -137,7 +137,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "phabricator_plugin"})
                     ),
@@ -176,11 +176,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             try:
                 api.user.whoami()
             except phabricator.APIError as e:
-                raise PluginError(u"%s %s" % (e.code, e))
+                raise PluginError("%s %s" % (e.code, e))
             except HTTPException as e:
-                raise PluginError(u"Unable to reach Phabricator host: %s" % (e,))
+                raise PluginError("Unable to reach Phabricator host: %s" % (e,))
             except Exception as e:
-                raise PluginError(u"Unhandled error from Phabricator: %s" % (e,))
+                raise PluginError("Unhandled error from Phabricator: %s" % (e,))
         return config
 
     def is_configured(self, request, project, **kwargs):
@@ -196,11 +196,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         return "Create Maniphest Task"
 
     def get_issue_label(self, group, issue_id, **kwargs):
-        return u"T%s" % issue_id
+        return "T%s" % issue_id
 
     def get_issue_url(self, group, issue_id, **kwargs):
         host = self.get_option("host", group.project)
-        return urljoin(host, u"T%s" % issue_id)
+        return urljoin(host, "T%s" % issue_id)
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
@@ -234,7 +234,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 projectPHIDs=form_data.get("tags"),
             )
         except phabricator.APIError as e:
-            raise PluginError(u"%s %s" % (e.code, e))
+            raise PluginError("%s %s" % (e.code, e))
         except HTTPException as e:
             raise PluginError("Unable to reach Phabricator host: %s" % e)
 

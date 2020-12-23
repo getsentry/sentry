@@ -56,7 +56,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         self.login_as(user=self.foo)
 
-        response = self.client.get(u"{}?is_member=true".format(self.url))
+        response = self.client.get("{}?is_member=true".format(self.url))
         assert response.status_code == 200
 
         assert not response.data["sentFirstEvent"]
@@ -67,7 +67,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
 
         self.login_as(user=self.foo)
 
-        response = self.client.get(u"{}?project={}".format(self.url, project.id))
+        response = self.client.get("{}?project={}".format(self.url, project.id))
         assert response.status_code == 200
 
         assert response.data["sentFirstEvent"]

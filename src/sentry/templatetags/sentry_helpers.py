@@ -124,7 +124,7 @@ def pprint(value, break_after=10):
 
     value = to_unicode(value)
     return mark_safe(
-        u"<span></span>".join(
+        "<span></span>".join(
             [escape(value[i : (i + break_after)]) for i in range(0, len(value), break_after)]
         )
     )
@@ -162,7 +162,7 @@ def small_count(v, precision=1):
         if o:
             if len(six.text_type(o)) > 2 or not p:
                 return "%d%s" % (o, y)
-            return (u"%.{}f%s".format(precision)) % (v / float(x), y)
+            return ("%.{}f%s".format(precision)) % (v / float(x), y)
     return v
 
 

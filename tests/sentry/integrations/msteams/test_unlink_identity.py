@@ -45,13 +45,13 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         access_json = {"expires_in": 86399, "access_token": "3ld3rw4nd"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
 
         responses.add(
             method=responses.POST,
-            url=u"https://smba.trafficmanager.net/amer/v3/conversations/{}/activities".format(
+            url="https://smba.trafficmanager.net/amer/v3/conversations/{}/activities".format(
                 self.conversation_id
             ),
             status=200,

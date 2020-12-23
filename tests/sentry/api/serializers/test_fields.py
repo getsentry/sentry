@@ -75,4 +75,4 @@ class TestActorField(TestCase):
 
         serializer = DummySerializer(data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"actor_field": [u"Unknown actor input"]}
+        assert serializer.errors == {"actor_field": ["Unknown actor input"]}

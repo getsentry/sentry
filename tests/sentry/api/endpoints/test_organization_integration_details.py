@@ -36,7 +36,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        self.path = u"/api/0/organizations/{}/integrations/{}/".format(
+        self.path = "/api/0/organizations/{}/integrations/{}/".format(
             self.org.slug, self.integration.id
         )
 

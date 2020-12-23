@@ -98,7 +98,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        return u"{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
+        return "{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
 
     def search_projects(self, query):
         client = self.get_client()
@@ -197,8 +197,8 @@ class InstallationConfigView(PipelineView):
                 pipeline.bind_state(
                     "oauth_config_information",
                     {
-                        "access_token_url": u"{}/oauth/token".format(form_data.get("url")),
-                        "authorize_url": u"{}/oauth/authorize".format(form_data.get("url")),
+                        "access_token_url": "{}/oauth/token".format(form_data.get("url")),
+                        "authorize_url": "{}/oauth/authorize".format(form_data.get("url")),
                         "client_id": form_data.get("client_id"),
                         "client_secret": form_data.get("client_secret"),
                         "verify_ssl": form_data.get("verify_ssl"),
@@ -265,7 +265,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         identity_pipeline_config = dict(
             oauth_scopes=sorted(GitlabIdentityProvider.oauth_scopes),
             redirect_url=absolute_uri("/extensions/gitlab/setup/"),
-            **self.pipeline.fetch_state("oauth_config_information")
+            **self.pipeline.fetch_state("oauth_config_information"),
         )
 
         return NestedPipelineView(
@@ -327,11 +327,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
             # This value is embedded then in the webook token that we
             # give to gitlab to allow us to find the integration a hook came
             # from.
-            "external_id": u"{}:{}".format(hostname, group["id"]),
+            "external_id": "{}:{}".format(hostname, group["id"]),
             "metadata": {
                 "icon": group["avatar_url"],
                 "instance": hostname,
-                "domain_name": u"{}/{}".format(hostname, group["full_path"]),
+                "domain_name": "{}/{}".format(hostname, group["full_path"]),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,
@@ -341,7 +341,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
             "user_identity": {
                 "type": "gitlab",
-                "external_id": u"{}:{}".format(hostname, user["id"]),
+                "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
             },

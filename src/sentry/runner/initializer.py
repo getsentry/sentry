@@ -394,7 +394,7 @@ def setup_services(validate=True):
             except AttributeError as exc:
                 reraise_as(
                     ConfigurationError(
-                        u"{} service failed to call validate()\n{}".format(
+                        "{} service failed to call validate()\n{}".format(
                             service.__name__, six.text_type(exc)
                         )
                     )
@@ -405,7 +405,7 @@ def setup_services(validate=True):
             if not hasattr(service, "setup") or not callable(service.setup):
                 reraise_as(
                     ConfigurationError(
-                        u"{} service failed to call setup()\n{}".format(
+                        "{} service failed to call setup()\n{}".format(
                             service.__name__, six.text_type(exc)
                         )
                     )

@@ -39,7 +39,7 @@ class VstsExtensionFinishedView(PipelineView):
 
         return HttpResponseRedirect(
             absolute_uri(
-                u"/settings/{}/integrations/vsts-extension/{}/".format(
+                "/settings/{}/integrations/vsts-extension/{}/".format(
                     pipeline.organization.slug, pipeline.integration.id
                 )
             )

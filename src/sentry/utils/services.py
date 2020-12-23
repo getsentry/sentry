@@ -90,7 +90,7 @@ class LazyServiceWrapper(LazyObject):
         if backend in self._dangerous:
             warnings.warn(
                 warnings.UnsupportedBackend(
-                    u"The {!r} backend for {} is not recommended "
+                    "The {!r} backend for {} is not recommended "
                     "for production use.".format(self._backend, self._base)
                 )
             )
@@ -313,7 +313,7 @@ class ServiceDelegator(Service):
             # request is going to fail anyway.
             if selected_backend_names[0] not in self.__backends:
                 raise self.InvalidBackend(
-                    u"{!r} is not a registered backend.".format(selected_backend_names[0])
+                    "{!r} is not a registered backend.".format(selected_backend_names[0])
                 )
 
             def call_backend_method(context, backend, is_primary):

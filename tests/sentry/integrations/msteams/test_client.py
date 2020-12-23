@@ -23,7 +23,7 @@ class MsTeamsClientTest(TestCase):
         access_json = {"expires_in": 86399, "access_token": "my_new_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
 

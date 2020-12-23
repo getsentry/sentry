@@ -164,7 +164,7 @@ def generate_tombstones(project, user):
         GroupTombstone.objects.create(
             previous_group_id=prev_group_id,
             actor_id=user.id,
-            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
         )
         prev_group_id += 1
 

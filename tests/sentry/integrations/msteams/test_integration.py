@@ -33,7 +33,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
             json={},
         )
 
@@ -78,7 +78,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = u"organizations/{}/rules/".format(self.organization.slug)
+            integration_url = "organizations/{}/rules/".format(self.organization.slug)
             assert integration_url in responses.calls[1].request.body.decode("utf-8")
             assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 

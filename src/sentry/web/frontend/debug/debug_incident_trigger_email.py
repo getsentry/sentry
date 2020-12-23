@@ -41,7 +41,7 @@ class DebugIncidentTriggerEmailView(View):
         )
 
         return MailPreview(
-            text_template=u"sentry/emails/incidents/trigger.txt",
-            html_template=u"sentry/emails/incidents/trigger.html",
+            text_template="sentry/emails/incidents/trigger.txt",
+            html_template="sentry/emails/incidents/trigger.html",
             context=context,
         ).render(request)

@@ -19,7 +19,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         self.mock_uuid = mock_uuid
 
     def assert_rename_pending_delete(self, response, repo, external_id=None):
-        assert response.data["status"] == u"pending_deletion"
+        assert response.data["status"] == "pending_deletion"
         assert response.data["name"] == "example"  # name displayed matches what the user expects
 
         assert repo.status == ObjectStatus.PENDING_DELETION

@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
 
-CHARACTERS = u"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
 class LostPasswordHash(Model):
@@ -61,9 +61,9 @@ class LostPasswordHash(Model):
         template = "set_password" if mode == "set_password" else "recover_account"
 
         msg = MessageBuilder(
-            subject=u"{}Password Recovery".format(options.get("mail.subject-prefix")),
-            template=u"sentry/emails/{name}.txt".format(name=template),
-            html_template=u"sentry/emails/{name}.html".format(name=template),
+            subject="{}Password Recovery".format(options.get("mail.subject-prefix")),
+            template="sentry/emails/{name}.txt".format(name=template),
+            html_template="sentry/emails/{name}.html".format(name=template),
             type="user.password_recovery",
             context=context,
         )

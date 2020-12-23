@@ -36,7 +36,7 @@ class ReleaseWebhookView(View):
         return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)
 
     def _handle_builtin(self, request, project):
-        endpoint = u"/projects/{}/{}/releases/".format(project.organization.slug, project.slug)
+        endpoint = "/projects/{}/{}/releases/".format(project.organization.slug, project.slug)
 
         try:
             data = json.loads(request.body)

@@ -73,10 +73,10 @@ class FeatureSet(object):
         assert set(self.aliases) == set(self.features)
 
     def __get_scope(self, project):
-        return u"{}".format(project.id)
+        return "{}".format(project.id)
 
     def __get_key(self, group):
-        return u"{}".format(group.id)
+        return "{}".format(group.id)
 
     def extract(self, event):
         results = {}

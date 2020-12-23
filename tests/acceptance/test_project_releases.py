@@ -15,7 +15,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.path = u"/{}/{}/releases/".format(self.org.slug, self.project.slug)
+        self.path = "/{}/{}/releases/".format(self.org.slug, self.project.slug)
 
     @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_releases(self):
@@ -47,7 +47,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
         self.release = self.create_release(project=self.project, version="1.0")
         self.create_group(first_release=self.release, project=self.project, message="Foo bar")
         self.login_as(self.user)
-        self.path = u"/{}/{}/releases/{}/".format(
+        self.path = "/{}/{}/releases/{}/".format(
             self.org.slug, self.project.slug, self.release.version
         )
 

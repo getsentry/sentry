@@ -10,7 +10,7 @@ from sentry.utils import json
 def dirname_to_local(dir_name):
     if "_" in dir_name:
         pre, post = dir_name.split("_", 1)
-        dir_name = u"{}-{}".format(pre, post.lower())
+        dir_name = "{}-{}".format(pre, post.lower())
     return dir_name
 
 

@@ -75,7 +75,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url=u"{}/_git/{}".format(self.vsts_base_url, self.repo_name),
+            url="{}/_git/{}".format(self.vsts_base_url, self.repo_name),
             provider="visualstudio",
             external_id=self.repo_id,
             config={"name": self.project_a["name"], "project": self.project_a["name"]},
@@ -108,7 +108,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url=u"https://{}.visualstudio.com/_git/{}".format(
+            url="https://{}.visualstudio.com/_git/{}".format(
                 self.vsts_account_name, self.repo_name
             ),
             provider="visualstudio",
@@ -132,7 +132,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url=u"https://{}.visualstudio.com/_git/{}".format(
+            url="https://{}.visualstudio.com/_git/{}".format(
                 self.vsts_account_name, self.repo_name
             ),
             provider="visualstudio",
@@ -251,7 +251,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     def test_create_subscription_forbidden(self, mock_get_scopes):
         responses.replace(
             responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
+            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
                 self.vsts_account_name.lower()
             ),
             status=403,
@@ -286,7 +286,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     def test_create_subscription_unauthorized(self, mock_get_scopes):
         responses.replace(
             responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
+            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
                 self.vsts_account_name.lower()
             ),
             status=401,

@@ -54,7 +54,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
                 # make sure this exists and is valid
                 jira_auth = self.get_jira_auth()
             except (ApiError, JiraTenant.DoesNotExist, ExpiredSignatureError) as e:
-                scope.set_tag("result", u"error.{}".format(e.__class__.__name__))
+                scope.set_tag("result", "error.{}".format(e.__class__.__name__))
                 return self.get_response("error.html")
 
             if request.user.is_anonymous():

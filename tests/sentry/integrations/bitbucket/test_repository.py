@@ -74,7 +74,7 @@ class BitbucketRepositoryProviderTest(TestCase):
                 "message": "README.md edited online with Bitbucket",
                 "id": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
                 "repository": "sentryuser/newsdiffs",
-                "patch_set": [{"path": u"README.md", "type": "M"}],
+                "patch_set": [{"path": "README.md", "type": "M"}],
                 "timestamp": datetime.datetime(2017, 5, 16, 23, 21, 40, tzinfo=timezone.utc),
             }
         ]
@@ -173,7 +173,7 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
         )
         responses.add(
             responses.POST,
-            u"%s/2.0/repositories/%s/hooks" % (self.base_url, self.repo.name),
+            "%s/2.0/repositories/%s/hooks" % (self.base_url, self.repo.name),
             json={"uuid": "99"},
         )
 

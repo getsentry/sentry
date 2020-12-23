@@ -52,7 +52,7 @@ class ErrorEvent(BaseEvent):
             return metadata.get("function") or "<unknown>"
         if not metadata.get("value"):
             return ty
-        return u"{}: {}".format(ty, truncatechars(metadata["value"].splitlines()[0], 100))
+        return "{}: {}".format(ty, truncatechars(metadata["value"].splitlines()[0], 100))
 
     def get_location(self, metadata):
         return metadata.get("filename")

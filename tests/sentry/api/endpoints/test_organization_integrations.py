@@ -15,7 +15,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         self.integration.add_organization(self.org, self.user)
 
     def test_simple(self):
-        path = u"/api/0/organizations/{}/integrations/".format(self.org.slug)
+        path = "/api/0/organizations/{}/integrations/".format(self.org.slug)
 
         response = self.client.get(path, format="json")
 
@@ -25,7 +25,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert "configOrganization" in response.data[0]
 
     def test_no_config(self):
-        path = u"/api/0/organizations/{}/integrations/?includeConfig=0".format(self.org.slug)
+        path = "/api/0/organizations/{}/integrations/?includeConfig=0".format(self.org.slug)
 
         response = self.client.get(path, format="json")
         assert response.status_code == 200, response.content

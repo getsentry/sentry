@@ -107,29 +107,29 @@ COMMIT_CHANGELIST_EXAMPLE = {
 }
 
 REPO = {
-    u"slug": u"helloworld",
-    u"id": 72,
-    u"name": u"helloworld",
-    u"scmId": u"git",
-    u"state": u"AVAILABLE",
-    u"statusMessage": u"Available",
-    u"forkable": True,
-    u"project": OrderedDict(
+    "slug": "helloworld",
+    "id": 72,
+    "name": "helloworld",
+    "scmId": "git",
+    "state": "AVAILABLE",
+    "statusMessage": "Available",
+    "forkable": True,
+    "project": OrderedDict(
         [
-            (u"key", u"laurynsentry"),
-            (u"id", 75),
-            (u"name", u"laurynsentry"),
-            (u"description", u""),
-            (u"public", False),
-            (u"type", u"Normal"),
+            ("key", "laurynsentry"),
+            ("id", 75),
+            ("name", "laurynsentry"),
+            ("description", ""),
+            ("public", False),
+            ("type", "Normal"),
             (
-                u"links",
+                "links",
                 OrderedDict(
                     [
                         (
-                            u"self",
+                            "self",
                             OrderedDict(
-                                [(u"href", u"https://bitbucket.example.org/projects/laurynsentry")]
+                                [("href", "https://bitbucket.example.org/projects/laurynsentry")]
                             ),
                         )
                     ]
@@ -137,41 +137,41 @@ REPO = {
             ),
         ]
     ),
-    u"public": False,
-    u"links": OrderedDict(
+    "public": False,
+    "links": OrderedDict(
         [
             (
-                u"clone",
+                "clone",
                 OrderedDict(
                     [
                         OrderedDict(
                             [
                                 (
-                                    u"href",
-                                    u"https://bitbucket.example.org/scm/laurynsentry/helloworld.git",
+                                    "href",
+                                    "https://bitbucket.example.org/scm/laurynsentry/helloworld.git",
                                 ),
-                                (u"name", u"http"),
+                                ("name", "http"),
                             ]
                         ),
                         OrderedDict(
                             [
                                 (
-                                    u"href",
-                                    u"ssh://git@bitbucket.example.org:7999/laurynsentry/helloworld.git",
+                                    "href",
+                                    "ssh://git@bitbucket.example.org:7999/laurynsentry/helloworld.git",
                                 ),
-                                (u"name", u"ssh"),
+                                ("name", "ssh"),
                             ]
                         ),
                     ]
                 ),
             ),
             (
-                u"self",
+                "self",
                 OrderedDict(
                     [
                         (
-                            u"href",
-                            u"https://bitbucket.example.org/projects/laurynsentry/repos/helloworld/browse",
+                            "href",
+                            "https://bitbucket.example.org/projects/laurynsentry/repos/helloworld/browse",
                         )
                     ]
                 ),

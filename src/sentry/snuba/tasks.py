@@ -55,7 +55,7 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
     else:
         return query
 
-    return u"({}) AND ({})".format(event_type_conditions, query)
+    return "({}) AND ({})".format(event_type_conditions, query)
 
 
 @instrumented_task(

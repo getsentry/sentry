@@ -12,7 +12,7 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationAlertRulesListTest, self).setUp()
         self.login_as(self.user)
-        self.path = u"/organizations/{}/alerts/rules/".format(self.organization.slug)
+        self.path = "/organizations/{}/alerts/rules/".format(self.organization.slug)
 
     def test_empty_alert_rules(self):
         with self.feature(FEATURE_NAME):

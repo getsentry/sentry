@@ -200,7 +200,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                 rules.append((rule_link, rule.label))
 
             if rules:
-                value = u", ".join(u"<{} | {}>".format(*r) for r in rules)
+                value = ", ".join("<{} | {}>".format(*r) for r in rules)
 
                 fields.append(
                     {"title": "Triggered By", "value": value.encode("utf-8"), "short": False}

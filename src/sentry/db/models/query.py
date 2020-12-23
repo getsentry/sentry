@@ -103,7 +103,7 @@ def in_iexact(column, values):
     matching to values in the given column."""
     from operator import or_
 
-    query = u"{}__iexact".format(column)
+    query = "{}__iexact".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
@@ -113,6 +113,6 @@ def in_icontains(column, values):
     contained within values in the given column."""
     from operator import or_
 
-    query = u"{}__icontains".format(column)
+    query = "{}__icontains".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])

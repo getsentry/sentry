@@ -405,9 +405,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # check that commits are overwritten
         assert release_commits1 == [
-            u"62de626b7c7cfb8e77efb4273b1a3df4123e6216",
-            u"58de626b7c7cfb8e77efb4273b1a3df4123e6345",
-            u"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "62de626b7c7cfb8e77efb4273b1a3df4123e6216",
+            "58de626b7c7cfb8e77efb4273b1a3df4123e6345",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         ]
 
         # should be 201 because project was added
@@ -443,9 +443,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # check that commits are overwritten
         assert release_commits2 == [
-            u"cccccccccccccccccccccccccccccccccccccccc",
-            u"dddddddddddddddddddddddddddddddddddddddd",
-            u"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "cccccccccccccccccccccccccccccccccccccccc",
+            "dddddddddddddddddddddddddddddddddddddddd",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         ]
 
         assert response2.status_code == 208, response.content
@@ -850,8 +850,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:".format(bad_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode("{}:".format(bad_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -861,7 +860,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
             HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:".format(wrong_org_api_key.key).encode("utf-8")),
+            + b64encode("{}:".format(wrong_org_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -871,7 +870,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
             HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:".format(good_api_key.key).encode("utf-8")),
+            + b64encode("{}:".format(good_api_key.key).encode("utf-8")),
         )
         assert response.status_code == 201, response.content
 
@@ -911,7 +910,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 ],
                 "projects": [project1.slug],
             },
-            HTTP_AUTHORIZATION=u"Bearer {}".format(api_token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(api_token.token),
         )
 
         mock_fetch_commits.apply_async.assert_called_with(
@@ -950,7 +949,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data == {"refs": [u"Invalid repository names: not_a_repo"]}
+        assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):

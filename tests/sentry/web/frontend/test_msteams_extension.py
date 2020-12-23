@@ -14,7 +14,7 @@ class MsTeamsExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
         org = self.create_organization()
         OrganizationMember.objects.create(user=self.user, organization=org, role="admin")
-        path = u"/extensions/msteams/configure/"
+        path = "/extensions/msteams/configure/"
         return self.client.get(path, params)
 
     def test_map_params(self):

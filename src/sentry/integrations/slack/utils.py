@@ -58,9 +58,9 @@ def get_integration_type(integration):
 
 def format_actor_option(actor):
     if isinstance(actor, User):
-        return {"text": actor.get_display_name(), "value": u"user:{}".format(actor.id)}
+        return {"text": actor.get_display_name(), "value": "user:{}".format(actor.id)}
     if isinstance(actor, Team):
-        return {"text": u"#{}".format(actor.slug), "value": u"team:{}".format(actor.id)}
+        return {"text": "#{}".format(actor.slug), "value": "team:{}".format(actor.id)}
 
     raise NotImplementedError
 
@@ -104,7 +104,7 @@ def build_attachment_title(obj):
     if ev_type == "error" and "type" in ev_metadata:
         return ev_metadata["type"]
     elif ev_type == "csp":
-        return u"{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
+        return "{} - {}".format(ev_metadata["directive"], ev_metadata["uri"])
     else:
         return obj.title
 
@@ -130,19 +130,19 @@ def build_assigned_text(group, identity, assignee):
         return
 
     if actor.type == Team:
-        assignee_text = u"#{}".format(assigned_actor.slug)
+        assignee_text = "#{}".format(assigned_actor.slug)
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
                 user=assigned_actor, idp__type="slack", idp__external_id=identity.idp.external_id
             )
-            assignee_text = u"<@{}>".format(assignee_ident.external_id)
+            assignee_text = "<@{}>".format(assignee_ident.external_id)
         except Identity.DoesNotExist:
             assignee_text = assigned_actor.get_display_name()
     else:
         raise NotImplementedError
 
-    return u"*Issue assigned to {assignee_text} by <@{user_id}>*".format(
+    return "*Issue assigned to {assignee_text} by <@{user_id}>*".format(
         assignee_text=assignee_text, user_id=identity.external_id
     )
 
@@ -160,7 +160,7 @@ def build_action_text(group, identity, action):
     if status not in statuses:
         return
 
-    return u"*Issue {status} by <@{user_id}>*".format(
+    return "*Issue {status} by <@{user_id}>*".format(
         status=statuses[status], user_id=identity.external_id
     )
 
@@ -168,23 +168,23 @@ def build_action_text(group, identity, action):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
 
 
 def build_upgrade_notice_attachment(group):
     org_slug = group.organization.slug
     url = absolute_uri(
-        u"/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
+        "/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
     )
 
     return {
         "title": "Deprecation Notice",
         "text": (
-            u"This alert is coming from a deprecated version of the Sentry-Slack integration. "
-            u"Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
-            u"if you do not transition to the new supported Slack integration. "
-            u"Click <{}|here> to complete the process.".format(url)
+            "This alert is coming from a deprecated version of the Sentry-Slack integration. "
+            "Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
+            "if you do not transition to the new supported Slack integration. "
+            "Click <{}|here> to complete the process.".format(url)
         ),
     }
 
@@ -295,14 +295,14 @@ def build_group_attachment(
         event_ts = event.datetime
         ts = max(ts, event_ts)
 
-    footer = u"{}".format(group.qualified_short_id)
+    footer = "{}".format(group.qualified_short_id)
 
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += u" via <{}|{}>".format(rule_url, rules[0].label)
+        footer += " via <{}|{}>".format(rule_url, rules[0].label)
 
         if len(rules) > 1:
-            footer += u" (+{} other)".format(len(rules) - 1)
+            footer += " (+{} other)".format(len(rules) - 1)
 
     obj = event if event is not None else group
     if event and link_to_event:
@@ -311,7 +311,7 @@ def build_group_attachment(
         title_link = group.get_absolute_url(params={"referrer": "slack"})
 
     return {
-        "fallback": u"[{}] {}".format(project.slug, obj.title),
+        "fallback": "[{}] {}".format(project.slug, obj.title),
         "title": build_attachment_title(obj),
         "title_link": title_link,
         "text": text,

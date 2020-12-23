@@ -1017,7 +1017,7 @@ def _noeq(xy):
 
 # message ("foo bar baz")
 def _m(x):
-    return ["notEquals", [["positionCaseInsensitive", ["message", u"'{}'".format(x)]], 0]]
+    return ["notEquals", [["positionCaseInsensitive", ["message", "'{}'".format(x)]], 0]]
 
 
 # message ("foo bar baz") using operators instead of functions
@@ -1670,7 +1670,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_unicode(self):
         _filter = get_filter(
-            u"message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+            "message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
         )
         assert _filter.conditions == [
             [
@@ -1678,7 +1678,7 @@ class GetSnubaQueryArgsTest(TestCase):
                     "match",
                     [
                         "message",
-                        u"'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                        "'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
                     ],
                 ],
                 "=",
@@ -1730,7 +1730,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_trailing_backslash(self):
         results = get_filter("title:*misgegaan\\")
-        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+        assert results.conditions == [[["match", ["title", "'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
@@ -2641,7 +2641,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "abs",
                 [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
-                u"absolute_correlation",
+                "absolute_correlation",
             ]
         ]
 
@@ -3147,13 +3147,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, "fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, "fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -3166,13 +3166,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery, "fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery, "fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
@@ -3180,13 +3180,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_args_have_default(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: optional argument at index 0 does not have default"
+            AssertionError, "test: optional argument at index 0 does not have default"
         ):
             Function("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3196,7 +3196,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3206,7 +3206,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",

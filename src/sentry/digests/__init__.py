@@ -28,4 +28,4 @@ OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 
 def get_option_key(plugin, option):
     assert option in OPTIONS
-    return u"digests:{}:{}".format(plugin, option)
+    return "digests:{}:{}".format(plugin, option)

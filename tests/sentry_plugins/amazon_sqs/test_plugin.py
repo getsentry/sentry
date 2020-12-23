@@ -125,7 +125,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(
                 {
-                    "s3Url": u"https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
+                    "s3Url": "https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
                     "eventID": event.event_id,
                 }
             ),

@@ -18,7 +18,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group.qualified_short_id),
         )
 
         groups = commit.find_referenced_groups()
@@ -30,7 +30,7 @@ class FindReferencedGroupsTest(TestCase):
             repository_id=repo.id,
             organization_id=group.organization.id,
             title="very cool PR to fix the thing",
-            message=u"Foo Biz\n\nFixes {}".format(group2.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group2.qualified_short_id),
         )
 
         groups = pr.find_referenced_groups()

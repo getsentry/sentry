@@ -347,7 +347,7 @@ class S3Boto3Storage(Storage):
                 use_ssl=self.use_ssl,
                 endpoint_url=self.endpoint_url,
                 config=self.config,
-                **kwargs
+                **kwargs,
             )
         return self._connection
 

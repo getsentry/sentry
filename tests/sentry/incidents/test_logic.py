@@ -1717,7 +1717,7 @@ class TriggerActionTest(TestCase):
 
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == "[Resolved] {} - {}".format(incident.title, self.project.slug)
 
     def test_manual_resolve(self):
         incident = self.create_incident(alert_rule=self.rule)
@@ -1737,7 +1737,7 @@ class TriggerActionTest(TestCase):
         assert len(mail.outbox) == 1
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == "[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
 class TestDeduplicateTriggerActions(unittest.TestCase):

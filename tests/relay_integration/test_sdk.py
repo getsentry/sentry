@@ -57,7 +57,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})
 
     assert_mock_called_once_with_partial(
-        save, settings.SENTRY_PROJECT, cache_key=u"e:{}:1".format(event_id)
+        save, settings.SENTRY_PROJECT, cache_key="e:{}:1".format(event_id)
     )
 
 

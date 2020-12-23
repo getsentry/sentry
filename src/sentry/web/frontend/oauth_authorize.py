@@ -24,7 +24,7 @@ class OAuthAuthorizeView(AuthLoginView):
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == "token":
             return self.redirect(
-                u"{}#{}".format(
+                "{}#{}".format(
                     redirect_uri,
                     urlencode([(k, v) for k, v in six.iteritems(params) if v is not None]),
                 )
@@ -71,7 +71,7 @@ class OAuthAuthorizeView(AuthLoginView):
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
     def respond_login(self, request, context, application, **kwargs):
-        context["banner"] = u"Connect Sentry to {}".format(application.name)
+        context["banner"] = "Connect Sentry to {}".format(application.name)
         return self.respond("sentry/login.html", context)
 
     def get(self, request, **kwargs):
@@ -201,7 +201,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
             if pending_scopes:
                 raise NotImplementedError(
-                    u"{} scopes did not have descriptions".format(pending_scopes)
+                    "{} scopes did not have descriptions".format(pending_scopes)
                 )
 
         context = {

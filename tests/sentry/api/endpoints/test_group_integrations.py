@@ -28,7 +28,7 @@ class GroupIntegrationsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        path = u"/api/0/issues/{}/integrations/".format(group.id)
+        path = "/api/0/issues/{}/integrations/".format(group.id)
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -83,7 +83,7 @@ class GroupIntegrationsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        path = u"/api/0/issues/{}/integrations/".format(group.id)
+        path = "/api/0/issues/{}/integrations/".format(group.id)
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.get(path)

@@ -233,10 +233,10 @@ class GroupAssignee(Model):
 
     def assigned_actor_id(self):
         if self.user:
-            return u"user:{}".format(self.user_id)
+            return "user:{}".format(self.user_id)
 
         if self.team:
-            return u"team:{}".format(self.team_id)
+            return "team:{}".format(self.team_id)
 
         raise NotImplementedError("Unknown Assignee")
 

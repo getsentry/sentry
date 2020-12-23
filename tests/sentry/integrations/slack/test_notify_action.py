@@ -290,7 +290,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert [u"Slack workspace is a required field."] in form.errors.values()
+        assert ["Slack workspace is a required field."] in form.errors.values()
 
     @responses.activate
     def test_display_name_conflict(self):

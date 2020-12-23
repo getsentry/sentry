@@ -34,7 +34,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
 
             key = "jobs.duration"
             if stat_suffix:
-                instance = u"{}.{}".format(name, stat_suffix(*args, **kwargs))
+                instance = "{}.{}".format(name, stat_suffix(*args, **kwargs))
             else:
                 instance = name
 

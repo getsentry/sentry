@@ -23,6 +23,6 @@ class SearchBackend(Service):
         cursor=None,
         count_hits=False,
         paginator_options=None,
-        **parameters
+        **parameters,
     ):
         raise NotImplementedError

@@ -127,7 +127,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
-        expect_status = u"*Issue ignored by <@{}>*".format(self.identity.external_id)
+        expect_status = "*Issue ignored by <@{}>*".format(self.identity.external_id)
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_ignore_issue_with_additional_user_auth(self):
@@ -145,7 +145,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
-        expect_status = u"*Issue ignored by <@{}>*".format(self.identity.external_id)
+        expect_status = "*Issue ignored by <@{}>*".format(self.identity.external_id)
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue(self):
@@ -155,7 +155,7 @@ class StatusActionTest(BaseEventTest):
         # Assign to user
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": u"user:{}".format(user2.id)}],
+            "selected_options": [{"value": "user:{}".format(user2.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -163,14 +163,14 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
-        expect_status = u"*Issue assigned to {assignee} by <@{assigner}>*".format(
+        expect_status = "*Issue assigned to {assignee} by <@{assigner}>*".format(
             assignee=user2.get_display_name(), assigner=self.identity.external_id
         )
 
         # Assign to team
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": u"team:{}".format(self.team.id)}],
+            "selected_options": [{"value": "team:{}".format(self.team.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -178,7 +178,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
 
-        expect_status = u"*Issue assigned to #{team} by <@{assigner}>*".format(
+        expect_status = "*Issue assigned to #{team} by <@{assigner}>*".format(
             team=self.team.slug, assigner=self.identity.external_id
         )
 
@@ -198,7 +198,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": u"user:{}".format(user2.id)}],
+            "selected_options": [{"value": "user:{}".format(user2.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -206,7 +206,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
-        expect_status = u"*Issue assigned to <@{assignee}> by <@{assigner}>*".format(
+        expect_status = "*Issue assigned to <@{assignee}> by <@{assigner}>*".format(
             assignee=user2_identity.external_id, assigner=self.identity.external_id
         )
 
@@ -245,7 +245,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": u"user:{}".format(self.user.id)}],
+            "selected_options": [{"value": "user:{}".format(self.user.id)}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -253,7 +253,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
-        expect_status = u"*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
+        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.identity.external_id
         )
 
@@ -309,7 +309,7 @@ class StatusActionTest(BaseEventTest):
 
         update_data = json.loads(responses.calls[1].request.body)
 
-        expect_status = u"*Issue resolved by <@{}>*".format(self.identity.external_id)
+        expect_status = "*Issue resolved by <@{}>*".format(self.identity.external_id)
         assert update_data["text"].endswith(expect_status)
 
     def test_permission_denied(self):

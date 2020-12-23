@@ -79,7 +79,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
                 messages.add_message(request, messages.SUCCESS, OK_PROVIDER_DISABLED)
 
-                next_uri = u"/settings/{}/auth/".format(organization.slug)
+                next_uri = "/settings/{}/auth/".format(organization.slug)
                 return self.redirect(next_uri)
             elif op == "reinvite":
                 email_missing_links.delay(organization.id, request.user.id, provider.key)
@@ -110,7 +110,7 @@ class OrganizationAuthSettingsView(OrganizationView):
                 changed_data = {}
                 for key, value in form.cleaned_data.items():
                     if form.initial.get(key) != value:
-                        changed_data[key] = u"to {}".format(value)
+                        changed_data[key] = "to {}".format(value)
 
                 self.create_audit_entry(
                     request,
@@ -180,7 +180,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         if request.method == "POST":
             provider_key = request.POST.get("provider")
             if not manager.exists(provider_key):
-                raise ValueError(u"Provider not found: {}".format(provider_key))
+                raise ValueError("Provider not found: {}".format(provider_key))
 
             helper = AuthHelper(
                 request=request,

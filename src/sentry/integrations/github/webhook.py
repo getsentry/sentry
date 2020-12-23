@@ -42,7 +42,7 @@ class Webhook(object):
     def __call__(self, event, host=None):
         external_id = event["installation"]["id"]
         if host:
-            external_id = u"{}:{}".format(host, event["installation"]["id"])
+            external_id = "{}:{}".format(host, event["installation"]["id"])
 
         try:
             integration = Integration.objects.get(external_id=external_id, provider=self.provider)
@@ -103,7 +103,7 @@ class InstallationEventWebhook(Webhook):
         if installation and event["action"] == "deleted":
             external_id = event["installation"]["id"]
             if host:
-                external_id = u"{}:{}".format(host, event["installation"]["id"])
+                external_id = "{}:{}".format(host, event["installation"]["id"])
             try:
                 integration = Integration.objects.get(
                     external_id=external_id, provider=self.provider
@@ -183,7 +183,7 @@ class PushEventWebhook(Webhook):
 
             author_email = commit["author"]["email"]
             if "@" not in author_email:
-                author_email = u"{}@localhost".format(author_email[:65])
+                author_email = "{}@localhost".format(author_email[:65])
             # try to figure out who anonymous emails are
             elif self.is_anonymous_email(author_email):
                 gh_username = commit["author"].get("username")
@@ -328,7 +328,7 @@ class PullRequestEventWebhook(Webhook):
         # https://developer.github.com/v3/pulls/#get-a-single-pull-request
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        author_email = u"{}@localhost".format(user["login"][:65])
+        author_email = "{}@localhost".format(user["login"][:65])
         try:
             commit_author = CommitAuthor.objects.get(
                 external_id=self.get_external_id(user["login"]), organization_id=organization.id

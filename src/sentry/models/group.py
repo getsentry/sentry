@@ -290,7 +290,7 @@ class Group(Model):
     )
     message = models.TextField()
     culprit = models.CharField(
-        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column=u"view"
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
     )
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
@@ -355,8 +355,8 @@ class Group(Model):
     def get_absolute_url(self, params=None, event_id=None):
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
-        event_path = u"events/{}/".format(event_id) if event_id else ""
-        url = u"organizations/{org}/issues/{id}/{event_path}{params}".format(
+        event_path = "events/{}/".format(event_id) if event_id else ""
+        url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
             org=urlquote(self.organization.slug),
             id=self.id,
             event_path=event_path,
@@ -504,7 +504,7 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return u"{} - {}".format(self.qualified_short_id, self.title)
+        return "{} - {}".format(self.qualified_short_id, self.title)
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(

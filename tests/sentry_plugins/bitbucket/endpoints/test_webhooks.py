@@ -108,8 +108,8 @@ class PushEventWebhookTest(APITestCase):
         commit = commit_list[0]
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
-        assert commit.message == u"README.md edited online with Bitbucket"
-        assert commit.author.name == u"Max Bittker"
+        assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
@@ -130,7 +130,7 @@ class PushEventWebhookTest(APITestCase):
             external_id="bitbucket:baxterthehacker",
             organization_id=project.organization_id,
             email="baxterthehacker@example.com",
-            name=u"bàxterthehacker",
+            name="bàxterthehacker",
         )
 
         response = self.client.post(
@@ -155,8 +155,8 @@ class PushEventWebhookTest(APITestCase):
         commit = commit_list[0]
 
         assert commit.key == "e0e377d186e4f0e937bdb487a23384fe002df649"
-        assert commit.message == u"README.md edited online with Bitbucket"
-        assert commit.author.name == u"Max Bittker"
+        assert commit.message == "README.md edited online with Bitbucket"
+        assert commit.author.name == "Max Bittker"
         assert commit.author.email == "max@getsentry.com"
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)

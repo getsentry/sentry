@@ -266,7 +266,7 @@ class OrganizationReleasesEndpoint(
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
             ),
-            **paginator_kwargs
+            **paginator_kwargs,
         )
 
     @transaction_start("OrganizationReleasesEndpoint.post")

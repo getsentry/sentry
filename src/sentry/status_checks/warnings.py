@@ -11,7 +11,7 @@ class WarningStatusCheck(StatusCheck):
         if self.__warning_set:
             return [
                 Problem(
-                    u"There {} {} {} with your system configuration.".format(
+                    "There {} {} {} with your system configuration.".format(
                         "are" if len(self.__warning_set) > 1 else "is",
                         len(self.__warning_set),
                         "issues" if len(self.__warning_set) > 1 else "issue",

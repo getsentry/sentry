@@ -14,7 +14,7 @@ class ProjectGroupStatsTest(APITestCase):
         group1 = self.create_group(project=project)
         group2 = self.create_group(project=project)
 
-        url = u"/api/0/projects/{}/{}/issues/stats/".format(project.organization.slug, project.slug)
+        url = "/api/0/projects/{}/{}/issues/stats/".format(project.organization.slug, project.slug)
         response = self.client.get("%s?id=%s&id=%s" % (url, group1.id, group2.id), format="json")
 
         tsdb.incr(tsdb.models.group, group1.id, count=3)

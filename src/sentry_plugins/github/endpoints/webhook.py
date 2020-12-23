@@ -131,7 +131,7 @@ class PushEventWebhook(Webhook):
 
             author_email = commit["author"]["email"]
             if "@" not in author_email:
-                author_email = u"{}@localhost".format(author_email[:65])
+                author_email = "{}@localhost".format(author_email[:65])
             # try to figure out who anonymous emails are
             elif is_anonymous_email(author_email):
                 gh_username = commit["author"].get("username")
@@ -294,7 +294,7 @@ class PullRequestEventWebhook(Webhook):
         # https://developer.github.com/v3/pulls/#get-a-single-pull-request
         merge_commit_sha = pull_request["merge_commit_sha"] if pull_request["merged"] else None
 
-        author_email = u"{}@localhost".format(user["login"][:65])
+        author_email = "{}@localhost".format(user["login"][:65])
         try:
             commit_author = CommitAuthor.objects.get(
                 external_id=get_external_id(user["login"]), organization_id=organization.id

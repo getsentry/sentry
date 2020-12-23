@@ -50,7 +50,7 @@ def hash_value(h, value):
 def hash_values(values, seed=None, algorithm=_md5):
     h = _md5()
     if seed is not None:
-        h.update((u"%s\xff" % seed).encode("utf-8"))
+        h.update(("%s\xff" % seed).encode("utf-8"))
     for value in values:
         hash_value(h, value)
     return h.hexdigest()

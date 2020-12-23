@@ -176,7 +176,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
             handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[{}] {} - {}".format(
+        assert out.subject == "[{}] {} - {}".format(
             INCIDENT_STATUS[IncidentStatus(incident.status)], incident.title, self.project.slug
         )
 

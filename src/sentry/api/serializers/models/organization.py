@@ -47,11 +47,11 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
-        (u"name", u"name"),
-        (u"description", u"description"),
-        (u"public_key", u"publicKey"),
-        (u"created", u"created"),
-        (u"last_modified", u"lastModified"),
+        ("name", "name"),
+        ("description", "description"),
+        ("public_key", "publicKey"),
+        ("created", "created"),
+        ("last_modified", "lastModified"),
     )
 
     def to_representation(self, instance):
@@ -64,9 +64,9 @@ class TrustedRelaySerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         try:
-            key_name = data.get(u"name")
-            public_key = data.get(u"publicKey") or ""
-            description = data.get(u"description")
+            key_name = data.get("name")
+            public_key = data.get("publicKey") or ""
+            description = data.get("description")
         except AttributeError:
             raise serializers.ValidationError("Bad structure received for Trusted Relays")
 
@@ -94,7 +94,7 @@ class TrustedRelaySerializer(serializers.Serializer):
                 )
             )
 
-        return {u"public_key": public_key, u"name": key_name, u"description": description}
+        return {"public_key": public_key, "name": key_name, "description": description}
 
 
 @register(Organization)
@@ -285,7 +285,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or u"")
+                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or "")
                 or None,
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)

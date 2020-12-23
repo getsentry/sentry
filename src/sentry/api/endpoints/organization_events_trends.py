@@ -100,7 +100,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
             raise ParseError(
-                detail=u"{} is not a supported trend function".format(baseline_function)
+                detail="{} is not a supported trend function".format(baseline_function)
             )
 
         count_column = self.trend_columns["count_range"]
@@ -179,7 +179,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
-            raise ParseError(detail=u"{} is not a supported trend type".format(trend_type))
+            raise ParseError(detail="{} is not a supported trend type".format(trend_type))
 
         params["aliases"] = self.get_function_aliases(trend_type)
 

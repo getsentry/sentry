@@ -128,7 +128,7 @@ class SlackNotifyServiceForm(forms.Form):
 
 class SlackNotifyServiceAction(IntegrationEventAction):
     form_cls = SlackNotifyServiceForm
-    label = u"Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -156,7 +156,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event, futures):
             with sentry_sdk.start_transaction(
-                op=u"slack.send_notification", name=u"SlackSendNotification", sampled=1.0
+                op="slack.send_notification", name="SlackSendNotification", sampled=1.0
             ) as span:
                 rules = [f.rule for f in futures]
                 attachments = [
@@ -191,7 +191,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         },
                     )
 
-        key = u"slack:{}:{}".format(integration.id, channel)
+        key = "slack:{}:{}".format(integration.id, channel)
 
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)
@@ -202,7 +202,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         return self.label.format(
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
-            tags=u"[{}]".format(", ".join(tags)),
+            tags="[{}]".format(", ".join(tags)),
         )
 
     def get_tags_list(self):

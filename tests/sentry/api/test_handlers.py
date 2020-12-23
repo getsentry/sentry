@@ -35,4 +35,4 @@ class TestRateLimited(APITestCase):
         # an integer.
         assert resp.data[
             "detail"
-        ] == u"Request was throttled. Expected available in {} second.".format(math.ceil(1))
+        ] == "Request was throttled. Expected available in {} second.".format(math.ceil(1))

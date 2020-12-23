@@ -25,7 +25,7 @@ class DateTimeParamType(click.ParamType):
         try:
             result = parse(value)
         except Exception:
-            self.fail(u"{!r} is not a valid datetime".format(value), option, context)
+            self.fail("{!r} is not a valid datetime".format(value), option, context)
 
         if result.tzinfo is None:
             # TODO: We should probably warn about this? Also note that this
@@ -88,9 +88,9 @@ def organizations(metrics, since, until):
         since = until - timedelta(minutes=60)
 
     if until < since:
-        raise click.ClickException(u"invalid time range provided: {} to {}".format(since, until))
+        raise click.ClickException("invalid time range provided: {} to {}".format(since, until))
 
-    stderr.write(u"Dumping {} from {} to {}...\n".format(", ".join(metrics.keys()), since, until))
+    stderr.write("Dumping {} from {} to {}...\n".format(", ".join(metrics.keys()), since, until))
 
     objects = Organization.objects.all()
 
@@ -107,7 +107,7 @@ def organizations(metrics, since, until):
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(
-                u"{} {} {}\n".format(
+                "{} {} {}\n".format(
                     instance.id, instance.slug, " ".join(map(six.text_type, values))
                 )
             )

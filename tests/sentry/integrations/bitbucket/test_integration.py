@@ -43,7 +43,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
         installation = self.integration.get_installation(self.organization)
         result = installation.get_repositories()
-        assert result == [{"identifier": u"sentryuser/stuf", "name": u"sentryuser/stuf"}]
+        assert result == [{"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"}]
 
     @responses.activate
     def test_get_repositories_exact_match(self):

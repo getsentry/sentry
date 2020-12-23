@@ -12,7 +12,7 @@ class ProjectGroupHashesDocs(APIDocsTestCase):
         self.create_event("a")
         event = self.create_event("b")
 
-        self.url = u"/api/0/issues/{}/hashes/".format(event.group_id)
+        self.url = "/api/0/issues/{}/hashes/".format(event.group_id)
 
         self.login_as(user=self.user)
 

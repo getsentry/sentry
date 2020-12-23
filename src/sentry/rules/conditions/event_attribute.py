@@ -77,7 +77,7 @@ class EventAttributeCondition(EventCondition):
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
     form_cls = EventAttributeForm
-    label = u"The event's {attribute} value {match} {value}"
+    label = "The event's {attribute} value {match} {value}"
 
     form_fields = {
         "attribute": {

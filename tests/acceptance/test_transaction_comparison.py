@@ -35,7 +35,7 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
         baseline_event = self.store_event(
             data=baseline_event_data, project_id=self.project.id, assert_no_errors=True
         )
-        baseline_event_slug = u"{}:{}".format(self.project.slug, baseline_event.event_id)
+        baseline_event_slug = "{}:{}".format(self.project.slug, baseline_event.event_id)
 
         regression_event_data = generate_transaction(trace="b" * 32, span="bc" * 8)
         regression_event_data.update({"event_id": "b" * 32})
@@ -45,9 +45,9 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
         regression_event = self.store_event(
             data=regression_event_data, project_id=self.project.id, assert_no_errors=True
         )
-        regression_event_slug = u"{}:{}".format(self.project.slug, regression_event.event_id)
+        regression_event_slug = "{}:{}".format(self.project.slug, regression_event.event_id)
 
-        comparison_page_path = u"/organizations/{}/performance/compare/{}/{}/".format(
+        comparison_page_path = "/organizations/{}/performance/compare/{}/{}/".format(
             self.org.slug, baseline_event_slug, regression_event_slug
         )
 

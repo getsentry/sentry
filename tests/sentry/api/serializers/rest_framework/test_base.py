@@ -22,14 +22,14 @@ class CamelSnakeSerializerTest(TestCase):
     def test_simple(self):
         serializer = PersonSerializer(data={"name": "Rick", "worksAt": "Sentry"})
         assert serializer.is_valid()
-        assert serializer.data == {"name": u"Rick", "works_at": u"Sentry"}
+        assert serializer.data == {"name": "Rick", "works_at": "Sentry"}
 
     def test_error(self):
         serializer = PersonSerializer(data={"worksAt": None})
         assert not serializer.is_valid()
         assert serializer.errors == {
-            "worksAt": [u"This field may not be null."],
-            "name": [u"This field is required."],
+            "worksAt": ["This field may not be null."],
+            "name": ["This field is required."],
         }
 
 
@@ -43,14 +43,14 @@ class CamelSnakeModelSerializerTest(TestCase):
     def test_simple(self):
         serializer = ContentTypeSerializer(data={"appLabel": "hello", "model": "Something"})
         assert serializer.is_valid()
-        assert serializer.data == {"model": u"Something", "app_label": u"hello"}
+        assert serializer.data == {"model": "Something", "app_label": "hello"}
 
     def test_error(self):
         serializer = ContentTypeSerializer(data={"appLabel": None})
         assert not serializer.is_valid()
         assert serializer.errors == {
-            "appLabel": [u"This field may not be null."],
-            "model": [u"This field is required."],
+            "appLabel": ["This field may not be null."],
+            "model": ["This field is required."],
         }
 
 

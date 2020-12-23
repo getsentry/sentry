@@ -18,7 +18,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
 
-        path = u"/api/0/organizations/{}/teams/".format(org.slug)
+        path = "/api/0/organizations/{}/teams/".format(org.slug)
 
         self.login_as(user=user)
 
@@ -40,7 +40,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
 
-        path = u"/api/0/organizations/{}/teams/?is_not_member=1".format(org.slug)
+        path = "/api/0/organizations/{}/teams/?is_not_member=1".format(org.slug)
 
         self.login_as(user=user)
 
@@ -61,7 +61,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
 
-        path = u"/api/0/organizations/{}/teams/?detailed=0".format(org.slug)
+        path = "/api/0/organizations/{}/teams/?detailed=0".format(org.slug)
 
         self.login_as(user=user)
 
@@ -81,14 +81,14 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        path = u"/api/0/organizations/{}/teams/?query=bar".format(org.slug)
+        path = "/api/0/organizations/{}/teams/?query=bar".format(org.slug)
         response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(team.id)
 
-        path = u"/api/0/organizations/{}/teams/?query=baz".format(org.slug)
+        path = "/api/0/organizations/{}/teams/?query=baz".format(org.slug)
         response = self.client.get(path)
 
         assert response.status_code == 200, response.content

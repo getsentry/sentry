@@ -36,7 +36,7 @@ class Rule(Model):
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
         default=RuleStatus.ACTIVE,
-        choices=((RuleStatus.ACTIVE, u"Active"), (RuleStatus.INACTIVE, u"Inactive")),
+        choices=((RuleStatus.ACTIVE, "Active"), (RuleStatus.INACTIVE, "Inactive")),
         db_index=True,
     )
 
@@ -52,7 +52,7 @@ class Rule(Model):
 
     @classmethod
     def get_for_project(cls, project_id):
-        cache_key = u"project:{}:rules".format(project_id)
+        cache_key = "project:{}:rules".format(project_id)
         rules_list = cache.get(cache_key)
         if rules_list is None:
             rules_list = list(cls.objects.filter(project=project_id, status=RuleStatus.ACTIVE))
@@ -73,13 +73,13 @@ class Rule(Model):
 
     def delete(self, *args, **kwargs):
         rv = super(Rule, self).delete(*args, **kwargs)
-        cache_key = u"project:{}:rules".format(self.project_id)
+        cache_key = "project:{}:rules".format(self.project_id)
         cache.delete(cache_key)
         return rv
 
     def save(self, *args, **kwargs):
         rv = super(Rule, self).save(*args, **kwargs)
-        cache_key = u"project:{}:rules".format(self.project_id)
+        cache_key = "project:{}:rules".format(self.project_id)
         cache.delete(cache_key)
         return rv
 

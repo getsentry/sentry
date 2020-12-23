@@ -94,13 +94,13 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u"https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
+            "https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
             json={"value": [self.project_a, self.project_b], "count": 2},
         )
 
         responses.add(
             responses.POST,
-            u"https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
+            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
                 self.vsts_account_name.lower()
             ),
             json=CREATE_SUBSCRIPTION,
@@ -108,7 +108,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u"https://{}.visualstudio.com/_apis/git/repositories".format(
+            "https://{}.visualstudio.com/_apis/git/repositories".format(
                 self.vsts_account_name.lower()
             ),
             json={
@@ -124,7 +124,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u"https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA".format(
+            "https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA".format(
                 self.vsts_account_name.lower()
             ),
             json={
@@ -138,7 +138,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            u"https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states".format(
+            "https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states".format(
                 self.vsts_account_name.lower(), self.project_a["name"], "Bug"
             ),
             json={
@@ -158,7 +158,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
     def make_oauth_redirect_request(self, state):
         return self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"code": "oauth-code", "state": state}))
+            "{}?{}".format(self.setup_path, urlencode({"code": "oauth-code", "state": state}))
         )
 
     def assert_vsts_oauth_redirect(self, redirect):
@@ -169,7 +169,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
-        assert u'<option value="{}"'.format(account_id).encode("utf-8") in response.content
+        assert '<option value="{}"'.format(account_id).encode("utf-8") in response.content
 
     def assert_installation(self):
         # Initial request to the installation URL for VSTS
@@ -457,343 +457,343 @@ CREATE_SUBSCRIPTION = {
 }
 
 WORK_ITEM_UPDATED = {
-    u"resourceContainers": {
-        u"project": {
-            u"id": u"c0bf429a-c03c-4a99-9336-d45be74db5a6",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+    "resourceContainers": {
+        "project": {
+            "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
-        u"account": {
-            u"id": u"90e9a854-eb98-4c56-ae1a-035a0f331dd6",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+        "account": {
+            "id": "90e9a854-eb98-4c56-ae1a-035a0f331dd6",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
-        u"collection": {
-            u"id": u"80ded3e8-3cd3-43b1-9f96-52032624aa3a",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+        "collection": {
+            "id": "80ded3e8-3cd3-43b1-9f96-52032624aa3a",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
     },
-    u"resource": {
-        u"revisedBy": {
-            u"displayName": u"lauryn",
-            u"name": u"lauryn <lauryn@sentry.io>",
-            u"url": u"https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e",
-            u"imageUrl": u"https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e",
-            u"descriptor": u"msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl",
-            u"_links": {
-                u"avatar": {
-                    u"href": u"https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl"
+    "resource": {
+        "revisedBy": {
+            "displayName": "lauryn",
+            "name": "lauryn <lauryn@sentry.io>",
+            "url": "https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e",
+            "imageUrl": "https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e",
+            "descriptor": "msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl",
+            "_links": {
+                "avatar": {
+                    "href": "https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl"
                 }
             },
-            u"uniqueName": u"lauryn@sentry.io",
-            u"id": u"21354f98-ab06-67d9-b974-5a54d992082e",
+            "uniqueName": "lauryn@sentry.io",
+            "id": "21354f98-ab06-67d9-b974-5a54d992082e",
         },
-        u"revisedDate": u"9999-01-01T00:00:00Z",
-        u"url": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates/2",
-        u"fields": {
-            u"System.AuthorizedDate": {
-                u"newValue": u"2018-07-05T20:52:14.777Z",
-                u"oldValue": u"2018-07-05T20:51:58.927Z",
+        "revisedDate": "9999-01-01T00:00:00Z",
+        "url": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates/2",
+        "fields": {
+            "System.AuthorizedDate": {
+                "newValue": "2018-07-05T20:52:14.777Z",
+                "oldValue": "2018-07-05T20:51:58.927Z",
             },
-            u"System.AssignedTo": {
-                u"newValue": u"lauryn <lauryn@sentry.io>",
-                u"oldValue": u"lauryn2 <lauryn2@sentry.io>",
+            "System.AssignedTo": {
+                "newValue": "lauryn <lauryn@sentry.io>",
+                "oldValue": "lauryn2 <lauryn2@sentry.io>",
             },
-            u"System.Watermark": {u"newValue": 78, u"oldValue": 77},
-            u"System.Rev": {u"newValue": 2, u"oldValue": 1},
-            u"System.RevisedDate": {
-                u"newValue": u"9999-01-01T00:00:00Z",
-                u"oldValue": u"2018-07-05T20:52:14.777Z",
+            "System.Watermark": {"newValue": 78, "oldValue": 77},
+            "System.Rev": {"newValue": 2, "oldValue": 1},
+            "System.RevisedDate": {
+                "newValue": "9999-01-01T00:00:00Z",
+                "oldValue": "2018-07-05T20:52:14.777Z",
             },
-            u"System.ChangedDate": {
-                u"newValue": u"2018-07-05T20:52:14.777Z",
-                u"oldValue": u"2018-07-05T20:51:58.927Z",
-            },
-        },
-        u"workItemId": 31,
-        u"rev": 2,
-        u"_links": {
-            u"self": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates/2"
-            },
-            u"workItemUpdates": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates"
-            },
-            u"html": {
-                u"href": u"https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=31"
-            },
-            u"parent": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31"
+            "System.ChangedDate": {
+                "newValue": "2018-07-05T20:52:14.777Z",
+                "oldValue": "2018-07-05T20:51:58.927Z",
             },
         },
-        u"id": 2,
-        u"revision": {
-            u"url": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions/2",
-            u"fields": {
-                u"System.AreaPath": u"MyFirstProject",
-                u"System.WorkItemType": u"Bug",
-                u"System.Reason": u"New",
-                u"System.Title": u"NameError: global name 'BitbucketRepositoryProvider' is not defined",
-                u"Microsoft.VSTS.Common.Priority": 2,
-                u"System.CreatedBy": u"lauryn <lauryn@sentry.io>",
-                u"System.AssignedTo": u"lauryn <lauryn@sentry.io>",
-                u"System.CreatedDate": u"2018-07-05T20:51:58.927Z",
-                u"System.TeamProject": u"MyFirstProject",
-                u"Microsoft.VSTS.Common.Severity": u"3 - Medium",
-                u"Microsoft.VSTS.Common.ValueArea": u"Business",
-                u"System.State": u"New",
-                u"System.Description": u"<p><a href=\"https://lauryn.ngrok.io/sentry/internal/issues/55/\">https://lauryn.ngrok.io/sentry/internal/issues/55/</a></p>\n<pre><code>NameError: global name 'BitbucketRepositoryProvider' is not defined\n(1 additional frame(s) were not displayed)\n...\n  File &quot;sentry/runner/__init__.py&quot;, line 125, in configure\n    configure(ctx, py, yaml, skip_service_validation)\n  File &quot;sentry/runner/settings.py&quot;, line 152, in configure\n    skip_service_validation=skip_service_validation\n  File &quot;sentry/runner/initializer.py&quot;, line 315, in initialize_app\n    register_plugins(settings)\n  File &quot;sentry/runner/initializer.py&quot;, line 60, in register_plugins\n    integration.setup()\n  File &quot;sentry/integrations/bitbucket/integration.py&quot;, line 78, in setup\n    BitbucketRepositoryProvider,\n\nNameError: global name 'BitbucketRepositoryProvider' is not defined\n</code></pre>\n",
-                u"System.ChangedBy": u"lauryn <lauryn@sentry.io>",
-                u"System.ChangedDate": u"2018-07-05T20:52:14.777Z",
-                u"Microsoft.VSTS.Common.StateChangeDate": u"2018-07-05T20:51:58.927Z",
-                u"System.IterationPath": u"MyFirstProject",
+        "workItemId": 31,
+        "rev": 2,
+        "_links": {
+            "self": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates/2"
             },
-            u"rev": 2,
-            u"id": 31,
-            u"_links": {
-                u"self": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions/2"
+            "workItemUpdates": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/updates"
+            },
+            "html": {
+                "href": "https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=31"
+            },
+            "parent": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31"
+            },
+        },
+        "id": 2,
+        "revision": {
+            "url": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions/2",
+            "fields": {
+                "System.AreaPath": "MyFirstProject",
+                "System.WorkItemType": "Bug",
+                "System.Reason": "New",
+                "System.Title": "NameError: global name 'BitbucketRepositoryProvider' is not defined",
+                "Microsoft.VSTS.Common.Priority": 2,
+                "System.CreatedBy": "lauryn <lauryn@sentry.io>",
+                "System.AssignedTo": "lauryn <lauryn@sentry.io>",
+                "System.CreatedDate": "2018-07-05T20:51:58.927Z",
+                "System.TeamProject": "MyFirstProject",
+                "Microsoft.VSTS.Common.Severity": "3 - Medium",
+                "Microsoft.VSTS.Common.ValueArea": "Business",
+                "System.State": "New",
+                "System.Description": "<p><a href=\"https://lauryn.ngrok.io/sentry/internal/issues/55/\">https://lauryn.ngrok.io/sentry/internal/issues/55/</a></p>\n<pre><code>NameError: global name 'BitbucketRepositoryProvider' is not defined\n(1 additional frame(s) were not displayed)\n...\n  File &quot;sentry/runner/__init__.py&quot;, line 125, in configure\n    configure(ctx, py, yaml, skip_service_validation)\n  File &quot;sentry/runner/settings.py&quot;, line 152, in configure\n    skip_service_validation=skip_service_validation\n  File &quot;sentry/runner/initializer.py&quot;, line 315, in initialize_app\n    register_plugins(settings)\n  File &quot;sentry/runner/initializer.py&quot;, line 60, in register_plugins\n    integration.setup()\n  File &quot;sentry/integrations/bitbucket/integration.py&quot;, line 78, in setup\n    BitbucketRepositoryProvider,\n\nNameError: global name 'BitbucketRepositoryProvider' is not defined\n</code></pre>\n",
+                "System.ChangedBy": "lauryn <lauryn@sentry.io>",
+                "System.ChangedDate": "2018-07-05T20:52:14.777Z",
+                "Microsoft.VSTS.Common.StateChangeDate": "2018-07-05T20:51:58.927Z",
+                "System.IterationPath": "MyFirstProject",
+            },
+            "rev": 2,
+            "id": 31,
+            "_links": {
+                "self": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions/2"
                 },
-                u"workItemRevisions": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions"
+                "workItemRevisions": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31/revisions"
                 },
-                u"parent": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31"
+                "parent": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/31"
                 },
             },
         },
     },
-    u"eventType": u"workitem.updated",
-    u"detailedMessage": None,
-    u"createdDate": u"2018-07-05T20:52:16.3051288Z",
-    u"id": u"18f51331-2640-4bce-9ebd-c59c855956a2",
-    u"resourceVersion": u"1.0",
-    u"notificationId": 1,
-    u"subscriptionId": u"7bf628eb-b3a7-4fb2-ab4d-8b60f2e8cb9b",
-    u"publisherId": u"tfs",
-    u"message": None,
+    "eventType": "workitem.updated",
+    "detailedMessage": None,
+    "createdDate": "2018-07-05T20:52:16.3051288Z",
+    "id": "18f51331-2640-4bce-9ebd-c59c855956a2",
+    "resourceVersion": "1.0",
+    "notificationId": 1,
+    "subscriptionId": "7bf628eb-b3a7-4fb2-ab4d-8b60f2e8cb9b",
+    "publisherId": "tfs",
+    "message": None,
 }
 
 
 WORK_ITEM_UNASSIGNED = {
-    u"resourceContainers": {
-        u"project": {
-            u"id": u"c0bf429a-c03c-4a99-9336-d45be74db5a6",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+    "resourceContainers": {
+        "project": {
+            "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
-        u"account": {
-            u"id": u"90e9a854-eb98-4c56-ae1a-035a0f331dd6",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+        "account": {
+            "id": "90e9a854-eb98-4c56-ae1a-035a0f331dd6",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
-        u"collection": {
-            u"id": u"80ded3e8-3cd3-43b1-9f96-52032624aa3a",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+        "collection": {
+            "id": "80ded3e8-3cd3-43b1-9f96-52032624aa3a",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
     },
-    u"resource": {
-        u"revisedBy": {
-            u"displayName": u"lauryn",
-            u"name": u"lauryn <lauryn@sentry.io>",
-            u"url": u"https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e",
-            u"imageUrl": u"https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e",
-            u"descriptor": u"msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl",
-            u"_links": {
-                u"avatar": {
-                    u"href": u"https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl"
+    "resource": {
+        "revisedBy": {
+            "displayName": "lauryn",
+            "name": "lauryn <lauryn@sentry.io>",
+            "url": "https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e",
+            "imageUrl": "https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e",
+            "descriptor": "msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl",
+            "_links": {
+                "avatar": {
+                    "href": "https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl"
                 }
             },
-            u"uniqueName": u"lauryn@sentry.io",
-            u"id": u"21354f98-ab06-67d9-b974-5a54d992082e",
+            "uniqueName": "lauryn@sentry.io",
+            "id": "21354f98-ab06-67d9-b974-5a54d992082e",
         },
-        u"revisedDate": u"9999-01-01T00:00:00      Z",
-        u"url": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3",
-        u"fields": {
-            u"System.AuthorizedDate": {
-                u"newValue": u"2018-07-05T23:23:09.493            Z",
-                u"oldValue": u"2018-07-05T23:21:38.243            Z",
+        "revisedDate": "9999-01-01T00:00:00      Z",
+        "url": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3",
+        "fields": {
+            "System.AuthorizedDate": {
+                "newValue": "2018-07-05T23:23:09.493            Z",
+                "oldValue": "2018-07-05T23:21:38.243            Z",
             },
-            u"System.AssignedTo": {u"oldValue": u"lauryn <lauryn@sentry.io>"},
-            u"System.Watermark": {u"newValue": 83, u"oldValue": 82},
-            u"System.Rev": {u"newValue": 3, u"oldValue": 2},
-            u"System.RevisedDate": {
-                u"newValue": u"9999-01-01T00:00:00            Z",
-                u"oldValue": u"2018-07-05T23:23:09.493            Z",
+            "System.AssignedTo": {"oldValue": "lauryn <lauryn@sentry.io>"},
+            "System.Watermark": {"newValue": 83, "oldValue": 82},
+            "System.Rev": {"newValue": 3, "oldValue": 2},
+            "System.RevisedDate": {
+                "newValue": "9999-01-01T00:00:00            Z",
+                "oldValue": "2018-07-05T23:23:09.493            Z",
             },
-            u"System.ChangedDate": {
-                u"newValue": u"2018-07-05T23:23:09.493            Z",
-                u"oldValue": u"2018-07-05T23:21:38.243            Z",
-            },
-        },
-        u"workItemId": 33,
-        u"rev": 3,
-        u"_links": {
-            u"self": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3"
-            },
-            u"workItemUpdates": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates"
-            },
-            u"html": {
-                u"href": u"https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=33"
-            },
-            u"parent": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
+            "System.ChangedDate": {
+                "newValue": "2018-07-05T23:23:09.493            Z",
+                "oldValue": "2018-07-05T23:21:38.243            Z",
             },
         },
-        u"id": 3,
-        u"revision": {
-            u"url": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3",
-            u"fields": {
-                u"System.AreaPath": u"MyFirstProject",
-                u"System.WorkItemType": u"Bug",
-                u"System.Reason": u"New",
-                u"System.Title": u"NotImplementedError:Visual Studio Team Services requires an organization_id",
-                u"Microsoft.VSTS.Common.Priority": 2,
-                u"System.CreatedBy": u"lauryn <lauryn@sentry.io>",
-                u"Microsoft.VSTS.Common.StateChangeDate": u"2018-07-05T23:21:25.847            Z",
-                u"System.CreatedDate": u"2018-07-05T23:21:25.847            Z",
-                u"System.TeamProject": u"MyFirstProject",
-                u"Microsoft.VSTS.Common.ValueArea": u"Business",
-                u"System.State": u"New",
-                u"System.Description": u'<p><a href="https:            //lauryn.ngrok.io/sentry/internal/issues/196/">https:            //lauryn.ngrok.io/sentry/internal/issues/196/</a></p>\n<pre><code>NotImplementedError:Visual Studio Team Services requires an organization_id\n(57 additional frame(s) were not displayed)\n...\n  File &quot;sentry/tasks/base.py&quot;',
-                u"System.ChangedBy": u"lauryn <lauryn@sentry.io>",
-                u"System.ChangedDate": u"2018-07-05T23:23:09.493            Z",
-                u"Microsoft.VSTS.Common.Severity": u"3 - Medium",
-                u"System.IterationPath": u"MyFirstProject",
+        "workItemId": 33,
+        "rev": 3,
+        "_links": {
+            "self": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3"
             },
-            u"rev": 3,
-            u"id": 33,
-            u"_links": {
-                u"self": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3"
+            "workItemUpdates": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates"
+            },
+            "html": {
+                "href": "https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=33"
+            },
+            "parent": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
+            },
+        },
+        "id": 3,
+        "revision": {
+            "url": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3",
+            "fields": {
+                "System.AreaPath": "MyFirstProject",
+                "System.WorkItemType": "Bug",
+                "System.Reason": "New",
+                "System.Title": "NotImplementedError:Visual Studio Team Services requires an organization_id",
+                "Microsoft.VSTS.Common.Priority": 2,
+                "System.CreatedBy": "lauryn <lauryn@sentry.io>",
+                "Microsoft.VSTS.Common.StateChangeDate": "2018-07-05T23:21:25.847            Z",
+                "System.CreatedDate": "2018-07-05T23:21:25.847            Z",
+                "System.TeamProject": "MyFirstProject",
+                "Microsoft.VSTS.Common.ValueArea": "Business",
+                "System.State": "New",
+                "System.Description": '<p><a href="https:            //lauryn.ngrok.io/sentry/internal/issues/196/">https:            //lauryn.ngrok.io/sentry/internal/issues/196/</a></p>\n<pre><code>NotImplementedError:Visual Studio Team Services requires an organization_id\n(57 additional frame(s) were not displayed)\n...\n  File &quot;sentry/tasks/base.py&quot;',
+                "System.ChangedBy": "lauryn <lauryn@sentry.io>",
+                "System.ChangedDate": "2018-07-05T23:23:09.493            Z",
+                "Microsoft.VSTS.Common.Severity": "3 - Medium",
+                "System.IterationPath": "MyFirstProject",
+            },
+            "rev": 3,
+            "id": 33,
+            "_links": {
+                "self": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3"
                 },
-                u"workItemRevisions": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions"
+                "workItemRevisions": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions"
                 },
-                u"parent": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
+                "parent": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
                 },
             },
         },
     },
-    u"eventType": u"workitem.updated",
-    u"detailedMessage": None,
-    u"createdDate": u"2018-07-05T23:23:11.1935112   Z",
-    u"id": u"cc349c85-6595-4939-9b69-f89480be6a26",
-    u"resourceVersion": u"1.0",
-    u"notificationId": 2,
-    u"subscriptionId": u"7405a600-6a25-48e6-81b6-1dde044783ad",
-    u"publisherId": u"tfs",
-    u"message": None,
+    "eventType": "workitem.updated",
+    "detailedMessage": None,
+    "createdDate": "2018-07-05T23:23:11.1935112   Z",
+    "id": "cc349c85-6595-4939-9b69-f89480be6a26",
+    "resourceVersion": "1.0",
+    "notificationId": 2,
+    "subscriptionId": "7405a600-6a25-48e6-81b6-1dde044783ad",
+    "publisherId": "tfs",
+    "message": None,
 }
 WORK_ITEM_UPDATED_STATUS = {
-    u"resourceContainers": {
-        u"project": {
-            u"id": u"c0bf429a-c03c-4a99-9336-d45be74db5a6",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+    "resourceContainers": {
+        "project": {
+            "id": "c0bf429a-c03c-4a99-9336-d45be74db5a6",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
-        u"account": {
-            u"id": u"90e9a854-eb98-4c56-ae1a-035a0f331dd6",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+        "account": {
+            "id": "90e9a854-eb98-4c56-ae1a-035a0f331dd6",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
-        u"collection": {
-            u"id": u"80ded3e8-3cd3-43b1-9f96-52032624aa3a",
-            u"baseUrl": u"https://laurynsentry.visualstudio.com/",
+        "collection": {
+            "id": "80ded3e8-3cd3-43b1-9f96-52032624aa3a",
+            "baseUrl": "https://laurynsentry.visualstudio.com/",
         },
     },
-    u"resource": {
-        u"revisedBy": {
-            u"displayName": u"lauryn",
-            u"name": u"lauryn <lauryn@sentry.io>",
-            u"url": u"https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e",
-            u"imageUrl": u"https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e",
-            u"descriptor": u"msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl",
-            u"_links": {
-                u"avatar": {
-                    u"href": u"https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl"
+    "resource": {
+        "revisedBy": {
+            "displayName": "lauryn",
+            "name": "lauryn <lauryn@sentry.io>",
+            "url": "https://app.vssps.visualstudio.com/A90e9a854-eb98-4c56-ae1a-035a0f331dd6/_apis/Identities/21354f98-ab06-67d9-b974-5a54d992082e",
+            "imageUrl": "https://laurynsentry.visualstudio.com/_api/_common/identityImage?id=21354f98-ab06-67d9-b974-5a54d992082e",
+            "descriptor": "msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl",
+            "_links": {
+                "avatar": {
+                    "href": "https://laurynsentry.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.MjEzNTRmOTgtYWIwNi03N2Q5LWI5NzQtNWE1NGQ5OTIwODJl"
                 }
             },
-            u"uniqueName": u"lauryn@sentry.io",
-            u"id": u"21354f98-ab06-67d9-b974-5a54d992082e",
+            "uniqueName": "lauryn@sentry.io",
+            "id": "21354f98-ab06-67d9-b974-5a54d992082e",
         },
-        u"revisedDate": u"9999-01-01T00:00:00      Z",
-        u"url": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3",
-        u"fields": {
-            u"System.AuthorizedDate": {
-                u"newValue": u"2018-07-05T23:23:09.493            Z",
-                u"oldValue": u"2018-07-05T23:21:38.243            Z",
+        "revisedDate": "9999-01-01T00:00:00      Z",
+        "url": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3",
+        "fields": {
+            "System.AuthorizedDate": {
+                "newValue": "2018-07-05T23:23:09.493            Z",
+                "oldValue": "2018-07-05T23:21:38.243            Z",
             },
-            u"System.State": {u"oldValue": u"New", u"newValue": u"Resolved"},
-            u"System.Watermark": {u"newValue": 83, u"oldValue": 82},
-            u"System.Rev": {u"newValue": 3, u"oldValue": 2},
-            u"System.RevisedDate": {
-                u"newValue": u"9999-01-01T00:00:00            Z",
-                u"oldValue": u"2018-07-05T23:23:09.493            Z",
+            "System.State": {"oldValue": "New", "newValue": "Resolved"},
+            "System.Watermark": {"newValue": 83, "oldValue": 82},
+            "System.Rev": {"newValue": 3, "oldValue": 2},
+            "System.RevisedDate": {
+                "newValue": "9999-01-01T00:00:00            Z",
+                "oldValue": "2018-07-05T23:23:09.493            Z",
             },
-            u"System.ChangedDate": {
-                u"newValue": u"2018-07-05T23:23:09.493            Z",
-                u"oldValue": u"2018-07-05T23:21:38.243            Z",
-            },
-        },
-        u"workItemId": 33,
-        u"rev": 3,
-        u"_links": {
-            u"self": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3"
-            },
-            u"workItemUpdates": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates"
-            },
-            u"html": {
-                u"href": u"https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=33"
-            },
-            u"parent": {
-                u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
+            "System.ChangedDate": {
+                "newValue": "2018-07-05T23:23:09.493            Z",
+                "oldValue": "2018-07-05T23:21:38.243            Z",
             },
         },
-        u"id": 3,
-        u"revision": {
-            u"url": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3",
-            u"fields": {
-                u"System.AreaPath": u"MyFirstProject",
-                u"System.WorkItemType": u"Bug",
-                u"System.Reason": u"New",
-                u"System.Title": u"NotImplementedError:Visual Studio Team Services requires an organization_id",
-                u"Microsoft.VSTS.Common.Priority": 2,
-                u"System.CreatedBy": u"lauryn <lauryn@sentry.io>",
-                u"Microsoft.VSTS.Common.StateChangeDate": u"2018-07-05T23:21:25.847            Z",
-                u"System.CreatedDate": u"2018-07-05T23:21:25.847            Z",
-                u"System.TeamProject": u"MyFirstProject",
-                u"Microsoft.VSTS.Common.ValueArea": u"Business",
-                u"System.State": u"New",
-                u"System.Description": u'<p><a href="https:            //lauryn.ngrok.io/sentry/internal/issues/196/">https:            //lauryn.ngrok.io/sentry/internal/issues/196/</a></p>\n<pre><code>NotImplementedError:Visual Studio Team Services requires an organization_id\n(57 additional frame(s) were not displayed)\n...\n  File &quot;sentry/tasks/base.py&quot;',
-                u"System.ChangedBy": u"lauryn <lauryn@sentry.io>",
-                u"System.ChangedDate": u"2018-07-05T23:23:09.493            Z",
-                u"Microsoft.VSTS.Common.Severity": u"3 - Medium",
-                u"System.IterationPath": u"MyFirstProject",
+        "workItemId": 33,
+        "rev": 3,
+        "_links": {
+            "self": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates/3"
             },
-            u"rev": 3,
-            u"id": 33,
-            u"_links": {
-                u"self": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3"
+            "workItemUpdates": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/updates"
+            },
+            "html": {
+                "href": "https://laurynsentry.visualstudio.com/web/wi.aspx?pcguid=80ded3e8-3cd3-43b1-9f96-52032624aa3a&id=33"
+            },
+            "parent": {
+                "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
+            },
+        },
+        "id": 3,
+        "revision": {
+            "url": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3",
+            "fields": {
+                "System.AreaPath": "MyFirstProject",
+                "System.WorkItemType": "Bug",
+                "System.Reason": "New",
+                "System.Title": "NotImplementedError:Visual Studio Team Services requires an organization_id",
+                "Microsoft.VSTS.Common.Priority": 2,
+                "System.CreatedBy": "lauryn <lauryn@sentry.io>",
+                "Microsoft.VSTS.Common.StateChangeDate": "2018-07-05T23:21:25.847            Z",
+                "System.CreatedDate": "2018-07-05T23:21:25.847            Z",
+                "System.TeamProject": "MyFirstProject",
+                "Microsoft.VSTS.Common.ValueArea": "Business",
+                "System.State": "New",
+                "System.Description": '<p><a href="https:            //lauryn.ngrok.io/sentry/internal/issues/196/">https:            //lauryn.ngrok.io/sentry/internal/issues/196/</a></p>\n<pre><code>NotImplementedError:Visual Studio Team Services requires an organization_id\n(57 additional frame(s) were not displayed)\n...\n  File &quot;sentry/tasks/base.py&quot;',
+                "System.ChangedBy": "lauryn <lauryn@sentry.io>",
+                "System.ChangedDate": "2018-07-05T23:23:09.493            Z",
+                "Microsoft.VSTS.Common.Severity": "3 - Medium",
+                "System.IterationPath": "MyFirstProject",
+            },
+            "rev": 3,
+            "id": 33,
+            "_links": {
+                "self": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions/3"
                 },
-                u"workItemRevisions": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions"
+                "workItemRevisions": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33/revisions"
                 },
-                u"parent": {
-                    u"href": u"https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
+                "parent": {
+                    "href": "https://laurynsentry.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workItems/33"
                 },
             },
         },
     },
-    u"eventType": u"workitem.updated",
-    u"detailedMessage": None,
-    u"createdDate": u"2018-07-05T23:23:11.1935112   Z",
-    u"id": u"cc349c85-6595-4939-9b69-f89480be6a26",
-    u"resourceVersion": u"1.0",
-    u"notificationId": 2,
-    u"subscriptionId": u"7405a600-6a25-48e6-81b6-1dde044783ad",
-    u"publisherId": u"tfs",
-    u"message": None,
+    "eventType": "workitem.updated",
+    "detailedMessage": None,
+    "createdDate": "2018-07-05T23:23:11.1935112   Z",
+    "id": "cc349c85-6595-4939-9b69-f89480be6a26",
+    "resourceVersion": "1.0",
+    "notificationId": 2,
+    "subscriptionId": "7405a600-6a25-48e6-81b6-1dde044783ad",
+    "publisherId": "tfs",
+    "message": None,
 }
 
 WORK_ITEM_STATES = {

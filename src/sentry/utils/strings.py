@@ -19,7 +19,7 @@ _sprintf_placeholder_re = re.compile(
 )
 
 _lone_surrogate = re.compile(
-    u"""(?x)
+    """(?x)
     (
         [\ud800-\udbff](?![\udc00-\udfff])
     ) | (
@@ -34,7 +34,7 @@ def unicode_escape_recovery_handler(err):
     try:
         value = err.object[err.start : err.end].decode("utf-8")
     except UnicodeError:
-        value = u""
+        value = ""
     return value, err.end
 
 
@@ -97,7 +97,7 @@ def strip(value):
     return smart_text(value).strip()
 
 
-def soft_hyphenate(value, length, hyphen=u"\u00ad"):
+def soft_hyphenate(value, length, hyphen="\u00ad"):
     return hyphen.join([value[i : (i + length)] for i in range(0, len(value), length)])
 
 
@@ -118,11 +118,11 @@ def soft_break(value, length, process=lambda chunk: chunk):
         chunks = delimiters.split(value)
         for i, chunk in enumerate(chunks):
             if i % 2 == 1:  # check if this is this a delimiter
-                results.extend([chunk, u"\u200b"])
+                results.extend([chunk, "\u200b"])
             else:
                 results.append(process(chunk))
 
-        return u"".join(results).rstrip(u"\u200b")
+        return "".join(results).rstrip("\u200b")
 
     return re.sub(six.text_type(r"\S{{{},}}").format(length), soft_break_delimiter, value)
 
@@ -246,4 +246,4 @@ def oxfordize_list(strings):
 
 
 def to_single_line_str(original_str):
-    return u" ".join(original_str.strip().split())
+    return " ".join(original_str.strip().split())

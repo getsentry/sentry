@@ -112,14 +112,14 @@ def trim_message_for_grouping(string):
 def message_v1(message_interface, **meta):
     return GroupingComponent(
         id="message",
-        values=[message_interface.message or message_interface.formatted or u""],
+        values=[message_interface.message or message_interface.formatted or ""],
         similarity_encoder=text_shingle_encoder(5),
     )
 
 
 @strategy(id="message:v2", interfaces=["message"], variants=["default"], score=0)
 def message_v2(message_interface, **meta):
-    message_in = message_interface.message or message_interface.formatted or u""
+    message_in = message_interface.message or message_interface.formatted or ""
     message_trimmed = trim_message_for_grouping(message_in)
     hint = "stripped common values" if message_in != message_trimmed else None
     return GroupingComponent(

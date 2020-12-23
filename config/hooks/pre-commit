@@ -6,7 +6,7 @@ import sys
 
 from glob import glob
 
-text_type = type(u"")
+text_type = type("")
 
 # git usurbs your bin path for hooks and will always run system python
 if "VIRTUAL_ENV" in os.environ:

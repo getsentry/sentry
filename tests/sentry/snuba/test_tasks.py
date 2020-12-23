@@ -179,7 +179,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["type", "=", "error"]]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_simple_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -187,7 +187,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == []
-        assert snuba_filter.aggregations == [["uniq", "user", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "user", "count_unique_user"]]
 
     def test_aliased_query_events(self):
         snuba_filter = build_snuba_filter(
@@ -198,7 +198,7 @@ class BuildSnubaFilterTest(TestCase):
             ["type", "=", "error"],
             ["tags[sentry:release]", "=", "latest"],
         ]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_aliased_query_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -211,7 +211,7 @@ class BuildSnubaFilterTest(TestCase):
         assert snuba_filter
         assert snuba_filter.conditions == [["release", "=", "latest"]]
         assert snuba_filter.aggregations == [
-            [u"quantile(0.95)", "duration", u"percentile_transaction_duration__95"]
+            ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
 
     def test_user_query(self):
@@ -223,7 +223,7 @@ class BuildSnubaFilterTest(TestCase):
             ["type", "=", "error"],
             ["tags[sentry:user]", "=", "anengineer@work.io"],
         ]
-        assert snuba_filter.aggregations == [[u"count", None, u"count"]]
+        assert snuba_filter.aggregations == [["count", None, "count"]]
 
     def test_user_query_transactions(self):
         snuba_filter = build_snuba_filter(
@@ -231,7 +231,7 @@ class BuildSnubaFilterTest(TestCase):
         )
         assert snuba_filter
         assert snuba_filter.conditions == [["user", "=", "anengineer@work.io"]]
-        assert snuba_filter.aggregations == [[u"quantile(0.95)", "duration", u"p95"]]
+        assert snuba_filter.aggregations == [["quantile(0.95)", "duration", "p95"]]
 
     def test_boolean_query(self):
         snuba_filter = build_snuba_filter(
@@ -252,7 +252,7 @@ class BuildSnubaFilterTest(TestCase):
                 1,
             ],
         ]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
     def test_event_types(self):
         snuba_filter = build_snuba_filter(
@@ -277,7 +277,7 @@ class BuildSnubaFilterTest(TestCase):
                 1,
             ],
         ]
-        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", u"count_unique_user"]]
+        assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
 
 class TestApplyDatasetQueryConditions(TestCase):

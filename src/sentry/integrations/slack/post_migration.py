@@ -74,7 +74,7 @@ def run_post_migration(
             failing_channels.append(channel)
 
     message = email.MessageBuilder(
-        subject=u"Your Slack Sentry Integration has been upgraded",
+        subject="Your Slack Sentry Integration has been upgraded",
         template="sentry/emails/slack-migration.txt",
         html_template="sentry/emails/slack-migration.html",
         type="slack_migration.summary",

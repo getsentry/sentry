@@ -102,7 +102,7 @@ def process_react_exception(exc, match, mapping):
     # Due to truncated error messages we sometimes might not be able to
     # get all arguments.  In that case we fill up missing parameters for
     # the format string with <redacted>.
-    args = tuple(args + [u"<redacted>"] * (arg_count - len(args)))[:arg_count]
+    args = tuple(args + ["<redacted>"] * (arg_count - len(args)))[:arg_count]
     exc["value"] = msg_format % args
 
     return True

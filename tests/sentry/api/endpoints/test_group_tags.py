@@ -36,7 +36,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/tags/".format(event1.group.id)
+        url = "/api/0/issues/{}/tags/".format(event1.group.id)
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
@@ -55,7 +55,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         assert len(data[3]["topValues"]) == 1
 
         # Use the key= queryparam to grab results for specific tags
-        url = u"/api/0/issues/{}/tags/?key=foo&key=sentry:release".format(event1.group.id)
+        url = "/api/0/issues/{}/tags/?key=foo&key=sentry:release".format(event1.group.id)
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -72,7 +72,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_invalid_env(self):
         this_group = self.create_group()
         self.login_as(user=self.user)
-        url = u"/api/0/issues/{}/tags/".format(this_group.id)
+        url = "/api/0/issues/{}/tags/".format(this_group.id)
         response = self.client.get(url, {"environment": "notreal"}, format="json")
         assert response.status_code == 404
 
@@ -88,7 +88,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         group = event.group
 
         self.login_as(user=self.user)
-        url = u"/api/0/issues/{}/tags/".format(group.id)
+        url = "/api/0/issues/{}/tags/".format(group.id)
         response = self.client.get(url, {"environment": "prod"}, format="json")
         assert response.status_code == 200
         assert len(response.data) == 4
@@ -120,7 +120,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = u"/api/0/issues/{}/tags/".format(event2.group.id)
+        url = "/api/0/issues/{}/tags/".format(event2.group.id)
         response = self.client.get(
             "%s?environment=%s&environment=%s" % (url, env.name, env2.name), format="json"
         )

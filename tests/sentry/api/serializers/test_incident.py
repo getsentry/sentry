@@ -55,13 +55,13 @@ class DetailedIncidentSerializerTest(TestCase):
         assert result["discoverQuery"] == "(event.type:error) AND ({})".format(query)
 
     def test_error_alert_rule_unicode(self):
-        query = u"统一码"
+        query = "统一码"
         incident = self.create_incident(query=query)
 
         serializer = DetailedIncidentSerializer()
         result = serialize(incident, serializer=serializer)
         assert result["alertRule"] == serialize(incident.alert_rule)
-        assert result["discoverQuery"] == u"(event.type:error) AND ({})".format(query)
+        assert result["discoverQuery"] == "(event.type:error) AND ({})".format(query)
 
     def test_transaction_alert_rule(self):
         query = "test query"

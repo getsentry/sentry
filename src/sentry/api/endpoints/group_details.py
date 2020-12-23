@@ -299,7 +299,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
             # endpoint
             response = client.put(
-                path=u"/projects/{}/{}/issues/".format(
+                path="/projects/{}/{}/issues/".format(
                     group.project.organization.slug, group.project.slug
                 ),
                 params={"id": group.id},

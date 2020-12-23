@@ -163,10 +163,10 @@ class ClusterManager(object):
             # that it's necessary.
             configuration = self.__options_manager.get("redis.clusters").get(key)
             if configuration is None:
-                raise KeyError(u"Invalid cluster name: {}".format(key))
+                raise KeyError("Invalid cluster name: {}".format(key))
 
             if not self.__cluster_type.supports(configuration):
-                raise KeyError(u"Invalid cluster type, expected: {}".format(self.__cluster_type))
+                raise KeyError("Invalid cluster type, expected: {}".format(self.__cluster_type))
 
             cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
@@ -193,17 +193,17 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
     if cluster_options:
         if cluster_option_name in options:
             raise InvalidConfiguration(
-                u"Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
+                "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
                     cluster_option_name, ", ".join(map(repr, cluster_constructor_option_names))
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
-                    u"{} parameter of {}".format(
+                    "{} parameter of {}".format(
                         ", ".join(map(repr, cluster_constructor_option_names)), setting
                     ),
-                    u'{}["{}"]'.format(setting, cluster_option_name),
+                    '{}["{}"]'.format(setting, cluster_option_name),
                     removed_in_version="8.5",
                 ),
                 stacklevel=2,
@@ -250,7 +250,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         host = cluster.hosts[id]
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
-        key = u"{host}:{port}".format(host=host.host, port=host.port)
+        key = "{host}:{port}".format(host=host.host, port=host.port)
         versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
 
     check_versions(

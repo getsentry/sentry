@@ -90,52 +90,52 @@ class DefaultContextType(ContextType):
 @contexttype
 class AppContextType(ContextType):
     type = "app"
-    indexed_fields = {"device": u"{device_app_hash}"}
+    indexed_fields = {"device": "{device_app_hash}"}
 
 
 @contexttype
 class DeviceContextType(ContextType):
     type = "device"
-    indexed_fields = {"": u"{model}", "family": u"{family}"}
+    indexed_fields = {"": "{model}", "family": "{family}"}
     # model_id, arch
 
 
 @contexttype
 class RuntimeContextType(ContextType):
     type = "runtime"
-    indexed_fields = {"": u"{name} {version}", "name": u"{name}"}
+    indexed_fields = {"": "{name} {version}", "name": "{name}"}
 
 
 @contexttype
 class BrowserContextType(ContextType):
     type = "browser"
-    indexed_fields = {"": u"{name} {version}", "name": u"{name}"}
+    indexed_fields = {"": "{name} {version}", "name": "{name}"}
     # viewport
 
 
 @contexttype
 class OsContextType(ContextType):
     type = "os"
-    indexed_fields = {"": u"{name} {version}", "name": u"{name}", "rooted": u"{rooted}"}
+    indexed_fields = {"": "{name} {version}", "name": "{name}", "rooted": "{rooted}"}
     # build, rooted
 
 
 @contexttype
 class GpuContextType(ContextType):
     type = "gpu"
-    indexed_fields = {"name": u"{name}", "vendor": u"{vendor_name}"}
+    indexed_fields = {"name": "{name}", "vendor": "{vendor_name}"}
 
 
 @contexttype
 class MonitorContextType(ContextType):
     type = "monitor"
-    indexed_fields = {"id": u"{id}"}
+    indexed_fields = {"id": "{id}"}
 
 
 @contexttype
 class TraceContextType(ContextType):
     type = "trace"
-    indexed_fields = {"": u"{trace_id}", "span": u"{span_id}", "ctx": u"{trace_id}-{span_id}"}
+    indexed_fields = {"": "{trace_id}", "span": "{span_id}", "ctx": "{trace_id}-{span_id}"}
 
 
 class Contexts(Interface):

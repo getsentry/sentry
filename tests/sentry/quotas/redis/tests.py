@@ -105,12 +105,12 @@ class RedisQuotaTest(TestCase):
         self.get_organization_quota.return_value = (300, 60)
         quotas = self.quota.get_quotas(self.project)
 
-        assert quotas[0].id == u"p"
+        assert quotas[0].id == "p"
         assert quotas[0].scope == QuotaScope.PROJECT
         assert quotas[0].scope_id == six.text_type(self.project.id)
         assert quotas[0].limit == 200
         assert quotas[0].window == 60
-        assert quotas[1].id == u"o"
+        assert quotas[1].id == "o"
         assert quotas[1].scope == QuotaScope.ORGANIZATION
         assert quotas[1].scope_id == six.text_type(self.organization.id)
         assert quotas[1].limit == 300

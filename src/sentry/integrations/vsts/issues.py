@@ -208,7 +208,7 @@ class VstsIssueSync(IssueSyncMixin):
                 vsts_users = client.get_users(self.model.name, continuation_token)
                 continuation_token = vsts_users.headers.get("X-MS-ContinuationToken")
                 for vsts_user in vsts_users["value"]:
-                    vsts_email = vsts_user.get(u"mailAddress")
+                    vsts_email = vsts_user.get("mailAddress")
                     if vsts_email and vsts_email.lower() in sentry_emails:
                         assignee = vsts_user["mailAddress"]
                         break

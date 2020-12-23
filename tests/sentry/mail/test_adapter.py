@@ -183,7 +183,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         uo1.delete()
 
         UserOption.objects.create(
-            key="subscribe_by_default", value=u"0", project=project, user=user4
+            key="subscribe_by_default", value="0", project=project, user=user4
         )
 
         assert user4.pk not in self.adapter.get_sendable_users(project)
@@ -196,7 +196,7 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
     def test_project_level_prefix(self):
         prefix = "[Example prefix] "
         ProjectOption.objects.set_value(
-            project=self.project, key=u"mail:subject_prefix", value=prefix
+            project=self.project, key="mail:subject_prefix", value=prefix
         )
         assert self.adapter._build_subject_prefix(self.project) == prefix
 
@@ -244,7 +244,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
     def test_notify_users_renders_interfaces_with_utf8(self, _to_email_html, _get_title):
-        _to_email_html.return_value = u"רונית מגן"
+        _to_email_html.return_value = "רונית מגן"
         _get_title.return_value = "Stacktrace"
 
         event = self.store_event(
@@ -281,7 +281,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get("project"), self.project)
         self.assertEquals(kwargs.get("reference"), group)
-        assert kwargs.get("subject") == u"BAR-1 - hello world"
+        assert kwargs.get("subject") == "BAR-1 - hello world"
 
     @mock.patch("sentry.mail.mail_adapter._send_mail")
     def test_multiline_error(self, _send_mail):
@@ -315,7 +315,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert msg.subject == u"[Sentry] BAR-1 - רונית מגן"
+        assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
 
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
@@ -510,7 +510,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
 
     def test_notify_digest_subject_prefix(self):
         ProjectOption.objects.set_value(
-            project=self.project, key=u"mail:subject_prefix", value="[Example prefix] "
+            project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
@@ -735,7 +735,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
+        assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
     def test_assignment_team(self):
@@ -758,7 +758,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
+        assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -784,7 +784,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[-1]
 
-        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
+        assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
 
@@ -822,7 +822,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         assert "group-header" in msg.alternatives[0][0]
         assert "enhanced privacy" not in msg.body
 
-        assert msg.subject == u"[Sentry] {} - New Feedback from Homer Simpson".format(
+        assert msg.subject == "[Sentry] {} - New Feedback from Homer Simpson".format(
             self.group.qualified_short_id
         )
         assert msg.to == [self.user.email]
@@ -852,7 +852,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         assert "group-header" not in msg.alternatives[0][0]
         assert "enhanced privacy" in msg.body
 
-        assert msg.subject == u"[Sentry] {} - New Feedback from Homer Simpson".format(
+        assert msg.subject == "[Sentry] {} - New Feedback from Homer Simpson".format(
             self.group.qualified_short_id
         )
         assert msg.to == [self.user.email]

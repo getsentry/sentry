@@ -61,8 +61,8 @@ class OptionsTypesTest(TestCase):
 
     def test_string(self):
         assert String("foo") == "foo"
-        assert String(u"foo") == u"foo"
-        assert String() == u""
+        assert String("foo") == "foo"
+        assert String() == ""
         with self.assertRaises(InvalidTypeError):
             String(0)
 

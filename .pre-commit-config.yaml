@@ -18,6 +18,7 @@ repos:
     - id: black
       types: [python]
       exclude: (migrations/)
+      args: ["--target-version", "py36"]
 -   repo: local
     hooks:
     - id: flake8

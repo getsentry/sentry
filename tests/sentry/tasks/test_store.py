@@ -355,7 +355,7 @@ def test_scrubbing_after_processing(
     process_event(cache_key="e:1", start_time=1, data_has_changed=True)
 
     ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-    assert event["extra"] == {u"aaa": u"[Filtered]", u"aaa2": u"event preprocessor"}
+    assert event["extra"] == {"aaa": "[Filtered]", "aaa2": "event preprocessor"}
 
     mock_save_event.delay.assert_called_once_with(
         cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id

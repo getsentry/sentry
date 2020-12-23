@@ -7,7 +7,7 @@ from sentry.models import Identity, IdentityProvider, Integration, Repository
 
 EXTERNAL_ID = "example.gitlab.com:group-x"
 WEBHOOK_SECRET = "secret-token-value"
-WEBHOOK_TOKEN = u"{}:{}".format(EXTERNAL_ID, WEBHOOK_SECRET)
+WEBHOOK_TOKEN = "{}:{}".format(EXTERNAL_ID, WEBHOOK_SECRET)
 
 
 class GitLabTestCase(APITestCase):
@@ -43,7 +43,7 @@ class GitLabTestCase(APITestCase):
         return Repository.objects.create(
             organization_id=organization_id,
             name=name,
-            external_id=u"{}:{}".format(instance, external_id),
+            external_id="{}:{}".format(instance, external_id),
             url=url,
             config={"project_id": external_id},
             provider="integrations:gitlab",

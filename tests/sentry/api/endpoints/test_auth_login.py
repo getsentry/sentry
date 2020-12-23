@@ -21,7 +21,7 @@ class AuthLoginEndpointTest(APITestCase):
         resp = self.client.post(self.path, {"username": self.user.username, "password": "bizbar"})
         assert resp.status_code == 400
         assert resp.data["errors"]["__all__"] == [
-            u"Please enter a correct username and password. Note that both fields may be case-sensitive."
+            "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
 
     def test_login_valid_credentials(self):
@@ -46,5 +46,5 @@ class AuthLoginEndpointTest(APITestCase):
 
         assert resp.status_code == 400
         assert [six.text_type(s) for s in resp.data["errors"]["__all__"]] == [
-            u"You have made too many failed authentication attempts. Please try again later."
+            "You have made too many failed authentication attempts. Please try again later."
         ]

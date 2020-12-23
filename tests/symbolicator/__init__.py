@@ -72,5 +72,5 @@ def insta_snapshot_stacktrace_data(self, event, **kwargs):
             or None,
             "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
         },
-        **kwargs
+        **kwargs,
     )

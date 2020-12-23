@@ -73,16 +73,16 @@ class MonitorTestCase(TestCase):
                         "monitor": {
                             "status": "active",
                             "type": "cron_job",
-                            "config": {"schedule_type": 2, "schedule": [1, u"month"]},
+                            "config": {"schedule_type": 2, "schedule": [1, "month"]},
                             "id": six.text_type(monitor.guid),
                             "name": monitor.name,
                         }
                     },
                     "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
-                    "fingerprint": ["monitor", six.text_type(monitor.guid), u"unknown"],
+                    "fingerprint": ["monitor", six.text_type(monitor.guid), "unknown"],
                     "logger": "",
                     "type": "default",
-                }
+                },
             )
             == dict(event)
         )
@@ -113,16 +113,16 @@ class MonitorTestCase(TestCase):
                         "monitor": {
                             "status": "active",
                             "type": "cron_job",
-                            "config": {"schedule_type": 2, "schedule": [1, u"month"]},
+                            "config": {"schedule_type": 2, "schedule": [1, "month"]},
                             "id": six.text_type(monitor.guid),
                             "name": monitor.name,
                         }
                     },
                     "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
-                    "fingerprint": ["monitor", six.text_type(monitor.guid), u"duration"],
+                    "fingerprint": ["monitor", six.text_type(monitor.guid), "duration"],
                     "logger": "",
                     "type": "default",
-                }
+                },
             )
             == dict(event)
         )

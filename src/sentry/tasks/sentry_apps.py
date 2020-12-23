@@ -261,7 +261,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
 
-    send_webhooks(installation=install, event=u"issue.{}".format(type), data=data, actor=user)
+    send_webhooks(installation=install, event="issue.{}".format(type), data=data, actor=user)
 
 
 def notify_sentry_app(event, futures):

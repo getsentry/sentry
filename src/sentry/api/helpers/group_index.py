@@ -102,7 +102,7 @@ def build_query_params_from_request(request, organization, projects, environment
             )
         except InvalidSearchQuery as e:
             raise ValidationError(
-                u"Your search query could not be parsed: {}".format(six.text_type(e))
+                "Your search query could not be parsed: {}".format(six.text_type(e))
             )
 
         validate_search_filter_permissions(organization, search_filters, request.user)
@@ -140,7 +140,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
                 raise ValidationError(
-                    u"You need access to the advanced search feature to use {}".format(feature_name)
+                    "You need access to the advanced search feature to use {}".format(feature_name)
                 )
 
 
@@ -311,7 +311,7 @@ def handle_discard(request, group_list, projects, user):
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
                     actor_id=user.id if user else None,
-                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
                 # in this case, a tombstone has already been created
@@ -468,7 +468,7 @@ def rate_limit_endpoint(limit=1, window=1):
         def wrapper(self, request, *args, **kwargs):
             ip = request.META["REMOTE_ADDR"]
             if ratelimiter.is_limited(
-                u"rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
+                "rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
                 limit=limit,
                 window=window,
             ):

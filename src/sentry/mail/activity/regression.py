@@ -14,21 +14,21 @@ class RegressionActivityEmail(ActivityEmail):
         data = self.activity.data
 
         if data.get("version"):
-            version_url = u"/organizations/{}/releases/{}/".format(
+            version_url = "/organizations/{}/releases/{}/".format(
                 self.organization.slug, data["version"]
             )
 
             return (
-                u"{author} marked {an issue} as a regression in {version}",
+                "{author} marked {an issue} as a regression in {version}",
                 {"version": data["version"]},
                 {
-                    "version": u'<a href="{}">{}</a>'.format(
+                    "version": '<a href="{}">{}</a>'.format(
                         absolute_uri(version_url), escape(data["version"])
                     )
                 },
             )
 
-        return u"{author} marked {an issue} as a regression"
+        return "{author} marked {an issue} as a regression"
 
     def get_category(self):
         return "regression_activity_email"

@@ -47,7 +47,7 @@ INSTALL_NOTICE_TEXT = (
 )
 
 external_install = {
-    "url": u"https://teams.microsoft.com/l/app/{}".format(options.get("msteams.app-id")),
+    "url": "https://teams.microsoft.com/l/app/{}".format(options.get("msteams.app-id")),
     "buttonText": _("Teams Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }

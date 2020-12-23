@@ -37,7 +37,7 @@ class AssignedToFilter(EventFilter):
     form_fields = {"targetType": {"type": "assignee", "choices": CHOICES}}
 
     def get_assignees(self, group):
-        cache_key = u"group:{}:assignees".format(group.id)
+        cache_key = "group:{}:assignees".format(group.id)
         assignee_list = cache.get(cache_key)
         if assignee_list is None:
             assignee_list = list(group.assignee_set.all())

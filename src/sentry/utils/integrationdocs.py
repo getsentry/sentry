@@ -69,7 +69,7 @@ def dump_doc(path, data):
     with io.open(fn, "wt", encoding="utf-8") as f:
         # XXX: ideally, we use six.text_type here, but we can't use six.
         f.write(unicode(json.dumps(data, indent=2)))  # NOQA
-        f.write(u"\n")
+        f.write("\n")
 
 
 def load_doc(path):
@@ -86,7 +86,7 @@ def load_doc(path):
 def get_integration_id(platform_id, integration_id):
     if integration_id == "_self":
         return platform_id
-    return u"{}-{}".format(platform_id, integration_id)
+    return "{}-{}".format(platform_id, integration_id)
 
 
 def urlopen_with_retries(url, timeout=5, retries=10):
@@ -157,5 +157,5 @@ def integration_doc_exists(integration_id):
     # and using os.path.join() would allow directory traversal vulnerabilities
     # which we don't want.
     docs = os.listdir(DOC_FOLDER)
-    filename = u"{}.json".format(integration_id)
+    filename = "{}.json".format(integration_id)
     return filename in docs

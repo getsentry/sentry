@@ -11,7 +11,7 @@ class ProjectServiceHookDetailsTest(APITestCase):
             project_id=project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
         self.login_as(user=self.user)
-        path = u"/api/0/projects/{}/{}/hooks/{}/".format(
+        path = "/api/0/projects/{}/{}/hooks/{}/".format(
             project.organization.slug, project.slug, hook.guid
         )
         response = self.client.get(path)
@@ -27,7 +27,7 @@ class UpdateProjectServiceHookTest(APITestCase):
         self.hook = ServiceHook.objects.get_or_create(
             project_id=self.project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
-        self.path = u"/api/0/projects/{}/{}/hooks/{}/".format(
+        self.path = "/api/0/projects/{}/{}/hooks/{}/".format(
             self.project.organization.slug, self.project.slug, self.hook.guid
         )
 
@@ -50,7 +50,7 @@ class DeleteProjectServiceHookTest(APITestCase):
         self.hook = ServiceHook.objects.get_or_create(
             project_id=self.project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
-        self.path = u"/api/0/projects/{}/{}/hooks/{}/".format(
+        self.path = "/api/0/projects/{}/{}/hooks/{}/".format(
             self.project.organization.slug, self.project.slug, self.hook.guid
         )
 

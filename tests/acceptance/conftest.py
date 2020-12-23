@@ -30,7 +30,7 @@ def pytest_configure(config):
 
             if last_built <= 3600:
                 print(  # noqa: B314
-                    u"""
+                    """
 ###################
 #
 # Frontend assets last built {} seconds ago, skipping rebuilds for another {} seconds.

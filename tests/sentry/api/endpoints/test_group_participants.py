@@ -16,7 +16,7 @@ class GroupParticipantsTest(APITestCase):
             user=self.user, group=group, project=group.project, is_active=True
         )
 
-        url = u"/api/0/issues/{}/participants/".format(group.id)
+        url = "/api/0/issues/{}/participants/".format(group.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content

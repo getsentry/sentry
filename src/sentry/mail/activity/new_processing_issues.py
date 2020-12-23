@@ -39,14 +39,14 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
             "info_url": absolute_uri(
-                u"/settings/{}/projects/{}/processing-issues/".format(
+                "/settings/{}/projects/{}/processing-issues/".format(
                     self.organization.slug, self.project.slug
                 )
             ),
         }
 
     def get_subject(self):
-        return u"Processing Issues on {}".format(self.project.slug)
+        return "Processing Issues on {}".format(self.project.slug)
 
     def get_template(self):
         return "sentry/emails/activity/new_processing_issues.txt"

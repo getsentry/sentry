@@ -37,7 +37,7 @@ class DataForwardingPlugin(Plugin):
         return "data-forwarding"
 
     def get_rl_key(self, event):
-        return u"{}:{}".format(self.conf_key, event.project.organization_id)
+        return "{}:{}".format(self.conf_key, event.project.organization_id)
 
     def initialize_variables(self, event):
         return

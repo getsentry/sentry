@@ -18,7 +18,7 @@ class VictorOpsClient(ApiClient):
 
     def build_url(self, path):
         # http://victorops.force.com/knowledgebase/articles/Integration/Alert-Ingestion-API-Documentation/
-        return u"https://alert.victorops.com/integrations/generic/20131114/alert/{}/{}".format(
+        return "https://alert.victorops.com/integrations/generic/20131114/alert/{}/{}".format(
             self.api_key, self.routing_key
         )
 
@@ -34,7 +34,7 @@ class VictorOpsClient(ApiClient):
         entity_display_name=None,
         monitoring_tool=None,
         issue_url=None,
-        **kwargs
+        **kwargs,
     ):
         kwargs.update(
             {

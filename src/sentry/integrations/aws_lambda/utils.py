@@ -24,7 +24,7 @@ def parse_arn(arn):
 
 
 def get_aws_node_arn(region):
-    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
+    return "arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
         options.get("aws-lambda.host-account-id"),
         options.get("aws-lambda.node-layer-name"),

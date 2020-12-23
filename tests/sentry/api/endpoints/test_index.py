@@ -32,7 +32,7 @@ class ApiIndexTest(APITestCase):
         key = ApiKey.objects.create(organization=org)
         url = reverse("sentry-api-index")
         response = self.client.get(
-            url, HTTP_AUTHORIZATION=b"Basic " + b64encode(u"{}:".format(key.key).encode("utf-8"))
+            url, HTTP_AUTHORIZATION=b"Basic " + b64encode("{}:".format(key.key).encode("utf-8"))
         )
         assert response.status_code == 200
         assert response.data["version"] == "0"
@@ -42,7 +42,7 @@ class ApiIndexTest(APITestCase):
     def test_token_auth(self):
         token = ApiToken.objects.create(user=self.user)
         url = reverse("sentry-api-index")
-        response = self.client.get(url, HTTP_AUTHORIZATION=u"Bearer {}".format(token.token))
+        response = self.client.get(url, HTTP_AUTHORIZATION="Bearer {}".format(token.token))
         assert response.status_code == 200
         assert response.data["version"] == "0"
         assert response.data["auth"]["scopes"] == token.get_scopes()

@@ -84,7 +84,7 @@ class RuleSerializer(serializers.Serializer):
                 self.context["project"].organization_id, environment
             ).id
         except Environment.DoesNotExist:
-            raise serializers.ValidationError(u"This environment has not been created.")
+            raise serializers.ValidationError("This environment has not been created.")
 
         return environment
 
@@ -107,7 +107,7 @@ class RuleSerializer(serializers.Serializer):
             if not filter_match:
                 raise serializers.ValidationError(
                     {
-                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied."
+                        "filterMatch": "Must select a filter match (all, any, none) if filters are supplied."
                     }
                 )
 
@@ -122,7 +122,7 @@ class RuleSerializer(serializers.Serializer):
             if old_conditions:
                 raise serializers.ValidationError(
                     {
-                        "conditions": u"Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
+                        "conditions": "Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
                     }
                 )
 
@@ -130,7 +130,7 @@ class RuleSerializer(serializers.Serializer):
         if project_has_filters and attrs.get("actionMatch") == "none":
             raise serializers.ValidationError(
                 {
-                    "conditions": u"The 'none' match on conditions is outdated and no longer supported."
+                    "conditions": "The 'none' match on conditions is outdated and no longer supported."
                 }
             )
 

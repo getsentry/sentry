@@ -112,25 +112,25 @@ class Organization(Model):
     flags = BitField(
         flags=(
             (
-                u"allow_joinleave",
-                u"Allow members to join and leave teams without requiring approval.",
+                "allow_joinleave",
+                "Allow members to join and leave teams without requiring approval.",
             ),
             (
-                u"enhanced_privacy",
-                u"Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
+                "enhanced_privacy",
+                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
             ),
             (
-                u"disable_shared_issues",
-                u"Disable sharing of limited details on issues to anonymous users.",
+                "disable_shared_issues",
+                "Disable sharing of limited details on issues to anonymous users.",
             ),
             (
-                u"early_adopter",
-                u"Enable early adopter status, gaining access to features prior to public release.",
+                "early_adopter",
+                "Enable early adopter status, gaining access to features prior to public release.",
             ),
-            (u"require_2fa", u"Require and enforce two-factor authentication for all members."),
+            ("require_2fa", "Require and enforce two-factor authentication for all members."),
             (
-                u"disable_new_visibility_features",
-                u"Temporarily opt out of new visibility features and ui",
+                "disable_new_visibility_features",
+                "Temporarily opt out of new visibility features and ui",
             ),
         ),
         default=1,
@@ -156,7 +156,7 @@ class Organization(Model):
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
     def __unicode__(self):
-        return u"%s (%s)" % (self.name, self.slug)
+        return "%s (%s)" % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:

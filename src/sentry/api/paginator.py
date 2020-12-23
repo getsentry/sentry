@@ -181,7 +181,7 @@ class BasePaginator(object):
         except EmptyResultSet:
             return 0
         cursor = connections[self.queryset.db].cursor()
-        cursor.execute(u"SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
+        cursor.execute("SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
         return cursor.fetchone()[0]
 
 

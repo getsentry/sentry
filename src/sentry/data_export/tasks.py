@@ -58,7 +58,7 @@ def assemble_download(
     offset=0,
     bytes_written=0,
     environment_id=None,
-    **kwargs
+    **kwargs,
 ):
     with sentry_sdk.start_transaction(
         op="task.data_export.assemble",

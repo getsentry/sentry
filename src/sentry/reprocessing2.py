@@ -106,9 +106,7 @@ GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5(
-        u"{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")
-    ).hexdigest()
+    return hashlib.md5("{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")).hexdigest()
 
 
 def save_unprocessed_event(project, event_id):

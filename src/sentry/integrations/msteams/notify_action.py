@@ -55,7 +55,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
 
 class MsTeamsNotifyServiceAction(IntegrationEventAction):
     form_cls = MsTeamsNotifyServiceForm
-    label = u"Send a notification to the {team} Team to {channel}"
+    label = "Send a notification to the {team} Team to {channel}"
     prompt = "Send a Microsoft Teams notification"
     provider = "msteams"
     integration_key = "team"
@@ -85,7 +85,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             client = MsTeamsClient(integration)
             client.send_card(channel, card)
 
-        key = u"msteams:{}:{}".format(integration.id, channel)
+        key = "msteams:{}:{}".format(integration.id, channel)
 
         metrics.incr("notifications.sent", instance="msteams.notification", skip_internal=False)
         yield self.future(send_notification, key=key)

@@ -15,28 +15,28 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.provider = "bitbucket"
         self.path = "/extensions/bitbucket/installed/"
 
-        self.username = u"sentryuser"
-        self.client_key = u"connection:123"
-        self.public_key = u"123abcDEFg"
-        self.shared_secret = u"G12332434SDfsjkdfgsd"
-        self.base_url = u"https://api.bitbucket.org"
-        self.domain_name = u"bitbucket.org/sentryuser"
-        self.display_name = u"Sentry User"
-        self.icon = u"https://bitbucket.org/account/sentryuser/avatar/32/"
+        self.username = "sentryuser"
+        self.client_key = "connection:123"
+        self.public_key = "123abcDEFg"
+        self.shared_secret = "G12332434SDfsjkdfgsd"
+        self.base_url = "https://api.bitbucket.org"
+        self.domain_name = "bitbucket.org/sentryuser"
+        self.display_name = "Sentry User"
+        self.icon = "https://bitbucket.org/account/sentryuser/avatar/32/"
 
         self.user_data = {
-            u"username": self.username,
-            u"display_name": self.display_name,
-            u"account_id": u"123456t256371u",
-            u"links": {
-                u"self": {u"herf": u"https://api.bitbucket.org/2.0/users/sentryuser/"},
-                u"html": {u"href": u"https://bitbucket.org/sentryuser/"},
-                u"avatar": {u"href": u"https://bitbucket.org/account/sentryuser/avatar/32/"},
+            "username": self.username,
+            "display_name": self.display_name,
+            "account_id": "123456t256371u",
+            "links": {
+                "self": {"herf": "https://api.bitbucket.org/2.0/users/sentryuser/"},
+                "html": {"href": "https://bitbucket.org/sentryuser/"},
+                "avatar": {"href": "https://bitbucket.org/account/sentryuser/avatar/32/"},
             },
-            u"created_on": u"2018-04-18T00:46:37.374621+00:00",
-            u"is_staff": False,
-            u"type": u"user",
-            u"uuid": u"{e123-f456-g78910}",
+            "created_on": "2018-04-18T00:46:37.374621+00:00",
+            "is_staff": False,
+            "type": "user",
+            "uuid": "{e123-f456-g78910}",
         }
         self.metadata = {
             "public_key": self.public_key,
@@ -50,16 +50,16 @@ class BitbucketInstalledEndpointTest(APITestCase):
         }
 
         self.data_from_bitbucket = {
-            u"key": u"sentry-bitbucket",
-            u"eventType": u"installed",
-            u"baseUrl": self.base_url,
-            u"sharedSecret": self.shared_secret,
-            u"publicKey": self.public_key,
-            u"user": self.user_data,
-            u"productType": u"bitbucket",
-            u"baseApiUrl": u"https://api.bitbucket.org",
-            u"clientKey": self.client_key,
-            u"principal": self.user_data,
+            "key": "sentry-bitbucket",
+            "eventType": "installed",
+            "baseUrl": self.base_url,
+            "sharedSecret": self.shared_secret,
+            "publicKey": self.public_key,
+            "user": self.user_data,
+            "productType": "bitbucket",
+            "baseApiUrl": "https://api.bitbucket.org",
+            "clientKey": self.client_key,
+            "principal": self.user_data,
         }
         self.data_without_public_key = {"identity": {"bitbucket_client_id": self.client_key}}
 
@@ -117,7 +117,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            u"https://api.bitbucket.org/2.0/repositories/{}/hooks".format(accessible_repo.name),
+            "https://api.bitbucket.org/2.0/repositories/{}/hooks".format(accessible_repo.name),
             json={"values": [{"description": "sentry-bitbucket-repo-hook"}]},
         )
 
@@ -155,7 +155,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            u"https://api.bitbucket.org/2.0/repositories/sentryuser/repo/hooks",
+            "https://api.bitbucket.org/2.0/repositories/sentryuser/repo/hooks",
             json={"values": [{"description": "sentry-bitbucket-repo-hook"}]},
         )
 

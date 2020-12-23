@@ -17,7 +17,7 @@ def _escape_key(key):
     If this fails and we cannot represent the key, return None
     """
 
-    return u"'{}'".format(key.replace("'", "''"))
+    return "'{}'".format(key.replace("'", "''"))
 
 
 def get_pii_config(project):

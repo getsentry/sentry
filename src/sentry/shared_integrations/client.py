@@ -28,7 +28,7 @@ class BaseApiResponse(object):
         self.status_code = status_code
 
     def __repr__(self):
-        return u"<%s: code=%s, content_type=%s>" % (
+        return "<%s: code=%s, content_type=%s>" % (
             type(self).__name__,
             self.status_code,
             self.headers.get("Content-Type", "") if self.headers else "",
@@ -49,14 +49,14 @@ class BaseApiResponse(object):
             return BaseApiResponse(response.headers, response.status_code)
         # XXX(dcramer): this doesnt handle leading spaces, but they're not common
         # paths so its ok
-        if response.text.startswith(u"<?xml"):
+        if response.text.startswith("<?xml"):
             return XmlApiResponse(response.text, response.headers, response.status_code)
         elif response.text.startswith("<"):
             if not allow_text:
-                raise ValueError(u"Not a valid response type: {}".format(response.text[:128]))
+                raise ValueError("Not a valid response type: {}".format(response.text[:128]))
             elif response.status_code < 200 or response.status_code >= 300:
                 raise ValueError(
-                    u"Received unexpected plaintext response for code {}".format(
+                    "Received unexpected plaintext response for code {}".format(
                         response.status_code
                     )
                 )
@@ -123,7 +123,7 @@ class TrackResponseMixin(object):
 
     @classproperty
     def name_field(cls):
-        return u"%s_name" % cls.integration_type
+        return "%s_name" % cls.integration_type
 
     @classproperty
     def name(cls):
@@ -131,7 +131,7 @@ class TrackResponseMixin(object):
 
     def track_response_data(self, code, span, error=None, resp=None):
         metrics.incr(
-            u"%s.http_response" % (self.datadog_prefix),
+            "%s.http_response" % (self.datadog_prefix),
             sample_rate=1.0,
             tags={self.integration_type: self.name, "status": code},
         )
@@ -149,7 +149,7 @@ class TrackResponseMixin(object):
             "error": six.text_type(error)[:256] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
+        self.logger.info("%s.http_response" % (self.integration_type), extra=extra)
 
 
 class BaseApiClient(TrackResponseMixin):
@@ -176,13 +176,13 @@ class BaseApiClient(TrackResponseMixin):
         self.logging_context = logging_context
 
     def get_cache_prefix(self):
-        return u"%s.%s.client:" % (self.integration_type, self.name)
+        return "%s.%s.client:" % (self.integration_type, self.name)
 
     def build_url(self, path):
         if path.startswith("/"):
             if not self.base_url:
-                raise ValueError(u"Invalid URL: {}".format(path))
-            return u"{}{}".format(self.base_url, path)
+                raise ValueError("Invalid URL: {}".format(path))
+            return "{}{}".format(self.base_url, path)
         return path
 
     def _request(
@@ -214,7 +214,7 @@ class BaseApiClient(TrackResponseMixin):
         full_url = self.build_url(path)
 
         metrics.incr(
-            u"%s.http_request" % self.datadog_prefix,
+            "%s.http_request" % self.datadog_prefix,
             sample_rate=1.0,
             tags={self.integration_type: self.name},
         )
@@ -228,8 +228,8 @@ class BaseApiClient(TrackResponseMixin):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op=u"{}.http".format(self.integration_type),
-            name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            op="{}.http".format(self.integration_type),
+            name="{}.http_response.{}".format(self.integration_type, self.name),
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,
@@ -346,7 +346,7 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
     def request(self, *args, **kwargs):
 
         metrics.incr(
-            u"%s.http_request" % self.datadog_prefix,
+            "%s.http_request" % self.datadog_prefix,
             sample_rate=1.0,
             tags={self.integration_type: self.name},
         )
@@ -360,8 +360,8 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op=u"{}.http".format(self.integration_type),
-            name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            op="{}.http".format(self.integration_type),
+            name="{}.http_response.{}".format(self.integration_type, self.name),
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,

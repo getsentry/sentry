@@ -38,7 +38,7 @@ def serialize(objects, user=None, serializer=None, **kwargs):
                 # filtered out of serialize()
                 item_list=[o for o in objects if o is not None],
                 user=user,
-                **kwargs
+                **kwargs,
             )
 
         with sentry_sdk.start_span(op="serialize.iterate", description=type(serializer).__name__):

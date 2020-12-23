@@ -86,9 +86,9 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         org_client = gen_aws_client(arn, aws_external_id, service_name="organizations")
         account = org_client.describe_account(AccountId=account_id)["Account"]
 
-        integration_name = u"{} {}".format(account["Name"], region)
+        integration_name = "{} {}".format(account["Name"], region)
 
-        external_id = u"{}-{}".format(account_id, region)
+        external_id = "{}-{}".format(account_id, region)
 
         integration = {
             "name": integration_name,

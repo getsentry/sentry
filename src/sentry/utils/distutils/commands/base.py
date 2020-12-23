@@ -125,11 +125,11 @@ class BaseBuildCommand(Command):
         try:
             node_version = self._run_command(["node", "--version"]).rstrip().decode("utf-8")
         except OSError:
-            log.fatal(u"Cannot find node executable. Please install node" " and try again.")
+            log.fatal("Cannot find node executable. Please install node" " and try again.")
             sys.exit(1)
 
         if node_version[2] is not None:
-            log.info(u"using node ({0})".format(node_version))
+            log.info("using node ({0})".format(node_version))
             self._run_command(["yarn", "install", "--production", "--frozen-lockfile", "--quiet"])
 
     def _run_command(self, cmd, env=None):

@@ -113,7 +113,7 @@ def safe_urlopen(
             allow_redirects=allow_redirects,
             timeout=timeout,
             verify=verify_ssl,
-            **kwargs
+            **kwargs,
         )
 
         return response
@@ -125,9 +125,9 @@ def safe_urlread(response):
 
 def expose_url(url):
     if url is None:
-        return u"<unknown>"
+        return "<unknown>"
     if url[:5] == "data:":
-        return u"<data url>"
+        return "<data url>"
     url = truncatechars(url, MAX_URL_LENGTH)
     if isinstance(url, six.binary_type):
         url = url.decode("utf-8", "replace")
@@ -142,7 +142,7 @@ def fetch_file(
     allow_redirects=True,
     verify_ssl=False,
     timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
-    **kwargs
+    **kwargs,
 ):
     """
     Pull down a URL, returning a UrlResult object.
@@ -171,7 +171,7 @@ def fetch_file(
                     headers=headers,
                     timeout=timeout,
                     stream=True,
-                    **kwargs
+                    **kwargs,
                 )
 
                 try:

@@ -17,26 +17,26 @@ INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not vali
 
 
 class VstsApiPath(object):
-    commit = u"{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
-    commits = u"{instance}_apis/git/repositories/{repo_id}/commits"
-    commits_batch = u"{instance}_apis/git/repositories/{repo_id}/commitsBatch"
-    commits_changes = u"{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
-    project = u"{instance}_apis/projects/{project_id}"
-    projects = u"{instance}_apis/projects"
-    repository = u"{instance}{project}_apis/git/repositories/{repo_id}"
-    repositories = u"{instance}{project}_apis/git/repositories"
-    subscription = u"{instance}_apis/hooks/subscriptions/{subscription_id}"
-    subscriptions = u"{instance}_apis/hooks/subscriptions"
-    work_items = u"{instance}_apis/wit/workitems/{id}"
-    work_items_create = u"{instance}{project}/_apis/wit/workitems/${type}"
+    commit = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
+    commits = "{instance}_apis/git/repositories/{repo_id}/commits"
+    commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
+    commits_changes = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
+    project = "{instance}_apis/projects/{project_id}"
+    projects = "{instance}_apis/projects"
+    repository = "{instance}{project}_apis/git/repositories/{repo_id}"
+    repositories = "{instance}{project}_apis/git/repositories"
+    subscription = "{instance}_apis/hooks/subscriptions/{subscription_id}"
+    subscriptions = "{instance}_apis/hooks/subscriptions"
+    work_items = "{instance}_apis/wit/workitems/{id}"
+    work_items_create = "{instance}{project}/_apis/wit/workitems/${type}"
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     work_item_search = (
-        u"https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults"
+        "https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults"
     )
-    work_item_states = u"{instance}{project}/_apis/wit/workitemtypes/{type}/states"
+    work_item_states = "{instance}{project}/_apis/wit/workitemtypes/{type}/states"
     # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
-    users = u"https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
-    work_item_categories = u"{instance}{project}/_apis/wit/workitemtypecategories"
+    users = "https://{account_name}.vssps.visualstudio.com/_apis/graph/users"
+    work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
 class VstsApiClient(ApiClient, OAuth2RefreshMixin):
@@ -54,7 +54,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def request(self, method, path, data=None, params=None, api_preview=False, timeout=None):
         self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
-            "Accept": u"application/json; api-version={}{}".format(
+            "Accept": "application/json; api-version={}{}".format(
                 self.api_version, self.api_version_preview if api_preview else ""
             ),
             "Content-Type": "application/json-patch+json"
@@ -62,7 +62,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             else "application/json",
             "X-HTTP-Method-Override": method,
             "X-TFS-FedAuthRedirect": "Suppress",
-            "Authorization": u"Bearer {}".format(self.identity.data["access_token"]),
+            "Authorization": "Bearer {}".format(self.identity.data["access_token"]),
         }
         return self._request(
             method, path, headers=headers, data=data, params=params, timeout=timeout
@@ -166,7 +166,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.repository.format(
                 instance=instance,
-                project=u"{}/".format(project) if project else "",
+                project="{}/".format(project) if project else "",
                 repo_id=name_or_id,
             )
         )
@@ -174,7 +174,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_repos(self, instance, project=None):
         return self.get(
             VstsApiPath.repositories.format(
-                instance=instance, project=u"{}/".format(project) if project else ""
+                instance=instance, project="{}/".format(project) if project else ""
             ),
             timeout=5,
         )

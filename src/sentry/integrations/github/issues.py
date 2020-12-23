@@ -8,12 +8,12 @@ from sentry.utils.http import absolute_uri
 
 class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return u"{}#{}".format(data["repo"], data["key"])
+        return "{}#{}".format(data["repo"], data["key"])
 
     def get_issue_url(self, key):
         domain_name, user = self.model.metadata["domain_name"].split("/")
         repo, issue_id = key.split("#")
-        return u"https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
+        return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]
@@ -136,7 +136,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "github_integration"})
                     ),
@@ -191,6 +191,6 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
-        issues = tuple((i["number"], u"#{} {}".format(i["number"], i["title"])) for i in response)
+        issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 
         return issues

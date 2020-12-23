@@ -111,7 +111,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
-            assert release_request.headers["User-Agent"] == u"sentry_vercel/{}".format(VERSION)
+            assert release_request.headers["User-Agent"] == "sentry_vercel/{}".format(VERSION)
 
     @responses.activate
     def test_no_match(self):

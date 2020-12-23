@@ -50,13 +50,13 @@ def get_assignee_string(group):
         return None
 
     if actor.type == Team:
-        return u"#{}".format(assigned_actor.slug)
+        return "#{}".format(assigned_actor.slug)
     else:
         return assigned_actor.email
 
 
 def build_welcome_card(signed_params):
-    url = u"%s?signed_params=%s" % (
+    url = "%s?signed_params=%s" % (
         absolute_uri("/extensions/msteams/configure/"),
         signed_params,
     )
@@ -114,7 +114,7 @@ def build_installation_confirmation_message(organization):
         "type": "TextBlock",
         "weight": "Bolder",
         "size": "Large",
-        "text": u"Installation for {} is successful".format(organization.name),
+        "text": "Installation for {} is successful".format(organization.name),
         "wrap": True,
     }
     alert_rule_instructions = {
@@ -226,7 +226,7 @@ def build_mentioned_card():
 def build_unrecognized_command_card(command_text):
     instruction = {
         "type": "TextBlock",
-        "text": (u"Sorry, I didn't understand '{}'.".format(command_text)),
+        "text": ("Sorry, I didn't understand '{}'.".format(command_text)),
         "wrap": True,
     }
 
@@ -332,7 +332,7 @@ def build_group_title(group):
 
     link = group.get_absolute_url()
 
-    title_text = u"[{}]({})".format(text, link)
+    title_text = "[{}]({})".format(text, link)
     return {"type": "TextBlock", "size": "Large", "weight": "Bolder", "text": title_text}
 
 
@@ -350,7 +350,7 @@ def build_group_descr(group):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
 
 
@@ -368,12 +368,12 @@ def build_group_footer(group, rules, project, event):
         "width": "auto",
     }
 
-    text = u"{}".format(group.qualified_short_id)
+    text = "{}".format(group.qualified_short_id)
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        text += u" via [{}]({})".format(rules[0].label, rule_url)
+        text += " via [{}]({})".format(rules[0].label, rule_url)
         if len(rules) > 1:
-            text += u" (+{} other)".format(len(rules) - 1)
+            text += " (+{} other)".format(len(rules) - 1)
 
     text_column = {
         "type": "Column",
@@ -594,7 +594,7 @@ def build_group_ignore_card(group, event, rules, integration):
 
 def build_group_assign_card(group, event, rules, integration):
     teams_list = group.project.teams.all().order_by("slug")
-    teams = [{"title": u"#{}".format(u.slug), "value": u"team:{}".format(u.id)} for u in teams_list]
+    teams = [{"title": "#{}".format(u.slug), "value": "team:{}".format(u.id)} for u in teams_list]
     teams = [{"title": "Me", "value": ME}] + teams
     title_card = {
         "type": "TextBlock",

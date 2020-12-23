@@ -37,7 +37,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
                 "instance": instance,
                 "path": project["path_with_namespace"],
                 "name": project["name_with_namespace"],
-                "external_id": u"{}:{}".format(instance, project["id"]),
+                "external_id": "{}:{}".format(instance, project["id"]),
                 "project_id": project["id"],
                 "url": project["web_url"],
             }
@@ -129,7 +129,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         return file_changes
 
     def pull_request_url(self, repo, pull_request):
-        return u"{}/merge_requests/{}".format(repo.url, pull_request.key)
+        return "{}/merge_requests/{}".format(repo.url, pull_request.key)
 
     def repository_external_slug(self, repo):
         return repo.config["project_id"]

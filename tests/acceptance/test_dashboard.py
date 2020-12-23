@@ -41,7 +41,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.path = u"/organizations/{}/projects/".format(self.organization.slug)
+        self.path = "/organizations/{}/projects/".format(self.organization.slug)
 
     def create_sample_event(self):
         self.init_snuba()
@@ -103,7 +103,7 @@ class EmptyDashboardTest(AcceptanceTestCase):
     def setUp(self):
         super(EmptyDashboardTest, self).setUp()
         self.login_as(self.user)
-        self.path = u"/organizations/{}/projects/".format(self.organization.slug)
+        self.path = "/organizations/{}/projects/".format(self.organization.slug)
 
     def test_new_dashboard_empty(self):
         self.browser.get(self.path)

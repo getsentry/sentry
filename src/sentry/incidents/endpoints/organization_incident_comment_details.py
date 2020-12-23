@@ -36,7 +36,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
                 incident=kwargs["incident"],
                 # Only allow modifying comments
                 type=IncidentActivityType.COMMENT.value,
-                **user_filter
+                **user_filter,
             )
         except IncidentActivity.DoesNotExist:
             raise ResourceDoesNotExist

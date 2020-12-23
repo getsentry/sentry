@@ -86,15 +86,15 @@ class VercelWebhookEndpoint(Endpoint):
         # contruct the repo depeding what provider we use
         if meta.get("githubCommitSha"):
             # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-            repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
+            repository = "%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
         elif meta.get("gitlabCommitSha"):
             # gitlab repos are formatted with a space for some reason
-            repository = u"%s / %s" % (
+            repository = "%s / %s" % (
                 meta["gitlabProjectNamespace"],
                 meta["gitlabProjectName"],
             )
         elif meta.get("bitbucketCommitSha"):
-            repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
+            repository = "%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
         else:
             # this can happen with manual builds
             raise NoCommitFoundError("No commit found")
@@ -181,8 +181,8 @@ class VercelWebhookEndpoint(Endpoint):
                 url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": u"Bearer %s" % token,
-                    "User-Agent": u"sentry_vercel/{}".format(VERSION),
+                    "Authorization": "Bearer %s" % token,
+                    "User-Agent": "sentry_vercel/{}".format(VERSION),
                 }
                 json_error = None
 

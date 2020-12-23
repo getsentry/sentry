@@ -59,7 +59,7 @@ class GetOriginsTestCase(TestCase):
 
     def test_project(self):
         project = Project.objects.get()
-        project.update_option("sentry:origins", [u"http://foo.example"])
+        project.update_option("sentry:origins", ["http://foo.example"])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
@@ -67,7 +67,7 @@ class GetOriginsTestCase(TestCase):
 
     def test_project_and_setting(self):
         project = Project.objects.get()
-        project.update_option("sentry:origins", [u"http://foo.example"])
+        project.update_option("sentry:origins", ["http://foo.example"])
 
         with self.settings(SENTRY_ALLOW_ORIGIN="http://example.com"):
             result = get_origins(project)
@@ -90,11 +90,11 @@ class GetOriginsTestCase(TestCase):
 
     def test_empty_origin_values(self):
         project = Project.objects.get()
-        project.update_option("sentry:origins", [u"*", None, ""])
+        project.update_option("sentry:origins", ["*", None, ""])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
-            self.assertEquals(result, frozenset([u"*"]))
+            self.assertEquals(result, frozenset(["*"]))
 
 
 class IsValidOriginTestCase(unittest.TestCase):
@@ -207,21 +207,21 @@ class IsValidOriginTestCase(unittest.TestCase):
         assert result is False
 
     def test_unicode(self):
-        result = self.isValidOrigin(u"http://l\xf8calhost", [u"*.l\xf8calhost"])
+        result = self.isValidOrigin("http://l\xf8calhost", ["*.l\xf8calhost"])
         assert result is True
 
     def test_punycode(self):
-        result = self.isValidOrigin("http://xn--lcalhost-54a", [u"*.l\xf8calhost"])
+        result = self.isValidOrigin("http://xn--lcalhost-54a", ["*.l\xf8calhost"])
         assert result is True
-        result = self.isValidOrigin("http://xn--lcalhost-54a", [u"*.xn--lcalhost-54a"])
+        result = self.isValidOrigin("http://xn--lcalhost-54a", ["*.xn--lcalhost-54a"])
         assert result is True
-        result = self.isValidOrigin(u"http://l\xf8calhost", [u"*.xn--lcalhost-54a"])
+        result = self.isValidOrigin("http://l\xf8calhost", ["*.xn--lcalhost-54a"])
         assert result is True
-        result = self.isValidOrigin(b"http://l\xc3\xb8calhost", [u"*.xn--lcalhost-54a"])
+        result = self.isValidOrigin(b"http://l\xc3\xb8calhost", ["*.xn--lcalhost-54a"])
         assert result is True
-        result = self.isValidOrigin("http://xn--lcalhost-54a", [u"l\xf8calhost"])
+        result = self.isValidOrigin("http://xn--lcalhost-54a", ["l\xf8calhost"])
         assert result is True
-        result = self.isValidOrigin("http://xn--lcalhost-54a:80", [u"l\xf8calhost:80"])
+        result = self.isValidOrigin("http://xn--lcalhost-54a:80", ["l\xf8calhost:80"])
         assert result is True
 
     def test_unparseable_uri(self):

@@ -62,7 +62,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
             )
 
         def integration_match(integration):
-            return source_url.startswith(u"https://{}".format(integration.metadata["domain_name"]))
+            return source_url.startswith("https://{}".format(integration.metadata["domain_name"]))
 
         def repo_match(repo):
             return source_url.startswith(repo.url)
@@ -113,8 +113,8 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         integration = serializer.integration
 
         # strip off the base URL (could be in different formats)
-        rest_url = source_url.replace(u"{}/-/blob/".format(repo.url), "")
-        rest_url = rest_url.replace(u"{}/blob/".format(repo.url), "")
+        rest_url = source_url.replace("{}/-/blob/".format(repo.url), "")
+        rest_url = rest_url.replace("{}/blob/".format(repo.url), "")
         branch, _, source_path = rest_url.partition("/")
 
         stack_root, source_root = find_roots(stack_path, source_path)

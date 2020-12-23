@@ -16,7 +16,7 @@ class ProviderManager(object):
 
     def add(self, item, id):
         if self.type and not issubclass(item, self.type):
-            raise ValueError(u"Invalid type for provider: {}".format(type(item)))
+            raise ValueError("Invalid type for provider: {}".format(type(item)))
 
         self._items[id] = item
 

@@ -150,7 +150,7 @@ def create_fake_email(unique_id, namespace):
 
     For example: c74e5b75-e037-4e75-ad27-1a0d21a6b203@cloudfoundry.sentry-fake
     """
-    return u"{}@{}{}".format(unique_id, namespace, FAKE_EMAIL_TLD)
+    return "{}@{}{}".format(unique_id, namespace, FAKE_EMAIL_TLD)
 
 
 def is_fake_email(email):
@@ -222,13 +222,13 @@ class ListResolver(object):
             handler = self.__type_handlers[type(instance)]
         except KeyError:
             raise self.UnregisteredTypeError(
-                u"Cannot generate mailing list identifier for {!r}".format(instance)
+                "Cannot generate mailing list identifier for {!r}".format(instance)
             )
 
         label = ".".join(map(six.text_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return u"<{}.{}>".format(label, self.__namespace)
+        return "<{}.{}>".format(label, self.__namespace)
 
 
 default_list_type_handlers = {
@@ -371,7 +371,7 @@ class MessageBuilder(object):
         if not to:
             return ""
         if len(to) > MAX_RECIPIENTS:
-            to = to[:MAX_RECIPIENTS] + [u"and {} more.".format(len(to[MAX_RECIPIENTS:]))]
+            to = to[:MAX_RECIPIENTS] + ["and {} more.".format(len(to[MAX_RECIPIENTS:]))]
         return ", ".join(to)
 
     def send(self, to=None, cc=None, bcc=None, fail_silently=False):
@@ -452,7 +452,7 @@ def send_mail(subject, message, from_email, recipient_list, fail_silently=False,
         from_email,
         recipient_list,
         connection=get_connection(fail_silently=fail_silently),
-        **kwargs
+        **kwargs,
     )
     return email.send(fail_silently=fail_silently)
 

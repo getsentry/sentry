@@ -15,7 +15,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationIncidentsListTest, self).setUp()
         self.login_as(self.user)
-        self.path = u"/organizations/{}/alerts/".format(self.organization.slug)
+        self.path = "/organizations/{}/alerts/".format(self.organization.slug)
 
     def test_empty_incidents(self):
         with self.feature(FEATURE_NAME):
@@ -41,7 +41,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
-            details_url = u'[href="/organizations/{}/alerts/{}/'.format(
+            details_url = '[href="/organizations/{}/alerts/{}/'.format(
                 self.organization.slug, incident.identifier
             )
             self.browser.wait_until(details_url)

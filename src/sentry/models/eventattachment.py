@@ -20,7 +20,7 @@ def get_crashreport_key(group_id):
     Returns the ``django.core.cache`` key for groups that have exceeded their
     configured crash report limit.
     """
-    return u"cr:%s" % (group_id,)
+    return "cr:%s" % (group_id,)
 
 
 class EventAttachment(Model):

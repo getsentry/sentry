@@ -243,7 +243,7 @@ def timer(name, prefix="snuba.client"):
     try:
         yield
     finally:
-        metrics.timing(u"{}.{}".format(prefix, name), time.time() - t)
+        metrics.timing("{}.{}".format(prefix, name), time.time() - t)
 
 
 @contextmanager
@@ -347,9 +347,9 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     match = MEASUREMENTS_KEY_RE.match(name)
     if "measurements_key" in DATASETS[dataset] and match:
-        default = u"measurements[{}]".format(match.group(1).lower())
+        default = "measurements[{}]".format(match.group(1).lower())
     else:
-        default = u"tags[{}]".format(name)
+        default = "tags[{}]".format(name)
 
     return DATASETS[dataset].get(name, default)
 
@@ -589,7 +589,7 @@ class SnubaQueryParams(object):
         rollup=None,
         referrer=None,
         is_grouprelease=False,
-        **kwargs
+        **kwargs,
     ):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
@@ -620,7 +620,7 @@ def raw_query(
     rollup=None,
     referrer=None,
     is_grouprelease=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
@@ -636,7 +636,7 @@ def raw_query(
         aggregations=aggregations,
         rollup=rollup,
         is_grouprelease=is_grouprelease,
-        **kwargs
+        **kwargs,
     )
     return bulk_raw_query([snuba_params], referrer=referrer)[0]
 
@@ -658,7 +658,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     query_params["debug"] = True
                 body = json.dumps(query_params)
                 with thread_hub.start_span(
-                    op="snuba", description=u"query {}".format(referrer)
+                    op="snuba", description="query {}".format(referrer)
                 ) as span:
                     span.set_tag("referrer", referrer)
                     for param_key, param_data in six.iteritems(query_params):
@@ -673,7 +673,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
 
     with sentry_sdk.start_span(
         op="start_snuba_query",
-        description=u"running {} snuba queries".format(len(snuba_param_list)),
+        description="running {} snuba queries".format(len(snuba_param_list)),
     ) as span:
         span.set_tag("referrer", headers.get("referer", "<unknown>"))
         if len(snuba_param_list) > 1:
@@ -705,7 +705,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                 logger.error("snuba.query.invalid-json")
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
-                u"Could not decode JSON response: {}".format(response.data)
+                "Could not decode JSON response: {}".format(response.data)
             )
 
         if response.status != 200:
@@ -722,7 +722,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                 else:
                     raise SnubaError(error["message"])
             else:
-                raise SnubaError(u"HTTP {}".format(response.status))
+                raise SnubaError("HTTP {}".format(response.status))
 
         # Forward and reverse translation maps from model ids to snuba keys, per column
         body["data"] = [reverse(d) for d in body["data"]]
@@ -741,7 +741,7 @@ def query(
     aggregations=None,
     selected_columns=None,
     totals=None,
-    **kwargs
+    **kwargs,
 ):
 
     aggregations = aggregations or [["count()", "", "aggregate"]]
@@ -760,7 +760,7 @@ def query(
             aggregations=aggregations,
             selected_columns=selected_columns,
             totals=totals,
-            **kwargs
+            **kwargs,
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         if totals:
@@ -834,9 +834,9 @@ def resolve_column(dataset):
 
         match = MEASUREMENTS_KEY_RE.match(col)
         if "measurements_key" in DATASETS[dataset] and match:
-            return u"measurements[{}]".format(match.group(1).lower())
+            return "measurements[{}]".format(match.group(1).lower())
 
-        return u"tags[{}]".format(col)
+        return "tags[{}]".format(col)
 
     return _resolve_column
 
@@ -871,9 +871,9 @@ def resolve_condition(cond, column_resolver):
                         func_args[i] = column_resolver(arg)
                 else:
                     if isinstance(arg, six.string_types):
-                        func_args[i] = u"'{}'".format(arg)
+                        func_args[i] = "'{}'".format(arg)
                     elif isinstance(arg, datetime):
-                        func_args[i] = u"'{}'".format(arg.isoformat())
+                        func_args[i] = "'{}'".format(arg.isoformat())
                     else:
                         func_args[i] = arg
 
@@ -935,7 +935,7 @@ def _aliased_query_impl(
     dataset=None,
     orderby=None,
     condition_resolver=None,
-    **kwargs
+    **kwargs,
 ):
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
@@ -972,7 +972,7 @@ def _aliased_query_impl(
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
                 order_field = resolve_func(order_field)
-            updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
+            updated_order.append("{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
     return raw_query(
@@ -987,7 +987,7 @@ def _aliased_query_impl(
         having=having,
         dataset=dataset,
         orderby=orderby,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -1082,7 +1082,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         for field_with_order in orderby:
             field = field_with_order.lstrip("-")
             resolved_orderby.append(
-                u"{}{}".format(
+                "{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
                     field if field in derived_columns else resolve_func(field),
                 )

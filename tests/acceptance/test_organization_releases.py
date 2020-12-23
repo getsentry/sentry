@@ -19,7 +19,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         )
         self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
-        self.path = u"/organizations/{}/releases/".format(self.org.slug)
+        self.path = "/organizations/{}/releases/".format(self.org.slug)
         self.project.update(first_event=timezone.now())
 
     def test_list(self):
@@ -51,7 +51,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         release = self.create_release(
             project=self.project, additional_projects=[self.project2], version="1.0"
         )
-        self.browser.get(u"{}?project={}".format(self.path + release.version, self.project.id))
+        self.browser.get("{}?project={}".format(self.path + release.version, self.project.id))
         self.browser.wait_until_not(".loading")
         self.browser.click('[data-test-id="global-header-project-selector"]')
         self.browser.wait_until_test_id("release-wrapper")

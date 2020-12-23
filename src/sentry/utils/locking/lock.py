@@ -18,7 +18,7 @@ class Lock(object):
         self.routing_key = routing_key
 
     def __repr__(self):
-        return u"<Lock: {!r}>".format(self.key)
+        return "<Lock: {!r}>".format(self.key)
 
     def acquire(self):
         """
@@ -33,7 +33,7 @@ class Lock(object):
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
             six.raise_from(
-                UnableToAcquireLock(u"Unable to acquire {!r} due to error: {}".format(self, error)),
+                UnableToAcquireLock("Unable to acquire {!r} due to error: {}".format(self, error)),
                 error,
             )
 

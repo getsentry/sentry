@@ -17,12 +17,12 @@ class BitbucketServerAPIPath(object):
     repo is the fully qualified slug
     """
 
-    repository = u"/rest/api/1.0/projects/{project}/repos/{repo}"
-    repositories = u"/rest/api/1.0/repos"
-    repository_hook = u"/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
-    repository_hooks = u"/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
-    repository_commits = u"/rest/api/1.0/projects/{project}/repos/{repo}/commits"
-    commit_changes = u"/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
+    repository = "/rest/api/1.0/projects/{project}/repos/{repo}"
+    repositories = "/rest/api/1.0/repos"
+    repository_hook = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
+    repository_hooks = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
+    repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
+    commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -30,9 +30,9 @@ class BitbucketServerSetupClient(ApiClient):
     Client for making requests to Bitbucket Server to follow OAuth1 flow.
     """
 
-    request_token_url = u"{}/plugins/servlet/oauth/request-token"
-    access_token_url = u"{}/plugins/servlet/oauth/access-token"
-    authorize_url = u"{}/plugins/servlet/oauth/authorize?oauth_token={}"
+    request_token_url = "{}/plugins/servlet/oauth/request-token"
+    access_token_url = "{}/plugins/servlet/oauth/access-token"
+    authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "bitbucket_server_setup"
 
     def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):

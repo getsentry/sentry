@@ -104,10 +104,10 @@ class Project(Model, PendingDeletionMixin):
     first_event = models.DateTimeField(null=True)
     flags = BitField(
         flags=(
-            (u"has_releases", u"This Project has sent release data"),
-            (u"has_issue_alerts_targeting", u"This Project has issue alerts targeting"),
-            (u"has_transactions", u"This Project has sent transactions"),
-            (u"has_alert_filters", u"This Project has filters"),
+            ("has_releases", "This Project has sent release data"),
+            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
+            ("has_transactions", "This Project has sent transactions"),
+            ("has_alert_filters", "This Project has filters"),
         ),
         default=10,
         null=True,
@@ -126,7 +126,7 @@ class Project(Model, PendingDeletionMixin):
     _rename_fields_on_pending_delete = frozenset(["slug"])
 
     def __unicode__(self):
-        return u"%s (%s)" % (self.name, self.slug)
+        return "%s (%s)" % (self.name, self.slug)
 
     def next_short_id(self):
         from sentry.models import Counter
@@ -150,7 +150,7 @@ class Project(Model, PendingDeletionMixin):
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
-        url = u"/organizations/{}/issues/".format(self.organization.slug)
+        url = "/organizations/{}/issues/".format(self.organization.slug)
         params = {} if params is None else params
         params["project"] = self.id
         if params:

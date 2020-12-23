@@ -10,7 +10,7 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
     integration_name = "github_enterprise"
 
     def __init__(self, base_url, integration, app_id, private_key, verify_ssl):
-        self.base_url = u"https://{}/api/v3".format(base_url)
+        self.base_url = "https://{}/api/v3".format(base_url)
         self.integration = integration
         self.app_id = app_id
         self.private_key = private_key
@@ -21,7 +21,7 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
 
     def create_token(self):
         return self.post(
-            u"/app/installations/{}/access_tokens".format(
+            "/app/installations/{}/access_tokens".format(
                 self.integration.metadata["installation_id"]
             ),
             headers={

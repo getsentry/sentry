@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def text_shingle(n, value):
-    return map(u"".join, shingle(n, value))
+    return map("".join, shingle(n, value))
 
 
 class FrameEncodingError(ValueError):
@@ -70,7 +70,7 @@ def _make_index_backend(cluster, namespace="sim:1"):
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             index = DummyIndexBackend()
-            logger.info(u"No redis cluster provided for similarity, using {!r}.".format(index))
+            logger.info("No redis cluster provided for similarity, using {!r}.".format(index))
             return index
 
     return MetricsWrapper(

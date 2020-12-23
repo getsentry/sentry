@@ -216,9 +216,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 orgs_to_remove.add(result["organization"].slug)
 
         for org_slug in orgs_to_remove:
-            client.delete(
-                path=u"/organizations/{}/".format(org_slug), request=request, is_sudo=True
-            )
+            client.delete(path="/organizations/{}/".format(org_slug), request=request, is_sudo=True)
 
         remaining_org_ids = [
             o.id for o in org_list if o.slug in avail_org_slugs.difference(orgs_to_remove)

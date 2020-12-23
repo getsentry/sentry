@@ -24,9 +24,9 @@ class JiraServerSetupClient(ApiClient):
     Jira OAuth1 docs: https://developer.atlassian.com/server/jira/platform/oauth/
     """
 
-    request_token_url = u"{}/plugins/servlet/oauth/request-token"
-    access_token_url = u"{}/plugins/servlet/oauth/access-token"
-    authorize_url = u"{}/plugins/servlet/oauth/authorize?oauth_token={}"
+    request_token_url = "{}/plugins/servlet/oauth/request-token"
+    access_token_url = "{}/plugins/servlet/oauth/access-token"
+    authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "jira_server_setup"
 
     def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):

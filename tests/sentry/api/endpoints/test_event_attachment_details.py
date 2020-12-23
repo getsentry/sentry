@@ -41,7 +41,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = u"/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
+        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
             self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
         )
 
@@ -56,7 +56,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = u"/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
+        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
             self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
         )
 
@@ -73,7 +73,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = u"/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
+        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
             self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
         )
 
@@ -88,7 +88,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     def setUp(self):
         super(EventAttachmentDetailsPermissionTest, self).setUp()
         self.create_attachment()
-        self.path = u"/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
+        self.path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
             self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
         )
 

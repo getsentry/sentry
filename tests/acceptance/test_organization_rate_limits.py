@@ -15,7 +15,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = u"/organizations/{}/rate-limits/".format(self.org.slug)
+        self.path = "/organizations/{}/rate-limits/".format(self.org.slug)
 
     @patch("sentry.app.quotas.get_maximum_quota", Mock(return_value=(100, 60)))
     def test_with_rate_limits(self):

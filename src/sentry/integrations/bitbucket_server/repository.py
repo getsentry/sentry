@@ -72,7 +72,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
                 "name": data["identifier"],
                 "external_id": data["external_id"],
                 "url": installation.model.metadata["base_url"]
-                + u"/projects/{project}/repos/{repo}/browse".format(
+                + "/projects/{project}/repos/{repo}/browse".format(
                     project=data["project"], repo=data["repo"]
                 ),
                 "config": {
@@ -136,7 +136,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
         Get the modified files for a commit
         """
 
-        key = u"get_changelist:{}:{}".format(md5_text(project + repo).hexdigest(), sha)
+        key = "get_changelist:{}:{}".format(md5_text(project + repo).hexdigest(), sha)
         commit_files = cache.get(key)
         if commit_files is None:
             commit_files = client.get_commit_filechanges(project, repo, sha)

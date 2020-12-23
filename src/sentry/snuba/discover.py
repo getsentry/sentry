@@ -78,12 +78,12 @@ def is_real_column(col):
 # we could avoid this whole calculation.
 def find_histogram_buckets(field, params, conditions):
     _, columns, _ = parse_function(
-        field, err_msg=u"received {}, expected histogram function".format(field)
+        field, err_msg="received {}, expected histogram function".format(field)
     )
 
     if len(columns) != 2:
         raise InvalidSearchQuery(
-            u"histogram(...) expects 2 column arguments, received {:g} arguments".format(
+            "histogram(...) expects 2 column arguments, received {:g} arguments".format(
                 len(columns)
             )
         )
@@ -101,11 +101,11 @@ def find_histogram_buckets(field, params, conditions):
             raise Exception()
     except Exception:
         raise InvalidSearchQuery(
-            u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
+            "histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
         )
 
-    max_alias = u"max_{}".format(column)
-    min_alias = u"min_{}".format(column)
+    max_alias = "max_{}".format(column)
+    min_alias = "min_{}".format(column)
 
     conditions = deepcopy(conditions) if conditions else []
     found = False
@@ -133,7 +133,7 @@ def find_histogram_buckets(field, params, conditions):
     bucket_min = results["data"][0][min_alias]
     bucket_max = results["data"][0][max_alias]
     if bucket_max == 0:
-        raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
+        raise InvalidSearchQuery("Cannot calculate histogram for {}".format(field))
     bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
     if bucket_size == 0.0:
         bucket_size = 1.0
@@ -149,7 +149,7 @@ def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snu
     parts = snuba_function_alias.split("_")
     # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
     if len(parts) < 5 or parts[0] != "histogram":
-        raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
+        raise Exception("{} is not a valid histogram alias".format(snuba_function_alias))
 
     bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
     if len(results) == num_buckets:
@@ -426,7 +426,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
-            error_extra = u", and could not be automatically added" if auto_aggregations else u""
+            error_extra = ", and could not be automatically added" if auto_aggregations else ""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -447,7 +447,7 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                        "Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
                             ", ".join(conditions_not_in_aggregations),
                             error_extra,
                         )
@@ -458,7 +458,7 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
+                        "Aggregate {} used in a condition but is not a selected column{}.".format(
                             having_clause[0],
                             error_extra,
                         )
@@ -859,7 +859,7 @@ def get_facets(query, params, limit=10, referrer=None):
     ) as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
-            tag = u"tags[{}]".format(tag_name)
+            tag = "tags[{}]".format(tag_name)
             tag_values = raw_query(
                 aggregations=[["count", None, "count"]],
                 conditions=snuba_filter.conditions,
@@ -988,7 +988,7 @@ def measurements_histogram_query(
 
 
 def get_measurements_histogram_col(params):
-    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
+    return "measurements_histogram({:d}, {:d}, {:d})".format(*params)
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):

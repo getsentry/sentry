@@ -189,7 +189,7 @@ def is_prettier_valid(project_root, prettier_path):
     prettier_version = subprocess.check_output([prettier_path, "--version"]).decode("utf8").rstrip()
     if prettier_version != package_version:
         sys.stderr.write(
-            u"[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.\n".format(
+            "[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.\n".format(
                 prettier_version, package_version
             )
         )

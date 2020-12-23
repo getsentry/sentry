@@ -795,12 +795,12 @@ class EventManagerTest(TestCase):
         assert euser.ip_address is None
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(make_event(**{"user": {"username": u"foô"}}))
+        manager = EventManager(make_event(**{"user": {"username": "foô"}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
         euser = EventUser.objects.get(project_id=self.project.id)
-        assert euser.username == u"foô"
+        assert euser.username == "foô"
 
     def test_environment(self):
         manager = EventManager(make_event(**{"environment": "beta"}))

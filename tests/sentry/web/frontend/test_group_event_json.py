@@ -11,7 +11,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
-        return u"/organizations/{}/issues/{}/events/{}/json/".format(
+        return "/organizations/{}/issues/{}/events/{}/json/".format(
             self.organization.slug, self.event.group_id, self.event.event_id
         )
 
