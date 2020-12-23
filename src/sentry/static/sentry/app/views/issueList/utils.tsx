@@ -47,7 +47,7 @@ export function getTabs(organization: Organization) {
       Query.IGNORED,
       {
         name: t('Ignored'),
-        count: false,
+        count: true,
         enabled: true,
       },
     ],
