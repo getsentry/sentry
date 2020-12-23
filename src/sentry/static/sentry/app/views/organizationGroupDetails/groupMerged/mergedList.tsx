@@ -16,12 +16,7 @@ import MergedToolbar from './mergedToolbar';
 
 type Props = {
   // From GroupMergedView -> handleUnmerge
-  onUnmerge: () => {
-    groupId: string;
-    loadingMessage: string;
-    successMessage: string;
-    errorMessage: string;
-  };
+  onUnmerge: () => void;
   // From GroupingActions.toggleCollapseFingerprints
   onToggleCollapse: () => void;
   orgId: string;
