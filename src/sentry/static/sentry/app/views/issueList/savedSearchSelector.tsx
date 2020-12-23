@@ -177,7 +177,7 @@ const DeleteButton = styled(Button)`
   color: ${p => p.theme.gray200};
   background: transparent;
   flex-shrink: 0;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1)} 0;
+  padding: ${space(1)} 0;
 
   &:hover {
     background: transparent;
