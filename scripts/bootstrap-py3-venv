@@ -52,9 +52,7 @@ if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]]; then
     abort "Your python3 version isn't as expected. Please run: make setup-pyenv"
 fi
 
-python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
-python3 -m pip install -U virtualenv    || { echo "bootstrap failed!"; return 1; }
-python3 -m virtualenv "${venv_name}"    || { echo "bootstrap failed!"; return 1; }
+python3 -m venv "${venv_name}"          || { echo "bootstrap failed!"; return 1; }
 source "${venv_name}/bin/activate"      || { echo "bootstrap failed!"; return 1; }
 make setup-git                          || { echo "bootstrap failed!"; return 1; }
 make install-py-dev                     || { echo "bootstrap failed!"; return 1; }

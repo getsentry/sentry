@@ -64,7 +64,7 @@ EOF
     fi
 else
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
-        die "You don't seem to have a virtualenv. Please create one by running: python${python_version} -m virtualenv ${venv_name}"
+        die "You don't seem to have a virtualenv. Please create one by running: python${python_version} -m venv ${venv_name}"
     fi
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi
