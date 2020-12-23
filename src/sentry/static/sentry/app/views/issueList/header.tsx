@@ -14,6 +14,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
+import theme from 'app/utils/theme';
 
 import {Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
@@ -124,11 +125,9 @@ function IssueListHeader({
                   <StyledQueryCount
                     count={queryCounts[tabQuery].count}
                     max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                    tagType={
-                      (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
-                      (tabQuery === Query.UNRESOLVED && 'default') ||
-                      (tabQuery === Query.IGNORED && 'default') ||
-                      undefined
+                    backgroundColor={
+                      (tabQuery === Query.NEEDS_REVIEW && theme.yellow300) ||
+                      theme.gray100
                     }
                   />
                 )}
