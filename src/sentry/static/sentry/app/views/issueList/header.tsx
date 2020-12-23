@@ -13,8 +13,8 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import withProjects from 'app/utils/withProjects';
 import theme from 'app/utils/theme';
+import withProjects from 'app/utils/withProjects';
 
 import {Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
