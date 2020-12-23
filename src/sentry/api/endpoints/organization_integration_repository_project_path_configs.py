@@ -114,7 +114,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         org_integration = self.get_organization_integration(organization, integration_id)
 
         serializer = RepositoryProjectPathConfigSerializer(
-            context={"organization_integration": org_integration}, data=request.data,
+            context={"organization_integration": org_integration},
+            data=request.data,
         )
         if serializer.is_valid():
             repository_project_path_config = serializer.save()

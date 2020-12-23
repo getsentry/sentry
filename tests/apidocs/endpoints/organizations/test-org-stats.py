@@ -14,7 +14,8 @@ class OrganizationStatsDocs(APIDocsTestCase):
         self.create_event("b", message="oh no")
 
         self.url = reverse(
-            "sentry-api-0-organization-stats", kwargs={"organization_slug": self.organization.slug},
+            "sentry-api-0-organization-stats",
+            kwargs={"organization_slug": self.organization.slug},
         )
 
         self.login_as(user=self.user)

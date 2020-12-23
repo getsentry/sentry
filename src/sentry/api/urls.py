@@ -424,7 +424,9 @@ urlpatterns = [
                     name="sentry-api-0-relay-publickeys",
                 ),
                 url(
-                    r"^live/$", RelayHealthCheck.as_view(), name="sentry-api-0-relays-healthcheck",
+                    r"^live/$",
+                    RelayHealthCheck.as_view(),
+                    name="sentry-api-0-relays-healthcheck",
                 ),
                 url(
                     r"^(?P<relay_id>[^\/]+)/$",

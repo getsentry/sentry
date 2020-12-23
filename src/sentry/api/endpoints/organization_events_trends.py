@@ -50,9 +50,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
     @staticmethod
     def get_function_aliases(trend_type):
-        """ Construct the dict of aliases
+        """Construct the dict of aliases
 
-            trend_percentage and trend_difference behave differently depending on the trend type
+        trend_percentage and trend_difference behave differently depending on the trend type
         """
         return {
             "trend_percentage()": Alias(
@@ -126,7 +126,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         else:
             avg_alias = "aggregate_range"
 
-        t_test_columns.append(self.trend_columns["t_test"].format(avg=avg_alias,))
+        t_test_columns.append(
+            self.trend_columns["t_test"].format(
+                avg=avg_alias,
+            )
+        )
 
         return t_test_columns + [
             trend_column.format(*columns, start=start, end=middle, query_alias="aggregate_range_1"),

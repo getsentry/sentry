@@ -23,7 +23,9 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def test_alert_rules_list(self):
         Rule.objects.filter(project=self.project).update(date_added=timezone.now())
         self.create_alert_rule(
-            name="My Alert Rule", date_added=timezone.now(), user=self.user,
+            name="My Alert Rule",
+            date_added=timezone.now(),
+            user=self.user,
         )
 
         with self.feature(FEATURE_NAME):

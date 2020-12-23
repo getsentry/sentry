@@ -542,6 +542,10 @@ class OrganizationMemberListPostTest(APITestCase):
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
-        resp = self.get_response(self.org.slug, email="jane@gmail.com", role="member",)
+        resp = self.get_response(
+            self.org.slug,
+            email="jane@gmail.com",
+            role="member",
+        )
         assert resp.status_code == 429
         assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()

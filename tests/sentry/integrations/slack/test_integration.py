@@ -158,7 +158,8 @@ class SlackIntegrationTest(IntegrationTestCase):
             {"slack-v2.client-id": "other-id", "slack-v2.client-secret": "other-secret"}
         ):
             self.assert_setup_flow(
-                expected_client_id="other-id", expected_client_secret="other-secret",
+                expected_client_id="other-id",
+                expected_client_secret="other-secret",
             )
 
 

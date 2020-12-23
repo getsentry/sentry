@@ -210,7 +210,9 @@ def process_pending_incident_snapshots(next_id=None):
         # of total pending snapshots so that we can alert if we notice the queue
         # constantly growing.
         metrics.incr(
-            "incidents.pending_snapshots", amount=pending_snapshots.count(), sample_rate=1.0,
+            "incidents.pending_snapshots",
+            amount=pending_snapshots.count(),
+            sample_rate=1.0,
         )
 
     if next_id is not None:

@@ -168,7 +168,8 @@ class EmailActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+            target_identifier=six.text_type(self.user.id),
+            triggered_for_incident=incident,
         )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
@@ -402,7 +403,10 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
 class SentryAppActionHandlerTest(FireTest, TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(
-            name="foo", organization=self.organization, is_alertable=True, verify_install=False,
+            name="foo",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
         )
         self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.organization, user=self.user

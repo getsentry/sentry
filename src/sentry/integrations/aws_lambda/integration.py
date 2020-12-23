@@ -235,7 +235,9 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     layers.append(node_layer_arn)
 
                 lambda_client.update_function_configuration(
-                    FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+                    FunctionName=name,
+                    Layers=layers,
+                    Environment={"Variables": env_variables},
                 )
             except Exception as e:
                 failures.append(function)

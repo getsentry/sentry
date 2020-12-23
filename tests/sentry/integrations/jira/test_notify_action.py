@@ -60,7 +60,10 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "fixVersions": "[10000]",
             }
         )
-        jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
+        jira_rule.rule = Rule.objects.create(
+            project=self.project,
+            label="test rule",
+        )
 
         jira_rule.data["key"] = "APP-123"
 
@@ -131,7 +134,10 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "fixVersions": "[10000]",
             }
         )
-        jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
+        jira_rule.rule = Rule.objects.create(
+            project=self.project,
+            label="test rule",
+        )
 
         results = list(jira_rule.after(event=event, state=self.get_state()))
         assert len(results) == 1

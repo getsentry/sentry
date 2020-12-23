@@ -164,7 +164,10 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         if result.get("reinvite"):
             if om.is_pending:
                 if ratelimits.for_organization_member_invite(
-                    organization=organization, email=om.email, user=request.user, auth=request.auth,
+                    organization=organization,
+                    email=om.email,
+                    user=request.user,
+                    auth=request.auth,
                 ):
                     metrics.incr(
                         "member-invite.attempt",

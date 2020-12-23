@@ -15,7 +15,10 @@ class ApiInviteHelperTest(TestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.user = self.create_user("foo@example.com")
         self.member = self.create_member(
-            user=None, email="bar@example.com", organization=self.org, teams=[self.team],
+            user=None,
+            email="bar@example.com",
+            organization=self.org,
+            teams=[self.team],
         )
         self.auth_provider = AuthProvider(provider="Friendly IdP", organization=self.organization)
 

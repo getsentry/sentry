@@ -66,7 +66,10 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            is_new=True, is_regression=False, is_new_group_environment=True, cache_key=cache_key,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
         )
 
         mock_processor.assert_not_called()  # NOQA

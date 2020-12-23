@@ -111,7 +111,8 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 "requester_name": requester.name or requester.username,
                 "requester_link": absolute_uri(
                     "/settings/{organization_slug}/members/{user_id}/".format(
-                        organization_slug=organization.slug, user_id=requester.id,
+                        organization_slug=organization.slug,
+                        user_id=requester.id,
                     )
                 ),
                 "settings_link": absolute_uri(

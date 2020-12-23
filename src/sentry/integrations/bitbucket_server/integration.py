@@ -213,7 +213,7 @@ class OAuthCallbackView(PipelineView):
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
     """
-        IntegrationInstallation implementation for Bitbucket Server
+    IntegrationInstallation implementation for Bitbucket Server
     """
 
     repo_search = True

@@ -100,7 +100,7 @@ def create_or_update(model, using=None, **kwargs):
 
 def in_iexact(column, values):
     """Operator to test if any of the given values are (case-insensitive)
-       matching to values in the given column."""
+    matching to values in the given column."""
     from operator import or_
 
     query = u"{}__iexact".format(column)
@@ -110,7 +110,7 @@ def in_iexact(column, values):
 
 def in_icontains(column, values):
     """Operator to test if any of the given values are (case-insensitively)
-       contained within values in the given column."""
+    contained within values in the given column."""
     from operator import or_
 
     query = u"{}__icontains".format(column)

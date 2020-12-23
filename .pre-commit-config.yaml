@@ -13,7 +13,7 @@ exclude: >
     )
 repos:
 -   repo: https://github.com/ambv/black
-    rev: 19.10b0
+    rev: 20.8b1
     hooks:
     - id: black
       types: [python]
@@ -29,7 +29,7 @@ repos:
       additional_dependencies:
       - sentry-flake8==0.4.0
 -   repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v3.4.0
     hooks:
     - id: check-case-conflict
     - id: check-executables-have-shebangs

@@ -249,7 +249,8 @@ class Endpoint(APIView):
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
                 with sentry_sdk.start_span(
-                    op="base.dispatch.sleep", description=type(self).__name__,
+                    op="base.dispatch.sleep",
+                    description=type(self).__name__,
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
@@ -315,7 +316,8 @@ class Endpoint(APIView):
 
         try:
             with sentry_sdk.start_span(
-                op="base.paginate.get_result", description=type(self).__name__,
+                op="base.paginate.get_result",
+                description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
@@ -325,7 +327,8 @@ class Endpoint(APIView):
         # map results based on callback
         if on_results:
             with sentry_sdk.start_span(
-                op="base.paginate.on_results", description=type(self).__name__,
+                op="base.paginate.on_results",
+                description=type(self).__name__,
             ):
                 results = on_results(cursor_result.results)
         else:

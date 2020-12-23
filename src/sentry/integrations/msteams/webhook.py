@@ -234,7 +234,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
             integration = Integration.objects.get(provider=self.provider, external_id=team_id)
         except Integration.DoesNotExist:
             logger.info(
-                "msteams.uninstall.missing-integration", extra={"team_id": team_id},
+                "msteams.uninstall.missing-integration",
+                extra={"team_id": team_id},
             )
             return self.respond(status=404)
 

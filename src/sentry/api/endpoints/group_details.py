@@ -138,7 +138,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
         }
         serialized_releases = serialize(
-            [releases.get(version) for version in versions], request.user,
+            [releases.get(version) for version in versions],
+            request.user,
         )
         # Default to a dictionary if the release object wasn't found and not serialized
         return [

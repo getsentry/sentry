@@ -46,12 +46,16 @@ class JiraCreateTicketAction(TicketEventAction):
             Integration.objects.get(id=integration)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
-                _("Jira integration is a required field.",), code="invalid",
+                _(
+                    "Jira integration is a required field.",
+                ),
+                code="invalid",
             )
 
     def generate_footer(self, rule_url):
         return u"This ticket was automatically created by Sentry via [{}|{}]".format(
-            self.rule.label, absolute_uri(rule_url),
+            self.rule.label,
+            absolute_uri(rule_url),
         )
 
     def fix_data_for_issue(self):

@@ -40,7 +40,9 @@ class MsTeamsWebhookTest(APITestCase):
             json=OPEN_ID_CONFIG,
         )
         responses.add(
-            responses.GET, OPEN_ID_CONFIG["jwks_uri"], json=WELL_KNOWN_KEYS,
+            responses.GET,
+            OPEN_ID_CONFIG["jwks_uri"],
+            json=WELL_KNOWN_KEYS,
         )
 
     @responses.activate
@@ -71,7 +73,11 @@ class MsTeamsWebhookTest(APITestCase):
 
     @responses.activate
     def test_post_empty_token(self):
-        resp = self.client.post(path=webhook_url, data=EXAMPLE_TEAM_MEMBER_ADDED, format="json",)
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_TEAM_MEMBER_ADDED,
+            format="json",
+        )
 
         assert resp.data["detail"] == "Authorization header required"
         assert resp.status_code == 403
@@ -414,10 +420,9 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert "Your Microsoft Teams identity will be linked to your Sentry account" in responses.calls[
-            3
-        ].request.body.decode(
-            "utf-8"
+        assert (
+            "Your Microsoft Teams identity will be linked to your Sentry account"
+            in responses.calls[3].request.body.decode("utf-8")
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
@@ -451,10 +456,9 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert "Your Microsoft Teams identity is already linked to a Sentry account" in responses.calls[
-            3
-        ].request.body.decode(
-            "utf-8"
+        assert (
+            "Your Microsoft Teams identity is already linked to a Sentry account"
+            in responses.calls[3].request.body.decode("utf-8")
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 

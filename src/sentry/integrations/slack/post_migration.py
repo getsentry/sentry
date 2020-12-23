@@ -27,7 +27,8 @@ def build_migration_attachment():
 
 
 @instrumented_task(
-    name="sentry.integrations.slack.run_post_migration", queue="integrations",
+    name="sentry.integrations.slack.run_post_migration",
+    queue="integrations",
 )
 @retry(on=())  # no retries on any errors
 def run_post_migration(

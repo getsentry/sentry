@@ -107,8 +107,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         ]
 
     def _get_patchset(self, client, repo_name, sha):
-        """Get the modified files for a commit
-        """
+        """Get the modified files for a commit"""
         commit = client.get_commit(repo_name, sha)
         return self._transform_patchset(commit["files"])
 

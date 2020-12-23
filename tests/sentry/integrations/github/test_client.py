@@ -68,7 +68,9 @@ class GitHubAppsClientTest(TestCase):
         )
 
         responses.add(
-            method=responses.HEAD, url=url, json={"text": 200},
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
         )
 
         resp = self.client.check_file(self.repo, path, version)

@@ -175,19 +175,19 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         **kwargs
     ):
-        """ Query snuba for tag keys based on projects
+        """Query snuba for tag keys based on projects
 
-            When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
-            which refines the query enough caching isn't required.
-            The cache key is based on the filters being passed so that different queries don't hit the same cache, with
-            exceptions for start and end dates. Since even a microsecond passing would result in a different caching
-            key, which means always missing the cache.
-            Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
-            with a certain jitter to the cache key.
-            This jitter is based on the hash of the key before duration/end time is added for consistency per query.
-            The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
-            This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
-            further explanation of how that is done.
+        When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
+        which refines the query enough caching isn't required.
+        The cache key is based on the filters being passed so that different queries don't hit the same cache, with
+        exceptions for start and end dates. Since even a microsecond passing would result in a different caching
+        key, which means always missing the cache.
+        Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
+        with a certain jitter to the cache key.
+        This jitter is based on the hash of the key before duration/end time is added for consistency per query.
+        The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
+        This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
+        further explanation of how that is done.
         """
         default_start, default_end = default_start_end_dates()
         if start is None:

@@ -878,7 +878,10 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Null values and 1 are the same, and both indicate a handled error.
         if value in ("1", 1):
             return [["isHandled", []], "=", 1]
-        if value in ("0", 0,):
+        if value in (
+            "0",
+            0,
+        ):
             return [["notHandled", []], "=", 1]
         raise InvalidSearchQuery(
             "Invalid value for error.handled condition. Accepted values are 1, 0"
@@ -1329,7 +1332,9 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
     key_transactions = (
         KeyTransaction.objects.filter(
-            owner_id=user_id, organization_id=organization_id, project_id__in=project_ids,
+            owner_id=user_id,
+            organization_id=organization_id,
+            project_id__in=project_ids,
         )
         .order_by("transaction", "project_id")
         .values("project_id", "transaction")
@@ -1380,7 +1385,9 @@ FIELD_ALIASES = {
             KEY_TRANSACTION_ALIAS,
             KEY_TRANSACTION_ALIAS,
             expression_fn=lambda params: key_transaction_expression(
-                params.get("user_id"), params.get("organization_id"), params.get("project_id"),
+                params.get("user_id"),
+                params.get("organization_id"),
+                params.get("project_id"),
             ),
             result_type="boolean",
         ),
@@ -1550,7 +1557,8 @@ class ConditionArg(FunctionArg):
         if value not in self.VALID_CONDITIONS:
             raise InvalidFunctionArgument(
                 u"{} is not a valid condition, the only supported conditions are: {}".format(
-                    value, ",".join(self.VALID_CONDITIONS),
+                    value,
+                    ",".join(self.VALID_CONDITIONS),
                 )
             )
 
@@ -2460,7 +2468,9 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
     if params is not None and field in params.get("aliases", {}):
         alias = params["aliases"][field]
         return ResolvedFunction(
-            FunctionDetails(field, FUNCTIONS["percentage"], []), None, alias.aggregate,
+            FunctionDetails(field, FUNCTIONS["percentage"], []),
+            None,
+            alias.aggregate,
         )
     function_name, columns, alias = parse_function(field, match)
     function = FUNCTIONS[function_name]
@@ -2474,7 +2484,11 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         snuba_string = function.transform.format(**arguments)
         if alias is None:
             alias = get_function_alias_with_columns(function.name, columns)
-        return ResolvedFunction(details, None, [snuba_string, None, alias],)
+        return ResolvedFunction(
+            details,
+            None,
+            [snuba_string, None, alias],
+        )
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
 

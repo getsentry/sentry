@@ -64,7 +64,9 @@ class VercelReleasesTest(APITestCase):
         )
 
         self.sentry_app = self.create_internal_integration(
-            webhook_url=None, name="Vercel Internal Integration", organization=self.organization,
+            webhook_url=None,
+            name="Vercel Internal Integration",
+            organization=self.organization,
         )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
         self.installation_for_provider = SentryAppInstallationForProvider.objects.create(

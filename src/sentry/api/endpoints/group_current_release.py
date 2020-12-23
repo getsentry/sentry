@@ -18,14 +18,16 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
         release_envs = ReleaseEnvironment.objects.filter(
-            release_id__in=release_projects, organization_id=group.project.organization_id,
+            release_id__in=release_projects,
+            organization_id=group.project.organization_id,
         )
         if environments:
             release_envs = release_envs.filter(environment_id__in=[env.id for env in environments])
         release_envs = release_envs.order_by("-first_seen").values_list("release_id", flat=True)
 
         group_releases = GroupRelease.objects.filter(
-            group_id=group.id, release_id=release_envs[:1],
+            group_id=group.id,
+            release_id=release_envs[:1],
         )
         if environments:
             group_releases = group_releases.filter(

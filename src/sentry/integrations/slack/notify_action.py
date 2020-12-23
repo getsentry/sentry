@@ -70,7 +70,10 @@ class SlackNotifyServiceForm(forms.Form):
             integration = Integration.objects.get(id=workspace)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
-                _("Slack workspace is a required field.",), code="invalid",
+                _(
+                    "Slack workspace is a required field.",
+                ),
+                code="invalid",
             )
 
         channel = cleaned_data.get("channel", "")

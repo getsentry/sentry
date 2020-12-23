@@ -30,7 +30,8 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
         self.path = u"/organizations/{}/performance/vitaldetail/?{}".format(
-            self.org.slug, urlencode({"query": "transaction.duration:>0"}),
+            self.org.slug,
+            urlencode({"query": "transaction.duration:>0"}),
         )
 
         self.page = BasePage(self.browser)

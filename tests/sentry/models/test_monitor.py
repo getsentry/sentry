@@ -62,27 +62,30 @@ class MonitorTestCase(TestCase):
 
         event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
 
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, u"month"]},
-                        "id": six.text_type(monitor.guid),
-                        "name": monitor.name,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
-                "fingerprint": ["monitor", six.text_type(monitor.guid), u"unknown"],
-                "logger": "",
-                "type": "default",
-            }
-        ) == dict(event)
+        assert (
+            dict(
+                event,
+                **{
+                    "level": "error",
+                    "project": self.project.id,
+                    "platform": "other",
+                    "contexts": {
+                        "monitor": {
+                            "status": "active",
+                            "type": "cron_job",
+                            "config": {"schedule_type": 2, "schedule": [1, u"month"]},
+                            "id": six.text_type(monitor.guid),
+                            "name": monitor.name,
+                        }
+                    },
+                    "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
+                    "fingerprint": ["monitor", six.text_type(monitor.guid), u"unknown"],
+                    "logger": "",
+                    "type": "default",
+                }
+            )
+            == dict(event)
+        )
 
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_reason(self, mock_insert_data_to_database_legacy):
@@ -99,24 +102,27 @@ class MonitorTestCase(TestCase):
 
         event = mock_insert_data_to_database_legacy.mock_calls[0].args[0]
 
-        assert dict(
-            event,
-            **{
-                "level": "error",
-                "project": self.project.id,
-                "platform": "other",
-                "contexts": {
-                    "monitor": {
-                        "status": "active",
-                        "type": "cron_job",
-                        "config": {"schedule_type": 2, "schedule": [1, u"month"]},
-                        "id": six.text_type(monitor.guid),
-                        "name": monitor.name,
-                    }
-                },
-                "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
-                "fingerprint": ["monitor", six.text_type(monitor.guid), u"duration"],
-                "logger": "",
-                "type": "default",
-            }
-        ) == dict(event)
+        assert (
+            dict(
+                event,
+                **{
+                    "level": "error",
+                    "project": self.project.id,
+                    "platform": "other",
+                    "contexts": {
+                        "monitor": {
+                            "status": "active",
+                            "type": "cron_job",
+                            "config": {"schedule_type": 2, "schedule": [1, u"month"]},
+                            "id": six.text_type(monitor.guid),
+                            "name": monitor.name,
+                        }
+                    },
+                    "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
+                    "fingerprint": ["monitor", six.text_type(monitor.guid), u"duration"],
+                    "logger": "",
+                    "type": "default",
+                }
+            )
+            == dict(event)
+        )

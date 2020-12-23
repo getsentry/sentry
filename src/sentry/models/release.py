@@ -114,7 +114,10 @@ class Release(Model):
     status = BoundedPositiveIntegerField(
         default=ReleaseStatus.OPEN,
         null=True,
-        choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
+        choices=(
+            (ReleaseStatus.OPEN, _("Open")),
+            (ReleaseStatus.ARCHIVED, _("Archived")),
+        ),
     )
 
     # DEPRECATED

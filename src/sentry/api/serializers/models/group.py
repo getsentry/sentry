@@ -84,7 +84,11 @@ def merge_list_dictionaries(dict1, dict2):
 
 class GroupSerializerBase(Serializer):
     def __init__(
-        self, collapse=None, expand=None, has_inbox=False, has_workflow_owners=False,
+        self,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
+        has_workflow_owners=False,
     ):
         self.collapse = collapse
         self.expand = expand

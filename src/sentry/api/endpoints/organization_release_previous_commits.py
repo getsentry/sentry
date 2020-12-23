@@ -57,4 +57,9 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         if not prev_release_with_commits:
             return Response({})
 
-        return Response(serialize(prev_release_with_commits[0], request.user,))
+        return Response(
+            serialize(
+                prev_release_with_commits[0],
+                request.user,
+            )
+        )

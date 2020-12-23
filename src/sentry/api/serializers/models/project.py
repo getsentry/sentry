@@ -356,7 +356,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         self, environment_id=None, stats_period=None, transaction_stats=None, collapse=None
     ):
         super(ProjectWithTeamSerializer, self).__init__(
-            environment_id, stats_period, transaction_stats,
+            environment_id,
+            stats_period,
+            transaction_stats,
         )
         self.collapse = collapse
 

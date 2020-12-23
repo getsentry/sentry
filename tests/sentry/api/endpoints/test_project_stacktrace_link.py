@@ -21,7 +21,10 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.integration.add_organization(self.org, self.user)
         self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
-        self.repo = self.create_repo(project=self.project, name="getsentry/sentry",)
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
         self.repo.integration_id = self.integration.id
         self.repo.provider = "example"
         self.repo.save()
@@ -52,7 +55,9 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.login_as(user=self.user)
         # new project that has no configurations set up for it
         project = self.create_project(
-            name="bloop", organization=self.org, teams=[self.create_team(organization=self.org)],
+            name="bloop",
+            organization=self.org,
+            teams=[self.create_team(organization=self.org)],
         )
 
         path = reverse(

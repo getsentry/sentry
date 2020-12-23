@@ -54,7 +54,11 @@ class UserOptionsSerializer(serializers.Serializer):
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
     theme = serializers.ChoiceField(
-        choices=(("light", _("Light")), ("dark", _("Dark")), ("system", _("Default to system")),),
+        choices=(
+            ("light", _("Light")),
+            ("dark", _("Dark")),
+            ("system", _("Default to system")),
+        ),
         required=False,
     )
 

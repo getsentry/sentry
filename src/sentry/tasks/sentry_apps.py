@@ -314,7 +314,9 @@ def send_webhooks(installation, event, **kwargs):
 
         request_data = AppPlatformEvent(**kwargs)
         send_and_save_webhook_request(
-            installation.sentry_app, request_data, servicehook.sentry_app.webhook_url,
+            installation.sentry_app,
+            request_data,
+            servicehook.sentry_app.webhook_url,
         )
 
 

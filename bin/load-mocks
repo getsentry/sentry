@@ -260,7 +260,10 @@ def create_sample_time_series(event, release=None):
             int(count * 1.1),
         )
         tsdb.incr(
-            tsdb.models.project_total_forwarded, project.id, now, int(count * 1.1),
+            tsdb.models.project_total_forwarded,
+            project.id,
+            now,
+            int(count * 1.1),
         )
         tsdb.incr_multi(
             (

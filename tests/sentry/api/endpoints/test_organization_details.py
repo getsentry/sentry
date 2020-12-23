@@ -954,7 +954,7 @@ invalid_payloads = [
 @pytest.mark.parametrize("invalid_data", invalid_payloads)
 def test_trusted_relay_serializer_validation(invalid_data):
     """
-        Tests that the public key is validated
+    Tests that the public key is validated
     """
     # incoming raw data
     serializer = TrustedRelaySerializer(data=invalid_data)

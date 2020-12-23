@@ -191,7 +191,8 @@ def post_process_group(
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
         event = Event(
@@ -283,7 +284,8 @@ def post_process_group(
                     cache.set(has_commit_key, org_has_commit, 3600)
 
                 if org_has_commit and features.has(
-                    "projects:workflow-owners-ingestion", event.project,
+                    "projects:workflow-owners-ingestion",
+                    event.project,
                 ):
                     process_suspect_commits(event=event)
             except Exception:

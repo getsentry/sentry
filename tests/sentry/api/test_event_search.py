@@ -69,7 +69,11 @@ def test_parse_function():
         ["transaction.duration", "0.5"],
         None,
     )
-    assert parse_function("p50()") == ("p50", [], None,)
+    assert parse_function("p50()") == (
+        "p50",
+        [],
+        None,
+    )
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
@@ -679,7 +683,9 @@ class ParseSearchQueryTest(unittest.TestCase):
 
         assert parse_search_query("!stack.in_app:false") == [
             SearchFilter(
-                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+                key=SearchKey(name="stack.in_app"),
+                operator="=",
+                value=SearchValue(raw_value=1),
             )
         ]
 
@@ -1070,7 +1076,8 @@ class ParseBooleanSearchQueryTest(TestCase):
         assert _filter.conditions == [
             [
                 _or(
-                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                    ["like", ["error.value", "Deadlock%"]],
+                    ["notLike", ["stack.filename", "%.py"]],
                 ),
                 "=",
                 1,
@@ -1113,7 +1120,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com"
         )
         assert result.conditions == [
-            [_or(_and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),), "=", 1]
+            [
+                _or(
+                    _and(self.foo, self.bar),
+                    _and(self.foobar, _and(self.hello, self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
         # absurdly long
@@ -1127,7 +1141,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                     _or(
                         _and(self.foobar, _and(self.hello, self.hi)),
                         _or(
-                            _and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),
+                            _and(self.foo, self.bar),
+                            _and(self.foobar, _and(self.hello, self.hi)),
                         ),
                     ),
                 ),
@@ -1164,7 +1179,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))"
         )
         assert result.conditions == [
-            [_or(self.foo, _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),), "=", 1]
+            [
+                _or(
+                    self.foo,
+                    _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
     def test_grouping_without_boolean_terms(self):
@@ -1217,7 +1239,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _and(
                                 _eq("ab"),
-                                _and(_or(_eq("cd"), _eq("ef")), _and(_eq("gh"), _eq("ij")),),
+                                _and(
+                                    _or(_eq("cd"), _eq("ef")),
+                                    _and(_eq("gh"), _eq("ij")),
+                                ),
                             ),
                             _eq("kl"),
                         ),
@@ -1250,7 +1275,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _eq("ab"),
                             _or(
-                                _and(_eq("cd"), _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),),
+                                _and(
+                                    _eq("cd"),
+                                    _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),
+                                ),
                                 _eq("kl"),
                             ),
                         ),
@@ -1264,7 +1292,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_or(_eq("ab"), _eq("cd")), _and(_eq("ef"), _eq("gh")),),
+                            _and(
+                                _or(_eq("ab"), _eq("cd")),
+                                _and(_eq("ef"), _eq("gh")),
+                            ),
                             _and(_eq("ij"), _eq("kl")),
                         ),
                         "=",
@@ -1277,7 +1308,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))), _and(_eq("gh"), _eq("ij")),
+                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))),
+                            _and(_eq("gh"), _eq("ij")),
                         ),
                         "=",
                         1,
@@ -1305,7 +1337,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _eq("ab"), _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
+                            _eq("ab"),
+                            _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
                         ),
                         "=",
                         1,
@@ -3098,7 +3131,9 @@ def with_type(type, argument):
 class FunctionTest(unittest.TestCase):
     def setUp(self):
         self.fn_wo_optionals = Function(
-            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+            "wo_optionals",
+            required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
+            transform="",
         )
         self.fn_w_optionals = Function(
             "w_optionals",

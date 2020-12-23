@@ -407,14 +407,17 @@ class RedisTSDBTest(TestCase):
             "organization:2": [("project:5", 1.5)],
         }
 
-        assert self.db.get_most_frequent(
-            model,
-            ("organization:1", "organization:2"),
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-            environment_id=0,
-        ) == {"organization:1": [], "organization:2": []}
+        assert (
+            self.db.get_most_frequent(
+                model,
+                ("organization:1", "organization:2"),
+                now - timedelta(hours=1),
+                now,
+                rollup=rollup,
+                environment_id=0,
+            )
+            == {"organization:1": [], "organization:2": []}
+        )
 
         timestamp = int(to_timestamp(now) // rollup) * rollup
 

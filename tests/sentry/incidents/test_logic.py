@@ -564,7 +564,9 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
         assert end == incident.date_closed.replace(tzinfo=pytz.utc) + timedelta(minutes=time_window)
 
-        incident.update(date_closed=datetime.utcnow() - timedelta(days=95),)
+        incident.update(
+            date_closed=datetime.utcnow() - timedelta(days=95),
+        )
 
         start, end = calculate_incident_time_range(incident)
         assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
@@ -1388,7 +1390,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
-            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1558,7 +1562,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
-            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1701,7 +1707,9 @@ class TriggerActionTest(TestCase):
     def test_rule_updated(self):
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
-            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+            incident=incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
         )
 
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):
@@ -1714,7 +1722,9 @@ class TriggerActionTest(TestCase):
     def test_manual_resolve(self):
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
-            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+            incident=incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
         )
 
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):

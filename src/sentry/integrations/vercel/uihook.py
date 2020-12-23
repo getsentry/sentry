@@ -39,7 +39,8 @@ class VercelUIHook(Endpoint):
             )
         except Integration.DoesNotExist:
             logger.info(
-                "vercel.integration.does-not-exist", extra={"external_id": external_id},
+                "vercel.integration.does-not-exist",
+                extra={"external_id": external_id},
             )
             return HttpResponse("The requested integration does not exist.")
         try:

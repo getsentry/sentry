@@ -148,9 +148,9 @@ class ProjectOwnership(Model):
 
 
 def resolve_actors(owners, project_id):
-    """ Convert a list of Owner objects into a dictionary
+    """Convert a list of Owner objects into a dictionary
     of {Owner: Actor} pairs. Actors not identified are returned
-    as None. """
+    as None."""
     from sentry.api.fields.actor import Actor
     from sentry.models import User, Team
 

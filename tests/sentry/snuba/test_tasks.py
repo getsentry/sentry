@@ -411,9 +411,13 @@ class SubscriptionCheckerTest(TestCase):
             QuerySubscription.Status.DELETING,
         ):
             sub = self.create_subscription(
-                status, date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
+                status,
+                date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
             )
-            sub_new = self.create_subscription(status, date_updated=timezone.now(),)
+            sub_new = self.create_subscription(
+                status,
+                date_updated=timezone.now(),
+            )
             with self.tasks():
                 subscription_checker()
             if status == QuerySubscription.Status.DELETING:

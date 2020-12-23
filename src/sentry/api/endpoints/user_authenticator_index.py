@@ -9,8 +9,7 @@ from sentry.models import Authenticator
 
 class UserAuthenticatorIndexEndpoint(UserEndpoint):
     def get(self, request, user):
-        """Returns all interface for a user (un-enrolled ones), otherwise an empty array
-        """
+        """Returns all interface for a user (un-enrolled ones), otherwise an empty array"""
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user, return_missing=True)
         return Response(serialize(list(interfaces)))

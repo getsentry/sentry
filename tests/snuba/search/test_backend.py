@@ -164,7 +164,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
-            group=event.group, integration=integration, key="APP-123",
+            group=event.group,
+            integration=integration,
+            key="APP-123",
         )
         return event.group
 

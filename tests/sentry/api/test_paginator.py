@@ -553,7 +553,8 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         )
         rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
         paginator = CombinedQuerysetPaginator(
-            intermediaries=[alert_rule_intermediary, rule_intermediary], desc=True,
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
         )
 
         result = paginator.get_result(limit=3, cursor=None)
@@ -614,13 +615,17 @@ class CombinedQuerysetPaginatorTest(APITestCase):
     def test_order_by_invalid_key(self):
         with self.assertRaises(AssertionError):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "dontexist")
-            CombinedQuerysetPaginator(intermediaries=[rule_intermediary],)
+            CombinedQuerysetPaginator(
+                intermediaries=[rule_intermediary],
+            )
 
     def test_mix_date_and_not_date(self):
         with self.assertRaises(AssertionError):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
             rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
-            CombinedQuerysetPaginator(intermediaries=[rule_intermediary, rule_intermediary2],)
+            CombinedQuerysetPaginator(
+                intermediaries=[rule_intermediary, rule_intermediary2],
+            )
 
 
 class TestChainPaginator(TestCase):

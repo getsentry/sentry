@@ -22,8 +22,7 @@ class AuthView(BaseView):
 
 
 class ConfigureView(BaseView, PluggableViewMixin):
-    """
-    """
+    """"""
 
     def dispatch(self, request, organization, auth_provider):
         return ""

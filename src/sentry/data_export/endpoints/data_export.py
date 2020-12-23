@@ -73,7 +73,8 @@ class DataExportQuerySerializer(serializers.Serializer):
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
-                discover_query=query_info, organization_id=organization.id,
+                discover_query=query_info,
+                organization_id=organization.id,
             )
             try:
                 get_filter(query_info["query"], processor.params)

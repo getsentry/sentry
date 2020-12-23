@@ -450,7 +450,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+                iso_format(before_now(seconds=5)),
+                iso_format(before_now(seconds=3)),
             ),
             params={"project_id": [self.project.id]},
             orderby="transaction",
@@ -2059,7 +2060,11 @@ class QueryTransformTest(TestCase):
             "data": [],
         }
         normalized_results = discover.normalize_measurements_histogram(
-            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+            ["foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
         )
         assert normalized_results["meta"] == {
             "key": "string",
@@ -2077,7 +2082,11 @@ class QueryTransformTest(TestCase):
             "data": [],
         }
         normalized_results = discover.normalize_measurements_histogram(
-            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+            ["foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
         )
         assert normalized_results["data"] == [
             {"key": "foo", "bin": 0, "count": 0},
@@ -2136,7 +2145,11 @@ class QueryTransformTest(TestCase):
             ],
         }
         normalized_results = discover.normalize_measurements_histogram(
-            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+            ["foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
         )
         assert normalized_results["data"] == [
             {"key": "foo", "bin": 0, "count": 3},
@@ -2216,7 +2229,11 @@ class QueryTransformTest(TestCase):
             ],
         }
         normalized_results = discover.normalize_measurements_histogram(
-            ["foo"], 3, "array_join(measurements_key)", discover.HistogramParams(1, 0, 1), results,
+            ["foo"],
+            3,
+            "array_join(measurements_key)",
+            discover.HistogramParams(1, 0, 1),
+            results,
         )
         assert normalized_results["data"] == [
             {"key": "foo", "bin": 0, "count": 3},

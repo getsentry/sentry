@@ -56,7 +56,10 @@ def get_assignee_string(group):
 
 
 def build_welcome_card(signed_params):
-    url = u"%s?signed_params=%s" % (absolute_uri("/extensions/msteams/configure/"), signed_params,)
+    url = u"%s?signed_params=%s" % (
+        absolute_uri("/extensions/msteams/configure/"),
+        signed_params,
+    )
     welcome = {
         "type": "TextBlock",
         "weight": "Bolder",

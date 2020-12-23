@@ -13,7 +13,8 @@ class TeamsIndexDocs(APIDocsTestCase):
         self.create_team(organization=self.organization)
 
         self.url = reverse(
-            "sentry-api-0-organization-teams", kwargs={"organization_slug": self.organization.slug},
+            "sentry-api-0-organization-teams",
+            kwargs={"organization_slug": self.organization.slug},
         )
 
         self.login_as(user=self.user)

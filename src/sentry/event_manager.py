@@ -1147,7 +1147,9 @@ def discard_event(job, attachments):
         )
 
     metrics.incr(
-        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
+        "events.discarded",
+        skip_internal=True,
+        tags={"platform": job["platform"]},
     )
 
 

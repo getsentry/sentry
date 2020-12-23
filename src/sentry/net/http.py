@@ -55,7 +55,7 @@ class SafeConnectionMixin(object):
 
     # Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/connection.py#L127
     def _new_conn(self):
-        """ Establish a socket connection and set nodelay settings on it.
+        """Establish a socket connection and set nodelay settings on it.
         :return: New socket connection.
         """
         extra_kw = {}

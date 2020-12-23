@@ -334,13 +334,16 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.proj1group1.id: 1  # Only 1 unique user in the first hour
         }
 
-        assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_project,
-            [self.proj1.id],
-            self.now,
-            self.now + timedelta(hours=4),
-            rollup=3600,
-        ) == {self.proj1.id: 2}
+        assert (
+            self.db.get_distinct_counts_totals(
+                TSDBModel.users_affected_by_project,
+                [self.proj1.id],
+                self.now,
+                self.now + timedelta(hours=4),
+                rollup=3600,
+            )
+            == {self.proj1.id: 2}
+        )
 
         assert (
             self.db.get_distinct_counts_totals(
@@ -354,13 +357,16 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         )
 
     def test_most_frequent(self):
-        assert self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [self.proj1.id],
-            self.now,
-            self.now + timedelta(hours=4),
-            rollup=3600,
-        ) == {self.proj1.id: [(self.proj1group1.id, 2.0), (self.proj1group2.id, 1.0)]}
+        assert (
+            self.db.get_most_frequent(
+                TSDBModel.frequent_issues_by_project,
+                [self.proj1.id],
+                self.now,
+                self.now + timedelta(hours=4),
+                rollup=3600,
+            )
+            == {self.proj1.id: [(self.proj1group1.id, 2.0), (self.proj1group2.id, 1.0)]}
+        )
 
         assert (
             self.db.get_most_frequent(

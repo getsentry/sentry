@@ -18,21 +18,29 @@ class OrganizationIntegrationRequestTest(APITestCase):
     def test_integration_request(self):
         self.login_as(user=self.member)
         response = self.get_response(
-            self.org.slug, providerSlug="github", providerType="first_party",
+            self.org.slug,
+            providerSlug="github",
+            providerType="first_party",
         )
 
         assert response.status_code == 201, response.content
 
     def test_integration_request_with_invalid_plugin(self):
         self.login_as(user=self.member)
-        response = self.get_response(self.org.slug, providerSlug="ERROR", providerType="plugin",)
+        response = self.get_response(
+            self.org.slug,
+            providerSlug="ERROR",
+            providerType="plugin",
+        )
 
         assert response.status_code == 400, response.content
 
     def test_integration_request_with_invalid_sentryapp(self):
         self.login_as(user=self.member)
         response = self.get_response(
-            self.org.slug, providerSlug="ERROR", providerType="sentry_app",
+            self.org.slug,
+            providerSlug="ERROR",
+            providerType="sentry_app",
         )
 
         assert response.status_code == 400, response.content
@@ -40,7 +48,9 @@ class OrganizationIntegrationRequestTest(APITestCase):
     def test_integration_request_as_owner(self):
         self.login_as(user=self.owner)
         response = self.get_response(
-            self.org.slug, providerSlug="github", providerType="first_party",
+            self.org.slug,
+            providerSlug="github",
+            providerType="first_party",
         )
         assert response.status_code == 200, response.content
         assert response.data["detail"] == "User can install integration"
@@ -48,6 +58,8 @@ class OrganizationIntegrationRequestTest(APITestCase):
     def test_integration_request_without_permissions(self):
         self.login_as(user=self.create_user(email="nonmember@example.com"))
         response = self.get_response(
-            self.org.slug, providerSlug="github", providerType="first_party",
+            self.org.slug,
+            providerSlug="github",
+            providerType="first_party",
         )
         assert response.status_code == 403, response.content

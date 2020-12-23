@@ -29,7 +29,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
 
         try:
             kwargs["config"] = RepositoryProjectPathConfig.objects.get(
-                id=config_id, organization_integration_id=org_integration.id,
+                id=config_id,
+                organization_integration_id=org_integration.id,
             )
         except RepositoryProjectPathConfig.DoesNotExist:
             raise Http404
@@ -46,7 +47,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
         if serializer.is_valid():
             repository_project_path_config = serializer.save()
             return self.respond(
-                serialize(repository_project_path_config, request.user), status=status.HTTP_200_OK,
+                serialize(repository_project_path_config, request.user),
+                status=status.HTTP_200_OK,
             )
 
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -222,7 +222,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert "{}/issues/{}".format(group.organization.slug, group.id) in result
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -520,7 +522,9 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.data == group.data
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)
@@ -562,7 +566,9 @@ class GroupDeleteTest(APITestCase):
         assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         self.login_as(user=self.user)

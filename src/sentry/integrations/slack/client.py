@@ -36,7 +36,9 @@ class SlackClient(ApiClient):
                 span.set_tag("slack_error", error)
 
         metrics.incr(
-            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": is_ok, "status": code},
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": is_ok, "status": code},
         )
 
         extra = {

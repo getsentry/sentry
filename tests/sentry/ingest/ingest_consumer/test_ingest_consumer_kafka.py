@@ -76,7 +76,12 @@ def get_test_message(default_project):
 
 @pytest.mark.django_db(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    task_runner, kafka_producer, kafka_admin, requires_kafka, default_project, get_test_message,
+    task_runner,
+    kafka_producer,
+    kafka_admin,
+    requires_kafka,
+    default_project,
+    get_test_message,
 ):
     group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
@@ -124,7 +129,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
 
 
 def test_ingest_consumer_fails_when_not_autocreating_topics(
-    kafka_admin, requires_kafka,
+    kafka_admin,
+    requires_kafka,
 ):
     group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)

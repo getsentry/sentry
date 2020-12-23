@@ -448,7 +448,8 @@ def query(
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
                         u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
-                            ", ".join(conditions_not_in_aggregations), error_extra,
+                            ", ".join(conditions_not_in_aggregations),
+                            error_extra,
                         )
                     )
             else:
@@ -458,7 +459,8 @@ def query(
                 if not found:
                     raise InvalidSearchQuery(
                         u"Aggregate {} used in a condition but is not a selected column{}.".format(
-                            having_clause[0], error_extra,
+                            having_clause[0],
+                            error_extra,
                         )
                     )
 

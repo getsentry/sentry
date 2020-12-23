@@ -141,10 +141,12 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
         def log_and_increment(metrics_name):
             logger.info(
-                metrics_name, extra=logging_params,
+                metrics_name,
+                extra=logging_params,
             )
             metrics.incr(
-                metrics_name, tags=metric_tags,
+                metrics_name,
+                tags=metric_tags,
             )
 
         def s3_put_object(*args, **kwargs):

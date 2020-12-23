@@ -49,10 +49,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_protocol_version", version)
 
         if version == "2":
-            return self._post_by_key(request=request, full_config_requested=full_config_requested,)
+            return self._post_by_key(
+                request=request,
+                full_config_requested=full_config_requested,
+            )
         elif version == "1":
             return self._post_by_project(
-                request=request, full_config_requested=full_config_requested,
+                request=request,
+                full_config_requested=full_config_requested,
             )
         else:
             return Response("Unsupported version, we only support version null, 1 and 2.", 400)
@@ -125,7 +129,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             with Hub.current.start_span(op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
-                        project, full_config=full_config_requested, project_keys=[key],
+                        project,
+                        full_config=full_config_requested,
+                        project_keys=[key],
                     )
 
             configs[public_key] = project_config.to_dict()

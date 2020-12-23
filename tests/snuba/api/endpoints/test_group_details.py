@@ -136,7 +136,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             self.login_as(user=self.user)
 
             event = self.store_event(
-                data={"timestamp": iso_format(before_now(minutes=3))}, project_id=self.project.id,
+                data={"timestamp": iso_format(before_now(minutes=3))},
+                project_id=self.project.id,
             )
             group = event.group
             add_group_to_inbox(group, GroupInboxReason.NEW)

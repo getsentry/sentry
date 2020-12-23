@@ -59,7 +59,10 @@ class BaseEventTest(APITestCase):
         )
 
         self.project1 = self.create_project(organization=self.org)
-        self.event1 = self.store_event(data={"message": "oh no"}, project_id=self.project1.id,)
+        self.event1 = self.store_event(
+            data={"message": "oh no"},
+            project_id=self.project1.id,
+        )
         self.group1 = self.event1.group
 
     def post_webhook(

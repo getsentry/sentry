@@ -351,7 +351,8 @@ class UpdateProjectRuleTest(APITestCase):
         ]
 
         rule = Rule.objects.create(
-            project=project, data={"conditions": [conditions], "actions": [actions]},
+            project=project,
+            data={"conditions": [conditions], "actions": [actions]},
         )
 
         actions[0]["channel"] = "#new_channel_name"

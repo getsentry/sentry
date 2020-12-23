@@ -401,8 +401,14 @@ def test_time_synthetic_monitoring_event_in_save_event(mock_metrics_timing):
 
     to_ingest, to_process = mock_metrics_timing.mock_calls
 
-    assert to_ingest.args == ("events.synthetic-monitoring.time-to-ingest-total", mock.ANY,)
+    assert to_ingest.args == (
+        "events.synthetic-monitoring.time-to-ingest-total",
+        mock.ANY,
+    )
     assert to_ingest.kwargs == {"tags": tags, "sample_rate": 1.0}
 
-    assert to_process.args == ("events.synthetic-monitoring.time-to-process", mock.ANY,)
+    assert to_process.args == (
+        "events.synthetic-monitoring.time-to-process",
+        mock.ANY,
+    )
     assert to_process.kwargs == {"tags": tags, "sample_rate": 1.0}

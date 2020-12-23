@@ -190,7 +190,9 @@ class OrganizationMemberTest(TestCase):
     def test_scopes_with_member_admin_config(self):
         organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization, role="member", email="test@example.com",
+            organization=organization,
+            role="member",
+            email="test@example.com",
         )
 
         assert "event:admin" in member.get_scopes()

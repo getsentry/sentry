@@ -89,7 +89,10 @@ class VercelWebhookEndpoint(Endpoint):
             repository = u"%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
         elif meta.get("gitlabCommitSha"):
             # gitlab repos are formatted with a space for some reason
-            repository = u"%s / %s" % (meta["gitlabProjectNamespace"], meta["gitlabProjectName"],)
+            repository = u"%s / %s" % (
+                meta["gitlabProjectNamespace"],
+                meta["gitlabProjectName"],
+            )
         elif meta.get("bitbucketCommitSha"):
             repository = u"%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
         else:
@@ -202,7 +205,11 @@ class VercelWebhookEndpoint(Endpoint):
 
                 # set the refs
                 try:
-                    resp = session.post(url, json=release_payload, headers=headers,)
+                    resp = session.post(
+                        url,
+                        json=release_payload,
+                        headers=headers,
+                    )
                     json_error = safe_json_parse(resp)
                     resp.raise_for_status()
                 except RequestException as e:

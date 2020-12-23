@@ -99,7 +99,8 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         serializer = PathMappingSerializer(
-            context={"organization_id": project.organization_id}, data=request.data,
+            context={"organization_id": project.organization_id},
+            data=request.data,
         )
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

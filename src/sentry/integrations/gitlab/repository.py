@@ -92,8 +92,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
             installation.raise_error(e)
 
     def _format_commits(self, client, repo, commit_list):
-        """Convert GitLab commits into our internal format
-        """
+        """Convert GitLab commits into our internal format"""
         return [
             {
                 "id": c["id"],

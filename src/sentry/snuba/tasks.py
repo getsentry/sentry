@@ -216,7 +216,8 @@ def _delete_from_snuba(dataset, subscription_id):
 
 
 @instrumented_task(
-    name="sentry.snuba.tasks.subscription_checker", queue="subscriptions",
+    name="sentry.snuba.tasks.subscription_checker",
+    queue="subscriptions",
 )
 def subscription_checker(**kwargs):
     """
@@ -224,7 +225,9 @@ def subscription_checker(**kwargs):
     """
     count = 0
     with sentry_sdk.start_transaction(
-        op="subscription_checker", name="subscription_checker", sampled=False,
+        op="subscription_checker",
+        name="subscription_checker",
+        sampled=False,
     ):
         for subscription in QuerySubscription.objects.filter(
             status__in=(

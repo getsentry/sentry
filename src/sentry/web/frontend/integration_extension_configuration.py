@@ -38,7 +38,8 @@ class IntegrationExtensionConfigurationView(BaseView):
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated():
             configure_uri = u"/extensions/{}/configure/?{}".format(
-                self.provider, urlencode(request.GET.dict()),
+                self.provider,
+                urlencode(request.GET.dict()),
             )
 
             redirect_uri = u"{}?{}".format(
@@ -73,7 +74,8 @@ class IntegrationExtensionConfigurationView(BaseView):
                         return pipeline.current_step()
                     except SignatureExpired:
                         return self.respond(
-                            "sentry/pipeline-error.html", {"error": "Installation link expired"},
+                            "sentry/pipeline-error.html",
+                            {"error": "Installation link expired"},
                         )
 
         # if anything before fails, we give up and send them to the link page where we can display errors

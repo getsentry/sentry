@@ -1000,7 +1000,10 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             GroupInbox.objects.filter(group__in=group_ids).delete()
             for group in group_list:
                 issue_mark_reviewed.send_robust(
-                    project=project, user=acting_user, group=group, sender=update_groups,
+                    project=project,
+                    user=acting_user,
+                    group=group,
+                    sender=update_groups,
                 )
         result["inbox"] = inbox
 

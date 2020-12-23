@@ -498,7 +498,7 @@ class CombinedQuerysetIntermediary(object):
 
 
 class CombinedQuerysetPaginator(object):
-    """ This paginator can be used to paginate between multiple querysets.
+    """This paginator can be used to paginate between multiple querysets.
     It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
         i.e. intermediaries = [
                 CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
@@ -596,7 +596,8 @@ class CombinedQuerysetPaginator(object):
             return ((key_value, type(item).__name__),)
 
         combined_querysets.sort(
-            key=_sort_combined_querysets, reverse=not asc,
+            key=_sort_combined_querysets,
+            reverse=not asc,
         )
 
         return combined_querysets

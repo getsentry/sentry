@@ -133,7 +133,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
 
     def _get_patchset(self, client, project, repo, sha):
         """
-            Get the modified files for a commit
+        Get the modified files for a commit
         """
 
         key = u"get_changelist:{}:{}".format(md5_text(project + repo).hexdigest(), sha)

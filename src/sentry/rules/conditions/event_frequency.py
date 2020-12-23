@@ -81,8 +81,7 @@ class BaseEventFrequencyCondition(EventCondition):
         return query_result
 
     def query_hook(self, event, start, end, environment_id):
-        """
-        """
+        """"""
         raise NotImplementedError  # subclass must implement
 
     def get_rate(self, event, interval, environment_id):

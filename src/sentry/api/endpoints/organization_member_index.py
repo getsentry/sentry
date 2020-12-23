@@ -205,7 +205,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         result = serializer.validated_data
 
         if ratelimits.for_organization_member_invite(
-            organization=organization, email=result["email"], user=request.user, auth=request.auth,
+            organization=organization,
+            email=result["email"],
+            user=request.user,
+            auth=request.auth,
         ):
             metrics.incr(
                 "member-invite.attempt",
