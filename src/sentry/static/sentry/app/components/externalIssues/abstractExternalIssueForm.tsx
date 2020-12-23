@@ -215,13 +215,11 @@ export default class AbstractExternalIssueForm<
   }
 
   renderForm = (formFields?: IssueConfigField[]) => {
-    const initialData = (formFields || []).reduce(
-      (accumulator: {[key: string]: any}, field: FormField) => {
-        // passing an empty array breaks multi select
-        // TODO(jess): figure out why this is breaking and fix
-        if (!accumulator.hasOwnProperty(field.name)) {
-          accumulator[field.name] = field.multiple ? '' : field.default;
-        }
+    const initialData: {[key: string]: any} = (formFields || []).reduce(
+      (accumulator, field: FormField) => {
+        accumulator[field.name] =
+          // Passing an empty array breaks MultiSelect.
+          field.multiple && field.default === [] ? '' : field.default;
         return accumulator;
       },
       {}
