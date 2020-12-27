@@ -99,10 +99,10 @@ export type Image = {
   code_id: string;
   type: string;
   image_size: number;
-  debug_status: ImageProcessingInfo;
-  unwind_status: ImageProcessingInfo;
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
+  debug_status?: ImageProcessingInfo | null;
+  unwind_status?: ImageProcessingInfo | null;
   arch?: string;
   image_addr?: string;
 };

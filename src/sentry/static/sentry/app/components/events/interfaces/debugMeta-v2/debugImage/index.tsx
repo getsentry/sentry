@@ -10,12 +10,11 @@ import space from 'app/styles/space';
 import {Image} from 'app/types/debugImage';
 
 import layout from '../layout';
-import Processing, {ProcessingType} from '../processing';
 import {getFileName} from '../utils';
 
 import Address from './address';
-import ProcessingIcon from './processingIcon';
-import StatusTag from './statusTag';
+import Processings from './processings';
+import Status from './status';
 
 type Props = {
   image: Image;
@@ -33,30 +32,10 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
   const fileName = getFileName(code_file);
   const imageAddress = <Address image={image} />;
 
-  function renderProcessingColumn() {
-    const processingItems: React.ComponentProps<typeof Processing>['items'] = [];
-
-    if (debug_status) {
-      processingItems.push({
-        type: ProcessingType.SYMBOLICATION,
-        icon: <ProcessingIcon status={debug_status} />,
-      });
-    }
-
-    if (unwind_status) {
-      processingItems.push({
-        type: ProcessingType.STACK_UNWINDING,
-        icon: <ProcessingIcon status={unwind_status} />,
-      });
-    }
-
-    return <Processing items={processingItems} />;
-  }
-
   return (
     <Wrapper style={style}>
       <StatusColumn>
-        <StatusTag image={image} />
+        <Status image={image} />
       </StatusColumn>
       <ImageColumn>
         <ClipboardTooltip title={code_file} containerDisplayMode="inline-flex">
@@ -64,7 +43,9 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         </ClipboardTooltip>
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
-      <ProcessingColumn>{renderProcessingColumn()}</ProcessingColumn>
+      <ProcessingColumn>
+        <Processings unwind_status={unwind_status} debug_status={debug_status} />
+      </ProcessingColumn>
       <DebugFilesColumn>
         <Button
           size="xsmall"
