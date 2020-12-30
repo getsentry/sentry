@@ -85,6 +85,8 @@ def test_get(ns, compression, expected_prefix):
     # Make sure this value does not get used during read. We may have various
     # forms of compression in bigtable.
     ns.compression = lambda: 1 / 0
+    # Do not use cache as that entirely bypasses what we want to test here.
+    ns.cache = None
     assert ns.get(node_id) == data
 
     raw_data = ns.connection.read_row("node_id").cells["x"][b"0"][0].value

@@ -56,7 +56,7 @@ def _decompress_data(data, flags):
     if flags & BigtableNodeStorage._FLAG_COMPRESSED:
         # Magic bytes for zstd
         # https://tools.ietf.org/id/draft-kucherawy-dispatch-zstd-00.html#rfc.section.2.1.1
-        if data.starts_with(b"\x28\xb5\x2f\xfd"):
+        if data.startswith(b"\x28\xb5\x2f\xfd"):
             cctx = zstandard.ZstdDecompressor()
             data = cctx.decompress(data)
         else:
