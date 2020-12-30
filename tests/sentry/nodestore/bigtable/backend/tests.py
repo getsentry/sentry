@@ -71,13 +71,24 @@ def ns(request):
     return ns
 
 
-@pytest.mark.parametrize("compression", [True, False])
-def test_get(ns, compression):
+@pytest.mark.parametrize(
+    "compression,expected_prefix",
+    [(True, (b"\x78\x01", b"\x78\x9c", b"\x78\xda")), (False, b"{"), ("zstd", b"\x28\xb5\x2f\xfd")],
+    ids=["zlib", "ident", "zstd"],
+)
+def test_get(ns, compression, expected_prefix):
     ns.compression = compression
     node_id = "node_id"
     data = {"foo": "bar"}
     ns.set(node_id, data)
+
+    # Make sure this value does not get used during read. We may have various
+    # forms of compression in bigtable.
+    ns.compression = lambda: 1 / 0
     assert ns.get(node_id) == data
+
+    raw_data = ns.connection.read_row("node_id").cells["x"][b"0"][0].value
+    assert raw_data.startswith(expected_prefix)
 
 
 def test_get_multi(ns):
