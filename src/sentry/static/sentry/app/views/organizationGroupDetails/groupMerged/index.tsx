@@ -25,7 +25,7 @@ type State = {
   loading: boolean;
   error: boolean;
   mergedItems: Array<BaseGroup>;
-  mergedLinks?: Array<string>;
+  mergedLinks?: string;
 };
 
 class GroupMergedView extends React.Component<Props, State> {
@@ -115,6 +115,8 @@ class GroupMergedView extends React.Component<Props, State> {
     const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
 
+    console.log('mergedLinks', mergedLinks, 'mergedItems', mergedItems);
+
     return (
       <React.Fragment>
         <Alert type="warning">
@@ -135,7 +137,7 @@ class GroupMergedView extends React.Component<Props, State> {
           <MergedList
             orgId={orgId}
             project={project}
-            items={mergedItems}
+            fingerprints={mergedItems}
             pageLinks={mergedLinks}
             onUnmerge={this.handleUnmerge}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
