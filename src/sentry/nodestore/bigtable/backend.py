@@ -35,17 +35,17 @@ _connection_cache = {}
 
 def _compress_data(orig_data, data, compression):
     flags = 0
-    if compression is not False:
-        if callable(compression):
-            compression = compression(orig_data)
 
-        if compression == "zstd":
-            flags |= BigtableNodeStorage._FLAG_COMPRESSED
-            cctx = zstandard.ZstdCompressor()
-            data = cctx.compress(data)
-        elif compression:
-            flags |= BigtableNodeStorage._FLAG_COMPRESSED
-            data = zlib.compress(data)
+    if callable(compression):
+        compression = compression(orig_data)
+
+    if compression == "zstd":
+        flags |= BigtableNodeStorage._FLAG_COMPRESSED
+        cctx = zstandard.ZstdCompressor()
+        data = cctx.compress(data)
+    elif compression:
+        flags |= BigtableNodeStorage._FLAG_COMPRESSED
+        data = zlib.compress(data)
 
     return data, flags
 
