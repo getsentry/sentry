@@ -1,6 +1,8 @@
 import {Route} from 'react-router';
 
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
+import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import {IntegrationProvider, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
@@ -42,11 +44,18 @@ export type RouteHooks = {
 };
 
 /**
+ * Component specific hooks for DateRange and SelectorItems
+ * These components have plan specific overrides in getsentry
+ */
+type DateRangeProps = React.ComponentProps<typeof DateRange>;
+type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
+
+/**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:header-date-range': GenericComponentHook;
-  'component:header-selector-items': GenericComponentHook;
+  'component:header-date-range': React.ComponentType<DateRangeProps>;
+  'component:header-selector-items': React.ComponentType<SelectorItemsProps>;
 };
 
 /**
@@ -134,7 +143,7 @@ export type SettingsHooks = {
 };
 
 /**
- * Renders a React node.
+ * Renders a React node with no props
  */
 type GenericComponentHook = () => React.ReactNode;
 
