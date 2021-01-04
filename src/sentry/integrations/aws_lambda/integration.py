@@ -33,6 +33,7 @@ from .utils import (
     get_latest_layer_version,
     get_latest_layer_for_function,
     enable_single_lambda,
+    disable_single_lambda,
     get_dsn_for_project,
 )
 
@@ -140,22 +141,8 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
-        layers = function.get("Layers", [])
-        env_variables = function.get("Environment", {}).get("Variables", {})
+        disable_single_lambda(self.client, function, layer_arn)
 
-        # find our sentry layer
-        sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
-        if sentry_layer_index > -1:
-            layers.pop(sentry_layer_index)
-
-        # remove our env variables
-        for env_name in ["NODE_OPTIONS", "SENTRY_DSN", "SENTRY_TRACES_SAMPLE_RATE"]:
-            if env_name in env_variables:
-                del env_variables[env_name]
-
-        self.client.update_function_configuration(
-            FunctionName=target, Layers=layers, Environment={"Variables": env_variables},
-        )
         return self.get_serialized_lambda_function(target)
 
     def update_function_to_latest_version(self, target):

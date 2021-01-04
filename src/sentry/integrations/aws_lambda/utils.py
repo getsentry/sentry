@@ -129,3 +129,23 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
     return lambda_client.update_function_configuration(
         FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
     )
+
+
+def disable_single_lambda(lambda_client, function, layer_arn):
+    name = function["FunctionName"]
+    layers = function.get("Layers", [])
+    env_variables = function.get("Environment", {}).get("Variables", {})
+
+    # find our sentry layer
+    sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+    if sentry_layer_index > -1:
+        layers.pop(sentry_layer_index)
+
+    # remove our env variables
+    for env_name in ["NODE_OPTIONS", "SENTRY_DSN", "SENTRY_TRACES_SAMPLE_RATE"]:
+        if env_name in env_variables:
+            del env_variables[env_name]
+
+    return lambda_client.update_function_configuration(
+        FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+    )

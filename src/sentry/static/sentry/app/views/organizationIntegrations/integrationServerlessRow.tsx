@@ -45,8 +45,8 @@ class IntegrationServerlessRow extends React.Component<Props> {
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      console.error(err);
-      addErrorMessage(err);
+      // TODO: specific error handling
+      addErrorMessage(t('An error ocurred'));
     }
   };
   updateVersion = async () => {
@@ -63,8 +63,8 @@ class IntegrationServerlessRow extends React.Component<Props> {
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      console.error(err);
-      addErrorMessage(err);
+      // TODO: specific error handling
+      addErrorMessage(t('An error ocurred'));
     }
   };
   render() {
