@@ -1,17 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
-import PropTypes from 'prop-types';
 
 import codesworth from 'app/../images/spot/codesworth.png';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import CommitRow from 'app/components/commitRow';
 import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Commit, Organization, Project, PromptActivity, RepositoryStatus} from 'app/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import {snoozedDays} from 'app/utils/promptsActivity';
@@ -19,27 +19,80 @@ import withApi from 'app/utils/withApi';
 
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
 
-const DUMMY_COMMIT = {
+const DUMMY_COMMIT: Commit = {
   id: getDynamicText({
     value: EXAMPLE_COMMITS[Math.floor(Math.random() * EXAMPLE_COMMITS.length)],
     fixed: '5ca1ed',
   }),
-  author: {name: 'codesworth'},
+  author: {
+    id: '',
+    name: 'codesworth',
+    username: '',
+    email: 'codesworth@example.com',
+    ip_address: '',
+    lastSeen: '',
+    lastLogin: '',
+    isSuperuser: false,
+    isAuthenticated: false,
+    emails: [],
+    isManaged: false,
+    lastActive: '',
+    isStaff: false,
+    identities: [],
+    isActive: true,
+    has2fa: false,
+    canReset2fa: false,
+    authenticators: [],
+    dateJoined: '',
+    options: {
+      theme: 'system',
+      timezone: '',
+      stacktraceOrder: 1,
+      language: '',
+      clock24Hours: false,
+      avatarType: '',
+    },
+    flags: {newsletter_consent_prompt: false},
+    hasPasswordAuth: true,
+    permissions: new Set([]),
+    experiments: {},
+  },
   dateCreated: moment().subtract(3, 'day').format(),
   repository: {
-    provider: {id: 'integrations:github', name: 'GitHub', status: 'active'},
+    id: '',
+    integrationId: '',
+    name: '',
+    externalSlug: '',
+    url: '',
+    provider: {
+      id: 'integrations:github',
+      name: 'GitHub',
+    },
+    dateCreated: '',
+    status: RepositoryStatus.ACTIVE,
   },
+  releases: [],
   message: t('This example commit broke something'),
 };
 
-class EventCauseEmpty extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-  };
+type ClickPayload = {
+  action: 'snoozed' | 'dismissed';
+  eventKey: string;
+  eventName: string;
+};
 
-  state = {
+type Props = {
+  organization: Organization;
+  project: Project;
+  api: Client;
+};
+
+type State = {
+  shouldShow: boolean | undefined;
+};
+
+class EventCauseEmpty extends React.Component<Props, State> {
+  state: State = {
     shouldShow: undefined,
   };
 
@@ -47,7 +100,7 @@ class EventCauseEmpty extends React.Component {
     this.fetchData();
   }
 
-  componentDidUpdate(_prevProps, prevState) {
+  componentDidUpdate(_prevProps: Props, prevState: State) {
     const {project, organization} = this.props;
     const {shouldShow} = this.state;
 
@@ -76,17 +129,17 @@ class EventCauseEmpty extends React.Component {
     this.setState({shouldShow: this.shouldShow(data)});
   }
 
-  shouldShow({data} = {}) {
-    if (data && data.dismissed_ts) {
+  shouldShow({data}: PromptActivity = {data: {}}) {
+    if (data?.dismissed_ts) {
       return false;
     }
-    if (data && data.snoozed_ts) {
+    if (data?.snoozed_ts) {
       return snoozedDays(data.snoozed_ts) > 7;
     }
     return true;
   }
 
-  handleClick({action, eventKey, eventName}) {
+  handleClick({action, eventKey, eventName}: ClickPayload) {
     const {api, project, organization} = this.props;
 
     const data = {
@@ -95,7 +148,7 @@ class EventCauseEmpty extends React.Component {
       feature: 'suspect_commits',
       status: action,
     };
-    promptsUpdate(api, data).then(this.setState({shouldShow: false}));
+    promptsUpdate(api, data).then(() => this.setState({shouldShow: false}));
     this.trackAnalytics({eventKey, eventName});
   }
 

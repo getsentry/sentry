@@ -185,7 +185,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
             }}
             size="xsmall"
           >
-            {t('Setup Stack Trace Linking')}
+            {t('Set up Stack Trace Linking')}
           </Button>
         </CodeMappingButtonContainer>
       );

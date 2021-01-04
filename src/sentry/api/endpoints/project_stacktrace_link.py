@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.api.serializers import serialize
@@ -83,5 +84,16 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     scope.set_tag("stacktrace_link.found", True)
                     # if we found a match, we can break
                     break
+
+        if result["config"]:
+            analytics.record(
+                "integration.stacktrace.linked",
+                provider=result["config"]["provider"]["key"],
+                config_id=result["config"]["id"],
+                project_id=project.id,
+                organization_id=project.organization_id,
+                filepath=filepath,
+                status=result.get("error") or "success",
+            )
 
         return Response(result)

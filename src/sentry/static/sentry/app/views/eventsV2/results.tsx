@@ -336,10 +336,12 @@ class Results extends React.Component<Props, State> {
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
     const {organization} = this.props;
+    const {eventView} = this.state;
     trackAnalyticsEvent({
       eventKey: 'discover_v2.create_alert_clicked',
       eventName: 'Discoverv2: Create alert clicked',
       status: 'error',
+      query: eventView.query,
       errors,
       organization_id: organization.id,
       url: window.location.href,

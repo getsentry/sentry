@@ -1054,6 +1054,13 @@ class ParseBooleanSearchQueryTest(TestCase):
         result = get_filter("user.email:foo@example.com AND user.email:bar@example.com")
         assert result.conditions == [self.ofoo, self.obar]
 
+    def test_words_with_boolean_substrings(self):
+        result = get_filter("ORder")
+        assert result.conditions == [_om("ORder")]
+
+        result = get_filter("ANDroid")
+        assert result.conditions == [_om("ANDroid")]
+
     def test_single_term(self):
         result = get_filter("user.email:foo@example.com")
         assert result.conditions == [self.ofoo]

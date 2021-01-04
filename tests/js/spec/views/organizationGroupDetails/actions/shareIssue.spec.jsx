@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import ShareIssue from 'app/components/shareIssue';
+import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 
 describe('ShareIssue', () => {
   it('renders when not shared', () => {

@@ -128,7 +128,7 @@ key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / spec
                        / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
                        / has_filter / is_filter / quoted_basic_filter / basic_filter)
                        spaces
-raw_search           = (!key_val_term ~r"\ *(?!(?i)OR)(?!(?i)AND)([^\ ^\n ()]+)\ *" )*
+raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter

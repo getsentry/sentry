@@ -188,6 +188,15 @@ export type Organization = LightWeightOrganization & {
   teams: Team[];
 };
 
+/**
+ * Minimal organization shape used on shared issue views.
+ */
+export type SharedViewOrganization = {
+  slug: string;
+  id?: string;
+  features?: Array<string>;
+};
+
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
@@ -562,6 +571,7 @@ export type User = Omit<AvatarUser, 'options'> & {
   authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
+    theme: 'system' | 'light' | 'dark';
     timezone: string;
     stacktraceOrder: number;
     language: string;
@@ -1053,6 +1063,22 @@ export type GroupStats = GroupFiltered & {
   id: string;
 };
 
+type BaseGroupStatusReprocessing = {
+  status: 'reprocessing';
+  statusDetails: {
+    pendingEvents: number;
+    info: {
+      dateCreated: string;
+      totalEvents: number;
+    };
+  };
+};
+
+type BaseGroupStatusResolution = {
+  status: ResolutionStatus;
+  statusDetails: ResolutionStatusDetails;
+};
+
 // TODO(ts): incomplete
 export type BaseGroup = {
   id: string;
@@ -1061,14 +1087,15 @@ export type BaseGroup = {
   annotations: string[];
   assignedTo: User;
   culprit: string;
-  currentRelease: any; // TODO(ts)
-  firstRelease: any; // TODO(ts)
+  firstRelease: Release;
+  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: any; // TODO(ts)
+  lastRelease: Release;
+  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -1083,8 +1110,6 @@ export type BaseGroup = {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: 'reprocessing' | ResolutionStatus;
-  statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
@@ -1094,7 +1119,9 @@ export type BaseGroup = {
   owners?: SuggestedOwner[] | null;
 };
 
-export type Group = BaseGroup & GroupStats;
+export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
+export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
+export type Group = GroupResolution | GroupReprocessing;
 
 export type GroupTombstone = {
   id: string;
@@ -1484,6 +1511,17 @@ type BaseRelease = {
   status: ReleaseStatus;
 };
 
+export type CurrentRelease = {
+  environment: string;
+  firstSeen: string;
+  lastSeen: string;
+  release: Release;
+  stats: {
+    // 24h/30d is hardcoded in GroupReleaseWithStatsSerializer
+    '24h': TimeseriesValue[];
+    '30d': TimeseriesValue[];
+  };
+};
 export enum ReleaseStatus {
   Active = 'open',
   Archived = 'archived',
@@ -1565,7 +1603,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
     name: string;
   };
 };
@@ -1615,6 +1653,8 @@ export type SelectValue<T> = {
   tooltip?: string;
 };
 
+export type IssueConfigFieldChoices = [number | string, number | string][];
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
@@ -1622,8 +1662,8 @@ export type SelectValue<T> = {
  */
 export type IssueConfigField = Field & {
   name: string;
-  default?: string;
-  choices?: [number | string, number | string][];
+  default?: string | number;
+  choices?: IssueConfigFieldChoices;
   url?: string;
   multiple?: boolean;
 };
@@ -1790,8 +1830,8 @@ export type ResolutionStatusDetails = {
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
-  pendingEvents?: number;
 };
+
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
@@ -2026,4 +2066,11 @@ export type AuthProvider = {
   name: string;
   requiredFeature: string;
   disables2FA: boolean;
+};
+
+export type PromptActivity = {
+  data: {
+    snoozed_ts?: number;
+    dismissed_ts?: number;
+  };
 };
