@@ -22,6 +22,7 @@ const popular = [
 ] as const;
 
 const frontend = [
+  'dart',
   'javascript',
   'javascript-react',
   'javascript-angular',
@@ -39,6 +40,7 @@ const mobile = [
   'javascript-cordova',
   'react-native',
   'flutter',
+  'dart-flutter',
 ] as const;
 
 const backend = [
@@ -87,6 +89,7 @@ const serverless = [
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'dotnet-awslambda',
 ] as const;
 
 const desktop = [
