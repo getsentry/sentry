@@ -3,56 +3,61 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import {Item} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
 import Link from 'app/components/links/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION, TEAMS_PER_PAGE} from 'app/constants';
 import {IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {Organization, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
-class TeamSelect extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
+type Props = {
+  api: Client;
+  organization: Organization;
+  /**
+   * Should button be disabled
+   */
+  disabled: boolean;
+  /**
+   * Teams that are already selected.
+   */
+  selectedTeams: string[];
+  /**
+   * callback when teams are added
+   */
+  onAddTeam: (team: Team) => void;
+  /**
+   * Callback when teams are removed
+   */
+  onRemoveTeam: (teamSlug: string) => void;
 
-    /**
-     * Should button be disabled
-     */
-    disabled: PropTypes.bool,
+  /**
+   * Optional menu header.
+   */
+  menuHeader?: React.ReactElement;
 
-    /**
-     * Teams that are already selected.
-     */
-    selectedTeams: PropTypes.array.isRequired,
-    /**
-     * callback when teams are added
-     */
-    onAddTeam: PropTypes.func.isRequired,
-    /**
-     * Callback when teams are removed
-     */
-    onRemoveTeam: PropTypes.func.isRequired,
+  /**
+   * Message to display when the last team is removed
+   * if empty no confirm will be displayed.
+   */
+  confirmLastTeamRemoveMessage?: string;
+};
 
-    /**
-     * Optional menu header.
-     */
-    menuHeader: PropTypes.element,
+type State = {
+  loading: boolean;
+  teams: null | Team[];
+};
 
-    /**
-     * Message to display when the last team is removed
-     * if empty no confirm will be displayed.
-     */
-    confirmLastTeamRemoveMessage: PropTypes.string,
-  };
-
-  state = {
+class TeamSelect extends React.Component<Props, State> {
+  state: State = {
     loading: true,
     teams: null,
   };
@@ -61,7 +66,7 @@ class TeamSelect extends React.Component {
     this.fetchTeams();
   }
 
-  fetchTeams = debounce(async query => {
+  fetchTeams = debounce(async (query?: string) => {
     const {api, organization} = this.props;
     const teams = await api.requestPromise(`/organizations/${organization.slug}/teams/`, {
       query: {query, per_page: TEAMS_PER_PAGE},
@@ -69,33 +74,38 @@ class TeamSelect extends React.Component {
     this.setState({teams, loading: false});
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  handleQueryUpdate = event => {
+  handleQueryUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({loading: true});
     this.fetchTeams(event.target.value);
   };
 
-  handleAddTeam = option => {
+  handleAddTeam = (option: Item) => {
+    if (!this.state.teams) {
+      return;
+    }
     const team = this.state.teams.find(tm => tm.slug === option.value);
-    this.props.onAddTeam(team);
+    if (team) {
+      this.props.onAddTeam(team);
+    }
   };
 
-  handleRemove = teamSlug => {
+  handleRemove = (teamSlug: string) => {
     this.props.onRemoveTeam(teamSlug);
   };
 
   renderTeamAddDropDown() {
     const {disabled, selectedTeams, menuHeader} = this.props;
     const {teams} = this.state;
-    const noTeams = teams === null || teams.length === 0;
     const isDisabled = disabled;
 
-    let options;
-    if (noTeams) {
+    let options: Item[] = [];
+    if (teams === null || teams.length === 0) {
       options = [];
     } else {
       options = teams
         .filter(team => !selectedTeams.includes(team.slug))
-        .map(team => ({
+        .map((team, index) => ({
+          index,
           value: team.slug,
           searchKey: team.slug,
           label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
