@@ -169,9 +169,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           </Alert>
         )}
 
-        {provider.features.includes('alert-rule') && (
-          <IntegrationAlertRules integration={integration} />
-        )}
+        {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
 
         {provider.features.includes('commits') && (
           <IntegrationRepos {...this.props} integration={integration} />
