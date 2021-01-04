@@ -435,7 +435,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Access access={['project:write']}>
+      <Access access={['alerts:write']}>
         {({hasAccess}) => (
           <StyledForm
             key={isSavedAlertRule(rule) ? rule.id : undefined}

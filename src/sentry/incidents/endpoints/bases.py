@@ -3,13 +3,15 @@ from __future__ import absolute_import
 from rest_framework.exceptions import PermissionDenied
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 
 
 class ProjectAlertRuleEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectAlertRulePermission,)
+
     def convert_args(self, request, alert_rule_id, *args, **kwargs):
         args, kwargs = super(ProjectAlertRuleEndpoint, self).convert_args(request, *args, **kwargs)
         project = kwargs["project"]
@@ -31,6 +33,8 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
 
 
 class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationAlertRulePermission,)
+
     def convert_args(self, request, alert_rule_id, *args, **kwargs):
         args, kwargs = super(OrganizationAlertRuleEndpoint, self).convert_args(
             request, *args, **kwargs

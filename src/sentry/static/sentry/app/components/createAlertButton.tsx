@@ -336,7 +336,7 @@ const CreateAlertButton = withRouter(
     }
 
     return (
-      <Access organization={organization} access={['project:write']}>
+      <Access organization={organization} access={['alerts:write']}>
         {({hasAccess}) => (
           <Button
             disabled={!hasAccess}
