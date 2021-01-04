@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v2
         if: steps.changes.outputs.plugins == 'true'
         with:
-          python-version: 2.7.17
+          python-version: 3.6.10
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
