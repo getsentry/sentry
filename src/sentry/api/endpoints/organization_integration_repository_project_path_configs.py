@@ -26,7 +26,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     stack_root = gen_path_regex_field()
     source_root = gen_path_regex_field()
     default_branch = serializers.RegexField(
-        r"^\w+$",
+        r"^[\w-]+$",
         required=True,
         error_messages={
             "invalid": _("Branch name may only have letters, numbers, underscores, and dashes")
