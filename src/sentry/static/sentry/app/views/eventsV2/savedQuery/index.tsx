@@ -7,10 +7,9 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl from 'app/components/dropdownControl';
-import Input from 'app/components/forms/input';
 import Hovercard from 'app/components/hovercard';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
@@ -22,6 +21,7 @@ import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
 import {setBannerHidden} from 'app/views/eventsV2/utils';
+import InputControl from 'app/views/settings/components/forms/controls/input';
 
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
@@ -217,18 +217,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       <DropdownControl
         alignRight
         menuWidth="220px"
-        button={({isOpen, getActorProps}) => (
-          <ButtonSaveAs
-            data-test-id="button-save-as"
-            {...getActorProps()}
-            priority="default"
-            isOpen={isOpen}
-            showChevron={false}
-            disabled={disabled}
-          >
-            {t('Save as\u{2026}')}
-          </ButtonSaveAs>
-        )}
+        priority="default"
+        buttonProps={{
+          showChevron: false,
+        }}
+        label={t('Save as\u{2026}')}
       >
         <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
           <ButtonSaveInput
@@ -351,41 +344,32 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     };
 
     return (
-      <ButtonGroup>
+      <ResponsiveButtonBar gap={1}>
         {renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
-      </ButtonGroup>
+      </ResponsiveButtonBar>
     );
   }
 }
 
-const ButtonGroup = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-top: ${space(1)};
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
-
+const ResponsiveButtonBar = styled(ButtonBar)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     margin-top: 0;
   }
 `;
 
-const ButtonSaveAs = styled(DropdownButton)`
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
-  white-space: nowrap;
-`;
 const ButtonSaveDropDown = styled('div')`
+  display: flex;
+  flex-direction: column;
   padding: ${space(1)};
+  gap: ${space(1)};
 `;
-const ButtonSaveInput = styled(Input)`
-  width: 100%;
-  margin-bottom: ${space(1)};
+
+const ButtonSaveInput = styled(InputControl)`
+  height: 40px;
 `;
 
 const IconUpdate = styled('div')`
