@@ -142,18 +142,20 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(
+export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
   shorten?: boolean
 ): string {
   const date = getDateObj(currentDateTime);
 
-  if (shorten) {
+  if (shorten && suffix) {
     return t('%(time)s %(suffix)s', {
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
       suffix,
     });
+  } else if (shorten && !suffix) {
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, true);
   } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {
