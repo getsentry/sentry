@@ -13,8 +13,8 @@ import DateSummary from 'app/components/organizations/timeRangeSelector/dateSumm
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconCalendar} from 'app/icons';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {DateString, LightWeightOrganization} from 'app/types';
 import {defined} from 'app/utils';
 import {analytics} from 'app/utils/analytics';
 import {
@@ -58,84 +58,94 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-class TimeRangeSelector extends React.PureComponent {
-  static propTypes = {
-    /**
-     * When the default period is selected, it is visually dimmed and
-     * makes the selector unclearable.
-     */
-    defaultPeriod: PropTypes.string,
+export type ChangeData = {
+  start: Date | null;
+  end: Date | null;
+  relative: string | null;
+  utc?: boolean | null;
+};
 
-    /**
-     * Show absolute date selectors
-     */
-    showAbsolute: PropTypes.bool,
-    /**
-     * Show relative date selectors
-     */
-    showRelative: PropTypes.bool,
+const defaultProps = {
+  /**
+   * Show absolute date selectors
+   */
+  showAbsolute: true,
+  /**
+   * Show relative date selectors
+   */
+  showRelative: true,
+};
 
-    /**
-     * Start date value for absolute date selector
-     * Accepts a JS Date or a moment object
-     *
-     * React does not support `instanceOf` with null values
-     */
-    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+type Props = {
+  /**
+   * Start date value for absolute date selector
+   */
+  start: DateString;
 
-    /**
-     * End date value for absolute date selector
-     * Accepts a JS Date or a moment object
-     *
-     * React does not support `instanceOf` with null values
-     */
-    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  /**
+   * End date value for absolute date selector
+   */
+  end: DateString;
 
-    /**
-     * Relative date value
-     */
-    relative: PropTypes.string,
+  /**
+   * When the default period is selected, it is visually dimmed and
+   * makes the selector unclearable.
+   */
+  defaultPeriod: string;
 
-    /**
-     * Default initial value for using UTC
-     */
-    utc: PropTypes.bool,
+  /**
+   * Relative date value
+   */
+  relative: string;
 
-    /**
-     * Callback when value changes
-     */
-    onChange: PropTypes.func,
+  /**
+   * Default initial value for using UTC
+   */
+  utc: boolean | null;
 
-    /**
-     * Callback when "Update" button is clicked
-     */
-    onUpdate: PropTypes.func,
+  /**
+   * Callback when value changes
+   */
+  onChange: (data: ChangeData) => void;
 
-    /**
-     * Just used for metrics
-     */
-    organization: SentryTypes.Organization,
+  /**
+   * Callback when "Update" button is clicked
+   */
+  onUpdate: (data: ChangeData) => void;
 
-    /**
-     * Small info icon with tooltip hint text
-     */
-    hint: PropTypes.string,
-  };
+  /**
+   * Just used for metrics
+   */
+  organization: LightWeightOrganization;
 
+  /**
+   * Small info icon with tooltip hint text
+   */
+  hint?: string;
+} & typeof defaultProps;
+
+type State = {
+  isOpen: boolean;
+  hasChanges: boolean;
+  hasDateRangeErrors: boolean;
+  start: Date | null;
+  end: Date | null;
+  relative: string | null;
+  utc?: boolean | null;
+};
+
+class TimeRangeSelector extends React.PureComponent<Props, State> {
   static contextTypes = {
     router: PropTypes.object,
   };
 
-  static defaultProps = {
-    showAbsolute: true,
-    showRelative: true,
-  };
+  static defaultProps = defaultProps;
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
-    let start;
-    let end;
+    let start: Date | null = null;
+    let end: Date | null = null;
 
     if (props.start && props.end) {
       start = getInternalDate(props.start, props.utc);
@@ -155,7 +165,7 @@ class TimeRangeSelector extends React.PureComponent {
     };
   }
 
-  callCallback = (callback, datetime) => {
+  callCallback = (callback: Props['onChange'], datetime: ChangeData) => {
     if (typeof callback !== 'function') {
       return;
     }
@@ -184,7 +194,7 @@ class TimeRangeSelector extends React.PureComponent {
     }
   };
 
-  handleUpdate = datetime => {
+  handleUpdate = (datetime: ChangeData) => {
     const {onUpdate} = this.props;
 
     this.setState(
@@ -203,11 +213,11 @@ class TimeRangeSelector extends React.PureComponent {
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
-    const newDateTime = {
+    const newDateTime: ChangeData = {
       relative: null,
       start: getPeriodAgo(
-        parsePeriodToHours(relative || DEFAULT_STATS_PERIOD),
-        'hours'
+        'hours',
+        parsePeriodToHours(relative || DEFAULT_STATS_PERIOD)
       ).toDate(),
       end: new Date(),
     };
@@ -227,7 +237,7 @@ class TimeRangeSelector extends React.PureComponent {
 
   handleSelectRelative = value => {
     const {onChange} = this.props;
-    const newDateTime = {
+    const newDateTime: ChangeData = {
       relative: value,
       start: null,
       end: null,
@@ -240,7 +250,7 @@ class TimeRangeSelector extends React.PureComponent {
   handleClear = () => {
     const {onChange} = this.props;
 
-    const newDateTime = {
+    const newDateTime: ChangeData = {
       relative: null,
       start: null,
       end: null,
@@ -259,7 +269,7 @@ class TimeRangeSelector extends React.PureComponent {
 
     const {onChange} = this.props;
 
-    const newDateTime = {
+    const newDateTime: ChangeData = {
       relative: null,
       start,
       end,
@@ -317,11 +327,12 @@ class TimeRangeSelector extends React.PureComponent {
     const shouldShowRelative = showRelative;
     const isAbsoluteSelected = !!start && !!end;
 
-    const summary = isAbsoluteSelected ? (
-      <DateSummary start={start} end={end} />
-    ) : (
-      getRelativeSummary(relative || defaultPeriod)
-    );
+    const summary =
+      isAbsoluteSelected && start && end ? (
+        <DateSummary start={start} end={end} />
+      ) : (
+        getRelativeSummary(relative || defaultPeriod)
+      );
 
     const relativeSelected = isAbsoluteSelected ? null : relative || defaultPeriod;
 
@@ -355,12 +366,10 @@ class TimeRangeSelector extends React.PureComponent {
               <Menu {...getMenuProps()} isAbsoluteSelected={isAbsoluteSelected}>
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                   <SelectorItemsHook
-                    {...{
-                      isAbsoluteSelected,
-                      relativeSelected,
-                      shouldShowRelative,
-                      shouldShowAbsolute,
-                    }}
+                    isAbsoluteSelected={isAbsoluteSelected}
+                    relativeSelected={relativeSelected}
+                    shouldShowRelative={shouldShowRelative}
+                    shouldShowAbsolute={shouldShowAbsolute}
                     handleAbsoluteClick={this.handleAbsoluteClick}
                     handleSelectRelative={this.handleSelectRelative}
                   />
@@ -368,11 +377,9 @@ class TimeRangeSelector extends React.PureComponent {
                 {isAbsoluteSelected && (
                   <div>
                     <DateRangeHook
-                      {...{
-                        start,
-                        end,
-                        organization,
-                      }}
+                      start={start}
+                      end={end}
+                      organization={organization}
                       showTimePicker
                       utc={this.state.utc}
                       onChange={this.handleSelectDateRange}
@@ -403,7 +410,11 @@ const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
 `;
 
-const Menu = styled('div')`
+type MenuProps = {
+  isAbsoluteSelected: boolean;
+};
+
+const Menu = styled('div')<MenuProps>`
   ${p => !p.isAbsoluteSelected && 'left: -1px'};
   ${p => p.isAbsoluteSelected && 'right: -1px'};
 
@@ -420,7 +431,7 @@ const Menu = styled('div')`
   overflow: hidden;
 `;
 
-const SelectorList = styled('div')`
+const SelectorList = styled('div')<MenuProps>`
   display: flex;
   flex: 1;
   flex-direction: column;

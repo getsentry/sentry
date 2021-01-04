@@ -11,8 +11,8 @@ import Checkbox from 'app/components/checkbox';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
 import {MAX_PICKABLE_DAYS} from 'app/constants';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {LightWeightOrganization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import {
   getEndOfDay,
@@ -23,68 +23,70 @@ import {
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import theme from 'app/utils/theme';
 
-class DateRange extends React.Component {
-  static getTimeStringFromDate = date => moment(date).local().format('HH:mm');
+const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
-  static propTypes = {
-    /**
-     * Start date value for absolute date selector
-     * Accepts a JS Date or a moment object
-     *
-     * React does not support `instanceOf` with null values
-     */
-    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+type ChangeData = {start?: Date; end?: Date; hasDateRangeErrors?: boolean};
 
-    /**
-     * End date value for absolute date selector
-     * Accepts a JS Date or a moment object
-     *
-     * React does not support `instanceOf` with null values
-     */
-    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+const defaultProps = {
+  showAbsolute: true,
+  showRelative: false,
+  /**
+   * The maximum number of days in the past you can pick
+   */
+  maxPickableDays: MAX_PICKABLE_DAYS,
+};
 
-    /**
-     * Should we have a time selector?
-     */
-    showTimePicker: PropTypes.bool,
+type Props = {
+  /**
+   * Just used for metrics
+   */
+  organization: LightWeightOrganization;
 
-    /**
-     * The maximum number of days in the past you can pick
-     */
-    maxPickableDays: PropTypes.number,
+  /**
+   * Start date value for absolute date selector
+   */
+  start: Date;
 
-    /**
-     * Use UTC
-     */
-    utc: PropTypes.bool,
+  /**
+   * End date value for absolute date selector
+   */
+  end: Date;
 
-    /**
-     * handle UTC checkbox change
-     */
-    onChangeUtc: PropTypes.func,
+  /**
+   * handle UTC checkbox change
+   */
+  onChangeUtc: () => void;
 
-    /**
-     * Callback when value changes
-     */
-    onChange: PropTypes.func,
+  /**
+   * Callback when value changes
+   */
+  onChange: (data: ChangeData) => void;
 
-    /**
-     * Just used for metrics
-     */
-    organization: SentryTypes.Organization,
-  };
+  className?: string;
+  /**
+   * Should we have a time selector?
+   */
+  showTimePicker?: boolean;
 
+  /**
+   * Use UTC
+   */
+  utc?: boolean | null;
+} & typeof defaultProps;
+
+type State = {
+  hasStartErrors: boolean;
+  hasEndErrors: boolean;
+};
+
+class DateRange extends React.Component<Props, State> {
   static contextTypes = {
     router: PropTypes.object,
   };
 
-  static defaultProps = {
-    showAbsolute: true,
-    showRelative: false,
-    maxPickableDays: MAX_PICKABLE_DAYS,
-  };
+  static defaultProps = defaultProps;
 
-  state = {
+  state: State = {
     hasStartErrors: false,
     hasEndErrors: false,
   };
@@ -101,7 +103,7 @@ class DateRange extends React.Component {
     });
   };
 
-  handleChangeStart = e => {
+  handleChangeStart = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Safari does not support "time" inputs, so we don't have access to
     // `e.target.valueAsDate`, must parse as string
     //
@@ -132,7 +134,7 @@ class DateRange extends React.Component {
     this.setState({hasStartErrors: false});
   };
 
-  handleChangeEnd = e => {
+  handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const {start, end, onChange} = this.props;
     const endTime = e.target.value;
 
@@ -171,8 +173,8 @@ class DateRange extends React.Component {
       onChangeUtc,
     } = this.props;
 
-    const startTime = DateRange.getTimeStringFromDate(new Date(start));
-    const endTime = DateRange.getTimeStringFromDate(new Date(end));
+    const startTime = getTimeStringFromDate(new Date(start));
+    const endTime = getTimeStringFromDate(new Date(end));
 
     // Restraints on the time range that you can select
     // Can't select dates in the future b/c we're not fortune tellers (yet)
@@ -181,7 +183,7 @@ class DateRange extends React.Component {
     // Subtract additional day  because we force the end date to be inclusive,
     // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
     // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-    const minDate = getStartOfPeriodAgo(maxPickableDays - 2, 'days');
+    const minDate = getStartOfPeriodAgo('days', maxPickableDays - 2);
     const maxDate = new Date();
 
     return (
