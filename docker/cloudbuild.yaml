@@ -32,20 +32,7 @@ steps:
         './docker/Dockerfile',
       ]
     timeout: 300s
-  - name: 'gcr.io/kaniko-project/executor:v0.22.0'
-    id: runtime-image-py2
-    waitFor:
-      - builder-run
-    args:
-      [
-        '--cache=true',
-        '--build-arg',
-        'SOURCE_COMMIT=$COMMIT_SHA',
-        '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA-py2',
-        '-f',
-        './docker/Dockerfile',
-      ]
-    timeout: 300s
+
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
     id: get-onpremise-repo
     waitFor: ['-']
@@ -80,53 +67,6 @@ steps:
           exit $test_return;
         fi
     timeout: 450s
-  - name: 'gcr.io/$PROJECT_ID/docker-compose'
-    id: e2e-test-py2
-    waitFor:
-      - runtime-image-py2
-      - get-onpremise-repo
-      - e2e-test
-    entrypoint: 'bash'
-    dir: onpremise
-    env:
-      - 'SENTRY_PYTHON2=1'
-    args:
-      - '-e'
-      - '-c'
-      - |
-        ./install.sh
-        set +e
-        ./test.sh
-        test_return=$?
-        set -e
-        if [[ $test_return -ne 0 ]]; then
-          echo "Test failed.";
-          docker-compose ps;
-          docker-compose logs;
-          exit $test_return;
-        fi
-    timeout: 450s
-  - name: 'gcr.io/cloud-builders/docker'
-    id: docker-push-py2
-    waitFor:
-      - e2e-test-py2
-    secretEnv: ['DOCKER_PASSWORD']
-    entrypoint: 'bash'
-    args:
-      - '-e'
-      - '-c'
-      - |
-        # Only push to Docker Hub from master
-        [ "$BRANCH_NAME" != "master" ] && exit 0
-        # Need to pull the image first due to Kaniko
-        docker pull $$SENTRY_IMAGE
-        echo "$$DOCKER_PASSWORD" | docker login --username=sentrybuilder --password-stdin
-        docker tag $$SENTRY_IMAGE-py2 $$DOCKER_REPO:$SHORT_SHA-py2
-        docker push $$DOCKER_REPO:$SHORT_SHA-py2
-        docker tag $$SENTRY_IMAGE-py2 $$DOCKER_REPO:$COMMIT_SHA-py2
-        docker push $$DOCKER_REPO:$COMMIT_SHA-py2
-        docker tag $$SENTRY_IMAGE-py2 $$DOCKER_REPO:nightly-py2
-        docker push $$DOCKER_REPO:nightly-py2
   - name: 'gcr.io/cloud-builders/docker'
     id: docker-push
     waitFor:

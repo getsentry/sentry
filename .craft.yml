@@ -22,18 +22,6 @@ targets:
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
-  - id: py2-release
-    name: docker
-    source: us.gcr.io/sentryio/sentry
-    sourceFormat: '{{{source}}}:{{{revision}}}-py2'
-    target: getsentry/sentry
-    targetFormat: '{{{target}}}:{{{version}}}-py2'
-  - id: py2-latest
-    name: docker
-    source: us.gcr.io/sentryio/sentry
-    sourceFormat: '{{{source}}}:{{{revision}}}-py2'
-    target: getsentry/sentry
-    targetFormat: '{{{target}}}:latest-py2'
 
 requireNames:
   - /^sentry-.+-py2.py3-none-any.whl$/
