@@ -215,14 +215,17 @@ USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 KEY_TRANSACTION_ALIAS = "key_transaction"
 ARRAY_FIELDS = {
+    "error.mechanism",
+    "error.type",
+    "error.value",
     "stack.abs_path",
+    "stack.colno",
     "stack.filename",
-    "stack.package",
-    "stack.module",
     "stack.function",
     "stack.in_app",
-    "stack.colno",
     "stack.lineno",
+    "stack.module",
+    "stack.package",
     "stack.stack_level",
 }
 
