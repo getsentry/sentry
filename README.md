@@ -24,24 +24,30 @@ sending events from any language, in any application.
 ## Official Sentry SDKs
 
   - [JavaScript](https://github.com/getsentry/sentry-javascript)
-  - [React-Native](https://github.com/getsentry/react-native-sentry)
+  - [React-Native](https://github.com/getsentry/sentry-react-native)
   - [Python](https://github.com/getsentry/sentry-python)
   - [Ruby](https://github.com/getsentry/raven-ruby)
   - [PHP](https://github.com/getsentry/sentry-php)
   - [Go](https://github.com/getsentry/sentry-go)
   - [Rust](https://github.com/getsentry/sentry-rust)
-  - [Java](https://github.com/getsentry/sentry-java)
+  - [Java/Kotlin](https://github.com/getsentry/sentry-java)
   - [Objective-C/Swift](https://github.com/getsentry/sentry-cocoa)
-  - [C\#](https://github.com/getsentry/sentry-dotnet)
+  - [C\#/F\#](https://github.com/getsentry/sentry-dotnet)
+  - [C/C++](https://github.com/getsentry/sentry-native)
+  - [Dart](https://github.com/getsentry/sentry-dart)
   - [Perl](https://github.com/getsentry/perl-raven)
+  - [Clojure](https://github.com/getsentry/sentry-clj/)
   - [Elixir](https://github.com/getsentry/sentry-elixir)
+  - [Unity](https://github.com/getsentry/sentry-unity)
   - [Laravel](https://github.com/getsentry/sentry-laravel)
+  - [Electron](https://github.com/getsentry/sentry-electron/)
 
 # Resources
 
   - [Documentation](https://docs.sentry.io/)
   - [Community](https://forum.sentry.io/) (Bugs, feature requests,
     general questions)
+  - [Discord](https://discord.gg/PXa5Apfe7K)
   - [Contributing](https://docs.sentry.io/internal/contributing/)
   - [Bug Tracker](https://github.com/getsentry/sentry/issues)
   - [Code](https://github.com/getsentry/sentry)
