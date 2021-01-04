@@ -1,3 +1,5 @@
+import {Organization, SharedViewOrganization} from 'app/types';
+
 // from:
 // - https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#assertion-functions
 // - https://www.typescriptlang.org/play/#example/assertion-functions
@@ -11,3 +13,9 @@ export function assert(_value: unknown): asserts _value {}
 // value is of type Type:
 // eslint-disable-next-line prettier/prettier
 export function assertType<Type>(_value: unknown): asserts _value is Type {}
+
+export function isNotSharedOrganization(
+  maybe: Organization | SharedViewOrganization
+): maybe is Organization {
+  return typeof (maybe as Organization).id !== 'undefined';
+}

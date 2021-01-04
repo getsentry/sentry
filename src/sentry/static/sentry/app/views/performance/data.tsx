@@ -7,7 +7,8 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {
-  getVitalDetailTableStatusFunction,
+  getVitalDetailTableMehStatusFunction,
+  getVitalDetailTablePoorStatusFunction,
   vitalNameFromLocation,
 } from './vitalDetail/utils';
 
@@ -135,6 +136,7 @@ export function generatePerformanceEventView(
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
   conditions.setTagValues('event.type', ['transaction']);
+  conditions.setTagValues('transaction.duration', ['<15m']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -162,6 +164,7 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
+      'key_transaction',
       'transaction',
       'project',
       'count_unique(user)',
@@ -169,7 +172,8 @@ export function generatePerformanceVitalDetailView(
       `p50(${vitalName})`,
       `p75(${vitalName})`,
       `p95(${vitalName})`,
-      getVitalDetailTableStatusFunction(vitalName),
+      getVitalDetailTablePoorStatusFunction(vitalName),
+      getVitalDetailTableMehStatusFunction(vitalName),
     ],
     version: 2,
   };

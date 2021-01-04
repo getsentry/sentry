@@ -77,7 +77,7 @@ def is_real_column(col):
 # calculate the entire bucket width. If we could do that in a smarter way,
 # we could avoid this whole calculation.
 def find_histogram_buckets(field, params, conditions):
-    _, columns = parse_function(
+    _, columns, _ = parse_function(
         field, err_msg=u"received {}, expected histogram function".format(field)
     )
 
@@ -588,6 +588,7 @@ def top_events_timeseries(
     organization,
     referrer=None,
     top_events=None,
+    allow_empty=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -679,6 +680,14 @@ def top_events_timeseries(
             dataset=Dataset.Discover,
             limit=10000,
             referrer=referrer,
+        )
+
+    if not allow_empty and not len(result.get("data", [])):
+        return SnubaTSResult(
+            {"data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")},
+            snuba_filter.start,
+            snuba_filter.end,
+            rollup,
         )
 
     with sentry_sdk.start_span(

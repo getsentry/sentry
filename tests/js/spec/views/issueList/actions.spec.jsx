@@ -4,6 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {selectByLabel} from 'sentry-test/select';
 
+import GlobalModal from 'app/components/globalModal';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import {IssueListActions} from 'app/views/issueList/actions';
 
@@ -21,27 +22,29 @@ describe('IssueListActions', function () {
         const {routerContext, org} = initializeOrg();
 
         SelectedGroupStore.records = {};
-        SelectedGroupStore.add([1, 2, 3]);
+        SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
-          <IssueListActions
-            api={new MockApiClient()}
-            allResultsVisible={false}
-            query=""
-            queryCount={1500}
-            orgId="1337"
-            organization={org}
-            projectId="project-slug"
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
-            }}
-            groupIds={[1, 2, 3]}
-            onRealtimeChange={function () {}}
-            onSelectStatsPeriod={function () {}}
-            realtimeActive={false}
-            statsPeriod="24h"
-          />,
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions
+              api={new MockApiClient()}
+              allResultsVisible={false}
+              query=""
+              queryCount={1500}
+              organization={org}
+              projectId="project-slug"
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: null, utc: true},
+              }}
+              groupIds={['1', '2', '3']}
+              onRealtimeChange={function () {}}
+              onSelectStatsPeriod={function () {}}
+              realtimeActive={false}
+              statsPeriod="24h"
+            />
+          </React.Fragment>,
           routerContext
         );
       });
@@ -59,12 +62,15 @@ describe('IssueListActions', function () {
 
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
-        expect(wrapper.find('ModalDialog')).toSnapshot();
+        await tick();
+        wrapper.update();
+
+        expect(wrapper.find('Modal')).toSnapshot();
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -84,27 +90,29 @@ describe('IssueListActions', function () {
     describe('Total results less than bulk limit', function () {
       beforeAll(function () {
         SelectedGroupStore.records = {};
-        SelectedGroupStore.add([1, 2, 3]);
+        SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
-          <IssueListActions
-            api={new MockApiClient()}
-            allResultsVisible={false}
-            query=""
-            queryCount={600}
-            orgId="1337"
-            organization={TestStubs.routerContext().context.organization}
-            projectId="1"
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
-            }}
-            groupIds={[1, 2, 3]}
-            onRealtimeChange={function () {}}
-            onSelectStatsPeriod={function () {}}
-            realtimeActive={false}
-            statsPeriod="24h"
-          />,
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions
+              api={new MockApiClient()}
+              allResultsVisible={false}
+              query=""
+              queryCount={600}
+              organization={TestStubs.routerContext().context.organization}
+              projectId="1"
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: null, utc: true},
+              }}
+              groupIds={['1', '2', '3']}
+              onRealtimeChange={function () {}}
+              onSelectStatsPeriod={function () {}}
+              realtimeActive={false}
+              statsPeriod="24h"
+            />
+          </React.Fragment>,
           TestStubs.routerContext()
         );
       });
@@ -122,12 +130,15 @@ describe('IssueListActions', function () {
 
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
-        expect(wrapper.find('ModalDialog')).toSnapshot();
+        await tick();
+        wrapper.update();
+
+        expect(wrapper.find('Modal')).toSnapshot();
         wrapper.find('Button[priority="primary"]').simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -147,47 +158,51 @@ describe('IssueListActions', function () {
     describe('Selected on page', function () {
       beforeAll(function () {
         SelectedGroupStore.records = {};
-        SelectedGroupStore.add([1, 2, 3]);
+        SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
-          <IssueListActions
-            api={new MockApiClient()}
-            allResultsVisible
-            query=""
-            queryCount={15}
-            orgId="1337"
-            organization={TestStubs.routerContext().context.organization}
-            projectId="1"
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
-            }}
-            groupIds={[1, 2, 3, 6, 9]}
-            onRealtimeChange={function () {}}
-            onSelectStatsPeriod={function () {}}
-            realtimeActive={false}
-            statsPeriod="24h"
-          />,
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions
+              api={new MockApiClient()}
+              allResultsVisible
+              query=""
+              queryCount={15}
+              organization={TestStubs.routerContext().context.organization}
+              projectId="1"
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: null, utc: true},
+              }}
+              groupIds={['1', '2', '3', '6', '9']}
+              onRealtimeChange={function () {}}
+              onSelectStatsPeriod={function () {}}
+              realtimeActive={false}
+              statsPeriod="24h"
+            />
+          </React.Fragment>,
           TestStubs.routerContext()
         );
       });
 
       it('resolves selected items', function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set([3, 6, 9]));
+          .mockImplementation(() => new Set(['3', '6', '9']));
 
-        wrapper.setState({allInQuerySelected: false, anySelected: true});
+        wrapper
+          .find('IssueListActions')
+          .setState({allInQuerySelected: false, anySelected: true});
         wrapper.find('ResolveActions ActionLink').first().simulate('click');
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             query: {
-              id: [3, 6, 9],
+              id: ['3', '6', '9'],
               project: [1],
             },
             data: {status: 'resolved'},
@@ -195,17 +210,22 @@ describe('IssueListActions', function () {
         );
       });
 
-      it('ignores selected items', function () {
+      it('ignores selected items', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set([3, 6, 9]));
+          .mockImplementation(() => new Set(['3', '6', '9']));
 
-        wrapper.setState({allInQuerySelected: false, anySelected: true});
-        wrapper.find('IgnoreActions MenuItem a').last().simulate('click');
+        wrapper
+          .find('IssueListActions')
+          .setState({allInQuerySelected: false, anySelected: true});
+        wrapper.find('DropdownMenuItem ActionSubMenu a').last().simulate('click');
+
+        await tick();
+        wrapper.update();
 
         wrapper
           .find('CustomIgnoreCountModal input[label="Number of users"]')
@@ -223,7 +243,7 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: {
-              id: [3, 6, 9],
+              id: ['3', '6', '9'],
               project: [1],
             },
             data: {
@@ -246,7 +266,6 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          orgId="1337"
           organization={TestStubs.routerContext().context.organization}
           projectId="1"
           selection={{
@@ -254,7 +273,7 @@ describe('IssueListActions', function () {
             environments: [],
             datetime: {start: null, end: null, period: null, utc: true},
           }}
-          groupIds={[1, 2, 3]}
+          groupIds={['1', '2', '3']}
           onRealtimeChange={function () {}}
           onSelectStatsPeriod={function () {}}
           realtimeActive={false}
@@ -284,13 +303,13 @@ describe('IssueListActions', function () {
       it('should invoke the callback with an array of selected items and deselect all', function () {
         jest
           .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set([1, 2, 3]));
+          .mockImplementation(() => new Set(['1', '2', '3']));
 
         actions.state.allInQuerySelected = false;
         const callback = jest.fn();
         actions.actionSelectedGroups(callback);
 
-        expect(callback).toHaveBeenCalledWith([1, 2, 3]);
+        expect(callback).toHaveBeenCalledWith(['1', '2', '3']);
         expect(callback).toHaveBeenCalledTimes(1);
         expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
       });
@@ -301,15 +320,14 @@ describe('IssueListActions', function () {
     beforeEach(function () {
       jest
         .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set([1, 2, 3]));
+        .mockImplementation(() => new Set(['1', '2', '3']));
 
       wrapper = mountWithTheme(
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          orgId="1337"
           organization={TestStubs.routerContext().context.organization}
-          groupIds={[1, 2, 3]}
+          groupIds={['1', '2', '3']}
           selection={{
             projects: [],
             environments: [],
@@ -331,61 +349,69 @@ describe('IssueListActions', function () {
     });
 
     it('should disable merge button', function () {
-      const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
-      expect(merge.props().disabled).toBe(true);
+      expect(
+        wrapper.find('button[aria-label="Merge Selected Issues"]').props()[
+          'aria-disabled'
+        ]
+      ).toBe(true);
     });
   });
 
   describe('with inbox feature', function () {
-    beforeEach(() => {
-      SelectedGroupStore.records = {};
+    beforeEach(async () => {
+      SelectedGroupStore.init();
+      await tick();
       const {organization} = TestStubs.routerContext().context;
       wrapper = mountWithTheme(
-        <IssueListActions
-          api={new MockApiClient()}
-          query=""
-          orgId="1337"
-          organization={organization}
-          groupIds={[1, 2, 3]}
-          selection={{
-            projects: [],
-            environments: [],
-            datetime: {start: null, end: null, period: null, utc: true},
-          }}
-          onRealtimeChange={function () {}}
-          onSelectStatsPeriod={function () {}}
-          realtimeActive={false}
-          statsPeriod="24h"
-          queryCount={100}
-          queryMaxCount={100}
-          pageCount={3}
-          hasInbox
-        />,
+        <React.Fragment>
+          <GlobalModal />
+          <IssueListActions
+            api={new MockApiClient()}
+            query=""
+            organization={organization}
+            groupIds={['1', '2', '3']}
+            selection={{
+              projects: [],
+              environments: [],
+              datetime: {start: null, end: null, period: null, utc: true},
+            }}
+            onRealtimeChange={function () {}}
+            onSelectStatsPeriod={function () {}}
+            realtimeActive={false}
+            statsPeriod="24h"
+            queryCount={100}
+            queryMaxCount={100}
+            pageCount={3}
+            hasInbox
+          />
+        </React.Fragment>,
         TestStubs.routerContext()
       );
     });
 
     it('hides actions when no issues are selected', async function () {
-      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(false);
+      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(false);
     });
 
     it('displays actions on issue selection', async function () {
-      wrapper.setState({anySelected: true});
-      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(true);
+      wrapper.find('IssueListActions').setState({anySelected: true});
+      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(true);
     });
 
     it('acknowledges group', async function () {
-      wrapper.setState({anySelected: true});
-      SelectedGroupStore.add([1, 2, 3]);
+      wrapper.find('IssueListActions').setState({anySelected: true});
+      SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
+
+      await tick();
+      wrapper.update();
+
       const apiMock = MockApiClient.addMockResponse({
-        url: '/organizations/1337/issues/',
+        url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
-      wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');
+      wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
 
-      expect(wrapper.find('ModalDialog')).toSnapshot();
-      wrapper.find('Button[priority="primary"]').simulate('click');
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

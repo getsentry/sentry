@@ -49,6 +49,31 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
+function isReactEvent(
+  maybe: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent
+): maybe is React.MouseEvent | React.TouchEvent {
+  return 'nativeEvent' in maybe;
+}
+
+/**
+ * Handle getting position out of both React and Raw DOM events
+ * as both are handled here due to mousedown/mousemove events
+ * working differently.
+ */
+function getPointerPosition(
+  event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent,
+  property: 'pageX' | 'pageY'
+): number {
+  const actual = isReactEvent(event) ? event.nativeEvent : event;
+  if (window.TouchEvent && actual instanceof TouchEvent) {
+    return actual.targetTouches[0][property];
+  }
+  if (actual instanceof MouseEvent) {
+    return actual[property];
+  }
+  return 0;
+}
+
 class ColumnEditCollection extends React.Component<Props, State> {
   state = {
     isDragging: false,
@@ -116,7 +141,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
   cleanUpListeners() {
     if (this.state.isDragging) {
       window.removeEventListener('mousemove', this.onDragMove);
+      window.removeEventListener('touchmove', this.onDragMove);
       window.removeEventListener('mouseup', this.onDragEnd);
+      window.removeEventListener('touchend', this.onDragEnd);
     }
   }
 
@@ -138,11 +165,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
     this.props.onChange(newColumns);
   }
 
-  startDrag(event: React.MouseEvent<HTMLButtonElement>, index: number) {
+  startDrag(
+    event: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>,
+    index: number
+  ) {
     const isDragging = this.state.isDragging;
-    if (isDragging || event.type !== 'mousedown') {
+    if (isDragging || !['mousedown', 'touchstart'].includes(event.type)) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
 
     // prevent the user from selecting things when dragging a column.
     this.previousUserSelect = setBodyUserSelect({
@@ -154,38 +186,45 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
     // attach event listeners so that the mouse cursor can drag anywhere
     window.addEventListener('mousemove', this.onDragMove);
+    window.addEventListener('touchmove', this.onDragMove);
     window.addEventListener('mouseup', this.onDragEnd);
+    window.addEventListener('touchend', this.onDragEnd);
 
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
-      top: event.pageY,
-      left: event.pageX,
+      top: getPointerPosition(event, 'pageY'),
+      left: getPointerPosition(event, 'pageX'),
     });
   }
 
-  onDragMove = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mousemove') {
+  onDragMove = (event: MouseEvent | TouchEvent) => {
+    if (!this.state.isDragging || !['mousemove', 'touchmove'].includes(event.type)) {
       return;
     }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pointerX = getPointerPosition(event, 'pageX');
+    const pointerY = getPointerPosition(event, 'pageY');
 
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
       // Adjust so cursor is over the grab handle.
-      ghostDOM.style.left = `${event.pageX - GRAB_HANDLE_FUDGE}px`;
-      ghostDOM.style.top = `${event.pageY - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.left = `${pointerX - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.top = `${pointerY - GRAB_HANDLE_FUDGE}px`;
     }
 
     const dragItems = document.querySelectorAll(`.${DRAG_CLASS}`);
     // Find the item that the ghost is currently over.
     const targetIndex = Array.from(dragItems).findIndex(dragItem => {
       const rects = dragItem.getBoundingClientRect();
-      const top = event.clientY;
+      const top = pointerY;
 
-      const thresholdStart = rects.top;
-      const thresholdEnd = rects.top + rects.height;
+      const thresholdStart = window.scrollY + rects.top;
+      const thresholdEnd = window.scrollY + rects.top + rects.height;
 
       return top >= thresholdStart && top <= thresholdEnd;
     });
@@ -195,8 +234,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
     }
   };
 
-  onDragEnd = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mouseup') {
+  onDragEnd = (event: MouseEvent | TouchEvent) => {
+    if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
       return;
     }
 
@@ -293,7 +332,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Drag to reorder')}
               onMouseDown={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" color="gray500" />}
+              onTouchStart={event => this.startDrag(event, i)}
+              icon={<IconGrabbable size="xs" />}
               size="zero"
               borderless
             />
@@ -311,7 +351,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             <Button
               aria-label={t('Remove column')}
               onClick={() => this.removeColumn(i)}
-              icon={<IconDelete color="gray300" />}
+              icon={<IconDelete />}
               borderless
             />
           ) : (
@@ -375,6 +415,7 @@ const RowContainer = styled('div')`
   grid-template-columns: 24px auto 24px;
   align-items: center;
   width: 100%;
+  touch-action: none;
   padding-bottom: ${space(1)};
 `;
 
@@ -385,7 +426,7 @@ const Ghost = styled('div')`
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
-  width: 600px;
+  width: max-content;
   opacity: 0.8;
   cursor: grabbing;
 

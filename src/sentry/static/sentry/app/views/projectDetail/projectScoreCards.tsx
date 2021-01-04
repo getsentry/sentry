@@ -5,8 +5,13 @@ import AsyncComponent from 'app/components/asyncComponent';
 import ScoreCard from 'app/components/scoreCard';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 
-type Props = AsyncComponent['props'] & {};
+type Props = AsyncComponent['props'] & {
+  organization: Organization;
+  projectSlug: string;
+  projectId?: string;
+};
 type State = AsyncComponent['state'] & {};
 
 class ProjectScoreCards extends AsyncComponent<Props, State> {

@@ -15,7 +15,7 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_group",
-    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    queue="events.reprocessing.process_event",
     time_limit=120,
     soft_time_limit=110,
 )
@@ -47,9 +47,6 @@ def reprocess_group(
     )
 
     if not events:
-        wait_group_reprocessed.delay(
-            project_id=project_id, group_id=group_id, new_group_id=new_group_id
-        )
         return
 
     tombstoned_event_ids = []
@@ -82,7 +79,7 @@ def reprocess_group(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.tombstone_events",
-    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
 )
@@ -117,7 +114,7 @@ def tombstone_events(project_id, group_id, event_ids):
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_event",
-    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    queue="events.reprocessing.process_event",
     time_limit=30,
     soft_time_limit=20,
 )
@@ -128,49 +125,32 @@ def reprocess_event(project_id, event_id, start_time):
 
 
 @instrumented_task(
-    name="sentry.tasks.reprocessing2.wait_group_reprocessed",
-    queue="sleep",
-    time_limit=(60 * 5) + 5,
-    soft_time_limit=60 * 5,
-)
-def wait_group_reprocessed(project_id, group_id, new_group_id):
-    from sentry.reprocessing2 import is_group_finished
-
-    if is_group_finished(group_id):
-        finish_reprocessing.delay(
-            project_id=project_id, group_id=group_id, new_group_id=new_group_id
-        )
-    else:
-        wait_group_reprocessed.apply_async(
-            kwargs={"project_id": project_id, "group_id": group_id, "new_group_id": new_group_id},
-            countdown=60 * 5,
-        )
-
-
-@instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
-    queue="events.reprocessing.preprocess_event",
+    queue="events.reprocessing.process_event",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
-def finish_reprocessing(project_id, group_id, new_group_id):
+def finish_reprocessing(project_id, group_id):
     from sentry.models import Group, GroupRedirect, Activity
 
     with transaction.atomic():
         group = Group.objects.get(id=group_id)
+
+        # While we migrated all associated models at the beginning of
+        # reprocessing, there is still the "reprocessing" activity that we need
+        # to transfer manually.
+        activity = Activity.objects.get(group_id=group_id)
+        new_group_id = activity.group_id = activity.data["newGroupId"]
+        activity.save()
+
         new_group = Group.objects.get(id=new_group_id)
 
         # Any sort of success message will be shown at the *new* group ID's URL
         GroupRedirect.objects.create(
             organization_id=new_group.project.organization_id,
-            group_id=new_group.id,
+            group_id=new_group_id,
             previous_group_id=group_id,
         )
-
-        # While we migrated all associated models at the beginning of
-        # reprocessing, there is still the "reprocessing" activity that we need
-        # to transfer manually.
-        Activity.objects.filter(group_id=group_id).update(group_id=new_group_id)
 
         # All the associated models (groupassignee and eventattachments) should
         # have moved to a successor group that may be deleted independently.

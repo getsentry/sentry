@@ -48,6 +48,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
+        .loading .loading-indicator {
+          border-color: ${theme.background};
+          border-left-color: ${theme.purple300};
+        }
         .modal-content {
           background: ${theme.background};
         }
@@ -61,25 +65,48 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .modal .modal-footer {
           border-top-color: ${theme.border};
         }
-        .nav-tabs > li > a:hover,
-        .nav-tabs > li > a:active,
-        .nav-tabs > li > a:focus {
-          border-bottom-color: ${theme.purple300} !important; /* TODO(dark): active */
-          color: ${theme.textColor} !important;
+
+        .nav-tabs {
+          & > li {
+            &.active {
+              a {
+                color: ${theme.textColor} !important;
+                border-bottom-color: ${theme.active} !important;
+              }
+            }
+
+            a:hover {
+              color: ${theme.textColor} !important;
+            }
+          }
         }
+
         ul.crumbs li .table.key-value pre {
           color: ${theme.subText};
         }
-        .nav-tabs > li.active a,
-        .nav-tabs > li.active a:hover {
-          color: ${theme.textColor};
+
+        .exception {
+          border-color: ${theme.innerBorder};
         }
 
         .traceback {
           border-color: ${theme.border};
-          background-color: ${theme.background};
+
           ol.context > li {
             color: ${theme.subText};
+          }
+
+          &.in-app-traceback {
+            .frame {
+              &.leads-to-app {
+                &.collapsed {
+                  .title {
+                    border-color: ${theme.border};
+                    background: ${theme.background};
+                  }
+                }
+              }
+            }
           }
 
           .frame,
@@ -90,13 +117,17 @@ const styles = (theme: Theme, isDark: boolean) => css`
               background-color: ${theme.background};
             }
             .btn-toggle {
+              color: ${theme.textColor};
               background: transparent;
-            }
-            .context {
-              background-color: ${theme.background};
             }
             .title {
               background-color: ${theme.backgroundSecondary};
+            }
+            &.is-expandable .title {
+              background-color: ${theme.backgroundSecondary};
+            }
+            .context {
+              background: ${theme.background};
             }
           }
         }
@@ -128,11 +159,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
         pre,
         code {
           background-color: ${theme.backgroundSecondary};
-          color: ${theme.subText};
+          color: ${theme.textColor};
         }
-        .search .search-input,
-        .Select-control,
-        .Select-menu-outer {
+        .search .search-input {
           background: ${theme.background};
           color: ${theme.formText};
         }
@@ -148,6 +177,14 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .rdrMonthAndYearPickers select {
           color: ${theme.textColor};
+        }
+        .dropdown-menu {
+          color: ${theme.textColor};
+          background-color: ${theme.background};
+          &:after,
+          &:before {
+            border-bottom-color: ${theme.background};
+          }
         }
       `
     : ''}

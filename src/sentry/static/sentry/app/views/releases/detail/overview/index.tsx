@@ -12,6 +12,7 @@ import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -70,7 +71,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
   handleYAxisChange = (yAxis: YAxis) => {
     const {location, router} = this.props;
-    const {eventType: _eventType, ...query} = location.query;
+    const {eventType: _eventType, vitalType: _vitalType, ...query} = location.query;
 
     router.push({
       ...location,
@@ -84,6 +85,15 @@ class ReleaseOverview extends AsyncView<Props> {
     router.push({
       ...location,
       query: {...location.query, eventType},
+    });
+  };
+
+  handleVitalTypeChange = (vitalType: WebVital) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, vitalType},
     });
   };
 
@@ -134,6 +144,20 @@ class ReleaseOverview extends AsyncView<Props> {
     }
 
     return EventType.ALL;
+  }
+
+  getVitalType(yAxis: YAxis): WebVital {
+    if (yAxis === YAxis.COUNT_VITAL) {
+      const {vitalType} = this.props.location.query;
+
+      if (typeof vitalType === 'string') {
+        if (Object.values(WebVital).includes(vitalType as WebVital)) {
+          return vitalType as WebVital;
+        }
+      }
+    }
+
+    return WebVital.LCP;
   }
 
   getReleaseEventView(
@@ -225,11 +249,10 @@ class ReleaseOverview extends AsyncView<Props> {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
-          const hasPerformance =
-            organization.features.includes('performance-view') &&
-            organization.features.includes('release-performance-views');
+          const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
           const eventType = this.getEventType(yAxis);
+          const vitalType = this.getVitalType(yAxis);
 
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
@@ -266,6 +289,7 @@ class ReleaseOverview extends AsyncView<Props> {
               location={location}
               yAxis={yAxis}
               eventType={eventType}
+              vitalType={vitalType}
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
               hasPerformance={hasPerformance}
@@ -288,6 +312,8 @@ class ReleaseOverview extends AsyncView<Props> {
                         onYAxisChange={this.handleYAxisChange}
                         eventType={eventType}
                         onEventTypeChange={this.handleEventTypeChange}
+                        vitalType={vitalType}
+                        onVitalTypeChange={this.handleVitalTypeChange}
                         router={router}
                         organization={organization}
                         hasHealthData={hasHealthData}
@@ -305,7 +331,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       version={version}
                       location={location}
                     />
-                    <Feature features={['performance-view', 'release-performance-views']}>
+                    <Feature features={['performance-view']}>
                       <TransactionsList
                         location={location}
                         organization={organization}

@@ -70,8 +70,9 @@ const StyledCloseButton = styled(Button)`
   opacity: 0.4;
   transition: opacity 0.1s linear;
   position: absolute;
-  top: 0;
+  top: 50%;
   right: 0;
+  transform: translateY(-50%);
 
   &:hover,
   &:focus {

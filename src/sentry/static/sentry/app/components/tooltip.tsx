@@ -9,18 +9,18 @@ import PropTypes from 'prop-types';
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {domId} from 'app/utils/domId';
 
-const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
+export const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
 
 type DefaultProps = {
   /**
    * Position for the tooltip.
    */
-  position: PopperJS.Placement;
+  position?: PopperJS.Placement;
 
   /**
    * Display mode for the container element
    */
-  containerDisplayMode: React.CSSProperties['display'];
+  containerDisplayMode?: React.CSSProperties['display'];
 };
 
 type Props = DefaultProps & {

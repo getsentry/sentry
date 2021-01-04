@@ -20,8 +20,10 @@ import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Event, Frame, PlatformType, SentryAppComponent} from 'app/types';
+import {Event, Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
 import {defined, objectIsEmpty} from 'app/utils';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withOrganization from 'app/utils/withOrganization';
 import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 
 import Context from './context';
@@ -49,7 +51,9 @@ type Props = {
   isFrameAfterLastNonApp?: boolean;
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
-  hideStacktraceLink?: boolean;
+  isFirst?: boolean;
+  isHoverPreviewed?: boolean;
+  organization?: Organization;
 };
 
 type State = {
@@ -72,7 +76,7 @@ export class Line extends React.Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,
-    hideStacktraceLink: false,
+    isHoverPreviewed: false,
   };
 
   // isExpanded can be initialized to true via parent component;
@@ -84,6 +88,16 @@ export class Line extends React.Component<Props, State> {
 
   toggleContext = evt => {
     evt && evt.preventDefault();
+    const {isFirst, isHoverPreviewed, organization} = this.props;
+
+    if (isFirst && isHoverPreviewed) {
+      trackAnalyticsEvent({
+        eventKey: 'stacktrace.preview.first_frame_expand',
+        eventName: 'Stack Trace Preview: Expand First Frame',
+        organization_id: organization?.id ? parseInt(organization.id, 10) : undefined,
+        issue_id: this.props.event.groupID,
+      });
+    }
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -187,11 +201,7 @@ export class Line extends React.Component<Props, State> {
           title={t('Toggle Context')}
           onClick={this.toggleContext}
         >
-          <StyledIconChevron
-            isExpanded={!!isExpanded}
-            direction={isExpanded ? 'up' : 'down'}
-            size="8px"
-          />
+          <IconChevron direction={isExpanded ? 'down' : 'up'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
@@ -367,14 +377,16 @@ export class Line extends React.Component<Props, State> {
           hasAssembly={this.hasAssembly()}
           expandable={this.isExpandable()}
           isExpanded={this.state.isExpanded}
-          hideStacktraceLink={this.props.hideStacktraceLink}
+          isHoverPreviewed={this.props.isHoverPreviewed}
         />
       </StyledLi>
     );
   }
 }
 
-export default withSentryAppComponents(Line, {componentType: 'stacktrace-link'});
+export default withOrganization(
+  withSentryAppComponents(Line, {componentType: 'stacktrace-link'})
+);
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
@@ -439,13 +451,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 const LeadHint = styled('div')<{width?: string}>`
   ${overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
-`;
-
-const StyledIconChevron = styled(IconChevron, {
-  shouldForwardProp: prop => prop !== 'isExpanded',
-})<{isExpanded: boolean}>`
-  transform: rotate(${p => (p.isExpanded ? '180deg' : '0deg')});
-  transition: 0.1s all;
 `;
 
 const ToggleContextButtonWrapper = styled('span')`

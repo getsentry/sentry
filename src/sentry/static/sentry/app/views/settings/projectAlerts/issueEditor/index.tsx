@@ -32,7 +32,6 @@ import {
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -88,10 +87,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -133,6 +133,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
 
     return endpoints as [string, string][];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle?.(data.name);
+    }
   }
 
   pollHandler = async (quitTime: number) => {
@@ -429,7 +435,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Access access={['project:write']}>
+      <Access access={['alerts:write']}>
         {({hasAccess}) => (
           <StyledForm
             key={isSavedAlertRule(rule) ? rule.id : undefined}
@@ -724,7 +730,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withProject(withOrganization(IssueRuleEditor));
+export default withOrganization(IssueRuleEditor);
 
 const StyledForm = styled(Form)`
   position: relative;

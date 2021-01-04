@@ -396,7 +396,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             menuWithArrow
             emptyHidesInput
           >
-            {({getActorProps}) => (
+            {({getActorProps, isOpen}) => (
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
@@ -405,7 +405,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 ) : (
                   <StyledIconUser size="20px" color="gray400" />
                 )}
-                <StyledChevron direction="down" size="xs" />
+                <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
@@ -510,10 +510,12 @@ const GroupHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   margin: ${space(1)} 0;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.fontSizeSmall};
+  text-align: left;
 `;
 
 const SuggestedReason = styled('span')`
   margin-left: ${space(0.5)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.textColor};
 `;

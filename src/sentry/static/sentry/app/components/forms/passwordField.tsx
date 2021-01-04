@@ -8,7 +8,7 @@ import FormState from 'app/components/forms/state';
 type Props = InputField['props'] & {
   hasSavedValue?: boolean;
   prefix: string;
-  formState: typeof FormState[keyof typeof FormState];
+  formState?: typeof FormState[keyof typeof FormState];
 };
 
 type State = InputField['state'] & {

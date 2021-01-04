@@ -169,6 +169,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 
 const ALIASED_AGGREGATES_COLUMN = {
   last_seen: 'timestamp',
+  failure_count: 'transaction.status',
 };
 
 /**

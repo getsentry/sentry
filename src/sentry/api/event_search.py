@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from copy import deepcopy
 from datetime import datetime
 
@@ -128,7 +128,7 @@ key_val_term         = spaces (tag_filter / time_filter / rel_time_filter / spec
                        / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
                        / has_filter / is_filter / quoted_basic_filter / basic_filter)
                        spaces
-raw_search           = (!key_val_term ~r"\ *(?!(?i)OR)(?!(?i)AND)([^\ ^\n ()]+)\ *" )*
+raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
 quoted_raw_search    = spaces quoted_value spaces
 
 # standard key:val filter
@@ -1417,8 +1417,17 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
     return snuba_json
 
 
-FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>.*)\)$")
-ALIAS_PATTERN = re.compile(r"(\w+)?(?!\d+)\w+$")
+# Based on general/src/protocol/tags.rs in relay
+VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
+
+# The regex for alias here is to match any word, but exclude anything that is only digits
+# eg. 123 doesn't match, but test_123 will match
+ALIAS_REGEX = "(\w+)?(?!\d+)\w+"
+
+ALIAS_PATTERN = re.compile(r"{}$".format(ALIAS_REGEX))
+FUNCTION_PATTERN = re.compile(
+    r"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{}))?$".format(ALIAS_REGEX)
+)
 
 
 class InvalidFunctionArgument(Exception):
@@ -1688,6 +1697,7 @@ class Function(object):
         transform=None,
         result_type_fn=None,
         default_result_type=None,
+        redundant_grouping=False,
         private=False,
     ):
         """
@@ -1712,6 +1722,8 @@ class Function(object):
             be tried first as the source of truth if available.
         :param str default_result_type: The default resulting type of this function. Must be a type
             defined by RESULTS_TYPES.
+        :param bool redundant_grouping: This function will result in redundant grouping if its column
+            is included as a field as well.
         :param bool private: Whether or not this function should be disabled for general use.
         """
 
@@ -1724,6 +1736,7 @@ class Function(object):
         self.transform = transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
+        self.redundant_grouping = redundant_grouping
         self.private = private
 
         self.validate()
@@ -1893,6 +1906,7 @@ FUNCTIONS = {
             aggregate=[u"quantile({percentile:g})", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p50",
@@ -1900,6 +1914,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.5)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p75",
@@ -1907,6 +1922,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.75)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p95",
@@ -1914,6 +1930,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.95)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p99",
@@ -1921,6 +1938,7 @@ FUNCTIONS = {
             aggregate=[u"quantile(0.99)", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "p100",
@@ -1928,6 +1946,7 @@ FUNCTIONS = {
             aggregate=[u"max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "eps",
@@ -1942,7 +1961,10 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "last_seen", aggregate=["max", "timestamp", "last_seen"], default_result_type="date"
+            "last_seen",
+            aggregate=["max", "timestamp", "last_seen"],
+            default_result_type="date",
+            redundant_grouping=True,
         ),
         Function(
             "latest_event",
@@ -2097,6 +2119,7 @@ FUNCTIONS = {
             aggregate=["min", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "max",
@@ -2104,6 +2127,7 @@ FUNCTIONS = {
             aggregate=["max", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "avg",
@@ -2111,6 +2135,7 @@ FUNCTIONS = {
             aggregate=["avg", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+            redundant_grouping=True,
         ),
         Function(
             "sum",
@@ -2136,7 +2161,6 @@ FUNCTIONS = {
                 NumberRange("percentile", 0, 1),
                 DateArg("start"),
                 DateArg("end"),
-                FunctionAliasArg("query_alias"),
             ],
             aggregate=[
                 u"quantileIf({percentile:.2f})",
@@ -2168,18 +2192,13 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="duration",
         ),
         Function(
             "avg_range",
-            required_args=[
-                DurationColumnNoLookup("column"),
-                DateArg("start"),
-                DateArg("end"),
-                FunctionAliasArg("query_alias"),
-            ],
+            required_args=[DurationColumnNoLookup("column"), DateArg("start"), DateArg("end")],
             aggregate=[
                 u"avgIf",
                 [
@@ -2193,18 +2212,13 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="duration",
         ),
         Function(
             "variance_range",
-            required_args=[
-                DurationColumnNoLookup("column"),
-                DateArg("start"),
-                DateArg("end"),
-                FunctionAliasArg("query_alias"),
-            ],
+            required_args=[DurationColumnNoLookup("column"), DateArg("start"), DateArg("end")],
             aggregate=[
                 u"varSampIf",
                 [
@@ -2218,13 +2232,13 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="duration",
         ),
         Function(
             "count_range",
-            required_args=[DateArg("start"), DateArg("end"), FunctionAliasArg("query_alias")],
+            required_args=[DateArg("start"), DateArg("end")],
             aggregate=[
                 u"countIf",
                 [
@@ -2237,23 +2251,19 @@ FUNCTIONS = {
                         ],
                     ],
                 ],
-                "{query_alias}",
+                None,
             ],
             default_result_type="integer",
         ),
         Function(
             "percentage",
-            required_args=[
-                FunctionAliasArg("numerator"),
-                FunctionAliasArg("denominator"),
-                FunctionAliasArg("query_alias"),
-            ],
+            required_args=[FunctionArg("numerator"), FunctionArg("denominator")],
             # Since percentage is only used on aggregates, it needs to be an aggregate and not a column
             # This is because as a column it will be added to the `WHERE` clause instead of the `HAVING` clause
             aggregate=[
                 u"if(greater({denominator},0),divide({numerator},{denominator}),null)",
                 None,
-                "{query_alias}",
+                None,
             ],
             default_result_type="percentage",
         ),
@@ -2277,12 +2287,8 @@ FUNCTIONS = {
         ),
         Function(
             "minus",
-            required_args=[
-                FunctionAliasArg("minuend"),
-                FunctionAliasArg("subtrahend"),
-                FunctionAliasArg("query_alias"),
-            ],
-            aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], "{query_alias}"],
+            required_args=[FunctionArg("minuend"), FunctionArg("subtrahend")],
+            aggregate=[u"minus", [ArgValue("minuend"), ArgValue("subtrahend")], None],
             default_result_type="duration",
         ),
         Function(
@@ -2355,6 +2361,9 @@ def get_function_alias(field):
     match = FUNCTION_PATTERN.search(field)
     if match is None:
         return field
+
+    if match.group("alias") is not None:
+        return match.group("alias")
     function = match.group("function")
     columns = parse_arguments(function, match.group("columns"))
     return get_function_alias_with_columns(function, columns)
@@ -2436,7 +2445,11 @@ def parse_function(field, match=None, err_msg=None):
         raise InvalidSearchQuery(err_msg)
 
     function = match.group("function")
-    return function, parse_arguments(function, match.group("columns"))
+    return (
+        function,
+        parse_arguments(function, match.group("columns")),
+        match.group("alias"),
+    )
 
 
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
@@ -2449,7 +2462,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         return ResolvedFunction(
             FunctionDetails(field, FUNCTIONS["percentage"], []), None, alias.aggregate,
         )
-    function_name, columns = parse_function(field, match)
+    function_name, columns, alias = parse_function(field, match)
     function = FUNCTIONS[function_name]
     if not function.is_accessible(functions_acl):
         raise InvalidSearchQuery(u"{}: no access to private function".format(function.name))
@@ -2459,11 +2472,9 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
 
     if function.transform is not None:
         snuba_string = function.transform.format(**arguments)
-        return ResolvedFunction(
-            details,
-            None,
-            [snuba_string, None, get_function_alias_with_columns(function.name, columns)],
-        )
+        if alias is None:
+            alias = get_function_alias_with_columns(function.name, columns)
+        return ResolvedFunction(details, None, [snuba_string, None, alias],)
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
 
@@ -2480,10 +2491,11 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
                 aggregate[1] = [arguments[arg]]
             else:
                 aggregate[1] = arguments[arg]
-        if aggregate[2] is None:
+
+        if alias is not None:
+            aggregate[2] = alias
+        elif aggregate[2] is None:
             aggregate[2] = get_function_alias_with_columns(function.name, columns)
-        else:
-            aggregate[2] = aggregate[2].format(**arguments)
 
         return ResolvedFunction(details, None, aggregate)
     elif function.column is not None:
@@ -2495,7 +2507,9 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         if len(addition) < 3:
             addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3:
-            if addition[2] is None:
+            if alias is not None:
+                addition[2] = alias
+            elif addition[2] is None:
                 addition[2] = get_function_alias_with_columns(function.name, columns)
             else:
                 addition[2] = addition[2].format(**arguments)
@@ -2569,7 +2583,14 @@ def resolve_field(field, params=None, functions_acl=None):
     if field in FIELD_ALIASES:
         special_field = FIELD_ALIASES[field]
         return ResolvedFunction(None, special_field.get_field(params), None)
-    return ResolvedFunction(None, field, None)
+
+    tag_match = TAG_KEY_RE.search(field)
+    tag_field = tag_match.group("tag") if tag_match else field
+
+    if VALID_FIELD_PATTERN.match(tag_field):
+        return ResolvedFunction(None, field, None)
+    else:
+        raise InvalidSearchQuery("Invalid characters in field {}".format(field))
 
 
 def resolve_field_list(
@@ -2588,6 +2609,7 @@ def resolve_field_list(
     aggregate to a field.
     """
     aggregations = []
+    aggregate_fields = defaultdict(set)
     columns = []
     groupby = []
     project_key = ""
@@ -2617,6 +2639,8 @@ def resolve_field_list(
             aggregations.append(function.aggregate)
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
+                if function.details.instance.redundant_grouping:
+                    aggregate_fields[function.aggregate[1]].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -2629,6 +2653,9 @@ def resolve_field_list(
                         function.aggregate, (list, tuple)
                     ):
                         functions[function.aggregate[-1]] = function.details
+
+                        if function.details.instance.redundant_grouping:
+                            aggregate_fields[function.aggregate[1]].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -2691,6 +2718,19 @@ def resolve_field_list(
                     continue
                 groupby.append(column[2])
             else:
+                if column in aggregate_fields:
+                    conflicting_functions = list(aggregate_fields[column])
+                    raise InvalidSearchQuery(
+                        "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
+                            field=column,
+                            function_msg=", ".join(conflicting_functions[:2])
+                            + (
+                                " and {} more.".format(len(conflicting_functions) - 2)
+                                if len(conflicting_functions) > 2
+                                else ""
+                            ),
+                        )
+                    )
                 groupby.append(column)
 
     return {
@@ -2702,4 +2742,4 @@ def resolve_field_list(
     }
 
 
-TAG_KEY_RE = re.compile(r"^tags\[(.*)\]$")
+TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")

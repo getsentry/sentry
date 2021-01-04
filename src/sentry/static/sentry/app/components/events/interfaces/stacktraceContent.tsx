@@ -19,7 +19,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
-  hideStacktraceLink?: boolean;
+  isHoverPreviewed?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -86,7 +86,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       ? images.find((img, idx) => {
           if (!addrMode || addrMode === 'abs') {
             const [startAddress, endAddress] = getImageRange(img);
-            return address >= startAddress && address < endAddress;
+            return address >= (startAddress as any) && address < (endAddress as any);
           }
 
           return addrMode === `rel:${idx}`;
@@ -127,7 +127,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       expandFirstFrame,
       platform,
       includeSystemFrames,
-      hideStacktraceLink,
+      isHoverPreviewed,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -218,7 +218,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
-            hideStacktraceLink={hideStacktraceLink}
+            isHoverPreviewed={isHoverPreviewed}
+            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
           />
         );
       }

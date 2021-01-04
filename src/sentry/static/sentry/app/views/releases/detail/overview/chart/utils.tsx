@@ -25,7 +25,8 @@ export function getReleaseEventView(
   selection: GlobalSelection,
   version: string,
   yAxis?: YAxis,
-  eventType?: EventType,
+  eventType: EventType = EventType.ALL,
+  vitalType: WebVital = WebVital.LCP,
   organization?: Organization,
   /**
    * Indicates that we're only interested in the current release.
@@ -67,14 +68,13 @@ export function getReleaseEventView(
           )
         ),
       });
-    case YAxis.COUNT_LCP:
+    case YAxis.COUNT_VITAL:
     case YAxis.COUNT_DURATION:
-      const column =
-        yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : 'measurements.lcp';
+      const column = yAxis === YAxis.COUNT_DURATION ? 'transaction.duration' : vitalType;
       const threshold =
         yAxis === YAxis.COUNT_DURATION
           ? organization?.apdexThreshold
-          : WEB_VITAL_DETAILS[WebVital.LCP].failureThreshold;
+          : WEB_VITAL_DETAILS[vitalType].failureThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
         query: stringifyQueryObject(
@@ -88,25 +88,14 @@ export function getReleaseEventView(
         ),
       });
     case YAxis.EVENTS:
-      if (organization?.features?.includes('release-performance-views')) {
-        const eventTypeFilter = eventType === 'all' ? '' : `event.type:${eventType}`;
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          query: stringifyQueryObject(
-            new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
-          ),
-        });
-      } else {
-        // TODO(tonyx): Delete this else once the feature flags are removed
-        return EventView.fromSavedQuery({
-          ...baseQuery,
-          fields: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
-          query: stringifyQueryObject(
-            new QueryResults([`release:${version}`, '!event.type:transaction'])
-          ),
-          orderby: '-last_seen',
-        });
-      }
+      const eventTypeFilter =
+        eventType === EventType.ALL ? '' : `event.type:${eventType}`;
+      return EventView.fromSavedQuery({
+        ...baseQuery,
+        query: stringifyQueryObject(
+          new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
+        ),
+      });
     default:
       return EventView.fromSavedQuery({
         ...baseQuery,

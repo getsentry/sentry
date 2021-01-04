@@ -9,29 +9,38 @@ import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
-import {DISPLAY_TYPE_CHOICES, INTERVAL_CHOICES} from 'app/views/dashboardsV2/data';
-import {DashboardListItem, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
+import {DISPLAY_TYPE_CHOICES} from 'app/views/dashboardsV2/data';
+import {DashboardDetails, Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import WidgetCard from 'app/views/dashboardsV2/widgetCard';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextField from 'app/views/settings/components/forms/textField';
+import Input from 'app/views/settings/components/forms/controls/input';
+import Field from 'app/views/settings/components/forms/field';
 
-type Props = ModalRenderProps & {
-  api: Client;
+export type DashboardWidgetModalOptions = {
   organization: Organization;
-  dashboard: DashboardListItem;
+  dashboard: DashboardDetails;
   selection: GlobalSelection;
+  widget?: Widget;
   onAddWidget: (data: Widget) => void;
-  tags: TagCollection;
+  onUpdateWidget?: (nextWidget: Widget) => void;
 };
+
+type Props = ModalRenderProps &
+  DashboardWidgetModalOptions & {
+    api: Client;
+    organization: Organization;
+    selection: GlobalSelection;
+    tags: TagCollection;
+  };
 
 type ValidationError = {
   [key: string]: string[] | ValidationError[] | ValidationError;
@@ -76,19 +85,44 @@ function mapErrors(
 }
 
 class AddDashboardWidgetModal extends React.Component<Props, State> {
-  state: State = {
-    title: '',
-    displayType: 'line',
-    interval: '5m',
-    queries: [{...newQuery}],
-    errors: undefined,
-    loading: false,
-  };
+  constructor(props: Props) {
+    super(props);
+
+    const {widget} = props;
+
+    if (!widget) {
+      this.state = {
+        title: '',
+        displayType: 'line',
+        interval: '5m',
+        queries: [{...newQuery}],
+        errors: undefined,
+        loading: false,
+      };
+      return;
+    }
+
+    this.state = {
+      title: widget.title,
+      displayType: widget.displayType,
+      interval: widget.interval,
+      queries: widget.queries,
+      errors: undefined,
+      loading: false,
+    };
+  }
 
   handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, closeModal, organization, onAddWidget} = this.props;
+    const {
+      api,
+      closeModal,
+      organization,
+      onAddWidget,
+      onUpdateWidget,
+      widget: previousWidget,
+    } = this.props;
     this.setState({loading: true});
     try {
       const widgetData: Widget = pick(this.state, [
@@ -98,8 +132,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         'queries',
       ]);
       await validateWidget(api, organization.slug, widgetData);
-      onAddWidget(widgetData);
-      addSuccessMessage(t('Added widget.'));
+
+      if (typeof onUpdateWidget === 'function' && !!previousWidget) {
+        onUpdateWidget({
+          id: previousWidget?.id,
+          ...widgetData,
+        });
+        addSuccessMessage(t('Updated widget.'));
+      } else {
+        onAddWidget(widgetData);
+        addSuccessMessage(t('Added widget.'));
+      }
+
       closeModal();
     } catch (err) {
       const errors = mapErrors(err?.responseJSON ?? {}, {});
@@ -107,17 +151,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     } finally {
       this.setState({loading: false});
     }
-  };
-
-  handleAddQuery = (event: React.MouseEvent) => {
-    event.preventDefault();
-
-    this.setState(prevState => {
-      const newState = cloneDeep(prevState);
-      newState.queries.push(cloneDeep(newQuery));
-
-      return newState;
-    });
   };
 
   handleFieldChange = (field: string) => (value: string) => {
@@ -147,7 +180,18 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {Body, Header, api, closeModal, organization, selection, tags} = this.props;
+    const {
+      Footer,
+      Body,
+      Header,
+      api,
+      closeModal,
+      organization,
+      selection,
+      tags,
+      onUpdateWidget,
+      widget: previousWidget,
+    } = this.props;
     const state = this.state;
     const errors = state.errors;
 
@@ -158,115 +202,114 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       measurementKeys: [],
     });
 
+    const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
+
     return (
       <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          {t('Add Widget')}
+          <h4>{isUpdatingWidget ? t('Edit Widget') : t('Add Widget')}</h4>
         </Header>
         <Body>
-          <form>
-            <Panel>
-              <PanelHeader>{t('Widget Attributes')}</PanelHeader>
-              <PanelBody>
-                <TextField
-                  name="title"
-                  label={t('Title')}
-                  required
-                  value={state.title}
-                  onChange={this.handleFieldChange('title')}
-                  error={errors?.title}
-                />
-                <SelectField
-                  name="interval"
-                  label={t('Interval')}
-                  help={t(
-                    'The smallest resolution of data to use. May be increased for large time ranges.'
-                  )}
-                  options={INTERVAL_CHOICES.slice()}
-                  value={state.interval}
-                  onChange={this.handleFieldChange('interval')}
-                  error={errors?.interval}
-                />
-                <SelectField
-                  deprecatedSelectControl
-                  required
-                  options={DISPLAY_TYPE_CHOICES.slice()}
-                  name="displayType"
-                  label={t('Chart Style')}
-                  value={state.displayType}
-                  onChange={this.handleFieldChange('displayType')}
-                  error={errors?.displayType}
-                />
-              </PanelBody>
-            </Panel>
-            <Panel>
-              <PanelHeader>{t('Queries')}</PanelHeader>
-              {state.queries.map((query, i) => {
-                return (
-                  <WidgetQueryForm
-                    key={i}
-                    api={api}
-                    organization={organization}
-                    selection={selection}
-                    fieldOptions={fieldOptions}
-                    widgetQuery={query}
-                    canRemove={state.queries.length > 1}
-                    onRemove={() => this.handleQueryRemove(i)}
-                    onChange={(widgetQuery: WidgetQuery) =>
-                      this.handleQueryChange(widgetQuery, i)
-                    }
-                    errors={errors?.queries?.[i]}
-                  />
-                );
-              })}
-              <AddQueryContainer>
-                <Button
-                  data-test-id="add-query"
-                  priority="default"
-                  type="button"
-                  onClick={this.handleAddQuery}
-                >
-                  {t('Add Query')}
-                </Button>
-              </AddQueryContainer>
-            </Panel>
-            <Panel>
-              <PanelHeader>{t('Preview')}</PanelHeader>
-              <PanelItem>
-                <WidgetCard
-                  api={api}
-                  organization={organization}
-                  selection={selection}
-                  widget={this.state}
-                />
-              </PanelItem>
-            </Panel>
-            <FooterButtons>
-              <Button
-                data-test-id="add-widget"
-                priority="primary"
-                type="button"
-                onClick={this.handleSubmit}
-                disabled={state.loading}
-                busy={state.loading}
-              >
-                {t('Add Widget')}
-              </Button>
-            </FooterButtons>
-          </form>
+          <DoubleFieldWrapper>
+            <Field
+              data-test-id="widget-name"
+              label={t('Widget Name')}
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              error={errors?.title}
+              required
+            >
+              <Input
+                type="text"
+                name="title"
+                required
+                value={state.title}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  this.handleFieldChange('title')(event.target.value);
+                }}
+              />
+            </Field>
+            <Field
+              data-test-id="chart-type"
+              label={t('Chart Type')}
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              error={errors?.displayType}
+              required
+            >
+              <SelectControl
+                deprecatedSelectControl
+                required
+                options={DISPLAY_TYPE_CHOICES.slice()}
+                name="displayType"
+                label={t('Chart Style')}
+                value={state.displayType}
+                onChange={(option: {label: string; value: Widget['displayType']}) => {
+                  this.handleFieldChange('displayType')(option.value);
+                }}
+              />
+            </Field>
+          </DoubleFieldWrapper>
+          {state.queries.map((query, i) => {
+            return (
+              <WidgetQueryForm
+                key={i}
+                api={api}
+                organization={organization}
+                selection={selection}
+                fieldOptions={fieldOptions}
+                widgetQuery={query}
+                canRemove={state.queries.length > 1}
+                onRemove={() => this.handleQueryRemove(i)}
+                onChange={(widgetQuery: WidgetQuery) =>
+                  this.handleQueryChange(widgetQuery, i)
+                }
+                errors={errors?.queries?.[i]}
+              />
+            );
+          })}
+          <WidgetCard
+            api={api}
+            organization={organization}
+            selection={selection}
+            widget={this.state}
+            isEditing={false}
+            onDelete={() => undefined}
+            onEdit={() => undefined}
+          />
         </Body>
+        <Footer>
+          <ButtonBar gap={1}>
+            <Button
+              external
+              href="https://docs.sentry.io/product/error-monitoring/dashboards/"
+            >
+              {t('Read the docs')}
+            </Button>
+            <Button
+              data-test-id="add-widget"
+              priority="primary"
+              type="button"
+              onClick={this.handleSubmit}
+              disabled={state.loading}
+              busy={state.loading}
+            >
+              {isUpdatingWidget ? t('Update Widget') : t('Add Widget')}
+            </Button>
+          </ButtonBar>
+        </Footer>
       </React.Fragment>
     );
   }
 }
 
-const FooterButtons = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;
-
-const AddQueryContainer = styled(FooterButtons)`
-  padding: ${space(2)};
+const DoubleFieldWrapper = styled('div')`
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: ${space(1)};
+  width: 100%;
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

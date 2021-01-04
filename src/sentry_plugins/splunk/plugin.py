@@ -21,13 +21,11 @@ import six
 from requests.exceptions import ReadTimeout
 
 from sentry import http, tagstore
-from sentry.app import ratelimiter
-from sentry.plugins.base import Plugin
-from sentry.plugins.base.configuration import react_plugin_config
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 from sentry_plugins.base import CorePluginMixin
+from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
 from sentry_plugins.anonymizeip import anonymize_ip
 from sentry.integrations import FeatureDescription, IntegrationFeatures
@@ -96,13 +94,18 @@ class SplunkConfigError(SplunkError):
     KNOWN_CODES = frozenset([7, 10, 11])
 
 
-class SplunkPlugin(CorePluginMixin, Plugin):
+class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Splunk"
     slug = "splunk"
     description = DESCRIPTION
     conf_key = "splunk"
     resource_links = [("Splunk Setup Instructions", SETUP_URL)] + CorePluginMixin.resource_links
     required_field = "instance"
+    project_token = None
+    project_index = None
+    project_source = None
+    project_instance = None
+    host = None
     feature_descriptions = [
         FeatureDescription(
             """
@@ -112,14 +115,9 @@ class SplunkPlugin(CorePluginMixin, Plugin):
         )
     ]
 
-    def configure(self, project, request):
-        return react_plugin_config(self, project, request)
-
-    def has_project_conf(self):
-        return True
-
-    def get_plugin_type(self):
-        return "data-forwarding"
+    def get_rate_limit(self):
+        # number of requests, number of seconds (window)
+        return (1000, 1)
 
     def get_config(self, project, **kwargs):
         return [
@@ -163,7 +161,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
 
         return None
 
-    def get_event_payload(self, event):
+    def get_event_payload_properties(self, event):
         props = {
             "event_id": event.event_id,
             "issue_id": event.group_id,
@@ -211,30 +209,22 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                     props.update(user_payload)
         return props
 
-    # http://dev.splunk.com/view/event-collector/SP-CAAAE6M
-    def post_process(self, event, **kwargs):
-        token = self.get_option("token", event.project)
-        index = self.get_option("index", event.project)
-        instance = self.get_option("instance", event.project)
-        if not (token and index and instance):
-            metrics.incr(
-                "integrations.splunk.forward-event.unconfigured",
-                tags={
-                    "project_id": event.project_id,
-                    "organization_id": event.project.organization_id,
-                    "event_type": event.get_event_type(),
-                },
-            )
-            return
+    def initialize_variables(self, event):
+        self.project_token = self.get_option("token", event.project)
+        self.project_index = self.get_option("index", event.project)
+        self.project_instance = self.get_option("instance", event.project)
+        self.host = self.get_host_for_splunk(event)
 
-        if not instance.endswith("/services/collector"):
-            instance = instance.rstrip("/") + "/services/collector"
+        if self.project_instance and not self.project_instance.endswith("/services/collector"):
+            self.project_instance = self.project_instance.rstrip("/") + "/services/collector"
 
-        source = self.get_option("source", event.project) or "sentry"
+        self.project_source = self.get_option("source", event.project) or "sentry"
 
-        rl_key = u"splunk:{}".format(md5_text(token).hexdigest())
-        # limit splunk to 50 requests/second
-        if ratelimiter.is_limited(rl_key, limit=1000, window=1):
+    def get_rl_key(self, event):
+        return u"{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
+
+    def is_ratelimited(self, event):
+        if super(SplunkPlugin, self).is_ratelimited(event):
             metrics.incr(
                 "integrations.splunk.forward-event.rate-limited",
                 tags={
@@ -243,31 +233,56 @@ class SplunkPlugin(CorePluginMixin, Plugin):
                     "event_type": event.get_event_type(),
                 },
             )
-            return
+            return True
+        return False
 
+    def get_event_payload(self, event):
         payload = {
             "time": int(event.datetime.strftime("%s")),
-            "source": source,
-            "index": index,
-            "event": self.get_event_payload(event),
+            "source": self.project_source,
+            "index": self.project_index,
+            "event": self.get_event_payload_properties(event),
         }
-        host = self.get_host_for_splunk(event)
-        if host:
-            payload["host"] = host
+        return payload
+
+    def forward_event(self, event, payload):
+        if not (self.project_token and self.project_index and self.project_instance):
+            metrics.incr(
+                "integrations.splunk.forward-event.unconfigured",
+                tags={
+                    "project_id": event.project_id,
+                    "organization_id": event.project.organization_id,
+                    "event_type": event.get_event_type(),
+                },
+            )
+            return False
+
+        if self.host:
+            payload["host"] = self.host
 
         session = http.build_session()
         try:
             # https://docs.splunk.com/Documentation/Splunk/7.2.3/Data/TroubleshootHTTPEventCollector
             resp = session.post(
-                instance,
+                self.project_instance,
                 json=payload,
                 # Splunk cloud instances certifcates dont play nicely
                 verify=False,
-                headers={"Authorization": u"Splunk {}".format(token)},
+                headers={"Authorization": u"Splunk {}".format(self.project_token)},
                 timeout=5,
             )
             if resp.status_code != 200:
                 raise SplunkError.from_response(resp)
+
+            metrics.incr(
+                "integrations.splunk.forward-event.success",
+                tags={
+                    "project_id": event.project_id,
+                    "organization_id": event.project.organization_id,
+                    "event_type": event.get_event_type(),
+                },
+            )
+            return True
         except Exception as exc:
             metric = "integrations.splunk.forward-event.error"
             metrics.incr(
@@ -282,7 +297,7 @@ class SplunkPlugin(CorePluginMixin, Plugin):
             logger.info(
                 metric,
                 extra={
-                    "instance": instance,
+                    "instance": self.project_instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
                     "error": six.text_type(exc),
@@ -292,19 +307,10 @@ class SplunkPlugin(CorePluginMixin, Plugin):
             if isinstance(exc, ReadTimeout):
                 # If we get a ReadTimeout we don't need to raise an error here.
                 # Just log and return.
-                return
+                return False
 
             if isinstance(exc, SplunkError) and exc.status_code == 403:
                 # 403s are not errors or actionable for us do not re-raise
-                return
+                return False
 
             raise
-
-        metrics.incr(
-            "integrations.splunk.forward-event.success",
-            tags={
-                "project_id": event.project_id,
-                "organization_id": event.project.organization_id,
-                "event_type": event.get_event_type(),
-            },
-        )

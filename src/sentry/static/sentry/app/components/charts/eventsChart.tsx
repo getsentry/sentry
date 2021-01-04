@@ -35,7 +35,7 @@ type ChartProps = {
   legendOptions?: EChartOption.Legend;
   chartOptions?: EChartOption;
   currentSeriesName?: string;
-  releaseSeries?: Series | null;
+  releaseSeries?: Series[];
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   /**
@@ -181,6 +181,7 @@ class Chart extends React.Component<ChartProps, State> {
       itemGap: 12,
       align: 'left',
       textStyle: {
+        color: theme.textColor,
         verticalAlign: 'top',
         fontSize: 11,
         fontFamily: 'Rubik',
@@ -191,7 +192,9 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const chartOptions = {
-      colors: colors ?? theme.charts.getColorPalette(timeseriesData.length - 2),
+      colors:
+        colors?.slice(0, timeseriesData.length) ??
+        theme.charts.getColorPalette(timeseriesData.length - 2),
       grid: {
         left: '24px',
         right: '24px',
@@ -340,7 +343,7 @@ type ChartDataProps = {
   results?: Series[];
   timeseriesData?: Series[];
   previousTimeseriesData?: Series | null;
-  releaseSeries?: Series;
+  releaseSeries?: Series[];
 };
 
 class EventsChart extends React.Component<Props> {

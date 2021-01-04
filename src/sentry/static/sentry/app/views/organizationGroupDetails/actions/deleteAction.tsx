@@ -4,11 +4,14 @@ import styled from '@emotion/styled';
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import ActionButton from 'app/components/actions/button';
+import MenuHeader from 'app/components/actions/menuHeader';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import MenuItem from 'app/components/menuItem';
-import {IconDelete} from 'app/icons';
+import {IconChevron, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -32,7 +35,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
     });
   }
 
-  function renderDiscardModal({Body, closeModal}: ModalRenderProps) {
+  function renderDiscardModal({Body, Footer, closeModal}: ModalRenderProps) {
     return (
       <Feature
         features={['projects:discard-groups']}
@@ -51,7 +54,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
                 `Discarding this event will result in the deletion of most data associated with this issue and future events being discarded before reaching your stream. Are you sure you wish to continue?`
               )}
             </Body>
-            <div className="modal-footer">
+            <Footer>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
                 style={{marginLeft: space(1)}}
@@ -61,7 +64,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
               >
                 {t('Discard Future Events')}
               </Button>
-            </div>
+            </Footer>
           </React.Fragment>
         )}
       </Feature>
@@ -76,37 +79,50 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
   }
 
   return (
-    <div className="btn-group">
-      <LinkWithConfirmation
-        className="group-remove btn btn-default btn-sm"
-        title={t('Delete')}
+    <ButtonBar merged>
+      <Confirm
         message={t(
           'Deleting this issue is permanent. Are you sure you wish to continue?'
         )}
         onConfirm={onDelete}
         disabled={disabled}
       >
-        <IconWrapper>
-          <IconDelete size="xs" />
-        </IconWrapper>
-      </LinkWithConfirmation>
+        <DeleteButton
+          disabled={disabled}
+          label={t('Delete issue')}
+          icon={<IconDelete size="xs" />}
+        />
+      </Confirm>
       <DropdownLink
-        title=""
-        caret
-        className="group-delete btn btn-default btn-sm"
+        caret={false}
         disabled={disabled}
+        customTitle={
+          <ActionButton
+            disabled={disabled}
+            label={t('More delete options')}
+            icon={<IconChevron direction="down" size="xs" />}
+          />
+        }
       >
-        <MenuItem onClick={openDiscardModal}>
-          <span>{t('Delete and discard future events')}</span>
-        </MenuItem>
+        <MenuHeader>{t('Delete & Discard')}</MenuHeader>
+        <MenuItemActionLink title="" onAction={openDiscardModal}>
+          {t('Delete and discard future events')}
+        </MenuItemActionLink>
       </DropdownLink>
-    </div>
+    </ButtonBar>
   );
 }
 
-export default DeleteAction;
-
-const IconWrapper = styled('span')`
-  position: relative;
-  top: 1px;
+const DeleteButton = styled(ActionButton)`
+  ${p =>
+    !p.disabled &&
+    `
+  &:hover {
+    background-color: ${p.theme.button.danger.background};
+    color: ${p.theme.button.danger.color};
+    border-color: ${p.theme.button.danger.border};
+  }
+  `}
 `;
+
+export default DeleteAction;

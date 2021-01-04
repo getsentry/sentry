@@ -30,6 +30,8 @@ export const API_ACCESS_SCOPES = [
   'member:read',
   'member:write',
   'member:admin',
+  'alerts:read',
+  'alerts:write',
 ] as const;
 
 // Default API scopes when adding a new API token or org API token

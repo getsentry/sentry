@@ -15,6 +15,7 @@ from sentry.http import build_session
 from sentry.utils import metrics, json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.decorators import classproperty
+from sentry.api.client import ApiClient
 
 from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
 
@@ -115,25 +116,7 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-class BaseApiClient(object):
-    base_url = None
-
-    allow_text = False
-
-    allow_redirects = None
-
-    integration_type = None
-
-    log_path = None
-
-    datadog_prefix = None
-
-    cache_time = 900
-
-    def __init__(self, verify_ssl=True, logging_context=None):
-        self.verify_ssl = verify_ssl
-        self.logging_context = logging_context
-
+class TrackResponseMixin(object):
     @cached_property
     def logger(self):
         return logging.getLogger(self.log_path)
@@ -145,9 +128,6 @@ class BaseApiClient(object):
     @classproperty
     def name(cls):
         return getattr(cls, cls.name_field)
-
-    def get_cache_prefix(self):
-        return u"%s.%s.client:" % (self.integration_type, self.name)
 
     def track_response_data(self, code, span, error=None, resp=None):
         metrics.incr(
@@ -170,6 +150,33 @@ class BaseApiClient(object):
         }
         extra.update(getattr(self, "logging_context", None) or {})
         self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
+
+
+class BaseApiClient(TrackResponseMixin):
+    base_url = None
+
+    allow_text = False
+
+    allow_redirects = None
+
+    integration_type = None
+
+    log_path = None
+
+    datadog_prefix = None
+
+    cache_time = 900
+
+    page_size = 100
+
+    page_number_limit = 10
+
+    def __init__(self, verify_ssl=True, logging_context=None):
+        self.verify_ssl = verify_ssl
+        self.logging_context = logging_context
+
+    def get_cache_prefix(self):
+        return u"%s.%s.client:" % (self.integration_type, self.name)
 
     def build_url(self, path):
         if path.startswith("/"):
@@ -310,3 +317,55 @@ class BaseApiClient(object):
             result = self.head(path, *args, **kwargs)
             cache.set(key, result, self.cache_time)
         return result
+
+    def get_with_pagination(self, path, gen_params, get_results, *args, **kwargs):
+        page_size = self.page_size
+        offset = 0
+        output = []
+
+        for i in range(self.page_number_limit):
+            resp = self.get(path, params=gen_params(i, page_size))
+            results = get_results(resp)
+            num_results = len(results)
+
+            output += results
+            offset += num_results
+            # if the number is lower than our page_size, we can quit
+            if num_results < page_size:
+                return output
+        return output
+
+
+class BaseInternalApiClient(ApiClient, TrackResponseMixin):
+    integration_type = None
+
+    log_path = None
+
+    datadog_prefix = None
+
+    def request(self, *args, **kwargs):
+
+        metrics.incr(
+            u"%s.http_request" % self.datadog_prefix,
+            sample_rate=1.0,
+            tags={self.integration_type: self.name},
+        )
+
+        try:
+            with sentry_sdk.configure_scope() as scope:
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
+
+        with sentry_sdk.start_transaction(
+            op=u"{}.http".format(self.integration_type),
+            name=u"{}.http_response.{}".format(self.integration_type, self.name),
+            parent_span_id=parent_span_id,
+            trace_id=trace_id,
+            sampled=True,
+        ) as span:
+            resp = ApiClient.request(self, *args, **kwargs)
+            self.track_response_data(resp.status_code, span, None, resp)
+            return resp

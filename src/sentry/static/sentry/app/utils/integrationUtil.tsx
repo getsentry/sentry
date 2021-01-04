@@ -64,7 +64,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.resolve_now_clicked'
     | 'integrations.reauth_start'
     | 'integrations.reauth_complete'
-    | 'integrations.request_install';
+    | 'integrations.request_install'
+    | 'integrations.code_mappings_viewed';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -82,7 +83,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Resolve Now Clicked'
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete'
-    | 'Integrations: Request Install';
+    | 'Integrations: Request Install'
+    | 'Integrations: Code Mappings Viewed';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
@@ -113,12 +115,23 @@ type IntegrationCategorySelectEvent = {
 
 type IntegrationStacktraceLinkEvent = {
   eventKey:
+    | 'integrations.stacktrace_start_setup'
+    | 'integrations.stacktrace_submit_config'
+    | 'integrations.stacktrace_complete_setup'
+    | 'integrations.stacktrace_manual_option_clicked'
     | 'integrations.stacktrace_link_clicked'
-    | 'integrations.reconfigure_stacktrace_setup';
+    | 'integrations.reconfigure_stacktrace_setup'
+    | 'integrations.stacktrace_docs_clicked';
   eventName:
+    | 'Integrations: Stacktrace Start Setup'
+    | 'Integrations: Stacktrace Submit Config'
+    | 'Integrations: Stacktrace Complete Setup'
+    | 'Integrations: Stacktrace Manual Option Clicked'
     | 'Integrations: Stacktrace Link Clicked'
-    | 'Integrations: Reconfigure Stacktrace Setup';
-  provider: string;
+    | 'Integrations: Reconfigure Stacktrace Setup'
+    | 'Integrations: Stacktrace Docs Clicked';
+  provider?: string;
+  setup_type?: 'automatic' | 'manual';
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 
@@ -135,7 +148,8 @@ type IntegrationsEventParams = (
     | 'plugin_details'
     | 'integrations_directory'
     | 'integrations_directory_integration_detail'
-    | 'stacktrace_issue_details';
+    | 'stacktrace_issue_details'
+    | 'integration_configuration_detail';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
@@ -356,21 +370,22 @@ export const safeGetQsParam = (param: string) => {
   }
 };
 
-export const getIntegrationIcon = (integrationType?: string) => {
+export const getIntegrationIcon = (integrationType?: string, size?: string) => {
+  const iconSize = size || 'md';
   switch (integrationType) {
     case 'bitbucket':
-      return <IconBitbucket size="md" />;
+      return <IconBitbucket size={iconSize} />;
     case 'gitlab':
-      return <IconGitlab size="md" />;
+      return <IconGitlab size={iconSize} />;
     case 'github':
     case 'github_enterprise':
-      return <IconGithub size="md" />;
+      return <IconGithub size={iconSize} />;
     case 'jira':
     case 'jira_server':
-      return <IconJira size="md" />;
+      return <IconJira size={iconSize} />;
     case 'vsts':
-      return <IconVsts size="md" />;
+      return <IconVsts size={iconSize} />;
     default:
-      return <IconGeneric size="md" />;
+      return <IconGeneric size={iconSize} />;
   }
 };

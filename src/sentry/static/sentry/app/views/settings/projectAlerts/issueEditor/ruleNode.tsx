@@ -1,14 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconDelete} from 'app/icons';
+import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {IssueConfigFieldChoices, Organization, Project} from 'app/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -18,8 +19,9 @@ import {
   MailActionTargetType,
 } from 'app/types/alerts';
 import Input from 'app/views/settings/components/forms/controls/input';
-import MemberTeamFields from 'app/views/settings/projectAlerts/issueEditor/memberTeamFields';
-import TicketRuleForm from 'app/views/settings/projectAlerts/issueEditor/ticketRuleForm';
+
+import MemberTeamFields from './memberTeamFields';
+import TicketRuleModal from './ticketRuleModal';
 
 export type FormField = {
   // Type of form fields
@@ -31,7 +33,7 @@ export type FormField = {
 type Props = {
   index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
-  data?: IssueAlertRuleAction | IssueAlertRuleCondition;
+  data: IssueAlertRuleAction | IssueAlertRuleCondition;
   project: Project;
   organization: Organization;
   disabled: boolean;
@@ -277,16 +279,37 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
-  updateParent = (data: {[key: string]: string}): void => {
-    // iterating through these upon save instead of when each
-    // element is changed to match the spec
-    for (const [name, value] of Object.entries(data)) {
-      this.props.onPropertyChange(this.props.index, name, value);
+  /**
+   * Update all the AlertRuleAction's fields from the TicketRuleModal together
+   * only after the user clicks "Apply Changes".
+   * @param formData Form data
+   * @param fetchedFieldOptionsCache Object
+   */
+  updateParent = (
+    formData: {[key: string]: string},
+    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
+  ): void => {
+    const {data, index, onPropertyChange} = this.props;
+    for (const [name, value] of Object.entries(formData)) {
+      onPropertyChange(index, name, value);
+    }
+
+    // We only know the choices after the form loads.
+    for (const [name, choices] of Object.entries(fetchedFieldOptionsCache)) {
+      // If a value was actually selected.
+      if (name in formData) {
+        const dynamicFormFieldsCopy = data.dynamic_form_fields as any;
+        // Overwrite the choices because the user's pick is in this list.
+        if (dynamicFormFieldsCopy?.hasOwnProperty(name)) {
+          dynamicFormFieldsCopy[name].choices = choices;
+          onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
+        }
+      }
     }
   };
 
   render() {
-    const {data, disabled, node} = this.props;
+    const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
     return (
       <RuleRowContainer>
@@ -294,14 +317,28 @@ class RuleNode extends React.Component<Props> {
           <Rule>
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
-            {ticketRule && (
-              <TicketRuleForm
-                formFields={node?.formFields || {}}
-                instance={data}
-                index={this.props.index}
-                onSubmitAction={this.updateParent}
-                onPropertyChange={this.props.onPropertyChange}
-              />
+            {ticketRule && node && (
+              <Button
+                size="small"
+                icon={<IconSettings size="xs" />}
+                type="button"
+                onClick={() =>
+                  openModal(deps => (
+                    <TicketRuleModal
+                      {...deps}
+                      formFields={node.formFields || {}}
+                      link={node.link}
+                      ticketType={node.ticketType}
+                      instance={data}
+                      index={index}
+                      onSubmitAction={this.updateParent}
+                      organization={organization}
+                    />
+                  ))
+                }
+              >
+                {t('Issue Link Settings')}
+              </Button>
             )}
           </Rule>
           <DeleteButton

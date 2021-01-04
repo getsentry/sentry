@@ -4,6 +4,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
+import Feature from 'app/components/acl/feature';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
@@ -17,7 +18,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
   formatFloat,
@@ -26,6 +27,14 @@ import {
 } from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+
+import {
+  VitalState,
+  vitalStateColors,
+  webVitalMeh,
+  webVitalPoor,
+} from '../vitalDetail/utils';
+import VitalInfo from '../vitalDetail/vitalInfo';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
@@ -37,7 +46,8 @@ type Props = {
   organization: Organization;
   isLoading: boolean;
   error: boolean;
-  vital: Vital;
+  vital: WebVital;
+  vitalDetails: Vital;
   summary: number | null;
   failureRate: number;
   chartData: HistogramData[];
@@ -102,9 +112,13 @@ class VitalCard extends React.Component<Props, State> {
     return {...prevState};
   }
 
+  showVitalColours() {
+    return this.props.organization.features.includes('performance-vitals-overview');
+  }
+
   trackOpenInDiscoverClicked = () => {
     const {organization} = this.props;
-    const {vital} = this.props;
+    const {vitalDetails: vital} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.vitals.open_in_discover',
@@ -115,7 +129,7 @@ class VitalCard extends React.Component<Props, State> {
   };
 
   getFormattedStatNumber() {
-    const {summary, vital} = this.props;
+    const {summary, vitalDetails: vital} = this.props;
     const {type} = vital;
 
     return summary === null
@@ -126,7 +140,15 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {summary, vital, colors, eventView, organization, min, max} = this.props;
+    const {
+      summary,
+      vitalDetails: vital,
+      colors,
+      eventView,
+      organization,
+      min,
+      max,
+    } = this.props;
     const {slug, name, description, failureThreshold} = vital;
 
     const column = `measurements.${slug}`;
@@ -159,10 +181,11 @@ class VitalCard extends React.Component<Props, State> {
 
     return (
       <CardSummary>
-        <Indicator color={colors[0]} />
+        {!this.showVitalColours() && <Indicator color={colors[0]} />}
         <SummaryHeading>
           <CardSectionHeading>{`${name} (${slug.toUpperCase()})`}</CardSectionHeading>
-          {summary === null ? null : summary < failureThreshold ? (
+          {summary === null || this.showVitalColours() ? null : summary <
+            failureThreshold ? (
             <Tag>{t('Pass')}</Tag>
           ) : (
             <StyledTag>{t('Fail')}</StyledTag>
@@ -212,17 +235,24 @@ class VitalCard extends React.Component<Props, State> {
   handleDataZoomCancelled = () => {};
 
   renderHistogram() {
-    const {location, isLoading, error, colors, vital, precision = 0} = this.props;
-    const {slug} = vital;
+    const {
+      location,
+      organization,
+      isLoading,
+      error,
+      colors,
+      vital,
+      vitalDetails,
+      eventView,
+      precision = 0,
+    } = this.props;
+    const {slug} = vitalDetails;
 
     const series = this.getSeries();
 
     const xAxis = {
       type: 'category' as const,
       truncate: true,
-      axisLabel: {
-        margin: 20,
-      },
       axisTick: {
         alignWithLabel: true,
       },
@@ -246,9 +276,11 @@ class VitalCard extends React.Component<Props, State> {
       if (baselineSeries !== null) {
         allSeries.push(baselineSeries);
       }
-      const failureSeries = this.getFailureSeries();
-      if (failureSeries !== null) {
-        allSeries.push(failureSeries);
+      if (!this.showVitalColours()) {
+        const failureSeries = this.getFailureSeries();
+        if (failureSeries !== null) {
+          allSeries.push(failureSeries);
+        }
       }
     }
 
@@ -265,6 +297,19 @@ class VitalCard extends React.Component<Props, State> {
         {zoomRenderProps => (
           <Container>
             <TransparentLoadingMask visible={isLoading} />
+            <Feature features={['organizations:performance-vitals-overview']}>
+              <PercentContainer>
+                <VitalInfo
+                  eventView={eventView}
+                  organization={organization}
+                  location={location}
+                  vitalName={vital}
+                  hideBar
+                  hideVitalPercentNames
+                  hideDurationDetail
+                />
+              </PercentContainer>
+            </Feature>
             <BarChart
               series={allSeries}
               xAxis={xAxis}
@@ -303,14 +348,14 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getSeries() {
-    const {chartData, vital} = this.props;
+    const {chartData, vitalDetails, vital} = this.props;
     const bucketWidth = this.bucketWidth();
 
     const seriesData = chartData.map(item => {
       const bucket = item.histogram;
       const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
       const name =
-        vital.type === 'duration'
+        vitalDetails.type === 'duration'
           ? formatDuration(midPoint)
           : // This is trying to avoid some of potential rounding errors that cause bins
             // have the same label, if the number of bins doesn't visually match what is
@@ -318,8 +363,18 @@ class VitalCard extends React.Component<Props, State> {
             // consider formatting the bin as a string in the response
             (Math.round((midPoint + Number.EPSILON) * 100) / 100).toLocaleString();
 
+      const value = item.count;
+
+      if (this.showVitalColours()) {
+        return {
+          value,
+          name,
+          itemStyle: {color: this.getVitalsColor(vital, midPoint)},
+        };
+      }
+
       return {
-        value: item.count,
+        value,
         name,
       };
     });
@@ -329,6 +384,20 @@ class VitalCard extends React.Component<Props, State> {
       data: seriesData,
     };
   }
+
+  getVitalsColor(vital: WebVital, value: number) {
+    const poorThreshold = webVitalPoor[vital];
+    const mehThreshold = webVitalMeh[vital];
+
+    if (value > poorThreshold) {
+      return vitalStateColors[VitalState.POOR];
+    } else if (value > mehThreshold) {
+      return vitalStateColors[VitalState.MEH];
+    } else {
+      return vitalStateColors[VitalState.GOOD];
+    }
+  }
+  d;
 
   getBaselineSeries() {
     const {chartData, summary} = this.props;
@@ -403,7 +472,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getFailureSeries() {
-    const {chartData, vital, failureRate} = this.props;
+    const {chartData, vitalDetails: vital, failureRate} = this.props;
     const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return null;
@@ -489,6 +558,9 @@ class VitalCard extends React.Component<Props, State> {
       },
     });
 
+    // TODO(tonyx): This conflicts with the types declaration of `MarkLine`
+    // if we add it in the constructor. So we opt to add it here so typescript
+    // doesn't complain.
     (markLine as any).tooltip = {
       formatter: () =>
         [
@@ -561,6 +633,13 @@ const SummaryHeading = styled('div')`
 
 const Container = styled('div')`
   position: relative;
+`;
+
+const PercentContainer = styled('div')`
+  position: absolute;
+  top: ${space(2)};
+  right: ${space(3)};
+  z-index: 2;
 `;
 
 const StyledTag = styled(Tag)`

@@ -64,6 +64,8 @@ class Updater(Mediator):
                 self.sentry_app.date_published = timezone.now()
             if self.status == SentryAppStatus.UNPUBLISHED_STR:
                 self.sentry_app.status = SentryAppStatus.UNPUBLISHED
+        if self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR:
+            self.sentry_app.status = SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
 
     @if_param("scopes")
     def _update_scopes(self):

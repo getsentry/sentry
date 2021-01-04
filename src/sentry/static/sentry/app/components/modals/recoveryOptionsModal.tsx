@@ -33,7 +33,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {authenticatorName, closeModal, Body, Header} = this.props;
+    const {authenticatorName, closeModal, Body, Header, Footer} = this.props;
     const {authenticators, skipSms} = this.state;
 
     const {recovery, sms} = authenticators!.reduce<{[key: string]: Authenticator}>(
@@ -78,7 +78,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
 
         {displaySmsPrompt ? (
           // set up backup phone number
-          <div className="modal-footer">
+          <Footer>
             <Button onClick={this.handleSkipSms} name="skipStep" autoFocus>
               {t('Skip this step')}
             </Button>
@@ -92,10 +92,10 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
             >
               {t('Add a Phone Number')}
             </Button>
-          </div>
+          </Footer>
         ) : (
           // get recovery codes
-          <div className="modal-footer">
+          <Footer>
             <Button
               priority="primary"
               onClick={closeModal}
@@ -109,7 +109,7 @@ class RecoveryOptionsModal extends AsyncComponent<Props, State> {
             >
               {t('Get Recovery Codes')}
             </Button>
-          </div>
+          </Footer>
         )}
       </React.Fragment>
     );
