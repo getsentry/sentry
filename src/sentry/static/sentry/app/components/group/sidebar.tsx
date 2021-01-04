@@ -5,7 +5,6 @@ import isObject from 'lodash/isObject';
 import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
-import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ErrorBoundary from 'app/components/errorBoundary';
@@ -133,35 +132,6 @@ class GroupSidebar extends React.Component<Props, State> {
         error: true,
       });
     }
-  }
-
-  toggleSubscription() {
-    const {api, group, project, organization} = this.props;
-    addLoadingMessage(t('Saving changes\u2026'));
-
-    // Typecasting to make TS happy
-    const groupId = Number(group.id);
-    if (isNaN(groupId)) {
-      this.setState({error: true});
-      return;
-    }
-
-    api.bulkUpdate(
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [groupId],
-        data: {
-          isSubscribed: !group.isSubscribed,
-        },
-      },
-      {
-        complete: async () => {
-          await this.fetchParticipants();
-          clearIndicators();
-        },
-      }
-    );
   }
 
   renderPluginIssue() {
