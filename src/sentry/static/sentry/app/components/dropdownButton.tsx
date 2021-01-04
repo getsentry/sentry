@@ -25,7 +25,7 @@ type Props = Omit<React.ComponentProps<typeof Button>, 'type' | 'priority'> & {
   /**
    * Button color
    */
-  priority?: 'primary' | 'form';
+  priority?: 'default' | 'primary' | 'form';
   /**
    * Forward a ref to the button's root
    */
@@ -38,7 +38,7 @@ const DropdownButton = ({
   prefix,
   isOpen = false,
   showChevron = false,
-  hideBottomBorder = false,
+  hideBottomBorder = true,
   disabled = false,
   priority = 'form',
   ...props

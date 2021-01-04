@@ -18,7 +18,6 @@ const DropDownButton = ({isOpen, getActorProps, checkedQuantity}: Props) => {
         {...getActorProps()}
         isOpen={isOpen}
         size="small"
-        hideBottomBorder={isOpen}
         priority="primary"
       >
         {tn('%s Active Filter', '%s Active Filters', checkedQuantity)}
@@ -27,12 +26,7 @@ const DropDownButton = ({isOpen, getActorProps, checkedQuantity}: Props) => {
   }
 
   return (
-    <StyledDropdownButton
-      {...getActorProps()}
-      isOpen={isOpen}
-      size="small"
-      hideBottomBorder={isOpen}
-    >
+    <StyledDropdownButton {...getActorProps()} isOpen={isOpen} size="small">
       {t('Filter By')}
     </StyledDropdownButton>
   );
