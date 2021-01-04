@@ -167,56 +167,44 @@ export type EventUser = {
 type EventBase = {
   id: string;
   eventID: string;
-  groupID?: string;
   title: string;
   culprit: string;
   dateCreated: string;
   dist: string | null;
   metadata: EventMetadata;
   contexts: EventContexts;
-  context?: {[key: string]: any};
-  device?: {[key: string]: any};
-  packages?: {[key: string]: string};
   user: EventUser;
   message: string;
-  platform?: PlatformKey;
-  dateReceived?: string;
-  endTimestamp?: number;
   entries: Entry[];
   errors: any[];
-
   previousEventID?: string;
   nextEventID?: string;
   projectSlug: string;
   projectID: string;
-
   tags: EventTag[];
-
   size: number;
-
   location: string;
-
   oldestEventID: string | null;
   latestEventID: string | null;
-
   groupingConfig: {
     id: string;
     enhancements: string;
   };
-
-  userReport?: any;
-
   crashFile: EventAttachment | null;
-
+  groupID?: string;
+  context?: Record<string, any>;
+  device?: Record<string, any>;
+  packages?: Record<string, string>;
+  platform?: PlatformKey;
+  dateReceived?: string;
+  endTimestamp?: number;
+  userReport?: any;
   sdk?: {
     name: string;
     version: string;
   };
-
   sdkUpdates?: Array<SDKUpdatesSuggestion>;
-
   measurements?: Record<string, Measurement>;
-
   release?: Release;
 };
 
