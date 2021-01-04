@@ -1,32 +1,50 @@
-/* eslint-disable react/jsx-key */
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
 import ResultGrid from 'app/components/resultGrid';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import AsyncView from 'app/views/asyncView';
 
-export const prettyDate = function (x) {
-  return moment(x).format('ll');
+type Row = {
+  dateCreated: string;
+  name: string;
+  organization: Organization;
+  slug: string;
+  status: string;
 };
 
-class AdminProjects extends React.Component {
-  getRow = row => [
-    <td>
+type Props = RouteComponentProps<{}, {}>;
+
+type State = AsyncView['state'];
+
+export default class AdminProjects extends AsyncView<Props, State> {
+  getRow = (row: Row) => [
+    <td key="name">
       <strong>
         <a href={`/${row.organization.slug}/${row.slug}/`}>{row.name}</a>
       </strong>
       <br />
       <small>{row.organization.name}</small>
     </td>,
-    <td style={{textAlign: 'center'}}>{row.status}</td>,
-    <td style={{textAlign: 'right'}}>{prettyDate(row.dateCreated)}</td>,
+    <td key="status" style={{textAlign: 'center'}}>
+      {row.status}
+    </td>,
+    <td key="dateCreated" style={{textAlign: 'right'}}>
+      {moment(row.dateCreated).format('ll')}
+    </td>,
   ];
 
   render() {
     const columns = [
-      <th>Project</th>,
-      <th style={{width: 150, textAlign: 'center'}}>Status</th>,
-      <th style={{width: 200, textAlign: 'right'}}>Created</th>,
+      <th key="name">Project</th>,
+      <th key="status" style={{width: 150, textAlign: 'center'}}>
+        Status
+      </th>,
+      <th key="dateCreated" style={{width: 200, textAlign: 'right'}}>
+        Created
+      </th>,
     ];
 
     return (
@@ -56,5 +74,3 @@ class AdminProjects extends React.Component {
     );
   }
 }
-
-export default AdminProjects;
