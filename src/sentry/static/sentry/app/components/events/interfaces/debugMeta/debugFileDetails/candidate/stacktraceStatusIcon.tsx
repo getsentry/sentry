@@ -14,23 +14,19 @@ function StacktraceStatusIcon({stacktraceInfo}: Props) {
       return <IconCheckmark color="green300" size="xs" />;
     case CandidateStacktraceStatus.ERROR: {
       const {details} = stacktraceInfo;
-      const icon = <IconClose color="red300" size="xs" />;
-
-      if (!details) {
-        return icon;
-      }
-
-      return <Tooltip title={details}>{icon}</Tooltip>;
+      return (
+        <Tooltip title={details} disabled={!details}>
+          <IconClose color="red300" size="xs" />
+        </Tooltip>
+      );
     }
     case CandidateStacktraceStatus.MALFORMED: {
       const {details} = stacktraceInfo;
-      const icon = <IconWarning color="yellow300" size="xs" />;
-
-      if (!details) {
-        return icon;
-      }
-
-      return <Tooltip title={details}>{icon}</Tooltip>;
+      return (
+        <Tooltip title={details} disabled={!details}>
+          <IconWarning color="yellow300" size="xs" />
+        </Tooltip>
+      );
     }
     default:
       return null; //this should never happen

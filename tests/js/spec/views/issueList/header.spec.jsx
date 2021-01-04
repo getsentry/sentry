@@ -5,20 +5,40 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import IssueListHeader from 'app/views/issueList/header';
 
 const queryCounts = {
-  'is:needs_review is:unresolved': 1,
-  'is:unresolved': 1,
+  'is:unresolved is:needs_review': {
+    count: 1,
+    hasMore: false,
+  },
+  'is:unresolved': {
+    count: 1,
+    hasMore: false,
+  },
+  'is:ignored': {
+    count: 0,
+    hasMore: false,
+  },
 };
 
 const queryCountsMaxed = {
-  'is:needs_review is:unresolved': 1000,
-  'is:unresolved': 1000,
+  'is:unresolved is:needs_review': {
+    count: 321,
+    hasMore: false,
+  },
+  'is:unresolved': {
+    count: 100,
+    hasMore: true,
+  },
+  'is:ignored': {
+    count: 100,
+    hasMore: true,
+  },
 };
 
 describe('IssueListHeader', () => {
   it('renders active tab with count when query matches inbox', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader
-        query="is:needs_review is:unresolved"
+        query="is:unresolved is:needs_review"
         queryCounts={queryCounts}
         projectIds={[]}
       />
@@ -38,17 +58,17 @@ describe('IssueListHeader', () => {
       <IssueListHeader query="" queryCounts={queryCounts} projectIds={[]} />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 1');
-    expect(wrapper.find('li').at(1).text()).toBe('Unresolved 1');
+    expect(wrapper.find('li').at(1).text()).toBe('All Unresolved 1');
     expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
   });
 
-  it('renders limited counts for tabs', () => {
+  it('renders limited counts for tabs and exact for selected', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader query="" queryCounts={queryCountsMaxed} projectIds={[]} />
     );
-    expect(wrapper.find('li').at(0).text()).toBe('Needs Review 99+');
-    expect(wrapper.find('li').at(1).text()).toBe('Unresolved 99+');
-    expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
+    expect(wrapper.find('li').at(0).text()).toBe('Needs Review 321');
+    expect(wrapper.find('li').at(1).text()).toBe('All Unresolved 99+');
+    expect(wrapper.find('li').at(2).text()).toBe('Ignored 99+');
   });
 
   it('transitions to new query on tab click', () => {
@@ -61,6 +81,6 @@ describe('IssueListHeader', () => {
       />
     );
     wrapper.find('a').at(0).simulate('click');
-    expect(handleTabChange).toHaveBeenCalledWith('is:needs_review is:unresolved');
+    expect(handleTabChange).toHaveBeenCalledWith('is:unresolved is:needs_review');
   });
 });

@@ -602,7 +602,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         return [];
       }
       if (tag.key === 'release' && !values.includes('latest')) {
-        values.push('latest');
+        values.unshift('latest');
       }
 
       const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;

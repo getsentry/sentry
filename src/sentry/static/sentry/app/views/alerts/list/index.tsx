@@ -175,10 +175,10 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         icon={<IconCheckmark isCircled size="48" />}
         title={
           !hasAlertRule
-            ? t('No metric alert rules exist for these projects.')
+            ? t('No metric alert rules exist for the selected projects.')
             : status === 'open'
-            ? t('No unresolved metric alerts in these projects.')
-            : t('No resolved metric alerts in these projects.')
+            ? t('No unresolved metric alerts in the selected projects.')
+            : t('No resolved metric alerts in the selected projects.')
         }
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,

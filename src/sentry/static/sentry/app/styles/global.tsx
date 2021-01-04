@@ -178,6 +178,14 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .rdrMonthAndYearPickers select {
           color: ${theme.textColor};
         }
+        .dropdown-menu {
+          color: ${theme.textColor};
+          background-color: ${theme.background};
+          &:after,
+          &:before {
+            border-bottom-color: ${theme.background};
+          }
+        }
       `
     : ''}
 `;

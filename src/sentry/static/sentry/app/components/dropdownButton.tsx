@@ -36,12 +36,13 @@ const DropdownButton = ({
 }: Props) => (
   <StyledButton
     type="button"
+    priority="form"
     isOpen={isOpen}
     hideBottomBorder={hideBottomBorder}
     ref={forwardedRef}
     {...props}
   >
-    {prefix && <LabelText>{prefix}:</LabelText>}
+    {prefix && <LabelText>{prefix}</LabelText>}
     {children}
     {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
   </StyledButton>
@@ -64,19 +65,22 @@ const StyledButton = styled(Button)<
   z-index: 2;
   box-shadow: ${p => (p.isOpen || p.disabled ? 'none' : p.theme.dropShadowLight)};
   border-bottom-color: ${p =>
-    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
+    p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.button.form.border};
 
   &:active,
   &:focus,
   &:hover {
     border-bottom-color: ${p =>
-      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.border};
+      p.isOpen && p.hideBottomBorder ? 'transparent' : p.theme.button.form.borderActive};
   }
 `;
 
-const LabelText = styled('em')`
-  font-style: normal;
-  color: ${p => p.theme.gray300};
+const LabelText = styled('span')`
+  &:after {
+    content: ':';
+  }
+
+  font-weight: normal;
   padding-right: ${space(0.75)};
 `;
 

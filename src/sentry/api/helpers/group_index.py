@@ -55,6 +55,7 @@ from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, pa
 from sentry.signals import (
     issue_deleted,
     issue_ignored,
+    issue_mark_reviewed,
     issue_unignored,
     issue_resolved,
     issue_unresolved,
@@ -997,6 +998,10 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
             GroupInbox.objects.filter(group__in=group_ids).delete()
+            for group in group_list:
+                issue_mark_reviewed.send_robust(
+                    project=project, user=acting_user, group=group, sender=update_groups,
+                )
         result["inbox"] = inbox
 
     return Response(result)

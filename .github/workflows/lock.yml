@@ -1,7 +1,7 @@
 name: 'lock closed issues/PRs'
 on:
   schedule:
-    - cron: '*/2 * * * *'
+    - cron: '* */12 * * *'
 jobs:
   lock:
     runs-on: ubuntu-latest
