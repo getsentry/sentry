@@ -17,7 +17,7 @@ type Row = {
 
 type Props = RouteComponentProps<{}, {}>;
 
-type State = {} & AsyncView['state'];
+type State = AsyncView['state'];
 
 export default class AdminProjects extends AsyncView<Props, State> {
   getRow = (row: Row) => [
