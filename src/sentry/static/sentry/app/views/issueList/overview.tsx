@@ -6,6 +6,7 @@ import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
+import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
@@ -60,7 +61,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {Query, QueryCounts, TabQueriesWithCounts} from './utils';
+import {Query, QueryCounts, TAB_MAX_COUNT, TabQueriesWithCounts} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -216,6 +217,8 @@ class IssueListOverview extends React.Component<Props, State> {
     const prevQuery = prevProps.location.query;
     const newQuery = this.props.location.query;
 
+    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
+
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
@@ -227,7 +230,7 @@ class IssueListOverview extends React.Component<Props, State> {
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
       prevProps.savedSearch !== this.props.savedSearch
     ) {
-      this.fetchData();
+      this.fetchData(selectionChanged);
     } else if (
       !this._lastRequest &&
       prevState.issuesLoading === false &&
@@ -381,7 +384,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  fetchCounts = async (currentQueryCount: number) => {
+  fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
@@ -391,7 +394,10 @@ class IssueListOverview extends React.Component<Props, State> {
       : null;
 
     // If all tabs' counts are fetched, skip and only set
-    if (!TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)) {
+    if (
+      fetchAllCounts ||
+      !TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+    ) {
       const requestParams: CountsEndpointParams = {
         ...omit(endpointParams, 'query'),
         // fetch the counts for the tabs whose counts haven't been fetched yet
@@ -410,9 +416,13 @@ class IssueListOverview extends React.Component<Props, State> {
             data: qs.stringify(requestParams),
           }
         );
+        // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
         queryCounts = {
           ...queryCounts,
-          ...response,
+          ...mapValues(response, (count: number) => ({
+            count,
+            hasMore: count > TAB_MAX_COUNT,
+          })),
         };
       } catch (e) {
         this.setState({
@@ -422,14 +432,18 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
+    // Update the count based on the exact number of issues, these shown as is
     if (currentTabQuery) {
-      queryCounts[currentTabQuery] = currentQueryCount;
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
     }
 
     this.setState({queryCounts});
   };
 
-  fetchData = () => {
+  fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
 
     this.setState({
@@ -473,6 +487,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     this._poller.disable();
 
+    const fetchAllCounts =
+      this.props.organization.features.includes('inbox') && !!selectionChanged;
+
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
@@ -512,7 +529,7 @@ class IssueListOverview extends React.Component<Props, State> {
         const pageLinks = jqXHR.getResponseHeader('Link');
 
         if (this.props.organization.features.includes('inbox')) {
-          this.fetchCounts(queryCount);
+          this.fetchCounts(queryCount, fetchAllCounts);
         }
 
         this.setState({

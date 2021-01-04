@@ -8,15 +8,28 @@ import {Panel} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+import {Fingerprint} from 'app/stores/groupingStore';
+import {Project} from 'app/types';
 
 import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
 
-class MergedList extends React.Component {
+type Props = {
+  // From GroupMergedView -> handleUnmerge
+  onUnmerge: () => void;
+  // From GroupingActions.toggleCollapseFingerprints
+  onToggleCollapse: () => void;
+  orgId: string;
+  project: Project;
+  fingerprints?: Fingerprint[];
+  pageLinks?: string;
+};
+
+class MergedList extends React.Component<Props> {
   static propTypes = {
     onUnmerge: PropTypes.func.isRequired,
     onToggleCollapse: PropTypes.func.isRequired,
-    items: PropTypes.arrayOf(SentryTypes.Event),
+    fingerprints: PropTypes.arrayOf(SentryTypes.Event),
     pageLinks: PropTypes.string,
     orgId: PropTypes.string.isRequired,
     project: SentryTypes.Project.isRequired,
@@ -24,14 +37,23 @@ class MergedList extends React.Component {
 
   renderEmpty = () => (
     <EmptyStateWarning>
-      <p>{t("There don't seem to be any hashes for this issue.")}</p>
+      <p>{t("There doesn't seem to be any hashes for this issue.")}</p>
     </EmptyStateWarning>
   );
 
   render() {
-    const {items, pageLinks, onToggleCollapse, onUnmerge, orgId, project} = this.props;
-    const itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
-    const hasResults = itemsWithLatestEvent.length > 0;
+    const {
+      fingerprints = [],
+      pageLinks,
+      onToggleCollapse,
+      onUnmerge,
+      orgId,
+      project,
+    } = this.props;
+    const fingerprintsWithLatestEvent = fingerprints.filter(
+      ({latestEvent}) => !!latestEvent
+    );
+    const hasResults = fingerprintsWithLatestEvent.length > 0;
 
     if (!hasResults) {
       return <Panel>{this.renderEmpty()}</Panel>;
@@ -41,7 +63,7 @@ class MergedList extends React.Component {
       <div>
         <h2>
           <span>{t('Merged fingerprints with latest event')}</span>{' '}
-          <QueryCount count={itemsWithLatestEvent.length} />
+          <QueryCount count={fingerprintsWithLatestEvent.length} />
         </h2>
 
         <MergedToolbar
@@ -52,12 +74,12 @@ class MergedList extends React.Component {
         />
 
         <MergedItems>
-          {itemsWithLatestEvent.map(({id, latestEvent}) => (
+          {fingerprintsWithLatestEvent.map(({id, latestEvent}) => (
             <MergedItem
               key={id}
               orgId={orgId}
               projectId={project.slug}
-              disabled={items.length === 1}
+              disabled={fingerprintsWithLatestEvent.length === 1}
               event={latestEvent}
               fingerprint={id}
             />

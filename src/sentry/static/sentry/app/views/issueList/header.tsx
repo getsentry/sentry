@@ -13,12 +13,10 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
-import {Query, QueryCounts} from './utils';
-
-// the tab counts will look like 99+
-const TAB_MAX_COUNT = 99;
+import {Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   query: string;
@@ -123,15 +121,16 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}
-                <StyledQueryCount
-                  count={queryCounts[tabQuery]}
-                  max={TAB_MAX_COUNT}
-                  tagType={
-                    (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
-                    (tabQuery === Query.UNRESOLVED && 'default') ||
-                    undefined
-                  }
-                />
+                {queryCounts[tabQuery] && (
+                  <StyledQueryCount
+                    count={queryCounts[tabQuery].count}
+                    max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                    backgroundColor={
+                      (tabQuery === Query.NEEDS_REVIEW && theme.yellow300) ||
+                      theme.gray100
+                    }
+                  />
+                )}
               </a>
             </li>
           ))}
