@@ -5,14 +5,17 @@ import os
 import sys
 
 version = sys.version_info
+if os.environ.get("SENTRY_PYTHON2") == "1" and version[:2] != (2, 7):
+    sys.exit("Error: Sentry [In DEPRECATED Python 2 mode] requires Python 2.7.")
 
-if version[:2] < (3, 6):
-    sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
-if version[:2] > (3, 6):
-    import logging
+if os.environ.get("SENTRY_PYTHON2") != "1" and version[:2] != (2, 7):
+    if version[:2] < (3, 6):
+        sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
+    if version[:2] > (3, 6):
+        import logging
 
-    logger = logging.getLogger()
-    logger.warning("A Python version different than 3.6 is being used ({})".format(version[:2]))
+        logger = logging.getLogger()
+        logger.warning("A Python version different than 3.6 is being used ({})".format(version[:2]))
 
 
 from distutils.command.build import build as BuildCommand
@@ -81,7 +84,7 @@ cmdclass = {
 
 
 def get_requirements(env):
-    with open(u"requirements-{}.txt".format(env)) as fp:
+    with open("requirements-{}.txt".format(env)) as fp:
         return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
 
 
