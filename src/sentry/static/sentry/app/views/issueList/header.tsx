@@ -13,6 +13,7 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
 import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
@@ -115,12 +116,11 @@ function IssueListHeader({
                   <StyledQueryCount
                     count={queryCounts[tabQuery].count}
                     max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                    tagType={
-                      (tabQuery === Query.NEEDS_REVIEW_OWNER && 'warning') ||
-                      (tabQuery === Query.NEEDS_REVIEW && 'warning') ||
-                      (tabQuery === Query.UNRESOLVED && 'default') ||
-                      (tabQuery === Query.IGNORED && 'default') ||
-                      undefined
+                    backgroundColor={
+                      ((tabQuery === Query.NEEDS_REVIEW_OWNER ||
+                        tabQuery === Query.NEEDS_REVIEW) &&
+                        theme.yellow300) ||
+                      theme.gray100
                     }
                   />
                 )}

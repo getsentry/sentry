@@ -45,14 +45,14 @@ type State = {
 
 type ScoreMap = Record<string, number | null>;
 
-type Item = {
+export type Fingerprint = {
   id: string;
   latestEvent: Event;
   state?: string;
 };
 
 type ResponseProcessors = {
-  merged: (item: Item) => Item;
+  merged: (item: Fingerprint) => Fingerprint;
   similar: (
     data: [Group, ScoreMap]
   ) => {
