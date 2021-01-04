@@ -101,7 +101,7 @@ class Filter extends React.Component<Props> {
           <FilterLabel>{t('Filter')}</FilterLabel>
         </React.Fragment>
       ),
-      priority: 'form',
+      priority: 'default',
       hasDarkBorderBottomColor: false,
     };
 
