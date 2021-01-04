@@ -12,6 +12,7 @@ import Switch from 'app/components/switch';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 
 type Props = {
@@ -30,6 +31,19 @@ class IntegrationServerlessRow extends React.Component<Props> {
     const orgSlug = this.props.organization.slug;
     return `/organizations/${orgSlug}/integrations/${this.props.integration.id}/serverless-functions/`;
   }
+
+  recordAction = (action: 'enable' | 'disable' | 'updateVersion') => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.serverless_function_action',
+        eventName: 'Integrations: Serverless Function Action',
+        integration: this.props.integration.provider.key,
+        integration_type: 'first_party',
+        action,
+      },
+      this.props.organization
+    );
+  };
   toggleEnable = async () => {
     const action = this.enabled ? 'disable' : 'enable';
     const data = {
@@ -38,6 +52,7 @@ class IntegrationServerlessRow extends React.Component<Props> {
     };
     try {
       addLoadingMessage();
+      this.recordAction(action);
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
@@ -56,6 +71,7 @@ class IntegrationServerlessRow extends React.Component<Props> {
     };
     try {
       addLoadingMessage();
+      this.recordAction('updateVersion');
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,

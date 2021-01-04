@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import Alert from 'app/components/alert';
 import withOrganization from 'app/utils/withOrganization';
 import {t} from 'app/locale';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 
@@ -39,8 +40,25 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
     ];
   }
 
+  get serverlessFunctions() {
+    return this.state.serverlessFunctions;
+  }
+
+  onLoadAllEndpointsSuccess() {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.serverless_functions_viewed',
+        eventName: 'Integrations: Serverless Functions Viewed',
+        integration: this.props.integration.provider.key,
+        integration_type: 'first_party',
+        num_functions: this.serverlessFunctions.length,
+      },
+      this.props.organization
+    );
+  }
+
   handleFunctionUpdate = (serverlessFunction: ServerlessFunction, index: number) => {
-    const [...serverlessFunctions] = this.state.serverlessFunctions;
+    const [...serverlessFunctions] = this.serverlessFunctions;
     serverlessFunctions[index] = serverlessFunction;
     this.setState({serverlessFunctions});
   };
@@ -62,7 +80,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
             <UpdateHeader>{t('Update')}</UpdateHeader>
           </StyledPanelHeader>
           <StyledPanelBody>
-            {this.state.serverlessFunctions.map((serverlessFunction, i) => (
+            {this.serverlessFunctions.map((serverlessFunction, i) => (
               <IntegrationServerlessRow
                 key={serverlessFunction.name}
                 serverlessFunction={serverlessFunction}
