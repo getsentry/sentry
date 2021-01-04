@@ -125,12 +125,23 @@ def has_linked_issue(event, integration):
 
 
 def create_link(integration, installation, event, response):
+    """
+    After creating the event on a third-party service, create a link to the
+    external resource in the DB. TODO make this a transaction.
+    :param integration: Integration object.
+    :param installation: Installation object.
+    :param event: The event object that was recorded on an external service.
+    :param response: The API response from creating the new resource.
+        - key: String. The unique ID of the external resource
+        - metadata: Optional Object. Can contain `display_name`.
+    """
     external_issue = ExternalIssue.objects.create(
         organization_id=event.group.project.organization_id,
         integration_id=integration.id,
         key=response["key"],
         title=event.title,
         description=installation.get_group_description(event.group, event),
+        metadata=response.get("metadata"),
     )
     GroupLink.objects.create(
         group_id=event.group.id,
