@@ -34,8 +34,6 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        with:
-          python: 2
 
       - name: Check if a migration is required
         env:

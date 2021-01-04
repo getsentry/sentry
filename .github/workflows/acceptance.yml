@@ -110,7 +110,6 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          python: 2
           snuba: true
 
       - uses: actions/cache@v2

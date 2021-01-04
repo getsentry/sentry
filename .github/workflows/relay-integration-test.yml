@@ -46,7 +46,6 @@ jobs:
         id: setup
         if: steps.changes.outputs.backend == 'true'
         with:
-          python: 2
           snuba: true
           kafka: true
 

@@ -47,7 +47,6 @@ jobs:
         if: steps.changes.outputs.plugins == 'true'
         with:
           snuba: true
-          python: 2
 
       - name: Run test
         if: steps.changes.outputs.plugins == 'true'
