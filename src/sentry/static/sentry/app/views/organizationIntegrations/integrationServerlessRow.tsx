@@ -1,8 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import Switch from 'app/components/switch';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
 import withApi from 'app/utils/withApi';
 
@@ -29,50 +37,89 @@ class IntegrationServerlessRow extends React.Component<Props> {
       target: this.props.serverlessFunction.name,
     };
     try {
+      addLoadingMessage();
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
       this.props.onUpdateFunction(resp);
+      addSuccessMessage(t('Success'));
     } catch (err) {
       console.error(err);
+      addErrorMessage(err);
     }
   };
   updateVersion = async () => {
     const data = {
-      action: 'update',
+      action: 'updateVersion',
       target: this.props.serverlessFunction.name,
     };
     try {
+      addLoadingMessage();
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
       this.props.onUpdateFunction(resp);
+      addSuccessMessage(t('Success'));
     } catch (err) {
       console.error(err);
+      addErrorMessage(err);
     }
   };
   render() {
     const {serverlessFunction} = this.props;
-    const buttonText = this.enabled ? 'Disable' : 'Enable';
+    const versionDisplay = this.enabled ? serverlessFunction.version : 'None';
     return (
-      <div>
-        <ItemWrapper>{serverlessFunction.name}</ItemWrapper>
-        <ItemWrapper>{serverlessFunction.runtime}</ItemWrapper>
-        <ItemWrapper>{serverlessFunction.outOfDate}</ItemWrapper>
-        <ItemWrapper>{serverlessFunction.version}</ItemWrapper>
-        <Button onClick={this.toggleEnable}>{buttonText}</Button>
+      <Item>
+        <NameWrapper>{serverlessFunction.name}</NameWrapper>
+        <RuntimeWrapper>{serverlessFunction.runtime}</RuntimeWrapper>
+        <VersionWrapper>{versionDisplay}</VersionWrapper>
+        <StyledSwitch isActive={this.enabled} size="sm" toggle={this.toggleEnable} />
         {serverlessFunction.outOfDate && (
-          <Button onClick={this.updateVersion}>Update</Button>
+          <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
+            Update
+          </UpdateButton>
         )}
-      </div>
+      </Item>
     );
   }
 }
 
 export default withApi(IntegrationServerlessRow);
 
-const ItemWrapper = styled('span')`
-  margin: 10px;
+const Item = styled('div')`
+  padding: ${space(1)};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+
+  display: grid;
+  grid-column-gap: ${space(1)};
+  align-items: center;
+  grid-template-columns: 2fr 1fr 0.5fr 0.25fr 0.5fr;
+  grid-template-areas: 'function-name runtime version enable-switch update-button';
+`;
+
+const ItemWrapper = styled('span')``;
+
+const NameWrapper = styled(ItemWrapper)`
+  grid-area: function-name;
+`;
+
+const RuntimeWrapper = styled(ItemWrapper)`
+  grid-area: runtime;
+`;
+
+const VersionWrapper = styled(ItemWrapper)`
+  grid-area: version;
+`;
+
+const StyledSwitch = styled(Switch)`
+  grid-area: enable-switch;
+`;
+
+const UpdateButton = styled(Button)`
+  grid-area: update-button;
 `;

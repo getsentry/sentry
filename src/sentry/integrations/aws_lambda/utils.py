@@ -126,7 +126,6 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
         layers[sentry_layer_index] = layer_arn
     else:
         layers.append(layer_arn)
-
     return lambda_client.update_function_configuration(
         FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
     )

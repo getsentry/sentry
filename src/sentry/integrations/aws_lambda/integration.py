@@ -119,6 +119,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         Returns a list of serverless functions
         """
         functions = get_supported_functions(self.client)
+        functions.sort(key=lambda x: x["FunctionName"].lower())
 
         return map(self.serialize_lambda_function, functions)
 
