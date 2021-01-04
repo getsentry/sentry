@@ -25,7 +25,6 @@ class JiraCreateTicketAction(TicketEventAction):
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
-    issue_key_path = "key"
     integration_key = INTEGRATION_KEY
 
     def render_label(self):

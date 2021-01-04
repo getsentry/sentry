@@ -1,8 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import functools
 import logging
-import operator
 import six
 
 from django import forms
@@ -126,11 +124,11 @@ def has_linked_issue(event, integration):
     return _linked_issues(event, integration).exists()
 
 
-def create_link(key, integration, installation, event):
+def create_link(integration, installation, event, response):
     external_issue = ExternalIssue.objects.create(
         organization_id=event.group.project.organization_id,
         integration_id=integration.id,
-        key=key,
+        key=response["key"],
         title=event.title,
         description=installation.get_group_description(event.group, event),
     )
@@ -196,9 +194,7 @@ def create_issue(event, futures):
             )
             return
         response = installation.create_issue(data)
-        issue_key_path = future.kwargs.get("issue_key_path")
-        issue_key = functools.reduce(operator.getitem, issue_key_path.split("."), response)
-        create_link(issue_key, integration, installation, event)
+        create_link(integration, installation, event, response)
 
 
 class TicketEventAction(IntegrationEventAction):
