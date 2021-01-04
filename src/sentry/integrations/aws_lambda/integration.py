@@ -27,7 +27,6 @@ from .client import gen_aws_client
 from .utils import (
     parse_arn,
     get_index_of_sentry_layer,
-    get_aws_node_arn,
     get_version_of_arn,
     get_supported_functions,
     get_latest_layer_version,
@@ -289,9 +288,6 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         organization = pipeline.organization
 
         arn = pipeline.fetch_state("arn")
-        region = parse_arn(arn)["region"]
-        # the layer ARN has to be located within a specific region
-        node_layer_arn = get_aws_node_arn(region)
 
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
@@ -311,8 +307,11 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             # check to see if the user wants to enable this function
             if not enabled_lambdas.get(name):
                 continue
+
+            # find the latest layer for this function
+            layer_arn = get_latest_layer_for_function(function)
             try:
-                enable_single_lambda(lambda_client, function, sentry_project_dsn, node_layer_arn)
+                enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
             except Exception as e:
                 failures.append(function)
                 logger.info(

@@ -1,6 +1,7 @@
 // eslint-disable-next-line simple-import-sort/imports
 import React from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
@@ -58,7 +59,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
   }
 
   handleFunctionUpdate = (serverlessFunction: ServerlessFunction, index: number) => {
-    const [...serverlessFunctions] = this.serverlessFunctions;
+    const serverlessFunctions = cloneDeep(this.serverlessFunctions);
     serverlessFunctions[index] = serverlessFunction;
     this.setState({serverlessFunctions});
   };

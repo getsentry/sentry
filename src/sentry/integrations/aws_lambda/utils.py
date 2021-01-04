@@ -31,7 +31,7 @@ def parse_arn(arn):
     return result
 
 
-def get_aws_node_arn(region):
+def _get_aws_node_arn(region):
     return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
         options.get("aws-lambda.host-account-id"),
@@ -40,7 +40,7 @@ def get_aws_node_arn(region):
     )
 
 
-def get_arn_without_version(arn):
+def _get_arn_without_version(arn):
     return arn.rpartition(":")[0]
 
 
@@ -52,7 +52,7 @@ def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
     runtime = function["Runtime"]
     if runtime.startswith("nodejs"):
-        return get_aws_node_arn(region)
+        return _get_aws_node_arn(region)
     # update when we can handle other runtimes like Python
     raise Exception("Unsupported runtime")
 
@@ -72,15 +72,15 @@ def get_index_of_sentry_layer(layers, arn_to_match):
     :param layers: list of layer
     :return: index of layer or -1 if no match
     """
-    target_arn_without_version = get_arn_without_version(arn_to_match)
+    target_arn_no_version = _get_arn_without_version(arn_to_match)
     for i, layer in enumerate(layers):
         # layer could be a string or dict
-        if isinstance(layer, six.binary_type):
+        if isinstance(layer, six.text_type):
             local_arn = layer
         else:
             local_arn = layer["Arn"]
-        local_arn_without_version = get_arn_without_version(local_arn)
-        if local_arn_without_version == target_arn_without_version:
+        local_arn_without_version = _get_arn_without_version(local_arn)
+        if local_arn_without_version == target_arn_no_version:
             return i
     return -1
 
