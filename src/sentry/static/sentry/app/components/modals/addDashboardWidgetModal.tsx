@@ -246,7 +246,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 name="displayType"
                 label={t('Chart Style')}
                 value={state.displayType}
-                onChange={this.handleFieldChange('displayType')}
+                onChange={(option: {label: string; value: Widget['displayType']}) => {
+                  this.handleFieldChange('displayType')(option.value);
+                }}
               />
             </Field>
           </DoubleFieldWrapper>
