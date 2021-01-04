@@ -28,8 +28,6 @@ type Period = {
 };
 
 const ZoomPropKeys = [
-  'start',
-  'end',
   'period',
   'xAxis',
   'onChartReady',
@@ -40,6 +38,8 @@ const ZoomPropKeys = [
 
 type RenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
   utc?: boolean;
+  start?: Date;
+  end?: Date;
   isGroupedByDate?: boolean;
   showTimeInTooltip?: boolean;
   dataZoom?: EChartOption.DataZoom[];
@@ -254,6 +254,8 @@ class ChartZoom extends React.Component<Props> {
   render() {
     const {
       utc,
+      start: _start,
+      end: _end,
       disabled,
       children,
       xAxisIndex,
@@ -267,8 +269,15 @@ class ChartZoom extends React.Component<Props> {
       ...props
     } = this.props;
 
+    const start = _start ? getUtcToLocalDateObject(_start) : undefined;
+    const end = _end ? getUtcToLocalDateObject(_end) : undefined;
+
     if (disabled) {
-      return children(props);
+      return children({
+        start,
+        end,
+        ...props,
+      });
     }
 
     // TODO(mark) Update consumers of DataZoom when typing this.
@@ -277,6 +286,8 @@ class ChartZoom extends React.Component<Props> {
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc: utc ?? undefined,
+      start,
+      end,
       dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
