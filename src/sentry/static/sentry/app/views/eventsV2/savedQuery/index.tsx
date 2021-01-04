@@ -221,6 +221,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
           <ButtonSaveAs
             data-test-id="button-save-as"
             {...getActorProps()}
+            priority="primary"
             isOpen={isOpen}
             showChevron={false}
             disabled={disabled}
