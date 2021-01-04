@@ -183,11 +183,17 @@ class GroupDetails extends React.Component<Props, State> {
       if (this.canLoadEventEarly(this.props)) {
         eventPromise = this.getEvent();
       }
+
+      const queryParams: Record<string, string | string[]> = {
+        // Note, we do not want to include the environment key at all if there are no environments
+        ...(environments ? {environment: environments} : {}),
+      };
+      if (organization?.features?.includes('inbox')) {
+        queryParams.expand = 'inbox';
+      }
+
       const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
-        query: {
-          // Note, we do not want to include the environment key at all if there are no environments
-          ...(environments ? {environment: environments} : {}),
-        },
+        query: queryParams,
       });
       const [data] = await Promise.all([groupPromise, eventPromise]);
 
@@ -332,7 +338,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderError() {
     const {organization, location} = this.props;
-    const projects = organization.projects;
+    const projects = organization.projects ?? [];
     const projectId = location.query.project;
 
     const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
@@ -347,7 +353,7 @@ class GroupDetails extends React.Component<Props, State> {
         return (
           <MissingProjectMembership
             organization={this.props.organization}
-            projectId={projectSlug}
+            projectSlug={projectSlug}
           />
         );
       default:

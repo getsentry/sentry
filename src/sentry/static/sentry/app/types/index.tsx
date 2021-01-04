@@ -1087,14 +1087,15 @@ export type BaseGroup = {
   annotations: string[];
   assignedTo: User;
   culprit: string;
-  currentRelease: any; // TODO(ts)
-  firstRelease: any; // TODO(ts)
+  firstRelease: Release;
+  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: any; // TODO(ts)
+  lastRelease: Release;
+  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -1510,6 +1511,17 @@ type BaseRelease = {
   status: ReleaseStatus;
 };
 
+export type CurrentRelease = {
+  environment: string;
+  firstSeen: string;
+  lastSeen: string;
+  release: Release;
+  stats: {
+    // 24h/30d is hardcoded in GroupReleaseWithStatsSerializer
+    '24h': TimeseriesValue[];
+    '30d': TimeseriesValue[];
+  };
+};
 export enum ReleaseStatus {
   Active = 'open',
   Archived = 'archived',
@@ -1591,7 +1603,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
     name: string;
   };
 };
@@ -1641,6 +1653,8 @@ export type SelectValue<T> = {
   tooltip?: string;
 };
 
+export type IssueConfigFieldChoices = [number | string, number | string][];
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
@@ -1648,8 +1662,8 @@ export type SelectValue<T> = {
  */
 export type IssueConfigField = Field & {
   name: string;
-  default?: string;
-  choices?: [number | string, number | string][];
+  default?: string | number;
+  choices?: IssueConfigFieldChoices;
   url?: string;
   multiple?: boolean;
 };

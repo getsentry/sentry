@@ -24,6 +24,7 @@ from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
+INTERNAL_SOURCE_NAME = "sentry:project"
 
 logger = logging.getLogger(__name__)
 
@@ -107,12 +108,20 @@ class Symbolicator(object):
         base_url = symbolicator_options["url"].rstrip("/")
         assert base_url
 
+        if not getattr(project, "_organization_cache", False):
+            # needed for efficient featureflag checks in getsentry
+            with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+                project._organization_cache = Organization.objects.get_from_cache(
+                    id=project.organization_id
+                )
+
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=six.text_type(project.id),
             event_id=six.text_type(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
+            options=get_options_for_project(project),
         )
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
@@ -215,7 +224,7 @@ def get_internal_source(project):
 
     return {
         "type": "sentry",
-        "id": "sentry:project",
+        "id": INTERNAL_SOURCE_NAME,
         "url": sentry_source_url,
         "token": get_system_token(),
     }
@@ -250,18 +259,19 @@ def parse_sources(config):
     return sources
 
 
+def get_options_for_project(project):
+    return {
+        # Symbolicators who do not support options will ignore this field entirely.
+        "dif_candidates": features.has("organizations:images-loaded-v2", project.organization)
+    }
+
+
 def get_sources_for_project(project):
     """
     Returns a list of symbol sources for this project.
     """
 
     sources = []
-
-    if not getattr(project, "_organization_cache", False):
-        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-            project._organization_cache = Organization.objects.get_from_cache(
-                id=project.organization_id
-            )
 
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
@@ -271,6 +281,7 @@ def get_sources_for_project(project):
     # Check that the organization still has access to symbol sources. This
     # controls both builtin and external sources.
     organization = project.organization
+
     if not features.has("organizations:symbol-sources", organization):
         return sources
 
@@ -319,11 +330,14 @@ def get_sources_for_project(project):
 
 
 class SymbolicatorSession(object):
-    def __init__(self, url=None, sources=None, project_id=None, event_id=None, timeout=None):
+    def __init__(
+        self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
+    ):
         self.url = url
         self.project_id = project_id
         self.event_id = event_id
         self.sources = sources or []
+        self.options = options or None
         self.timeout = timeout
         self.session = None
 
@@ -346,6 +360,17 @@ class SymbolicatorSession(object):
     def _ensure_open(self):
         if not self.session:
             raise RuntimeError("Session not opened")
+
+    def _process_response(self, json):
+        source_names = {source["id"]: source.get("name") for source in self.sources}
+        source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+        for module in json.get("modules") or ():
+            for candidate in module.get("candidates") or ():
+                if candidate.get("source"):
+                    candidate["source_name"] = source_names.get(candidate["source"])
+
+        return json
 
     def _request(self, method, path, **kwargs):
         self._ensure_open()
@@ -392,7 +417,7 @@ class SymbolicatorSession(object):
                 else:
                     json = {"status": "failed", "message": "internal server error"}
 
-                return json
+                return self._process_response(json)
             except (IOError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
@@ -420,7 +445,12 @@ class SymbolicatorSession(object):
             return self._request(method="post", path=path, params=params, **kwargs)
 
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
-        json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
+        json = {
+            "sources": self.sources,
+            "options": self.options,
+            "stacktraces": stacktraces,
+            "modules": modules,
+        }
 
         if signal:
             json["signal"] = signal
@@ -430,14 +460,14 @@ class SymbolicatorSession(object):
     def upload_minidump(self, minidump):
         return self._create_task(
             path="minidump",
-            data={"sources": json.dumps(self.sources)},
+            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
         return self._create_task(
             path="applecrashreport",
-            data={"sources": json.dumps(self.sources)},
+            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
             files={"apple_crash_report": report},
         )
 

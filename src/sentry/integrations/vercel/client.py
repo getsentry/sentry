@@ -68,8 +68,8 @@ class VercelClient(ApiClient):
         logger.warn("Did not finish project pagination", extra={"team_id": self.team_id})
         return projects
 
-    def get_source_code_provider(self, vercel_project_id):
-        return self.get(self.PROJECT_URL % vercel_project_id)["link"]["type"]
+    def get_project(self, vercel_project_id):
+        return self.get(self.PROJECT_URL % vercel_project_id)
 
     def create_deploy_webhook(self):
         data = {

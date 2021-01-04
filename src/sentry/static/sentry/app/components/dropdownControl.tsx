@@ -5,7 +5,6 @@ import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu, {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
-import theme from 'app/utils/theme';
 
 type DefaultProps = {
   /**
@@ -93,7 +92,6 @@ class DropdownControl extends React.Component<Props> {
                 width={menuWidth}
                 isOpen={isOpen}
                 blendWithActor={blendWithActor}
-                theme={theme}
                 blendCorner
               >
                 {children}
@@ -120,11 +118,11 @@ const Content = styled(DropdownBubble)<{isOpen: boolean}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
   border-top: 0;
   top: 100%;
+  border-color: ${p => p.theme.button.form.border};
 `;
 
 const DropdownItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
 `;
 
 export default DropdownControl;

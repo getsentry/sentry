@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import Button from 'app/components/button';
+import Button, {StyledButton} from 'app/components/button';
 import space, {ValidSize} from 'app/styles/space';
 
 type ButtonBarProps = {
@@ -59,46 +59,66 @@ const ButtonGrid = styled('div')<{gap: ValidSize; merged: boolean}>`
   ${p =>
     p.merged &&
     `
-    & > button,
-    & > a {
-      position: relative;
-    }
-
     /* Raised buttons show borders on both sides. Useful to create pill bars */
     & > .active {
       z-index: 2;
     }
 
-    /* First button is square on the right side */
-    & > button:first-child:not(:last-child),
-    & > a:first-child:not(:last-child) {
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-    /* Middle buttons are square */
-    & > button:not(:last-child):not(:first-child),
-    & > a:not(:last-child):not(:first-child) {
-      border-radius: 0;
-    }
+    & > .dropdown,
+    & > button,
+    & > a {
+      position: relative;
 
-    /* Middle buttons only need one border so we don't get a double line */
-    & > a:first-child + a:not(:last-child),
-    & > button:first-child + button:not(:last-child) {
-      margin-left: -1px;
-    }
+      /* First button is square on the right side */
+      &:first-child:not(:last-child) {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
 
-    /* Middle buttons only need one border so we don't get a double line */
-    & > button:not(:last-child):not(:first-child) + button,
-    & > a:not(:last-child):not(:first-child) + a {
-      margin-left: -1px;
-    }
+        & > .dropdown-actor > ${StyledButton} {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+        }
+      }
 
-    /* Last button is square on the left side */
-    & > button:last-child:not(:first-child),
-    & > a:last-child:not(:first-child) {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      margin-left: -1px;
+      /* Middle buttons are square */
+      &:not(:last-child):not(:first-child) {
+        border-radius: 0;
+
+        & > .dropdown-actor > ${StyledButton} {
+          border-radius: 0;
+        }
+      }
+
+      /* Middle buttons only need one border so we don't get a double line */
+      &:first-child {
+        & + .dropdown:not(:last-child),
+        & + a:not(:last-child),
+        & + button:not(:last-child) {
+          margin-left: -1px;
+        }
+      }
+
+      /* Middle buttons only need one border so we don't get a double line */
+      &:not(:last-child):not(:first-child) {
+        & + .dropdown,
+        & + button,
+        & + a {
+          margin-left: -1px;
+        }
+      }
+
+      /* Last button is square on the left side */
+      &:last-child:not(:first-child) {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        margin-left: -1px;
+
+        & > .dropdown-actor > ${StyledButton} {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+          margin-left: -1px;
+        }
+      }
     }
   `}
 `;

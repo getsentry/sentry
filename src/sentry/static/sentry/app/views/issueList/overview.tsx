@@ -6,6 +6,8 @@ import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
+import mapValues from 'lodash/mapValues';
+import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
@@ -59,7 +61,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {Query} from './utils';
+import {Query, QueryCounts, TAB_MAX_COUNT, TabQueriesWithCounts} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -90,6 +92,7 @@ type State = {
   realtimeActive: boolean;
   pageLinks: string;
   queryCount: number;
+  queryCounts: QueryCounts;
   queryMaxCount: number;
   error: string | null;
   isSidebarVisible: boolean;
@@ -109,6 +112,10 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   groupStatsPeriod?: string;
   cursor?: string;
   page?: number | string;
+};
+
+type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
+  query: string[];
 };
 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
@@ -131,6 +138,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       pageLinks: '',
       queryCount: 0,
+      queryCounts: {},
       queryMaxCount: 0,
       error: null,
       isSidebarVisible: false,
@@ -209,6 +217,8 @@ class IssueListOverview extends React.Component<Props, State> {
     const prevQuery = prevProps.location.query;
     const newQuery = this.props.location.query;
 
+    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
+
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
@@ -220,7 +230,7 @@ class IssueListOverview extends React.Component<Props, State> {
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
       prevProps.savedSearch !== this.props.savedSearch
     ) {
-      this.fetchData();
+      this.fetchData(selectionChanged);
     } else if (
       !this._lastRequest &&
       prevState.issuesLoading === false &&
@@ -255,14 +265,21 @@ class IssueListOverview extends React.Component<Props, State> {
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
-    if (this.props.savedSearch) {
-      return this.props.savedSearch.query;
+    const {savedSearch, organization, location} = this.props;
+    if (savedSearch) {
+      return savedSearch.query;
     }
 
-    const {query} = this.props.location.query;
-
+    const {query} = location.query;
     if (query !== undefined) {
       return query as string;
+    }
+
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default')
+    ) {
+      return Query.NEEDS_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -367,7 +384,66 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  fetchData = () => {
+  fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
+    const {queryCounts: _queryCounts} = this.state;
+    let queryCounts: QueryCounts = {..._queryCounts};
+
+    const endpointParams = this.getEndpointParams();
+    const currentTabQuery = TabQueriesWithCounts.includes(endpointParams.query as Query)
+      ? endpointParams.query
+      : null;
+
+    // If all tabs' counts are fetched, skip and only set
+    if (
+      fetchAllCounts ||
+      !TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+    ) {
+      const requestParams: CountsEndpointParams = {
+        ...omit(endpointParams, 'query'),
+        // fetch the counts for the tabs whose counts haven't been fetched yet
+        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
+      };
+
+      // If no stats period values are set, use default
+      if (!requestParams.statsPeriod && !requestParams.start) {
+        requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+      }
+      try {
+        const response = await this.props.api.requestPromise(
+          this.getGroupCountsEndpoint(),
+          {
+            method: 'GET',
+            data: qs.stringify(requestParams),
+          }
+        );
+        // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
+        queryCounts = {
+          ...queryCounts,
+          ...mapValues(response, (count: number) => ({
+            count,
+            hasMore: count > TAB_MAX_COUNT,
+          })),
+        };
+      } catch (e) {
+        this.setState({
+          error: parseApiError(e),
+        });
+        return;
+      }
+    }
+
+    // Update the count based on the exact number of issues, these shown as is
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
+    }
+
+    this.setState({queryCounts});
+  };
+
+  fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
 
     this.setState({
@@ -411,6 +487,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     this._poller.disable();
 
+    const fetchAllCounts =
+      this.props.organization.features.includes('inbox') && !!selectionChanged;
+
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
@@ -441,21 +520,23 @@ class IssueListOverview extends React.Component<Props, State> {
         this._streamManager.push(data);
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
-        const queryCount = jqXHR.getResponseHeader('X-Hits');
-        const queryMaxCount = jqXHR.getResponseHeader('X-Max-Hits');
+        const hits = jqXHR.getResponseHeader('X-Hits');
+        const queryCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        const maxHits = jqXHR.getResponseHeader('X-Max-Hits');
+        const queryMaxCount =
+          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = jqXHR.getResponseHeader('Link');
+
+        if (this.props.organization.features.includes('inbox')) {
+          this.fetchCounts(queryCount, fetchAllCounts);
+        }
 
         this.setState({
           error: null,
           issuesLoading: false,
-          queryCount:
-            typeof queryCount !== 'undefined' && queryCount
-              ? parseInt(queryCount, 10) || 0
-              : 0,
-          queryMaxCount:
-            typeof queryMaxCount !== 'undefined' && queryMaxCount
-              ? parseInt(queryMaxCount, 10) || 0
-              : 0,
+          queryCount,
+          queryMaxCount,
           pageLinks: pageLinks !== null ? pageLinks : '',
         });
       },
@@ -481,15 +562,24 @@ class IssueListOverview extends React.Component<Props, State> {
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      this._poller.setEndpoint(links.previous.href);
+      // Remove collapse stats from endpoint before supplying to poller
+      const issueEndpoint = new URL(links.previous.href);
+      issueEndpoint.searchParams.delete('collapse');
+      this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
       this._poller.enable();
     }
   };
 
   getGroupListEndpoint(): string {
-    const params = this.props.params;
+    const {orgId} = this.props.params;
 
-    return `/organizations/${params.orgId}/issues/`;
+    return `/organizations/${orgId}/issues/`;
+  }
+
+  getGroupCountsEndpoint(): string {
+    const {orgId} = this.props.params;
+
+    return `/organizations/${orgId}/issues-count/`;
   }
 
   getGroupStatsEndpoint(): string {
@@ -636,7 +726,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {organization} = this.props;
     const query = this.getQuery();
     const isReprocessingQuery =
-      query === Query.REPROCESSING && organization.features.includes('reprocessing-ui');
+      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -750,6 +840,7 @@ class IssueListOverview extends React.Component<Props, State> {
       tagsLoading,
       pageLinks,
       queryCount,
+      queryCounts,
       realtimeActive,
       groupIds,
       queryMaxCount,
@@ -778,7 +869,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-ui');
+    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
 
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
@@ -787,8 +878,7 @@ class IssueListOverview extends React.Component<Props, State> {
             {hasFeature && (
               <IssueListHeader
                 query={query}
-                queryCount={queryCount}
-                queryMaxCount={queryMaxCount}
+                queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
                 onTabChange={this.handleTabClick}

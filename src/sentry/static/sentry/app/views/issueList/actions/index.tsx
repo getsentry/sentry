@@ -222,7 +222,6 @@ class IssueListActions extends React.Component<Props, State> {
         const {pageSelected} = this.state;
         return pageSelected && selectedItems.size > 1;
       }
-      case ConfirmAction.ACKNOWLEDGE:
       case ConfirmAction.BOOKMARK:
         return selectedItems.size > 1;
       case ConfirmAction.MERGE:
@@ -256,7 +255,7 @@ class IssueListActions extends React.Component<Props, State> {
 
     const numIssues = issues.size;
     const isReprocessingQuery =
-      query === Query.REPROCESSING && organization.features.includes('reprocessing-ui');
+      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
     return (
       <Sticky>
@@ -375,6 +374,7 @@ const SelectAllNotice = styled('div')`
   background-color: ${p => p.theme.yellow100};
   border-top: 1px solid ${p => p.theme.yellow300};
   border-bottom: 1px solid ${p => p.theme.yellow300};
+  color: ${p => p.theme.black};
   font-size: ${p => p.theme.fontSizeMedium};
   text-align: center;
   padding: ${space(0.5)} ${space(1.5)};

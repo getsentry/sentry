@@ -9,6 +9,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import {FieldFromConfig} from 'app/views/settings/components/forms';
 import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
@@ -91,6 +92,19 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
     ];
   }
 
+  handlePreSubmit() {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_submit_config',
+        eventName: 'Integrations: Stacktrace Submit Config',
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: this.props.integration.provider.key,
+      },
+      this.props.organization
+    );
+  }
+
   render() {
     const {
       organization,
@@ -110,6 +124,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
     return (
       <Form
         onSubmitSuccess={onSubmitSuccess}
+        onPreSubmit={() => this.handlePreSubmit()}
         initialData={this.initialData}
         apiEndpoint={endpoint}
         apiMethod={apiMethod}

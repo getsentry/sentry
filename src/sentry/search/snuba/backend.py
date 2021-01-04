@@ -137,7 +137,7 @@ def owner_filter(owner, projects):
             )
             .values_list("group_id", flat=True)
             .distinct()
-        )
+        ) | assigned_to_filter(owner, projects)
     elif isinstance(owner, User):
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
@@ -155,7 +155,7 @@ def owner_filter(owner, projects):
             id__in=relevant_owners.filter(filter_query)
             .values_list("group_id", flat=True)
             .distinct()
-        )
+        ) | assigned_to_filter(owner, projects)
     elif isinstance(owner, list) and owner[0] == "me_or_none":
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
@@ -166,14 +166,21 @@ def owner_filter(owner, projects):
             ).values("team")
         )
 
-        owned_team = Q(groupowner__team__in=teams)
-        owned_me = Q(groupowner__user=owner[1])
-        no_owner = Q(groupowner__isnull=True)
-        return no_owner | Q(
-            owned_me | owned_team,
-            groupowner__project_id__in=project_ids,
-            groupowner__organization_id=organization_id,
+        owned_me = Q(
+            id__in=GroupOwner.objects.filter(
+                Q(user_id=owner[1].id) | Q(team__in=teams),
+                project_id__in=[p.id for p in projects],
+                organization_id=organization_id,
+            )
+            .values_list("group_id", flat=True)
+            .distinct()
         )
+        no_owner = unassigned_filter(True, projects) & ~Q(
+            id__in=GroupOwner.objects.filter(project_id__in=[p.id for p in projects]).values_list(
+                "group_id", flat=True
+            )
+        )
+        return no_owner | owned_me | assigned_to_filter(owner[1], projects)
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
 
@@ -260,6 +267,7 @@ class SnubaSearchBackendBase(SearchBackend):
         search_filters=None,
         date_from=None,
         date_to=None,
+        max_hits=None,
     ):
         search_filters = search_filters if search_filters is not None else []
 
@@ -312,6 +320,7 @@ class SnubaSearchBackendBase(SearchBackend):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
+            max_hits=max_hits,
         )
 
     def _build_group_queryset(
