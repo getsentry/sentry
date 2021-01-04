@@ -840,7 +840,7 @@ function routes() {
           path=":integrationSlug"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ConfigureIntegration" */ 'app/views/organizationIntegrations/docIntegrationDetailedView'
+              /* webpackChunkName: "DocIntegrationDetailedView" */ 'app/views/organizationIntegrations/docIntegrationDetailedView'
             )
           }
           component={errorHandler(LazyLoad)}
