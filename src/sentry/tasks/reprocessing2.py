@@ -15,7 +15,7 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_group",
-    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    queue="events.reprocessing.process_event",
     time_limit=120,
     soft_time_limit=110,
 )
@@ -54,7 +54,9 @@ def reprocess_group(
     for event in events:
         if max_events is None or max_events > 0:
             reprocess_event.delay(
-                project_id=project_id, event_id=event.event_id, start_time=start_time,
+                project_id=project_id,
+                event_id=event.event_id,
+                start_time=start_time,
             )
             if max_events is not None:
                 max_events -= 1
@@ -79,7 +81,7 @@ def reprocess_group(
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.tombstone_events",
-    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
 )
@@ -114,7 +116,7 @@ def tombstone_events(project_id, group_id, event_ids):
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.reprocess_event",
-    queue="events.reprocessing.preprocess_event",  # XXX: dedicated queue
+    queue="events.reprocessing.process_event",
     time_limit=30,
     soft_time_limit=20,
 )
@@ -126,7 +128,7 @@ def reprocess_event(project_id, event_id, start_time):
 
 @instrumented_task(
     name="sentry.tasks.reprocessing2.finish_reprocessing",
-    queue="events.reprocessing.preprocess_event",
+    queue="events.reprocessing.process_event",
     time_limit=(60 * 5) + 5,
     soft_time_limit=60 * 5,
 )
