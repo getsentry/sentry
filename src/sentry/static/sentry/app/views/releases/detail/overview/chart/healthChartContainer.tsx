@@ -71,7 +71,6 @@ class ReleaseChartContainer extends React.Component<Props, State> {
             <TransitionChart loading={loading} reloading={reloading}>
               <TransparentLoadingMask visible={reloading} />
               <HealthChart
-                utc={utc}
                 timeseriesData={chartData}
                 zoomRenderProps={zoomRenderProps}
                 reloading={reloading}

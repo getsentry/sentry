@@ -26,6 +26,8 @@ export default function ToolBox(options, features): EChartOption['toolbox'] {
     right: 0,
     top: 0,
     itemSize: 16,
+    // Stack the toolbox under the legend.
+    // so all series names are clickable.
     z: -1,
 
     feature: getFeatures(features),

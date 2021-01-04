@@ -36,7 +36,7 @@ const ZoomPropKeys = [
   'onFinished',
 ] as const;
 
-type RenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
+export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
   utc?: boolean;
   start?: Date;
   end?: Date;
@@ -48,7 +48,7 @@ type RenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
 
 type Props = {
   router?: WithRouterProps['router'];
-  children: (props: RenderProps) => React.ReactNode;
+  children: (props: ZoomRenderProps) => React.ReactNode;
   disabled?: boolean;
   xAxis?: EChartOption.XAxis;
   xAxisIndex?: number | number[];
@@ -253,7 +253,7 @@ class ChartZoom extends React.Component<Props> {
 
   render() {
     const {
-      utc,
+      utc: _utc,
       start: _start,
       end: _end,
       disabled,
@@ -269,11 +269,13 @@ class ChartZoom extends React.Component<Props> {
       ...props
     } = this.props;
 
+    const utc = _utc ?? undefined;
     const start = _start ? getUtcToLocalDateObject(_start) : undefined;
     const end = _end ? getUtcToLocalDateObject(_end) : undefined;
 
     if (disabled) {
       return children({
+        utc,
         start,
         end,
         ...props,
@@ -285,7 +287,7 @@ class ChartZoom extends React.Component<Props> {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
-      utc: utc ?? undefined,
+      utc,
       start,
       end,
       dataZoom: DataZoomInside({xAxisIndex}),
