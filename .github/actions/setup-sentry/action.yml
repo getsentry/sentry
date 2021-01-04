@@ -2,7 +2,7 @@ name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
   python:
-    description: 'python version (2 or 3)'
+    description: 'python version'
     required: false
     default: '3'
   snuba:
@@ -43,8 +43,6 @@ runs:
         echo "MIGRATIONS_TEST_MIGRATE=0" >> $GITHUB_ENV
         echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
-
-        [ "$PYTHON_VERSION" = "2" ] && echo "SENTRY_PYTHON2=1" >> $GITHUB_ENV || true
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
@@ -92,7 +90,7 @@ runs:
       shell: bash
       run: |
         python setup.py install_egg_info
-        pip install wheel # GitHub Actions does not have `wheel` installed by default (unlike Travis)
+        pip install wheel # GitHub Actions does not have `wheel` installed by default
         pip install -U -e ".[dev]"
 
         # pytest plugin used for better pytest failure annotations
