@@ -9,26 +9,28 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import theme from 'app/utils/theme';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = ModalRenderProps & {
   organization: Organization;
   placeholder?: string;
 };
 
-const HelpSearchModal = ({
-  Body,
-  closeModal,
-  organization,
-  placeholder = t('Search for documentation, FAQs, blog posts...'),
-  ...props
-}: Props) => (
-  <Body>
-    <ClassNames>
-      {({css: injectedCss}) => (
-        <HelpSearch
-          {...props}
-          entryPoint="sidebar_help"
-          dropdownStyle={injectedCss`
+const HelpSearchModal = withOrganization(
+  ({
+    Body,
+    closeModal,
+    organization,
+    placeholder = t('Search for documentation, FAQs, blog posts...'),
+    ...props
+  }: Props) => (
+    <Body>
+      <ClassNames>
+        {({css: injectedCss}) => (
+          <HelpSearch
+            {...props}
+            entryPoint="sidebar_help"
+            dropdownStyle={injectedCss`
                 width: 100%;
                 border: transparent;
                 border-top-left-radius: 0;
@@ -37,16 +39,19 @@ const HelpSearchModal = ({
                 box-shadow: none;
                 border-top: 1px solid ${theme.border};
               `}
-          renderInput={({getInputProps}) => (
-            <InputWrapper>
-              <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
-            </InputWrapper>
-          )}
-          resultFooter={<Hook name="help-modal:footer" {...{organization, closeModal}} />}
-        />
-      )}
-    </ClassNames>
-  </Body>
+            renderInput={({getInputProps}) => (
+              <InputWrapper>
+                <Input autoFocus {...getInputProps({type: 'text', placeholder})} />
+              </InputWrapper>
+            )}
+            resultFooter={
+              <Hook name="help-modal:footer" {...{organization, closeModal}} />
+            }
+          />
+        )}
+      </ClassNames>
+    </Body>
+  )
 );
 
 const InputWrapper = styled('div')`
