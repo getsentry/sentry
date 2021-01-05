@@ -325,26 +325,26 @@ class ReleasesList extends AsyncView<Props, State> {
           <LightWeightNoProjectMessage organization={organization}>
             <StyledPageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
-              <SortAndFilterWrapper>
-                <StyledSearchBar
-                  placeholder={t('Search')}
-                  onSearch={this.handleSearch}
-                  query={this.getQuery()}
-                />
-                <ReleaseListStatusOptions
-                  selected={activeStatus}
-                  onSelect={this.handleStatus}
-                />
-                <ReleaseListSortOptions
-                  selected={activeSort}
-                  onSelect={this.handleSortBy}
-                />
-                <ReleaseDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={this.handleDisplay}
-                />
-              </SortAndFilterWrapper>
             </StyledPageHeader>
+            <SortAndFilterWrapper>
+              <SearchBar
+                placeholder={t('Search')}
+                onSearch={this.handleSearch}
+                query={this.getQuery()}
+              />
+              <ReleaseListStatusOptions
+                selected={activeStatus}
+                onSelect={this.handleStatus}
+              />
+              <ReleaseListSortOptions
+                selected={activeSort}
+                onSelect={this.handleSortBy}
+              />
+              <ReleaseDisplayOptions
+                selected={activeDisplay}
+                onSelect={this.handleDisplay}
+              />
+            </SortAndFilterWrapper>
 
             {!reloading &&
               activeStatus === StatusOption.ARCHIVED &&
@@ -358,25 +358,17 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    order: 4;
-  }
-`;
-
 const StyledPageHeader = styled(PageHeader)`
-  display: grid;
-  grid-gap: ${space(2)};
-  grid-template-columns: 1fr;
-  justify-content: flex-start;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
+  min-height: 40px;
 `;
 
 const SortAndFilterWrapper = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr repeat(3, auto);
   }
 `;
