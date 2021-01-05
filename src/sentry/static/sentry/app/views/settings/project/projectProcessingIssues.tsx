@@ -9,14 +9,22 @@ import AlertLink from 'app/components/alertLink';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelAlert, PanelTable} from 'app/components/panels';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelTable,
+} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TimeSince from 'app/components/timeSince';
 import formGroups from 'app/data/forms/processingIssues';
 import {IconQuestion, IconSettings} from 'app/icons';
 import {t, tn} from 'app/locale';
+import {inputStyles} from 'app/styles/input';
 import {Organization, ProcessingIssue, ProcessingIssueItem} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -129,11 +137,16 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     );
   };
 
-  sendReprocessing = () => {
+  sendReprocessing = (e: React.MouseEvent<Element>) => {
+    e.preventDefault();
+
     this.setState({
+      loading: true,
       reprocessing: true,
     });
+
     addLoadingMessage(t('Started reprocessing\u2026'));
+
     const {orgId, projectId} = this.props.params;
     this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
@@ -263,13 +276,14 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
   renderProblem(item: ProcessingIssueItem) {
     const description = this.getProblemDescription(item);
     const helpLink = HELP_LINKS[item.type];
+
     return (
-      <div className="processing-issue">
-        <span className="description">{description}</span>{' '}
+      <div>
+        <span>{description}</span>{' '}
         {helpLink && (
-          <a href={helpLink} className="help-link">
+          <ExternalLink href={helpLink}>
             <IconQuestion size="xs" />
-          </a>
+          </ExternalLink>
         )}
       </div>
     );
@@ -303,17 +317,20 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
 
   renderResolveButton() {
     const issues = this.state.processingIssues;
+
     if (issues === null || this.state.reprocessing) {
       return null;
     }
     if (issues.resolveableIssues <= 0) {
       return null;
     }
+
     const fixButton = tn(
       'Click here to trigger processing for %s pending event',
       'Click here to trigger processing for %s pending events',
-      issues?.resolveableIssues
+      issues.resolveableIssues
     );
+
     return (
       <AlertLink priority="info" onClick={this.sendReprocessing}>
         {t('Pro Tip')}: {fixButton}
@@ -326,27 +343,27 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     const fixLink = processingIssues ? processingIssues.signedLink : false;
 
     let fixLinkBlock: React.ReactNode = null;
+
     if (fixLink) {
       fixLinkBlock = (
-        <div className="panel panel-info">
-          <div className="panel-heading">
-            <h3>{t('Having trouble uploading debug informations? We can help!')}</h3>
-          </div>
-          <div className="panel-body">
-            <div className="form-group" style={{marginBottom: 0}}>
-              <label>
-                {t(
-                  "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
-                )}
-              </label>
-              <AutoSelectText className="form-control disabled" style={{marginBottom: 6}}>
-                curl -sL "{fixLink}" | bash
-              </AutoSelectText>
-            </div>
-          </div>
-        </div>
+        <Panel>
+          <PanelHeader>
+            {t('Having trouble uploading debug informations? We can help!')}
+          </PanelHeader>
+          <PanelBody withPadding>
+            <label>
+              {t(
+                "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
+              )}
+            </label>
+            <AutoSelectTextInput readOnly>
+              curl -sL "{fixLink}" | bash
+            </AutoSelectTextInput>
+          </PanelBody>
+        </Panel>
       );
     }
+
     let processingRow: React.ReactNode = null;
     if (processingIssues && processingIssues.issuesProcessing > 0) {
       processingRow = (
@@ -361,7 +378,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     }
 
     return (
-      <div>
+      <React.Fragment>
         {fixLinkBlock}
         <h3>
           {t('Pending Issues')}
@@ -391,7 +408,7 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
             </React.Fragment>
           ))}
         </PanelTable>
-      </div>
+      </React.Fragment>
     );
   }
 
@@ -454,6 +471,11 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
 
 const StyledPanelAlert = styled(PanelAlert)`
   grid-column: 1/5;
+`;
+
+const AutoSelectTextInput = styled(AutoSelectText)<{readOnly: boolean}>`
+  font-family: ${p => p.theme.text.familyMono};
+  ${p => inputStyles(p)};
 `;
 
 export {ProjectProcessingIssues};
