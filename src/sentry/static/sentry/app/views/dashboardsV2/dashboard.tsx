@@ -128,6 +128,10 @@ const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const WidgetWrapper = styled('div')`
