@@ -18,9 +18,6 @@
         padding: 30px;
       }
     </style>
-    <script>
-          AJS.$("#simple-tooltip").tooltip({gravity: 'n'});
-    </script>
   </head>
   <body>
     <div class="container">
@@ -29,6 +26,8 @@
         <h2>Error</h2>
         <p>{{ error_message }}</p>
       </div>
+
+
       {% elif refresh_required %}
       <div class="aui-message aui-message-info">
         <h2>Error</h2>
@@ -36,6 +35,9 @@
           {% trans "This page has expired, please refresh to view the Sentry issue" %}
         </p>
       </div>
+
+
+
       {% elif issue_not_linked %}
       <div class="aui-message aui-message-info">
         <h2>Issue not linked</h2>
@@ -44,16 +46,20 @@
         </p>
       </div>
       {% else %}
+
+
       <div>
         <h2>{{ type }}</h2>
         <p>{{ title }}</p>
         <br />
-        <div>
-          <div>
+        <div class="aui-group">
+          <div class="aui-item">
             <span>{% trans "Events last 24 hours:" %}</span>
             <aui-badge>{{ stats_24hr }}</aui-badge>
           </div>
-          <div>
+        </div>
+        <div class="aui-group">
+          <div class="aui-item">
             <span>{% trans "Events last 14 days:" %}</span>
             <aui-badge>{{ stats_14d }}</aui-badge>
           </div>
@@ -113,6 +119,5 @@
         </div>
       </div>
       {% endif %}
-    {% endif %}
-
+      {% endif %}
     </div>
