@@ -46,6 +46,7 @@ const mobile = [
 const backend = [
   'dotnet',
   'dotnet-aspnetcore',
+  'dotnet-aspnet',
   'elixir',
   'go',
   'go-http',
@@ -103,6 +104,8 @@ const desktop = [
   'native-breakpad',
   'native-minidump',
   'minidump',
+  'dotnet-wpf',
+  'dotnet-winforms',
 ] as const;
 
 const categoryList = [
