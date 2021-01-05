@@ -70,7 +70,7 @@ function MergedList({
             key={id}
             orgId={orgId}
             projectId={project.slug}
-            disabled={fingerprints.length === 1}
+            disabled={fingerprintsWithLatestEvent.length === 1}
             event={latestEvent}
             fingerprint={id}
           />
