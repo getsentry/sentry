@@ -25,7 +25,7 @@
   <body>
     <div class="container">
       {% if error_message %}
-      <div>
+      <div class="aui-message aui-message-info">
         <h2>Error</h2>
         <p>{{ error_message }}</p>
       </div>
@@ -34,6 +34,13 @@
         <h2>Error</h2>
         <p>
           {% trans "This page has expired, please refresh to view the Sentry issue" %}
+        </p>
+      </div>
+      {% elif issue_not_linked %}
+      <div class="aui-message aui-message-info">
+        <h2>Issue not linked</h2>
+        <p>
+          {% trans "This Sentry issue is not linked to a Jira issue" %}
         </p>
       </div>
       {% else %}
@@ -52,7 +59,6 @@
           </div>
         </div>
       </div>
-      {% endif %}
 
       <!-- FIRST SEEN GROUP -->
       <div class="aui-group">
@@ -107,5 +113,6 @@
         </div>
       </div>
       {% endif %}
+    {% endif %}
 
     </div>

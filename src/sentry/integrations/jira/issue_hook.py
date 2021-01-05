@@ -50,7 +50,7 @@ class JiraIssueHookView(JiraBaseHook):
                 raise GroupLink.DoesNotExist()
             group = Group.objects.get(id=group_link.group_id)
         except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist):
-            return self.get_response({"error_message": "Issue not linked in Sentry"})
+            return self.get_response({"issue_not_linked": True})
 
         # TODO: find more effecient way of getting stats
         def get_serialized_and_stats(stats_period):
