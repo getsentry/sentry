@@ -80,10 +80,7 @@ class TeamSelect extends React.Component<Props, State> {
   };
 
   handleAddTeam = (option: Item) => {
-    if (!this.state.teams) {
-      return;
-    }
-    const team = this.state.teams.find(tm => tm.slug === option.value);
+    const team = this.state.teams?.find(tm => tm.slug === option.value);
     if (team) {
       this.props.onAddTeam(team);
     }
