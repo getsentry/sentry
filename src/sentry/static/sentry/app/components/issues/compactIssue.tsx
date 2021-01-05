@@ -6,6 +6,7 @@ import Reflux from 'reflux';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import DropdownLink from 'app/components/dropdownLink';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
@@ -18,18 +19,20 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
+import {Group, LightWeightOrganization} from 'app/types';
 import {getMessage} from 'app/utils/events';
+import {Aliases} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
-class CompactIssueHeader extends React.Component {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    projectId: PropTypes.string,
-    eventId: PropTypes.string,
-    data: PropTypes.object.isRequired,
-  };
+type HeaderProps = {
+  organization: LightWeightOrganization;
+  projectId: string;
+  eventId: string;
+  data: Group;
+};
 
+class CompactIssueHeader extends React.Component<HeaderProps> {
   render() {
     const {data, organization, projectId, eventId} = this.props;
 
@@ -39,10 +42,10 @@ class CompactIssueHeader extends React.Component {
       ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
       : `${basePath}${data.id}/`;
 
-    const commentColor =
+    const commentColor: keyof Aliases =
       data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned'
-        ? 'green300'
-        : 'currentColor';
+        ? 'success'
+        : 'textColor';
 
     return (
       <React.Fragment>
@@ -75,7 +78,21 @@ class CompactIssueHeader extends React.Component {
   }
 }
 
-const CompactIssue = createReactClass({
+type Props = {
+  api: Client;
+  id: string;
+  eventId: string;
+  organization: LightWeightOrganization;
+  statsPeriod?: string;
+  showActions?: boolean;
+  data?: Group;
+};
+
+type State = {
+  issue: Group;
+};
+
+const CompactIssue = createReactClass<Props, State>({
   displayName: 'CompactIssue',
 
   propTypes: {
@@ -88,7 +105,7 @@ const CompactIssue = createReactClass({
     organization: SentryTypes.Organization.isRequired,
   },
 
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange')],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
 
   getInitialState() {
     return {
@@ -96,7 +113,7 @@ const CompactIssue = createReactClass({
     };
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (nextProps.id !== this.props.id) {
       this.setState({
         issue: GroupStore.get(this.props.id),
@@ -104,7 +121,7 @@ const CompactIssue = createReactClass({
     }
   },
 
-  onGroupChange(itemIds) {
+  onGroupChange(itemIds: Set<string>) {
     if (!itemIds.has(this.props.id)) {
       return;
     }
@@ -116,7 +133,7 @@ const CompactIssue = createReactClass({
   },
 
   onSnooze(duration) {
-    const data = {
+    const data: Record<string, string> = {
       status: 'ignored',
     };
 
@@ -127,7 +144,7 @@ const CompactIssue = createReactClass({
     this.onUpdate(data);
   },
 
-  onUpdate(data) {
+  onUpdate(data: Record<string, string>) {
     const issue = this.state.issue;
     addLoadingMessage(t('Saving changes\u2026'));
 
@@ -148,7 +165,7 @@ const CompactIssue = createReactClass({
 
   render() {
     const issue = this.state.issue;
-    const {id, organization} = this.props;
+    const {organization} = this.props;
 
     let className = 'issue';
     if (issue.isBookmarked) {
@@ -163,7 +180,6 @@ const CompactIssue = createReactClass({
     if (issue.status === 'ignored') {
       className += ' isIgnored';
     }
-
     if (this.props.statsPeriod) {
       className += ' with-graph';
     }
@@ -183,11 +199,7 @@ const CompactIssue = createReactClass({
         />
         {this.props.statsPeriod && (
           <div className="event-graph">
-            <GroupChart
-              id={id}
-              statsPeriod={this.props.statsPeriod}
-              data={this.props.data}
-            />
+            <GroupChart statsPeriod={this.props.statsPeriod} data={this.props.data} />
           </div>
         )}
         {this.props.showActions && (
@@ -200,6 +212,7 @@ const CompactIssue = createReactClass({
             >
               <li>
                 <IconLink
+                  to=""
                   onClick={this.onUpdate.bind(this, {
                     status: issue.status !== 'resolved' ? 'resolved' : 'unresolved',
                   })}
@@ -209,6 +222,7 @@ const CompactIssue = createReactClass({
               </li>
               <li>
                 <IconLink
+                  to=""
                   onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}
                 >
                   <IconStar isSolid size="xs" />
