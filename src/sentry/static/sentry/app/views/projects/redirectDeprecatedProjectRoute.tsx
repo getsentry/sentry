@@ -1,27 +1,42 @@
 import React from 'react';
+import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isString from 'lodash/isString';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Project} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import Redirect from 'app/utils/redirect';
 import withApi from 'app/utils/withApi';
 
-class ProjectDetailsInner extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
+type DetailsProps = {
+  api: Client;
+  orgId: string;
+  projectSlug: string;
+  children: (props: ChildProps) => React.ReactNode;
+};
 
-    orgId: PropTypes.string.isRequired,
-    projectSlug: PropTypes.string.isRequired,
-  };
+type DetailsState = {
+  loading: boolean;
+  error: null | JQueryXHR;
+  project: null | Project;
+};
 
-  state = {
+type ChildProps = DetailsState & {
+  projectId: null | string;
+  organizationId: null | string;
+  hasProjectId: boolean;
+};
+
+class ProjectDetailsInner extends React.Component<DetailsProps, DetailsState> {
+  state: DetailsState = {
     loading: true,
     error: null,
     project: null,
@@ -58,27 +73,27 @@ class ProjectDetailsInner extends React.Component {
     }
   };
 
-  getProjectId = () => {
+  getProjectId() {
     if (this.state.project) {
       return this.state.project.id;
     }
     return null;
-  };
+  }
 
-  hasProjectId = () => {
-    const projectID = this.getProjectId(this.state.project);
+  hasProjectId() {
+    const projectID = this.getProjectId();
     return isString(projectID) && projectID.length > 0;
-  };
+  }
 
-  getOrganizationId = () => {
+  getOrganizationId() {
     if (this.state.project) {
       return this.state.project.organization.id;
     }
     return null;
-  };
+  }
 
   render() {
-    const childrenProps = {
+    const childrenProps: ChildProps = {
       ...this.state,
       projectId: this.getProjectId(),
       hasProjectId: this.hasProjectId(),
@@ -91,25 +106,20 @@ class ProjectDetailsInner extends React.Component {
 
 const ProjectDetails = withApi(ProjectDetailsInner);
 
-const redirectDeprecatedProjectRoute = generateRedirectRoute => {
-  class RedirectDeprecatedProjectRoute extends React.Component {
-    static propTypes = {
-      router: PropTypes.object.isRequired,
+type Props = WithRouterProps<{orgId: string; projectId: string}> & {
+  location: Location;
+};
 
-      location: PropTypes.shape({
-        pathname: PropTypes.string.isRequired,
-        search: PropTypes.string.isRequired,
-      }).isRequired,
+type RedirectOptions = {
+  orgId: string;
+  projectId: null | string;
+};
 
-      params: PropTypes.shape({
-        orgId: PropTypes.string.isRequired,
-        projectId: PropTypes.string.isRequired,
-      }).isRequired,
+type RedirectCallback = (options: RedirectOptions) => string;
 
-      routes: PropTypes.arrayOf(PropTypes.object).isRequired,
-    };
-
-    trackRedirect = (organizationId, nextRoute) => {
+const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) => {
+  class RedirectDeprecatedProjectRoute extends React.Component<Props> {
+    trackRedirect = (organizationId: string, nextRoute: string) => {
       const payload = {
         feature: 'global_views',
         url: getRouteStringFromRoutes(this.props.routes), // the URL being redirected from
@@ -133,7 +143,7 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
                 return <LoadingIndicator />;
               }
 
-              if (!hasProjectId) {
+              if (!hasProjectId || !organizationId) {
                 if (error && error.status === 404) {
                   return (
                     <Alert type="error">
@@ -142,7 +152,7 @@ const redirectDeprecatedProjectRoute = generateRedirectRoute => {
                   );
                 }
 
-                return <LoadingError onRetry={this.fetchData} />;
+                return <LoadingError />;
               }
 
               const routeProps = {
