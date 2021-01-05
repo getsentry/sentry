@@ -109,8 +109,7 @@ class GroupMergedView extends React.Component<Props, State> {
   }
 
   render() {
-    const {project, params} = this.props;
-    const {orgId} = params;
+    const {project} = this.props;
     const {loading: isLoading, error, mergedItems, mergedLinks} = this.state;
     const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
@@ -133,7 +132,6 @@ class GroupMergedView extends React.Component<Props, State> {
 
         {isLoadedSuccessfully && (
           <MergedList
-            orgId={orgId}
             project={project}
             fingerprints={mergedItems}
             pageLinks={mergedLinks}

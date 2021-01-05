@@ -8,6 +8,7 @@ import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
 import {Fingerprint} from 'app/stores/groupingStore';
 import {Organization, Project} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 import MergedItem from './mergedItem';
 import MergedToolbar from './mergedToolbar';
@@ -21,7 +22,7 @@ type Props = {
    * From GroupingActions.toggleCollapseFingerprints
    */
   onToggleCollapse: () => void;
-  orgId: Organization['slug'];
+  organization: Organization;
   project: Project;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
@@ -32,7 +33,7 @@ function MergedList({
   pageLinks,
   onToggleCollapse,
   onUnmerge,
-  orgId,
+  organization,
   project,
 }: Props) {
   const fingerprintsWithLatestEvent = fingerprints.filter(
@@ -60,7 +61,7 @@ function MergedList({
       <MergedToolbar
         onToggleCollapse={onToggleCollapse}
         onUnmerge={onUnmerge}
-        orgId={orgId}
+        orgId={organization.slug}
         project={project}
       />
 
@@ -68,8 +69,7 @@ function MergedList({
         {fingerprintsWithLatestEvent.map(({id, latestEvent}) => (
           <MergedItem
             key={id}
-            orgId={orgId}
-            projectId={project.slug}
+            organization={organization}
             disabled={fingerprintsWithLatestEvent.length === 1}
             event={latestEvent}
             fingerprint={id}
@@ -81,7 +81,7 @@ function MergedList({
   );
 }
 
-export default MergedList;
+export default withOrganization(MergedList);
 
 const MergedItems = styled('div')`
   border: 1px solid ${p => p.theme.border};
