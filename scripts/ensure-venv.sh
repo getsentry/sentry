@@ -12,7 +12,6 @@ bold="$(tput bold)"
 reset="$(tput sgr0)"
 
 venv_name=".venv"
-python_version="3.6"
 
 die () {
     cat <<EOF
@@ -48,8 +47,9 @@ EOF
         fi
     fi
 else
+    # XXX: This can lead to using the wrong Python 3 version when setting up the venv
     if [[ ! -f "${venv_name}/bin/activate" ]]; then
-        die "You don't seem to have a virtualenv. Please create one by running: python${python_version} -m venv ${venv_name}"
+        die "You don't seem to have a virtualenv. Please create one by running: python3 -m venv ${venv_name}"
     fi
     die "You have a virtualenv, but it doesn't seem to be activated. Please run: source ${venv_name}/bin/activate"
 fi
