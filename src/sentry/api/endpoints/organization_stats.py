@@ -1,8 +1,6 @@
 from __future__ import absolute_import
-import six
 
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
 from sentry import tsdb
 from sentry.api.base import EnvironmentMixin, StatsMixin
@@ -91,12 +89,9 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
 
         if stat_model is None:
             raise ValueError("Invalid group: %s, stat: %s" % (group, stat))
-
-        try:
-            stats_args = self._parse_args(request, **query_kwargs)
-        except ValueError as err:
-            raise ParseError(detail="Invalid value %s" % six.text_type(err))
-        data = tsdb.get_range(model=stat_model, keys=keys, **stats_args)
+        data = tsdb.get_range(
+            model=stat_model, keys=keys, **self._parse_args(request, **query_kwargs)
+        )
 
         if group == "organization":
             data = data[organization.id]

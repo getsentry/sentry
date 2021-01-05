@@ -378,20 +378,27 @@ class StatsMixin(object):
         resolution = request.GET.get("resolution")
         if resolution:
             resolution = self._parse_resolution(resolution)
-            assert resolution in tsdb.get_rollups()
+            if resolution not in tsdb.get_rollups():
+                raise ParseError(detail="Invalid resolution")
 
-        end = request.GET.get("until")
-        if end:
-            end = to_datetime(float(end))
-        else:
-            end = datetime.utcnow().replace(tzinfo=utc)
+        try:
+            end = request.GET.get("until")
+            if end:
+                end = to_datetime(float(end))
+            else:
+                end = datetime.utcnow().replace(tzinfo=utc)
+        except ValueError:
+            raise ParseError(detail="until must be a numeric timestamp.")
 
-        start = request.GET.get("since")
-        if start:
-            start = to_datetime(float(start))
-            assert start <= end, "start must be before or equal to end"
-        else:
-            start = end - timedelta(days=1, seconds=-1)
+        try:
+            start = request.GET.get("since")
+            if start:
+                start = to_datetime(float(start))
+                assert start <= end, "start must be before or equal to end"
+            else:
+                start = end - timedelta(days=1, seconds=-1)
+        except ValueError:
+            raise ParseError(detail="since must be a numeric timestamp")
 
         if not resolution:
             resolution = tsdb.get_optimal_rollup(start, end)
