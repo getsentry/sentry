@@ -18,7 +18,9 @@ def backfill_existing_orgs(apps, schema_editor):
     Organization = apps.get_model("sentry", "Organization")
     OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
-    for org in RangeQuerySetWrapperWithProgressBar(Organization.objects.filter(status=0)):
+    for org in RangeQuerySetWrapperWithProgressBar(Organization.objects.all()):
+        if org.status != 0:
+            continue
         try:
             OrganizationOption.objects.create(organization=org, key=ORGANIZATION_OPTION_KEY, value=False)
         except Exception:
