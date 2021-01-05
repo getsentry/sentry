@@ -522,7 +522,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
-    "sentry.tasks.auto_review_inbox",
+    "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
@@ -680,8 +680,8 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
-    "schedule-auto-review-inbox": {
-        "task": "sentry.tasks.schedule_auto_review_inbox",
+    "auto-remove-inbox": {
+        "task": "sentry.tasks.auto_remove_inbox",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },

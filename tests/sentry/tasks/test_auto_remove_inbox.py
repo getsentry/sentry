@@ -5,13 +5,13 @@ from django.utils import timezone
 
 from sentry.models import GroupInbox, GroupStatus
 from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
-from sentry.tasks.auto_review_inbox import schedule_auto_review_inbox
+from sentry.tasks.auto_remove_inbox import auto_remove_inbox
 from sentry.testutils import TestCase
 
 
 class ClearExpiredSnoozesTest(TestCase):
     def test_task_persistent_name(self):
-        assert schedule_auto_review_inbox.name == "sentry.tasks.schedule_auto_review_inbox"
+        assert auto_remove_inbox.name == "sentry.tasks.auto_remove_inbox"
 
     def test_old_group_inbox_is_removed(self):
         project = self.create_project()
@@ -23,8 +23,7 @@ class ClearExpiredSnoozesTest(TestCase):
         group_inbox.date_added = timezone.now() - timedelta(days=8)
         group_inbox.save()
 
-        with self.tasks():
-            schedule_auto_review_inbox()
+        auto_remove_inbox()
 
         assert GroupInbox.objects.filter(group=group1).exists()
         assert GroupInbox.objects.filter(group=group2).exists() is False
