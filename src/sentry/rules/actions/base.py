@@ -271,6 +271,5 @@ class TicketEventAction(IntegrationEventAction):
             data=self.data,
             generate_footer=self.generate_footer,
             integration_id=integration_id,
-            issue_key_path=self.issue_key_path,
             provider=self.provider,
         )
