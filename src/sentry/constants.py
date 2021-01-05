@@ -546,7 +546,6 @@ APDEX_THRESHOLD_DEFAULT = 300
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
-ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory

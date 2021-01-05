@@ -70,14 +70,6 @@ const formGroups: JsonFormObject[] = [
         ),
       },
       {
-        name: 'alertsMemberWrite',
-        type: 'boolean',
-        label: t('Grant Members Alerts Write'),
-        help: t(
-          'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
-        ),
-      },
-      {
         name: 'attachmentsRole',
         type: 'array',
         choices: ({initialData = {}}) =>

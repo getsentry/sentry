@@ -25,7 +25,6 @@ from sentry.constants import (
     JOIN_REQUESTS_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     APDEX_THRESHOLD_DEFAULT,
-    ALERTS_MEMBER_WRITE_DEFAULT,
 )
 
 from sentry.lang.native.utils import convert_crashreport_count
@@ -274,9 +273,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "eventsMemberAdmin": bool(
                     obj.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT)
-                ),
-                "alertsMemberWrite": bool(
-                    obj.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT)
                 ),
                 "scrubIPAddresses": bool(
                     obj.get_option(

@@ -95,12 +95,6 @@ ORG_OPTIONS = (
         org_serializers.EVENTS_MEMBER_ADMIN_DEFAULT,
     ),
     (
-        "alertsMemberWrite",
-        "sentry:alerts_member_write",
-        bool,
-        org_serializers.ALERTS_MEMBER_WRITE_DEFAULT,
-    ),
-    (
         "scrubIPAddresses",
         "sentry:require_scrub_ip_address",
         bool,
@@ -145,7 +139,6 @@ class OrganizationSerializer(serializers.Serializer):
     attachmentsRole = serializers.CharField(required=True)
     debugFilesRole = serializers.CharField(required=True)
     eventsMemberAdmin = serializers.BooleanField(required=False)
-    alertsMemberWrite = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
