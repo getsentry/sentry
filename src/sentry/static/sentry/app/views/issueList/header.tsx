@@ -13,14 +13,14 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
-import {Query} from './utils';
+import {Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   query: string;
-  queryCount: number;
-  queryMaxCount: number;
+  queryCounts: QueryCounts;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
   router: InjectedRouter;
@@ -33,15 +33,14 @@ type Props = {
 
 const queries = [
   [Query.NEEDS_REVIEW, t('Needs Review')],
-  [Query.UNRESOLVED, t('Unresolved')],
+  [Query.UNRESOLVED, t('All Unresolved')],
   [Query.IGNORED, t('Ignored')],
   [Query.REPROCESSING, t('Reprocessing')],
 ];
 
 function IssueListHeader({
   query,
-  queryCount,
-  queryMaxCount,
+  queryCounts,
   orgSlug,
   projectIds,
   realtimeActive,
@@ -122,8 +121,15 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}
-                {query === tabQuery && (
-                  <StyledQueryCount count={queryCount} max={queryMaxCount} />
+                {queryCounts[tabQuery] && (
+                  <StyledQueryCount
+                    count={queryCounts[tabQuery].count}
+                    max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                    backgroundColor={
+                      (tabQuery === Query.NEEDS_REVIEW && theme.yellow300) ||
+                      theme.gray100
+                    }
+                  />
                 )}
               </a>
             </li>

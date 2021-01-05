@@ -10,8 +10,11 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Badge from 'app/components/badge';
 import Count from 'app/components/count';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import ErrorLevel from 'app/components/events/errorLevel';
 import EventAnnotation from 'app/components/events/eventAnnotation';
 import EventMessage from 'app/components/events/eventMessage';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
+import UnhandledInboxTag from 'app/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
@@ -84,7 +87,7 @@ class GroupHeader extends React.Component<Props, State> {
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
-    const hasReprocessingV2Feature = projectFeatures.has('reprocessing-v2');
+    const hasReprocessingV2Feature = organizationFeatures.has('reprocessing-v2');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
@@ -113,6 +116,7 @@ class GroupHeader extends React.Component<Props, State> {
     const {memberList} = this.state;
     const orgId = organization.slug;
     const message = getMessage(group);
+    const hasInbox = organization.features?.includes('inbox');
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
@@ -124,14 +128,27 @@ class GroupHeader extends React.Component<Props, State> {
       <div className={className}>
         <div className="row">
           <div className="col-sm-7">
-            <h3>
-              <EventOrGroupTitle hasGuideAnchor data={group} />
-            </h3>
+            <TitleWrapper>
+              <h3>
+                <EventOrGroupTitle hasGuideAnchor data={group} />
+              </h3>
+              {hasInbox && group.inbox && (
+                <InboxReasonWrapper>
+                  <InboxReason inbox={group.inbox} fontSize="md" />
+                </InboxReasonWrapper>
+              )}
+            </TitleWrapper>
             <StyledTagAndMessageWrapper>
-              {group.isUnhandled && <UnhandledTag />}
+              {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
+              {group.isUnhandled &&
+                (hasInbox ? (
+                  <UnhandledInboxTag organization={organization} />
+                ) : (
+                  <UnhandledTag />
+                ))}
               <EventMessage
                 message={message}
-                level={group.level}
+                level={hasInbox ? undefined : group.level}
                 annotations={
                   <React.Fragment>
                     {group.logger && (
@@ -300,7 +317,22 @@ export {GroupHeader, TAB};
 
 export default withApi(GroupHeader);
 
+const TitleWrapper = styled('div')`
+  display: flex;
+  line-height: 24px;
+`;
+
+const InboxReasonWrapper = styled('div')`
+  margin-left: ${space(1)};
+`;
+
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  justify-content: flex-start;
+  line-height: 1.2;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-bottom: ${space(2)};
   }

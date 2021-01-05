@@ -843,8 +843,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable Performance in the Release View
-    "organizations:release-performance-views": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
@@ -1285,6 +1283,8 @@ SENTRY_SCOPES = set(
         "event:read",
         "event:write",
         "event:admin",
+        "alerts:write",
+        "alerts:read",
     ]
 )
 
@@ -1316,6 +1316,7 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
+    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1339,6 +1340,7 @@ SENTRY_ROLES = (
                 "org:read",
                 "member:read",
                 "team:read",
+                "alerts:read",
             ]
         ),
     },
@@ -1364,6 +1366,8 @@ SENTRY_ROLES = (
                 "team:write",
                 "team:admin",
                 "org:integrations",
+                "alerts:write",
+                "alerts:read",
             ]
         ),
     },
@@ -1390,6 +1394,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "org:write",
                 "org:integrations",
+                "alerts:write",
+                "alerts:read",
             ]
         ),
     },
@@ -1418,6 +1424,8 @@ SENTRY_ROLES = (
                 "event:read",
                 "event:write",
                 "event:admin",
+                "alerts:write",
+                "alerts:read",
             ]
         ),
     },

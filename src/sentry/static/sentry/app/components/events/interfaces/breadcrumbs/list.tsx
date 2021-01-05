@@ -10,10 +10,11 @@ import {
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {BreadcrumbsWithDetails} from 'app/types/breadcrumbs';
+
 import ListBody from './listBody';
 import ListHeader from './listHeader';
 import {aroundContentStyle} from './styles';
-import {BreadcrumbsWithDetails} from './types';
 
 const LIST_MAX_HEIGHT = 400;
 

@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import {SentryTransactionEvent} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -41,7 +41,7 @@ type PropType = {
   virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
-  event: SentryTransactionEvent;
+  event: EventTransaction;
 };
 
 class TraceViewHeader extends React.Component<PropType> {

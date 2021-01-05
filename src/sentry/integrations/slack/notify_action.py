@@ -83,14 +83,14 @@ class SlackNotifyServiceForm(forms.Form):
                 channel_prefix, channel_id, timed_out = self.channel_transformer(
                     integration, channel
                 )
-            except DuplicateDisplayNameError as e:
+            except DuplicateDisplayNameError:
                 domain = integration.metadata["domain_name"]
 
-                params = {"channel": e.message, "domain": domain}
+                params = {"channel": channel, "domain": domain}
 
                 raise forms.ValidationError(
                     _(
-                        'Multiple users were found with display name "%(channel)s". Please use your username, found at %(domain)s/account/settings.',
+                        'Multiple users were found with display name "%(channel)s". Please use your username, found at %(domain)s/account/settings#username.',
                     ),
                     code="invalid",
                     params=params,

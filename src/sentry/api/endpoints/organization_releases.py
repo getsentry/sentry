@@ -11,7 +11,7 @@ from rest_framework.exceptions import ParseError
 from sentry import analytics
 
 from sentry.api.bases import NoProjects
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import InvalidRepository, ConflictError
 from sentry.api.paginator import OffsetPaginator, MergingOffsetPaginator
@@ -137,7 +137,9 @@ def debounce_update_release_health_data(organization, project_ids):
     cache.set_many(dict(izip(should_update.values(), [True] * len(should_update))), 60)
 
 
-class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+class OrganizationReleasesEndpoint(
+    OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
+):
     @transaction_start("OrganizationReleasesEndpoint.get")
     def get(self, request, organization):
         """
@@ -371,6 +373,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                 if commit_list:
                     try:
                         release.set_commits(commit_list)
+                        self.track_set_commits_local(
+                            request,
+                            organization_id=organization.id,
+                            project_ids=[project.id for project in projects],
+                        )
                     except ReleaseCommitError:
                         raise ConflictError("Release commits are currently being processed")
 
@@ -416,6 +423,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
                 )
+
                 scope.set_tag("success_status", status)
                 return Response(serialize(release, request.user), status=status)
             scope.set_tag("failure_reason", "serializer_error")

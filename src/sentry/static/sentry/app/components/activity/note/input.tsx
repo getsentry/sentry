@@ -1,6 +1,7 @@
 import React from 'react';
 import {Mention, MentionsInput} from 'react-mentions';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 
 import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
@@ -11,6 +12,7 @@ import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 import {NoteType} from 'app/types/alerts';
 import marked from 'app/utils/marked';
+import {Theme} from 'app/utils/theme';
 
 import Mentionables from './mentionables';
 import mentionStyle from './mentionStyle';
@@ -40,6 +42,7 @@ type Props = {
   onUpdate?: (data: NoteType) => void;
   onCreate?: (data: NoteType) => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
+  theme: Theme;
 } & typeof defaultProps;
 
 type State = {
@@ -49,7 +52,7 @@ type State = {
   teamMentions: Mentioned[];
 };
 
-class NoteInput extends React.Component<Props, State> {
+class NoteInputComponent extends React.Component<Props, State> {
   state: State = {
     preview: false,
     value: this.props.text || '',
@@ -161,6 +164,7 @@ class NoteInput extends React.Component<Props, State> {
       errorJSON,
       memberList,
       teams,
+      theme,
     } = this.props;
 
     const existingItem = !!modelId;
@@ -200,12 +204,13 @@ class NoteInput extends React.Component<Props, State> {
         <NoteInputBody>
           {preview ? (
             <NotePreview
+              theme={theme}
               minHeight={minHeight}
               dangerouslySetInnerHTML={{__html: marked(this.cleanMarkdown(value))}}
             />
           ) : (
             <MentionsInput
-              style={mentionStyle({minHeight})}
+              style={mentionStyle({theme, minHeight})}
               placeholder={placeholder}
               onChange={this.handleChange}
               onKeyDown={this.handleKeyDown}
@@ -250,9 +255,11 @@ class NoteInput extends React.Component<Props, State> {
   }
 }
 
+const NoteInput = withTheme(NoteInputComponent);
+
 type NoteInputContainerProps = {
   projectSlugs: string[];
-} & Omit<Props, 'memberList' | 'teams'>;
+} & Omit<Props, 'memberList' | 'teams' | 'theme'>;
 
 type MentionablesChildFunc = Parameters<
   React.ComponentProps<typeof Mentionables>['children']
@@ -282,6 +289,7 @@ export default NoteInputContainer;
 
 type NotePreviewProps = {
   minHeight: Props['minHeight'];
+  theme: Props['theme'];
 };
 // This styles both the note preview and the note editor input
 const getNotePreviewCss = (p: NotePreviewProps) => {

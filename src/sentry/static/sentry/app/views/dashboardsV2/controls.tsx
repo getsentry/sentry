@@ -7,6 +7,7 @@ import ButtonBar from 'app/components/buttonBar';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
 import {DashboardDetails, DashboardListItem, DashboardState} from './types';
@@ -118,7 +119,7 @@ class Controls extends React.Component<Props> {
     }
 
     return (
-      <ButtonBar gap={1} key="controls">
+      <StyledButtonBar gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -157,7 +158,7 @@ class Controls extends React.Component<Props> {
         >
           {t('Create Dashboard')}
         </Button>
-      </ButtonBar>
+      </StyledButtonBar>
     );
   }
 }
@@ -165,6 +166,14 @@ class Controls extends React.Component<Props> {
 const DashboardSelect = styled('div')`
   min-width: 200px;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: row;
+    grid-row-gap: ${space(1)};
+    width: 100%;
+  }
 `;
 
 export default Controls;

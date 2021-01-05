@@ -18,12 +18,12 @@ import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import {
   Environment,
-  Event,
   Group,
   GroupActivityReprocess,
   Organization,
   Project,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 

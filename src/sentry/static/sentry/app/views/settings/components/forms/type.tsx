@@ -106,7 +106,7 @@ type InputType = {type: 'string' | 'secret'} & {
 
 type SelectControlType = {type: 'choice' | 'select'} & {
   multiple?: boolean;
-
+  allowClear?: boolean;
   options?: Array<{label: string; value: any}>; //for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;

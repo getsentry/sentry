@@ -62,7 +62,6 @@ const getInputButtonStyles = (p: {
   collapseIntoEllipsisMenu?: number;
 }) => `
   color: ${p.isActive ? theme.blue300 : theme.gray300};
-  margin-left: ${space(0.5)};
   width: 18px;
 
   &,
@@ -603,7 +602,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         return [];
       }
       if (tag.key === 'release' && !values.includes('latest')) {
-        values.push('latest');
+        values.unshift('latest');
       }
 
       const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
@@ -1106,7 +1105,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         ) : (
           input
         )}
-        <StyledButtonBar>
+        <StyledButtonBar gap={0.5}>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -1157,7 +1156,7 @@ class SmartSearchBar extends React.Component<Props, State> {
             </ClassNames>
           )}
           {hasSearchBuilder && (
-            <SearchBuilderButton
+            <InputButton
               title={t('Toggle search builder')}
               borderless
               size="zero"
@@ -1307,11 +1306,6 @@ const StyledInput = styled('input')`
 
 const InputButton = styled(Button)`
   ${getInputButtonStyles}
-`;
-
-const SearchBuilderButton = styled(InputButton)`
-  margin-left: ${space(0.25)};
-  margin-right: ${space(0.5)};
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`

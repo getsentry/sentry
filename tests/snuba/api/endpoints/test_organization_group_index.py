@@ -686,7 +686,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(
-                sort_by="date", limit=10, query="is:needs_review is:unresolved", expand=["inbox"]
+                sort_by="date", limit=10, query="is:unresolved is:needs_review", expand=["inbox"]
             )
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -698,25 +698,32 @@ class GroupListTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:workflow-owners"):
             event = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-2"],
+                    "timestamp": iso_format(before_now(seconds=180)),
+                    "fingerprint": ["group-1"],
                     "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
                 },
                 project_id=self.project.id,
             )
             event1 = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-3"],
+                    "timestamp": iso_format(before_now(seconds=185)),
+                    "fingerprint": ["group-2"],
                     "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
                 },
                 project_id=self.project.id,
             )
             event2 = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(seconds=200)),
-                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(before_now(seconds=190)),
+                    "fingerprint": ["group-3"],
                     "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+                },
+                project_id=self.project.id,
+            )
+            assigned_event = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(seconds=195)),
+                    "fingerprint": ["group-4"],
                 },
                 project_id=self.project.id,
             )
@@ -740,12 +747,23 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
 
+            GroupAssignee.objects.create(
+                group=assigned_event.group, project=assigned_event.group.project, user=self.user
+            )
+
+            response = self.get_response(sort_by="date", limit=10, query="owner:me")
+            assert response.status_code == 200
+            assert len(response.data) == 2
+            assert int(response.data[0]["id"]) == event.group.id
+            assert int(response.data[1]["id"]) == assigned_event.group.id
+
             response = self.get_response(
                 sort_by="date", limit=10, query="owner:{}".format(self.user.email)
             )
             assert response.status_code == 200
-            assert len(response.data) == 1
+            assert len(response.data) == 2
             assert int(response.data[0]["id"]) == event.group.id
+            assert int(response.data[1]["id"]) == assigned_event.group.id
 
             response = self.get_response(
                 sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
@@ -769,10 +787,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
             assert response.status_code == 200
-            assert len(response.data) == 3
-            assert int(response.data[0]["id"]) == event2.group.id
+            assert len(response.data) == 4
+            print([d["id"] for d in response.data])
+            assert int(response.data[0]["id"]) == event.group.id
             assert int(response.data[1]["id"]) == event1.group.id
-            assert int(response.data[2]["id"]) == event.group.id
+            assert int(response.data[2]["id"]) == event2.group.id
+            assert int(response.data[3]["id"]) == assigned_event.group.id
 
             not_me = self.create_user(email="notme@sentry.io")
             GroupOwner.objects.create(
@@ -785,9 +805,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
             )
             response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
             assert response.status_code == 200
-            assert len(response.data) == 2
-            assert int(response.data[0]["id"]) == event1.group.id
-            assert int(response.data[1]["id"]) == event.group.id
+            assert len(response.data) == 3
+            assert int(response.data[0]["id"]) == event.group.id
+            assert int(response.data[1]["id"]) == event1.group.id
+            assert int(response.data[2]["id"]) == assigned_event.group.id
 
             GroupOwner.objects.create(
                 group=event2.group,
@@ -800,10 +821,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
             # Should now include event2 as it has shared ownership.
             response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
             assert response.status_code == 200
-            assert len(response.data) == 3
-            assert int(response.data[0]["id"]) == event2.group.id
+            assert len(response.data) == 4
+            assert int(response.data[0]["id"]) == event.group.id
             assert int(response.data[1]["id"]) == event1.group.id
-            assert int(response.data[2]["id"]) == event.group.id
+            assert int(response.data[2]["id"]) == event2.group.id
+            assert int(response.data[3]["id"]) == assigned_event.group.id
 
     def test_aggregate_stats_regression_test(self):
         self.store_event(

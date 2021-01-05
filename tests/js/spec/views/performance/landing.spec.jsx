@@ -233,7 +233,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('StyledPageHeader ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('PageHeader ButtonBar Button')).toHaveLength(2);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);
@@ -450,8 +450,36 @@ describe('Performance > Landing', function () {
     );
   });
 
-  it('Vitals cards are shown with overview feature', async function () {
+  it('Vitals cards are not shown with overview feature without frontend platform', async function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const data = initializeData(
+      projects,
+      {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},
+      [...FEATURES, 'performance-vitals-overview']
+    );
+
+    const wrapper = mountWithTheme(
+      <PerformanceLanding
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const vitalsContainer = wrapper.find('VitalsContainer');
+    expect(vitalsContainer).toHaveLength(0);
+  });
+
+  it('Vitals cards are shown with overview feature with frontend platform project', async function () {
+    const projects = [
+      TestStubs.Project({
+        id: '1',
+        firstTransactionEvent: true,
+        platform: 'javascript-react',
+      }),
+    ];
     const data = initializeData(
       projects,
       {project: ['1'], query: 'sentry:yes', view: FilterViews.ALL_TRANSACTIONS},

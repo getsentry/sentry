@@ -44,13 +44,13 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
   onManualSetup(provider: string) {
     trackIntegrationEvent(
       {
-        eventKey: 'integrations.stacktrace_manual_setup',
-        eventName: 'Integrations: Stacktrace Manual Setup',
+        eventKey: 'integrations.stacktrace_manual_option_clicked',
+        eventName: 'Integrations: Stacktrace Manual Option Clicked',
         view: 'stacktrace_issue_details',
+        setup_type: 'manual',
         provider,
       },
-      this.props.organization,
-      {startSession: true}
+      this.props.organization
     );
   }
 
@@ -59,12 +59,12 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     const {organization, filename, project} = this.props;
     trackIntegrationEvent(
       {
-        eventKey: 'integrations.stacktrace_automatic_setup',
-        eventName: 'Integrations: Stacktrace Automatic Setup',
+        eventKey: 'integrations.stacktrace_submit_config',
+        eventName: 'Integrations: Stacktrace Submit Config',
+        setup_type: 'automatic',
         view: 'stacktrace_issue_details',
       },
-      this.props.organization,
-      {startSession: true}
+      this.props.organization
     );
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
@@ -84,6 +84,16 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.stacktrace_complete_setup',
+          eventName: 'Integrations: Stacktrace Complete Setup',
+          setup_type: 'automatic',
+          provider: configData.config?.provider.key,
+          view: 'stacktrace_issue_details',
+        },
+        this.props.organization
+      );
       this.props.closeModal();
       this.props.onSubmit();
     } catch (err) {
@@ -156,7 +166,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
                   key={integration.id}
                   type="button"
                   onClick={() => this.onManualSetup(integration.provider.key)}
-                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings`}
+                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=stacktrace-issue-details`}
                 >
                   {getIntegrationIcon(integration.provider.key)}
                   <IntegrationName>{integration.name}</IntegrationName>
