@@ -69,6 +69,11 @@ class DashboardTitle extends React.Component<Props> {
 
 const Container = styled('div')`
   margin-right: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    margin-right: 0;
+    margin-bottom: ${space(2)};
+  }
 `;
 
 const StyledInlineInput = styled(
