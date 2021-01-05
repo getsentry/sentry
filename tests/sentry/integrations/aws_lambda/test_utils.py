@@ -7,6 +7,7 @@ from sentry.integrations.aws_lambda.utils import (
     get_latest_layer_for_function,
     get_latest_layer_version,
     get_index_of_sentry_layer,
+    get_function_layer_arns,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
@@ -62,6 +63,20 @@ class GetIndexOfSentryLayerTest(TestCase):
             get_index_of_sentry_layer(layers, "arn:aws:lambda:us-east-2:1234:layer:my-layer:3")
             == -1
         )
+
+
+class GetFunctionLayerArns(TestCase):
+    def test_basic(self):
+        function = {
+            "Layers": [
+                {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+                "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
+            ]
+        }
+        assert get_function_layer_arns(function) == [
+            "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
+            "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
+        ]
 
 
 class GetSupportedFunctionsTest(TestCase):
