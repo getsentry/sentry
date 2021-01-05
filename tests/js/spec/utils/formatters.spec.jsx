@@ -19,6 +19,9 @@ describe('getDuration()', function () {
     expect(getDuration(86400)).toBe('24 hours');
     expect(getDuration(86400 * 2)).toBe('2 days');
     expect(getDuration(604800)).toBe('1 week');
+    expect(getDuration(604800 * 4)).toBe('4 weeks');
+    expect(getDuration(2629800)).toBe('1 month');
+    expect(getDuration(604800 * 12)).toBe('3 months');
   });
 
   it('should format numbers and abbreviate units', function () {
@@ -32,6 +35,9 @@ describe('getDuration()', function () {
     expect(getDuration(86400, 0, true)).toBe('24hr');
     expect(getDuration(86400 * 2, 0, true)).toBe('2d');
     expect(getDuration(604800, 0, true)).toBe('1wk');
+    expect(getDuration(604800 * 2, 0, true)).toBe('2wk');
+    expect(getDuration(2629800, 0, true)).toBe('1mo');
+    expect(getDuration(604800 * 12, 0, true)).toBe('3mos');
   });
 });
 

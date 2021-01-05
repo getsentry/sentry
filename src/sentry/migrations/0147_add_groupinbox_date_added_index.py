@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0145_rename_alert_rule_feature"),
+        ("sentry", "0146_backfill_members_alert_write"),
     ]
 
     operations = [
