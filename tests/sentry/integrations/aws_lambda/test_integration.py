@@ -78,8 +78,16 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         mock_client.describe_account = MagicMock(return_value={"Account": {"Name": "my_name"}})
 
         mock_get_supported_functions.return_value = [
-            {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
-            {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
+            {
+                "FunctionName": "lambdaA",
+                "Runtime": "nodejs12.x",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaA",
+            },
+            {
+                "FunctionName": "lambdaB",
+                "Runtime": "nodejs10.x",
+                "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaB",
+            },
         ]
 
         aws_external_id = "12-323"
