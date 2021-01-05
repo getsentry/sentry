@@ -680,6 +680,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
+    "schedule-auto-review-inbox": {
+        "task": "sentry.tasks.schedule_auto_review_inbox",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
     "schedule-deletions": {
         "task": "sentry.tasks.deletion.run_scheduled_deletions",
         "schedule": timedelta(minutes=15),
@@ -711,11 +716,6 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
-    },
-    "auto-review-inbox": {
-        "task": "sentry.tasks.auto_review_inbox",
-        "schedule": timedelta(minutes=15),
-        "options": {"expires": 3600},
     },
 }
 
