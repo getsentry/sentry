@@ -11,7 +11,6 @@ import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
-import {callIfFunction} from 'app/utils/callIfFunction';
 
 type Props = {
   orgId: Organization['slug'];
@@ -48,7 +47,7 @@ class MergedToolbar extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
