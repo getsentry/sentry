@@ -246,6 +246,7 @@ const StyledSelect = styled(SelectPicker)`
   }
 
   .Select-menu-outer {
+    border-color: ${p => p.theme.border};
     z-index: ${p => p.theme.zIndex.dropdown};
   }
 
