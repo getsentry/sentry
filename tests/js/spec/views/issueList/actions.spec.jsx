@@ -31,7 +31,6 @@ describe('IssueListActions', function () {
               allResultsVisible={false}
               query=""
               queryCount={1500}
-              orgSlug="1337"
               organization={org}
               projectId="project-slug"
               selection={{
@@ -63,10 +62,10 @@ describe('IssueListActions', function () {
 
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
         await tick();
         wrapper.update();
@@ -100,7 +99,6 @@ describe('IssueListActions', function () {
               allResultsVisible={false}
               query=""
               queryCount={600}
-              orgSlug="1337"
               organization={TestStubs.routerContext().context.organization}
               projectId="1"
               selection={{
@@ -132,10 +130,10 @@ describe('IssueListActions', function () {
 
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
         await tick();
         wrapper.update();
@@ -169,7 +167,6 @@ describe('IssueListActions', function () {
               allResultsVisible
               query=""
               queryCount={15}
-              orgSlug="1337"
               organization={TestStubs.routerContext().context.organization}
               projectId="1"
               selection={{
@@ -190,7 +187,7 @@ describe('IssueListActions', function () {
 
       it('resolves selected items', function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         jest
@@ -215,7 +212,7 @@ describe('IssueListActions', function () {
 
       it('ignores selected items', async function () {
         const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/1337/issues/',
+          url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
         jest
@@ -269,7 +266,6 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          orgSlug="1337"
           organization={TestStubs.routerContext().context.organization}
           projectId="1"
           selection={{
@@ -330,7 +326,6 @@ describe('IssueListActions', function () {
         <IssueListActions
           api={new MockApiClient()}
           query=""
-          orgSlug="1337"
           organization={TestStubs.routerContext().context.organization}
           groupIds={['1', '2', '3']}
           selection={{
@@ -354,14 +349,18 @@ describe('IssueListActions', function () {
     });
 
     it('should disable merge button', function () {
-      const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
-      expect(merge.props().disabled).toBe(true);
+      expect(
+        wrapper.find('button[aria-label="Merge Selected Issues"]').props()[
+          'aria-disabled'
+        ]
+      ).toBe(true);
     });
   });
 
   describe('with inbox feature', function () {
-    beforeEach(() => {
-      SelectedGroupStore.records = {};
+    beforeEach(async () => {
+      SelectedGroupStore.init();
+      await tick();
       const {organization} = TestStubs.routerContext().context;
       wrapper = mountWithTheme(
         <React.Fragment>
@@ -369,7 +368,6 @@ describe('IssueListActions', function () {
           <IssueListActions
             api={new MockApiClient()}
             query=""
-            orgSlug="1337"
             organization={organization}
             groupIds={['1', '2', '3']}
             selection={{
@@ -392,26 +390,28 @@ describe('IssueListActions', function () {
     });
 
     it('hides actions when no issues are selected', async function () {
-      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(false);
+      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(false);
     });
 
     it('displays actions on issue selection', async function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
-      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(true);
+      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(true);
     });
 
     it('acknowledges group', async function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
+
+      await tick();
+      wrapper.update();
+
       const apiMock = MockApiClient.addMockResponse({
-        url: '/organizations/1337/issues/',
+        url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
-      wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');
+      wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
 
-      expect(wrapper.find('Modal')).toSnapshot();
-      wrapper.find('Button[priority="primary"]').simulate('click');
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

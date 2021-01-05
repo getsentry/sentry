@@ -41,7 +41,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const utc = decodeScalar(router.location.query.utc);
+  const utc = decodeScalar(router.location.query.utc) !== 'false';
 
   const colors = theme.charts.getColorPalette(3);
   const axisLineConfig = {
@@ -99,23 +99,23 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         ...axisLineConfig,
       },
       {
-        // throughput
-        gridIndex: 1,
-        splitNumber: 4,
-        axisLabel: {
-          formatter: formatAbbreviatedNumber,
-          color: theme.chartLabel,
-        },
-        ...axisLineConfig,
-      },
-      {
         // failure rate
-        gridIndex: 2,
+        gridIndex: 1,
         splitNumber: 4,
         interval: 0.5,
         max: 1.0,
         axisLabel: {
           formatter: (value: number) => formatPercentage(value, 0),
+          color: theme.chartLabel,
+        },
+        ...axisLineConfig,
+      },
+      {
+        // throughput
+        gridIndex: 2,
+        splitNumber: 4,
+        axisLabel: {
+          formatter: formatAbbreviatedNumber,
           color: theme.chartLabel,
         },
         ...axisLineConfig,
@@ -154,20 +154,20 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartTitle top="190px" key="throughput">
-        {t('TPM')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, 'tpm')}
-          size="sm"
-        />
-      </ChartTitle>
-
-      <ChartTitle top="410px" key="failure-rate">
+      <ChartTitle top="190px" key="failure-rate">
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
           title={getTermHelp(organization, 'failureRate')}
+          size="sm"
+        />
+      </ChartTitle>
+
+      <ChartTitle top="410px" key="throughput">
+        {t('TPM')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'tpm')}
           size="sm"
         />
       </ChartTitle>
@@ -184,15 +184,15 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             api={api}
             organization={organization}
             period={statsPeriod}
-            project={[...project]}
-            environment={[...environment]}
+            project={project}
+            environment={environment}
             start={start}
             end={end}
             interval={getInterval(datetimeSelection)}
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={[`apdex(${organization.apdexThreshold})`, 'epm()', 'failure_rate()']}
+            yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

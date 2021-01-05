@@ -4,7 +4,8 @@ import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
-import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {Event} from 'app/types/event';
 
 export type ModalRenderProps = {
   closeModal: () => void;

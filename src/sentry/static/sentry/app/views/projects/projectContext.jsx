@@ -250,7 +250,7 @@ const ProjectContext = createReactClass({
             <ErrorWrapper>
               <MissingProjectMembership
                 organization={this.props.organization}
-                projectId={this.state.project.slug}
+                projectSlug={this.state.project.slug}
               />
             </ErrorWrapper>
           );

@@ -4,8 +4,9 @@ import SvgIcon from 'app/icons/svgIcon';
 
 type SvgIconProps = React.ComponentProps<typeof SvgIcon>;
 
+import {BreadcrumbsWithDetails} from 'app/types/breadcrumbs';
+
 import {IconWrapper} from './styles';
-import {BreadcrumbsWithDetails} from './types';
 
 type Props = Pick<BreadcrumbsWithDetails[0], 'color' | 'icon'> &
   Pick<SvgIconProps, 'size'>;

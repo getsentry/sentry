@@ -34,6 +34,7 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
+from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
@@ -119,6 +120,7 @@ from .endpoints.organization_integration_repository_project_path_config_details 
 )
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
+from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
@@ -385,6 +387,7 @@ GROUP_URLS = [
         r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
         GroupIntegrationDetailsEndpoint.as_view(),
     ),
+    url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
     # Load plugin group urls
     url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
 ]
@@ -871,6 +874,10 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
                     OrganizationGroupIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/issues-count/$",
+                    OrganizationIssuesCountEndpoint.as_view(),
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues-stats/$",

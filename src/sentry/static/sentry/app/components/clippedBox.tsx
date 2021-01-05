@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
@@ -173,8 +174,8 @@ const ClipFade = styled('div')`
   padding: 40px 0 0;
   background-image: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.15),
-    rgba(255, 255, 255, 1)
+    ${p => color(p.theme.background).alpha(0.15).string()},
+    ${p => p.theme.background}
   );
   text-align: center;
   border-bottom: ${space(1.5)} solid ${p => p.theme.background};

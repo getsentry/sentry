@@ -161,12 +161,12 @@ class PlatformPicker extends React.Component<Props, State> {
 }
 
 const NavContainer = styled('div')`
-  border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(2)};
   display: grid;
   grid-gap: ${space(2)};
   grid-template-columns: 1fr minmax(0, 300px);
   align-items: start;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SearchBar = styled('div')`
@@ -176,6 +176,7 @@ const SearchBar = styled('div')`
   display: flex;
   align-items: center;
   font-size: 15px;
+  margin-top: -${space(0.75)};
 
   input {
     border: none;
@@ -213,18 +214,25 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
 `;
 
-const ClearButton = styled(p => (
-  <Button {...p} icon={<IconClose isCircled size="xs" />} size="xsmall" borderless />
-))`
+const ClearButton = styled(Button)`
   position: absolute;
   top: -6px;
   right: -6px;
   height: 22px;
   width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 `;
+
+ClearButton.defaultProps = {
+  icon: <IconClose isCircled size="xs" />,
+  borderless: true,
+  size: 'xsmall',
+};
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   <div {...props}>
@@ -259,8 +267,10 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     align-items: center;
     justify-content: center;
     width: 100%;
+    color: ${p => p.theme.subText};
     text-align: center;
-    font-size: 15px;
+    font-size: ${p => p.theme.fontSizeExtraSmall};
+    text-transform: uppercase;
     margin: 0;
     padding: 0 ${space(0.5)};
     line-height: 1.2;

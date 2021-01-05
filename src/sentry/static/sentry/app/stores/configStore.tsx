@@ -4,7 +4,6 @@ import Reflux from 'reflux';
 
 import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
-import {prefersDark} from 'app/utils/matchMedia';
 
 type ConfigStoreInterface = {
   config: Config;
@@ -42,14 +41,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
    * the auto switching of color schemes without affecting manual toggle
    */
   updateTheme(theme) {
-    // TODO(dark): Dark mode is currently staff only
-    if (!this.config.user?.isStaff) {
-      return;
-    }
-
-    // TODO(dark): Add this as a user preference
-    // @ts-ignore
-    if (!this.config.user?.options.enableDarkMode) {
+    if (this.config.user?.options.theme !== 'system') {
       return;
     }
 
@@ -64,7 +56,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
     // TODO(dark): Remove staff requirement and add dark mode user preference
     const shouldUseDarkMode =
       // @ts-ignore
-      config.user?.isStaff && config.user?.options.enableDarkMode && prefersDark();
+      config.user?.isStaff && config.user?.options.theme === 'dark';
 
     this.config = {
       ...config,

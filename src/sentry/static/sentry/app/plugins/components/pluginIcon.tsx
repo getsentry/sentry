@@ -31,6 +31,7 @@ import pagerduty from 'app/../images/logos/logo-pagerduty.svg';
 import phabricator from 'app/../images/logos/logo-phabricator.svg';
 import pivotal from 'app/../images/logos/logo-pivotaltracker.svg';
 import pushover from 'app/../images/logos/logo-pushover.svg';
+import quill from 'app/../images/logos/logo-quill.svg';
 import redmine from 'app/../images/logos/logo-redmine.svg';
 import rocketchat from 'app/../images/logos/logo-rocketchat.svg';
 import rookout from 'app/../images/logos/logo-rookout.svg';
@@ -46,6 +47,7 @@ import vercel from 'app/../images/logos/logo-vercel.svg';
 import victorops from 'app/../images/logos/logo-victorops.svg';
 import visualstudio from 'app/../images/logos/logo-visualstudio.svg';
 import youtrack from 'app/../images/logos/logo-youtrack.svg';
+import zepel from 'app/../images/logos/logo-zepel.svg';
 import zulip from 'app/../images/logos/logo-zulip.svg';
 
 // Map of plugin id -> logo filename
@@ -92,6 +94,7 @@ export const ICON_PATHS = {
   phabricator,
   pivotal,
   pushover,
+  quill,
   redmine,
   rocketchat,
   rookout,
@@ -107,6 +110,7 @@ export const ICON_PATHS = {
   youtrack,
   vercel,
   victorops,
+  zepel,
   zulip,
 };
 
