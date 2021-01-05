@@ -277,7 +277,7 @@ const SelectControl = props => {
       components={{...replacedComponents, ...components}}
       async={async}
       creatable={creatable}
-      clearable={clearable}
+      isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
       isMulti={props.multiple || props.multi}
