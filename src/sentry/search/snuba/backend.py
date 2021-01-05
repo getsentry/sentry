@@ -14,6 +14,7 @@ from sentry.models import (
     Release,
     GroupEnvironment,
     Group,
+    GroupAssignee,
     GroupInbox,
     GroupLink,
     GroupOwner,
@@ -51,7 +52,7 @@ def assigned_to_filter(actor, projects):
 
 
 def unassigned_filter(unassigned, projects):
-    from sentry.models.groupassignee import GroupAssignee
+    # from sentry.models.groupassignee import GroupAssignee
 
     query = Q(
         id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
@@ -139,8 +140,6 @@ def owner_filter(owner, projects):
             .distinct()
         ) | assigned_to_filter(owner, projects)
     elif isinstance(owner, User):
-        from sentry.models.groupassignee import GroupAssignee
-
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
@@ -168,8 +167,6 @@ def owner_filter(owner, projects):
             id__in=owned_by_me_and_not_assigned.values_list("group_id", flat=True).distinct()
         ) | assigned_to_filter(owner, projects)
     elif isinstance(owner, list) and owner[0] == "me_or_none":
-        from sentry.models.groupassignee import GroupAssignee
-
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
