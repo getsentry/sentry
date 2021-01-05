@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'app/locale';
 import ScoreCard from 'app/components/scoreCard';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 
 export default {
