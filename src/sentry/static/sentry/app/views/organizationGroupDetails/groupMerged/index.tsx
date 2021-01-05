@@ -1,40 +1,46 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
+import {RouteComponentProps} from 'react-router';
 import * as queryString from 'query-string';
-import Reflux from 'reflux';
 
 import GroupingActions from 'app/actions/groupingActions';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
-import GroupingStore from 'app/stores/groupingStore';
+import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
+import {Group, Organization, Project} from 'app/types';
+import {callIfFunction} from 'app/utils/callIfFunction';
 
 import MergedList from './mergedList';
 
-const GroupMergedView = createReactClass({
-  displayName: 'GroupMergedView',
-  propTypes: {
-    project: SentryTypes.Project,
-  },
-  mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
+type Props = RouteComponentProps<
+  {groupId: Group['id']; orgId: Organization['slug']},
+  {}
+> & {
+  project: Project;
+};
 
-  getInitialState() {
-    const queryParams = this.props.location.query;
-    return {
-      mergedItems: [],
-      loading: true,
-      error: false,
-      query: queryParams.query || '',
-    };
-  },
+type State = {
+  query: string;
+  loading: boolean;
+  error: boolean;
+  mergedItems: Array<Fingerprint>;
+  mergedLinks?: string;
+};
 
-  componentWillMount() {
+class GroupMergedView extends React.Component<Props, State> {
+  state: State = {
+    mergedItems: [],
+    loading: true,
+    error: false,
+    query: this.props.location.query.query || '',
+  };
+
+  componentDidMount() {
     this.fetchData();
-  },
+  }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (
       nextProps.params.groupId !== this.props.params.groupId ||
       nextProps.location.search !== this.props.location.search
@@ -47,9 +53,13 @@ const GroupMergedView = createReactClass({
         this.fetchData
       );
     }
-  },
+  }
 
-  onGroupingUpdate({mergedItems, mergedLinks, loading, error}) {
+  componentWillUnmount() {
+    callIfFunction(this.listener);
+  }
+
+  onGroupingChange = ({mergedItems, mergedLinks, loading, error}) => {
     if (mergedItems) {
       this.setState({
         mergedItems,
@@ -58,49 +68,50 @@ const GroupMergedView = createReactClass({
         error: typeof error !== 'undefined' ? error : false,
       });
     }
-  },
+  };
 
-  getEndpoint(type = 'hashes') {
-    const params = this.props.params;
+  listener = GroupingStore.listen(this.onGroupingChange, undefined);
+
+  getEndpoint() {
+    const {params} = this.props;
+    const {groupId} = params;
+
     const queryParams = {
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
     };
 
-    return `/issues/${params.groupId}/${type}/?${queryString.stringify(queryParams)}`;
-  },
+    return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
+  }
 
-  fetchData() {
+  fetchData = () => {
     GroupingActions.fetch([
       {
-        endpoint: this.getEndpoint('hashes'),
+        endpoint: this.getEndpoint(),
         dataKey: 'merged',
         queryParams: this.props.location.query,
       },
     ]);
-  },
+  };
 
-  handleCollapse() {
-    GroupingActions.collapseFingerprints();
-  },
-
-  handleUnmerge() {
+  handleUnmerge = () => {
     GroupingActions.unmerge({
       groupId: this.props.params.groupId,
-      loadingMessage: `${t('Unmerging events')}...`,
+      loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
       errorMessage: t('Unable to queue events for unmerging.'),
     });
-  },
+  };
 
   render() {
-    const isLoading = this.state.loading;
-    const isError = this.state.error && !isLoading;
+    const {project} = this.props;
+    const {loading: isLoading, error, mergedItems, mergedLinks} = this.state;
+    const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
 
     return (
-      <div>
+      <React.Fragment>
         <Alert type="warning">
           {t(
             'This is an experimental feature. Data may not be immediately available while we process unmerges.'
@@ -110,25 +121,24 @@ const GroupMergedView = createReactClass({
         {isLoading && <LoadingIndicator />}
         {isError && (
           <LoadingError
-            message="Unable to load merged events, please try again later"
+            message={t('Unable to load merged events, please try again later')}
             onRetry={this.fetchData}
           />
         )}
 
         {isLoadedSuccessfully && (
           <MergedList
-            orgId={this.props.params.orgId}
-            project={this.props.project}
-            items={this.state.mergedItems}
-            pageLinks={this.state.mergedLinks}
+            project={project}
+            fingerprints={mergedItems}
+            pageLinks={mergedLinks}
             onUnmerge={this.handleUnmerge}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />
         )}
-      </div>
+      </React.Fragment>
     );
-  },
-});
+  }
+}
 
 export {GroupMergedView};
 

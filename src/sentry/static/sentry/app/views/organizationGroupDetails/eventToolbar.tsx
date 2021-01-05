@@ -13,7 +13,8 @@ import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Event, Group} from 'app/types';
+import {Group} from 'app/types';
+import {Event} from 'app/types/event';
 import getDynamicText from 'app/utils/getDynamicText';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
