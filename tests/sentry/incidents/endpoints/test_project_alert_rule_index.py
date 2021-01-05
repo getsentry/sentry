@@ -134,7 +134,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.create_member(
             user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
-        self.organization.update_option('sentry:alerts_member_write', False)
+        self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 403
