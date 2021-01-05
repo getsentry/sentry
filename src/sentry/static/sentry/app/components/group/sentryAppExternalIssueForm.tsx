@@ -270,6 +270,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         label,
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
+      const allowClear = !required;
       //filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
@@ -277,6 +278,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         options,
         defaultOptions,
         filterOption,
+        allowClear,
       };
       //default message for async select fields
       if (isAsync) {
