@@ -114,9 +114,8 @@ type RedirectOptions = {
   orgId: string;
   projectId: null | string;
 };
-interface RedirectCallback {
-  (options: RedirectOptions): string;
-}
+
+type RedirectCallback = (options: RedirectOptions) => string;
 
 const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) => {
   class RedirectDeprecatedProjectRoute extends React.Component<Props> {
