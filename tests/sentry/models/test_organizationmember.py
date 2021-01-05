@@ -202,3 +202,19 @@ class OrganizationMemberTest(TestCase):
         organization.update_option("sentry:events_member_admin", False)
 
         assert "event:admin" not in member.get_scopes()
+
+    def test_scopes_with_member_alert_write(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization, role="member", email="test@example.com",
+        )
+
+        assert "alert:write" in member.get_scopes()
+
+        organization.update_option("sentry:alerts_member_write", True)
+
+        assert "alert:write" in member.get_scopes()
+
+        organization.update_option("sentry:alerts_member_write", True)
+
+        assert "alert:write" in member.get_scopes()
