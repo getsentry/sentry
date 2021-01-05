@@ -9,7 +9,7 @@ import Version from 'app/components/version';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Event, EventTag} from 'app/types';
+import {Event, EventTag} from 'app/types/event';
 
 type Props = {
   event: Event;

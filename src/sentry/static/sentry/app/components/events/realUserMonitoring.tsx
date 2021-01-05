@@ -7,7 +7,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 import {formattedValue} from 'app/utils/measurements/index';
 import {IconSize} from 'app/utils/theme';
 import {

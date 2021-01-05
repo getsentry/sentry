@@ -3,7 +3,8 @@ import orderBy from 'lodash/orderBy';
 
 import {Client} from 'app/api';
 import {t, tct} from 'app/locale';
-import {Event, Group, GroupActivity} from 'app/types';
+import {Group, GroupActivity} from 'app/types';
+import {Event} from 'app/types/event';
 
 /**
  * Fetches group data and mark as seen

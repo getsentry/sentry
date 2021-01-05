@@ -6,9 +6,8 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import Highlight from 'app/components/highlight';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
+import {BreadcrumbTypeHTTP} from 'app/types/breadcrumbs';
 import {defined} from 'app/utils';
-
-import {BreadcrumbTypeHTTP} from '../types';
 
 import Summary from './summary';
 

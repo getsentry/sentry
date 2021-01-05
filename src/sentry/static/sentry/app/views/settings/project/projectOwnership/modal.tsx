@@ -3,14 +3,8 @@ import uniq from 'lodash/uniq';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
-import {
-  Entry,
-  Frame,
-  Organization,
-  Project,
-  SentryErrorEvent,
-  TagWithTopValues,
-} from 'app/types';
+import {Frame, Organization, Project, TagWithTopValues} from 'app/types';
+import {Entry, EventError} from 'app/types/event';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
@@ -31,7 +25,7 @@ type Props = AsyncComponent['props'] & {
 
 type State = {
   ownership: null | IssueOwnershipResponse;
-  eventData: null | SentryErrorEvent;
+  eventData: null | EventError;
   urlTagData: null | TagWithTopValues;
 } & AsyncComponent['state'];
 

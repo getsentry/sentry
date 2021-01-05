@@ -7,12 +7,12 @@ import {
   parseTrace,
   toPercent,
 } from 'app/components/events/interfaces/spans/utils';
-import {SentryTransactionEvent} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 
 // Minimum threshold score for descriptions that are similar.
 const COMMON_SIMILARITY_DESCRIPTION_THRESHOLD = 0.8;
 
-export function isTransactionEvent(event: any): event is SentryTransactionEvent {
+export function isTransactionEvent(event: any): event is EventTransaction {
   if (!event) {
     return false;
   }
@@ -61,8 +61,8 @@ export function diffTransactions({
   baselineEvent,
   regressionEvent,
 }: {
-  baselineEvent: SentryTransactionEvent;
-  regressionEvent: SentryTransactionEvent;
+  baselineEvent: EventTransaction;
+  regressionEvent: EventTransaction;
 }): ComparisonReport {
   const baselineTrace = parseTrace(baselineEvent);
   const regressionTrace = parseTrace(regressionEvent);

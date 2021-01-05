@@ -1,4 +1,5 @@
-import {Event, Group, GroupTombstone, Organization} from 'app/types';
+import {Group, GroupTombstone, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
 function isTombstone(maybe: Group | Event | GroupTombstone): maybe is GroupTombstone {

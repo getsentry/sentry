@@ -10,7 +10,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import Pill from 'app/components/pill';
 import VersionHoverCard from 'app/components/versionHoverCard';
 import {IconInfo, IconOpen} from 'app/icons';
-import {EventTag} from 'app/types';
+import {EventTag} from 'app/types/event';
 import {isUrl} from 'app/utils';
 import TraceHoverCard from 'app/utils/discover/traceHoverCard';
 

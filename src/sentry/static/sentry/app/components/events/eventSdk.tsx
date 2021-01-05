@@ -3,7 +3,7 @@ import React from 'react';
 import EventDataSection from 'app/components/events/eventDataSection';
 import Annotated from 'app/components/events/meta/annotated';
 import {t} from 'app/locale';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   sdk: NonNullable<Event['sdk']>;

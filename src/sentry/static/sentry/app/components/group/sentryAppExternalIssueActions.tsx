@@ -11,12 +11,12 @@ import {IconAdd, IconClose} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {
-  Event,
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {recordInteraction} from 'app/utils/recordSentryAppInteraction';
 import withApi from 'app/utils/withApi';
 

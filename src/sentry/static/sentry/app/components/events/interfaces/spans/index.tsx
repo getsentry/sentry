@@ -10,7 +10,8 @@ import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -27,7 +28,7 @@ import {ParsedTraceType} from './types';
 import {getTraceDateTimeRange, parseTrace} from './utils';
 
 type Props = {
-  event: SentryTransactionEvent;
+  event: EventTransaction;
   organization: Organization;
 } & ReactRouter.WithRouterProps;
 

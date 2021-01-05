@@ -5,18 +5,18 @@ import {SectionHeading} from 'app/components/charts/styles';
 import {TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, SentryTransactionEvent} from 'app/types';
+import {Event, EventTransaction} from 'app/types/event';
 
 type Props = {
   event: Event;
 };
 
 class RootSpanStatus extends React.Component<Props> {
-  getTransactionEvent(): SentryTransactionEvent | undefined {
+  getTransactionEvent(): EventTransaction | undefined {
     const {event} = this.props;
 
     if (event.type === 'transaction') {
-      return event as SentryTransactionEvent;
+      return event as EventTransaction;
     }
 
     return undefined;

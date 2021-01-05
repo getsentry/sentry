@@ -11,13 +11,13 @@ import Truncate from 'app/components/truncate';
 import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, RequestEntry} from 'app/types';
+import {EntryRequest, Event} from 'app/types/event';
 import {isUrl} from 'app/utils';
 
 type Props = {
   event: Event;
   type: string;
-  data: RequestEntry['data'];
+  data: EntryRequest['data'];
 };
 
 type State = {

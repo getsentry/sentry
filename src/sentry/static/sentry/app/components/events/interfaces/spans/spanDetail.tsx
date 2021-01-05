@@ -18,7 +18,8 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -44,7 +45,7 @@ type Props = {
   api: Client;
   orgId: string;
   organization: Organization;
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   trace: Readonly<ParsedTraceType>;

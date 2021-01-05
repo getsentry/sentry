@@ -7,7 +7,8 @@ import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spa
 import Link from 'app/components/links/link';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 
 import {getTransactionDetailsUrl} from '../utils';
 

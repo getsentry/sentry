@@ -6,12 +6,12 @@ import SentryAppExternalIssueForm from 'app/components/group/sentryAppExternalIs
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
 import {
-  Event,
   Group,
   PlatformExternalIssue,
   SentryAppComponent,
   SentryAppInstallation,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 
 type Props = ModalRenderProps & {

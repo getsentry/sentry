@@ -4,9 +4,8 @@ import omit from 'lodash/omit';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import Highlight from 'app/components/highlight';
+import {BreadcrumbTypeDefault} from 'app/types/breadcrumbs';
 import {defined} from 'app/utils';
-
-import {BreadcrumbTypeDefault} from '../types';
 
 import Summary from './summary';
 

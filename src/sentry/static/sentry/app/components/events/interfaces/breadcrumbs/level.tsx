@@ -3,8 +3,7 @@ import React from 'react';
 import Highlight from 'app/components/highlight';
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-
-import {BreadcrumbLevelType} from './types';
+import {BreadcrumbLevelType} from 'app/types/breadcrumbs';
 
 type Props = {
   level: BreadcrumbLevelType;

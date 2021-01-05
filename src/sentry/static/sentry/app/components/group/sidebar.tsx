@@ -20,12 +20,12 @@ import space from 'app/styles/space';
 import {
   CurrentRelease,
   Environment,
-  Event,
   Group,
   Organization,
   Project,
   TagWithTopValues,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 
 import SidebarSection from './sidebarSection';

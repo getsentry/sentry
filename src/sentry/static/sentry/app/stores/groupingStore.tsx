@@ -8,7 +8,8 @@ import {
 } from 'app/actionCreators/indicator';
 import GroupingActions from 'app/actions/groupingActions';
 import {Client} from 'app/api';
-import {Event, Group, Organization, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 
 // Between 0-100
 const MIN_SCORE = 0.6;

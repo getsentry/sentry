@@ -4,7 +4,7 @@ import Alert from 'app/components/alert';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {IconUpgrade} from 'app/icons';
 import {tct} from 'app/locale';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 import getSuggestion from './getSuggestion';
 

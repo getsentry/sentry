@@ -8,7 +8,8 @@ import StacktraceContent from 'app/components/events/interfaces/stacktraceConten
 import Hovercard, {Body} from 'app/components/hovercard';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Organization, PlatformType} from 'app/types';
+import {Organization, PlatformType} from 'app/types';
+import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Theme} from 'app/utils/theme';

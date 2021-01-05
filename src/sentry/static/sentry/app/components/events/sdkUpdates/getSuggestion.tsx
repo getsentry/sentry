@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   event: Event;

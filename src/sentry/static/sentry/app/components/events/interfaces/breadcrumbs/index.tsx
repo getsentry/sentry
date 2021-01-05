@@ -11,7 +11,14 @@ import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {
+  Breadcrumb,
+  BreadcrumbLevelType,
+  BreadcrumbsWithDetails,
+  BreadcrumbType,
+} from 'app/types/breadcrumbs';
+import {EntryType, Event} from 'app/types/event';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -21,12 +28,6 @@ import Level from './level';
 import List from './list';
 import {aroundContentStyle} from './styles';
 import transformCrumbs from './transformCrumbs';
-import {
-  Breadcrumb,
-  BreadcrumbLevelType,
-  BreadcrumbsWithDetails,
-  BreadcrumbType,
-} from './types';
 
 type FilterProps = React.ComponentProps<typeof Filter>;
 type FilterOptions = FilterProps['options'];
@@ -157,9 +158,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   getVirtualCrumb(): Breadcrumb | undefined {
     const {event} = this.props;
 
-    const exception = event.entries.find(
-      entry => entry.type === BreadcrumbType.EXCEPTION
-    );
+    const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
       return undefined;

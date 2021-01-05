@@ -6,7 +6,8 @@ import {Location} from 'history';
 import * as Layout from 'app/components/layouts/thirds';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 

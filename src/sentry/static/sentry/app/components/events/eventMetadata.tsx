@@ -8,7 +8,8 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, OrganizationSummary} from 'app/types';
+import {OrganizationSummary} from 'app/types';
+import {Event} from 'app/types/event';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
 

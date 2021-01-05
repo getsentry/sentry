@@ -7,7 +7,8 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, EventGroupInfo, Organization} from 'app/types';
+import {EventGroupInfo, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 
 import GroupingConfigSelect from './groupingConfigSelect';

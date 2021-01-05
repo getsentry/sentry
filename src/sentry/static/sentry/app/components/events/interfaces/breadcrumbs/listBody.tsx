@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {BreadcrumbsWithDetails, BreadcrumbType} from 'app/types/breadcrumbs';
+import {Event} from 'app/types/event';
 
 import Category from './category';
 import Data from './data';
@@ -11,7 +12,6 @@ import Icon from './icon';
 import Level from './level';
 import {GridCell, GridCellLeft} from './styles';
 import Time from './time';
-import {BreadcrumbsWithDetails, BreadcrumbType} from './types';
 
 type Props = {
   breadcrumb: BreadcrumbsWithDetails[0];

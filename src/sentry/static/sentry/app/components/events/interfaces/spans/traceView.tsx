@@ -3,7 +3,8 @@ import pick from 'lodash/pick';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
@@ -39,7 +40,7 @@ export type FilterSpans = {
 type Props = {
   orgId: string;
   organization: Organization;
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
   spansWithErrors: TableData | null | undefined;

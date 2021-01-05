@@ -1,7 +1,6 @@
 import u2f from 'u2f-api';
 
 import {Props as AlertProps} from 'app/components/alert';
-import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -15,6 +14,7 @@ import {
 } from 'app/views/organizationIntegrations/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 
+import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {
@@ -330,51 +330,6 @@ export type EventAttachment = {
 
 export type EntryData = Record<string, any | Array<any>>;
 
-export type Entry = {
-  data: EntryData;
-  type: string;
-};
-
-export type EventTag = {key: string; value: string};
-
-export type EventUser = {
-  username?: string;
-  name?: string;
-  ip_address?: string;
-  email?: string;
-  id?: string;
-};
-
-type RuntimeContext = {
-  type: 'runtime';
-  version: number;
-  build?: string;
-  name?: string;
-};
-
-type DeviceContext = {
-  arch: string;
-  family: string;
-  model: string;
-  type: string;
-};
-
-type OSContext = {
-  kernel_version: string;
-  version: string;
-  type: string;
-  build: string;
-  name: string;
-};
-
-type EventContexts = {
-  runtime?: RuntimeContext;
-  trace?: TraceContextType;
-  device?: DeviceContext;
-  os?: OSContext;
-  client_os?: OSContext;
-};
-
 type EnableIntegrationSuggestion = {
   type: 'enableIntegration';
   integrationName: string;
@@ -397,119 +352,10 @@ type ChangeSdkSuggestion = {
   sdkUrl?: string | null;
 };
 
-type SDKUpdatesSuggestion =
+export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
-
-type Measurement = {value: number};
-
-type SentryEventBase = {
-  id: string;
-  eventID: string;
-  groupID?: string;
-  title: string;
-  culprit: string;
-  dateCreated: string;
-  dist: string | null;
-  metadata: EventMetadata;
-  contexts: EventContexts;
-  context?: {[key: string]: any};
-  device?: {[key: string]: any};
-  packages?: {[key: string]: string};
-  user: EventUser;
-  message: string;
-  platform?: PlatformKey;
-  dateReceived?: string;
-  endTimestamp?: number;
-  entries: Entry[];
-  errors: any[];
-
-  previousEventID?: string;
-  nextEventID?: string;
-  projectSlug: string;
-  projectID: string;
-
-  tags: EventTag[];
-
-  size: number;
-
-  location: string;
-
-  oldestEventID: string | null;
-  latestEventID: string | null;
-
-  groupingConfig: {
-    id: string;
-    enhancements: string;
-  };
-
-  userReport?: any;
-
-  crashFile: EventAttachment | null;
-
-  sdk?: {
-    name: string;
-    version: string;
-  };
-
-  sdkUpdates?: Array<SDKUpdatesSuggestion>;
-
-  measurements?: Record<string, Measurement>;
-
-  release?: Release;
-};
-
-export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: (SpanEntry | RequestEntry)[];
-  startTimestamp: number;
-  endTimestamp: number;
-  type: 'transaction';
-  title?: string;
-  contexts?: {
-    trace?: TraceContextType;
-  };
-};
-
-export type ExceptionEntry = {
-  type: 'exception';
-  data: ExceptionType;
-};
-
-export type StacktraceEntry = {
-  type: 'stacktrace';
-  data: StacktraceType;
-};
-
-export type RequestEntry = {
-  type: 'request';
-  data: {
-    url: string;
-    method: string;
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    query?: [key: string, value: string][];
-    fragment?: string;
-    cookies?: [key: string, value: string][];
-    headers?: [key: string, value: string][];
-    env?: Record<string, string>;
-    inferredContentType?:
-      | null
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'multipart/form-data';
-  };
-};
-
-export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: (ExceptionEntry | StacktraceEntry | RequestEntry)[];
-  type: 'error';
-};
-
-// This type is incomplete
-export type Event =
-  | SentryErrorEvent
-  | SentryTransactionEvent
-  | ({type: string} & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 

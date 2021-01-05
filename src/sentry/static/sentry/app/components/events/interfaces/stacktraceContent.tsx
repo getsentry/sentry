@@ -5,7 +5,8 @@ import PlatformIcon from 'platformicons';
 import Line from 'app/components/events/interfaces/frame/line';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {Event, Frame, PlatformType} from 'app/types';
+import {Frame, PlatformType} from 'app/types';
+import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 
 const defaultProps = {

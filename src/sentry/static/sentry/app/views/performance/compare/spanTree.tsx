@@ -6,7 +6,7 @@ import {
   OrphanTreeDepth,
   TreeDepthType,
 } from 'app/components/events/interfaces/spans/types';
-import {SentryTransactionEvent} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 
 import SpanGroup from './spanGroup';
 import {
@@ -27,8 +27,8 @@ type RenderedSpanTree = {
 };
 
 type Props = {
-  baselineEvent: SentryTransactionEvent;
-  regressionEvent: SentryTransactionEvent;
+  baselineEvent: EventTransaction;
+  regressionEvent: EventTransaction;
 };
 
 class SpanTree extends React.Component<Props> {

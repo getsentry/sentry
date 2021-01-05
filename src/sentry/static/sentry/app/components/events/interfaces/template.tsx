@@ -3,7 +3,8 @@ import React from 'react';
 import EventDataSection from 'app/components/events/eventDataSection';
 import Line from 'app/components/events/interfaces/frame/line';
 import {t} from 'app/locale';
-import {Event, Frame} from 'app/types';
+import {Frame} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   type: string;

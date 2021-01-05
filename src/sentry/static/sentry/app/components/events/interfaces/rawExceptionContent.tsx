@@ -8,7 +8,8 @@ import rawStacktraceContent from 'app/components/events/interfaces/rawStacktrace
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
-import {Event, ExceptionType, Organization, PlatformType, Project} from 'app/types';
+import {ExceptionType, Organization, PlatformType, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 

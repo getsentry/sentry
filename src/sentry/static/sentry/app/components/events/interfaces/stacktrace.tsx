@@ -6,7 +6,8 @@ import CrashActions from 'app/components/events/interfaces/crashHeader/crashActi
 import CrashTitle from 'app/components/events/interfaces/crashHeader/crashTitle';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {Event, Project} from 'app/types';
+import {Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
 export function isStacktraceNewestFirst() {

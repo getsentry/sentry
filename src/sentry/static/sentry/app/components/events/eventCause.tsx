@@ -10,7 +10,8 @@ import {Panel} from 'app/components/panels';
 import {IconAdd, IconSubtract} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {AvatarProject, Committer, Event, Group, Organization} from 'app/types';
+import {AvatarProject, Committer, Group, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
 import withCommitters from 'app/utils/withCommitters';
 
