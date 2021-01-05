@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Access from 'app/components/acl/access';
+import AlertLink from 'app/components/alertLink';
 import AutoSelectText from 'app/components/autoSelectText';
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -233,9 +234,9 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
 
   renderLoading() {
     return (
-      <div className="box">
+      <Panel>
         <LoadingIndicator />
-      </div>
+      </Panel>
     );
   }
 
@@ -311,12 +312,12 @@ class ProjectProcessingIssues extends React.Component<Props, State> {
     const fixButton = tn(
       'Click here to trigger processing for %s pending event',
       'Click here to trigger processing for %s pending events',
-      issues.resolveableIssues
+      issues?.resolveableIssues
     );
     return (
-      <div className="alert alert-block alert-info">
-        Pro Tip: <a onClick={this.sendReprocessing}>{fixButton}</a>
-      </div>
+      <AlertLink priority="info" onClick={this.sendReprocessing}>
+        {t('Pro Tip')}: {fixButton}
+      </AlertLink>
     );
   }
 
