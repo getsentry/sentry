@@ -883,6 +883,9 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Enables aws lambda integration
     "organizations:integrations-aws_lambda": False,
+    # Temporary safety measure, turned on for specific orgs only if
+    # absolutely necessary, to be removed Jan 31, 2021
+    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
