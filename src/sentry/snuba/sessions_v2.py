@@ -20,7 +20,7 @@ See https://www.notion.so/sentry/Session-Stats-API-0016d3713d1a4276be0396a338c79
 We have basically 3 "metrics" that we can query:
 
 - `session` (counter): The number of sessions that occurred
-- `user` (set): The set of `dinstinct_id`s.
+- `user` (set): The set of `distinct_id`s.
 - `session.duration` (histogram): The duration of individual sessions
   (not available for pre-aggregated sessions)
 

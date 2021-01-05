@@ -20,8 +20,6 @@ class OrganizationSessionsEndpoint(OrganizationEventsV2EndpointBase):
         with sentry_sdk.start_span(op="sessions.endpoint", description="run_sessions_query"):
             result_totals, result_timeseries = run_sessions_query(query)
 
-        # print(result_totals, result_timeseries)
-
         with sentry_sdk.start_span(op="sessions.endpoint", description="massage_sessions_result"):
             result = massage_sessions_result(query, result_totals, result_timeseries)
         return Response(result, status=200)

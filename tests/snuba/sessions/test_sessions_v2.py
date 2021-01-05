@@ -16,6 +16,16 @@ class MockRequest(object):
         self.GET = QueryDict(qs)
 
 
+def result_sorted(result):
+    """sort the groups of the results array by the `by` object, ensuring a stable order"""
+
+    def stable_dict(d):
+        return tuple(sorted(d.items(), key=lambda t: t[0]))
+
+    result["groups"].sort(key=lambda group: stable_dict(group["by"]))
+    return result
+
+
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     query = _get_query_from_request(MockRequest("statsPeriod=1d&interval=12h"))
@@ -88,11 +98,11 @@ def test_massage_simple_timeseries():
             "2020-12-18T06:00:00Z",
         ],
         "groups": [
-            {"series": {"sum(session)": [0, 2, 0, 0, 2]}, "by": {}, "totals": {"sum(session)": 4}}
+            {"by": {}, "series": {"sum(session)": [0, 2, 0, 0, 2]}, "totals": {"sum(session)": 4}}
         ],
     }
 
-    actual_result = massage_sessions_result(query, result_totals, result_timeseries)
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
 
     assert actual_result == expected_result
 
@@ -135,19 +145,19 @@ def test_massage_groupby_timeseries():
         ],
         "groups": [
             {
-                "series": {"sum(session)": [0, 2, 0, 0, 2]},
                 "by": {"release": "test-example-release"},
+                "series": {"sum(session)": [0, 2, 0, 0, 2]},
                 "totals": {"sum(session)": 4},
             },
             {
-                "series": {"sum(session)": [0, 0, 0, 0, 1]},
                 "by": {"release": "test-example-release-2"},
+                "series": {"sum(session)": [0, 0, 0, 0, 1]},
                 "totals": {"sum(session)": 1},
             },
         ],
     }
 
-    actual_result = massage_sessions_result(query, result_totals, result_timeseries)
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
 
     assert actual_result == expected_result
 
@@ -207,32 +217,32 @@ def test_massage_virtual_groupby_timeseries():
         ],
         "groups": [
             {
-                "series": {"count_unique(user)": [0, 0, 0, 1, 0], "sum(session)": [0, 0, 0, 3, 2]},
+                "by": {"session.status": "abnormal"},
+                "series": {"count_unique(user)": [0, 0, 0, 0, 0], "sum(session)": [0, 0, 0, 0, 0]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 0},
+            },
+            {
+                "by": {"session.status": "crashed"},
+                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
+                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+            },
+            {
+                "by": {"session.status": "errored"},
+                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
+                "totals": {"count_unique(user)": 1, "sum(session)": 1},
+            },
+            {
                 "by": {"session.status": "healthy"},
+                "series": {"count_unique(user)": [0, 0, 0, 1, 0], "sum(session)": [0, 0, 0, 3, 2]},
                 # while in one of the time slots, we have a healthy user, it is
                 # the *same* user as the one experiencing a crash later on,
                 # so in the *whole* time window, that one user is not counted as healthy,
                 # so the `0` here is expected, as thats an example of the `count_unique` behavior.
                 "totals": {"count_unique(user)": 0, "sum(session)": 5},
             },
-            {
-                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
-                "by": {"session.status": "crashed"},
-                "totals": {"count_unique(user)": 1, "sum(session)": 1},
-            },
-            {
-                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
-                "by": {"session.status": "errored"},
-                "totals": {"count_unique(user)": 1, "sum(session)": 1},
-            },
-            {
-                "series": {"count_unique(user)": [0, 0, 0, 0, 0], "sum(session)": [0, 0, 0, 0, 0]},
-                "by": {"session.status": "abnormal"},
-                "totals": {"count_unique(user)": 0, "sum(session)": 0},
-            },
         ],
     }
 
-    actual_result = massage_sessions_result(query, result_totals, result_timeseries)
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
 
     assert actual_result == expected_result
