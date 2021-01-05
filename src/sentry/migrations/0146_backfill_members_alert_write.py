@@ -8,8 +8,6 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 import logging
 
-ORGANIZATION_OPTION_KEY = 'sentry:alerts_member_write'
-
 
 def backfill_existing_orgs(apps, schema_editor):
     """
@@ -22,7 +20,7 @@ def backfill_existing_orgs(apps, schema_editor):
         if org.status != 0:
             continue
         try:
-            OrganizationOption.objects.create(organization=org, key=ORGANIZATION_OPTION_KEY, value=False)
+            OrganizationOption.objects.create(organization=org, key='sentry:alerts_member_write', value=False)
         except Exception:
             logging.exception("Error backfilling organization {}".format(org.id))
 
