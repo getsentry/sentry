@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 
 import {mount, render} from 'sentry-test/enzyme';
 
@@ -72,6 +73,11 @@ describe('ResultTable', function () {
   });
 
   it('getCellRenderer()', function () {
+    // XXX(epurkhiser): Becuase we're using ezyme's render here we cannot use portals
+    ReactDOM.createPortal = jest.fn(() => {
+      return null;
+    });
+
     const cols = wrapper.instance().getColumnList();
     const cellRenderer = wrapper.instance().getCellRenderer(cols);
 

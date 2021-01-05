@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ClipboardTooltip from 'app/components/clipboardTooltip';
-import {IS_HOVERABLE_DELAY} from 'app/components/tooltip';
+import {OPEN_DELAY} from 'app/components/tooltip';
 
 describe('ClipboardTooltip', function () {
   it('renders', function () {
@@ -19,7 +19,7 @@ describe('ClipboardTooltip', function () {
     const trigger = wrapper.find('span');
     trigger.simulate('mouseEnter');
 
-    jest.advanceTimersByTime(IS_HOVERABLE_DELAY);
+    jest.advanceTimersByTime(OPEN_DELAY);
     wrapper.update();
 
     const tooltipClipboardWrapper = wrapper.find('TooltipClipboardWrapper');
