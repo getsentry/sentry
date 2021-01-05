@@ -72,7 +72,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert data["fields"]["System.Title"] == "Hello"
         assert data["fields"]["System.Description"] == "Fix this."
 
-        external_issue = ExternalIssue.objects.get(key="Fabrikam-Fiber-Git#309")
+        external_issue = ExternalIssue.objects.get(key="309")
         assert external_issue
 
     @responses.activate
@@ -84,7 +84,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,
-            key="TEST#6",
+            key="6",
             title=event.title,
             description="Fix this.",
         )

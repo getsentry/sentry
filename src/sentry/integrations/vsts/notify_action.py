@@ -20,7 +20,6 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
     ticket_type = "an Azure DevOps work item"
     link = "https://docs.sentry.io/product/integrations/azure-devops/#issue-sync"
     provider = "vsts"
-    issue_key_path = "metadata.display_name"
     integration_key = INTEGRATION_KEY
 
     def render_label(self):
