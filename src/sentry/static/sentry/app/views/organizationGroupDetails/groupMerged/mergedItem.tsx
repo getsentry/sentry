@@ -8,7 +8,8 @@ import FlowLayout from 'app/components/flowLayout';
 import {IconChevron} from 'app/icons';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   event: Event;
