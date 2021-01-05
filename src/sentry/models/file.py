@@ -424,7 +424,7 @@ class File(Model):
             for blob in file_blobs:
                 FileBlobIndex.objects.create(file=self, blob=blob, offset=offset)
                 for chunk in blob.getfile().chunks():
-                    new_checksum.update(chunk.encode("utf-8"))
+                    new_checksum.update(chunk)
                     tf.write(chunk)
                 offset += blob.size
 
