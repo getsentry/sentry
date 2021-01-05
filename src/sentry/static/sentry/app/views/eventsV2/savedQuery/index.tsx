@@ -219,9 +219,11 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         menuWidth="220px"
         priority="default"
         buttonProps={{
+          'aria-label': t('Save as'),
           showChevron: false,
+          disabled,
         }}
-        label={t('Save as\u{2026}')}
+        label={`${t('Save as')}\u{2026}`}
       >
         <ButtonSaveDropDown onClick={SavedQueryButtonGroup.stopEventPropagation}>
           <ButtonSaveInput
@@ -234,7 +236,6 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             disabled={disabled}
           />
           <Button
-            data-test-id="button-save-query"
             onClick={this.handleCreateQuery}
             priority="primary"
             disabled={disabled || !this.state.queryName}
