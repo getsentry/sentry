@@ -41,9 +41,14 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
       ...props
     } = this.props;
 
+    // If Header is narrow, use align-items to center <Action>.
+    // Otherwise, use a fixed margin to prevent an odd alignment.
+    // This is needed as Actions could be a button or a dropdown.
+    const isNarrow = !subtitle;
+
     return (
       <div {...props}>
-        <TitleAndActions>
+        <TitleAndActions isNarrow={isNarrow}>
           <TitleWrapper>
             {icon && <Icon>{icon}</Icon>}
             {title && (
@@ -53,7 +58,7 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
               </Title>
             )}
           </TitleWrapper>
-          {action && <Action>{action}</Action>}
+          {action && <Action isNarrow={isNarrow}>{action}</Action>}
         </TitleAndActions>
 
         {body}
@@ -69,9 +74,9 @@ type TitleProps = {
   tabs?: React.ReactNode;
 };
 
-const TitleAndActions = styled('div')`
+const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
-  align-items: flex-start;
+  align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
 `;
 const TitleWrapper = styled('div')`
   flex: 1;
@@ -92,8 +97,8 @@ const Icon = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const Action = styled('div')`
-  margin-top: ${space(4)};
+const Action = styled('div')<{isNarrow?: boolean}>`
+  margin-top: ${p => (p.isNarrow ? '0' : space(4))};
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
