@@ -55,7 +55,7 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
         if not chunk:
             break
         size += len(chunk)
-        checksum.update(chunk.encode("utf-8"))
+        checksum.update(chunk)
 
     logger.debug("_get_size_and_checksum.end")
     return size, checksum.hexdigest()
@@ -392,7 +392,7 @@ class File(Model):
             contents = fileobj.read(blob_size)
             if not contents:
                 break
-            checksum.update(contents.encode("utf-8"))
+            checksum.update(contents)
 
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj, logger=logger)
