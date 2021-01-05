@@ -429,10 +429,14 @@ const ImageCropper = styled('div')<{resizeDirection: Position | null}>`
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   background-color: ${p => p.theme.background};
-  background-image: linear-gradient(45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
-    linear-gradient(-45deg, #eee 25%, rgba(0, 0, 0, 0) 25%),
-    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, #eee 75%),
-    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, #eee 75%);
+  background-image: linear-gradient(
+      45deg,
+      ${p => p.theme.backgroundSecondary} 25%,
+      rgba(0, 0, 0, 0) 25%
+    ),
+    linear-gradient(-45deg, ${p => p.theme.backgroundSecondary} 25%, rgba(0, 0, 0, 0) 25%),
+    linear-gradient(45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%),
+    linear-gradient(-45deg, rgba(0, 0, 0, 0) 75%, ${p => p.theme.backgroundSecondary} 75%);
 `;
 
 const CropContainer = styled('div')`
