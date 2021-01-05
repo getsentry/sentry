@@ -209,12 +209,12 @@ class OrganizationMemberTest(TestCase):
             organization=organization, role="member", email="test@example.com",
         )
 
-        assert "alert:write" in member.get_scopes()
+        assert "alerts:write" in member.get_scopes()
 
         organization.update_option("sentry:alerts_member_write", True)
 
-        assert "alert:write" in member.get_scopes()
+        assert "alerts:write" in member.get_scopes()
 
-        organization.update_option("sentry:alerts_member_write", True)
+        organization.update_option("sentry:alerts_member_write", False)
 
-        assert "alert:write" in member.get_scopes()
+        assert "alerts:write" not in member.get_scopes()
