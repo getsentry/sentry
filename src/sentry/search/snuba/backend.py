@@ -139,6 +139,8 @@ def owner_filter(owner, projects):
             .distinct()
         ) | assigned_to_filter(owner, projects)
     elif isinstance(owner, User):
+        from sentry.models.groupassignee import GroupAssignee
+
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
@@ -147,16 +149,27 @@ def owner_filter(owner, projects):
                 is_active=True,
             ).values("team")
         )
-        relevant_owners = GroupOwner.objects.filter(
+        owned_by_me = GroupOwner.objects.filter(
             project_id__in=project_ids, organization_id=organization_id
-        )
-        filter_query = Q(team__in=teams) | Q(user=owner)
-        return Q(
-            id__in=relevant_owners.filter(filter_query)
+        ).filter(Q(team__in=teams) | Q(user=owner))
+        ids_assigned_to_someone_else = (
+            GroupAssignee.objects.filter(
+                project_id__in=[p.id for p in projects],
+                group_id__in=owned_by_me.values_list("group_id", flat=True).distinct(),
+            )
+            .exclude(user=owner)
             .values_list("group_id", flat=True)
             .distinct()
+        )
+        owned_by_me_and_not_assigned = owned_by_me.exclude(
+            group_id__in=ids_assigned_to_someone_else
+        )
+        return Q(
+            id__in=owned_by_me_and_not_assigned.values_list("group_id", flat=True).distinct()
         ) | assigned_to_filter(owner, projects)
     elif isinstance(owner, list) and owner[0] == "me_or_none":
+        from sentry.models.groupassignee import GroupAssignee
+
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
@@ -165,13 +178,22 @@ def owner_filter(owner, projects):
                 is_active=True,
             ).values("team")
         )
-
-        owned_me = Q(
-            id__in=GroupOwner.objects.filter(
-                Q(user_id=owner[1].id) | Q(team__in=teams),
+        owned_by_me = GroupOwner.objects.filter(
+            Q(user_id=owner[1].id) | Q(team__in=teams),
+            project_id__in=[p.id for p in projects],
+            organization_id=organization_id,
+        )
+        ids_assigned_to_someone_else = (
+            GroupAssignee.objects.filter(
                 project_id__in=[p.id for p in projects],
-                organization_id=organization_id,
+                group_id__in=owned_by_me.values_list("group_id", flat=True).distinct(),
             )
+            .exclude(user=owner[1])
+            .values_list("group_id", flat=True)
+            .distinct()
+        )
+        owned_by_me_and_not_assigned = Q(
+            id__in=owned_by_me.exclude(group_id__in=ids_assigned_to_someone_else)
             .values_list("group_id", flat=True)
             .distinct()
         )
@@ -180,7 +202,7 @@ def owner_filter(owner, projects):
                 "group_id", flat=True
             )
         )
-        return no_owner | owned_me | assigned_to_filter(owner[1], projects)
+        return no_owner | owned_by_me_and_not_assigned | assigned_to_filter(owner[1], projects)
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
 
