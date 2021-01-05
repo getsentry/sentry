@@ -16,23 +16,37 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = False
+    is_dangerous = True
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
-    atomic = True
-
+    atomic = False
 
     dependencies = [
-        ('sentry', '0145_rename_alert_rule_feature'),
+        ("sentry", "0145_rename_alert_rule_feature"),
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='groupinbox',
-            name='date_added',
-            field=models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_groupinbox_date_added
+                    ON sentry_groupinbox (date_added);
+                    """,
+                    reverse_sql="""
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_groupinbox_date_added;
+                    """,
+                ),
+            ],
+            state_operations=[
+                migrations.AlterField(
+                    model_name="groupinbox",
+                    name="date_added",
+                    field=models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+            ],
         ),
     ]
