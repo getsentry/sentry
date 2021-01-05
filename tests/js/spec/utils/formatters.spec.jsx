@@ -36,7 +36,7 @@ describe('getDuration()', function () {
     expect(getDuration(86400 * 2, 0, true)).toBe('2d');
     expect(getDuration(604800, 0, true)).toBe('1wk');
     expect(getDuration(604800 * 2, 0, true)).toBe('2wk');
-    expect(getDuration(2629800, 0, true)).toBe('1mos');
+    expect(getDuration(2629800, 0, true)).toBe('1mo');
     expect(getDuration(604800 * 12, 0, true)).toBe('3mos');
   });
 });

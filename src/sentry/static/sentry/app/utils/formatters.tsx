@@ -63,7 +63,9 @@ export function getDuration(
 
   if (value >= MONTH) {
     const {label, result} = roundWithFixed(value / MONTH, fixedDigits);
-    return `${label}${abbreviation ? t('mos') : ` ${tn('month', 'months', result)}`}`;
+    return `${label}${
+      abbreviation ? tn('mo', 'mos', result) : ` ${tn('month', 'months', result)}`
+    }`;
   }
   if (value >= WEEK) {
     const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
