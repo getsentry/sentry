@@ -113,6 +113,22 @@ type IntegrationCategorySelectEvent = {
   category: string;
 };
 
+type IntegrationServerlessFunctionsViewed = {
+  eventKey: 'integrations.serverless_functions_viewed';
+  eventName: 'Integrations: Serverless Functions Viewed';
+  num_functions: number;
+  integration: string; //the slug
+  integration_type: IntegrationType;
+};
+
+type IntegrationServerlessFunctionAction = {
+  eventKey: 'integrations.serverless_function_action';
+  eventName: 'Integrations: Serverless Function Action';
+  action: 'enable' | 'disable' | 'updateVersion';
+  integration: string; //the slug
+  integration_type: IntegrationType;
+};
+
 type IntegrationStacktraceLinkEvent = {
   eventKey:
     | 'integrations.stacktrace_start_setup'
@@ -141,6 +157,8 @@ type IntegrationsEventParams = (
   | IntegrationSearchEvent
   | IntegrationCategorySelectEvent
   | IntegrationStacktraceLinkEvent
+  | IntegrationServerlessFunctionsViewed
+  | IntegrationServerlessFunctionAction
 ) & {
   view?:
     | 'external_install'
