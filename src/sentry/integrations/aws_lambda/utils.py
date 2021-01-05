@@ -8,6 +8,8 @@ from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
+DEFAULT_NUM_RETRIES = 3
+
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
 def parse_arn(arn):
@@ -130,18 +132,10 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn,
         layers[sentry_layer_index] = layer_arn
     else:
         layers.append(layer_arn)
-    try:
-        return lambda_client.update_function_configuration(
-            FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
-        )
-    except lambda_client.exceptions.ResourceConflictException:
-        # if we get a ResourceConflictException, we should attempt to retry the operation
-        # until retries_left is 0
-        if retries_left > 0:
-            return enable_single_lambda(
-                lambda_client, function, sentry_project_dsn, layer_arn, retries_left - 1
-            )
-        raise
+
+    return update_lambda_with_retries(
+        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables}
+    )
 
 
 def disable_single_lambda(lambda_client, function, layer_arn):
@@ -159,6 +153,22 @@ def disable_single_lambda(lambda_client, function, layer_arn):
         if env_name in env_variables:
             del env_variables[env_name]
 
-    return lambda_client.update_function_configuration(
-        FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+    return update_lambda_with_retries(
+        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
     )
+
+
+def update_lambda_with_retries(lambda_client, **kwargs):
+    num_retries = DEFAULT_NUM_RETRIES
+    # pull off the num_retries argument if it exists
+    if "num_retries" in kwargs:
+        num_retries = kwargs.pop("num_retries")
+    try:
+        return lambda_client.update_function_configuration(**kwargs)
+    except lambda_client.exceptions.ResourceConflictException:
+        # if we get a ResourceConflictException, we should attempt to retry the operation
+        # until num_retries is 0
+        if num_retries > 0:
+            kwargs["num_retries"] = num_retries - 1
+            return update_lambda_with_retries(lambda_client, **kwargs)
+        raise
