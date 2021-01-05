@@ -4,7 +4,7 @@ from sentry import options
 
 from sentry.models import Project, ProjectKey
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils.compat import filter
+from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
@@ -46,6 +46,18 @@ def get_version_of_arn(arn):
     return int(arn.split(":")[-1])
 
 
+def _get_arn_from_layer(layer):
+    # layer could be a string or dict
+    if isinstance(layer, dict):
+        return layer["Arn"]
+    return layer
+
+
+def get_function_layer_arns(function):
+    layers = function.get("Layers", [])
+    return map(_get_arn_from_layer, layers)
+
+
 def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
     runtime = function["Runtime"]
@@ -71,13 +83,8 @@ def get_index_of_sentry_layer(layers, arn_to_match):
     :return: index of layer or -1 if no match
     """
     target_arn_no_version = _get_arn_without_version(arn_to_match)
-    for i, layer in enumerate(layers):
-        # layer could be a string or dict
-        if isinstance(layer, dict):
-            local_arn = layer["Arn"]
-        else:
-            local_arn = layer
-        local_arn_without_version = _get_arn_without_version(local_arn)
+    for i, layer_arn in enumerate(layers):
+        local_arn_without_version = _get_arn_without_version(layer_arn)
         if local_arn_without_version == target_arn_no_version:
             return i
     return -1
@@ -105,7 +112,7 @@ def get_dsn_for_project(organization_id, project_id):
     return enabled_dsn.get_dsn(public=True)
 
 
-def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn):
+def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn, retries_left=3):
     name = function["FunctionName"]
     # update the env variables
     env_variables = function.get("Environment", {}).get("Variables", {})
@@ -116,22 +123,30 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
             "SENTRY_TRACES_SAMPLE_RATE": "1.0",
         }
     )
-
     # find the sentry layer and update it or insert new layer to end
-    layers = function.get("Layers", [])
+    layers = get_function_layer_arns(function)
     sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
     if sentry_layer_index > -1:
         layers[sentry_layer_index] = layer_arn
     else:
         layers.append(layer_arn)
-    return lambda_client.update_function_configuration(
-        FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
-    )
+    try:
+        return lambda_client.update_function_configuration(
+            FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+        )
+    except lambda_client.exceptions.ResourceConflictException:
+        # if we get a ResourceConflictException, we should attempt to retry the operation
+        # until retries_left is 0
+        if retries_left > 0:
+            return enable_single_lambda(
+                lambda_client, function, sentry_project_dsn, layer_arn, retries_left - 1
+            )
+        raise
 
 
 def disable_single_lambda(lambda_client, function, layer_arn):
     name = function["FunctionName"]
-    layers = function.get("Layers", [])
+    layers = get_function_layer_arns(function)
     env_variables = function.get("Environment", {}).get("Variables", {})
 
     # find our sentry layer

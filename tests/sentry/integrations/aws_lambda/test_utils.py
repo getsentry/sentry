@@ -45,9 +45,8 @@ class GetLatestLayerVersionTest(TestCase):
 
 class GetIndexOfSentryLayerTest(TestCase):
     def test_layer_found(self):
-        # should handle layers in two formats
         layers = [
-            {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+            "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
             "arn:aws:lambda:us-east-2:1234:layer:my-layer:1",  # match old version
         ]
         assert (
@@ -55,9 +54,8 @@ class GetIndexOfSentryLayerTest(TestCase):
         )
 
     def test_layer_not_found(self):
-        # should handle layers in two formats
         layers = [
-            {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+            "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
             "arn:aws:lambda:us-east-2:1234:layer:hey-this-is-different:3",
         ]
         assert (

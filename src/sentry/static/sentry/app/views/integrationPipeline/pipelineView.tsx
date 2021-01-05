@@ -1,5 +1,6 @@
 import React from 'react';
 
+import Indicators from 'app/components/indicators';
 import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
 
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
@@ -29,6 +30,7 @@ const PipelineView = (props: Props) => {
   }
   return (
     <ThemeAndStyleProvider>
+      <Indicators className="indicators-container" />
       <Component {...rest} />
     </ThemeAndStyleProvider>
   );
