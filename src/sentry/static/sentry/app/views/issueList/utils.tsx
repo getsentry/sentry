@@ -82,4 +82,5 @@ type QueryCount = {
   count: number;
   hasMore: boolean;
 };
+
 export type QueryCounts = Partial<Record<Query, QueryCount>>;

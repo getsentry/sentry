@@ -29,6 +29,7 @@ type Props = {
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   onTabChange: (query: string) => void;
+  displayReprocessingTab: boolean;
 };
 
 function IssueListHeader({
@@ -42,7 +43,9 @@ function IssueListHeader({
   onRealtimeChange,
   projects,
   router,
+  displayReprocessingTab,
 }: Props) {
+  console.log('displayReprocessingTab', displayReprocessingTab);
   const selectedProjectSlugs = projectIds
     .map(projectId => projects.find(project => project.id === projectId)?.slug)
     .filter(selectedProjectSlug => !!selectedProjectSlug) as Array<string>;
