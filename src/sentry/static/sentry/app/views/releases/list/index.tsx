@@ -323,9 +323,9 @@ class ReleasesList extends AsyncView<Props, State> {
       >
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
-            <StyledPageHeader>
+            <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
-            </StyledPageHeader>
+            </PageHeader>
             <SortAndFilterWrapper>
               <SearchBar
                 placeholder={t('Search')}
@@ -357,11 +357,6 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 }
-
-const StyledPageHeader = styled(PageHeader)`
-  margin-bottom: ${space(1)};
-  min-height: 40px;
-`;
 
 const SortAndFilterWrapper = styled('div')`
   display: grid;
