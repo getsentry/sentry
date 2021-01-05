@@ -47,6 +47,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
@@ -69,7 +70,6 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
       {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
