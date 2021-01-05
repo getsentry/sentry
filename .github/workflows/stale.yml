@@ -1,0 +1,47 @@
+name: 'close stale issues/PRs'
+on:
+  schedule:
+    - cron: '* */6 * * *'
+  workflow_dispatch:
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@87c2b794b9b47a9bec68ae03c01aeb572ffebdb1
+        with:
+          repo-token: ${{ github.token }}
+          days-before-stale: 21
+          days-before-close: 7
+          only-labels: ""
+          operations-per-run: 100
+          remove-stale-when-updated: true
+          debug-only: false
+          ascending: false
+
+          exempt-issue-labels: "Status: Accepted"
+          stale-issue-label: "Status: Stale"
+          stale-issue-message: |-
+            This issue has gone three weeks without activity. In another week, I will close it.
+
+            But! If you comment or otherwise update it, I will reset the clock, and if you label it `Status: Accepted`, I will leave it alone ... forever!
+
+            ----
+
+            "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
+          skip-stale-issue-message: false
+          close-issue-label: ""
+          close-issue-message: ""
+
+          exempt-pr-labels: "Status: Accepted"
+          stale-pr-label: "Status: Stale"
+          stale-pr-message: |-
+            This pull request has gone three weeks without activity. In another week, I will close it.
+
+            But! If you comment or otherwise update it, I will reset the clock, and if you label it `Status: Accepted`, I will leave it alone ... forever!
+
+            ----
+
+            "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
+          skip-stale-pr-message: false
+          close-pr-label:
+          close-pr-message: ""
