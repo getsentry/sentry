@@ -47,6 +47,7 @@ function roundWithFixed(
 }
 
 // in milliseconds
+export const MONTH = 2629800000;
 export const WEEK = 604800000;
 export const DAY = 86400000;
 export const HOUR = 3600000;
@@ -60,6 +61,10 @@ export function getDuration(
 ): string {
   const value = Math.abs(seconds * 1000);
 
+  if (value >= MONTH) {
+    const {label, result} = roundWithFixed(value / MONTH, fixedDigits);
+    return `${label}${abbreviation ? t('mos') : ` ${tn('month', 'months', result)}`}`;
+  }
   if (value >= WEEK) {
     const {label, result} = roundWithFixed(value / WEEK, fixedDigits);
     return `${label}${abbreviation ? t('wk') : ` ${tn('week', 'weeks', result)}`}`;
