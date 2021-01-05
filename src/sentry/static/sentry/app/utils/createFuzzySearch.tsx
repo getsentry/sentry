@@ -13,9 +13,15 @@ export async function createFuzzySearch<
   }
 
   const {default: Fuse} = await loadFuzzySearch();
-
-  return new Fuse(objects, {
+  const opts = {
     ...DEFAULT_FUSE_OPTIONS,
     ...options,
-  });
+  };
+  return new Fuse(objects, opts);
+}
+
+export function isResultWithMatches<T>(
+  maybe: T | Fuse.FuseResultWithMatches<T>
+): maybe is Fuse.FuseResultWithMatches<T> {
+  return (maybe as Fuse.FuseResultWithMatches<T>).matches !== undefined;
 }
