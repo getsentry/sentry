@@ -13,11 +13,12 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import PageHeading from 'app/components/pageHeading';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
+import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -332,10 +333,10 @@ class PerformanceLanding extends React.Component<Props, State> {
         >
           <PageContent>
             <LightWeightNoProjectMessage organization={organization}>
-              <StyledPageHeader>
-                <div>{t('Performance')}</div>
+              <PageHeader>
+                <PageHeading>{t('Performance')}</PageHeading>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
-              </StyledPageHeader>
+              </PageHeader>
               {this.renderError()}
               {showOnboarding ? (
                 <Onboarding organization={organization} />
@@ -389,16 +390,6 @@ class PerformanceLanding extends React.Component<Props, State> {
     );
   }
 }
-
-export const StyledPageHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: ${p => p.theme.headerFontSize};
-  color: ${p => p.theme.textColor};
-  height: 40px;
-  margin-bottom: ${space(1)};
-`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
