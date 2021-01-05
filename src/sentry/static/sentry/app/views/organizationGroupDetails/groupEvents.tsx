@@ -11,7 +11,8 @@ import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import {t} from 'app/locale';
-import {Event, Group} from 'app/types';
+import {Group} from 'app/types';
+import {Event} from 'app/types/event';
 import parseApiError from 'app/utils/parseApiError';
 import withApi from 'app/utils/withApi';
 

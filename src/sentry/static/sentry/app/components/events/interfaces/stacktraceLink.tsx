@@ -6,13 +6,13 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {
-  Event,
   Frame,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';

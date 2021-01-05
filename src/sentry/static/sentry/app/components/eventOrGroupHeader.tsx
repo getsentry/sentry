@@ -9,7 +9,8 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
-import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
+import {Group, GroupTombstone, Level, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 import UnhandledTag, {

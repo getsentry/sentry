@@ -5,7 +5,8 @@ import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
 import FileSize from 'app/components/fileSize';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
-import {AvatarUser, Event, Organization, Tag} from 'app/types';
+import {AvatarUser, Organization, Tag} from 'app/types';
+import {Event} from 'app/types/event';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withOrganization from 'app/utils/withOrganization';
 

@@ -7,7 +7,7 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import Pills from 'app/components/pills';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 import {defined, generateQueryWithTag} from 'app/utils';
 
 import EventTagsPill from './eventTagsPill';
