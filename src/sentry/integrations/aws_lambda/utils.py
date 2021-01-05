@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from sentry import options
 
 from sentry.models import Project, ProjectKey
@@ -75,10 +73,10 @@ def get_index_of_sentry_layer(layers, arn_to_match):
     target_arn_no_version = _get_arn_without_version(arn_to_match)
     for i, layer in enumerate(layers):
         # layer could be a string or dict
-        if isinstance(layer, six.text_type):
-            local_arn = layer
-        else:
+        if isinstance(layer, dict):
             local_arn = layer["Arn"]
+        else:
+            local_arn = layer
         local_arn_without_version = _get_arn_without_version(local_arn)
         if local_arn_without_version == target_arn_no_version:
             return i
