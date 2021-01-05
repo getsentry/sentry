@@ -7,8 +7,8 @@ import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
-import GroupingStore from 'app/stores/groupingStore';
-import {BaseGroup, Group, Organization, Project} from 'app/types';
+import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
+import {Group, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 
 import MergedList from './mergedList';
@@ -24,8 +24,8 @@ type State = {
   query: string;
   loading: boolean;
   error: boolean;
-  mergedItems: Array<BaseGroup>;
-  mergedLinks?: Array<string>;
+  mergedItems: Array<Fingerprint>;
+  mergedLinks?: string;
 };
 
 class GroupMergedView extends React.Component<Props, State> {
@@ -135,7 +135,7 @@ class GroupMergedView extends React.Component<Props, State> {
           <MergedList
             orgId={orgId}
             project={project}
-            items={mergedItems}
+            fingerprints={mergedItems}
             pageLinks={mergedLinks}
             onUnmerge={this.handleUnmerge}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
