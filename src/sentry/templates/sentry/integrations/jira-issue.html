@@ -17,9 +17,6 @@
       .container {
         padding: 30px;
       }
-      .seen-header {
-        font-weight: bold;
-      }
       .seen-grid {
         display: grid;
         grid-template-areas: 'left right';
@@ -50,19 +47,19 @@
       {% else %}
       <div>
         <h2>{{ type }}</h2>
-        <div>{{ title }}</div>
+        <p>{{ title }}</p>
         <br />
         <div>
           <div>
             <span>{% trans "Events last 24 hours:" %}</span>
-            <span>{{ stats_24hr }}</span>
+            <aui-badge>{{ stats_24hr }}</aui-badge>
           </div>
           <div>
             <span>{% trans "Events last 14 days:" %}</span>
-            <span>{{ stats_14d }}</span>
+            <aui-badge>{{ stats_14d }}</aui-badge>
           </div>
           <br />
-          <div class="seen-header">{% trans "First Seen" %}</div>
+          <h4>{% trans "First Seen" %}</h4>
           <div>
             <div class="seen-grid">
               <span class="left-grid">{% trans "Date:" %}</span>
@@ -78,7 +75,7 @@
             {% endif %}
           </div>
           <br />
-          <div class="seen-header">{% trans "Last Seen" %}</div>
+          <h4 >{% trans "Last Seen" %} </h4>
           <div>
             <div class="seen-grid">
               <span class="left-grid">{% trans "Date:" %}</span>
