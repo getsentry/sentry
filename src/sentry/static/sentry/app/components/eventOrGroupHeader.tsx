@@ -28,7 +28,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   hideLevel?: boolean;
   query?: string;
   className?: string;
-} & DefaultProps;
+} & Partial<DefaultProps>;
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
