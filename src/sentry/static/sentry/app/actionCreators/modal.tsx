@@ -57,11 +57,11 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
 
 type OpenDiffModalOptions = {
   targetIssueId: string;
-  targetEventId?: string;
   project: Project;
   baseIssueId: Group['id'];
   orgId: Organization['id'];
   baseEventId?: Event['id'];
+  targetEventId?: string;
 };
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
