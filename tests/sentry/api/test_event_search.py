@@ -1696,8 +1696,8 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
 
     def test_existence_array_field(self):
-        _filter = get_filter("has:stack.filename !has:stack.lineno error.value:''")
-        _filter.conditions == [
+        _filter = get_filter('has:stack.filename !has:stack.lineno error.value:""')
+        assert _filter.conditions == [
             [["notEmpty", ["stack.filename"]], "=", 1],
             [["notEmpty", ["stack.lineno"]], "=", 0],
             [["notEmpty", ["error.value"]], "=", 0],
