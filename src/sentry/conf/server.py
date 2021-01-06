@@ -69,9 +69,6 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
-if IS_DEV:
-    # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
-    sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
 
 MAINTENANCE = False
 
