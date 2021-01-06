@@ -208,13 +208,19 @@ class OrganizationMemberTest(TestCase):
         member = OrganizationMember.objects.create(
             organization=organization, role="member", email="test@example.com",
         )
+        admin = OrganizationMember.objects.create(
+            organization=organization, role="admin", email="admin@example.com",
+        )
 
         assert "alerts:write" in member.get_scopes()
+        assert "alerts:write" in admin.get_scopes()
 
         organization.update_option("sentry:alerts_member_write", True)
 
         assert "alerts:write" in member.get_scopes()
+        assert "alerts:write" in admin.get_scopes()
 
         organization.update_option("sentry:alerts_member_write", False)
 
         assert "alerts:write" not in member.get_scopes()
+        assert "alerts:write" in admin.get_scopes()
