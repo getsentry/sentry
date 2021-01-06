@@ -57,7 +57,7 @@ class GetSentryAppInteractionTest(SentryAppInteractionTest):
 
         url = "%s?since=1569523068&until=1566931068" % self.owned_url
         response = self.client.get(url, format="json")
-        assert response.status_code == 500
+        assert response.status_code == 400
 
 
 class PostSentryAppInteractionTest(SentryAppInteractionTest):
