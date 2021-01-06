@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {IconChevron} from 'app/icons';
 
 type PaginationProps = {
@@ -16,7 +16,7 @@ export default class Pagination extends React.Component<PaginationProps> {
     const {getPreviousPage, getNextPage, previous, next} = this.props;
 
     return (
-      <PaginationButtons className="btn-group">
+      <ButtonBar merged>
         <Button
           className="btn"
           disabled={!previous}
@@ -31,12 +31,7 @@ export default class Pagination extends React.Component<PaginationProps> {
           icon={<IconChevron direction="right" size="xs" />}
           onClick={getNextPage}
         />
-      </PaginationButtons>
+      </ButtonBar>
     );
   }
 }
-
-const PaginationButtons = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-`;

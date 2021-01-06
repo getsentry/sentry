@@ -218,7 +218,6 @@ class IssueListActions extends React.Component<Props, State> {
       case ConfirmAction.RESOLVE:
       case ConfirmAction.UNRESOLVE:
       case ConfirmAction.IGNORE:
-      case ConfirmAction.ACKNOWLEDGE:
       case ConfirmAction.UNBOOKMARK: {
         const {pageSelected} = this.state;
         return pageSelected && selectedItems.size > 1;

@@ -6,7 +6,7 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueList';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   event: Event;

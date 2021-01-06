@@ -144,23 +144,53 @@ SelectPicker.propTypes = {
 };
 
 const StyledSelect = styled(SelectPicker)`
-  font-size: 15px;
-
   .Select-control {
+    background-color: ${p => p.theme.background};
+    color: ${p => p.theme.formText};
     border: 1px solid ${p => p.theme.border};
     height: ${p => p.height}px;
     overflow: visible;
   }
 
-  &.Select.is-focused > .Select-control {
-    border: 1px solid ${p => p.theme.border};
-    border-color: ${p => p.theme.textColor};
-    box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
-  }
+  &.Select {
+    &.has-value {
+      &.is-pseudo-focused.Select--single,
+      &.Select--single {
+        > .Select-control {
+          .Select-value {
+            .Select-value-label {
+              color: ${p => p.theme.formText};
+            }
+          }
+        }
+        &.is-disabled {
+          .Select-control {
+            cursor: not-allowed;
+            background-color: ${p => p.theme.backgroundSecondary};
+            .Select-value {
+              .Select-value-label {
+                color: ${p => p.theme.disabled};
+              }
+            }
+          }
+        }
+      }
+    }
 
-  &.Select.is-focused:not(.is-open) > .Select-control {
-    height: ${p => p.height}px;
-    overflow: visible;
+    &.is-focused {
+      > .Select-control {
+        background: ${p => p.theme.background};
+        border: 1px solid ${p => p.theme.border};
+        box-shadow: rgba(209, 202, 216, 0.5) 0 0 0 3px;
+      }
+
+      &:not(.is-open) {
+        > .Select-control {
+          height: ${p => p.height}px;
+          overflow: visible;
+        }
+      }
+    }
   }
 
   .Select-input {
@@ -168,6 +198,23 @@ const StyledSelect = styled(SelectPicker)`
     input {
       line-height: ${p => p.height}px;
       padding: 0 0;
+    }
+  }
+
+  .Select-option {
+    background: ${p => p.theme.background};
+    color: ${p => p.theme.textColor};
+
+    &.is-focused {
+      color: ${p => p.theme.textColor};
+      background-color: ${p => p.theme.focus};
+    }
+    &.is-selected {
+      background-color: ${p => p.theme.active};
+      color: ${p => p.theme.white};
+    }
+    &.is-focused.is-selected {
+      color: ${p => p.theme.black};
     }
   }
 
@@ -188,10 +235,6 @@ const StyledSelect = styled(SelectPicker)`
     color: ${p => p.theme.disabled};
   }
 
-  .Select-option.is-focused {
-    color: ${p => p.theme.white};
-    background-color: ${p => p.theme.purple300};
-  }
   .Select-multi-value-wrapper {
     > a {
       margin-left: 4px;
@@ -203,6 +246,7 @@ const StyledSelect = styled(SelectPicker)`
   }
 
   .Select-menu-outer {
+    border-color: ${p => p.theme.border};
     z-index: ${p => p.theme.zIndex.dropdown};
   }
 

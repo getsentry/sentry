@@ -6,7 +6,8 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import LazyLoad from 'app/components/lazyLoad';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, EventAttachment, Organization, Project} from 'app/types';
+import {EventAttachment, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   event: Event;

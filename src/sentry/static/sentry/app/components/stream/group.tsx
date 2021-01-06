@@ -42,6 +42,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import {Query} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -133,7 +134,7 @@ class StreamGroup extends React.Component<Props, State> {
   listener = GroupStore.listen(itemIds => this.onGroupChange(itemIds), undefined);
 
   onGroupChange(itemIds: Set<string>) {
-    const {id} = this.props;
+    const {id, query} = this.props;
     if (!itemIds.has(id)) {
       return;
     }
@@ -143,7 +144,7 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        (this.props.query === 'is:needs_review is:unresolved' &&
+        ((query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER) &&
           state.data.inbox?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
@@ -298,6 +299,7 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={isReprocessingQuery ? undefined : this.toggleSelect}
         reviewed={reviewed}
+        hasInbox={hasInbox}
       >
         {canSelect && (
           <GroupCheckBoxWrapper ml={2}>
@@ -484,10 +486,12 @@ class StreamGroup extends React.Component<Props, State> {
 export default withGlobalSelection(withOrganization(StreamGroup));
 
 // Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{reviewed: boolean}>`
+const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
   position: relative;
-  padding: ${space(1)} 0;
+  padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
   line-height: 1.1;
+
+  ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
     p.reviewed &&

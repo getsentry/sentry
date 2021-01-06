@@ -16,7 +16,11 @@ type Props = {
   noTitleStyles?: boolean;
   className?: string;
 
+  // CTA button
   action?: React.ReactNode;
+
+  body?: React.ReactNode;
+
   tabs?: React.ReactNode;
 };
 
@@ -26,10 +30,25 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
   };
 
   render() {
-    const {icon, title, subtitle, action, tabs, noTitleStyles, ...props} = this.props;
+    const {
+      icon,
+      title,
+      subtitle,
+      action,
+      tabs,
+      noTitleStyles,
+      body,
+      ...props
+    } = this.props;
+
+    // If Header is narrow, use align-items to center <Action>.
+    // Otherwise, use a fixed margin to prevent an odd alignment.
+    // This is needed as Actions could be a button or a dropdown.
+    const isNarrow = !subtitle;
+
     return (
       <div {...props}>
-        <TitleAndActions>
+        <TitleAndActions isNarrow={isNarrow}>
           <TitleWrapper>
             {icon && <Icon>{icon}</Icon>}
             {title && (
@@ -39,10 +58,12 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
               </Title>
             )}
           </TitleWrapper>
-          {action && <Action tabs={tabs}>{action}</Action>}
+          {action && <Action isNarrow={isNarrow}>{action}</Action>}
         </TitleAndActions>
 
-        {tabs && <div>{tabs}</div>}
+        {body}
+
+        {tabs}
       </div>
     );
   }
@@ -53,24 +74,17 @@ type TitleProps = {
   tabs?: React.ReactNode;
 };
 
-const TitleAndActions = styled('div')`
+const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
-  align-items: center;
+  align-items: ${p => (p.isNarrow ? 'center' : 'flex-start')};
 `;
 const TitleWrapper = styled('div')`
   flex: 1;
 `;
 
 const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
-  ${p =>
-    !p.styled &&
-    `
-    font-size: 20px;
-    font-weight: bold;`};
-  margin: ${p =>
-    p.tabs
-      ? `${space(4)} ${space(2)} ${space(2)} 0`
-      : `${space(4)} ${space(2)} ${space(4)} 0`};
+  ${p => !p.styled && `font-size: 20px; font-weight: 600;`};
+  margin: ${space(4)} ${space(2)} ${space(4)} 0;
 `;
 const Subtitle = styled('div')`
   color: ${p => p.theme.gray400};
@@ -83,8 +97,8 @@ const Icon = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const Action = styled('div')<{tabs?: React.ReactNode}>`
-  ${p => (p.tabs ? `margin-top: ${space(2)}` : null)};
+const Action = styled('div')<{isNarrow?: boolean}>`
+  margin-top: ${p => (p.isNarrow ? '0' : space(4))};
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<

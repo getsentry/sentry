@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.utils import timezone
 
-from sentry.signals import issue_unignored
+from sentry.signals import issue_unignored, issue_mark_reviewed
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -35,5 +35,12 @@ class SignalsTest(TestCase, SnubaTestCase):
             user=None,
             transition_type="automatic",
             sender="clear_expired_snoozes",
+        )
+        assert mock_record.called
+
+    @patch("sentry.analytics.record")
+    def test_mark_reviewed(self, mock_record):
+        issue_mark_reviewed.send(
+            project=self.project, group=self.group, user=None, sender="test_mark_reviewed"
         )
         assert mock_record.called

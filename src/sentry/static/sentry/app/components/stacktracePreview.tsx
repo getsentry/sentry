@@ -8,8 +8,10 @@ import StacktraceContent from 'app/components/events/interfaces/stacktraceConten
 import Hovercard, {Body} from 'app/components/hovercard';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Organization, PlatformType} from 'app/types';
+import {Organization, PlatformType} from 'app/types';
+import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
@@ -18,6 +20,7 @@ type Props = {
   organization: Organization;
   api: Client;
   theme: Theme;
+  disablePreview?: boolean;
 };
 
 type State = {
@@ -65,6 +68,13 @@ class StacktracePreview extends React.Component<Props, State> {
     }
 
     if (event) {
+      trackAnalyticsEvent({
+        eventKey: 'stacktrace.preview.open',
+        eventName: 'Stack Trace Preview: Open',
+        organization_id: parseInt(this.props.organization.id, 10),
+        issue_id: this.props.issueId,
+      });
+
       return (
         <div onClick={this.handleStacktracePreviewClick}>
           <StacktraceContent
@@ -75,7 +85,7 @@ class StacktracePreview extends React.Component<Props, State> {
             platform={(event.platform ?? 'other') as PlatformType}
             newestFirst={isStacktraceNewestFirst()}
             event={event}
-            hideStacktraceLink
+            isHoverPreviewed
           />
         </div>
       );
@@ -85,11 +95,11 @@ class StacktracePreview extends React.Component<Props, State> {
   }
 
   render() {
-    const {children, organization, theme} = this.props;
+    const {children, organization, theme, disablePreview} = this.props;
     const {stacktrace} =
       this.state.event?.entries.find(e => e.type === 'exception')?.data?.values[0] ?? {};
 
-    if (!organization.features.includes('stacktrace-hover-preview')) {
+    if (!organization.features.includes('stacktrace-hover-preview') || disablePreview) {
       return children;
     }
 
@@ -98,7 +108,7 @@ class StacktracePreview extends React.Component<Props, State> {
         <StyledHovercard
           body={this.renderHovercardBody(stacktrace)}
           hasStacktrace={!!stacktrace}
-          position="right"
+          position="left"
           tipColor={theme.background}
         >
           {children}

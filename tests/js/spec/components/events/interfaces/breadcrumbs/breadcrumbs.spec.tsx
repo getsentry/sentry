@@ -9,6 +9,8 @@ describe('BreadcrumbsInterface', () => {
 
   beforeEach(() => {
     props = {
+      // @ts-ignore Cannot find TestStubs
+      organization: TestStubs.Organization(),
       event: {
         entries: [],
         id: '4',

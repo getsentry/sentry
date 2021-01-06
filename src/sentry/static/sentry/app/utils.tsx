@@ -4,7 +4,8 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import isUndefined from 'lodash/isUndefined';
 
-import {EventTag, Project} from 'app/types';
+import {Project} from 'app/types';
+import {EventTag} from 'app/types/event';
 import {appendTagCondition} from 'app/utils/queryString';
 
 function arrayIsEqual(arr?: any[], other?: any[], deep?: boolean): boolean {

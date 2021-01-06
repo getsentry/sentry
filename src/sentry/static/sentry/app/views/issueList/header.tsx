@@ -13,14 +13,15 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
-import {Query} from './utils';
+import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
+  organization: Organization;
   query: string;
-  queryCount: number;
-  queryMaxCount: number;
+  queryCounts: QueryCounts;
   realtimeActive: boolean;
   orgSlug: Organization['slug'];
   router: InjectedRouter;
@@ -28,20 +29,12 @@ type Props = {
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   onTabChange: (query: string) => void;
-  hasReprocessingV2Feature?: boolean;
 };
 
-const queries = [
-  [Query.NEEDS_REVIEW, t('Needs Review')],
-  [Query.UNRESOLVED, t('Unresolved')],
-  [Query.IGNORED, t('Ignored')],
-  [Query.REPROCESSING, t('Reprocessing')],
-];
-
 function IssueListHeader({
+  organization,
   query,
-  queryCount,
-  queryMaxCount,
+  queryCounts,
   orgSlug,
   projectIds,
   realtimeActive,
@@ -49,7 +42,6 @@ function IssueListHeader({
   onRealtimeChange,
   projects,
   router,
-  hasReprocessingV2Feature,
 }: Props) {
   const selectedProjectSlugs = projectIds
     .map(projectId => projects.find(project => project.id === projectId)?.slug)
@@ -58,9 +50,7 @@ function IssueListHeader({
   const selectedProjectSlug =
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
 
-  const tabs = hasReprocessingV2Feature
-    ? queries
-    : queries.filter(([tabQuery]) => tabQuery !== Query.REPROCESSING);
+  const tabs = getTabs(organization);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -118,12 +108,21 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {tabs.map(([tabQuery, queryName]) => (
+          {tabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}
-                {query === tabQuery && (
-                  <StyledQueryCount count={queryCount} max={queryMaxCount} />
+                {queryCounts[tabQuery] && (
+                  <StyledQueryCount
+                    count={queryCounts[tabQuery].count}
+                    max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                    backgroundColor={
+                      ((tabQuery === Query.NEEDS_REVIEW_OWNER ||
+                        tabQuery === Query.NEEDS_REVIEW) &&
+                        theme.yellow300) ||
+                      theme.gray100
+                    }
+                  />
                 )}
               </a>
             </li>
