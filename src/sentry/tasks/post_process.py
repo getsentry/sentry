@@ -156,9 +156,8 @@ def handle_group_owners(project, group, owners):
                         organization=project.organization,
                     )
                 )
-        with metrics.timer("post_process.handle_group_owners"):
-            if new_group_owners:
-                GroupOwner.objects.bulk_create(new_group_owners)
+        if new_group_owners:
+            GroupOwner.objects.bulk_create(new_group_owners)
 
 
 def update_existing_attachments(event):
