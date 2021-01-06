@@ -1343,6 +1343,7 @@ SENTRY_ROLES = (
                 "member:read",
                 "team:read",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1368,8 +1369,8 @@ SENTRY_ROLES = (
                 "team:write",
                 "team:admin",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1396,8 +1397,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "org:write",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1426,8 +1427,8 @@ SENTRY_ROLES = (
                 "event:read",
                 "event:write",
                 "event:admin",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },

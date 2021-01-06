@@ -17,7 +17,7 @@ from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 
 from sentry import roles
-from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT
+from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT, ALERTS_MEMBER_WRITE_DEFAULT
 from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
@@ -349,11 +349,19 @@ class OrganizationMember(Model):
     def get_scopes(self):
         scopes = roles.get(self.role).scopes
 
-        if self.role == "member" and not self.organization.get_option(
-            "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
-        ):
-            scopes = frozenset(s for s in scopes if s != "event:admin")
+        disabled_scopes = set()
 
+        if self.role == "member":
+            if not self.organization.get_option(
+                "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
+            ):
+                disabled_scopes.add("event:admin")
+            if not self.organization.get_option(
+                "sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT
+            ):
+                disabled_scopes.add("alerts:write")
+
+        scopes = frozenset(s for s in scopes if s not in disabled_scopes)
         return scopes
 
     @classmethod

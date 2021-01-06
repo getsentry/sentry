@@ -265,6 +265,7 @@ class OrganizationUpdateTest(APITestCase):
             "dataScrubberDefaults": True,
             "sensitiveFields": [u"password"],
             "eventsMemberAdmin": False,
+            "alertsMemberWrite": False,
             "safeFields": [u"email"],
             "storeCrashReports": 10,
             "scrubIPAddresses": True,
@@ -326,6 +327,7 @@ class OrganizationUpdateTest(APITestCase):
         assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
         assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
         assert u"to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
+        assert u"to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert u"to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
 
     def test_setting_trusted_relays_forbidden(self):
