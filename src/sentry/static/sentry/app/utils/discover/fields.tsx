@@ -150,7 +150,6 @@ export const AGGREGATIONS = {
     parameters: [],
     outputType: 'date',
     isSortable: true,
-    multiPlotType: 'area',
   },
 
   // Tracing functions.
@@ -303,7 +302,7 @@ export type AggregationKey = keyof typeof AGGREGATIONS | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage'
+  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string'
 >;
 
 export type PlotType = 'line' | 'area';
@@ -333,8 +332,9 @@ export type Aggregation = {
   isSortable: boolean;
   /**
    * How this function should be plotted when shown in a multiseries result (top5)
+   * Optional because some functions cannot be plotted (strings/dates)
    */
-  multiPlotType: PlotType;
+  multiPlotType?: PlotType;
 };
 
 enum FieldKey {

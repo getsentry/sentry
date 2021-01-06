@@ -282,7 +282,6 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [
         {field: 'last_seen()'}, // expect this to be transformed to timestamp
-        {field: 'latest_event()'},
         {field: 'title'},
         {field: 'avg(transaction.duration)'}, // expect this to be dropped
         {field: 'p50()'},
