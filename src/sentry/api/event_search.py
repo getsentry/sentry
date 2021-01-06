@@ -2701,7 +2701,7 @@ def resolve_field_list(
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
 
     orderby = snuba_filter.orderby
-    # Only sort if there's columns, when there's only aggregates there's no need to sort
+    # Only sort if there are columns. When there are only aggregates there's no need to sort
     if orderby and len(columns) > 0:
         orderby = resolve_orderby(orderby, columns, aggregations)
     else:
