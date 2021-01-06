@@ -1,6 +1,7 @@
 {% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block wrapperclass %}narrow{% endblock %}
 {% block title %}{% trans "Setup Error" %} | {{ block.super }}{% endblock %}
@@ -19,6 +20,7 @@
 
 {% block scripts_bottom %}
   {{ block.super }}
+  {% script %}
   <script>
   // Integrations often use dialog windows for the pipeline flow. If this is a
   // dialog window, resize it to nicely fit the error modal.
@@ -29,4 +31,5 @@
     window.moveTo(window.screenX, newHeight / 2 + window.screenY);
   }
   </script>
+  {% endscript %}
 {% endblock %}

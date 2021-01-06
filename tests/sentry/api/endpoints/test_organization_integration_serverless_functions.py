@@ -107,7 +107,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     "FunctionName": "lambdaD",
                     "Runtime": "nodejs10.x",
                     "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaD",
-                    "Layers": [{"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"}],
+                    "Layers": ["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
                 },
             }
         )
@@ -128,7 +128,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         mock_client.update_function_configuration.assert_called_with(
             FunctionName="lambdaD",
             Layers=[
-                {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
                 "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
             ],
             Environment={
@@ -183,7 +183,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
 
         mock_client.update_function_configuration.assert_called_with(
             FunctionName="lambdaD",
-            Layers=[{"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"}],
+            Layers=["arn:aws:lambda:us-east-2:1234:layer:something-else:2"],
             Environment={"Variables": {"OTHER": "hi"}},
         )
 
@@ -231,7 +231,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         mock_client.update_function_configuration.assert_called_with(
             FunctionName="lambdaD",
             Layers=[
-                {"Arn": "arn:aws:lambda:us-east-2:1234:layer:something-else:2"},
+                "arn:aws:lambda:us-east-2:1234:layer:something-else:2",
                 "arn:aws:lambda:us-east-2:1234:layer:my-layer:3",
             ],
         )

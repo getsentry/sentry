@@ -1,3 +1,5 @@
+{% load sentry_assets %}
+
 <div style="padding: 20px; border-bottom: 1px solid #ddd; background: #fff; margin-bottom: 20px;">
   <div style="width: 500; margin: 0 auto">
     {% if preview.subject %}<h1>{{ preview.subject }}</h1>{% endif %}
@@ -63,7 +65,8 @@
   </div>
 </div>
 
-<script type="text/javascript">
+{% script type="text/javascript" %}
+<script>
 function selectEmail(e) {
   var value = e.target.value;
   window.location.href = '/debug/' + value;
@@ -80,6 +83,7 @@ eventSelect.addEventListener('change', selectEmail);
 var formatSelect = document.getElementById('format');
 formatSelect.addEventListener('change', selectFormat);
 </script>
+{% endscript %}
 
 <div id="preview">
   {% if format == 'txt' %}
