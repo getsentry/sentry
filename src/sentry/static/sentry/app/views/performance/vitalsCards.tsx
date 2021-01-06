@@ -37,6 +37,7 @@ type Props = {
   location: Location;
   showVitalPercentNames?: boolean;
   showDurationDetail?: boolean;
+  showEmptyState?: boolean;
   hasCondensedVitals?: boolean;
   projects: Project[];
 };
@@ -206,7 +207,7 @@ function getColorStopsFromPercents(percents: Percent[]) {
 }
 
 export function VitalsCard(props: CardProps) {
-  const {isLoading, tableData, vitalName, noBorder, hideBar} = props;
+  const {isLoading, tableData, vitalName, noBorder, hideBar, hideEmptyState} = props;
 
   const measurement = vitalMap[vitalName];
 
@@ -216,6 +217,7 @@ export function VitalsCard(props: CardProps) {
         noBorder={noBorder}
         measurement={measurement}
         titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
+        hideEmptyState={hideEmptyState}
       />
     );
   }
@@ -229,6 +231,7 @@ export function VitalsCard(props: CardProps) {
         noBorder={noBorder}
         measurement={measurement}
         titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
+        hideEmptyState={hideEmptyState}
       />
     );
   }
@@ -253,6 +256,7 @@ export function VitalsCard(props: CardProps) {
 }
 
 type CondensedCardProps = Props & {
+  hideEmptyState: boolean;
   tableData: any;
   isLoading?: boolean;
   condensedVitals: WebVital[];
@@ -354,10 +358,15 @@ type BlankCardProps = {
   noBorder?: boolean;
   measurement?: string;
   titleDescription?: string;
+  hideEmptyState?: boolean;
 };
 
 const BlankCard = (props: BlankCardProps) => {
   const Container = props.noBorder ? NonPanel : VitalCard;
+
+  if (props.hideEmptyState) {
+    return null;
+  }
 
   return (
     <Container interactive>
