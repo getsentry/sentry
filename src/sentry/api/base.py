@@ -375,11 +375,14 @@ class EnvironmentMixin(object):
 
 class StatsMixin(object):
     def _parse_args(self, request, environment_id=None):
-        resolution = request.GET.get("resolution")
-        if resolution:
-            resolution = self._parse_resolution(resolution)
-            if resolution not in tsdb.get_rollups():
-                raise ParseError(detail="Invalid resolution")
+        try:
+            resolution = request.GET.get("resolution")
+            if resolution:
+                resolution = self._parse_resolution(resolution)
+                if resolution not in tsdb.get_rollups():
+                    raise ValueError
+        except ValueError:
+            raise ParseError(detail="Invalid resolution")
 
         try:
             end = request.GET.get("until")
@@ -394,11 +397,13 @@ class StatsMixin(object):
             start = request.GET.get("since")
             if start:
                 start = to_datetime(float(start))
-                assert start <= end, "start must be before or equal to end"
+                assert start <= end
             else:
                 start = end - timedelta(days=1, seconds=-1)
         except ValueError:
             raise ParseError(detail="since must be a numeric timestamp")
+        except AssertionError:
+            raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
             resolution = tsdb.get_optimal_rollup(start, end)
