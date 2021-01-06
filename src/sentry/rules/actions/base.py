@@ -211,6 +211,8 @@ def create_issue(event, futures):
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
+    form_cls = IntegrationNotifyServiceForm
+
     def __init__(self, *args, **kwargs):
         super(IntegrationEventAction, self).__init__(*args, **kwargs)
         integration_choices = [
