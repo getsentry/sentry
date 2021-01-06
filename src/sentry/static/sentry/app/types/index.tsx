@@ -152,6 +152,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   attachmentsRole: string;
   debugFilesRole: string;
   eventsMemberAdmin: boolean;
+  alertsMemberWrite: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
