@@ -30,12 +30,8 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       getLabel(a).toLowerCase() < getLabel(b).toLowerCase() ? -1 : 1
     );
   }
-  handlePreSubmit = () => {
-    addLoadingMessage(t('Submitting\u2026'));
-  };
-  handleSubmitError = () => {
-    addErrorMessage(t('Unexpected error ocurred!'));
-  };
+  handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
+  handleSubmitError = () => addErrorMessage(t('Unexpected error ocurred!'));
   render = () => {
     const model = this.model;
     const formFields: JsonFormObject = {
