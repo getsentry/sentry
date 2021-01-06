@@ -160,6 +160,7 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             results,
+            error: false,
             loading: completed === promises.length ? false : true,
           };
         });
