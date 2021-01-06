@@ -2337,7 +2337,6 @@ describe('EventView.getYAxisOptions()', function () {
         'ignored-field',
         'count_unique(issue)',
         'last_seen()',
-        'latest_event()',
         'min(time)',
         'max(timestamp)',
       ]),
@@ -2369,12 +2368,7 @@ describe('EventView.getYAxis()', function () {
   it('should return valid yAxis', function () {
     const thisEventView = new EventView({
       ...state,
-      fields: generateFields([
-        'ignored-field',
-        'count_unique(user)',
-        'last_seen',
-        'latest_event',
-      ]),
+      fields: generateFields(['ignored-field', 'count_unique(user)', 'last_seen']),
       yAxis: 'count_unique(user)',
     });
 

@@ -151,11 +151,6 @@ export const AGGREGATIONS = {
     outputType: 'date',
     isSortable: true,
   },
-  latest_event: {
-    parameters: [],
-    outputType: 'string',
-    isSortable: true,
-  },
 
   // Tracing functions.
   p50: {
