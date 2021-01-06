@@ -233,6 +233,9 @@ class TicketEventAction(IntegrationEventAction):
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
 
+    def render_label(self):
+        return self.label.format(integration=self.get_integration_name())
+
     def get_dynamic_form_fields(self):
         """
         Either get the dynamic form fields cached on the DB return `None`.
