@@ -33,11 +33,11 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_groupinbox_date_added
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_groupinbox_date_added_f113c11b
                     ON sentry_groupinbox (date_added);
                     """,
                     reverse_sql="""
-                    DROP INDEX CONCURRENTLY IF EXISTS sentry_groupinbox_date_added;
+                    DROP INDEX CONCURRENTLY IF EXISTS sentry_groupinbox_date_added_f113c11b;
                     """,
                 ),
             ],
