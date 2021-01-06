@@ -206,7 +206,7 @@ const StyledSelect = styled(SelectPicker)`
     color: ${p => p.theme.textColor};
 
     &.is-focused {
-      color: ${p => p.theme.black};
+      color: ${p => p.theme.textColor};
       background-color: ${p => p.theme.focus};
     }
     &.is-selected {
@@ -246,6 +246,7 @@ const StyledSelect = styled(SelectPicker)`
   }
 
   .Select-menu-outer {
+    border-color: ${p => p.theme.border};
     z-index: ${p => p.theme.zIndex.dropdown};
   }
 
