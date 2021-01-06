@@ -2160,13 +2160,31 @@ FUNCTIONS = {
                 DurationColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 ConditionArg("condition"),
-                DateArg("boundary"),
+                DateArg("middle"),
             ],
             aggregate=[
                 u"quantileIf({percentile:.2f})",
                 [
                     ArgValue("column"),
-                    [ArgValue("condition"), [["toDateTime", [ArgValue("boundary")]], "timestamp"]],
+                    # NOTE: This condition is written in this seemingly backwards way
+                    # because of how snuba special cases the following syntax
+                    # ["a", ["b", ["c", ["d"]]]
+                    #
+                    # This array is can be interpreted 2 ways
+                    # 1. a(b(c(d))) the way snuba interprets it
+                    #   - snuba special cases it when it detects an array where the first
+                    #     element is a literal, and the second element is an array and
+                    #     treats it as a function call rather than 2 separate arguments
+                    # 2. a(b, c(d)) the way we want it to be interpreted
+                    #
+                    # Because of how snuba interprets this expression, it makes it impossible
+                    # to specify a function with 2 arguments whose first argument is a literal
+                    # and the second argument is an expression.
+                    #
+                    # Working with this limitation, we have to invert the conditions in
+                    # order to express a function whose first argument is an expression while
+                    # the second argument is a literal.
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
                 None,
             ],
@@ -2177,13 +2195,14 @@ FUNCTIONS = {
             required_args=[
                 DurationColumnNoLookup("column"),
                 ConditionArg("condition"),
-                DateArg("boundary"),
+                DateArg("middle"),
             ],
             aggregate=[
                 u"avgIf",
                 [
                     ArgValue("column"),
-                    [ArgValue("condition"), [["toDateTime", [ArgValue("boundary")]], "timestamp"]],
+                    # see `percentile_range` for why this condition feels backwards
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
                 None,
             ],
@@ -2194,13 +2213,14 @@ FUNCTIONS = {
             required_args=[
                 DurationColumnNoLookup("column"),
                 ConditionArg("condition"),
-                DateArg("boundary"),
+                DateArg("middle"),
             ],
             aggregate=[
                 u"varSampIf",
                 [
                     ArgValue("column"),
-                    [ArgValue("condition"), [["toDateTime", [ArgValue("boundary")]], "timestamp"]],
+                    # see `percentile_range` for why this condition feels backwards
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
                 None,
             ],
@@ -2208,10 +2228,11 @@ FUNCTIONS = {
         ),
         Function(
             "count_range",
-            required_args=[ConditionArg("condition"), DateArg("boundary")],
+            required_args=[ConditionArg("condition"), DateArg("middle")],
             aggregate=[
                 u"countIf",
-                [[ArgValue("condition"), [["toDateTime", [ArgValue("boundary")]], "timestamp"]]],
+                # see `percentile_range` for why this condition feels backwards
+                [[ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]]],
                 None,
             ],
             default_result_type="integer",

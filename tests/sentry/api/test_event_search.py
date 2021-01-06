@@ -2550,12 +2550,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "boundary argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "boundary argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_average_range(self):
         fields = ["avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1"]
@@ -2574,12 +2574,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "boundary argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "boundary argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
