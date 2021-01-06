@@ -6,7 +6,7 @@ from sentry.utils.compat import mock
 import zlib
 import pytest
 
-from sentry.cache.redis import RedisClusterCache
+from sentry.cache.redis import RedisClusterCache, RbCache
 from sentry.utils.imports import import_string
 
 
@@ -26,14 +26,32 @@ def mock_client():
     return FakeClient()
 
 
-@pytest.fixture()
-def mocked_attachment_cache(mock_client):
-    with mock.patch(
-        "sentry.utils.redis.redis_clusters.get", return_value=mock_client
-    ) as cluster_get:
-        attachment_cache = import_string("sentry.attachments.redis.RedisClusterAttachmentCache")()
-        cluster_get.assert_any_call("rc-short")
-        assert isinstance(attachment_cache.inner, RedisClusterCache)
+@pytest.fixture(params=["rb", "rediscluster"])
+def mocked_attachment_cache(request, mock_client):
+    class RbCluster(object):
+        def get_routing_client(self):
+            return mock_client
+
+    if request.param == "rb":
+        with mock.patch(
+            "sentry.cache.redis.get_cluster_from_options", return_value=(RbCluster(), {})
+        ) as cluster_get:
+            attachment_cache = import_string("sentry.attachments.redis.RbAttachmentCache")(hosts=[])
+            cluster_get.assert_any_call("SENTRY_CACHE_OPTIONS", {"hosts": []})
+            assert isinstance(attachment_cache.inner, RbCache)
+
+    elif request.param == "rediscluster":
+        with mock.patch(
+            "sentry.utils.redis.redis_clusters.get", return_value=mock_client
+        ) as cluster_get:
+            attachment_cache = import_string(
+                "sentry.attachments.redis.RedisClusterAttachmentCache"
+            )()
+            cluster_get.assert_any_call("rc-short")
+            assert isinstance(attachment_cache.inner, RedisClusterCache)
+
+    else:
+        assert False
 
     assert attachment_cache.inner.client is mock_client
     yield attachment_cache

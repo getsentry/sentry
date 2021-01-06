@@ -318,7 +318,7 @@ def initialize_app(config, skip_service_validation=False):
 
     for key in settings.CACHES:
         if not hasattr(settings.CACHES[key], "VERSION"):
-            settings.CACHES[key]["VERSION"] = settings.CACHE_VERSION
+            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
