@@ -99,4 +99,4 @@ class JiraIssueHookTest(APITestCase):
         path = absolute_uri(u"extensions/jira/issue/{}/".format("bad-key")) + "?xdm_e=base_url"
         response = self.client.get(path)
         assert response.status_code == 200
-        assert b"Issue not linked in Sentry" in response.content
+        assert b"This Sentry issue is not linked to a Jira issue" in response.content
