@@ -65,8 +65,7 @@ jobs:
 
       - name: Set up development environment (as per docs)
         run: |
-          python -m pip install virtualenv
-          python -m virtualenv .venv
+          python -m venv .venv
           source .venv/bin/activate
           make install-py-dev
           make setup-git
