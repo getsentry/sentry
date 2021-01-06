@@ -45,7 +45,6 @@ function IssueListHeader({
   router,
   displayReprocessingTab,
 }: Props) {
-  console.log('displayReprocessingTab', displayReprocessingTab);
   const selectedProjectSlugs = projectIds
     .map(projectId => projects.find(project => project.id === projectId)?.slug)
     .filter(selectedProjectSlug => !!selectedProjectSlug) as Array<string>;
@@ -54,6 +53,10 @@ function IssueListHeader({
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
 
   const tabs = getTabs(organization);
+
+  const visibleTabs = displayReprocessingTab
+    ? tabs
+    : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -111,7 +114,7 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {tabs.map(([tabQuery, {name: queryName}]) => (
+          {visibleTabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <a onClick={() => onTabChange(tabQuery)}>
                 {queryName}{' '}

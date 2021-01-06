@@ -429,13 +429,10 @@ class IssueListOverview extends React.Component<Props, State> {
         // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
         queryCounts = {
           ...queryCounts,
-          ...mapValues(response, (count: number | null) => {
-            const queryCount = count ?? 0;
-            return {
-              count: queryCount,
-              hasMore: queryCount > TAB_MAX_COUNT,
-            };
-          }),
+          ...mapValues(response, (count: number) => ({
+            count,
+            hasMore: count > TAB_MAX_COUNT,
+          })),
         };
       } catch (e) {
         this.setState({
@@ -733,21 +730,24 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  displayReprocessing() {
+  displayReprocessingTab() {
     const {organization} = this.props;
     const {queryCounts} = this.state;
 
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
+    return (
+      organization.features.includes('reprocessing-v2') &&
+      !!queryCounts?.[Query.REPROCESSING]?.count
+    );
+  }
 
-    return hasReprocessingV2Feature && !!queryCounts[Query.REPROCESSING]?.count;
+  displayReprocessingLayout(showReprocessingTab: boolean, query: string) {
+    return showReprocessingTab && query === Query.REPROCESSING;
   }
 
   renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
-    const displayReprocessing =
-      this.displayReprocessing() && query === Query.REPROCESSING;
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -757,6 +757,12 @@ class IssueListOverview extends React.Component<Props, State> {
         members = memberList[group.project.slug];
       }
 
+      const showReprocessingTab = this.displayReprocessingTab();
+      const displayReprocessingLayout = this.displayReprocessingLayout(
+        showReprocessingTab,
+        query
+      );
+
       return (
         <StreamGroup
           key={id}
@@ -765,7 +771,7 @@ class IssueListOverview extends React.Component<Props, State> {
           query={query}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
-          displayReprocessingLayout={displayReprocessing}
+          displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
         />
       );
@@ -890,7 +896,12 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;
-    const displayReprocessing = this.displayReprocessing();
+
+    const showReprocessingTab = this.displayReprocessingTab();
+    const displayReprocessingActions = this.displayReprocessingLayout(
+      showReprocessingTab,
+      query
+    );
 
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
@@ -907,7 +918,7 @@ class IssueListOverview extends React.Component<Props, State> {
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
-                displayReprocessingTab={displayReprocessing}
+                displayReprocessingTab={showReprocessingTab}
               />
             )}
             <StyledPageContent isInbox={hasFeature}>
@@ -945,9 +956,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     groupIds={groupIds}
                     allResultsVisible={this.allResultsVisible()}
                     hasInbox={hasFeature}
-                    displayReprocessingActions={
-                      displayReprocessing && query === Query.REPROCESSING
-                    }
+                    displayReprocessingActions={displayReprocessingActions}
                   />
                   <PanelBody>
                     <ProcessingIssueList

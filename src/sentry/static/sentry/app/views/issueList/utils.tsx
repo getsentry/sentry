@@ -58,7 +58,7 @@ export function getTabs(organization: Organization) {
       Query.REPROCESSING,
       {
         name: t('Reprocessing'),
-        count: false,
+        count: true,
         enabled: organization.features.includes('reprocessing-v2'),
       },
     ],
