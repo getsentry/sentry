@@ -1,4 +1,6 @@
 import React from 'react';
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import {EChartOption} from 'echarts/lib/echarts';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 
@@ -6,11 +8,60 @@ import {updateDateTime} from 'app/actionCreators/globalSelection';
 import DataZoomInside from 'app/components/charts/components/dataZoomInside';
 import ToolBox from 'app/components/charts/components/toolBox';
 import SentryTypes from 'app/sentryTypes';
+import {DateString} from 'app/types';
+import {
+  EChartChartReadyHandler,
+  EChartDataZoomHandler,
+  EChartFinishedHandler,
+  EChartRestoreHandler,
+} from 'app/types/echarts';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
+
+type Period = {
+  period: string;
+  start: DateString;
+  end: DateString;
+};
+
+const ZoomPropKeys = [
+  'period',
+  'xAxis',
+  'onChartReady',
+  'onDataZoom',
+  'onRestore',
+  'onFinished',
+] as const;
+
+export type ZoomRenderProps = Pick<Props, typeof ZoomPropKeys[number]> & {
+  utc?: boolean;
+  start?: Date;
+  end?: Date;
+  isGroupedByDate?: boolean;
+  showTimeInTooltip?: boolean;
+  dataZoom?: EChartOption.DataZoom[];
+  toolBox?: EChartOption['toolbox'];
+};
+
+type Props = {
+  router?: WithRouterProps['router'];
+  children: (props: ZoomRenderProps) => React.ReactNode;
+  disabled?: boolean;
+  xAxis?: EChartOption.XAxis;
+  xAxisIndex?: number | number[];
+  start?: DateString;
+  end?: DateString;
+  period?: string;
+  utc?: boolean | null;
+  onChartReady?: EChartChartReadyHandler;
+  onDataZoom?: EChartDataZoomHandler;
+  onFinished?: EChartFinishedHandler;
+  onRestore?: EChartRestoreHandler;
+  onZoom?: (Period) => void;
+};
 
 /**
  * This is a very opinionated component that takes a render prop through `children`. It
@@ -20,7 +71,7 @@ const getDate = date =>
  * This also is very tightly coupled with the Global Selection Header. We can make it more
  * generic if need be in the future.
  */
-class ChartZoom extends React.Component {
+class ChartZoom extends React.Component<Props> {
   static propTypes = {
     router: PropTypes.object,
     period: PropTypes.string,
@@ -65,6 +116,10 @@ class ChartZoom extends React.Component {
     this.saveCurrentPeriod(this.props);
   }
 
+  history: Period[];
+  currentPeriod?: Period;
+  zooming: (() => void) | null = null;
+
   /**
    * Save current period state from period in props to be used
    * in handling chart's zoom history state
@@ -86,14 +141,14 @@ class ChartZoom extends React.Component {
    *
    * Saves a callback function to be called after chart animation is completed
    */
-  setPeriod = ({period, start, end}, saveHistory) => {
+  setPeriod = ({period, start, end}, saveHistory = false) => {
     const {router, onZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
     // Save period so that we can revert back to it when using echarts "back" navigation
     if (saveHistory) {
-      this.history.push(this.currentPeriod);
+      this.history.push(this.currentPeriod!);
     }
 
     // Callback to let parent component know zoom has changed
@@ -198,11 +253,14 @@ class ChartZoom extends React.Component {
 
   render() {
     const {
-      utc,
+      utc: _utc,
+      start: _start,
+      end: _end,
       disabled,
       children,
       xAxisIndex,
 
+      router: _router,
       onZoom: _onZoom,
       onRestore: _onRestore,
       onChartReady: _onChartReady,
@@ -211,16 +269,26 @@ class ChartZoom extends React.Component {
       ...props
     } = this.props;
 
+    const utc = _utc ?? undefined;
+    const start = _start ? getUtcToLocalDateObject(_start) : undefined;
+    const end = _end ? getUtcToLocalDateObject(_end) : undefined;
+
     if (disabled) {
-      return children(props);
+      return children({
+        utc,
+        start,
+        end,
+        ...props,
+      });
     }
 
-    // TODO(mark) Update consumers of DataZoom when typing this.
     const renderProps = {
       // Zooming only works when grouped by date
       isGroupedByDate: true,
       onChartReady: this.handleChartReady,
       utc,
+      start,
+      end,
       dataZoom: DataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: ToolBox(
@@ -240,8 +308,8 @@ class ChartZoom extends React.Component {
         }
       ),
       onDataZoom: this.handleDataZoom,
-      onRestore: this.handleZoomRestore,
       onFinished: this.handleChartFinished,
+      onRestore: this.handleZoomRestore,
       ...props,
     };
 

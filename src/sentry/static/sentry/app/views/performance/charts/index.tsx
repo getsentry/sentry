@@ -113,8 +113,6 @@ class Container extends React.Component<Props> {
                         router={router}
                         statsPeriod={globalSelection.datetime.period}
                         utc={utc === 'true'}
-                        projects={globalSelection.projects}
-                        environments={globalSelection.environments}
                       />
                     ),
                     fixed: 'apdex and throughput charts',

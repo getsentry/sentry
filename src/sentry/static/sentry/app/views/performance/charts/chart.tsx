@@ -15,8 +15,6 @@ type Props = {
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
   utc: boolean;
-  projects: number[];
-  environments: string[];
   loading: boolean;
 };
 
@@ -50,7 +48,7 @@ function computeAxisMax(data) {
 
 class Chart extends React.Component<Props> {
   render() {
-    const {data, router, statsPeriod, utc, projects, environments, loading} = this.props;
+    const {data, router, statsPeriod, utc, loading} = this.props;
 
     if (!data || data.length <= 0) {
       return null;
@@ -142,14 +140,7 @@ class Chart extends React.Component<Props> {
     }));
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        utc={utc}
-        projects={projects}
-        environments={environments}
-        xAxisIndex={[0, 1]}
-      >
+      <ChartZoom router={router} period={statsPeriod} utc={utc} xAxisIndex={[0, 1]}>
         {zoomRenderProps => (
           <AreaChart {...zoomRenderProps} series={series} {...areaChartProps} />
         )}
