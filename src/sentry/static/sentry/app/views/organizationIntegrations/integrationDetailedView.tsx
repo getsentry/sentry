@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
@@ -11,7 +10,6 @@ import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
-import {sortArray} from 'app/utils';
 import {getReauthAlertText, isSlackWorkspaceApp} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -115,15 +113,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   onInstall = (integration: Integration) => {
-    // Merge the new integration into the list. If we're updating an
-    // integration overwrite the old integration.
-    const keyedItems = keyBy(this.state.configurations, i => i.id);
-
-    const configurations = sortArray(
-      Object.values({...keyedItems, [integration.id]: integration}),
-      i => i.name
+    // send the user to the configure integration view for that integration
+    const {orgId} = this.props.params;
+    this.props.router.push(
+      `/settings/${orgId}/integrations/${integration.provider.key}/${integration.id}/`
     );
-    this.setState({configurations});
   };
 
   onRemove = (integration: Integration) => {

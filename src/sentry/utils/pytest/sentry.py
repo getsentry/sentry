@@ -195,12 +195,14 @@ def register_extensions():
         ExampleRepositoryProvider,
         ServerExampleProvider,
         FeatureFlagIntegration,
+        AlertRuleIntegrationProvider,
     )
 
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
     integrations.register(ServerExampleProvider)
     integrations.register(FeatureFlagIntegration)
+    integrations.register(AlertRuleIntegrationProvider)
 
     from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
