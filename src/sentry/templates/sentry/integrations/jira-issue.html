@@ -27,7 +27,6 @@
         <p>{{ error_message }}</p>
       </div>
 
-
       {% elif refresh_required %}
       <div class="aui-message aui-message-info">
         <h2>Error</h2>
@@ -36,17 +35,12 @@
         </p>
       </div>
 
-
-
       {% elif issue_not_linked %}
       <div class="aui-message aui-message-info">
         <h2>Issue not linked</h2>
-        <p>
-          {% trans "This Sentry issue is not linked to a Jira issue" %}
-        </p>
+        <p>{% trans "This Sentry issue is not linked to a Jira issue" %}</p>
       </div>
       {% else %}
-
 
       <div>
         <h2>{{ type }}</h2>
@@ -69,7 +63,7 @@
       <!-- FIRST SEEN GROUP -->
       <div class="aui-group">
         <div class="aui-item">
-          <h4 id="simple-tooltip" title="When the first event in this issue was captured">{% trans "First Seen" %}</h4>
+          <h4>{% trans "First Seen" %}</h4>
         </div>
       </div>
 
@@ -88,7 +82,9 @@
           <span class="left-grid">{% trans "Release:" %}</span>
         </div>
         <div class="aui-item">
-          <span class="right-grid"><a href="{{ first_release_url}}">{{first_release}}</a></span>
+          <span class="right-grid"
+            ><a href="{{ first_release_url}}">{{first_release}}</a></span
+          >
         </div>
       </div>
       {% endif %}
@@ -96,7 +92,7 @@
       <!-- LAST SEEN GROUP -->
       <div class="aui-group">
         <div class="aui-item">
-          <h4 id="simple-tooltip" title="When the most recent event in this issue was captured">{% trans "Last Seen" %} </h4>
+          <h4>{% trans "Last Seen" %}</h4>
         </div>
       </div>
 
@@ -115,9 +111,12 @@
           <span class="left-grid">{% trans "Release:" %}</span>
         </div>
         <div class="aui-item">
-          <span class="right-grid"><a href="{{ last_release_url}}">{{last_release}}</a></span>
+          <span class="right-grid"
+            ><a href="{{ last_release_url}}">{{last_release}}</a></span
+          >
         </div>
       </div>
-      {% endif %}
-      {% endif %}
+      {% endif %} {% endif %}
     </div>
+  </body>
+</html>
