@@ -933,6 +933,8 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
+    # Add `owner:me_or_none` to inbox tab query
+    "organizations:inbox-owners-query": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
