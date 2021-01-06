@@ -139,7 +139,12 @@ def owner_filter(owner, projects):
             .values_list("group_id", flat=True)
             .distinct()
         ) | assigned_to_filter(owner, projects)
-    elif isinstance(owner, User):
+    elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
+        include_none = False
+        if isinstance(owner, list) and owner[0] == "me_or_none":
+            include_none = True
+            owner = owner[1]
+
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
@@ -148,58 +153,28 @@ def owner_filter(owner, projects):
                 is_active=True,
             ).values("team")
         )
-        owned_by_me = GroupOwner.objects.filter(
-            project_id__in=project_ids, organization_id=organization_id
-        ).filter(Q(team__in=teams) | Q(user=owner))
-        ids_assigned_to_someone_else = (
-            GroupAssignee.objects.filter(
+        owned_by_me = Q(
+            id__in=GroupOwner.objects.filter(
+                Q(user_id=owner.id) | Q(team__in=teams),
+                Q(group__assignee_set__isnull=True),
                 project_id__in=[p.id for p in projects],
-                group_id__in=owned_by_me.values_list("group_id", flat=True).distinct(),
+                organization_id=organization_id,
             )
-            .exclude(user=owner)
             .values_list("group_id", flat=True)
             .distinct()
         )
-        owned_by_me_and_not_assigned = owned_by_me.exclude(
-            group_id__in=ids_assigned_to_someone_else
-        )
-        return Q(
-            id__in=owned_by_me_and_not_assigned.values_list("group_id", flat=True).distinct()
-        ) | assigned_to_filter(owner, projects)
-    elif isinstance(owner, list) and owner[0] == "me_or_none":
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember__in=OrganizationMember.objects.filter(
-                    user=owner[1], organization_id=organization_id
-                ),
-                is_active=True,
-            ).values("team")
-        )
-        owned_by_me = GroupOwner.objects.filter(
-            Q(user_id=owner[1].id) | Q(team__in=teams),
-            project_id__in=[p.id for p in projects],
-            organization_id=organization_id,
-        )
-        ids_assigned_to_someone_else = (
-            GroupAssignee.objects.filter(
-                project_id__in=[p.id for p in projects],
-                group_id__in=owned_by_me.values_list("group_id", flat=True).distinct(),
+
+        owner_query = owned_by_me | assigned_to_filter(owner, projects)
+
+        if include_none:
+            no_owner = unassigned_filter(True, projects) & ~Q(
+                id__in=GroupOwner.objects.filter(
+                    project_id__in=[p.id for p in projects]
+                ).values_list("group_id", flat=True)
             )
-            .exclude(user=owner[1])
-            .values_list("group_id", flat=True)
-            .distinct()
-        )
-        owned_by_me_and_not_assigned = Q(
-            id__in=owned_by_me.exclude(group_id__in=ids_assigned_to_someone_else)
-            .values_list("group_id", flat=True)
-            .distinct()
-        )
-        no_owner = unassigned_filter(True, projects) & ~Q(
-            id__in=GroupOwner.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-                "group_id", flat=True
-            )
-        )
-        return no_owner | owned_by_me_and_not_assigned | assigned_to_filter(owner[1], projects)
+            return no_owner | owner_query
+        else:
+            return owner_query
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
 
