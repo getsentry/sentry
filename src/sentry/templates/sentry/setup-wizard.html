@@ -9,9 +9,11 @@
 
 {% block auth_main %}
   <div id="setup-wizard-container"></div>
+  {% script %}
   <script>
     ReactDOM.render(React.createElement(SentryApp.SetupWizard, {
       hash: {{ hash|to_json|safe }}
     }), document.getElementById('setup-wizard-container'));
   </script>
+  {% endscript %}
 {% endblock %}

@@ -1,9 +1,10 @@
+{% load sentry_assets %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="{{ ac_js_src }}"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-  <script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js"></script>
+  {% script src=ac_js_src %}{% endscript %}
+  {% script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js" %}{% endscript %}
+  {% script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js" %}{% endscript %}
   <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/6.0.9/css/aui.min.css" media="all">
   <style>
     :root {

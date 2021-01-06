@@ -1,5 +1,8 @@
 {% load sentry_helpers %}
+{% load sentry_assets %}
+
 <div id="blk_alerts" class="messages-container"></div>
+{% script %}
 <script>
 $(function(){
   ReactDOM.render(React.createFactory(SentryApp.SystemAlerts)({
@@ -7,7 +10,10 @@ $(function(){
   }), document.getElementById('blk_alerts'));
 });
 </script>
+{% endscript %}
+
 <div id="blk_indicators"></div>
+{% script %}
 <script>
 $(function(){
   ReactDOM.render(React.createFactory(SentryApp.Indicators)({
@@ -15,10 +21,11 @@ $(function(){
   }), document.getElementById('blk_indicators'));
 });
 </script>
+{% endscript %}
 {% if messages %}
   <div id="messages" class="messages-container">
     {% for message in messages %}
-    	{% with message.tags|split:" " as message_tags %}
+        {% with message.tags|split:" " as message_tags %}
           <div class="alert{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
             <div class="container">
               <a class="close" data-dismiss="alert">×</a>

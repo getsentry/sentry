@@ -1,6 +1,7 @@
 {% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block title %}{% trans "Internal Server Error" %} | {{ block.super }}{% endblock %}
 
@@ -23,6 +24,7 @@
     </div>
 
     {% if request.sentry.id %}
+      {% script %}
       <script>
       window.sentryConfig = {{ embed_config }};
       // TODO(dcramer): This snippet will be moved in to the generated "installation code"
@@ -45,6 +47,7 @@
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(script);
       })(document, window);
       </script>
+      {% endscript %}
     {% endif %}
   </section>
 {% endblock %}

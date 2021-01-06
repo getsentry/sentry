@@ -7,6 +7,7 @@
 {% block scripts %}
 {{ block.super }}
 
+{% script %}
 <script>
   SentryApp.passwordStrength.load(function(passwordStrength) {
     $(function() {
@@ -17,6 +18,7 @@
     })
   })
 </script>
+{% endscript %}
 {% endblock %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}

@@ -1,8 +1,12 @@
 {% extends "sentry/base-react.html" %}
+{% load sentry_assets %}
+
 {% block body_app_boot %}
+{% script %}
 <script>
   $(function () {
     if (typeof SentryRenderApp === 'function') SentryRenderApp();
   });
 </script>
+{% endscript %}
 {% endblock %}
