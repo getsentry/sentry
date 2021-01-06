@@ -31,6 +31,7 @@ from .utils import (
     get_supported_functions,
     get_latest_layer_version,
     get_latest_layer_for_function,
+    get_function_layer_arns,
     enable_single_lambda,
     disable_single_lambda,
     get_dsn_for_project,
@@ -88,7 +89,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         return self.serialize_lambda_function(function)
 
     def serialize_lambda_function(self, function):
-        layers = function.get("Layers", [])
+        layers = get_function_layer_arns(function)
         layer_arn = get_latest_layer_for_function(function)
 
         # find our sentry layer
@@ -99,7 +100,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
             # determine the version and if it's out of date
             latest_version = get_latest_layer_version(function["Runtime"])
-            current_version = get_version_of_arn(sentry_layer["Arn"])
+            current_version = get_version_of_arn(sentry_layer)
             out_of_date = latest_version > current_version
         else:
             current_version = -1
@@ -148,7 +149,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
 
-        layers = function.get("Layers", [])
+        layers = get_function_layer_arns(function)
 
         # update our layer if we find it
         sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
