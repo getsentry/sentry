@@ -95,6 +95,13 @@ class RuleSerializer(serializers.Serializer):
         # project_rule(_details) endpoints by setting it on attrs
         actions = attrs.get("actions", tuple())
         for action in actions:
+            # XXX(colleen): For rules that have the Jira integration as an action
+            # we need to ensure the user has selected a Jira project and issue type
+            if action["id"] == "sentry.integrations.jira.notify_action.JiraCreateTicketAction":
+                if not action.get("issuetype") and not action.get("project"):
+                    raise serializers.ValidationError(
+                        {"actions": u"Must select a project and issue type."}
+                    )
             # remove this attribute because we don't want it to be saved in the rule
             if action.pop("pending_save", None):
                 attrs["pending_save"] = True
