@@ -16,6 +16,7 @@ import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
+import six
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
@@ -1141,7 +1142,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
-CACHE_VERSION = 1
+CACHE_VERSION = 2 if six.PY3 else 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"
