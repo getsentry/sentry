@@ -37,7 +37,6 @@ type Props = {
   location: Location;
   showVitalPercentNames?: boolean;
   showDurationDetail?: boolean;
-  showEmptyState?: boolean;
   hasCondensedVitals?: boolean;
   projects: Project[];
 };
@@ -124,6 +123,7 @@ type CardProps = Omit<Props, 'projects'> & {
   isLoading?: boolean;
   noBorder?: boolean;
   hideBar?: boolean;
+  hideEmptyState?: boolean;
 };
 
 const NonPanel = styled('div')``;
@@ -256,7 +256,6 @@ export function VitalsCard(props: CardProps) {
 }
 
 type CondensedCardProps = Props & {
-  hideEmptyState: boolean;
   tableData: any;
   isLoading?: boolean;
   condensedVitals: WebVital[];
