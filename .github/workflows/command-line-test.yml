@@ -21,11 +21,17 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+      - name: Set python version output
+        id: python-version
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         if: steps.changes.outputs.backend == 'true'
         with:
-          python-version: 3.6.10
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
