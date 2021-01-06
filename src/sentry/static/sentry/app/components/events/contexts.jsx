@@ -101,7 +101,7 @@ class ContextChunk extends React.Component {
   getTitle = () => {
     const {value, alias, type} = this.props;
 
-    if (defined(value.title)) {
+    if (defined(value.title) && typeof value.title !== 'object') {
       return value.title;
     }
 
