@@ -5,6 +5,7 @@ import boto3
 from sentry.integrations.aws_lambda.client import gen_aws_client
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
+from sentry.utils import json
 from sentry.utils.compat.mock import patch, MagicMock
 
 
@@ -45,7 +46,31 @@ class AwsLambdaClientTest(TestCase):
         role_arn = "arn:aws:iam::599817902985:role/SentryRole"
 
         mock_client.assume_role.assert_called_once_with(
-            RoleSessionName="Sentry", RoleArn=role_arn, ExternalId=aws_external_id
+            RoleSessionName="Sentry",
+            RoleArn=role_arn,
+            ExternalId=aws_external_id,
+            Policy=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": ["lambda:UpdateFunctionConfiguration", "lambda:GetFunction"],
+                            "Resource": "arn:aws:lambda:us-west-1:599817902985:function:*",
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "lambda:ListFunctions",
+                                "lambda:GetLayerVersion",
+                                "iam:PassRole",
+                                "organizations:DescribeAccount",
+                            ],
+                            "Resource": "*",
+                        },
+                    ],
+                }
+            ),
         )
 
         mock_get_session.assert_called_once_with(

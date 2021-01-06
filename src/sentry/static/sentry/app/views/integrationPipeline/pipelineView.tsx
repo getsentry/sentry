@@ -12,9 +12,9 @@ import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
  */
 
 const pipelineMapper: Record<string, [React.ElementType, string]> = {
-  awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'Select Project'],
-  awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'Select Lambdas'],
-  awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'View Failures'],
+  awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
+  awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
+  awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
 };
 
 type Props = {

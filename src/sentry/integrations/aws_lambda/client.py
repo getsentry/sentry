@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import boto3
 
 from sentry import options
+from sentry.utils import json
 
 from .utils import parse_arn
 
@@ -27,8 +28,33 @@ def gen_aws_client(arn, aws_external_id, service_name="lambda"):
         region_name=options.get("aws-lambda.host-region"),
     )
 
+    # need policy statements for cross account access
     assumed_role_object = client.assume_role(
-        RoleSessionName="Sentry", RoleArn=role_arn, ExternalId=aws_external_id
+        RoleSessionName="Sentry",
+        RoleArn=role_arn,
+        ExternalId=aws_external_id,
+        Policy=json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": ["lambda:UpdateFunctionConfiguration", "lambda:GetFunction"],
+                        "Resource": u"arn:aws:lambda:{}:{}:function:*".format(region, account_id),
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "lambda:ListFunctions",
+                            "lambda:GetLayerVersion",
+                            "iam:PassRole",
+                            "organizations:DescribeAccount",
+                        ],
+                        "Resource": "*",
+                    },
+                ],
+            }
+        ),
     )
 
     credentials = assumed_role_object["Credentials"]
