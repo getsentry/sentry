@@ -340,6 +340,28 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       : {};
   };
 
+  handleResetRow = <T extends keyof IssueAlertRuleAction>(
+    type: ConditionOrActionProperty,
+    idx: number,
+    prop: T,
+    val: IssueAlertRuleAction[T]
+  ) => {
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
+
+      // Set initial configuration, but also set
+      const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
+      const newRule = {
+        ...this.getInitialValue(type, id),
+        id,
+        [prop]: val,
+      };
+
+      set(clonedState, `rule[${type}][${idx}]`, newRule);
+      return clonedState;
+    });
+  };
+
   handleAddRow = (type: ConditionOrActionProperty, id: string) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
@@ -383,6 +405,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     this.handlePropertyChange('actions', ruleIndex, prop, val);
   handleChangeFilterProperty = (ruleIndex: number, prop: string, val: string) =>
     this.handlePropertyChange('filters', ruleIndex, prop, val);
+  handleResetCondition = (ruleIndex: number, prop: string, value: string) =>
+    this.handleResetRow('conditions', ruleIndex, prop, value);
+  handleResetAction = (ruleIndex: number, prop: string, value: string) =>
+    this.handleResetRow('actions', ruleIndex, prop, value);
+  handleResetFilter = (ruleIndex: number, prop: string, value: string) =>
+    this.handleResetRow('filters', ruleIndex, prop, value);
 
   handleValidateRuleName = () => {
     const isRuleNameEmpty = !this.state.rule?.name.trim();
@@ -569,6 +597,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             }
                             onPropertyChange={this.handleChangeConditionProperty}
                             onAddRow={this.handleAddCondition}
+                            onResetRow={this.handleResetCondition}
                             onDeleteRow={this.handleDeleteCondition}
                             organization={organization}
                             project={project}
@@ -643,6 +672,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           placeholder={t('Add optional filter...')}
                           onPropertyChange={this.handleChangeFilterProperty}
                           onAddRow={this.handleAddFilter}
+                          onResetRow={this.handleResetFilter}
                           onDeleteRow={this.handleDeleteFilter}
                           organization={organization}
                           project={project}
@@ -684,6 +714,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
                         onAddRow={this.handleAddAction}
+                        onResetRow={this.handleResetAction}
                         onDeleteRow={this.handleDeleteAction}
                         organization={organization}
                         project={project}
