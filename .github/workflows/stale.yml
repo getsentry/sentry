@@ -18,7 +18,7 @@ jobs:
           debug-only: false
           ascending: false
 
-          exempt-issue-labels: "Status: Accepted"
+          exempt-issue-labels: "Status: Accepted,Status: On Hold"
           stale-issue-label: "Status: Stale"
           stale-issue-message: |-
             This issue has gone three weeks without activity. In another week, I will close it.
@@ -32,7 +32,7 @@ jobs:
           close-issue-label: ""
           close-issue-message: ""
 
-          exempt-pr-labels: "Status: Accepted"
+          exempt-pr-labels: "Status: Accepted,Status: On Hold"
           stale-pr-label: "Status: Stale"
           stale-pr-message: |-
             This pull request has gone three weeks without activity. In another week, I will close it.
