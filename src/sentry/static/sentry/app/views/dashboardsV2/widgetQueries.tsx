@@ -8,6 +8,7 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'app/components/charts/utils';
+import {t} from 'app/locale';
 import {
   EventsStats,
   GlobalSelection,
@@ -88,6 +89,7 @@ type Props = {
 
 type State = {
   error: boolean;
+  errorMessage: undefined | string;
   loading: boolean;
   results: Series[];
 };
@@ -96,6 +98,7 @@ class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     error: false,
+    errorMessage: undefined,
     results: [],
   };
 
@@ -161,11 +164,13 @@ class WidgetQueries extends React.Component<Props, State> {
             ...prevState,
             results,
             error: false,
+            errorMessage: undefined,
             loading: completed === promises.length ? false : true,
           };
         });
-      } catch (e) {
-        this.setState({error: true});
+      } catch (err) {
+        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        this.setState({error: true, errorMessage});
       }
     });
   }
