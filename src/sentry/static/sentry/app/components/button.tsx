@@ -25,7 +25,7 @@ type Props = {
   to?: string | object;
   href?: string;
   icon?: React.ReactNode;
-  title?: string | React.ReactNode;
+  title?: React.ReactNode;
   external?: boolean;
   borderless?: boolean;
   label?: string;
