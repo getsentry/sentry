@@ -2065,9 +2065,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         with self.feature("organizations:inbox"):
             response = self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
-        assert GroupInboxReason(response.data["inbox"]["reason"]) == GroupInboxReason.MANUAL
         assert not GroupInbox.objects.filter(group=group1).exists()
-        assert GroupInbox.objects.filter(group=group2).exists()
+        assert not GroupInbox.objects.filter(group=group2).exists()
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
