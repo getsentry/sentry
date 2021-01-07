@@ -66,7 +66,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
     if (!this.props.active) {
       return t('Project Created');
     }
-    return t('Setup Your Project');
+    return t('Set Up Your Project');
   }
 
   async createFirstProject(platform: PlatformKey) {
