@@ -55,11 +55,10 @@ function IssueListHeader({
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
 
   const tabs = getTabs(organization);
-  const savedSearchTabActive = !tabs.some(([tabQuery]) => tabQuery === query);
-
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
+  const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
