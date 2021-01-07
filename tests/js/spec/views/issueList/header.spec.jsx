@@ -21,6 +21,10 @@ const queryCounts = {
     count: 0,
     hasMore: false,
   },
+  'is:reprocessing': {
+    count: 0,
+    hasMore: false,
+  },
 };
 
 const queryCountsMaxed = {
@@ -77,12 +81,19 @@ describe('IssueListHeader', () => {
       <IssueListHeader
         organization={organization}
         query=""
-        queryCounts={queryCounts}
+        queryCounts={{
+          ...queryCounts,
+          'is:reprocessing': {
+            count: 1,
+            hasMore: false,
+          },
+        }}
+        displayReprocessingTab
         projectIds={[]}
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('li').at(3).text()).toBe('Reprocessing ');
+    expect(wrapper.find('li').at(3).text()).toBe('Reprocessing 1');
   });
 
   it("renders all tabs inactive when query doesn't match", () => {

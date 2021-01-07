@@ -29,6 +29,7 @@ type Props = {
   projectIds: Array<string>;
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
+  displayReprocessingTab: boolean;
 } & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
@@ -44,6 +45,7 @@ function IssueListHeader({
   savedSearchList,
   projects,
   router,
+  displayReprocessingTab,
 }: Props) {
   const selectedProjectSlugs = projectIds
     .map(projectId => projects.find(project => project.id === projectId)?.slug)
@@ -54,6 +56,10 @@ function IssueListHeader({
 
   const tabs = getTabs(organization);
   const savedSearchTabActive = !tabs.some(([tabQuery]) => tabQuery === query);
+
+  const visibleTabs = displayReprocessingTab
+    ? tabs
+    : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -111,7 +117,7 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {tabs.map(([tabQuery, {name: queryName}]) => (
+          {visibleTabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <RouterLink
                 to={{
