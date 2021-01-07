@@ -2,7 +2,9 @@ import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
+import set from 'lodash/set';
 
 import {
   addErrorMessage,
@@ -303,10 +305,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleChange = <T extends keyof IssueAlertRule>(prop: T, val: IssueAlertRule[T]) => {
-    this.setState(state => {
-      const rule = {...state.rule} as IssueAlertRule;
+    this.setState(prevState => {
+      const rule = {...prevState.rule} as IssueAlertRule;
       rule[prop] = val;
-      return {rule, detailedError: omit(state.detailedError, prop)};
+      return {rule, detailedError: omit(prevState.detailedError, prop)};
     });
   };
 
@@ -316,61 +318,55 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     prop: T,
     val: IssueAlertRuleAction[T]
   ) => {
-    this.setState(state => {
-      const rule = {...state.rule} as IssueAlertRule;
-      rule[type][idx][prop] = val;
-      return {rule};
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
+      set(clonedState, `rule[${type}][${idx}][${prop}]`, val);
+      return clonedState;
     });
   };
 
+  getInitialValue = (type: ConditionOrActionProperty, id: string) => {
+    const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+    return configuration?.formFields
+      ? Object.fromEntries(
+          Object.entries(configuration.formFields)
+            // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
+            .map(([key, formField]: [string, any]) => [
+              key,
+              formField?.initial ?? formField?.choices?.[0]?.[0],
+            ])
+            .filter(([, initial]) => !!initial)
+        )
+      : {};
+  };
+
   handleAddRow = (type: ConditionOrActionProperty, id: string) => {
-    this.setState(state => {
-      const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
 
       // Set initial configuration
-      const initialValue = configuration?.formFields
-        ? Object.fromEntries(
-            Object.entries(configuration.formFields)
-              // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
-              .map(([key, formField]: [string, any]) => [
-                key,
-                formField?.initial ?? formField?.choices?.[0]?.[0],
-              ])
-              .filter(([, initial]) => !!initial)
-          )
-        : {};
       const newRule = {
+        ...this.getInitialValue(type, id),
         id,
-        ...initialValue,
       };
+      const newTypeList = prevState.rule ? prevState.rule[type] : [];
 
-      const rule = {
-        ...state.rule,
-        [type]: [...(state.rule ? state.rule[type] : []), newRule],
-      } as IssueAlertRule;
-
-      return {
-        rule,
-      };
+      set(clonedState, `rule[${type}]`, [...newTypeList, newRule]);
+      return clonedState;
     });
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
     this.setState(prevState => {
-      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      const clonedState = cloneDeep(prevState);
 
+      const newTypeList = prevState.rule ? prevState.rule[type] : [];
       if (prevState.rule) {
         newTypeList.splice(idx, 1);
       }
 
-      const rule = {
-        ...prevState.rule,
-        [type]: newTypeList,
-      } as IssueAlertRule;
-
-      return {
-        rule,
-      };
+      set(clonedState, `rule[${type}]`, newTypeList);
+      return clonedState;
     });
   };
 
