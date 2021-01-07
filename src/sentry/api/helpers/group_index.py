@@ -724,8 +724,6 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
             if new_status == GroupStatus.UNRESOLVED:
-                for group in group_list:
-                    add_group_to_inbox(group, GroupInboxReason.MANUAL)
                 if has_inbox:
                     result["inbox"] = get_inbox_details([group_list[0]])[group_list[0].id]
                 result["statusDetails"] = {}
