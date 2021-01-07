@@ -142,7 +142,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
           <p>
             {tct(
               `Don't see your platform-of-choice? Fear not. Select
-               [otherPlatformLink:other platform] to use a [communityClient:community client].
+               [otherPlatformLink:other platform] when using a [communityClient:community client].
                Need help? Learn more in [docs:our docs].`,
               {
                 otherPlatformLink: (
