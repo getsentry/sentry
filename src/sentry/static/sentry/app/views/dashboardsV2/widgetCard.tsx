@@ -41,6 +41,7 @@ type Props = ReactRouter.WithRouterProps & {
   onEdit: () => void;
   renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
   isDragging: boolean;
+  hideToolbar?: boolean;
   startWidgetDrag: (event: React.MouseEvent<SVGElement>) => void;
 };
 
@@ -50,7 +51,8 @@ class WidgetCard extends React.Component<Props> {
       !isEqual(nextProps.widget, this.props.widget) ||
       !isEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
-      this.props.isDragging !== nextProps.isDragging
+      this.props.isDragging !== nextProps.isDragging ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
@@ -173,7 +175,7 @@ class WidgetCard extends React.Component<Props> {
       return null;
     }
 
-    if (this.props.isDragging) {
+    if (this.props.hideToolbar) {
       return <ToolbarPanel />;
     }
 
