@@ -272,22 +272,28 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                event.project.organization_id
-            )
-
             try:
-                org_has_commit = cache.get(has_commit_key)
-                if org_has_commit is None:
-                    org_has_commit = Commit.objects.filter(
-                        organization_id=event.project.organization_id
-                    ).exists()
-                    cache.set(has_commit_key, org_has_commit, 3600)
+                group_lock_key = "workflow-owners-ingestion:org-{}-has-group-lock".format(
+                    event.group_id
+                )
+                group_lock = cache.get(group_lock_key)
+                if group_lock is None:
+                    cache.set(group_lock_key, True, 3600)
+                    has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
+                        event.project.organization_id
+                    )
 
-                if org_has_commit and features.has(
-                    "projects:workflow-owners-ingestion", event.project,
-                ):
-                    process_suspect_commits(event=event)
+                    org_has_commit = cache.get(has_commit_key)
+                    if org_has_commit is None:
+                        org_has_commit = Commit.objects.filter(
+                            organization_id=event.project.organization_id
+                        ).exists()
+                        cache.set(has_commit_key, org_has_commit, 3600)
+
+                    if org_has_commit and features.has(
+                        "projects:workflow-owners-ingestion", event.project,
+                    ):
+                        process_suspect_commits(event=event)
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
