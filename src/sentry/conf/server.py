@@ -69,6 +69,7 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
 MAINTENANCE = False
 
 ADMINS = ()
