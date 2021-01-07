@@ -60,7 +60,7 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
     display: block;
   }
   & > span > .dropdown-menu {
-    margin-top: 6px;
+    margin-top: ${space(1)};
     min-width: 30vw;
     max-width: 35vw;
     z-index: ${p => p.theme.zIndex.globalSelectionHeader};
