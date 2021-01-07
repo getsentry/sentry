@@ -98,7 +98,7 @@ class RuleSerializer(serializers.Serializer):
             # XXX(colleen): For ticket rules we need to ensure the user has
             # at least done minimal configuration
             if action["id"] in TICKET_ACTIONS:
-                if not action.get("issuetype") or not action.get("project"):
+                if not action.get("dynamic_form_fields"):
                     raise serializers.ValidationError(
                         {"actions": u"Must configure issue link settings."}
                     )
