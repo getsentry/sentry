@@ -84,7 +84,9 @@ type Props = {
   organization: Organization;
   widget: Widget;
   selection: GlobalSelection;
-  children: (props: Pick<State, 'loading' | 'error' | 'results'>) => React.ReactNode;
+  children: (
+    props: Pick<State, 'loading' | 'error' | 'results' | 'errorMessage'>
+  ) => React.ReactNode;
 };
 
 type State = {
@@ -177,9 +179,9 @@ class WidgetQueries extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {loading, results, error} = this.state;
+    const {loading, results, error, errorMessage} = this.state;
 
-    return children({loading, results, error});
+    return children({loading, results, error, errorMessage});
   }
 }
 
