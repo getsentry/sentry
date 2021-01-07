@@ -891,6 +891,9 @@ class IssueListOverview extends React.Component<Props, State> {
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
+                savedSearchList={savedSearches}
+                onSavedSearchSelect={this.onSavedSearchSelect}
+                onSavedSearchDelete={this.onSavedSearchDelete}
               />
             )}
             <StyledPageContent isInbox={hasFeature}>
@@ -911,6 +914,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   savedSearchList={savedSearches}
                   tagValueLoader={this.tagValueLoader}
                   tags={tags}
+                  isInbox={hasFeature}
                 />
 
                 <Panel>

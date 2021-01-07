@@ -16,6 +16,7 @@ import {Organization, Project} from 'app/types';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
+import SavedSearchTab from './savedSearchTab';
 import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
@@ -29,7 +30,7 @@ type Props = {
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   onTabChange: (query: string) => void;
-};
+} & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
   organization,
@@ -40,6 +41,9 @@ function IssueListHeader({
   realtimeActive,
   onTabChange,
   onRealtimeChange,
+  onSavedSearchSelect,
+  onSavedSearchDelete,
+  savedSearchList,
   projects,
   router,
 }: Props) {
@@ -51,6 +55,7 @@ function IssueListHeader({
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
 
   const tabs = getTabs(organization);
+  const savedSearchTabActive = !tabs.some(([tabQuery]) => tabQuery === query);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -127,6 +132,14 @@ function IssueListHeader({
               </a>
             </li>
           ))}
+          <SavedSearchTab
+            organization={organization}
+            query={query}
+            savedSearchList={savedSearchList}
+            onSavedSearchSelect={onSavedSearchSelect}
+            onSavedSearchDelete={onSavedSearchDelete}
+            isActive={savedSearchTabActive}
+          />
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>
     </React.Fragment>
