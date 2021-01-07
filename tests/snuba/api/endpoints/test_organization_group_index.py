@@ -788,7 +788,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
             assert response.status_code == 200
             assert len(response.data) == 4
-            print([d["id"] for d in response.data])
             assert int(response.data[0]["id"]) == event.group.id
             assert int(response.data[1]["id"]) == event1.group.id
             assert int(response.data[2]["id"]) == event2.group.id

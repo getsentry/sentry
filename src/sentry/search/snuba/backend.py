@@ -41,26 +41,25 @@ def assigned_to_filter(actor, projects):
         )
         return team_query  # Q(assignee_set__team=actor)
 
-    user_teams = Team.objects.filter(
-        id__in=OrganizationMemberTeam.objects.filter(
-            organizationmember__in=OrganizationMember.objects.filter(
-                user=actor, organization_id=projects[0].organization_id
-            ),
-            is_active=True,
-        ).values("team")
-    )
-
-    user_query = Q(
+    assigned_to_user = Q(
         id__in=GroupAssignee.objects.filter(
             user=actor, project_id__in=[p.id for p in projects]
         ).values_list("group_id", flat=True)
     )
-    team_query = Q(
+    assigned_from_user = Q(
         id__in=GroupAssignee.objects.filter(
-            team_id__in=user_teams, project_id__in=[p.id for p in projects]
+            project_id__in=[p.id for p in projects],
+            team_id__in=Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user=actor, organization_id=projects[0].organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
+            ),
         ).values_list("group_id", flat=True)
     )
-    return user_query | team_query
+    return assigned_to_user | assigned_from_user
 
 
 def unassigned_filter(unassigned, projects):
