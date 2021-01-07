@@ -2854,7 +2854,7 @@ class ResolveFieldListTest(unittest.TestCase):
         """ When there's only aggregates don't sort """
         fields = ["count(id)", "count_unique(user)"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-count(id)"))
-        assert result["orderby"] == []
+        assert result["orderby"] is None
         assert result["aggregations"] == [
             ["count", None, "count_id"],
             ["uniq", "user", "count_unique_user"],

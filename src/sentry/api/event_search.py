@@ -2705,7 +2705,7 @@ def resolve_field_list(
     if orderby and len(columns) > 0:
         orderby = resolve_orderby(orderby, columns, aggregations)
     else:
-        orderby = []
+        orderby = None
 
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.
