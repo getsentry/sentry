@@ -51,6 +51,7 @@ describe('IssueListHeader', () => {
         query="is:unresolved is:needs_review"
         queryCounts={queryCounts}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
     expect(wrapper.find('.active').text()).toBe('Needs Review 1');
@@ -64,6 +65,7 @@ describe('IssueListHeader', () => {
         query="is:unresolved is:needs_review owner:me_or_none"
         queryCounts={queryCounts}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
     expect(wrapper.find('.active').text()).toBe('Needs Review 22');
@@ -77,6 +79,7 @@ describe('IssueListHeader', () => {
         query=""
         queryCounts={queryCounts}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
     expect(wrapper.find('li').at(3).text()).toBe('Reprocessing ');
@@ -89,6 +92,7 @@ describe('IssueListHeader', () => {
         query=""
         queryCounts={queryCounts}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
     expect(wrapper.find('.active').exists()).toBe(false);
@@ -101,6 +105,7 @@ describe('IssueListHeader', () => {
         query=""
         queryCounts={queryCounts}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 1');
@@ -115,6 +120,7 @@ describe('IssueListHeader', () => {
         query=""
         queryCounts={queryCountsMaxed}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
     expect(wrapper.find('li').at(0).text()).toBe('Needs Review 321');
@@ -123,16 +129,22 @@ describe('IssueListHeader', () => {
   });
 
   it('transitions to new query on tab click', () => {
-    const handleTabChange = jest.fn();
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
-        onTabChange={handleTabChange}
         queryCounts={queryCounts}
         projectIds={[]}
+        savedSearchList={[]}
       />
     );
-    wrapper.find('a').at(0).simulate('click');
-    expect(handleTabChange).toHaveBeenCalledWith('is:unresolved is:needs_review');
+    const pathname = '/organizations/org-slug/issues/';
+    expect(wrapper.find('Link').at(0).prop('to')).toEqual({
+      pathname,
+      query: {query: 'is:unresolved is:needs_review'},
+    });
+    expect(wrapper.find('Link').at(1).prop('to')).toEqual({
+      pathname,
+      query: {query: 'is:unresolved'},
+    });
   });
 });

@@ -33,7 +33,7 @@ function SavedSearchTab({
   return (
     <TabWrapper isActive={isActive} className="saved-search-tab">
       <StyledDropdownLink
-        anchorRight
+        anchorMiddle
         caret
         title={<TitleWrapper>{title}</TitleWrapper>}
         isActive={isActive}
@@ -53,13 +53,31 @@ function SavedSearchTab({
 export default SavedSearchTab;
 
 const TabWrapper = styled('li')<{isActive?: boolean}>`
-  /* Color matches nav tabs - overriten using dark mode class saved-search-tab */
+  /* Color matches nav-tabs - overriten using dark mode class saved-search-tab */
   border-bottom: ${p => (p.isActive ? `4px solid #6c5fc7` : 0)};
   /* Reposition menu under caret */
+  & > span {
+    display: block;
+  }
   & > span > .dropdown-menu {
-    margin-top: 5px;
-    margin-right: -14px;
-    width: 40vw;
+    margin-top: 6px;
+    min-width: 30vw;
+    max-width: 35vw;
+    z-index: ${p => p.theme.zIndex.globalSelectionHeader};
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    & > span > .dropdown-menu {
+      min-width: 30vw;
+      max-width: 50vw;
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    & > span > .dropdown-menu {
+      min-width: 30vw;
+      max-width: 55vw;
+    }
   }
 
   /* Fix nav tabs style leaking into menu */
@@ -83,6 +101,7 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   border-radius: 0;
   font-size: 16px;
   text-align: center;
+  /* TODO(scttcper): Replace hex color when nav-tabs is replaced */
   color: ${p => (p.isActive ? p.theme.textColor : '#7c6a8e')};
 
   :hover {

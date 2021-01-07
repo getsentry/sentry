@@ -1,5 +1,5 @@
 import React from 'react';
-import {InjectedRouter} from 'react-router';
+import {InjectedRouter, Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -29,7 +29,6 @@ type Props = {
   projectIds: Array<string>;
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
-  onTabChange: (query: string) => void;
 } & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
@@ -39,7 +38,6 @@ function IssueListHeader({
   orgSlug,
   projectIds,
   realtimeActive,
-  onTabChange,
   onRealtimeChange,
   onSavedSearchSelect,
   onSavedSearchDelete,
@@ -115,7 +113,12 @@ function IssueListHeader({
         <Layout.HeaderNavTabs underlined>
           {tabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-              <a onClick={() => onTabChange(tabQuery)}>
+              <RouterLink
+                to={{
+                  query: {...router?.location?.query, query: tabQuery},
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                }}
+              >
                 {queryName}{' '}
                 {queryCounts[tabQuery] && (
                   <StyledQueryCount
@@ -129,7 +132,7 @@ function IssueListHeader({
                     }
                   />
                 )}
-              </a>
+              </RouterLink>
             </li>
           ))}
           <SavedSearchTab
