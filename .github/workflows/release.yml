@@ -1,4 +1,4 @@
-name: release
+name: Release
 on:
   workflow_dispatch:
     inputs:
@@ -17,29 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     name: 'Release a new version'
     steps:
-      - name: Prepare release
-        uses: getsentry/action-prepare-release@33507ed
-        with:
-          version: ${{ github.event.inputs.version }}
-          force: ${{ github.event.inputs.force }}
       - uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_RELEASE_PAT }}
           fetch-depth: 0
-      - uses: getsentry/craft@master
-        name: Craft Prepare
+      - name: Prepare release
+        uses: getsentry/action-prepare-release@2cfce9ae4b4ef7bf34e0b7f32869128e7c903e51
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
         with:
-          action: prepare
-          version: ${{ env.RELEASE_VERSION }}
-      - name: Request publish
-        if: success()
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ secrets.GH_RELEASE_PAT }}
-          script: |
-            const repoInfo = context.repo;
-            await github.issues.create({
-              owner: repoInfo.owner,
-              repo: 'publish',
-              title: `publish: ${repoInfo.repo}@${process.env.RELEASE_VERSION}`,
-            });
+          version: ${{ github.event.inputs.version }}
+          force: ${{ github.event.inputs.force }}
