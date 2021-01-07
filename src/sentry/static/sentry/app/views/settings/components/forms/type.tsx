@@ -47,6 +47,8 @@ type BaseField = {
   disabledReason?: string;
   defaultValue?: FieldValue;
   updatesForm?: boolean;
+  /** Does editing this field need to clear all other fields? */
+  resetsForm?: boolean;
   confirm?: {[key in ConfirmKeyType]?: string};
   autosize?: boolean;
   maxRows?: number;
