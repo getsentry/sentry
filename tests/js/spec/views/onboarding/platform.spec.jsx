@@ -74,7 +74,7 @@ describe('OnboardingWelcome', function () {
     const getButton = () => wrapper.find('Button[priority="primary"]');
 
     TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
-    expect(getButton().text()).toEqual('Setup Your Project');
+    expect(getButton().text()).toEqual('Set Up Your Project');
     expect(getButton().props().disabled).toBe(false);
 
     // Create the project
