@@ -99,7 +99,7 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   border: 0;
   background: none;
   border-radius: 0;
-  font-size: 16px;
+  font-size: ${p => p.theme.fontSizeLarge};
   text-align: center;
   /* TODO(scttcper): Replace hex color when nav-tabs is replaced */
   color: ${p => (p.isActive ? p.theme.textColor : '#7c6a8e')};
