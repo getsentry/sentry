@@ -15,7 +15,8 @@ type Props = WithRouterProps<{orgId: string}> & {
    * search term
    */
   query: string;
-  /**
+  children: (props: ChildProps) => React.ReactElement;
+    /**
    * fusejs options.
    */
   searchOptions?: Fuse.FuseOptions<FormSearchField>;
@@ -23,7 +24,6 @@ type Props = WithRouterProps<{orgId: string}> & {
    * List of form fields to search
    */
   searchMap?: FormSearchField[];
-  children: (props: ChildProps) => React.ReactElement;
 };
 
 type State = {
