@@ -158,4 +158,42 @@ describe('IssueListHeader', () => {
       query: {query: 'is:unresolved'},
     });
   });
+
+  it('should indicate when query is a custom search', async () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[]}
+        query="not a saved search"
+      />
+    );
+    expect(wrapper.find('SavedSearchTab a').text()).toBe('Custom Search');
+    expect(wrapper.find('SavedSearchTab').prop('isActive')).toBeTruthy();
+  });
+
+  it('lists saved searches in dropdown', async () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[
+          {
+            id: '789',
+            query: 'is:unresolved',
+            name: 'Unresolved Search',
+            isPinned: false,
+            isGlobal: true,
+          },
+        ]}
+      />
+    );
+    wrapper.find('StyledDropdownLink').simulate('click');
+    await wrapper.update();
+
+    const item = wrapper.find('MenuItem a').first();
+    expect(item.text()).toContain('Unresolved Search');
+  });
 });

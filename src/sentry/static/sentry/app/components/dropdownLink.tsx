@@ -116,7 +116,7 @@ const DropdownLink = withTheme(
               {customTitle || (
                 <div className="dropdown-actor-title">
                   <span>{title}</span>
-                  {caret && <IconChevron direction="down" size="xs" />}
+                  {caret && <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                 </div>
               )}
             </a>
