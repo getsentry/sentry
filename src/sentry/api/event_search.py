@@ -1618,7 +1618,7 @@ class NumericColumnNoLookup(NumericColumn):
         # `measurement_value` is actually an array of Float64s. But when used
         # in this context, we always want to expand it using `arrayJoin`. The
         # resulting column will be a numeric column of type Float64.
-        if self.allow_measurement_value and value == "measurement_value":
+        if self.allow_measurement_value and value == "measurements_value":
             return ["arrayJoin", ["measurements_value"]]
 
         super(NumericColumnNoLookup, self).normalize(value, params)

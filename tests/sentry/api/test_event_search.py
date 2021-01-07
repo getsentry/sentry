@@ -73,9 +73,9 @@ def test_parse_function():
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
-    assert parse_function("measurements_histogram(1,0,1)") == (
-        "measurements_histogram",
-        ["1", "0", "1"],
+    assert parse_function("histogram2(measurements_value, 1,0,1)") == (
+        "histogram2",
+        ["measurements_value", "1", "0", "1"],
         None,
     )
     assert parse_function("count_unique(transaction.status)") == (
@@ -2429,11 +2429,9 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)
 
-    def test_measurements_histogram_function(self):
-        fields = ["measurements_histogram(10, 5, 1)"]
-        result = resolve_field_list(
-            fields, eventstore.Filter(), functions_acl=["measurements_histogram"]
-        )
+    def test_histogram2_function(self):
+        fields = ["histogram2(measurements_value, 10, 5, 1)"]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["histogram2"])
         assert result["selected_columns"] == [
             [
                 "plus",
@@ -2467,7 +2465,7 @@ class ResolveFieldListTest(unittest.TestCase):
                     ],
                     5,
                 ],
-                "measurements_histogram_10_5_1",
+                "histogram2_measurements_value_10_5_1",
             ],
             "id",
             "project.id",
@@ -2478,8 +2476,8 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
-    def test_measurements_histogram_function_no_access(self):
-        fields = ["measurements_histogram(10, 5, 1)"]
+    def test_histogram2_function_no_access(self):
+        fields = ["histogram2(measurements_value, 10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)

@@ -986,7 +986,9 @@ def measurements_histogram_query(
 
 
 def get_measurements_histogram_col(params):
-    return u"histogram2(measurement_value, {:d}, {:d}, {:d})".format(*params)
+    return u"histogram2(measurements_value, {:d}, {:d}, {:d})".format(
+        params.bucket_size, params.start_offset, params.multiplier
+    )
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):

@@ -492,24 +492,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
 
         # using private functions in an aggregation without access should error
-        with pytest.raises(
-            InvalidSearchQuery, match="measurements_histogram: no access to private function"
-        ):
+        with pytest.raises(InvalidSearchQuery, match="histogram2: no access to private function"):
             discover.query(
-                selected_columns=["measurements_histogram(1,0,1)"],
-                query="measurements_histogram(1,0,1):>0",
+                selected_columns=["histogram2(measurements_value, 1,0,1)"],
+                query="histogram2(measurements_value, 1,0,1):>0",
                 params={"project_id": [self.project.id]},
                 use_aggregate_conditions=True,
             )
 
         # using private functions in an aggregation without access should error
         # with auto aggregation on
-        with pytest.raises(
-            InvalidSearchQuery, match="measurements_histogram: no access to private function"
-        ):
+        with pytest.raises(InvalidSearchQuery, match="histogram2: no access to private function"):
             discover.query(
                 selected_columns=["count()"],
-                query="measurements_histogram(1,0,1):>0",
+                query="histogram2(measurements_value, 1,0,1):>0",
                 params={"project_id": [self.project.id]},
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
@@ -2029,7 +2025,7 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [],
@@ -2047,7 +2043,7 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [],
@@ -2065,7 +2061,7 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [],
@@ -2090,23 +2086,23 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 0,
+                    "histogram2_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 1,
+                    "histogram2_measurements_value_1_0_1": 1,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 2,
+                    "histogram2_measurements_value_1_0_1": 2,
                     "count": 1,
                 },
             ],
@@ -2124,38 +2120,38 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "bar",
-                    "measurements_histogram_1_0_1": 0,
+                    "histogram2_measurements_value_1_0_1": 0,
                     "count": 1,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 0,
+                    "histogram2_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "measurements_histogram_1_0_1": 1,
+                    "histogram2_measurements_value_1_0_1": 1,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 1,
+                    "histogram2_measurements_value_1_0_1": 1,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "measurements_histogram_1_0_1": 2,
+                    "histogram2_measurements_value_1_0_1": 2,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 2,
+                    "histogram2_measurements_value_1_0_1": 2,
                     "count": 1,
                 },
             ],
@@ -2180,13 +2176,13 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 0,
+                    "histogram2_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
             ],
@@ -2204,18 +2200,18 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 0,
+                    "histogram2_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "measurements_histogram_1_0_1": 2,
+                    "histogram2_measurements_value_1_0_1": 2,
                     "count": 3,
                 },
             ],
@@ -2240,30 +2236,30 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_1_0_1": "number",
+                "histogram2_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_1_0_1": 0,
+                    "histogram2_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 # this row shouldn't be used because "baz" isn't an expected measurement
                 {
                     "array_join_measurements_key": "baz",
-                    "measurements_histogram_1_0_1": 1,
+                    "histogram2_measurements_value_1_0_1": 1,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "measurements_histogram_1_0_1": 2,
+                    "histogram2_measurements_value_1_0_1": 2,
                     "count": 3,
                 },
                 # this row shouldn't be used because 3 isn't an expected bin
                 {
                     "array_join_measurements_key": "bar",
-                    "measurements_histogram_1_0_1": 3,
+                    "histogram2_measurements_value_1_0_1": 3,
                     "count": 3,
                 },
             ],
@@ -2288,28 +2284,28 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "measurements_histogram_25_0_100": "number",
+                "histogram2_measurements_value_25_0_100": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_25_0_100": 0,
+                    "histogram2_measurements_value_25_0_100": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_25_0_100": 25,
+                    "histogram2_measurements_value_25_0_100": 25,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_25_0_100": 50,
+                    "histogram2_measurements_value_25_0_100": 50,
                     "count": 1,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "measurements_histogram_25_0_100": 75,
+                    "histogram2_measurements_value_25_0_100": 75,
                     "count": 1,
                 },
             ],
@@ -2345,23 +2341,23 @@ class QueryTransformTest(TestCase):
             {
                 "meta": [
                     {"name": "array_join_measurements_key", "type": "String"},
-                    {"name": "measurements_histogram_1_0_1", "type": "Float64"},
+                    {"name": "histogram2_measurements_value_1_0_1", "type": "Float64"},
                     {"name": "count", "type": "UInt64"},
                 ],
                 "data": [
                     {
                         "array_join_measurements_key": "bar",
-                        "measurements_histogram_1_0_1": 0,
+                        "histogram2_measurements_value_1_0_1": 0,
                         "count": 3,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "measurements_histogram_1_0_1": 0,
+                        "histogram2_measurements_value_1_0_1": 0,
                         "count": 3,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "measurements_histogram_1_0_1": 2,
+                        "histogram2_measurements_value_1_0_1": 2,
                         "count": 1,
                     },
                 ],
@@ -2385,35 +2381,35 @@ class QueryTransformTest(TestCase):
             {
                 "meta": [
                     {"name": "array_join_measurements_key", "type": "String"},
-                    {"name": "measurements_histogram_5_5_10", "type": "Float64"},
+                    {"name": "histogram2_measurements_value_5_5_10", "type": "Float64"},
                     {"name": "count", "type": "UInt64"},
                 ],
                 "data": [
                     # this row shouldn't be used because it lies outside the boundary
                     {
                         "array_join_measurements_key": "foo",
-                        "measurements_histogram_5_5_10": 0,
+                        "histogram2_measurements_value_5_5_10": 0,
                         "count": 1,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "measurements_histogram_5_5_10": 5,
+                        "histogram2_measurements_value_5_5_10": 5,
                         "count": 3,
                     },
                     {
                         "array_join_measurements_key": "bar",
-                        "measurements_histogram_5_5_10": 10,
+                        "histogram2_measurements_value_5_5_10": 10,
                         "count": 2,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "measurements_histogram_5_5_10": 15,
+                        "histogram2_measurements_value_5_5_10": 15,
                         "count": 1,
                     },
                     # this row shouldn't be used because it lies outside the boundary
                     {
                         "array_join_measurements_key": "bar",
-                        "measurements_histogram_5_5_10": 30,
+                        "histogram2_measurements_value_5_5_10": 30,
                         "count": 2,
                     },
                 ],
