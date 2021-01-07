@@ -5,7 +5,7 @@ import six
 from rest_framework import serializers
 
 from sentry import features
-from sentry.constants import MIGRATED_CONDITIONS
+from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models import Environment
 from sentry.rules import rules
 
@@ -95,12 +95,12 @@ class RuleSerializer(serializers.Serializer):
         # project_rule(_details) endpoints by setting it on attrs
         actions = attrs.get("actions", tuple())
         for action in actions:
-            # XXX(colleen): For rules that have the Jira integration as an action
-            # we need to ensure the user has selected a Jira project and issue type
-            if action["id"] == "sentry.integrations.jira.notify_action.JiraCreateTicketAction":
-                if not action.get("issuetype") and not action.get("project"):
+            # XXX(colleen): For ticket rules we need to ensure the user has
+            # at least done minimal configuration
+            if action["id"] in TICKET_ACTIONS:
+                if not action.get("issuetype") or not action.get("project"):
                     raise serializers.ValidationError(
-                        {"actions": u"Must select a project and issue type."}
+                        {"actions": u"Must configure issue link settings."}
                     )
             # remove this attribute because we don't want it to be saved in the rule
             if action.pop("pending_save", None):
