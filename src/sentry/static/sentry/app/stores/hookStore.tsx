@@ -44,7 +44,6 @@ const validHookNames = new Set<HookName>([
   'member-invite-modal:customization',
   'metrics:event',
   'onboarding:extra-chrome',
-  'onboarding:invite-members',
   'onboarding-wizard:skip-help',
   'organization:header',
   'routes',

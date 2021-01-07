@@ -1,13 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {motion, MotionProps} from 'framer-motion';
 
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
-import {Config, Organization} from 'app/types';
+import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
-import withConfig from 'app/utils/withConfig';
 import withOrganization from 'app/utils/withOrganization';
 
+import FallingError from './components/fallingError';
+import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
 
 const recordAnalyticsOnboardingSkipped = ({organization}: {organization: Organization}) =>
@@ -15,63 +18,114 @@ const recordAnalyticsOnboardingSkipped = ({organization}: {organization: Organiz
 
 type Props = StepProps & {
   organization: Organization;
-  config: Config;
 };
 
-const OnboardingWelcome = ({organization, onComplete, config, active}: Props) => {
-  const {user} = config;
+const easterEggText = [
+  t('Be careful. She’s barely hanging on as it is.'),
+  t("You know this error's not real, right?"),
+  t("It's that big button, right up there."),
+  t('You could do this all day. But you really shouldn’t.'),
+  tct("Ok, really, that's enough. Click [ready:I'm Ready].", {ready: <em />}),
+  tct("Next time you do that, [bold:we're starting].", {bold: <strong />}),
+  t("We weren't kidding, let's get going."),
+];
+
+const fadeAway: MotionProps = {
+  variants: {
+    initial: {opacity: 0},
+    animate: {opacity: 1, filter: 'blur(0px)'},
+    exit: {opacity: 0, filter: 'blur(1px)'},
+  },
+  transition: {duration: 0.8},
+};
+
+const OnboardingWelcome = ({organization, onComplete, active}: Props) => {
   const skipOnboarding = () => recordAnalyticsOnboardingSkipped({organization});
 
   return (
-    <React.Fragment>
-      <p>
-        {tct("We're happy you're here, [name]!", {
-          name: <strong>{user.name.split(' ')[0]}</strong>,
-        })}
-      </p>
-      <p>
-        {t(
-          `With Sentry, find and fix bugs and hunt down performance slowdowns
-             before customers even notice a problem. When things go to hell
-             we’ll help fight the fires. In the next two steps you will…`
-        )}
-      </p>
-      <ul>
-        <li>{t('Choose your platform.')}</li>
-        <li>
-          {t(
-            `Integrate Sentry into your application, invite your team, or take
-               a tour of Sentry.`
-          )}
-        </li>
-      </ul>
-      <ActionGroup>
-        <Button
-          data-test-id="welcome-next"
-          disabled={!active}
-          priority="primary"
-          onClick={() => onComplete({})}
-        >
-          {t("I'm Ready!")}
-        </Button>
-        <SecondaryAction>
-          {tct('Not your first Sentry rodeo? [exitLink:Skip this onboarding].', {
-            exitLink: <Button priority="link" onClick={skipOnboarding} href="/" />,
-          })}
-        </SecondaryAction>
-      </ActionGroup>
-    </React.Fragment>
+    <FallingError
+      onFall={fallCount => fallCount >= easterEggText.length && onComplete({})}
+    >
+      {({fallingError, fallCount, triggerFall}) => (
+        <Wrapper>
+          <WelcomeBackground />
+          <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
+          <motion.p {...fadeAway}>
+            {t(
+              'Find the errors and performance slowdowns that keep you up at night. In two steps.'
+            )}
+          </motion.p>
+          <CTAContainer {...fadeAway}>
+            <Button
+              data-test-id="welcome-next"
+              disabled={!active}
+              priority="primary"
+              onClick={() => {
+                triggerFall();
+                onComplete({});
+              }}
+            >
+              {t("I'm Ready")}
+            </Button>
+            <PositionedFallingError>{fallingError}</PositionedFallingError>
+          </CTAContainer>
+          <SecondaryAction {...fadeAway}>
+            {tct('[flavorText][br][exitLink:Skip onboarding].', {
+              br: <br />,
+              exitLink: <Button priority="link" onClick={skipOnboarding} href="/" />,
+              flavorText:
+                fallCount > 0
+                  ? easterEggText[fallCount - 1]
+                  : t("Geez Mom, I've used Sentry before."),
+            })}
+          </SecondaryAction>
+        </Wrapper>
+      )}
+    </FallingError>
   );
 };
 
-const ActionGroup = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const CTAContainer = styled(motion.div)`
+  margin-bottom: ${space(2)};
+  position: relative;
+
+  button {
+    position: relative;
+    z-index: 2;
+  }
 `;
 
-const SecondaryAction = styled('small')`
+const PositionedFallingError = styled('span')`
+  display: block;
+  position: absolute;
+  top: 30px;
+  right: -5px;
+  z-index: 0;
+`;
+
+const SecondaryAction = styled(motion.small)`
   color: ${p => p.theme.subText};
+  margin-top: 100px;
 `;
 
-export default withOrganization(withConfig(OnboardingWelcome));
+const Wrapper = styled(motion.div)`
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 100px;
+
+  h1 {
+    font-size: 42px;
+  }
+`;
+
+Wrapper.defaultProps = {
+  variants: {exit: {x: 0}},
+  transition: {
+    staggerChildren: 0.2,
+  },
+};
+
+export default withOrganization(OnboardingWelcome);

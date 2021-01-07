@@ -10,9 +10,7 @@ describe('OnboardingWelcome', function () {
     const name = 'Rick Snachez';
     ConfigStore.loadInitialData({user: {name, options: {}}});
 
-    const wrapper = mountWithTheme(<OnboardingWelcome />, TestStubs.routerContext());
-
-    expect(wrapper.find('p').first().text()).toEqual(expect.stringContaining('Rick'));
+    mountWithTheme(<OnboardingWelcome />, TestStubs.routerContext());
   });
 
   it('calls onComplete when progressing', function () {
@@ -25,17 +23,5 @@ describe('OnboardingWelcome', function () {
     wrapper.find('Button[priority="primary"]').first().simulate('click');
 
     expect(onComplete).toHaveBeenCalled();
-  });
-
-  it('disables the next step button when it is not active', function () {
-    const onComplete = jest.fn();
-    const wrapper = mountWithTheme(
-      <OnboardingWelcome onComplete={onComplete} />,
-      TestStubs.routerContext()
-    );
-
-    wrapper.find('Button[priority="primary"]').first().simulate('click');
-
-    expect(onComplete).not.toHaveBeenCalled();
   });
 });

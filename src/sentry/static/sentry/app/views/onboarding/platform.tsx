@@ -1,19 +1,20 @@
 import React from 'react';
-import {ClassNames} from '@emotion/core';
+import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {createProject} from 'app/actionCreators/projects';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import PlatformPicker from 'app/components/platformPicker';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withTeams from 'app/utils/withTeams';
 
+import StepHeading from './components/stepHeading';
 import {StepProps} from './types';
 
 type Props = StepProps & {
@@ -92,16 +93,7 @@ class OnboardingPlatform extends React.Component<Props, State> {
     }
   }
 
-  handleSetPlatform = (platform: PlatformKey | null) => {
-    const {onUpdate, onReturnToStep} = this.props;
-
-    if (platform) {
-      onUpdate({platform});
-    } else {
-      // Platform de-selected
-      onReturnToStep({platform});
-    }
-  };
+  handleSetPlatform = (platform: PlatformKey | null) => this.props.onUpdate({platform});
 
   handleContinue = async () => {
     this.setState({progressing: true});
@@ -118,57 +110,66 @@ class OnboardingPlatform extends React.Component<Props, State> {
   };
 
   render() {
-    const {active, project, platform, scrollTargetId} = this.props;
+    const {active, project, platform} = this.props;
 
     const selectedPlatform = platform || (project && project.platform);
 
-    const continueDisabled =
-      !selectedPlatform || this.state.progressing || (this.hasFirstProject && !active);
+    const continueDisabled = this.state.progressing || (this.hasFirstProject && !active);
 
     return (
-      <React.Fragment>
-        <p>
-          {tct(
-            `Sentry integrates with many different languages and platforms
-             through the official [strong:Sentry SDKs]. Select your platform
-             from the list below to see a tailored installation process for
-             Sentry.`,
-            {strong: <strong />}
-          )}
-        </p>
-        <p>
-          {tct(
-            `Not seeing your platform in the list below? Select the
-             [strong:other platform], and use a community client!`,
-            {strong: <strong />}
-          )}
-        </p>
-        <ClassNames>
-          {({css}) => (
-            <PlatformPicker
-              noAutoFilter
-              listClassName={css`
-                max-height: 420px;
-                overflow-y: scroll;
-                /* Needed to fix overflow cropping of the de-select button */
-                margin-top: -${space(2)};
-                padding-top: ${space(2)};
-              `}
-              listProps={{id: scrollTargetId}}
-              platform={selectedPlatform}
-              setPlatform={this.handleSetPlatform}
-            />
-          )}
-        </ClassNames>
-        <Button
-          data-test-id="platform-select-next"
-          priority="primary"
-          disabled={continueDisabled}
-          onClick={this.handleContinue}
+      <div>
+        <StepHeading step={1}>Choose your project’s platform</StepHeading>
+        <motion.div
+          variants={{
+            initial: {y: 30, opacity: 0},
+            animate: {y: 0, opacity: 1},
+            exit: {opacity: 0},
+          }}
         >
-          {this.contineButtonLabel}
-        </Button>
-      </React.Fragment>
+          <p>
+            {tct(
+              `Variety is the spice of application monitoring. Sentry SDKs integrate
+             with most languages and platforms your developer heart desires.
+             [link:View the full list].`,
+              {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
+            )}
+          </p>
+          <PlatformPicker
+            noAutoFilter
+            platform={selectedPlatform}
+            setPlatform={this.handleSetPlatform}
+          />
+          <p>
+            {tct(
+              `Don't see your platform-of-choice? Fear not. Select
+               [otherPlatformLink:other platform] to use a [communityClient:community client].
+               Need help? Learn more in [docs:our docs].`,
+              {
+                otherPlatformLink: (
+                  <Button
+                    priority="link"
+                    onClick={() => this.handleSetPlatform('other')}
+                  />
+                ),
+                communityClient: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/#community-supported" />
+                ),
+                docs: <ExternalLink href="https://docs.sentry.io/platforms/" />,
+              }
+            )}
+          </p>
+          {selectedPlatform && (
+            <Button
+              data-test-id="platform-select-next"
+              priority="primary"
+              disabled={continueDisabled}
+              onClick={this.handleContinue}
+            >
+              {this.contineButtonLabel}
+            </Button>
+          )}
+        </motion.div>
+      </div>
     );
   }
 }

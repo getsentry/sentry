@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {Indicator} from 'app/views/onboarding/projectSetup/firstEventIndicator';
+import {Indicator} from 'app/views/onboarding/components/firstEventIndicator';
 
 describe('FirstEventIndicator', function () {
   it('renders waiting status', async function () {
@@ -26,9 +26,6 @@ describe('FirstEventIndicator', function () {
       );
 
       expect(wrapper.find('ReceivedIndicator').exists()).toBe(true);
-      expect(wrapper.find('Button').props().to).toBe(
-        `/organizations/${org.slug}/issues/1/`
-      );
     });
 
     it('renders without a known issue ID', async function () {
@@ -42,7 +39,6 @@ describe('FirstEventIndicator', function () {
 
       // No button when there is no known issue ID
       expect(wrapper.find('ReceivedIndicator').exists()).toBe(true);
-      expect(wrapper.find('Button').exists()).toBe(false);
     });
   });
 });

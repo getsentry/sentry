@@ -3,18 +3,17 @@ import 'prism-sentry/index.css';
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 import PlatformIcon from 'platformicons';
-import PropTypes from 'prop-types';
 
+import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {loadDocs} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import Alert, {alertStyles} from 'app/components/alert';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
-import Panel from 'app/components/panels/panel';
-import PanelBody from 'app/components/panels/panelBody';
 import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {IconInfo} from 'app/icons';
@@ -23,13 +22,14 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
-import testableTransition from 'app/utils/testableTransition';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import FirstEventIndicator from 'app/views/onboarding/projectSetup/firstEventIndicator';
+import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 
-import {StepProps} from '../types';
+import FirstEventIndicator from './components/firstEventIndicator';
+import StepHeading from './components/stepHeading';
+import {StepProps} from './types';
 
 /**
  * The documentation will include the following string should it be missing the
@@ -127,7 +127,7 @@ class ProjectDocs extends React.Component<Props, State> {
         {tct(
           `Looks like this getting started example is still undergoing some
            work and doesn't include an example for triggering an event quite
-           yet! If you have trouble sending your first event be sure to consult
+           yet. If you have trouble sending your first event be sure to consult
            the [docsLink:full documentation] for [platform].`,
           {
             docsLink: <ExternalLink href={platformDocs?.link} />,
@@ -139,56 +139,96 @@ class ProjectDocs extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, project, platform, scrollTargetId} = this.props;
+    const {organization, project, platform} = this.props;
     const {loadedPlatform, platformDocs, hasError} = this.state;
 
-    const introduction = (
-      <Panel>
-        <PanelBody withPadding>
-          <PlatformHeading platform={loadedPlatform ?? platform ?? 'other'} />
+    const currentPlatform = loadedPlatform ?? platform ?? 'other';
 
-          <Description id={scrollTargetId}>
-            {tct(
-              `Follow these instructions to install and verify the integration
-               of Sentry into your application, including sending
-               [strong:your first event] from your development environment. See
-               the full documentation for additional configuration, platform
-               features, and methods of sending events.`,
-              {strong: <strong />}
+    const introduction = (
+      <React.Fragment>
+        <TitleContainer>
+          <StepHeading step={2}>
+            {t(
+              'Prepare the %s SDK',
+              platforms.find(p => p.id === currentPlatform)?.name ?? ''
             )}
-          </Description>
-          <Footer>
-            {project && (
-              <FirstEventIndicator
-                organization={organization}
-                project={project}
-                eventType="error"
-              />
-            )}
-            <div>
-              <Button
-                external
-                onClick={this.handleFullDocsClick}
-                href={platformDocs?.link}
-                size="small"
-              >
-                {t('Full Documentation')}
-              </Button>
-            </div>
-          </Footer>
-        </PanelBody>
-      </Panel>
+          </StepHeading>
+          <motion.div
+            variants={{
+              initial: {opacity: 0, x: 20},
+              animate: {opacity: 1, x: 0},
+              exit: {opacity: 0},
+            }}
+          >
+            <PlatformIcon size={48} format="lg" platform={currentPlatform} />
+          </motion.div>
+        </TitleContainer>
+        <motion.p
+          variants={{
+            initial: {opacity: 0},
+            animate: {opacity: 1},
+            exit: {opacity: 0},
+          }}
+        >
+          {tct(
+            "Don't have a relationship with your terminal? [link:Invite your team instead].",
+            {
+              link: (
+                <Button
+                  priority="link"
+                  data-test-id="onboarding-getting-started-invite-members"
+                  onClick={openInviteMembersModal}
+                />
+              ),
+            }
+          )}
+        </motion.p>
+      </React.Fragment>
     );
 
     const docs = platformDocs !== null && (
-      <DocsContainer>
-        <AnimatePresence>
-          <DocsWrapper key={platformDocs.html}>
-            <div dangerouslySetInnerHTML={{__html: platformDocs.html}} />
-            {this.missingExampleWarning}
-          </DocsWrapper>
-        </AnimatePresence>
-      </DocsContainer>
+      <DocsWrapper key={platformDocs.html}>
+        <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
+        {this.missingExampleWarning}
+
+        {project && (
+          <FirstEventIndicator
+            organization={organization}
+            project={project}
+            eventType="error"
+          >
+            {({indicator, firstEventButton}) => (
+              <CTAFooter>
+                <Actions gap={2}>
+                  {firstEventButton}
+                  <Button
+                    external
+                    onClick={this.handleFullDocsClick}
+                    href={platformDocs?.link}
+                  >
+                    {t('View full documentation')}
+                  </Button>
+                </Actions>
+                {indicator}
+              </CTAFooter>
+            )}
+          </FirstEventIndicator>
+        )}
+        <CTASecondary>
+          {tct(
+            'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] and finish setup later.',
+            {
+              sample: (
+                <CreateSampleEventButton
+                  project={project ?? undefined}
+                  source="onboarding"
+                  priority="link"
+                />
+              ),
+            }
+          )}
+        </CTASecondary>
+      </DocsWrapper>
     );
 
     const loadingError = (
@@ -216,102 +256,51 @@ class ProjectDocs extends React.Component<Props, State> {
   }
 }
 
-const docsTransition = {
-  initial: {
-    opacity: 0,
-    y: -10,
-  },
-  animate: {
-    opacity: 1,
-    y: 0,
-    delay: 0.1,
-    transition: {duration: 0.2},
-  },
-  exit: {
-    opacity: 0,
-    y: 10,
-    transition: {duration: 0.2},
-  },
-  transition: testableTransition(),
-};
-
-const Description = styled('p')`
-  font-size: 0.9em;
-`;
-
-const Footer = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-`;
-
-const HeadingContainer = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-`;
-
-const Heading = styled(motion.div)`
+const TitleContainer = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  grid-gap: ${space(2)};
   align-items: center;
-  margin-bottom: ${space(2)};
-  grid-column: 1;
-  grid-row: 1;
+  justify-items: end;
+
+  ${StepHeading} {
+    margin-bottom: 0;
+  }
 `;
 
-Heading.defaultProps = {
-  ...docsTransition,
-};
-
-const Header = styled('div')`
-  font-size: 1.8rem;
-  margin-right: 16px;
-  font-weight: bold;
+const CTAFooter = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin: ${space(2)} 0;
+  margin-top: ${space(4)};
 `;
 
-const PlatformHeading = ({platform}) => (
-  <HeadingContainer>
-    <AnimatePresence initial={false}>
-      <Heading key={platform}>
-        <PlatformIcon platform={platform} size={24} />
-        <Header>
-          {t(
-            '%s SDK Installation Guide',
-            platforms.find(p => p.id === platform)?.name ?? t('Unknown')
-          )}
-        </Header>
-      </Heading>
-    </AnimatePresence>
-  </HeadingContainer>
-);
+const CTASecondary = styled('p')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
+  max-width: 500px;
+`;
 
-PlatformHeading.propTypes = {
-  platform: PropTypes.string.isRequired,
-};
+const Actions = styled(ButtonBar)`
+  display: inline-grid;
+  justify-self: start;
+`;
 
 type AlertType = React.ComponentProps<typeof Alert>['type'];
 
-const getAlertClass = (type: AlertType) => (type === 'muted' ? 'alert' : `alert-${type}`);
+const getAlertSelector = (type: AlertType) =>
+  type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
 
 const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
   css`
-    .${getAlertClass(type)} {
+    ${getAlertSelector(type)} {
       ${alertStyles({theme: p.theme, type})};
       display: block;
     }
   `;
 
-const DocsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-`;
-
-const DocsWrapper = styled(motion.div)`
-  grid-column: 1;
-  grid-row: 1;
-
+const Content = styled(motion.div)`
   h1,
   h2,
   h3,
@@ -328,7 +317,7 @@ const DocsWrapper = styled(motion.div)`
 
   code {
     font-size: 87.5%;
-    color: #e83e8c;
+    color: ${p => p.theme.pink300};
   }
 
   pre code {
@@ -356,8 +345,12 @@ const DocsWrapper = styled(motion.div)`
   ${p => Object.keys(p.theme.alert).map(type => mapAlertStyles(p, type as AlertType))}
 `;
 
+const DocsWrapper = styled(motion.div)``;
+
 DocsWrapper.defaultProps = {
-  ...docsTransition,
+  initial: {opacity: 0, y: 40},
+  animate: {opacity: 1, y: 0},
+  exit: {opacity: 0},
 };
 
 export default withOrganization(withApi(ProjectDocs));

@@ -7,25 +7,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import ProjectsStore from 'app/stores/projectsStore';
 import Onboarding, {stepPropTypes} from 'app/views/onboarding/onboarding';
 
-const MockStep = ({
-  name,
-  data,
-  scrollTargetId,
-  active,
-  project,
-  onReturnToStep,
-  onComplete,
-  onUpadte,
-}) => (
+const MockStep = ({name, data, active, project, onComplete, onUpadte}) => (
   <div>
     {active && <div id="is_active" />}
-    <div id="step_name" data-scroll-id={scrollTargetId}>
-      {name}
-    </div>
+    <div id="step_name">{name}</div>
     <div id="project_slug">{project && project.slug}</div>
     <a id="complete" href="#" onClick={() => onComplete(data)} />
     <a id="update" href="#" onClick={() => onUpadte(data)} />
-    <a id="return" href="#" onClick={() => onReturnToStep(data)} />
   </div>
 );
 
@@ -79,15 +67,10 @@ describe('Onboarding', function () {
       TestStubs.routerContext()
     );
 
-    // Validate that there is only one step
-    expect(wrapper.find('#step_name')).toHaveLength(1);
+    // Validate that the first step is shown
     expect(wrapper.find('#step_name').text()).toEqual('step_1');
-    expect(wrapper.find('PageHeading').text()).toEqual('Step One');
-    expect(wrapper.find('ProgressStatus').text()).toEqual('Step One');
-    expect(wrapper.find('#is_active').exists()).toEqual(true);
 
     // Validate that the progress bar is displayed and active
-    expect(wrapper.find('ProgressStep')).toHaveLength(3);
     expect(wrapper.find('ProgressStep').first().props().active).toBe(true);
   });
 
@@ -108,7 +91,7 @@ describe('Onboarding', function () {
     expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step2/');
   });
 
-  it('renders first and second step', function () {
+  it('renders second step', function () {
     const params = {
       step: 'step2',
       orgId: 'org-bar',
@@ -119,20 +102,13 @@ describe('Onboarding', function () {
       TestStubs.routerContext()
     );
 
-    // Validate both steps exist
-    expect(wrapper.find('ProgressStatus').text()).toEqual('Step Two');
-    expect(wrapper.find('#step_name')).toHaveLength(2);
-    expect(wrapper.find('#step_name').at(1).text()).toEqual('step_2');
-
-    // First step is not active
-    expect(wrapper.find('MockStep').at(0).find('#active').exists()).toBe(false);
-
-    // Second step is active
-    expect(wrapper.find('MockStep').at(1).find('#active').exists()).toBe(false);
+    // Validate that second step is visible
+    expect(wrapper.find('#step_name').text()).toEqual('step_2');
+    expect(wrapper.find('MockStep').find('#active').exists()).toBe(false);
   });
 
-  it('returns to step one when onReturnToStep is triggered', function () {
-    browserHistory.replace = jest.fn();
+  it('goes back when back button clicked', function () {
+    browserHistory.push = jest.fn();
 
     const params = {
       step: 'step2',
@@ -144,8 +120,8 @@ describe('Onboarding', function () {
       TestStubs.routerContext()
     );
 
-    wrapper.find('#return').at(0).simulate('click');
-    expect(browserHistory.push).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
+    wrapper.find('Back Button').simulate('click');
+    expect(browserHistory.replace).toHaveBeenCalledWith('/onboarding/org-bar/step1/');
   });
 
   it('passes the first existing project', function () {

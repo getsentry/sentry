@@ -7,43 +7,65 @@ import {IconCheckmark} from 'app/icons';
 import {t} from 'app/locale';
 import pulsingIndicatorStyles from 'app/styles/pulsingIndicator';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
+import {Group} from 'app/types';
 import EventWaiter from 'app/utils/eventWaiter';
 import testableTransition from 'app/utils/testableTransition';
 
 type EventWaiterProps = Omit<React.ComponentProps<typeof EventWaiter>, 'children'>;
 type FirstIssue = null | true | Group;
 
-const FirstEventIndicator = (props: EventWaiterProps) => (
+type RenderProps = {
+  indicator: React.ReactNode;
+  firstEventButton: React.ReactNode;
+};
+
+type Props = EventWaiterProps & {
+  children: (props: RenderProps) => React.ReactNode;
+};
+
+const FirstEventIndicator = ({children, ...props}: Props) => (
   <EventWaiter {...props}>
-    {({firstIssue}) => <Indicator firstIssue={firstIssue} {...props} />}
+    {({firstIssue}) =>
+      children({
+        indicator: <Indicator firstIssue={firstIssue} {...props} />,
+        firstEventButton: (
+          <Button
+            title={t("You'll need to send your first error to continue")}
+            tooltipProps={{disabled: !!firstIssue}}
+            disabled={!firstIssue}
+            priority="primary"
+            to={`/organizations/${props.organization.slug}/issues/${
+              firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
+            }`}
+          >
+            {t('Take me to my error')}
+          </Button>
+        ),
+      })
+    }
   </EventWaiter>
 );
 
-const Indicator = ({
-  firstIssue,
-  ...props
-}: EventWaiterProps & {firstIssue: FirstIssue}) => (
-  <AnimatePresence>
-    {!firstIssue ? (
-      <Waiting key="waiting" />
-    ) : (
-      <Success key="received" firstIssue={firstIssue} {...props} />
-    )}
-  </AnimatePresence>
+const Indicator = ({firstIssue}: EventWaiterProps & {firstIssue: FirstIssue}) => (
+  <Container>
+    <AnimatePresence>
+      {!firstIssue ? <Waiting key="waiting" /> : <Success key="received" />}
+    </AnimatePresence>
+  </Container>
 );
+
+const Container = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-content: right;
+`;
 
 const StatusWrapper = styled(motion.div)`
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: 1fr max-content;
   grid-gap: ${space(1)};
   align-items: center;
-  font-size: 0.9em;
-  /* This is a minor hack, but the line height is just *slightly* too low,
-  making the text appear off center, so we adjust it just a bit */
-  line-height: calc(0.9em + 1px);
-  /* Ensure the event waiter status is always the height of a button */
-  height: ${space(4)};
+  font-size: ${p => p.theme.fontSizeMedium};
   /* Keep the wrapper in the parent grids first cell for transitions */
   grid-column: 1;
   grid-row: 1;
@@ -66,31 +88,15 @@ StatusWrapper.defaultProps = {
 
 const Waiting = (props: React.ComponentProps<typeof StatusWrapper>) => (
   <StatusWrapper {...props}>
+    <AnimatedText>{t('Waiting to recieve first event to continue')}</AnimatedText>
     <WaitingIndicator />
-    <AnimatedText>{t('Waiting for verification event')}</AnimatedText>
   </StatusWrapper>
 );
 
-type SuccessProps = EventWaiterProps & {
-  firstIssue: FirstIssue;
-  organization: Organization;
-};
-
-const Success = ({organization, firstIssue, ...props}: SuccessProps) => (
+const Success = (props: React.ComponentProps<typeof StatusWrapper>) => (
   <StatusWrapper {...props}>
-    <ReceivedIndicator />
     <AnimatedText>{t('Event was received!')}</AnimatedText>
-    {firstIssue && firstIssue !== true && (
-      <EventAction>
-        <Button
-          size="small"
-          priority="primary"
-          to={`/organizations/${organization.slug}/issues/${firstIssue.id}/`}
-        >
-          {t('Take me to my event')}
-        </Button>
-      </EventAction>
-    )}
+    <ReceivedIndicator />
   </StatusWrapper>
 );
 
@@ -121,22 +127,12 @@ const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
   background: ${p => p.theme.green300};
   border-radius: 50%;
-  padding: 5px;
-  margin: 0 2px;
+  padding: 3px;
+  margin: 0 ${space(0.25)};
 `;
 
 ReceivedIndicator.defaultProps = {
   size: 'sm',
-};
-
-const EventAction = styled(motion.div)``;
-
-EventAction.defaultProps = {
-  variants: {
-    initial: {x: -20, opacity: 0},
-    animate: {x: 0, opacity: 1},
-  },
-  transition: testableTransition(),
 };
 
 export {Indicator};
