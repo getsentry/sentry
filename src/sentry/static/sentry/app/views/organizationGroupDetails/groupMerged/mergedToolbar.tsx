@@ -4,9 +4,8 @@ import pick from 'lodash/pick';
 
 import {openDiffModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
-import SpreadLayout from 'app/components/spreadLayout';
-import Toolbar from 'app/components/toolbar';
+import Confirm from 'app/components/confirm';
+import {PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
@@ -52,7 +51,7 @@ class MergedToolbar extends React.Component<Props, State> {
 
   listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
 
-  onGroupChange = ({updateObj}) => {
+  onGroupChange = updateObj => {
     const allowedKeys = [
       'unmergeLastCollapsed',
       'unmergeDisabled',
@@ -102,34 +101,32 @@ class MergedToolbar extends React.Component<Props, State> {
     const unmergeCount = (unmergeList && unmergeList.size) || 0;
 
     return (
-      <StyledToolbar>
-        <SpreadLayout>
-          <div>
-            <LinkWithConfirmation
-              disabled={unmergeDisabled}
-              title={t('Unmerging %s events', unmergeCount)}
-              message={t(
-                'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
-              )}
-              className="btn btn-sm btn-default"
-              onConfirm={onUnmerge}
-            >
-              {t('Unmerge')} ({unmergeCount})
-            </LinkWithConfirmation>
+      <PanelHeader hasButtons>
+        <div>
+          <Confirm
+            disabled={unmergeDisabled}
+            onConfirm={onUnmerge}
+            message={t(
+              'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
+            )}
+          >
+            <Button size="small" title={t(`Unmerging ${unmergeCount} events`)}>
+              {t('Unmerge')} ({unmergeCount || 0})
+            </Button>
+          </Confirm>
 
-            <CompareButton
-              size="small"
-              disabled={!enableFingerprintCompare}
-              onClick={this.handleShowDiff}
-            >
-              {t('Compare')}
-            </CompareButton>
-          </div>
-          <Button size="small" onClick={onToggleCollapse}>
-            {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
-          </Button>
-        </SpreadLayout>
-      </StyledToolbar>
+          <CompareButton
+            size="small"
+            disabled={!enableFingerprintCompare}
+            onClick={this.handleShowDiff}
+          >
+            {t('Compare')}
+          </CompareButton>
+        </div>
+        <Button size="small" onClick={onToggleCollapse}>
+          {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
+        </Button>
+      </PanelHeader>
     );
   }
 }
@@ -138,8 +135,4 @@ export default MergedToolbar;
 
 const CompareButton = styled(Button)`
   margin-left: ${space(1)};
-`;
-
-const StyledToolbar = styled(Toolbar)`
-  padding: ${space(0.5)} ${space(1)};
 `;
