@@ -58,7 +58,7 @@ export function getTabs(organization: Organization) {
       Query.REPROCESSING,
       {
         name: t('Reprocessing'),
-        count: false,
+        count: true,
         enabled: organization.features.includes('reprocessing-v2'),
       },
     ],
@@ -82,4 +82,5 @@ type QueryCount = {
   count: number;
   hasMore: boolean;
 };
+
 export type QueryCounts = Partial<Record<Query, QueryCount>>;
