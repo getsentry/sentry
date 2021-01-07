@@ -25,7 +25,7 @@ type Props = {
   to?: string | object;
   href?: string;
   icon?: React.ReactNode;
-  title?: string;
+  title?: string | React.ReactNode;
   external?: boolean;
   borderless?: boolean;
   label?: string;
@@ -70,7 +70,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     /**
      * Tooltip text
      */
-    title: PropTypes.string,
+    title: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
     /**
      * Is an external link? (Will open in new tab)
      */

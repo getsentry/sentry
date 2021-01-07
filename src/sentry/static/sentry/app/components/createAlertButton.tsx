@@ -335,22 +335,37 @@ const CreateAlertButton = withRouter(
       );
     }
 
+    const permissionTooltipText = tct(
+      'Users with admin permission or higher can create alert rules. Owners and managers can [settingsLink] for you.',
+      {
+        settingsLink: (
+          <StyledLink to={`/settings/${organization.slug}`}>
+            {t('change this setting')}
+          </StyledLink>
+        ),
+      }
+    );
+
     return (
       <Access organization={organization} access={['alerts:write']}>
         {({hasAccess}) => (
           <Button
             disabled={!hasAccess}
-            title={
-              !hasAccess
-                ? t('Users with admin permission or higher can create alert rules.')
-                : undefined
-            }
+            title={!hasAccess ? permissionTooltipText : undefined}
             icon={!hideIcon && <IconSiren {...iconProps} />}
             to={
               projectSlug
                 ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
                 : undefined
             }
+            tooltipProps={{
+              isHoverable: true,
+              position: 'top',
+              popperStyle: {
+                maxWidth: '270px',
+                fontWeight: 'normal',
+              },
+            }}
             onClick={projectSlug ? undefined : handleClickWithoutProject}
             {...buttonProps}
           >
@@ -389,5 +404,15 @@ const StyledCloseButton = styled(Button)`
   &:focus {
     background-color: transparent;
     opacity: 1;
+  }
+`;
+
+const StyledLink = styled(Link)`
+  color: ${p => p.theme.bodyBackground};
+  text-decoration: underline;
+
+  &:hover {
+    color: ${p => p.theme.bodyBackground};
+    text-decoration: underline;
   }
 `;
