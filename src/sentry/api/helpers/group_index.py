@@ -776,8 +776,6 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                     ignore_until = None
                     result["statusDetails"] = {}
             else:
-                if has_inbox:
-                    result["inbox"] = None
                 result["statusDetails"] = {}
 
         if group_list and happened:
