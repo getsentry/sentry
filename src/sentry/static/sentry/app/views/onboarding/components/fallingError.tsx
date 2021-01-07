@@ -1,6 +1,8 @@
 import React from 'react';
 import {motion} from 'framer-motion';
 
+import testableTransition from 'app/utils/testableTransition';
+
 type RenderProps = {
   fallCount: number;
   triggerFall: (countIt?: boolean) => void;
@@ -46,11 +48,11 @@ class FallingError extends React.Component<Props, State> {
           hanging: {
             opacity: [1, 1, 1],
             rotateZ: [8, -8, 8],
-            transition: {
+            transition: testableTransition({
               repeat: Infinity,
               repeatType: 'loop',
               duration: 4,
-            },
+            }),
           },
           falling: {
             originY: '50%',
