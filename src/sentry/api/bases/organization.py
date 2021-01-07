@@ -14,7 +14,6 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
     ApiKey,
-    ApiToken,
     Authenticator,
     Organization,
     Project,
@@ -320,10 +319,6 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
                 return []
-            has_valid_api_key = request.auth.has_scope(
-                "project:releases"
-            ) or request.auth.has_scope("project:write")
-        elif isinstance(request.auth, ApiToken):
             has_valid_api_key = request.auth.has_scope(
                 "project:releases"
             ) or request.auth.has_scope("project:write")
