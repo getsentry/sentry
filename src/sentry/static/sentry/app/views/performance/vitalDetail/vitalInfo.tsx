@@ -14,6 +14,7 @@ type Props = {
   location: Location;
   vitalName: WebVital;
   hideBar?: boolean;
+  hideEmptyState?: boolean;
   hideVitalPercentNames?: boolean;
   hideDurationDetail?: boolean;
 };
