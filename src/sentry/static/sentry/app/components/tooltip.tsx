@@ -363,6 +363,11 @@ const TooltipContent = styled(motion.div)<{hide: boolean} & Pick<Props, 'popperS
   text-align: center;
   ${p => p.popperStyle as any};
   ${p => p.hide && `display: none`};
+
+  a {
+    color: ${p => p.theme.bodyBackground};
+    text-decoration: underline;
+  }
 `;
 
 const TooltipArrow = styled('span')<{background: string | number}>`
