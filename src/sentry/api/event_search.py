@@ -2159,38 +2159,32 @@ FUNCTIONS = {
             required_args=[
                 DurationColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
-                DateArg("start"),
-                DateArg("end"),
+                ConditionArg("condition"),
+                DateArg("middle"),
             ],
             aggregate=[
                 u"quantileIf({percentile:.2f})",
                 [
                     ArgValue("column"),
-                    [
-                        "and",
-                        [
-                            # NOTE: These conditions are written in this seemingly backwards way
-                            # because of how snuba special cases the following syntax
-                            # ["a", ["b", ["c", ["d"]]]
-                            #
-                            # This array is can be interpreted 2 ways
-                            # 1. a(b(c(d))) the way snuba interprets it
-                            #   - snuba special cases it when it detects an array where the first
-                            #     element is a literal, and the second element is an array and
-                            #     treats it as a function call rather than 2 separate arguments
-                            # 2. a(b, c(d)) the way we want it to be interpreted
-                            #
-                            # Because of how snuba interprets this expression, it makes it impossible
-                            # to specify a function with 2 arguments whose first argument is a literal
-                            # and the second argument is an expression.
-                            #
-                            # Working with this limitation, we have to invert the conditions in
-                            # order to express a function whose first argument is an expression while
-                            # the second argument is a literal.
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
+                    # NOTE: This condition is written in this seemingly backwards way
+                    # because of how snuba special cases the following syntax
+                    # ["a", ["b", ["c", ["d"]]]
+                    #
+                    # This array is can be interpreted 2 ways
+                    # 1. a(b(c(d))) the way snuba interprets it
+                    #   - snuba special cases it when it detects an array where the first
+                    #     element is a literal, and the second element is an array and
+                    #     treats it as a function call rather than 2 separate arguments
+                    # 2. a(b, c(d)) the way we want it to be interpreted
+                    #
+                    # Because of how snuba interprets this expression, it makes it impossible
+                    # to specify a function with 2 arguments whose first argument is a literal
+                    # and the second argument is an expression.
+                    #
+                    # Working with this limitation, we have to invert the conditions in
+                    # order to express a function whose first argument is an expression while
+                    # the second argument is a literal.
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
                 None,
             ],
@@ -2198,19 +2192,17 @@ FUNCTIONS = {
         ),
         Function(
             "avg_range",
-            required_args=[DurationColumnNoLookup("column"), DateArg("start"), DateArg("end")],
+            required_args=[
+                DurationColumnNoLookup("column"),
+                ConditionArg("condition"),
+                DateArg("middle"),
+            ],
             aggregate=[
                 u"avgIf",
                 [
                     ArgValue("column"),
-                    [
-                        "and",
-                        [
-                            # see `percentile_range` for why the conditions are backwards
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
+                    # see `percentile_range` for why this condition feels backwards
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
                 None,
             ],
@@ -2218,19 +2210,17 @@ FUNCTIONS = {
         ),
         Function(
             "variance_range",
-            required_args=[DurationColumnNoLookup("column"), DateArg("start"), DateArg("end")],
+            required_args=[
+                DurationColumnNoLookup("column"),
+                ConditionArg("condition"),
+                DateArg("middle"),
+            ],
             aggregate=[
                 u"varSampIf",
                 [
                     ArgValue("column"),
-                    [
-                        "and",
-                        [
-                            # see `percentile_range` for why the conditions are backwards
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
+                    # see `percentile_range` for why this condition feels backwards
+                    [ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]],
                 ],
                 None,
             ],
@@ -2238,19 +2228,11 @@ FUNCTIONS = {
         ),
         Function(
             "count_range",
-            required_args=[DateArg("start"), DateArg("end")],
+            required_args=[ConditionArg("condition"), DateArg("middle")],
             aggregate=[
                 u"countIf",
-                [
-                    [
-                        "and",
-                        [
-                            # see `percentile_range` for why the conditions are backwards
-                            ["lessOrEquals", [["toDateTime", [ArgValue("start")]], "timestamp"]],
-                            ["greater", [["toDateTime", [ArgValue("end")]], "timestamp"]],
-                        ],
-                    ],
-                ],
+                # see `percentile_range` for why this condition feels backwards
+                [[ArgValue("condition"), [["toDateTime", [ArgValue("middle")]], "timestamp"]]],
                 None,
             ],
             default_result_type="integer",
@@ -2377,6 +2359,8 @@ def get_function_alias_with_columns(function_name, columns):
 def format_column_arguments(column_args, arguments):
     for i in range(len(column_args)):
         if isinstance(column_args[i], (list, tuple)):
+            if isinstance(column_args[i][0], ArgValue):
+                column_args[i][0] = arguments[column_args[i][0].arg]
             format_column_arguments(column_args[i][1], arguments)
         elif isinstance(column_args[i], six.string_types):
             column_args[i] = column_args[i].format(**arguments)

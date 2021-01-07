@@ -36,13 +36,13 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     trend_columns = {
-        "p50": "percentile_range(transaction.duration, 0.5, {start}, {end}) as {query_alias}",
-        "p75": "percentile_range(transaction.duration, 0.75, {start}, {end}) as {query_alias}",
-        "p95": "percentile_range(transaction.duration, 0.95, {start}, {end}) as {query_alias}",
-        "p99": "percentile_range(transaction.duration, 0.99, {start}, {end}) as {query_alias}",
-        "avg": "avg_range(transaction.duration, {start}, {end}) as {query_alias}",
-        "variance": "variance_range(transaction.duration, {start}, {end}) as {query_alias}",
-        "count_range": "count_range({start}, {end}) as {query_alias}",
+        "p50": "percentile_range(transaction.duration, 0.5, {condition}, {boundary}) as {query_alias}",
+        "p75": "percentile_range(transaction.duration, 0.75, {condition}, {boundary}) as {query_alias}",
+        "p95": "percentile_range(transaction.duration, 0.95, {condition}, {boundary}) as {query_alias}",
+        "p99": "percentile_range(transaction.duration, 0.99, {condition}, {boundary}) as {query_alias}",
+        "avg": "avg_range(transaction.duration, {condition}, {boundary}) as {query_alias}",
+        "variance": "variance_range(transaction.duration, {condition}, {boundary}) as {query_alias}",
+        "count_range": "count_range({condition}, {boundary}) as {query_alias}",
         "percentage": "percentage({alias}_2, {alias}_1) as {query_alias}",
         "difference": "minus({alias}_2,{alias}_1) as {query_alias}",
         "t_test": "t_test({avg}_1, {avg}_2, variance_range_1, variance_range_2, count_range_1, count_range_2)",
@@ -95,7 +95,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             ),
         }
 
-    def get_trend_columns(self, baseline_function, columns, start, middle, end):
+    def get_trend_columns(self, baseline_function, columns, middle):
         """ Construct the columns needed to calculate high confidence trends """
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
@@ -109,16 +109,24 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         # t_test, and the columns required to calculate it
         t_test_columns = [
-            variance_column.format(start=start, end=middle, query_alias="variance_range_1"),
-            variance_column.format(start=middle, end=end, query_alias="variance_range_2"),
+            variance_column.format(
+                condition="greater", boundary=middle, query_alias="variance_range_1"
+            ),
+            variance_column.format(
+                condition="lessOrEquals", boundary=middle, query_alias="variance_range_2"
+            ),
         ]
         # Only add average when its not the baseline
         if baseline_function != "avg":
             avg_column = self.trend_columns["avg"]
             t_test_columns.extend(
                 [
-                    avg_column.format(start=start, end=middle, query_alias="avg_range_1"),
-                    avg_column.format(start=middle, end=end, query_alias="avg_range_2"),
+                    avg_column.format(
+                        condition="greater", boundary=middle, query_alias="avg_range_1"
+                    ),
+                    avg_column.format(
+                        condition="lessOrEquals", boundary=middle, query_alias="avg_range_2"
+                    ),
                 ]
             )
             avg_alias = "avg_range"
@@ -129,14 +137,20 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         t_test_columns.append(self.trend_columns["t_test"].format(avg=avg_alias,))
 
         return t_test_columns + [
-            trend_column.format(*columns, start=start, end=middle, query_alias="aggregate_range_1"),
-            trend_column.format(*columns, start=middle, end=end, query_alias="aggregate_range_2"),
+            trend_column.format(
+                *columns, condition="greater", boundary=middle, query_alias="aggregate_range_1"
+            ),
+            trend_column.format(
+                *columns, condition="lessOrEquals", boundary=middle, query_alias="aggregate_range_2"
+            ),
             percentage_column.format(alias="aggregate_range", query_alias="trend_percentage"),
             self.trend_columns["difference"].format(
                 alias="aggregate_range", query_alias="trend_difference"
             ),
-            count_column.format(start=start, end=middle, query_alias="count_range_1"),
-            count_column.format(start=middle, end=end, query_alias="count_range_2"),
+            count_column.format(condition="greater", boundary=middle, query_alias="count_range_1"),
+            count_column.format(
+                condition="lessOrEquals", boundary=middle, query_alias="count_range_2"
+            ),
             percentage_column.format(alias="count_range", query_alias="count_percentage"),
         ]
 
@@ -167,11 +181,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 middle = params["start"] + timedelta(
                     seconds=(params["end"] - params["start"]).total_seconds() * 0.5
                 )
-            start, middle, end = (
-                datetime.strftime(params["start"], DateArg.date_format),
-                datetime.strftime(middle, DateArg.date_format),
-                datetime.strftime(params["end"], DateArg.date_format),
-            )
+            middle = datetime.strftime(middle, DateArg.date_format)
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
@@ -181,7 +191,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         trend_function = request.GET.get("trendFunction", "p50()")
         function, columns, alias = parse_function(trend_function)
-        trend_columns = self.get_trend_columns(function, columns, start, middle, end)
+        trend_columns = self.get_trend_columns(function, columns, middle)
 
         selected_columns = request.GET.getlist("field")[:]
         orderby = self.get_orderby(request)

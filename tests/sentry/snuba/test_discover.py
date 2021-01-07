@@ -826,7 +826,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "percentile_range(transaction.duration, 0.5, 2020-05-02T13:45:01, 2020-05-02T14:45:01) as percentile_range_1",
+                "percentile_range(transaction.duration, 0.5, greater, 2020-05-02T14:45:01) as percentile_range_1",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -839,19 +839,7 @@ class QueryTransformTest(TestCase):
                     "quantileIf(0.50)",
                     [
                         "duration",
-                        [
-                            "and",
-                            [
-                                [
-                                    "lessOrEquals",
-                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
-                                ],
-                                [
-                                    "greater",
-                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
-                                ],
-                            ],
-                        ],
+                        ["greater", [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"]],
                     ],
                     "percentile_range_1",
                 ]
@@ -878,7 +866,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "avg_range(transaction.duration, 2020-05-02T13:45:01, 2020-05-02T14:45:01) as avg_range_1",
+                "avg_range(transaction.duration, greater, 2020-05-02T14:45:01) as avg_range_1",
             ],
             query="",
             params={"project_id": [self.project.id]},
@@ -891,19 +879,7 @@ class QueryTransformTest(TestCase):
                     "avgIf",
                     [
                         "duration",
-                        [
-                            "and",
-                            [
-                                [
-                                    "lessOrEquals",
-                                    [["toDateTime", ["'2020-05-02T13:45:01'"]], "timestamp"],
-                                ],
-                                [
-                                    "greater",
-                                    [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"],
-                                ],
-                            ],
-                        ],
+                        ["greater", [["toDateTime", ["'2020-05-02T14:45:01'"]], "timestamp"]],
                     ],
                     "avg_range_1",
                 ]
