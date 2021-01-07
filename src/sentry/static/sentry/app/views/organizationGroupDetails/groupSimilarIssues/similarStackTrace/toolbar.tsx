@@ -58,22 +58,14 @@ class SimilarToolbar extends React.Component<Props, State> {
         </Confirm>
 
         <Columns>
-          <StyledToolbarHeader className="event-count-header">
-            {t('Events')}
-          </StyledToolbarHeader>
+          <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
 
           {v2 ? (
-            <StyledToolbarHeader className="event-similar-header">
-              {t('Score')}
-            </StyledToolbarHeader>
+            <StyledToolbarHeader>{t('Score')}</StyledToolbarHeader>
           ) : (
             <React.Fragment>
-              <StyledToolbarHeader className="event-similar-header">
-                {t('Exception')}
-              </StyledToolbarHeader>
-              <StyledToolbarHeader className="event-similar-header">
-                {t('Message')}
-              </StyledToolbarHeader>
+              <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
+              <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
             </React.Fragment>
           )}
         </Columns>
