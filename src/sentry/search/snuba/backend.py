@@ -34,12 +34,11 @@ def assigned_to_filter(actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
-        team_query = Q(
+        return Q(
             id__in=GroupAssignee.objects.filter(
                 team=actor, project_id__in=[p.id for p in projects]
             ).values_list("group_id", flat=True)
         )
-        return team_query  # Q(assignee_set__team=actor)
 
     assigned_to_user = Q(
         id__in=GroupAssignee.objects.filter(
