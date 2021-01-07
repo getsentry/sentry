@@ -46,17 +46,14 @@ describe('IssueListSavedSearchSelector', function () {
 
   describe('getTitle()', function () {
     it('defaults to custom search', function () {
-      expect(wrapper.instance().getTitle()).toEqual('Custom Search');
-    });
-
-    it('uses searchId to match', function () {
-      wrapper.setProps({searchId: '789'});
-      expect(wrapper.instance().getTitle()).toEqual('Unresolved');
+      expect(wrapper.find('ButtonTitle').text()).toBe('Custom Search');
     });
 
     it('uses query to match', function () {
       wrapper.setProps({query: 'is:unresolved assigned:me'});
-      expect(wrapper.instance().getTitle()).toEqual('Assigned to me');
+      wrapper.update();
+
+      expect(wrapper.find('ButtonTitle').text()).toBe('Assigned to me');
     });
   });
 
