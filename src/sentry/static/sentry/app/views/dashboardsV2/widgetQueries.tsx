@@ -85,12 +85,11 @@ type Props = {
   widget: Widget;
   selection: GlobalSelection;
   children: (
-    props: Pick<State, 'loading' | 'error' | 'results' | 'errorMessage'>
+    props: Pick<State, 'loading' | 'results' | 'errorMessage'>
   ) => React.ReactNode;
 };
 
 type State = {
-  error: boolean;
   errorMessage: undefined | string;
   loading: boolean;
   results: Series[];
@@ -99,7 +98,6 @@ type State = {
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
-    error: false,
     errorMessage: undefined,
     results: [],
   };
@@ -165,23 +163,22 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             results,
-            error: false,
             errorMessage: undefined,
             loading: completed === promises.length ? false : true,
           };
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-        this.setState({error: true, errorMessage});
+        this.setState({errorMessage});
       }
     });
   }
 
   render() {
     const {children} = this.props;
-    const {loading, results, error, errorMessage} = this.state;
+    const {loading, results, errorMessage} = this.state;
 
-    return children({loading, results, error, errorMessage});
+    return children({loading, results, errorMessage});
   }
 }
 

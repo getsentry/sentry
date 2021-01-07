@@ -76,9 +76,9 @@ class WidgetCard extends React.Component<Props, State> {
 
   renderVisual({
     results,
-    error,
+    errorMessage,
     loading,
-  }: Pick<WidgetQueries['state'], 'results' | 'error' | 'loading'>) {
+  }: Pick<WidgetQueries['state'], 'results' | 'errorMessage' | 'loading'>) {
     const {location, router, selection, widget} = this.props;
 
     const {start, end, period} = selection.datetime;
@@ -136,7 +136,7 @@ class WidgetCard extends React.Component<Props, State> {
     return (
       <ChartZoom router={router} period={period} start={start} end={end}>
         {zoomRenderProps => {
-          if (error) {
+          if (errorMessage) {
             return (
               <ErrorPanel>
                 <IconWarning color="gray500" size="lg" />
@@ -231,7 +231,7 @@ class WidgetCard extends React.Component<Props, State> {
             widget={widget}
             selection={selection}
           >
-            {({results, error, errorMessage, loading}) => {
+            {({results, errorMessage, loading}) => {
               return (
                 <React.Fragment>
                   {typeof renderErrorMessage === 'function'
@@ -239,7 +239,7 @@ class WidgetCard extends React.Component<Props, State> {
                     : null}
                   <ChartContainer>
                     <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-                    {this.renderVisual({results, error, loading})}
+                    {this.renderVisual({results, errorMessage, loading})}
                     {this.renderEditPanel()}
                   </ChartContainer>
                 </React.Fragment>
