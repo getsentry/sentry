@@ -2031,7 +2031,7 @@ FUNCTIONS = {
             private=True,
         ),
         Function(
-            "histogram2",
+            "histogram",
             required_args=[
                 NumericColumnNoLookup("column", allow_measurements_value=True),
                 # the bucket_size and start_offset should already be adjusted
@@ -2085,7 +2085,7 @@ FUNCTIONS = {
         # Internally, snuba.discover.query() expands the user request into this value by
         # calculating the bucket size and start_offset.
         Function(
-            "histogram",
+            "histogram_deprecated",
             required_args=[
                 DurationColumnNoLookup("column"),
                 NumberRange("num_buckets", 1, 500),

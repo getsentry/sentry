@@ -492,20 +492,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
 
         # using private functions in an aggregation without access should error
-        with pytest.raises(InvalidSearchQuery, match="histogram2: no access to private function"):
+        with pytest.raises(InvalidSearchQuery, match="histogram: no access to private function"):
             discover.query(
-                selected_columns=["histogram2(measurements_value, 1,0,1)"],
-                query="histogram2(measurements_value, 1,0,1):>0",
+                selected_columns=["histogram(measurements_value, 1,0,1)"],
+                query="histogram(measurements_value, 1,0,1):>0",
                 params={"project_id": [self.project.id]},
                 use_aggregate_conditions=True,
             )
 
         # using private functions in an aggregation without access should error
         # with auto aggregation on
-        with pytest.raises(InvalidSearchQuery, match="histogram2: no access to private function"):
+        with pytest.raises(InvalidSearchQuery, match="histogram: no access to private function"):
             discover.query(
                 selected_columns=["count()"],
-                query="histogram2(measurements_value, 1,0,1):>0",
+                query="histogram(measurements_value, 1,0,1):>0",
                 params={"project_id": [self.project.id]},
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
@@ -1530,16 +1530,21 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_translations(self, mock_query):
+    def test_histogram_deprecated_translations(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1000_0": 1000, "count": 1123}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
+                "data": [
+                    {"histogram_deprecated_transaction_duration_10_1000_0": 1000, "count": 1123}
+                ],
             },
         ]
         discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id], "environment": self.environment.name},
             auto_fields=True,
@@ -1550,13 +1555,13 @@ class QueryTransformTest(TestCase):
                 [
                     "multiply",
                     [["floor", [["divide", ["duration", 1000]]]], 1000],
-                    "histogram_transaction_duration_10_1000_0",
+                    "histogram_deprecated_transaction_duration_10_1000_0",
                 ]
             ],
             aggregations=[["count", None, "count"]],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
-            groupby=["histogram_transaction_duration_10_1000_0"],
+            groupby=["histogram_deprecated_transaction_duration_10_1000_0"],
             conditions=[[["environment", "=", self.environment.name]]],
             end=None,
             start=None,
@@ -1568,71 +1573,80 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_bad_histogram_translations(self, mock_query):
+    def test_bad_histogram_deprecated_translations(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1000_0": 1000, "count": 1123}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
+                "data": [
+                    {"histogram_deprecated_transaction_duration_10_1000_0": 1000, "count": 1123}
+                ],
             },
         ]
         with pytest.raises(InvalidSearchQuery) as err:
             discover.query(
-                selected_columns=["histogram(transaction.duration)", "count()"],
-                query="",
-                params={"project_id": [self.project.id]},
-                auto_fields=True,
-                use_aggregate_conditions=False,
-            )
-        assert "histogram(...) expects 2 column arguments, received 1 arguments" in six.text_type(
-            err
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            discover.query(
-                selected_columns=["histogram(stack.colno, 10)", "count()"],
+                selected_columns=["histogram_deprecated(transaction.duration)", "count()"],
                 query="",
                 params={"project_id": [self.project.id]},
                 auto_fields=True,
                 use_aggregate_conditions=False,
             )
         assert (
-            "histogram(...) can only be used with the transaction.duration column"
+            "histogram_deprecated(...) expects 2 column arguments, received 1 arguments"
             in six.text_type(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             discover.query(
-                selected_columns=["histogram(transaction.duration, 1000)", "count()"],
+                selected_columns=["histogram_deprecated(stack.colno, 10)", "count()"],
                 query="",
                 params={"project_id": [self.project.id]},
                 auto_fields=True,
                 use_aggregate_conditions=False,
             )
         assert (
-            "histogram(...) requires a bucket value between 1 and 500, not 1000"
+            "histogram_deprecated(...) can only be used with the transaction.duration column"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            discover.query(
+                selected_columns=["histogram_deprecated(transaction.duration, 1000)", "count()"],
+                query="",
+                params={"project_id": [self.project.id]},
+                auto_fields=True,
+                use_aggregate_conditions=False,
+            )
+        assert (
+            "histogram_deprecated(...) requires a bucket value between 1 and 500, not 1000"
             in six.text_type(err)
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_narrow_range(self, mock_query):
+    def test_histogram_deprecated_zerofill_narrow_range(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 505, "min_transaction.duration": 490}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_15_1_490"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_15_1_490"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_15_1_490": 490, "count": 1},
-                    {"histogram_transaction_duration_15_1_490": 492, "count": 2},
-                    {"histogram_transaction_duration_15_1_490": 500, "count": 4},
-                    {"histogram_transaction_duration_15_1_490": 501, "count": 3},
+                    {"histogram_deprecated_transaction_duration_15_1_490": 490, "count": 1},
+                    {"histogram_deprecated_transaction_duration_15_1_490": 492, "count": 2},
+                    {"histogram_deprecated_transaction_duration_15_1_490": 500, "count": 4},
+                    {"histogram_deprecated_transaction_duration_15_1_490": 501, "count": 3},
                 ],
             },
         ]
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 15)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 15)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_15",
+            orderby="histogram_deprecated_transaction_duration_15",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
@@ -1641,25 +1655,28 @@ class QueryTransformTest(TestCase):
             assert result["count"] == exp
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_uneven_start_end(self, mock_query):
+    def test_histogram_deprecated_zerofill_uneven_start_end(self, mock_query):
         # the start end values don't align well with bucket boundaries.
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 507, "min_transaction.duration": 392}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_12_384"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_12_384"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_10_12_384": 396, "count": 1},
-                    {"histogram_transaction_duration_10_12_384": 420, "count": 2},
-                    {"histogram_transaction_duration_10_12_384": 456, "count": 4},
-                    {"histogram_transaction_duration_10_12_384": 492, "count": 3},
+                    {"histogram_deprecated_transaction_duration_10_12_384": 396, "count": 1},
+                    {"histogram_deprecated_transaction_duration_10_12_384": 420, "count": 2},
+                    {"histogram_deprecated_transaction_duration_10_12_384": 456, "count": 4},
+                    {"histogram_deprecated_transaction_duration_10_12_384": 492, "count": 3},
                 ],
             },
         ]
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
@@ -1670,101 +1687,116 @@ class QueryTransformTest(TestCase):
             assert result["count"] == exp
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_empty_results(self, mock_query):
+    def test_histogram_deprecated_zerofill_empty_results(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1000_0": 10000, "count": 1}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
+                "data": [
+                    {"histogram_deprecated_transaction_duration_10_1000_0": 10000, "count": 1}
+                ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
 
         expected = [i * 1000 for i in range(10)]
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_10"] == exp
+            assert result["histogram_deprecated_transaction_duration_10"] == exp
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_full_results(self, mock_query):
+    def test_histogram_deprecated_zerofill_full_results(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i}
+                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
                     for i in range(11)
                 ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
 
         expected = [i * 1000 for i in range(11)]
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_10"] == exp
+            assert result["histogram_deprecated_transaction_duration_10"] == exp
             assert result["count"] == exp / 1000
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_missing_results_asc_sort(self, mock_query):
+    def test_histogram_deprecated_zerofill_missing_results_asc_sort(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i}
+                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
                     for i in range(0, 11, 2)
                 ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
 
         expected = [i * 1000 for i in range(11)]
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_10"] == exp
+            assert result["histogram_deprecated_transaction_duration_10"] == exp
             assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_missing_results_desc_sort(self, mock_query):
+    def test_histogram_deprecated_zerofill_missing_results_desc_sort(self, mock_query):
         seed = list(range(0, 11, 2))
         seed.reverse()
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i} for i in seed
+                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
+                    for i in seed
                 ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="-histogram_transaction_duration_10",
+            orderby="-histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
@@ -1772,24 +1804,27 @@ class QueryTransformTest(TestCase):
         expected = [i * 1000 for i in range(11)]
         expected.reverse()
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_10"] == exp
+            assert result["histogram_deprecated_transaction_duration_10"] == exp
             assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_missing_results_no_sort(self, mock_query):
+    def test_histogram_deprecated_zerofill_missing_results_no_sort(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1000_0"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_10_1000_0": i * 1000, "count": i}
+                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
                     for i in range(0, 10, 2)
                 ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
             orderby="count",
@@ -1799,88 +1834,99 @@ class QueryTransformTest(TestCase):
 
         expected = [0, 2000, 4000, 6000, 8000]
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_10"] == exp
+            assert result["histogram_deprecated_transaction_duration_10"] == exp
             assert result["count"] == exp / 1000
 
         expected_extra_buckets = set([1000, 3000, 5000, 7000, 9000])
-        extra_buckets = set(r["histogram_transaction_duration_10"] for r in results["data"][5:])
+        extra_buckets = set(
+            r["histogram_deprecated_transaction_duration_10"] for r in results["data"][5:]
+        )
         assert expected_extra_buckets == extra_buckets
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_zerofill_on_weird_bucket(self, mock_query):
+    def test_histogram_deprecated_zerofill_on_weird_bucket(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 0}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_87_0"}, {"name": "count"}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_87_0"},
+                    {"name": "count"},
+                ],
                 "data": [
-                    {"histogram_transaction_duration_10_87_0": i * 87, "count": i}
+                    {"histogram_deprecated_transaction_duration_10_87_0": i * 87, "count": i}
                     for i in range(1, 10, 2)
                 ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
 
         expected = [i * 87 for i in range(11)]
         for result, exp in zip(results["data"], expected):
-            assert result["histogram_transaction_duration_10"] == exp
+            assert result["histogram_deprecated_transaction_duration_10"] == exp
             assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_min_equal_max(self, mock_query):
+    def test_histogram_deprecated_min_equal_max(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 869}]},
             {
-                "meta": [{"name": "histogram_transaction_duration_10_1_869"}, {"name": "count"}],
-                "data": [{"histogram_transaction_duration_10_1_869": 869, "count": 1}],
+                "meta": [
+                    {"name": "histogram_deprecated_transaction_duration_10_1_869"},
+                    {"name": "count"},
+                ],
+                "data": [{"histogram_deprecated_transaction_duration_10_1_869": 869, "count": 1}],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
 
-        assert results["data"][0]["histogram_transaction_duration_10"] == 869
+        assert results["data"][0]["histogram_deprecated_transaction_duration_10"] == 869
         assert results["data"][0]["count"] == 1
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_enormous_max(self, mock_query):
+    def test_histogram_deprecated_enormous_max(self, mock_query):
         mock_query.side_effect = [
             {"data": [{"max_transaction.duration": 64733000000, "min_transaction.duration": 1}]},
             {
                 "meta": [
-                    {"name": "histogram_transaction_duration_10_6473300000_0"},
+                    {"name": "histogram_deprecated_transaction_duration_10_6473300000_0"},
                     {"name": "count"},
                 ],
                 "data": [
-                    {"histogram_transaction_duration_10_6473300000_0": 64733000000, "count": 1}
+                    {
+                        "histogram_deprecated_transaction_duration_10_6473300000_0": 64733000000,
+                        "count": 1,
+                    }
                 ],
             },
         ]
 
         results = discover.query(
-            selected_columns=["histogram(transaction.duration, 10)", "count()"],
+            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
             query="",
             params={"project_id": [self.project.id]},
-            orderby="histogram_transaction_duration_10",
+            orderby="histogram_deprecated_transaction_duration_10",
             auto_fields=True,
             use_aggregate_conditions=False,
         )
 
         assert len(results["data"]) == 11
-        assert results["data"][-1]["histogram_transaction_duration_10"] == 64733000000
+        assert results["data"][-1]["histogram_deprecated_transaction_duration_10"] == 64733000000
         assert results["data"][-1]["count"] == 1
 
     @patch("sentry.snuba.discover.raw_query")
@@ -2025,7 +2071,7 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [],
@@ -2043,7 +2089,7 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [],
@@ -2061,7 +2107,7 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [],
@@ -2086,23 +2132,23 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 0,
+                    "histogram_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 1,
+                    "histogram_measurements_value_1_0_1": 1,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 2,
+                    "histogram_measurements_value_1_0_1": 2,
                     "count": 1,
                 },
             ],
@@ -2120,38 +2166,38 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "bar",
-                    "histogram2_measurements_value_1_0_1": 0,
+                    "histogram_measurements_value_1_0_1": 0,
                     "count": 1,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 0,
+                    "histogram_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "histogram2_measurements_value_1_0_1": 1,
+                    "histogram_measurements_value_1_0_1": 1,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 1,
+                    "histogram_measurements_value_1_0_1": 1,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "histogram2_measurements_value_1_0_1": 2,
+                    "histogram_measurements_value_1_0_1": 2,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 2,
+                    "histogram_measurements_value_1_0_1": 2,
                     "count": 1,
                 },
             ],
@@ -2176,13 +2222,13 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 0,
+                    "histogram_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
             ],
@@ -2200,18 +2246,18 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 0,
+                    "histogram_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "histogram2_measurements_value_1_0_1": 2,
+                    "histogram_measurements_value_1_0_1": 2,
                     "count": 3,
                 },
             ],
@@ -2236,30 +2282,30 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_1_0_1": "number",
+                "histogram_measurements_value_1_0_1": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_1_0_1": 0,
+                    "histogram_measurements_value_1_0_1": 0,
                     "count": 3,
                 },
                 # this row shouldn't be used because "baz" isn't an expected measurement
                 {
                     "array_join_measurements_key": "baz",
-                    "histogram2_measurements_value_1_0_1": 1,
+                    "histogram_measurements_value_1_0_1": 1,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "bar",
-                    "histogram2_measurements_value_1_0_1": 2,
+                    "histogram_measurements_value_1_0_1": 2,
                     "count": 3,
                 },
                 # this row shouldn't be used because 3 isn't an expected bin
                 {
                     "array_join_measurements_key": "bar",
-                    "histogram2_measurements_value_1_0_1": 3,
+                    "histogram_measurements_value_1_0_1": 3,
                     "count": 3,
                 },
             ],
@@ -2284,28 +2330,28 @@ class QueryTransformTest(TestCase):
         results = {
             "meta": {
                 "array_join_measurements_key": "string",
-                "histogram2_measurements_value_25_0_100": "number",
+                "histogram_measurements_value_25_0_100": "number",
                 "count": "integer",
             },
             "data": [
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_25_0_100": 0,
+                    "histogram_measurements_value_25_0_100": 0,
                     "count": 3,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_25_0_100": 25,
+                    "histogram_measurements_value_25_0_100": 25,
                     "count": 2,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_25_0_100": 50,
+                    "histogram_measurements_value_25_0_100": 50,
                     "count": 1,
                 },
                 {
                     "array_join_measurements_key": "foo",
-                    "histogram2_measurements_value_25_0_100": 75,
+                    "histogram_measurements_value_25_0_100": 75,
                     "count": 1,
                 },
             ],
@@ -2341,23 +2387,23 @@ class QueryTransformTest(TestCase):
             {
                 "meta": [
                     {"name": "array_join_measurements_key", "type": "String"},
-                    {"name": "histogram2_measurements_value_1_0_1", "type": "Float64"},
+                    {"name": "histogram_measurements_value_1_0_1", "type": "Float64"},
                     {"name": "count", "type": "UInt64"},
                 ],
                 "data": [
                     {
                         "array_join_measurements_key": "bar",
-                        "histogram2_measurements_value_1_0_1": 0,
+                        "histogram_measurements_value_1_0_1": 0,
                         "count": 3,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "histogram2_measurements_value_1_0_1": 0,
+                        "histogram_measurements_value_1_0_1": 0,
                         "count": 3,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "histogram2_measurements_value_1_0_1": 2,
+                        "histogram_measurements_value_1_0_1": 2,
                         "count": 1,
                     },
                 ],
@@ -2381,35 +2427,35 @@ class QueryTransformTest(TestCase):
             {
                 "meta": [
                     {"name": "array_join_measurements_key", "type": "String"},
-                    {"name": "histogram2_measurements_value_5_5_10", "type": "Float64"},
+                    {"name": "histogram_measurements_value_5_5_10", "type": "Float64"},
                     {"name": "count", "type": "UInt64"},
                 ],
                 "data": [
                     # this row shouldn't be used because it lies outside the boundary
                     {
                         "array_join_measurements_key": "foo",
-                        "histogram2_measurements_value_5_5_10": 0,
+                        "histogram_measurements_value_5_5_10": 0,
                         "count": 1,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "histogram2_measurements_value_5_5_10": 5,
+                        "histogram_measurements_value_5_5_10": 5,
                         "count": 3,
                     },
                     {
                         "array_join_measurements_key": "bar",
-                        "histogram2_measurements_value_5_5_10": 10,
+                        "histogram_measurements_value_5_5_10": 10,
                         "count": 2,
                     },
                     {
                         "array_join_measurements_key": "foo",
-                        "histogram2_measurements_value_5_5_10": 15,
+                        "histogram_measurements_value_5_5_10": 15,
                         "count": 1,
                     },
                     # this row shouldn't be used because it lies outside the boundary
                     {
                         "array_join_measurements_key": "bar",
-                        "histogram2_measurements_value_5_5_10": 30,
+                        "histogram_measurements_value_5_5_10": 30,
                         "count": 2,
                     },
                 ],

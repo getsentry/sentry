@@ -73,8 +73,8 @@ def test_parse_function():
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
-    assert parse_function("histogram2(measurements_value, 1,0,1)") == (
-        "histogram2",
+    assert parse_function("histogram(measurements_value, 1,0,1)") == (
+        "histogram",
         ["measurements_value", "1", "0", "1"],
         None,
     )
@@ -2429,9 +2429,9 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)
 
-    def test_histogram2_function(self):
-        fields = ["histogram2(measurements_value, 10, 5, 1)"]
-        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["histogram2"])
+    def test_histogram_function(self):
+        fields = ["histogram(measurements_value, 10, 5, 1)"]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["histogram"])
         assert result["selected_columns"] == [
             [
                 "plus",
@@ -2465,7 +2465,7 @@ class ResolveFieldListTest(unittest.TestCase):
                     ],
                     5,
                 ],
-                "histogram2_measurements_value_10_5_1",
+                "histogram_measurements_value_10_5_1",
             ],
             "id",
             "project.id",
@@ -2476,45 +2476,48 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
-    def test_histogram2_function_no_access(self):
-        fields = ["histogram2(measurements_value, 10, 5, 1)"]
+    def test_histogram_function_no_access(self):
+        fields = ["histogram(measurements_value, 10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)
 
-    def test_histogram_function(self):
-        fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
+    def test_histogram_deprecated_function(self):
+        fields = ["histogram_deprecated(transaction.duration, 10, 1000, 0)", "count()"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["selected_columns"] == [
             [
                 "multiply",
                 [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
-                "histogram_transaction_duration_10_1000_0",
+                "histogram_deprecated_transaction_duration_10_1000_0",
             ]
         ]
         assert result["aggregations"] == [
             ["count", None, "count"],
         ]
-        assert result["groupby"] == ["histogram_transaction_duration_10_1000_0"]
+        assert result["groupby"] == ["histogram_deprecated_transaction_duration_10_1000_0"]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(stack.colno, 10, 1000, 0)"]
+            fields = ["histogram_deprecated(stack.colno, 10, 1000, 0)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "histogram(stack.colno, 10, 1000, 0): column argument invalid: stack.colno is not a duration column"
+            "histogram_deprecated(stack.colno, 10, 1000, 0): column argument invalid: stack.colno is not a duration column"
             in six.text_type(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(transaction.duration, 10)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 4 argument(s)" in six.text_type(err)
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
+            fields = ["histogram_deprecated(transaction.duration, 10)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
-            "histogram(transaction.duration, 1000, 1000, 0): num_buckets argument invalid: 1000 must be less than 500"
+            "histogram_deprecated(transaction.duration, 10): expected 4 argument(s)"
+            in six.text_type(err)
+        )
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["histogram_deprecated(transaction.duration, 1000, 1000, 0)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert (
+            "histogram_deprecated(transaction.duration, 1000, 1000, 0): num_buckets argument invalid: 1000 must be less than 500"
             in six.text_type(err)
         )
 
@@ -2770,8 +2773,8 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
         assert "Cannot order" in six.text_type(err)
 
-    def test_orderby_unselected_field_with_histogram(self):
-        fields = ["histogram(transaction.duration, 10, 1000, 0)", "message"]
+    def test_orderby_unselected_field_with_histogram_deprecated(self):
+        fields = ["histogram_deprecated(transaction.duration, 10, 1000, 0)", "message"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
         assert "Cannot order" in six.text_type(err)
