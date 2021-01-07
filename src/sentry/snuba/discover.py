@@ -977,7 +977,7 @@ def measurements_histogram_query(
         referrer=referrer,
         auto_fields=True,
         use_aggregate_conditions=True,
-        functions_acl=["array_join", "measurements_histogram"],
+        functions_acl=["array_join", "histogram2"],
     )
 
     return normalize_measurements_histogram(
@@ -986,7 +986,7 @@ def measurements_histogram_query(
 
 
 def get_measurements_histogram_col(params):
-    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
+    return u"histogram2(measurement_value, {:d}, {:d}, {:d})".format(*params)
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):

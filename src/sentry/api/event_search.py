@@ -1610,7 +1610,17 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
+    def __init__(self, name, allow_measurement_value=False):
+        super(NumericColumnNoLookup, self).__init__(name)
+        self.allow_measurement_value = allow_measurement_value
+
     def normalize(self, value, params):
+        # `measurement_value` is actually an array of Float64s. But when used
+        # in this context, we always want to expand it using `arrayJoin`. The
+        # resulting column will be a numeric column of type Float64.
+        if self.allow_measurement_value and value == "measurement_value":
+            return ["arrayJoin", ["measurements_value"]]
+
         super(NumericColumnNoLookup, self).normalize(value, params)
         return value
 
@@ -2021,8 +2031,9 @@ FUNCTIONS = {
             private=True,
         ),
         Function(
-            "measurements_histogram",
+            "histogram2",
             required_args=[
+                NumericColumnNoLookup("column", allow_measurement_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
@@ -2048,7 +2059,7 @@ FUNCTIONS = {
                                                     [
                                                         "multiply",
                                                         [
-                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("column"),
                                                             ArgValue("multiplier"),
                                                         ],
                                                     ],
