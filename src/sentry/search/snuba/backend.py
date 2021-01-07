@@ -14,6 +14,7 @@ from sentry.models import (
     Release,
     GroupEnvironment,
     Group,
+    GroupAssignee,
     GroupInbox,
     GroupLink,
     GroupOwner,
@@ -33,9 +34,14 @@ def assigned_to_filter(actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
-        return Q(assignee_set__team=actor)
+        team_query = Q(
+            id__in=GroupAssignee.objects.filter(
+                team=actor, project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        )
+        return team_query  # Q(assignee_set__team=actor)
 
-    teams = Team.objects.filter(
+    user_teams = Team.objects.filter(
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
                 user=actor, organization_id=projects[0].organization_id
@@ -44,15 +50,20 @@ def assigned_to_filter(actor, projects):
         ).values("team")
     )
 
-    return Q(
-        Q(assignee_set__user=actor, assignee_set__project__in=projects)
-        | Q(assignee_set__team__in=teams)
+    user_query = Q(
+        id__in=GroupAssignee.objects.filter(
+            user=actor, project_id__in=[p.id for p in projects]
+        ).values_list("group_id", flat=True)
     )
+    team_query = Q(
+        id__in=GroupAssignee.objects.filter(
+            team_id__in=user_teams, project_id__in=[p.id for p in projects]
+        ).values_list("group_id", flat=True)
+    )
+    return user_query | team_query
 
 
 def unassigned_filter(unassigned, projects):
-    from sentry.models.groupassignee import GroupAssignee
-
     query = Q(
         id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
             "group_id", flat=True
