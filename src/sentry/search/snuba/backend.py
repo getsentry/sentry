@@ -52,8 +52,6 @@ def assigned_to_filter(actor, projects):
 
 
 def unassigned_filter(unassigned, projects):
-    # from sentry.models.groupassignee import GroupAssignee
-
     query = Q(
         id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
             "group_id", flat=True
