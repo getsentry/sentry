@@ -1,0 +1,36 @@
+---
+created: '2021-01-07T02:27:06.404922Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - - filename
+      - main.java
+    - - function
+      - main
+    - - module
+      - io.sentry.samples.console.Main
+    matchers:
+    - - family
+      - other
+    - - module
+      - '*EnhancerByGuice*'
+  version: 1
+fingerprint: null
+title: <unlabeled event>
+variants:
+  app:
+    component:
+      contributes: false
+      contributes_to_similarity: false
+      hint: threads of system take precedence
+    type: component
+  system:
+    component:
+      contributes: true
+      contributes_to_similarity: true
+      hint: null
+    type: component

@@ -1,0 +1,43 @@
+{
+    "_fingerprinting_rules": [
+        {
+          "matchers": [
+            ["family", "other"],
+            ["module", "*EnhancerByGuice*"]
+          ],
+          "fingerprint": [["filename","main.java"],["function","main"],["module","io.sentry.samples.console.Main"]]
+        }
+      ],
+    "threads":{
+       "values":[
+          {
+             "id":1,
+             "name":"main",
+             "stacktrace":{
+                "frames":[
+                   {
+                      "function":"main",
+                      "module":"io.sentry.samples.console.Main",
+                      "filename":"Main.java",
+                      "abs_path":"Main.java",
+                      "lineno":154,
+                      "in_app":true
+                   },
+                   {
+                      "function":"func",
+                      "module":"io.sentry.test.$$EnhancerByGuice$$25348.giberrish",
+                      "in_app":true
+                   },
+                   {
+                      "function":"func",
+                      "module":"io.sentry.test.$$EnhancerByGuice$$15901.giberrish",
+                      "in_app":true
+                   }
+                ]
+             },
+             "crashed":true
+          }
+       ]
+    },
+    "platform":"java"
+ }

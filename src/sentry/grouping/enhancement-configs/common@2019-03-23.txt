@@ -61,3 +61,6 @@ family:native function:"?[[]SentryCrash *"                          -app -group
 family:native function:"?[[]SentryClient *"                         -app -group
 family:native function:"?[[]RNSentry *"                             -app -group
 family:native function:"?[[]SentrySDK *"                             -app -group
+
+# Java
+family:other module:*EnhancerByGuice*                          -app -group
