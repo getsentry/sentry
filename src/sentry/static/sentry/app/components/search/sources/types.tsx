@@ -9,7 +9,7 @@ export type ResultItem = {
   /**
    * The title to display in result options.
    */
-  title: string;
+  title: React.ReactNode;
   /**
    * The source that created the result.
    */
@@ -21,7 +21,7 @@ export type ResultItem = {
   /**
    * The description text to display
    */
-  description?: string;
+  description?: React.ReactNode;
   /**
    * The path to visit when the result is clicked.
    */
@@ -44,4 +44,24 @@ export type ResultItem = {
 export type Result = {
   item: ResultItem;
   matches?: MarkedText[];
+};
+
+/**
+ * Common type send to child function
+ * by search source components.
+ */
+export type ChildProps = {
+  /**
+   * Whether or not results have been loaded
+   */
+  isLoading: boolean;
+  /**
+   * Matched results
+   */
+  results: Result[];
+  /**
+   * All potential results if available.
+   * @deprecated This isn't used by source consumers and will be removed soon.
+   */
+  allResults: Result[];
 };
