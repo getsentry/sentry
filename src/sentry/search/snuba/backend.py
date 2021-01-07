@@ -46,7 +46,7 @@ def assigned_to_filter(actor, projects):
             user=actor, project_id__in=[p.id for p in projects]
         ).values_list("group_id", flat=True)
     )
-    assigned_from_user = Q(
+    assigned_to_team = Q(
         id__in=GroupAssignee.objects.filter(
             project_id__in=[p.id for p in projects],
             team_id__in=Team.objects.filter(
@@ -59,7 +59,7 @@ def assigned_to_filter(actor, projects):
             ),
         ).values_list("group_id", flat=True)
     )
-    return assigned_to_user | assigned_from_user
+    return assigned_to_user | assigned_to_team
 
 
 def unassigned_filter(unassigned, projects):
