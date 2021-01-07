@@ -16,7 +16,7 @@ type Props = WithRouterProps<{orgId: string}> & {
    */
   query: string;
   children: (props: ChildProps) => React.ReactElement;
-    /**
+  /**
    * fusejs options.
    */
   searchOptions?: Fuse.FuseOptions<FormSearchField>;
