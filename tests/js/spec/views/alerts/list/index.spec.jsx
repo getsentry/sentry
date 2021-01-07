@@ -243,7 +243,7 @@ describe('IncidentsList', function () {
     );
   });
 
-  it('disables the new alert button for members', async function () {
+  it('disables the new alert button for those without alert:write', async function () {
     const noAccessOrg = {
       ...organization,
       access: [],

@@ -1,12 +1,17 @@
 {% extends "sentry/twofactor.html" %}
+
 {% load sentry_helpers %}
+{% load sentry_assets %}
+
 {% block twofactor_form_body %}
   <div id="u2f-container"></div>
+  {% script %}
   <script>
     ReactDOM.render(React.createElement(SentryApp.U2fSign, {
       challengeData: {{ activation.challenge|to_json|safe }}
     }), document.getElementById('u2f-container'));
   </script>
+  {% endscript %}
 {% endblock %}
 {% block twofactor_submit %}
   {# get rid of submit button #}

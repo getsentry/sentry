@@ -12,48 +12,7 @@ import {Organization, Project} from 'app/types';
 import parseHtmlMarks from 'app/utils/parseHtmlMarks';
 import withLatestContext from 'app/utils/withLatestContext';
 
-type MarkedText = ReturnType<typeof parseHtmlMarks>;
-
-type ResultItem = {
-  sourceType: 'help';
-  resultType: string;
-  title: string;
-  description?: string;
-  to?: string;
-  /**
-   * Context will be mapped into the extra node
-   */
-  extra?: string;
-  /**
-   * Section heading is declared when the first result designates a section of the
-   * global search results.
-   */
-  sectionHeading?: string;
-  sectionCount?: number;
-  empty?: boolean;
-} & (
-  | SearchResult['hits'][0]
-  | {
-      /**
-       * When we have no results for a section we mark the result item as empty
-       */
-      empty?: true;
-    }
-);
-
-type Result = {
-  item: ResultItem;
-  matches?: MarkedText[];
-};
-
-type RenderProps = {
-  isLoading: boolean;
-  /**
-   * Matched results
-   */
-  results: Result[];
-  allResults: Result[];
-};
+import {ChildProps, Result, ResultItem} from './types';
 
 type Props = WithRouterProps & {
   organization: Organization;
@@ -69,7 +28,7 @@ type Props = WithRouterProps & {
   /**
    * Render function that renders the global search result
    */
-  children: (props: RenderProps) => React.ReactNode;
+  children: (props: ChildProps) => React.ReactNode;
 };
 
 type State = {

@@ -4,7 +4,8 @@ import PropTypes from 'prop-types';
 import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
 import {t} from 'app/locale';
 import CustomPropTypes from 'app/sentryTypes';
-import {Event, Tag} from 'app/types';
+import {Tag} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   events: Event[];

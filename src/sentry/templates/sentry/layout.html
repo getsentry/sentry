@@ -30,20 +30,29 @@
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
+  {% script %}
   <script>
     window.__initialData = {% get_react_config %};
   </script>
+  {% endscript %}
 
   {% block scripts %}
   {% locale_js_include %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %} data-entry="true"></script>
+  {% asset_url "sentry" "dist/vendor.js" as asset_url %}
+  {% script src=asset_url %}{% endscript %}
 
+  {% asset_url "sentry" "dist/app.js" as asset_url %}
+  {% script src=asset_url data-entry="true" %}{% endscript %}
+
+  {% script %}
   <script>
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
   </script>
-  <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
+  {% endscript %}
+
+  {% asset_url 'sentry' 'js/ads.js' as asset_url %}
+  {% script src=asset_url %}{% endscript %}
   {% endblock %}
 </head>
 

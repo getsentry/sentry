@@ -27,7 +27,7 @@ def save_userreport(project, report, start_time=None):
     # exist, and ideally we'd also associate that with the event
     euser = find_event_user(report, event)
 
-    if euser and not euser.name and report["name"]:
+    if euser and not euser.name and report.get("name"):
         euser.update(name=report["name"])
     if euser:
         report["event_user_id"] = euser.id
@@ -63,7 +63,7 @@ def save_userreport(project, report, start_time=None):
             raise Conflict("Feedback for this event cannot be modified.")
 
         existing_report.update(
-            name=report["name"],
+            name=report.get("name", ""),
             email=report["email"],
             comments=report["comments"],
             date_added=timezone.now(),

@@ -5,7 +5,8 @@ import Reflux from 'reflux';
 import {getCommitters} from 'app/actionCreators/committers';
 import {Client} from 'app/api';
 import CommitterStore from 'app/stores/committerStore';
-import {AvatarProject, Committer, Event, Group, Organization, Project} from 'app/types';
+import {AvatarProject, Committer, Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import getDisplayName from 'app/utils/getDisplayName';
 
 type DependentProps = {

@@ -933,6 +933,10 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
+    # Add `owner:me_or_none` to inbox tab query
+    "organizations:inbox-owners-query": False,
+    # Enable the new alert details ux design
+    "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
@@ -1283,6 +1287,8 @@ SENTRY_SCOPES = set(
         "event:read",
         "event:write",
         "event:admin",
+        "alerts:write",
+        "alerts:read",
     ]
 )
 
@@ -1314,6 +1320,7 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
+    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1337,6 +1344,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "member:read",
                 "team:read",
+                "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1362,6 +1371,8 @@ SENTRY_ROLES = (
                 "team:write",
                 "team:admin",
                 "org:integrations",
+                "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1388,6 +1399,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "org:write",
                 "org:integrations",
+                "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1416,6 +1429,8 @@ SENTRY_ROLES = (
                 "event:read",
                 "event:write",
                 "event:admin",
+                "alerts:read",
+                "alerts:write",
             ]
         ),
     },

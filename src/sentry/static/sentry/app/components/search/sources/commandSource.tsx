@@ -1,16 +1,26 @@
 import React from 'react';
-import PropTypes from 'prop-types';
+import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import {toggleLocaleDebug} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import {createFuzzySearch, isResultWithMatches} from 'app/utils/createFuzzySearch';
 
-const ACTIONS = [
+import {ChildProps, Result} from './types';
+
+type Action = {
+  title: string;
+  description: string;
+  requiresSuperuser: boolean;
+  action: () => void;
+};
+
+const ACTIONS: Action[] = [
   {
     title: 'Open Sudo Modal',
     description: 'Open Sudo Modal to re-identify yourself.',
+    requiresSuperuser: false,
     action: () =>
       openSudo({
         sudo: true,
@@ -45,88 +55,95 @@ const ACTIONS = [
   {
     title: 'Search Documentation and FAQ',
     description: 'Open the Documentation and FAQ search modal.',
-    action: () => openHelpSearchModal(),
+    requiresSuperuser: false,
+    action: () => {
+      openHelpSearchModal();
+    },
   },
 ];
+
+type Props = {
+  /**
+   * search term
+   */
+  query: string;
+  isSuperuser: boolean;
+  children: (props: ChildProps) => React.ReactElement;
+  /**
+   * fuse.js options
+   */
+  searchOptions?: Fuse.FuseOptions<Action>;
+  /**
+   * Array of routes to search
+   */
+  searchMap?: PlainRoute[];
+};
+
+type State = {
+  fuzzy: null | Fuse<Action, Fuse.FuseOptions<Action>>;
+};
 
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-class CommandSource extends React.Component {
-  static propTypes = {
-    // search term
-    query: PropTypes.string,
-
-    // fuse.js options
-    searchOptions: PropTypes.object,
-
-    // Array of routes to search
-    searchMap: PropTypes.array,
-
-    isSuperuser: PropTypes.bool,
-
-    /**
-     * Render function that passes:
-     * `isLoading` - loading state
-     * `allResults` - All results returned from all queries: [searchIndex, model, type]
-     * `results` - Results array filtered by `this.props.query`: [searchIndex, model, type]
-     */
-    children: PropTypes.func.isRequired,
-  };
-
+class CommandSource extends React.Component<Props, State> {
   static defaultProps = {
     searchMap: [],
     searchOptions: {},
   };
 
-  constructor(...args) {
-    super(...args);
-
-    this.state = {
-      fuzzy: null,
-    };
-  }
+  state: State = {
+    fuzzy: null,
+  };
 
   componentDidMount() {
     this.createSearch(ACTIONS);
   }
 
-  async createSearch(searchMap) {
+  async createSearch(searchMap: Action[]) {
+    const options = {
+      ...this.props.searchOptions,
+      keys: ['title', 'description'],
+    };
     this.setState({
-      fuzzy: await createFuzzySearch(searchMap || [], {
-        ...this.props.searchOptions,
-        keys: ['title', 'description'],
-      }),
+      fuzzy: await createFuzzySearch<Action>(searchMap || [], options),
     });
   }
 
   render() {
     const {searchMap, query, isSuperuser, children} = this.props;
 
-    const results =
-      (this.state.fuzzy &&
-        this.state.fuzzy
-          .search(query)
-          .filter(({item}) => !item.requiresSuperuser || isSuperuser)
-          .map(({item, ...rest}) => ({
-            item: {
-              ...item,
-              sourceType: 'command',
-              resultType: 'command',
-            },
-            ...rest,
-          }))) ||
-      [];
+    const results: Result[] = [];
+    if (this.state.fuzzy) {
+      const rawResults = this.state.fuzzy.search(query);
+      rawResults.forEach(value => {
+        if (!isResultWithMatches<Action>(value)) {
+          return;
+        }
+        const {item, ...rest} = value;
+        if (value.item.requiresSuperuser && !isSuperuser) {
+          return;
+        }
+        results.push({
+          item: {
+            ...item,
+            sourceType: 'command',
+            resultType: 'command',
+          },
+          ...rest,
+        });
+      });
+    }
 
     return children({
       isLoading: searchMap === null,
-      allResults: searchMap,
+      allResults: [],
       results,
     });
   }
 }
 
-const CommandSourceWithFeature = props => (
+const CommandSourceWithFeature = (props: Omit<Props, 'isSuperuser'>) => (
   <Access isSuperuser>
     {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
   </Access>
