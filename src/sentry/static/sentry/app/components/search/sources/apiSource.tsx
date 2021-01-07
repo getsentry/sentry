@@ -18,7 +18,7 @@ import {
 } from 'app/types';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
-import {createFuzzySearch, isResultWithMatches} from 'app/utils/createFuzzySearch';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {singleLineRenderer as markedSingleLine} from 'app/utils/marked';
 import withLatestContext from 'app/utils/withLatestContext';
 import {documentIntegrationList} from 'app/views/organizationIntegrations/constants';
@@ -234,6 +234,7 @@ async function createShortIdLookupResult(
       resultType: 'issue',
       to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${shortIdLookup.groupId}/`,
     },
+    score: 1,
   };
 }
 
@@ -254,6 +255,7 @@ async function createEventIdLookupResult(
       resultType: 'event',
       to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
     },
+    score: 1,
   };
 }
 
@@ -490,24 +492,16 @@ class ApiSource extends React.Component<Props, State> {
   render() {
     const {children, query} = this.props;
     const {fuzzy, directResults} = this.state;
-    const results: Result[] = [];
+    let results: Result[] = [];
     if (fuzzy) {
-      const rawResults = fuzzy.search(query);
-      rawResults.forEach(result => {
-        if (!isResultWithMatches<ResultItem>(result)) {
-          return;
-        }
-        results.push(result);
-      });
+      results = fuzzy.search<ResultItem, true, true>(query);
     }
 
     return children({
       isLoading: this.state.loading,
-      allResults: [],
       results: flatten([results, directResults].filter(defined)) || [],
     });
   }
 }
 
-export {ApiSource};
 export default withLatestContext(withRouter(ApiSource));

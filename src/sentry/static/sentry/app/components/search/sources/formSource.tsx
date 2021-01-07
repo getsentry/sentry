@@ -5,7 +5,7 @@ import Reflux from 'reflux';
 
 import {loadSearchMap} from 'app/actionCreators/formSearch';
 import FormSearchStore, {FormSearchField} from 'app/stores/formSearchStore';
-import {createFuzzySearch, isResultWithMatches} from 'app/utils/createFuzzySearch';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 import {ChildProps, Result} from './types';
@@ -60,15 +60,12 @@ class FormSource extends React.Component<Props, State> {
   render() {
     const {searchMap, query, params, children} = this.props;
 
-    const results: Result[] = [];
+    let results: Result[] = [];
     if (this.state.fuzzy) {
-      const rawResults = this.state.fuzzy.search(query);
-      rawResults.forEach(value => {
-        if (!isResultWithMatches<FormSearchField>(value)) {
-          return;
-        }
+      const rawResults = this.state.fuzzy.search<FormSearchField, true, true>(query);
+      results = rawResults.map<Result>(value => {
         const {item, ...rest} = value;
-        results.push({
+        return {
           item: {
             ...item,
             sourceType: 'field',
@@ -78,13 +75,12 @@ class FormSource extends React.Component<Props, State> {
             )}`,
           },
           ...rest,
-        });
+        };
       });
     }
 
     return children({
       isLoading: searchMap === null,
-      allResults: [],
       results,
     });
   }
