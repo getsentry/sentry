@@ -17,6 +17,16 @@ export * from './sentry-test/select';
 fromEntries.shim();
 
 /**
+ * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
+ * framer-motion SVG components fail
+ *
+ * See https://github.com/jsdom/jsdom/issues/1330
+ */
+if (!SVGElement.prototype.getTotalLength) {
+  SVGElement.prototype.getTotalLength = () => 1;
+}
+
+/**
  * Enzyme configuration
  */
 Enzyme.configure({adapter: new Adapter()});
