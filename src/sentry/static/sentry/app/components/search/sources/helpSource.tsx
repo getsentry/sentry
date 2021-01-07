@@ -12,16 +12,7 @@ import {Organization, Project} from 'app/types';
 import parseHtmlMarks from 'app/utils/parseHtmlMarks';
 import withLatestContext from 'app/utils/withLatestContext';
 
-import {Result, ResultItem} from './types';
-
-type RenderProps = {
-  isLoading: boolean;
-  /**
-   * Matched results
-   */
-  results: Result[];
-  allResults: Result[];
-};
+import {ChildProps, Result, ResultItem} from './types';
 
 type Props = WithRouterProps & {
   organization: Organization;
@@ -37,7 +28,7 @@ type Props = WithRouterProps & {
   /**
    * Render function that renders the global search result
    */
-  children: (props: RenderProps) => React.ReactNode;
+  children: (props: ChildProps) => React.ReactNode;
 };
 
 type State = {

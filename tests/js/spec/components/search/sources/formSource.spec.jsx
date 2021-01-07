@@ -79,7 +79,7 @@ describe('FormSource', function () {
     wrapper.update();
     expect(mock).toHaveBeenCalledWith({
       isLoading: false,
-      allResults: searchMap,
+      allResults: [],
       results: [],
     });
   });

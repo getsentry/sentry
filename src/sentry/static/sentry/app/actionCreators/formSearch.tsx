@@ -2,6 +2,7 @@ import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
 import FormSearchActions from 'app/actions/formSearchActions';
+import {FormSearchField} from 'app/stores/formSearchStore';
 import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 
 type Params = {
@@ -16,7 +17,12 @@ type Params = {
  * @param formGroups An array of `FormGroup: {title: String, fields: [Field]}`
  * @param fields An object whose key is field name and value is a `Field`
  */
-const createSearchMap = ({route, formGroups, fields, ...other}: Params) => {
+const createSearchMap = ({
+  route,
+  formGroups,
+  fields,
+  ...other
+}: Params): FormSearchField[] => {
   // There are currently two ways to define forms (TODO(billy): Turn this into one):
   // If `formGroups` is defined, then return a flattened list of fields in all formGroups
   // Otherwise `fields` is a map of fieldName -> fieldObject -- create a list of fields
@@ -27,8 +33,8 @@ const createSearchMap = ({route, formGroups, fields, ...other}: Params) => {
   return listOfFields.map(field => ({
     ...other,
     route,
-    title: typeof field !== 'function' ? field.label : null,
-    description: typeof field !== 'function' ? field.help : null,
+    title: typeof field !== 'function' ? field.label : undefined,
+    description: typeof field !== 'function' ? field.help : undefined,
     field,
   }));
 };
