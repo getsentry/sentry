@@ -124,7 +124,7 @@ class Item extends React.Component<Props, State> {
             checked={this.state.checked}
             onChange={this.handleCheckClick}
           />
-          <EventDetails className="event-details">
+          <EventDetails>
             <EventOrGroupHeader data={issue} includeLink size="normal" />
             <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
           </EventDetails>
@@ -211,6 +211,7 @@ const Diff = styled('div')`
 
 const EventDetails = styled('div')`
   flex: 1;
+  ${overflowEllipsis};
 `;
 
 export default Item;
