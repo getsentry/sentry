@@ -86,9 +86,9 @@ metadata = IntegrationMetadata(
     aspects={"externalInstall": external_install},
 )
 
-# hide sprint, epic link, parent and linked issues fields because they don't work
-# since sprint and epic link are "custom" we need to search for them by name
-HIDDEN_ISSUE_FIELDS = {"keys": ["parent", "issuelinks"], "names": ["Sprint", "Epic Link"]}
+# Hide linked issues fields because we don't have the necessary UI for fully specifying
+# a valid link (e.g. "is blocked by ISSUE-1").
+HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 
 # A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -96,6 +96,8 @@ JIRA_CUSTOM_FIELD_TYPES = {
     "textarea": "com.atlassian.jira.plugin.system.customfieldtypes:textarea",
     "multiuserpicker": "com.atlassian.jira.plugin.system.customfieldtypes:multiuserpicker",
     "tempo_account": "com.tempoplugin.tempo-accounts:accounts.customfield",
+    "sprint": "com.pyxis.greenhopper.jira:gh-sprint",
+    "epic": "com.pyxis.greenhopper.jira:gh-epic-link",
 }
 
 
@@ -422,8 +424,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         ):
             fieldtype = "select"
             fkwargs["choices"] = self.make_choices(field_meta.get("allowedValues"))
-        elif field_meta.get("autoCompleteUrl") and (
-            schema.get("items") == "user" or schema["type"] == "user"
+        elif (
+            # Assignee and reporter fields
+            field_meta.get("autoCompleteUrl")
+            and (schema.get("items") == "user" or schema["type"] == "user")
+            # Sprint and "Epic Link" fields
+            or schema.get("custom")
+            in (JIRA_CUSTOM_FIELD_TYPES["sprint"], JIRA_CUSTOM_FIELD_TYPES["epic"])
+            # Parent field
+            or schema["type"] == "issuelink"
         ):
             fieldtype = "select"
             organization = (
@@ -629,12 +638,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         # title is renamed to summary before sending to Jira
         standard_fields = [f["name"] for f in fields] + ["summary"]
-        ignored_fields = set(
-            k
-            for k, v in six.iteritems(issue_type_meta["fields"])
-            if v["name"] in HIDDEN_ISSUE_FIELDS["names"]
-        )
-        ignored_fields.update(HIDDEN_ISSUE_FIELDS["keys"])
+        ignored_fields = set()
+        ignored_fields.update(HIDDEN_ISSUE_FIELDS)
         ignored_fields.update(self.get_persisted_ignored_fields())
 
         # apply ordering to fields based on some known built-in Jira fields.
@@ -754,6 +759,15 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES.get("multiuserpicker"):
                         # custom multi-picker
                         v = [{user_id_field: v}]
+                    elif schema["type"] == "issuelink":  # used by Parent field
+                        v = {"key": v}
+                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["epic"]:
+                        v = v
+                    elif schema.get("custom") == JIRA_CUSTOM_FIELD_TYPES["sprint"]:
+                        try:
+                            v = int(v)
+                        except ValueError:
+                            raise IntegrationError("Invalid sprint ({}) specified".format(v))
                     elif schema["type"] == "array" and schema.get("items") == "option":
                         v = [{"value": vx} for vx in v]
                     elif schema["type"] == "array" and schema.get("items") == "string":
