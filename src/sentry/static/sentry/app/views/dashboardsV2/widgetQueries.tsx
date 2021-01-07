@@ -8,6 +8,7 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'app/components/charts/utils';
+import {t} from 'app/locale';
 import {
   EventsStats,
   GlobalSelection,
@@ -83,11 +84,13 @@ type Props = {
   organization: Organization;
   widget: Widget;
   selection: GlobalSelection;
-  children: (props: Pick<State, 'loading' | 'error' | 'results'>) => React.ReactNode;
+  children: (
+    props: Pick<State, 'loading' | 'results' | 'errorMessage'>
+  ) => React.ReactNode;
 };
 
 type State = {
-  error: boolean;
+  errorMessage: undefined | string;
   loading: boolean;
   results: Series[];
 };
@@ -95,7 +98,7 @@ type State = {
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
-    error: false,
+    errorMessage: undefined,
     results: [],
   };
 
@@ -160,20 +163,22 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             results,
+            errorMessage: undefined,
             loading: completed === promises.length ? false : true,
           };
         });
-      } catch (e) {
-        this.setState({error: true});
+      } catch (err) {
+        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        this.setState({errorMessage});
       }
     });
   }
 
   render() {
     const {children} = this.props;
-    const {loading, results, error} = this.state;
+    const {loading, results, errorMessage} = this.state;
 
-    return children({loading, results, error});
+    return children({loading, results, errorMessage});
   }
 }
 

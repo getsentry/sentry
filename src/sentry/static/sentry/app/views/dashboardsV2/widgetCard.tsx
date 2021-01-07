@@ -39,6 +39,7 @@ type Props = ReactRouter.WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
 };
 
 type State = {
@@ -73,8 +74,12 @@ class WidgetCard extends React.Component<Props, State> {
     }
   }
 
-  renderVisual() {
-    const {location, router, selection, api, organization, widget} = this.props;
+  renderVisual({
+    results,
+    errorMessage,
+    loading,
+  }: Pick<WidgetQueries['state'], 'results' | 'errorMessage' | 'loading'>) {
+    const {location, router, selection, widget} = this.props;
 
     const {start, end, period} = selection.datetime;
 
@@ -131,50 +136,37 @@ class WidgetCard extends React.Component<Props, State> {
     return (
       <ChartZoom router={router} period={period} start={start} end={end}>
         {zoomRenderProps => {
+          if (errorMessage) {
+            return (
+              <ErrorPanel>
+                <IconWarning color="gray500" size="lg" />
+              </ErrorPanel>
+            );
+          }
+
+          const colors = results ? theme.charts.getColorPalette(results.length - 2) : [];
+
+          // Create a list of series based on the order of the fields,
+          const series = results
+            ? results.map((values, i: number) => ({
+                ...values,
+                color: colors[i],
+              }))
+            : [];
+
           return (
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({results, error, loading}) => {
-                if (error) {
-                  return (
-                    <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
-                    </ErrorPanel>
-                  );
-                }
-
-                const colors = results
-                  ? theme.charts.getColorPalette(results.length - 2)
-                  : [];
-
-                // Create a list of series based on the order of the fields,
-                const series = results
-                  ? results.map((values, i: number) => ({
-                      ...values,
-                      color: colors[i],
-                    }))
-                  : [];
-
-                return (
-                  <TransitionChart loading={loading} reloading={loading}>
-                    <TransparentLoadingMask visible={loading} />
-                    {getDynamicText({
-                      value: this.chartComponent({
-                        ...zoomRenderProps,
-                        ...chartOptions,
-                        legend,
-                        series,
-                      }),
-                      fixed: 'Widget Chart',
-                    })}
-                  </TransitionChart>
-                );
-              }}
-            </WidgetQueries>
+            <TransitionChart loading={loading} reloading={loading}>
+              <TransparentLoadingMask visible={loading} />
+              {getDynamicText({
+                value: this.chartComponent({
+                  ...zoomRenderProps,
+                  ...chartOptions,
+                  legend,
+                  series,
+                }),
+                fixed: 'Widget Chart',
+              })}
+            </TransitionChart>
           );
         }}
       </ChartZoom>
@@ -212,7 +204,7 @@ class WidgetCard extends React.Component<Props, State> {
   }
 
   render() {
-    const {widget} = this.props;
+    const {widget, api, organization, selection, renderErrorMessage} = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -233,11 +225,27 @@ class WidgetCard extends React.Component<Props, State> {
             }
           }}
         >
-          <ChartContainer>
-            <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-            {this.renderVisual()}
-            {this.renderEditPanel()}
-          </ChartContainer>
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={widget}
+            selection={selection}
+          >
+            {({results, errorMessage, loading}) => {
+              return (
+                <React.Fragment>
+                  {typeof renderErrorMessage === 'function'
+                    ? renderErrorMessage(errorMessage)
+                    : null}
+                  <ChartContainer>
+                    <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
+                    {this.renderVisual({results, errorMessage, loading})}
+                    {this.renderEditPanel()}
+                  </ChartContainer>
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
         </StyledPanel>
       </ErrorBoundary>
     );
