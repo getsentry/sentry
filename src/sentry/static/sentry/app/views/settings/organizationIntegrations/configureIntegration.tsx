@@ -209,7 +209,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   renderMainContent(provider: IntegrationProvider) {
     const {integration} = this.state;
     //if no code mappings, render the single tab
-    if (!this.hasStacktraceLinking(provider)) {
+    if (this.hasStacktraceLinking(provider)) {
       return this.renderMainTab(provider);
     }
     //otherwise render the tab view
