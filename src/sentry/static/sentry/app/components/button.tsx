@@ -25,7 +25,7 @@ type Props = {
   to?: string | object;
   href?: string;
   icon?: React.ReactNode;
-  title?: React.ReactNode;
+  title?: React.ComponentProps<typeof Tooltip>['title'];
   external?: boolean;
   borderless?: boolean;
   label?: string;

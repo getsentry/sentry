@@ -336,14 +336,8 @@ const CreateAlertButton = withRouter(
     }
 
     const permissionTooltipText = tct(
-      'Users with admin permission or higher can create alert rules. Owners and managers can [settingsLink] for you.',
-      {
-        settingsLink: (
-          <StyledLink to={`/settings/${organization.slug}`}>
-            {t('change this setting')}
-          </StyledLink>
-        ),
-      }
+      'Users with admin permission or higher can create alert rules. Owners and managers can [settingsLink:change this setting] for you.',
+      {settingsLink: <Link to={`/settings/${organization.slug}`} />}
     );
 
     return (
@@ -404,15 +398,5 @@ const StyledCloseButton = styled(Button)`
   &:focus {
     background-color: transparent;
     opacity: 1;
-  }
-`;
-
-const StyledLink = styled(Link)`
-  color: ${p => p.theme.bodyBackground};
-  text-decoration: underline;
-
-  &:hover {
-    color: ${p => p.theme.bodyBackground};
-    text-decoration: underline;
   }
 `;
