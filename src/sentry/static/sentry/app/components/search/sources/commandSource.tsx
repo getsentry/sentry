@@ -7,7 +7,7 @@ import {toggleLocaleDebug} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {createFuzzySearch, isResultWithMatches} from 'app/utils/createFuzzySearch';
 
-import {Result} from './types';
+import {ChildProps, Result} from './types';
 
 type Action = {
   title: string;
@@ -61,21 +61,6 @@ const ACTIONS: Action[] = [
     },
   },
 ];
-
-type ChildProps = {
-  /**
-   * Whether or not results are being loaded.
-   */
-  isLoading: boolean;
-  /**
-   * Unused. Only present to be conformant with other search sources.
-   * */
-  allResults: Result[];
-  /**
-   * Results with the filter query applied.
-   */
-  results: Result[];
-};
 
 type Props = {
   /**
@@ -132,7 +117,7 @@ class CommandSource extends React.Component<Props, State> {
     if (this.state.fuzzy) {
       const rawResults = this.state.fuzzy.search(query);
       rawResults.forEach(value => {
-        if (!isResultWithMatches(value)) {
+        if (!isResultWithMatches<Action>(value)) {
           return;
         }
         const {item, ...rest} = value;
