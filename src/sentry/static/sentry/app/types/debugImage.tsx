@@ -94,15 +94,15 @@ export enum ImageProcessingInfo {
 
 export type Image = {
   debug_file: string;
-  debug_id: string;
   code_file: string;
   code_id: string;
   type: string;
   image_size: number;
-  debug_status: ImageProcessingInfo;
-  unwind_status: ImageProcessingInfo;
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
+  debug_id?: string;
+  debug_status?: ImageProcessingInfo | null;
+  unwind_status?: ImageProcessingInfo | null;
   arch?: string;
   image_addr?: string;
 };
