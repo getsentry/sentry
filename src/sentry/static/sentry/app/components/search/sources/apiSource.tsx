@@ -504,4 +504,5 @@ class ApiSource extends React.Component<Props, State> {
   }
 }
 
+export {ApiSource};
 export default withLatestContext(withRouter(ApiSource));
