@@ -171,10 +171,10 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.node-layer-name")
-register("aws-lambda.node-layer-version")
+register("aws-lambda.account-number")
+register("aws-lambda.node.layer-name")
+register("aws-lambda.node.version")
 # the region of the host account we use for assuming the role
-register("aws-lambda.host-account-id")
 register("aws-lambda.host-region", default="us-east-2")
 
 # Snuba

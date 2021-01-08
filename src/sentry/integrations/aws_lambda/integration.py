@@ -127,7 +127,6 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def enable_function(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
-
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
 
@@ -310,6 +309,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                 continue
 
             # find the latest layer for this function
+            # TODO(Steve): push get_latest_layer_for_function into enable_single_lambda
             layer_arn = get_latest_layer_for_function(function)
             try:
                 enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)

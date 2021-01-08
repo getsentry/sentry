@@ -1,14 +1,22 @@
 from __future__ import absolute_import
 
+from django.conf import settings
+from django.core.cache import cache
+
 from sentry import options
 
 from sentry.models import Project, ProjectKey
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
 DEFAULT_NUM_RETRIES = 3
+
+OPTION_VERSION = "version"
+OPTION_LAYER_NAME = "layer-name"
+OPTION_ACCOUNT_NUMBER = "account-number"
 
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
@@ -31,13 +39,38 @@ def parse_arn(arn):
     return result
 
 
-def _get_aws_node_arn(region):
-    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
-        region,
-        options.get("aws-lambda.host-account-id"),
-        options.get("aws-lambda.node-layer-name"),
-        options.get("aws-lambda.node-layer-version"),
-    )
+def get_cache_options():
+    """
+    The cache is filled by a regular background task (see sentry/tasks/release_registry)
+    """
+    if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
+        return {}
+
+    return cache.get(LAYER_INDEX_CACHE_KEY) or {}
+
+
+def get_option_value(runtime, option):
+    if runtime.startswith("nodejs"):
+        prefix = "node"
+    else:
+        raise Exception("Unsupported runtime")
+
+    cache_options = get_cache_options()
+
+    key = u"aws-layer:{}".format(prefix)
+    cache_value = cache_options.get(key) or {}
+
+    # we use - in options but _ in the registry
+    registry_field = option.replace("-", "_")
+
+    # account number doesn't depend on the runtime prefix
+    if option == OPTION_ACCOUNT_NUMBER:
+        option_field = "aws-lambda.account-number"
+    else:
+        option_field = u"aws-lambda.{}.{}".format(prefix, option)
+
+    # use the cache value as a primary
+    return cache_value.get(registry_field) or options.get(option_field)
 
 
 def _get_arn_without_version(arn):
@@ -63,17 +96,16 @@ def get_function_layer_arns(function):
 def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
     runtime = function["Runtime"]
-    if runtime.startswith("nodejs"):
-        return _get_aws_node_arn(region)
-    # update when we can handle other runtimes like Python
-    raise Exception("Unsupported runtime")
+    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
+        region,
+        get_option_value(runtime, OPTION_ACCOUNT_NUMBER),
+        get_option_value(runtime, OPTION_LAYER_NAME),
+        get_option_value(runtime, OPTION_VERSION),
+    )
 
 
 def get_latest_layer_version(runtime):
-    if runtime.startswith("nodejs"):
-        return int(options.get("aws-lambda.node-layer-version"))
-    # update when we can handle other runtimes like Python
-    raise Exception("Unsupported runtime")
+    return int(get_option_value(runtime, OPTION_VERSION))
 
 
 def get_index_of_sentry_layer(layers, arn_to_match):
