@@ -27,7 +27,9 @@ export const fields: Record<string, Field> = {
     maxRows: 20,
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing fingerprint rules will apply to future events only.'),
+    saveMessage: t(
+      'Changing fingerprint rules will apply to future events only (can take up to a minute).'
+    ),
     formatMessageValue: false,
     help: () => (
       <React.Fragment>
@@ -68,7 +70,9 @@ stack.function:malloc -> memory-allocation-error`}
     maxRows: 20,
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing stack trace rules will apply to future events only.'),
+    saveMessage: t(
+      'Changing stack trace rules will apply to future events only (can take up to a minute).'
+    ),
     formatMessageValue: false,
     help: () => (
       <React.Fragment>
@@ -101,7 +105,9 @@ stack.function:mylibrary_* +app`}
     label: t('Grouping Config'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing grouping config will apply to future events only.'),
+    saveMessage: t(
+      'Changing grouping config will apply to future events only (can take up to a minute).'
+    ),
     selectionInfoFunction: args => {
       const {groupingConfigs, value} = args;
       const selection = groupingConfigs.find(({id}) => id === value);
@@ -134,7 +140,9 @@ stack.function:mylibrary_* +app`}
     label: t('Stack Trace Rules Base'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',
-    saveMessage: t('Changing base will apply to future events only.'),
+    saveMessage: t(
+      'Changing base will apply to future events only (can take up to a minute).'
+    ),
     selectionInfoFunction: args => {
       const {groupingEnhancementBases, value} = args;
       const selection = groupingEnhancementBases.find(({id}) => id === value);
