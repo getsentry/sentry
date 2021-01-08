@@ -5,7 +5,7 @@ import {openHelpSearchModal, openSudo} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import {toggleLocaleDebug} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {createFuzzySearch, isResultWithMatches} from 'app/utils/createFuzzySearch';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
 import {ChildProps, Result} from './types';
 
@@ -113,31 +113,26 @@ class CommandSource extends React.Component<Props, State> {
   render() {
     const {searchMap, query, isSuperuser, children} = this.props;
 
-    const results: Result[] = [];
+    let results: Result[] = [];
     if (this.state.fuzzy) {
-      const rawResults = this.state.fuzzy.search(query);
-      rawResults.forEach(value => {
-        if (!isResultWithMatches<Action>(value)) {
-          return;
-        }
-        const {item, ...rest} = value;
-        if (value.item.requiresSuperuser && !isSuperuser) {
-          return;
-        }
-        results.push({
-          item: {
-            ...item,
-            sourceType: 'command',
-            resultType: 'command',
-          },
-          ...rest,
+      const rawResults = this.state.fuzzy.search<Action, true, true>(query);
+      results = rawResults
+        .filter(({item}) => !item.requiresSuperuser || isSuperuser)
+        .map<Result>(value => {
+          const {item, ...rest} = value;
+          return {
+            item: {
+              ...item,
+              sourceType: 'command',
+              resultType: 'command',
+            },
+            ...rest,
+          };
         });
-      });
     }
 
     return children({
       isLoading: searchMap === null,
-      allResults: [],
       results,
     });
   }
