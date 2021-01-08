@@ -1,11 +1,12 @@
 {% load sentry_helpers %}
-
+{% load sentry_assets %}
 <!DOCTYPE html>
 <html>
 <head>
   <title></title>
 </head>
 <body>
+  {% script %}
   <script>
   // sends message to window that opened this popup if user is authenticated and closes the window
 
@@ -17,5 +18,6 @@
     window.close();
   })();
   </script>
+  {% endscript %}
 </body>
 </html>

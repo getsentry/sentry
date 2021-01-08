@@ -114,7 +114,7 @@ const aliases = {
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
    * and should be a bit subtler than active
    */
-  focus: color(colors.pink300).alpha(0.2).string(),
+  focus: backgroundSecondary,
 
   /**
    * Inactive
@@ -127,9 +127,11 @@ const aliases = {
   linkColor: colors.purple300,
 
   /**
-   * ...
+   * Secondary button colors
    */
-  secondaryButton: colors.purple300,
+  secondaryButtonBorder: colors.gray200,
+
+  secondaryButtonText: colors.gray500,
 
   /**
    * Gradient for sidebar
@@ -146,6 +148,11 @@ const aliases = {
    * Default form text color
    */
   formText: colors.gray500,
+
+  /**
+   * Form input border
+   */
+  formInputBorder: colors.gray200,
 
   /**
    *
@@ -260,12 +267,12 @@ const generateButtonTheme = alias => ({
   borderRadius: '3px',
 
   default: {
-    color: '#2f2936',
-    colorActive: '#161319',
-    background: colors.white,
-    backgroundActive: colors.white,
-    border: '#d8d2de',
-    borderActive: '#c9c0d1',
+    color: alias.secondaryButtonText,
+    colorActive: alias.secondaryButtonText,
+    background: alias.background,
+    backgroundActive: alias.background,
+    border: alias.secondaryButtonBorder,
+    borderActive: alias.secondaryButtonBorder,
     focusShadow: color(colors.gray200).alpha(0.5).string(),
   },
   primary: {
@@ -307,10 +314,19 @@ const generateButtonTheme = alias => ({
   disabled: {
     color: alias.disabled,
     colorActive: alias.disabled,
-    border: '#e3e5e6',
-    borderActive: '#e3e5e6',
-    background: colors.white,
-    backgroundActive: colors.white,
+    border: alias.disabled,
+    borderActive: alias.disabled,
+    background: alias.background,
+    backgroundActive: alias.background,
+    focusShadow: false,
+  },
+  form: {
+    color: alias.textColor,
+    colorActive: alias.textColor,
+    background: alias.background,
+    backgroundActive: alias.background,
+    border: alias.formInputBorder,
+    borderActive: alias.formInputBorder,
     focusShadow: false,
   },
 });
@@ -484,14 +500,18 @@ const darkAliases = {
   textColor: colors.white,
   subText: colors.gray200,
   linkColor: colors.purple200,
-  disabled: colors.gray200,
+  disabled: colors.gray400,
+  active: colors.pink300,
+  focus: colors.gray500,
   inactive: colors.gray200,
   error: colors.red300,
   success: colors.green300,
-  secondaryButton: colors.purple200,
+  secondaryButtonText: colors.purple200,
+  secondaryButtonBorder: colors.purple200,
   sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
   formPlaceholder: colors.gray400,
   formText: colors.white,
+  formInputBorder: colors.gray400,
   rowBackground: colors.gray500,
   chartLineColor: colors.gray500,
   chartLabel: colors.gray400,

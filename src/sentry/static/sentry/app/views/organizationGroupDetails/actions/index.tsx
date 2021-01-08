@@ -10,11 +10,10 @@ import {
 import {openModal} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
+import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Link from 'app/components/links/link';
-import ShareIssue from 'app/components/shareIssue';
 import Tooltip from 'app/components/tooltip';
 import {IconRefresh, IconStar} from 'app/icons';
 import {t} from 'app/locale';
@@ -30,11 +29,12 @@ import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import ReviewAction from 'app/views/issueList/actions/reviewAction';
+import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
-import SubscribeAction from '../subscribeAction';
-
 import DeleteAction from './deleteAction';
+import SubscribeAction from './subscribeAction';
 
 type Props = {
   api: Client;
@@ -110,7 +110,11 @@ class Actions extends React.Component<Props, State> {
   };
 
   onUpdate = (
-    data: {isBookmarked: boolean} | {isSubscribed: boolean} | UpdateResolutionStatus
+    data:
+      | {isBookmarked: boolean}
+      | {isSubscribed: boolean}
+      | {inbox: boolean}
+      | UpdateResolutionStatus
   ) => {
     const {group, project, organization, api} = this.props;
 
@@ -134,7 +138,7 @@ class Actions extends React.Component<Props, State> {
     openModal(({closeModal, Header, Body}) => (
       <ReprocessingDialogForm
         group={group}
-        orgSlug={organization.slug}
+        organization={organization}
         project={project}
         closeModal={closeModal}
         Header={Header}
@@ -219,22 +223,23 @@ class Actions extends React.Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
-    let buttonClassName = 'btn btn-default btn-sm';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
 
-    if (disabled) {
-      buttonClassName = `${buttonClassName} disabled`;
-    }
-
     return (
       <Wrapper>
+        {orgFeatures.has('inbox') && (
+          <Tooltip disabled={!!group.inbox} title={t('Issue has been reviewed')}>
+            <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox} />
+          </Tooltip>
+        )}
         <GuideAnchor target="resolve" position="bottom" offset={space(3)}>
           <ResolveActions
             disabled={disabled}
+            disableDropdown={disabled}
             hasRelease={hasRelease}
             latestRelease={project.latestRelease}
             onUpdate={this.onUpdate}
@@ -270,55 +275,43 @@ class Actions extends React.Component<Props, State> {
             onReshare={() => this.onShare(true)}
           />
         )}
+
         {orgFeatures.has('discover-basic') && (
-          <Link
-            className={buttonClassName}
-            title={t('Open in Discover')}
-            to={disabled ? '' : this.getDiscoverUrl()}
-          >
+          <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
             {t('Open in Discover')}
-          </Link>
+          </ActionButton>
         )}
+
         <BookmarkButton
-          className={buttonClassName}
-          role="button"
+          disabled={disabled}
           isActive={group.isBookmarked}
           title={bookmarkTitle}
-          aria-label={bookmarkTitle}
+          label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
-        >
-          <IconWrapper>
-            <IconStar isSolid size="xs" />
-          </IconWrapper>
-        </BookmarkButton>
+          icon={<IconStar isSolid size="xs" />}
+        />
+
         <SubscribeAction
+          disabled={disabled}
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
 
         {orgFeatures.has('reprocessing-v2') && (
-          <Tooltip title={t('Reprocess this issue')}>
-            <div
-              className={buttonClassName}
-              onClick={this.handleClick(disabled, this.onReprocess)}
-            >
-              <IconWrapper>
-                <IconRefresh size="xs" />
-              </IconWrapper>
-            </div>
-          </Tooltip>
+          <ActionButton
+            disabled={disabled}
+            icon={<IconRefresh size="xs" />}
+            title={t('Reprocess this issue')}
+            label={t('Reprocess this issue')}
+            onClick={this.handleClick(disabled, this.onReprocess)}
+          />
         )}
       </Wrapper>
     );
   }
 }
 
-const IconWrapper = styled('span')`
-  position: relative;
-  top: 1px;
-`;
-
-const BookmarkButton = styled('div')<{isActive: boolean}>`
+const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>
     p.isActive &&
     `
@@ -336,6 +329,7 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   margin-top: ${space(2)};
+  white-space: nowrap;
 `;
 
 export {Actions};

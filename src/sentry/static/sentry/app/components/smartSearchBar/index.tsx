@@ -602,7 +602,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         return [];
       }
       if (tag.key === 'release' && !values.includes('latest')) {
-        values.push('latest');
+        values.unshift('latest');
       }
 
       const noValueQuery = values.length === 0 && query.length > 0 ? query : undefined;
@@ -629,10 +629,11 @@ class SmartSearchBar extends React.Component<Props, State> {
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
-      .map(value => ({
+      .map((value, i) => ({
         value,
         desc: value,
         type: 'tag-value',
+        ignoreMaxSearchItems: tag.maxSuggestedValues ? i < tag.maxSuggestedValues : false,
       }));
 
   /**

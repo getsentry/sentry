@@ -116,8 +116,7 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const Content = styled(DropdownBubble)<{isOpen: boolean}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
-  border-top: 0;
-  top: 100%;
+  border-color: ${p => p.theme.button.form.border};
 `;
 
 const DropdownItem = styled(MenuItem)`

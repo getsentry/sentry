@@ -19,6 +19,7 @@ import IntegrationAlertRules from 'app/views/organizationIntegrations/integratio
 import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
+import IntegrationServerlessFunctions from 'app/views/organizationIntegrations/integrationServerlessFunctions';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -169,12 +170,14 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           </Alert>
         )}
 
-        {provider.features.includes('alert-rule') && (
-          <IntegrationAlertRules integration={integration} />
-        )}
+        {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
 
         {provider.features.includes('commits') && (
           <IntegrationRepos {...this.props} integration={integration} />
+        )}
+
+        {provider.features.includes('serverless') && (
+          <IntegrationServerlessFunctions integration={integration} />
         )}
       </React.Fragment>
     );

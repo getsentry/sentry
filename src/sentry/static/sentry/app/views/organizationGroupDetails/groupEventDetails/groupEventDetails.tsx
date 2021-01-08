@@ -18,12 +18,12 @@ import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
 import {
   Environment,
-  Event,
   Group,
   GroupActivityReprocess,
   Organization,
   Project,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
@@ -222,7 +222,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     const eventWithMeta = withMeta(event) as Event;
 
     // reprocessing
-    const hasReprocessingV2Feature = project.features?.includes('reprocessing-v2');
+    const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
     const {activity: activities, count} = group;
     const groupCount = Number(count);
     const mostRecentActivity = getGroupMostRecentActivity(activities);

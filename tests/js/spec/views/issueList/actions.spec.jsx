@@ -65,7 +65,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
         await tick();
         wrapper.update();
@@ -133,7 +133,7 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ActionLink').first().simulate('click');
+        wrapper.find('ResolveActions button[aria-label="Resolve"]').simulate('click');
 
         await tick();
         wrapper.update();
@@ -349,14 +349,18 @@ describe('IssueListActions', function () {
     });
 
     it('should disable merge button', function () {
-      const merge = wrapper.find('ActionLink[className~="action-merge"]').first();
-      expect(merge.props().disabled).toBe(true);
+      expect(
+        wrapper.find('button[aria-label="Merge Selected Issues"]').props()[
+          'aria-disabled'
+        ]
+      ).toBe(true);
     });
   });
 
   describe('with inbox feature', function () {
-    beforeEach(() => {
-      SelectedGroupStore.records = {};
+    beforeEach(async () => {
+      SelectedGroupStore.init();
+      await tick();
       const {organization} = TestStubs.routerContext().context;
       wrapper = mountWithTheme(
         <React.Fragment>
@@ -386,26 +390,28 @@ describe('IssueListActions', function () {
     });
 
     it('hides actions when no issues are selected', async function () {
-      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(false);
+      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(false);
     });
 
     it('displays actions on issue selection', async function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
-      expect(wrapper.find('[data-test-id="button-acknowledge"]').exists()).toBe(true);
+      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(true);
     });
 
     it('acknowledges group', async function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
+
+      await tick();
+      wrapper.update();
+
       const apiMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
-      wrapper.find('[data-test-id="button-acknowledge"]').first().simulate('click');
+      wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
 
-      expect(wrapper.find('Modal')).toSnapshot();
-      wrapper.find('Button[priority="primary"]').simulate('click');
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({

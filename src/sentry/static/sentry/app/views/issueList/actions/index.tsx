@@ -13,8 +13,6 @@ import {GlobalSelection, Group, Organization} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
 
-import {Query} from '../utils';
-
 import ActionSet from './actionSet';
 import Headers from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
@@ -33,6 +31,7 @@ type Props = {
   queryCount: number;
   queryMaxCount: number;
   pageCount: number;
+  displayReprocessingActions: boolean;
   hasInbox?: boolean;
 };
 
@@ -218,7 +217,6 @@ class IssueListActions extends React.Component<Props, State> {
       case ConfirmAction.RESOLVE:
       case ConfirmAction.UNRESOLVE:
       case ConfirmAction.IGNORE:
-      case ConfirmAction.ACKNOWLEDGE:
       case ConfirmAction.UNBOOKMARK: {
         const {pageSelected} = this.state;
         return pageSelected && selectedItems.size > 1;
@@ -243,6 +241,7 @@ class IssueListActions extends React.Component<Props, State> {
       queryMaxCount,
       selection,
       organization,
+      displayReprocessingActions,
     } = this.props;
 
     const {
@@ -255,8 +254,6 @@ class IssueListActions extends React.Component<Props, State> {
     } = this.state;
 
     const numIssues = issues.size;
-    const isReprocessingQuery =
-      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
     return (
       <Sticky>
@@ -265,10 +262,10 @@ class IssueListActions extends React.Component<Props, State> {
             <Checkbox
               onChange={this.handleSelectAll}
               checked={pageSelected}
-              disabled={isReprocessingQuery}
+              disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
-          {(anySelected || !hasInbox) && !isReprocessingQuery && (
+          {(anySelected || !hasInbox) && !displayReprocessingActions && (
             <ActionSet
               orgSlug={organization.slug}
               queryCount={queryCount}
@@ -296,7 +293,7 @@ class IssueListActions extends React.Component<Props, State> {
               queryCount={queryCount}
               queryMaxCount={queryMaxCount}
               hasInbox={hasInbox}
-              isReprocessingQuery={isReprocessingQuery}
+              isReprocessingQuery={displayReprocessingActions}
             />
           )}
         </StyledFlex>

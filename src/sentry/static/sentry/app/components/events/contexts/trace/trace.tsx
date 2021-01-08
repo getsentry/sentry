@@ -2,7 +2,8 @@ import React from 'react';
 
 import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 
 import getUnknownData from '../getUnknownData';

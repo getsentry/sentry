@@ -26,6 +26,7 @@ export enum CandidateDownloadStatus {
   ERROR = 'error',
   NO_PERMISSION = 'noperm',
   DELETED = 'deleted',
+  UNAPPLIED = 'unapplied',
 }
 
 type Features = {
@@ -50,7 +51,10 @@ type CandidateDownloadNotFoundStatus = {
 
 type CandidateDownloadDeletedStatus = {
   status: CandidateDownloadStatus.DELETED;
-  details: string;
+};
+
+type CandidateDownloadUnAppliedStatus = {
+  status: CandidateDownloadStatus.UNAPPLIED;
 };
 
 type CandidateDownloadOtherStatus = {
@@ -58,15 +62,17 @@ type CandidateDownloadOtherStatus = {
     | CandidateDownloadStatus.MALFORMED
     | CandidateDownloadStatus.NO_PERMISSION
     | CandidateDownloadStatus.ERROR;
+  details?: string;
 };
 
-export type CandidateDownload =
+type CandidateDownload =
   | CandidateDownloadNotFoundStatus
   | CandidateDownloadOkStatus
   | CandidateDownloadDeletedStatus
+  | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-type Candidate = {
+export type Candidate = {
   download: CandidateDownload;
   source: string;
   source_name?: string;
@@ -74,7 +80,7 @@ type Candidate = {
 };
 
 // Debug Status
-export enum ImageStackTraceInfo {
+enum ImageStackTraceInfo {
   FOUND = 'found',
   UNUSED = 'unused',
   MISSING = 'missing',

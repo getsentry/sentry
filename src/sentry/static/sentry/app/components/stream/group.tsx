@@ -70,7 +70,7 @@ type Props = {
   id: string;
   selection: GlobalSelection;
   organization: Organization;
-  isReprocessingQuery?: boolean;
+  displayReprocessingLayout?: boolean;
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
@@ -144,7 +144,7 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        (query === Query.NEEDS_REVIEW &&
+        ((query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER) &&
           state.data.inbox?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
@@ -274,7 +274,7 @@ class StreamGroup extends React.Component<Props, State> {
       statsPeriod,
       selection,
       organization,
-      isReprocessingQuery,
+      displayReprocessingLayout,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -297,13 +297,13 @@ class StreamGroup extends React.Component<Props, State> {
     return (
       <Wrapper
         data-test-id="group"
-        onClick={isReprocessingQuery ? undefined : this.toggleSelect}
+        onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
         hasInbox={hasInbox}
       >
         {canSelect && (
           <GroupCheckBoxWrapper ml={2}>
-            <GroupCheckBox id={data.id} disabled={!!isReprocessingQuery} />
+            <GroupCheckBox id={data.id} disabled={!!displayReprocessingLayout} />
           </GroupCheckBoxWrapper>
         )}
         <GroupSummary
@@ -322,7 +322,7 @@ class StreamGroup extends React.Component<Props, State> {
           <EventOrGroupExtraDetails organization={organization} data={data} />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
-        {withChart && !isReprocessingQuery && (
+        {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
               <Placeholder height="24px" />
@@ -335,7 +335,7 @@ class StreamGroup extends React.Component<Props, State> {
             )}
           </ChartWrapper>
         )}
-        {isReprocessingQuery ? (
+        {displayReprocessingLayout ? (
           this.renderReprocessingColumns()
         ) : (
           <React.Fragment>

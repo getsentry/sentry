@@ -6,6 +6,7 @@ import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
+import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
@@ -36,6 +37,7 @@ import space from 'app/styles/space';
 import {
   BaseGroup,
   GlobalSelection,
+  Group,
   Member,
   Organization,
   SavedSearch,
@@ -60,7 +62,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {Query, QueryCounts, TabQueriesWithCounts} from './utils';
+import {getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -216,6 +218,8 @@ class IssueListOverview extends React.Component<Props, State> {
     const prevQuery = prevProps.location.query;
     const newQuery = this.props.location.query;
 
+    const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
+
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
@@ -227,7 +231,7 @@ class IssueListOverview extends React.Component<Props, State> {
       prevQuery.groupStatsPeriod !== newQuery.groupStatsPeriod ||
       prevProps.savedSearch !== this.props.savedSearch
     ) {
-      this.fetchData();
+      this.fetchData(selectionChanged);
     } else if (
       !this._lastRequest &&
       prevState.issuesLoading === false &&
@@ -268,6 +272,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     const {query} = location.query;
+
     if (query !== undefined) {
       return query as string;
     }
@@ -276,6 +281,10 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox') &&
       organization.features.includes('inbox-tab-default')
     ) {
+      if (organization.features.includes('inbox-owners-query')) {
+        return Query.NEEDS_REVIEW_OWNER;
+      }
+
       return Query.NEEDS_REVIEW;
     }
 
@@ -381,27 +390,33 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
-  fetchCounts = async (currentQueryCount: number) => {
+  fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
+    const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
-    const currentTabQuery = TabQueriesWithCounts.includes(endpointParams.query as Query)
+    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
 
     // If all tabs' counts are fetched, skip and only set
-    if (!TabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)) {
+    if (
+      fetchAllCounts ||
+      !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
+    ) {
       const requestParams: CountsEndpointParams = {
         ...omit(endpointParams, 'query'),
         // fetch the counts for the tabs whose counts haven't been fetched yet
-        query: TabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
+        query: tabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
       };
 
       // If no stats period values are set, use default
       if (!requestParams.statsPeriod && !requestParams.start) {
         requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
+
       try {
         const response = await this.props.api.requestPromise(
           this.getGroupCountsEndpoint(),
@@ -410,9 +425,14 @@ class IssueListOverview extends React.Component<Props, State> {
             data: qs.stringify(requestParams),
           }
         );
+
+        // Counts coming from the counts endpoint is limited to 100, for >= 100 we display 99+
         queryCounts = {
           ...queryCounts,
-          ...response,
+          ...mapValues(response, (count: number) => ({
+            count,
+            hasMore: count > TAB_MAX_COUNT,
+          })),
         };
       } catch (e) {
         this.setState({
@@ -422,14 +442,18 @@ class IssueListOverview extends React.Component<Props, State> {
       }
     }
 
+    // Update the count based on the exact number of issues, these shown as is
     if (currentTabQuery) {
-      queryCounts[currentTabQuery] = currentQueryCount;
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
     }
 
     this.setState({queryCounts});
   };
 
-  fetchData = () => {
+  fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
 
     this.setState({
@@ -473,6 +497,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     this._poller.disable();
 
+    const fetchAllCounts =
+      this.props.organization.features.includes('inbox') && !!selectionChanged;
+
     this._lastRequest = this.props.api.request(this.getGroupListEndpoint(), {
       method: 'GET',
       data: qs.stringify(requestParams),
@@ -512,7 +539,7 @@ class IssueListOverview extends React.Component<Props, State> {
         const pageLinks = jqXHR.getResponseHeader('Link');
 
         if (this.props.organization.features.includes('inbox')) {
-          this.fetchCounts(queryCount);
+          this.fetchCounts(queryCount, fetchAllCounts);
         }
 
         this.setState({
@@ -545,7 +572,10 @@ class IssueListOverview extends React.Component<Props, State> {
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      this._poller.setEndpoint(links.previous.href);
+      // Remove collapse stats from endpoint before supplying to poller
+      const issueEndpoint = new URL(links.previous.href);
+      issueEndpoint.searchParams.delete('collapse');
+      this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
       this._poller.enable();
     }
   };
@@ -590,7 +620,7 @@ class IssueListOverview extends React.Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
-    const groupIds = this._streamManager.getAllItems().map(item => item.id);
+    const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
@@ -700,21 +730,38 @@ class IssueListOverview extends React.Component<Props, State> {
     }
   };
 
+  displayReprocessingTab() {
+    const {organization} = this.props;
+    const {queryCounts} = this.state;
+
+    return (
+      organization.features.includes('reprocessing-v2') &&
+      !!queryCounts?.[Query.REPROCESSING]?.count
+    );
+  }
+
+  displayReprocessingLayout(showReprocessingTab: boolean, query: string) {
+    return showReprocessingTab && query === Query.REPROCESSING;
+  }
+
   renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
     const topIssue = ids[0];
     const {memberList} = this.state;
-    const {organization} = this.props;
     const query = this.getQuery();
-    const isReprocessingQuery =
-      query === Query.REPROCESSING && organization.features.includes('reprocessing-v2');
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
-      const group = GroupStore.get(id);
+      const group = GroupStore.get(id) as Group | undefined;
       let members: Member['user'][] | undefined;
-      if (group && group.project) {
+      if (group?.project) {
         members = memberList[group.project.slug];
       }
+
+      const showReprocessingTab = this.displayReprocessingTab();
+      const displayReprocessingLayout = this.displayReprocessingLayout(
+        showReprocessingTab,
+        query
+      );
 
       return (
         <StreamGroup
@@ -724,7 +771,7 @@ class IssueListOverview extends React.Component<Props, State> {
           query={query}
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
-          isReprocessingQuery={isReprocessingQuery}
+          displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
         />
       );
@@ -732,7 +779,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   renderLoading(): React.ReactNode {
-    return <LoadingIndicator />;
+    return (
+      <StyledPageContent>
+        <LoadingIndicator />
+      </StyledPageContent>
+    );
   }
 
   renderStreamBody(): React.ReactNode {
@@ -837,7 +888,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
     const page = isNaN(queryPageInt) ? 0 : queryPageInt;
-    const pageCount = page * MAX_ITEMS + groupIds?.length;
+    const pageCount = page * MAX_ITEMS + groupIds.length;
 
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
@@ -849,7 +900,12 @@ class IssueListOverview extends React.Component<Props, State> {
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
+
+    const showReprocessingTab = this.displayReprocessingTab();
+    const displayReprocessingActions = this.displayReprocessingLayout(
+      showReprocessingTab,
+      query
+    );
 
     return (
       <Feature organization={organization} features={['organizations:inbox']}>
@@ -857,6 +913,7 @@ class IssueListOverview extends React.Component<Props, State> {
           <React.Fragment>
             {hasFeature && (
               <IssueListHeader
+                organization={organization}
                 query={query}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
@@ -865,7 +922,7 @@ class IssueListOverview extends React.Component<Props, State> {
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
-                hasReprocessingV2Feature={hasReprocessingV2Feature}
+                displayReprocessingTab={showReprocessingTab}
               />
             )}
             <StyledPageContent isInbox={hasFeature}>
@@ -903,6 +960,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     groupIds={groupIds}
                     allResultsVisible={this.allResultsVisible()}
                     hasInbox={hasFeature}
+                    displayReprocessingActions={displayReprocessingActions}
                   />
                   <PanelBody>
                     <ProcessingIssueList
@@ -966,7 +1024,7 @@ export default withApi(
 export {IssueListOverview};
 
 // TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)<{isInbox: boolean}>`
+const StyledPageContent = styled(PageContent)<{isInbox?: boolean}>`
   display: flex;
   flex-direction: row;
   ${p =>

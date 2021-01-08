@@ -1,16 +1,16 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import Tag from 'app/components/tag';
+import space from 'app/styles/space';
 import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
 
 type Props = {
   count?: number;
   max?: number;
   hideIfEmpty?: boolean;
   hideParens?: boolean;
-  tagType?: keyof Theme['tag'];
+  backgroundColor?: string;
 };
 
 /**
@@ -25,7 +25,7 @@ const QueryCount = ({
   max,
   hideIfEmpty = true,
   hideParens = false,
-  tagType,
+  backgroundColor,
 }: Props) => {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
@@ -33,8 +33,10 @@ const QueryCount = ({
     return null;
   }
 
-  if (tagType) {
-    return <Tag type={tagType}>{countOrMax}</Tag>;
+  if (backgroundColor) {
+    return (
+      <StyledBackground backgroundColor={backgroundColor}>{countOrMax}</StyledBackground>
+    );
   }
 
   return (
@@ -51,5 +53,17 @@ QueryCount.propTypes = {
   hideIfEmpty: PropTypes.bool,
   hideParens: PropTypes.bool,
 };
+
+const StyledBackground = styled('div')<{backgroundColor?: string}>`
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  border-radius: 20px;
+  color: ${p => p.theme.gray500};
+  background-color: ${p => p.backgroundColor};
+  padding: 0 ${space(1)};
+  line-height: 20px;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 export default QueryCount;

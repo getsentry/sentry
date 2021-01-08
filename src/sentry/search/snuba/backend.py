@@ -14,6 +14,7 @@ from sentry.models import (
     Release,
     GroupEnvironment,
     Group,
+    GroupAssignee,
     GroupInbox,
     GroupLink,
     GroupOwner,
@@ -33,26 +34,34 @@ def assigned_to_filter(actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
-        return Q(assignee_set__team=actor)
+        return Q(
+            id__in=GroupAssignee.objects.filter(
+                team=actor, project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        )
 
-    teams = Team.objects.filter(
-        id__in=OrganizationMemberTeam.objects.filter(
-            organizationmember__in=OrganizationMember.objects.filter(
-                user=actor, organization_id=projects[0].organization_id
+    assigned_to_user = Q(
+        id__in=GroupAssignee.objects.filter(
+            user=actor, project_id__in=[p.id for p in projects]
+        ).values_list("group_id", flat=True)
+    )
+    assigned_to_team = Q(
+        id__in=GroupAssignee.objects.filter(
+            project_id__in=[p.id for p in projects],
+            team_id__in=Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user=actor, organization_id=projects[0].organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
             ),
-            is_active=True,
-        ).values("team")
+        ).values_list("group_id", flat=True)
     )
-
-    return Q(
-        Q(assignee_set__user=actor, assignee_set__project__in=projects)
-        | Q(assignee_set__team__in=teams)
-    )
+    return assigned_to_user | assigned_to_team
 
 
 def unassigned_filter(unassigned, projects):
-    from sentry.models.groupassignee import GroupAssignee
-
     query = Q(
         id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
             "group_id", flat=True
@@ -138,7 +147,12 @@ def owner_filter(owner, projects):
             .values_list("group_id", flat=True)
             .distinct()
         ) | assigned_to_filter(owner, projects)
-    elif isinstance(owner, User):
+    elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
+        include_none = False
+        if isinstance(owner, list) and owner[0] == "me_or_none":
+            include_none = True
+            owner = owner[1]
+
         teams = Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember__in=OrganizationMember.objects.filter(
@@ -147,40 +161,28 @@ def owner_filter(owner, projects):
                 is_active=True,
             ).values("team")
         )
-        relevant_owners = GroupOwner.objects.filter(
-            project_id__in=project_ids, organization_id=organization_id
-        )
-        filter_query = Q(team__in=teams) | Q(user=owner)
-        return Q(
-            id__in=relevant_owners.filter(filter_query)
-            .values_list("group_id", flat=True)
-            .distinct()
-        ) | assigned_to_filter(owner, projects)
-    elif isinstance(owner, list) and owner[0] == "me_or_none":
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember__in=OrganizationMember.objects.filter(
-                    user=owner[1], organization_id=organization_id
-                ),
-                is_active=True,
-            ).values("team")
-        )
-
-        owned_me = Q(
+        owned_by_me = Q(
             id__in=GroupOwner.objects.filter(
-                Q(user_id=owner[1].id) | Q(team__in=teams),
+                Q(user_id=owner.id) | Q(team__in=teams),
+                Q(group__assignee_set__isnull=True),
                 project_id__in=[p.id for p in projects],
                 organization_id=organization_id,
             )
             .values_list("group_id", flat=True)
             .distinct()
         )
-        no_owner = unassigned_filter(True, projects) & ~Q(
-            id__in=GroupOwner.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-                "group_id", flat=True
+
+        owner_query = owned_by_me | assigned_to_filter(owner, projects)
+
+        if include_none:
+            no_owner = unassigned_filter(True, projects) & ~Q(
+                id__in=GroupOwner.objects.filter(
+                    project_id__in=[p.id for p in projects]
+                ).values_list("group_id", flat=True)
             )
-        )
-        return no_owner | owned_me | assigned_to_filter(owner[1], projects)
+            return no_owner | owner_query
+        else:
+            return owner_query
 
     raise InvalidSearchQuery(u"Unsupported owner type.")
 

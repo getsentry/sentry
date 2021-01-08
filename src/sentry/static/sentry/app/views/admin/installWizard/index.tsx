@@ -2,8 +2,8 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import sentryPattern from 'app/../images/pattern/sentry-pattern.png';
 import Alert from 'app/components/alert';
 import {ApiForm} from 'app/components/forms';
 import {IconWarning} from 'app/icons';

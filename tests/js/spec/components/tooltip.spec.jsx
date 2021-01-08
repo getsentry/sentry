@@ -16,7 +16,7 @@ describe('Tooltip', function () {
 
   it('updates title', function () {
     const wrapper = mountWithTheme(
-      <Tooltip title="test">
+      <Tooltip delay={0} title="test">
         <span>My Button</span>
       </Tooltip>,
       TestStubs.routerContext()
@@ -32,11 +32,15 @@ describe('Tooltip', function () {
     expect(tooltip.childNodes[0].nodeValue).toEqual('bar');
 
     trigger.simulate('mouseLeave');
+
+    // XXX(epurkhiser): AnimatePresence will remove the element, but for
+    // testing it's easier to just remove it
+    tooltip.remove();
   });
 
   it('disables and does not render', function () {
     const wrapper = mount(
-      <Tooltip title="test" disabled>
+      <Tooltip delay={0} title="test" disabled>
         <span>My Button</span>
       </Tooltip>,
       TestStubs.routerContext()
@@ -52,7 +56,7 @@ describe('Tooltip', function () {
 
   it('does not render an empty tooltip', function () {
     const wrapper = mountWithTheme(
-      <Tooltip title="">
+      <Tooltip delay={0} title="">
         <span>My Button</span>
       </Tooltip>,
       TestStubs.routerContext()

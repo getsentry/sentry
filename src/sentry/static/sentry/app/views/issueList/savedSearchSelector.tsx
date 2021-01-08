@@ -129,6 +129,7 @@ const StyledDropdownButton = styled(DropdownButton)`
   color: ${p => p.theme.textColor};
   background-color: ${p => p.theme.background};
   border-right: 0;
+  border-color: ${p => p.theme.border};
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   border-radius: ${p =>
     p.isOpen
@@ -139,7 +140,9 @@ const StyledDropdownButton = styled(DropdownButton)`
   margin-right: 0;
 
   &:hover,
+  &:focus,
   &:active {
+    border-color: ${p => p.theme.border};
     border-right: 0;
   }
 `;
@@ -174,7 +177,7 @@ const DeleteButton = styled(Button)`
   color: ${p => p.theme.gray200};
   background: transparent;
   flex-shrink: 0;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1)} 0;
+  padding: ${space(1)} 0;
 
   &:hover {
     background: transparent;
@@ -186,12 +189,6 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
   border-bottom: ${p => (!p.last ? `1px solid ${p.theme.innerBorder}` : null)};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: 0;
-
-  &:hover {
-    ${SearchTitle}, ${SearchQuery} {
-      color: ${p => p.theme.black};
-    }
-  }
 
   ${p =>
     p.isActive &&

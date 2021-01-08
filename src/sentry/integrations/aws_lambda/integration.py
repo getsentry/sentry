@@ -16,15 +16,26 @@ from sentry.integrations import (
     IntegrationMetadata,
     FeatureDescription,
 )
-from sentry.models import Project, ProjectKey
+from sentry.integrations.serverless import ServerlessMixin
+from sentry.models import Project, OrganizationIntegration
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.web.helpers import render_to_response
-from sentry.utils.compat import filter, map
+from sentry.utils.compat import map
 from sentry.utils import json
 
-from .client import gen_aws_lambda_client
-from .utils import parse_arn
+from .client import gen_aws_client
+from .utils import (
+    parse_arn,
+    get_index_of_sentry_layer,
+    get_version_of_arn,
+    get_supported_functions,
+    get_latest_layer_version,
+    get_latest_layer_for_function,
+    get_function_layer_arns,
+    enable_single_lambda,
+    disable_single_lambda,
+    get_dsn_for_project,
+)
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
@@ -52,11 +63,103 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
-SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
+class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
+    def __init__(self, *args, **kwargs):
+        super(AwsLambdaIntegration, self).__init__(*args, **kwargs)
+        self._client = None
 
-class AwsLambdaIntegration(IntegrationInstallation):
-    pass
+    @property
+    def region(self):
+        return parse_arn(self.metadata["arn"])["region"]
+
+    @property
+    def client(self):
+        if not self._client:
+            arn = self.metadata["arn"]
+            aws_external_id = self.metadata["aws_external_id"]
+            self._client = gen_aws_client(arn, aws_external_id)
+        return self._client
+
+    def get_one_lambda_function(self, name):
+        return self.client.get_function(FunctionName=name)["Configuration"]
+
+    def get_serialized_lambda_function(self, name):
+        function = self.get_one_lambda_function(name)
+        return self.serialize_lambda_function(function)
+
+    def serialize_lambda_function(self, function):
+        layers = get_function_layer_arns(function)
+        layer_arn = get_latest_layer_for_function(function)
+
+        # find our sentry layer
+        sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+
+        if sentry_layer_index > -1:
+            sentry_layer = layers[sentry_layer_index]
+
+            # determine the version and if it's out of date
+            latest_version = get_latest_layer_version(function["Runtime"])
+            current_version = get_version_of_arn(sentry_layer)
+            out_of_date = latest_version > current_version
+        else:
+            current_version = -1
+            out_of_date = False
+
+        return {
+            "name": function["FunctionName"],
+            "runtime": function["Runtime"],
+            "version": current_version,
+            "outOfDate": out_of_date,
+            "enabled": current_version > -1,  # TODO: check env variables
+        }
+
+    # ServerlessMixin interface
+    def get_serverless_functions(self):
+        """
+        Returns a list of serverless functions
+        """
+        functions = get_supported_functions(self.client)
+        functions.sort(key=lambda x: x["FunctionName"].lower())
+
+        return map(self.serialize_lambda_function, functions)
+
+    def enable_function(self, target):
+        function = self.get_one_lambda_function(target)
+        layer_arn = get_latest_layer_for_function(function)
+
+        config_data = self.get_config_data()
+        project_id = config_data["default_project_id"]
+
+        sentry_project_dsn = get_dsn_for_project(self.organization_id, project_id)
+
+        enable_single_lambda(self.client, function, sentry_project_dsn, layer_arn)
+
+        return self.get_serialized_lambda_function(target)
+
+    def disable_function(self, target):
+        function = self.get_one_lambda_function(target)
+        layer_arn = get_latest_layer_for_function(function)
+
+        disable_single_lambda(self.client, function, layer_arn)
+
+        return self.get_serialized_lambda_function(target)
+
+    def update_function_to_latest_version(self, target):
+        function = self.get_one_lambda_function(target)
+        layer_arn = get_latest_layer_for_function(function)
+
+        layers = get_function_layer_arns(function)
+
+        # update our layer if we find it
+        sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+        if sentry_layer_index > -1:
+            layers[sentry_layer_index] = layer_arn
+
+        self.client.update_function_configuration(
+            FunctionName=target, Layers=layers,
+        )
+        return self.get_serialized_lambda_function(target)
 
 
 class AwsLambdaIntegrationProvider(IntegrationProvider):
@@ -76,22 +179,33 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
-        # TODO: unhardcode
-        integration_name = "Serverless Hack Bootstrap"
-
         arn = state["arn"]
+        aws_external_id = state["aws_external_id"]
+
         parsed_arn = parse_arn(arn)
         account_id = parsed_arn["account"]
         region = parsed_arn["region"]
+
+        org_client = gen_aws_client(arn, aws_external_id, service_name="organizations")
+        account = org_client.describe_account(AccountId=account_id)["Account"]
+
+        integration_name = u"{} {}".format(account["Name"], region)
 
         external_id = u"{}-{}".format(account_id, region)
 
         integration = {
             "name": integration_name,
             "external_id": external_id,
-            "metadata": {"arn": state["arn"], "aws_external_id": state["aws_external_id"]},
+            "metadata": {"arn": arn, "aws_external_id": aws_external_id},
+            "post_install_data": {"default_project_id": state["project_id"]},
         }
         return integration
+
+    def post_install(self, integration, organization, extra):
+        default_project_id = extra["default_project_id"]
+        OrganizationIntegration.objects.filter(
+            organization=organization, integration=integration
+        ).update(config={"default_project_id": default_project_id})
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
@@ -102,7 +216,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
         organization = pipeline.organization
         # TODO: check status of project
-        projects = Project.objects.filter(organization=organization)
+        projects = Project.objects.filter(organization=organization).order_by("id")
         serialized_projects = map(lambda x: serialize(x, request.user), projects)
 
         return self.render_react_view(
@@ -144,22 +258,23 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        if request.method == "POST":
-            # TODO: find better way to determine if the POST is from the previous step
-            if not request.POST.get("aws_external_id"):
-                data = json.loads(request.body)
-                pipeline.bind_state("enabled_lambdas", data)
-                return pipeline.next_step()
+        # the previous pipeline step will have be POST and will reach this line here
+        # we need to check our state to determine what to do
+        if request.method == "POST" and pipeline.fetch_state("ready_for_enabled_lambdas_post"):
+            # accept form data or json data
+            data = request.POST or json.loads(request.body)
+            pipeline.bind_state("enabled_lambdas", data)
+            return pipeline.next_step()
+
+        # bind the state now so we are ready to accept the enabled_lambdas in the post pdy
+        pipeline.bind_state("ready_for_enabled_lambdas_post", True)
 
         arn = pipeline.fetch_state("arn")
         aws_external_id = pipeline.fetch_state("aws_external_id")
 
-        lambda_client = gen_aws_lambda_client(arn, aws_external_id)
+        lambda_client = gen_aws_client(arn, aws_external_id)
 
-        lambda_functions = filter(
-            lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
-            lambda_client.list_functions()["Functions"],
-        )
+        lambda_functions = get_supported_functions(lambda_client)
 
         return self.render_react_view(
             request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions}
@@ -174,26 +289,16 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         organization = pipeline.organization
 
         arn = pipeline.fetch_state("arn")
+
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
         enabled_lambdas = pipeline.fetch_state("enabled_lambdas")
 
-        try:
-            project = Project.objects.get(organization=organization, id=project_id)
-        except Project.DoesNotExist:
-            raise IntegrationError("No valid project")
+        sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
 
-        enabled_dsn = ProjectKey.get_default(project=project)
-        if not enabled_dsn:
-            raise IntegrationError("Project does not have DSN enabled")
-        sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+        lambda_client = gen_aws_client(arn, aws_external_id)
 
-        lambda_client = gen_aws_lambda_client(arn, aws_external_id)
-
-        lambda_functions = filter(
-            lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
-            lambda_client.list_functions()["Functions"],
-        )
+        lambda_functions = get_supported_functions(lambda_client)
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
         failures = []
@@ -203,19 +308,11 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             # check to see if the user wants to enable this function
             if not enabled_lambdas.get(name):
                 continue
-            # TODO: load existing layers and environment and append to them
+
+            # find the latest layer for this function
+            layer_arn = get_latest_layer_for_function(function)
             try:
-                lambda_client.update_function_configuration(
-                    FunctionName=name,
-                    Layers=[options.get("aws-lambda.node-layer-arn")],
-                    Environment={
-                        "Variables": {
-                            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
-                            "SENTRY_DSN": sentry_project_dsn,
-                            "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-                        }
-                    },
-                )
+                enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
             except Exception as e:
                 failures.append(function)
                 logger.info(

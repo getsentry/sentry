@@ -33,22 +33,16 @@ const impacts = [
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   group: Group;
   project: Project;
-  orgSlug: Organization['slug'];
+  organization: Organization;
 };
 
-function ReprocessingDialogForm({
-  orgSlug,
-  group,
-  project,
-  Header,
-  Body,
-  closeModal,
-}: Props) {
+function ReprocessingDialogForm({group, organization, Header, Body, closeModal}: Props) {
+  const orgSlug = organization.slug;
   const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
   const title = t('Reprocess Events');
 
   function handleSuccess() {
-    const hasReprocessingV2Feature = !!project.features?.includes('reprocessing-v2');
+    const hasReprocessingV2Feature = !!organization.features?.includes('reprocessing-v2');
 
     if (hasReprocessingV2Feature) {
       closeModal();
