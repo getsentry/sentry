@@ -18,6 +18,7 @@ function Processings({unwind_status, debug_status}: Props) {
   if (debug_status) {
     items.push(
       <ProcessingItem
+        key="symbolication"
         type="symbolication"
         icon={<ProcessingIcon status={debug_status} />}
       />
@@ -27,6 +28,7 @@ function Processings({unwind_status, debug_status}: Props) {
   if (unwind_status) {
     items.push(
       <ProcessingItem
+        key="stack_unwinding"
         type="stack_unwinding"
         icon={<ProcessingIcon status={unwind_status} />}
       />

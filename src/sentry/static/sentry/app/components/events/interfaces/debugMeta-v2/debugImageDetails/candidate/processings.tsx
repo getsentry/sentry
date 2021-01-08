@@ -19,20 +19,22 @@ function Processings({download}: Props) {
     return <NotAvailable />;
   }
 
-  if (download.unwind) {
+  if (download.debug) {
     items.push(
       <ProcessingItem
-        type="stack_unwinding"
-        icon={<ProcessingIcon processingInfo={download.unwind} />}
+        key="symbolication"
+        type="symbolication"
+        icon={<ProcessingIcon processingInfo={download.debug} />}
       />
     );
   }
 
-  if (download.debug) {
+  if (download.unwind) {
     items.push(
       <ProcessingItem
-        type="symbolication"
-        icon={<ProcessingIcon processingInfo={download.debug} />}
+        key="stack_unwinding"
+        type="stack_unwinding"
+        icon={<ProcessingIcon processingInfo={download.unwind} />}
       />
     );
   }

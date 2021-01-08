@@ -172,7 +172,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               <Value>{imageAddress ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Debug ID')}</Label>
-              <Value coloredBg>{debug_id}</Value>
+              <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Debug File')}</Label>
               <Value>{debug_file}</Value>

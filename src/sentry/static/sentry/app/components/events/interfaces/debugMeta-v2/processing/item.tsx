@@ -22,7 +22,7 @@ function Item({type, icon}: Props) {
   }
 
   return (
-    <Wrapper key={type}>
+    <Wrapper>
       {icon}
       {getLabel()}
     </Wrapper>
