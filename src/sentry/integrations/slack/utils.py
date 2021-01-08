@@ -500,6 +500,11 @@ def send_incident_alert_notification(action, incident, metric_value):
         "attachments": json.dumps([attachment]),
     }
 
+    if get_integration_type(integration) == "workspace_app" and not features.has(
+        "organizations:slack-allow-workspace", incident.organization
+    ):
+        return
+
     client = SlackClient()
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
