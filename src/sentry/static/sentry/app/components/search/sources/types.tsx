@@ -36,6 +36,8 @@ export type ResultItem = {
   sectionCount?: number;
   extra?: any;
   empty?: boolean;
+  // Used to store groups and events
+  model?: any;
 };
 
 /**
