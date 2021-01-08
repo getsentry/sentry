@@ -306,9 +306,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   handleChange = <T extends keyof IssueAlertRule>(prop: T, val: IssueAlertRule[T]) => {
     this.setState(prevState => {
-      const rule = {...prevState.rule} as IssueAlertRule;
-      rule[prop] = val;
-      return {rule, detailedError: omit(prevState.detailedError, prop)};
+      const clonedState = cloneDeep(prevState);
+      set(clonedState, `rule[${prop}]`, val);
+      return {...clonedState, detailedError: omit(prevState.detailedError, prop)};
     });
   };
 
