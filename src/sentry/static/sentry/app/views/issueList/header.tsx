@@ -1,5 +1,5 @@
 import React from 'react';
-import {InjectedRouter, Link as RouterLink} from 'react-router';
+import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -118,7 +118,7 @@ function IssueListHeader({
         <Layout.HeaderNavTabs underlined>
           {visibleTabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-              <RouterLink
+              <Link
                 to={{
                   query: {...router?.location?.query, query: tabQuery},
                   pathname: `/organizations/${organization.slug}/issues/`,
@@ -137,7 +137,7 @@ function IssueListHeader({
                     }
                   />
                 )}
-              </RouterLink>
+              </Link>
             </li>
           ))}
           <SavedSearchTab

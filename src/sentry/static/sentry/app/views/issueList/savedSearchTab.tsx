@@ -53,7 +53,7 @@ function SavedSearchTab({
 export default SavedSearchTab;
 
 const TabWrapper = styled('li')<{isActive?: boolean}>`
-  /* Color matches nav-tabs - overriten using dark mode class saved-search-tab */
+  /* Color matches nav-tabs - overwritten using dark mode class saved-search-tab */
   border-bottom: ${p => (p.isActive ? `4px solid #6c5fc7` : 0)};
   /* Reposition menu under caret */
   & > span {
@@ -68,14 +68,12 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
     & > span > .dropdown-menu {
-      min-width: 30vw;
       max-width: 50vw;
     }
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     & > span > .dropdown-menu {
-      min-width: 30vw;
       max-width: 55vw;
     }
   }
