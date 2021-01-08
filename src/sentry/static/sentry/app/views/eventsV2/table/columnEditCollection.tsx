@@ -4,10 +4,6 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
-import {
-  setBodyUserSelect,
-  UserSelectValues,
-} from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -15,6 +11,7 @@ import {LightWeightOrganization, SelectValue} from 'app/types';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 import {generateFieldOptions} from '../utils';
 

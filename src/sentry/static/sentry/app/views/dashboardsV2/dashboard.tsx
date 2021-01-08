@@ -6,15 +6,12 @@ import styled from '@emotion/styled';
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
-import {
-  setBodyUserSelect,
-  UserSelectValues,
-} from 'app/components/events/interfaces/spans/utils';
 import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
