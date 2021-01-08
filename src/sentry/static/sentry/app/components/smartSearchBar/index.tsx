@@ -1135,7 +1135,7 @@ class SmartSearchBar extends React.Component<Props, State> {
                   tooltipProps={{
                     containerDisplayMode: 'inline-flex',
                     className: css`
-                      ${getMediaQuery(theme.breakpoints[2], 'none')}
+                      ${getMediaQuery(theme.breakpoints[1], 'none')}
                     `,
                   }}
                   onClick={this.onTogglePinnedSearch}
