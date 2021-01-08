@@ -38,9 +38,9 @@ function Candidate({
 
   return (
     <React.Fragment>
-      <StatusColumn>
+      <Column>
         <Status candidate={candidate} />
-      </StatusColumn>
+      </Column>
 
       <DebugFileColumn>
         <Tooltip title={getSourceTooltipDescription(source, builtinSymbolSources)}>
@@ -49,15 +49,15 @@ function Candidate({
         {location && !isInternalSource && <Location>{location}</Location>}
       </DebugFileColumn>
 
-      <ProcessingColumn>
+      <Column>
         <Processings download={download} />
-      </ProcessingColumn>
+      </Column>
 
-      <FeaturesColumn>
+      <Column>
         <Features download={download} />
-      </FeaturesColumn>
+      </Column>
 
-      <ActionsColumn>
+      <Column>
         {isInternalSource && (
           <Actions
             onDelete={onDelete}
@@ -67,7 +67,7 @@ function Candidate({
             candidate={candidate}
           />
         )}
-      </ActionsColumn>
+      </Column>
     </React.Fragment>
   );
 }
@@ -83,15 +83,13 @@ Candidate.propTypes = {
   }),
 };
 
-// Status Column
-const StatusColumn = styled('div')`
+const Column = styled('div')`
   display: flex;
   align-items: center;
 `;
 
 // Debug File Info Column
-const DebugFileColumn = styled(StatusColumn)`
-  display: flex;
+const DebugFileColumn = styled(Column)`
   flex-direction: column;
   align-items: flex-start;
 `;
@@ -106,12 +104,3 @@ const SourceName = styled('div')`
 const Location = styled(SourceName)`
   color: ${p => p.theme.gray300};
 `;
-
-// Actions Column
-const ActionsColumn = styled(StatusColumn)``;
-
-// Processing Column
-const ProcessingColumn = styled(StatusColumn)``;
-
-// Features Column
-const FeaturesColumn = styled(StatusColumn)``;
