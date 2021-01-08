@@ -82,9 +82,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data["measurements.lcp"] == {
-            "group_0": 1,
-            "group_1": 1,
-            "group_2": 1,
+            "good": 1,
+            "meh": 1,
+            "poor": 1,
             "total": 3,
             "p75": 4000,
         }
@@ -108,35 +108,66 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         print(response.data)
         assert response.data["measurements.lcp"] == {
-            "group_0": 2,
-            "group_1": 3,
-            "group_2": 1,
+            "good": 2,
+            "meh": 3,
+            "poor": 1,
             "total": 6,
             "p75": 3000,
         }
 
     def test_multiple_vitals(self):
-        vitals = {"lcp": 3000, "fcp": 5000}
+        vitals = {"lcp": 3000, "fid": 50, "cls": 0.15, "fcp": 5000, "fp": 4000}
         self.store_event(
             load_data("transaction", timestamp=self.start), vitals, project_id=self.project.id,
         )
 
-        self.query.update({"vital": ["measurements.lcp", "measurements.fcp"]})
+        self.query.update(
+            {
+                "vital": [
+                    "measurements.lcp",
+                    "measurements.fid",
+                    "measurements.cls",
+                    "measurements.fcp",
+                    "measurements.fp",
+                ]
+            }
+        )
         response = self.do_request()
         assert response.status_code == 200
         assert response.data["measurements.lcp"] == {
-            "group_0": 0,
-            "group_1": 1,
-            "group_2": 0,
+            "good": 0,
+            "meh": 1,
+            "poor": 0,
             "total": 1,
             "p75": 3000,
         }
+        assert response.data["measurements.fid"] == {
+            "good": 1,
+            "meh": 0,
+            "poor": 0,
+            "total": 1,
+            "p75": 50,
+        }
+        assert response.data["measurements.cls"] == {
+            "good": 0,
+            "meh": 1,
+            "poor": 0,
+            "total": 1,
+            "p75": 0.15,
+        }
         assert response.data["measurements.fcp"] == {
-            "group_0": 0,
-            "group_1": 0,
-            "group_2": 1,
+            "good": 0,
+            "meh": 0,
+            "poor": 1,
             "total": 1,
             "p75": 5000,
+        }
+        assert response.data["measurements.fp"] == {
+            "good": 0,
+            "meh": 0,
+            "poor": 1,
+            "total": 1,
+            "p75": 4000,
         }
 
     def test_transactions_without_vitals(self):
@@ -149,16 +180,16 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request()
         assert response.status_code == 200
         assert response.data["measurements.lcp"] == {
-            "group_0": None,
-            "group_1": None,
-            "group_2": None,
+            "good": 0,
+            "meh": 0,
+            "poor": 0,
             "total": 0,
             "p75": None,
         }
         assert response.data["measurements.fcp"] == {
-            "group_0": None,
-            "group_1": None,
-            "group_2": None,
+            "good": 0,
+            "meh": 0,
+            "poor": 0,
             "total": 0,
             "p75": None,
         }
