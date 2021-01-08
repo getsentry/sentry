@@ -42,7 +42,9 @@ type Props = ReactRouter.WithRouterProps & {
   renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
   isDragging: boolean;
   hideToolbar?: boolean;
-  startWidgetDrag: (event: React.MouseEvent<SVGElement>) => void;
+  startWidgetDrag: (
+    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
+  ) => void;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -188,6 +190,7 @@ class WidgetCard extends React.Component<Props> {
             color="gray500"
             size="lg"
             onMouseDown={event => startWidgetDrag(event)}
+            onTouchStart={event => startWidgetDrag(event)}
           />
           <IconClick
             onClick={() => {

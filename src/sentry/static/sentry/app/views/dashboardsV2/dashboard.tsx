@@ -14,6 +14,7 @@ import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import theme from 'app/utils/theme';
+import {getPointerPosition} from 'app/utils/touch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
@@ -162,11 +163,14 @@ class Dashboard extends React.Component<Props, State> {
     );
   }
 
-  startWidgetDrag = (index: number) => (event: React.MouseEvent<SVGElement>) => {
-    if (this.state.isDragging || event.type !== 'mousedown') {
+  startWidgetDrag = (index: number) => (
+    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
+  ) => {
+    if (this.state.isDragging || !['mousedown', 'touchstart'].includes(event.type)) {
       return;
     }
 
+    event.preventDefault();
     event.stopPropagation();
 
     // prevent the user from selecting things when dragging a widget.
@@ -180,6 +184,26 @@ class Dashboard extends React.Component<Props, State> {
     // attach event listeners so that the mouse cursor can drag anywhere
     window.addEventListener('mousemove', this.onWidgetDragMove);
     window.addEventListener('mouseup', this.onWidgetDragEnd);
+
+    // If the target element is removed from the document, events will still be targeted at it, and hence won't
+    // necessarily bubble up to the window or document anymore.
+    // If there is any risk of an element being removed while it is being touched, the best practice is to attach the
+    // touch listeners directly to the target.
+    //
+    // Source: https://developer.mozilla.org/en-US/docs/Web/API/Touch/target
+    //
+    // React may remove event.target from the document, and thus window.addEventListener('touchmove') would not get
+    // called. Hence, for touch events, we attach to event.target directly, and
+    // persist the event.
+    event.target.addEventListener('touchmove', this.onWidgetDragMove as any);
+    event.persist();
+    const onTouchEnd = () => {
+      if (event.target) {
+        event.target.removeEventListener('touchmove', this.onWidgetDragMove as any);
+        event.target.removeEventListener('touchend', onTouchEnd);
+      }
+    };
+    event.target.addEventListener('touchend', onTouchEnd);
 
     const widgetWrappers = document.querySelectorAll<HTMLDivElement>(
       '[data-component="widget-wrapper"]'
@@ -207,35 +231,46 @@ class Dashboard extends React.Component<Props, State> {
 
       ghostDOM.appendChild(newClone);
 
-      ghostDOM.style.left = `${event.pageX - GHOST_WIDGET_OFFSET}px`;
-      ghostDOM.style.top = `${event.pageY - GHOST_WIDGET_OFFSET}px`;
+      ghostDOM.style.left = `${
+        getPointerPosition(event, 'pageX') - GHOST_WIDGET_OFFSET
+      }px`;
+      ghostDOM.style.top = `${
+        getPointerPosition(event, 'pageY') - GHOST_WIDGET_OFFSET
+      }px`;
     }
 
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
-      top: event.pageY,
-      left: event.pageX,
+      top: getPointerPosition(event, 'pageY'),
+      left: getPointerPosition(event, 'pageX'),
       widgets: this.shallowCloneWidgets(),
     });
   };
 
-  onWidgetDragMove = (event: MouseEvent) => {
+  onWidgetDragMove = (event: MouseEvent | TouchEvent) => {
     if (
       !this.state.isDragging ||
-      event.type !== 'mousemove' ||
+      !['mousemove', 'touchmove'].includes(event.type) ||
       !this.state.widgets ||
       this.state.draggingIndex === undefined
     ) {
       return;
     }
 
+    event.preventDefault();
+    event.stopPropagation();
+
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
-      ghostDOM.style.left = `${event.pageX - GHOST_WIDGET_OFFSET}px`;
-      ghostDOM.style.top = `${event.pageY - GHOST_WIDGET_OFFSET}px`;
+      ghostDOM.style.left = `${
+        getPointerPosition(event, 'pageX') - GHOST_WIDGET_OFFSET
+      }px`;
+      ghostDOM.style.top = `${
+        getPointerPosition(event, 'pageY') - GHOST_WIDGET_OFFSET
+      }px`;
     }
 
     const widgetWrappers = document.querySelectorAll<HTMLDivElement>(
@@ -245,8 +280,8 @@ class Dashboard extends React.Component<Props, State> {
     // Find the widget that the ghost is currently over.
     const targetIndex = Array.from(widgetWrappers).findIndex(widgetWrapper => {
       const rects = widgetWrapper.getBoundingClientRect();
-      const top = event.clientY;
-      const left = event.clientX;
+      const top = getPointerPosition(event, 'clientY');
+      const left = getPointerPosition(event, 'clientX');
 
       const topStart = rects.top;
       const topEnd = rects.top + rects.height;
@@ -266,8 +301,8 @@ class Dashboard extends React.Component<Props, State> {
     }
   };
 
-  onWidgetDragEnd = (event: MouseEvent) => {
-    if (!this.state.isDragging || event.type !== 'mouseup') {
+  onWidgetDragEnd = (event: MouseEvent | TouchEvent) => {
+    if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
       return;
     }
 
