@@ -2445,7 +2445,7 @@ class QueryTransformTest(TestCase):
 
     def test_histogram_query_with_bad_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
-            results = discover.histogram_query(
+            discover.histogram_query(
                 ["measurements.bar", "transaction.duration"],
                 "",
                 {"project_id": [self.project.id]},
