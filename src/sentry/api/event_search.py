@@ -214,6 +214,20 @@ RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 KEY_TRANSACTION_ALIAS = "key_transaction"
+ARRAY_FIELDS = {
+    "error.mechanism",
+    "error.type",
+    "error.value",
+    "stack.abs_path",
+    "stack.colno",
+    "stack.filename",
+    "stack.function",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
+}
 
 
 class InvalidSearchQuery(Exception):
@@ -896,6 +910,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         raise InvalidSearchQuery(
             "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
+    elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+        return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
         value = (
             int(to_timestamp(value)) * 1000
