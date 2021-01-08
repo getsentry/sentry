@@ -1,19 +1,22 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
-import InputField from 'app/views/settings/components/forms/inputField';
+import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
 
-class RadioField extends React.Component {
-  static propTypes = {
-    id: PropTypes.string,
-    value: PropTypes.string,
-    choices: PropTypes.arrayOf(PropTypes.array),
-    orientInline: PropTypes.bool,
-    disabled: PropTypes.bool,
-  };
+type RadioGroupProps = React.ComponentProps<typeof RadioGroup>;
 
-  onChange = (id, onChange, onBlur, e) => {
+type Props = Omit<InputField['props'], 'type'> & {
+  choices: RadioGroupProps['choices'];
+  orientInline: RadioGroupProps['orientInline'];
+};
+
+class RadioField extends React.Component<Props> {
+  onChange = (
+    id: string,
+    onChange: onEvent,
+    onBlur: onEvent,
+    e: React.FormEvent<HTMLInputElement>
+  ) => {
     onChange(id, e);
     onBlur(id, e);
   };
