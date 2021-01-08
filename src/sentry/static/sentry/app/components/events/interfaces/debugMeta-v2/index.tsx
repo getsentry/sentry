@@ -268,7 +268,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (!panelTableHeight) {
       return images.map(image => (
         <DebugImage
-          key={image.debug_id}
+          key={image.debug_file}
           image={image}
           onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
         />
@@ -290,7 +290,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
             rowRenderer={this.renderRow}
             onScrollbarPresenceChange={this.setScrollbarSize}
             width={width}
-            isScrolling={false}
           />
         )}
       </AutoSizer>
@@ -394,6 +393,7 @@ const Title = styled('h3')`
 const StyledList = styled(List)<{height: number}>`
   height: auto !important;
   max-height: ${p => p.height}px;
+  overflow-y: auto !important;
   outline: none;
 `;
 

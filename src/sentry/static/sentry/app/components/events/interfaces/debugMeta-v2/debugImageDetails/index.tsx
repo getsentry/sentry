@@ -6,7 +6,6 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -16,7 +15,7 @@ import theme from 'app/utils/theme';
 
 import NotAvailable from '../notAvailable';
 
-import Table from './table';
+import Candidates from './candidates';
 import {INTERNAL_SOURCE} from './utils';
 
 type Candidates = Image['candidates'];
@@ -173,7 +172,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               <Value>{imageAddress ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Debug ID')}</Label>
-              <Value coloredBg>{debug_id}</Value>
+              <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Debug File')}</Label>
               <Value>{debug_file}</Value>
@@ -187,7 +186,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
             </GeneralInfo>
-            <Table
+            <Candidates
               candidates={candidates}
               organization={organization}
               projectId={projectId}
@@ -230,11 +229,13 @@ const Label = styled('div')<{coloredBg?: boolean}>`
   padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
 `;
 
-const Value = styled(TextOverflow)<{coloredBg?: boolean}>`
+const Value = styled(Label)`
   color: ${p => p.theme.gray400};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 export const modalCss = css`
@@ -244,8 +245,8 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 60%;
-      margin-left: -30%;
+      width: 40%;
+      margin-left: -20%;
     }
   }
 `;
