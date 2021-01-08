@@ -150,7 +150,6 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/mediators/                        @getsentry/ecosystem
 
 
-/src/sentry/models/integration.py             @getsentry/ecosystem
 /src/sentry/models/integrationfeature.py      @getsentry/ecosystem
 
 /src/sentry/tasks/integrations.py             @getsentry/ecosystem
@@ -174,7 +173,7 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/models/grouphash.py               @getsentry/data
 /src/sentry/models/grouprelease.py            @getsentry/data
 /src/sentry/models/groupresolution.py         @getsentry/data
-/src/sentry/models/integration.py             @getsentry/data
+/src/sentry/models/integration.py             @getsentry/data @getsentry/ecosystem
 /src/sentry/models/organization.py            @getsentry/data
 /src/sentry/models/organizationmember.py      @getsentry/data
 /src/sentry/models/organizationoption.py      @getsentry/data
