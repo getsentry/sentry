@@ -15,7 +15,7 @@ logger = logging.getLogger("sentry.rules")
 
 
 class JiraCreateTicketAction(TicketEventAction):
-    label = u"""Create a Jira issue in {integration} with these """
+    label = u"Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
