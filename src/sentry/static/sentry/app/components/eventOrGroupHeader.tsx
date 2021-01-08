@@ -147,6 +147,7 @@ const getMargin = ({size}) => {
 
 const Title = styled('div')`
   ${truncateStyles};
+  line-height: 1;
   ${getMargin};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};

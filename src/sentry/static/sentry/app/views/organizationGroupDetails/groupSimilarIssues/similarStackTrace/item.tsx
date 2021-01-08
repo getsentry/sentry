@@ -10,13 +10,13 @@ import Checkbox from 'app/components/checkbox';
 import Count from 'app/components/count';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import FlowLayout from 'app/components/flowLayout';
 import Hovercard from 'app/components/hovercard';
+import {PanelItem} from 'app/components/panels';
 import ScoreBar from 'app/components/scoreBar';
 import SimilarScoreCard from 'app/components/similarScoreCard';
-import SpreadLayout from 'app/components/spreadLayout';
 import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -106,37 +106,35 @@ class Item extends React.Component<Props, State> {
       return null;
     }
 
-    const cx = classNames('group', 'similar-issue', {
+    const cx = classNames('group', {
       isResolved: issue.status === 'resolved',
       busy,
     });
 
     return (
-      <SpreadLayout
+      <StyledPanelItem
         data-test-id="similar-item-row"
         className={cx}
         onClick={this.handleToggle}
-        responsive
       >
-        <FlowLayout truncate>
-          <FlowLayout truncate>
-            <ActionColumn>
-              <Checkbox
-                id={issue.id}
-                value={issue.id}
-                checked={this.state.checked}
-                onChange={this.handleCheckClick}
-              />
-            </ActionColumn>
-            <EventDetails className="event-details">
-              <EventOrGroupHeader data={issue} includeLink size="normal" />
-              <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
-            </EventDetails>
-          </FlowLayout>
-          <StyledButton onClick={this.handleShowDiff} size="small">
-            {t('Diff')}
-          </StyledButton>
-        </FlowLayout>
+        <Details>
+          <Checkbox
+            id={issue.id}
+            value={issue.id}
+            checked={this.state.checked}
+            onChange={this.handleCheckClick}
+          />
+          <EventDetails>
+            <EventOrGroupHeader data={issue} includeLink size="normal" />
+            <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
+          </EventDetails>
+
+          <Diff>
+            <Button onClick={this.handleShowDiff} size="small">
+              {t('Diff')}
+            </Button>
+          </Diff>
+        </Details>
 
         <Columns>
           <StyledCount value={issue.count} />
@@ -159,12 +157,27 @@ class Item extends React.Component<Props, State> {
             );
           })}
         </Columns>
-      </SpreadLayout>
+      </StyledPanelItem>
     );
   }
 }
 
-export default Item;
+const Details = styled('div')`
+  ${overflowEllipsis};
+
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content auto max-content;
+  margin-left: ${space(2)};
+
+  input[type='checkbox'] {
+    margin: 0;
+  }
+`;
+
+const StyledPanelItem = styled(PanelItem)`
+  padding: ${space(1)} 0;
+`;
 
 const Columns = styled('div')`
   display: flex;
@@ -190,15 +203,15 @@ const StyledCount = styled(Count)`
   ${columnStyle}
 `;
 
-const StyledButton = styled(Button)`
+const Diff = styled('div')`
+  display: flex;
+  align-items: center;
   margin-right: ${space(0.25)};
-`;
-
-const ActionColumn = styled('div')`
-  text-align: center;
-  width: 54px;
 `;
 
 const EventDetails = styled('div')`
   flex: 1;
+  ${overflowEllipsis};
 `;
+
+export default Item;

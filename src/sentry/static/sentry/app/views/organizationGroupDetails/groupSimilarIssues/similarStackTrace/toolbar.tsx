@@ -3,9 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import FlowLayout from 'app/components/flowLayout';
-import SpreadLayout from 'app/components/spreadLayout';
-import Toolbar from 'app/components/toolbar';
+import {PanelHeader} from 'app/components/panels';
 import ToolbarHeader from 'app/components/toolbarHeader';
 import {t} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
@@ -47,60 +45,35 @@ class SimilarToolbar extends React.Component<Props, State> {
     const {mergeCount} = this.state;
 
     return (
-      <Toolbar>
-        <SpreadLayout responsive>
-          <StyledFlowLayout>
-            <FlowLayout>
-              <Actions>
-                <Confirm
-                  data-test-id="merge"
-                  disabled={mergeCount === 0}
-                  message={t('Are you sure you want to merge these issues?')}
-                  onConfirm={onMerge}
-                >
-                  <Button size="small" title={t('Merging %s issues', mergeCount)}>
-                    {t('Merge %s', `(${mergeCount || 0})`)}
-                  </Button>
-                </Confirm>
-              </Actions>
-            </FlowLayout>
-          </StyledFlowLayout>
+      <PanelHeader hasButtons>
+        <Confirm
+          data-test-id="merge"
+          disabled={mergeCount === 0}
+          message={t('Are you sure you want to merge these issues?')}
+          onConfirm={onMerge}
+        >
+          <Button size="small" title={t('Merging %s issues', mergeCount)}>
+            {t('Merge %s', `(${mergeCount || 0})`)}
+          </Button>
+        </Confirm>
 
-          <Columns>
-            <StyledToolbarHeader className="event-count-header">
-              {t('Events')}
-            </StyledToolbarHeader>
+        <Columns>
+          <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
 
-            {v2 ? (
-              <StyledToolbarHeader className="event-similar-header">
-                {t('Score')}
-              </StyledToolbarHeader>
-            ) : (
-              <React.Fragment>
-                <StyledToolbarHeader className="event-similar-header">
-                  {t('Exception')}
-                </StyledToolbarHeader>
-                <StyledToolbarHeader className="event-similar-header">
-                  {t('Message')}
-                </StyledToolbarHeader>
-              </React.Fragment>
-            )}
-          </Columns>
-        </SpreadLayout>
-      </Toolbar>
+          {v2 ? (
+            <StyledToolbarHeader>{t('Score')}</StyledToolbarHeader>
+          ) : (
+            <React.Fragment>
+              <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
+              <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
+            </React.Fragment>
+          )}
+        </Columns>
+      </PanelHeader>
     );
   }
 }
 export default SimilarToolbar;
-
-const Actions = styled('div')`
-  margin-left: ${space(3)};
-  padding: ${space(0.5)} 0;
-`;
-
-const StyledFlowLayout = styled(FlowLayout)`
-  flex: 1;
-`;
 
 const Columns = styled('div')`
   display: flex;
