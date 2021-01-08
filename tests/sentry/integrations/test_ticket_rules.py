@@ -86,8 +86,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                     "actions": [
                         {
                             "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                            "issuetype": "1",
                             "integration": self.integration.id,
+                            "dynamic_form_fields": [{"name": "project"}],
+                            "issuetype": "1",
                             "name": "Create a Jira ticket in the Jira Cloud account",
                             "project": "10000",
                         }
@@ -118,3 +119,39 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
+
+    def test_fails_validation(self):
+        """
+        Test that the absence of dynamic_form_fields in the action fails validation
+        """
+        with mock.patch(
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
+        ):
+            # Create a new Rule
+            response = self.client.post(
+                reverse(
+                    "sentry-api-0-project-rules",
+                    kwargs={
+                        "organization_slug": self.organization.slug,
+                        "project_slug": self.project.slug,
+                    },
+                ),
+                format="json",
+                data={
+                    "name": "hello world",
+                    "environment": None,
+                    "actionMatch": "any",
+                    "frequency": 5,
+                    "actions": [
+                        {
+                            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                            "integration": self.integration.id,
+                            "issuetype": "1",
+                            "name": "Create a Jira ticket in the Jira Cloud account",
+                            "project": "10000",
+                        }
+                    ],
+                    "conditions": [],
+                },
+            )
+            assert response.status_code == 400
