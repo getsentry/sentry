@@ -146,7 +146,7 @@ def traces_sampler(sampling_context):
             pass
 
     # Default to the sampling rate in settings
-    return float(settings.SENTRY_APM_SAMPLING or 0)
+    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
 def configure_sdk():
