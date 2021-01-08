@@ -424,8 +424,9 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
     # once eveyone is migrated we can remove this check and usages of channels.list
 
-    # todo(meredith): flag this out. so no editing or creating new rules with workspace apps.
-    # raise WorkspaceApp
+    # XXX(meredith): Prevent anyone from creating new rules or editing existing rules that
+    # have workspace app integrations. For them to either remove slack action or re-install
+    # their integration.
     integration_type = get_integration_type(integration)
     if integration_type == "workspace_app" and not any(
         [
