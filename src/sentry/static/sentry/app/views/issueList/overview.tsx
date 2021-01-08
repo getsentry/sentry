@@ -779,7 +779,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   renderLoading(): React.ReactNode {
-    return <LoadingIndicator />;
+    return (
+      <StyledPageContent>
+        <LoadingIndicator />
+      </StyledPageContent>
+    );
   }
 
   renderStreamBody(): React.ReactNode {
@@ -1020,7 +1024,7 @@ export default withApi(
 export {IssueListOverview};
 
 // TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)<{isInbox: boolean}>`
+const StyledPageContent = styled(PageContent)<{isInbox?: boolean}>`
   display: flex;
   flex-direction: row;
   ${p =>
