@@ -267,7 +267,11 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel)<{isDragging: boolean}>`
+const StyledPanel = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'isDragging',
+})<{
+  isDragging: boolean;
+}>`
   margin: 0;
   visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
 `;
