@@ -33,7 +33,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
                     slack_integrations,
                 )
             ]
-            integrations = integrations.filter(id__in=workspace_ids)
+            integrations = integrations.exclude(id__in=workspace_ids)
 
         # include the configurations by default if no param
         include_config = True
