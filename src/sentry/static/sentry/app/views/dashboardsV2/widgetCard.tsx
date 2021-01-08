@@ -209,12 +209,19 @@ class WidgetCard extends React.Component<Props> {
   }
 
   render() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    const {
+      widget,
+      isDragging,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+    } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel>
+        <StyledPanel isDragging={isDragging}>
           <WidgetQueries
             api={api}
             organization={organization}
@@ -257,8 +264,9 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel)<{isDragging: boolean}>`
   margin: 0;
+  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
 `;
 
 const ToolbarPanel = styled('div')`

@@ -320,7 +320,7 @@ class Dashboard extends React.Component<Props, State> {
             isEditing={isEditing}
             onDelete={this.handleDeleteWidget(index)}
             onEdit={this.handleEditWidget(widget, index)}
-            isDragging={this.state.isDragging && this.state.draggingIndex === index}
+            isDragging={this.state.isDragging && this.state.draggingTargetIndex === index}
             hideToolbar={this.state.isDragging}
             startWidgetDrag={this.startWidgetDrag(index)}
           />
