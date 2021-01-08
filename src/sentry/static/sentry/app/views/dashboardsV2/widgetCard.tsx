@@ -185,6 +185,7 @@ class WidgetCard extends React.Component<Props, State> {
         <IconContainer>
           <IconGrabbable color="gray500" size="lg" />
           <IconClick
+            data-test-id="widget-edit"
             onClick={() => {
               onEdit();
             }}
@@ -192,6 +193,7 @@ class WidgetCard extends React.Component<Props, State> {
             <IconEdit color="gray500" size="lg" />
           </IconClick>
           <IconClick
+            data-test-id="widget-delete"
             onClick={() => {
               onDelete();
             }}
