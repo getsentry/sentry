@@ -2,47 +2,47 @@ import React from 'react';
 
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import {Candidate, CandidateDownloadStatus} from 'app/types/debugImage';
+import {CandidateDownloadStatus, ImageCandidate} from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
 
-import StatusTagTooltip from './statusTagTooltip';
+import StatusTooltip from './statusTooltip';
 
 type Props = {
-  candidate: Candidate;
+  candidate: ImageCandidate;
 };
 
-function StatusTag({candidate}: Props) {
+function Status({candidate}: Props) {
   const {download, location, source} = candidate;
 
   switch (download.status) {
     case CandidateDownloadStatus.OK: {
       return (
-        <StatusTagTooltip
+        <StatusTooltip
           label={t('Download Details')}
           description={location}
           disabled={!location || source === INTERNAL_SOURCE}
         >
-          <Tag type="success">{t('Successful')}</Tag>
-        </StatusTagTooltip>
+          <Tag type="success">{t('Success')}</Tag>
+        </StatusTooltip>
       );
     }
     case CandidateDownloadStatus.MALFORMED: {
       const {details} = download;
       return (
-        <StatusTagTooltip
+        <StatusTooltip
           label={t('Download Details')}
           description={details}
           disabled={!details}
         >
           <Tag type="error">{t('Failed')}</Tag>
-        </StatusTagTooltip>
+        </StatusTooltip>
       );
     }
     case CandidateDownloadStatus.NOT_FOUND: {
       const {details} = download;
       return (
-        <StatusTagTooltip
+        <StatusTooltip
           label={
             <React.Fragment>
               {t('No debug file was not found at this location')}
@@ -58,39 +58,37 @@ function StatusTag({candidate}: Props) {
           disabled={!location || source === INTERNAL_SOURCE}
         >
           <Tag>{t('Not Found')}</Tag>
-        </StatusTagTooltip>
+        </StatusTooltip>
       );
     }
     case CandidateDownloadStatus.NO_PERMISSION: {
       const {details} = download;
       return (
-        <StatusTagTooltip
+        <StatusTooltip
           label={t('Permission Error')}
           description={details}
           disabled={!details}
         >
           <Tag type="warning">{t('Permissions')}</Tag>
-        </StatusTagTooltip>
+        </StatusTooltip>
       );
     }
     case CandidateDownloadStatus.DELETED: {
       return (
-        <StatusTagTooltip
-          label={t('This file was deleted after the issue was processed.')}
-        >
+        <StatusTooltip label={t('This file was deleted after the issue was processed.')}>
           <Tag type="error">{t('Deleted')}</Tag>
-        </StatusTagTooltip>
+        </StatusTooltip>
       );
     }
     case CandidateDownloadStatus.UNAPPLIED: {
       return (
-        <StatusTagTooltip
+        <StatusTooltip
           label={t(
             'This issue was processed before this debug information file was available. To apply new debug information, reprocess this issue. '
           )}
         >
           <Tag type="highlight">{t('Unapplied')}</Tag>
-        </StatusTagTooltip>
+        </StatusTooltip>
       );
     }
     default:
@@ -98,4 +96,4 @@ function StatusTag({candidate}: Props) {
   }
 }
 
-export default StatusTag;
+export default Status;

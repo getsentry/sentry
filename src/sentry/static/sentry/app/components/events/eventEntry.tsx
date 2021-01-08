@@ -3,6 +3,7 @@ import React from 'react';
 import Breadcrumbs from 'app/components/events/interfaces/breadcrumbs';
 import Csp from 'app/components/events/interfaces/csp';
 import DebugMeta from 'app/components/events/interfaces/debugMeta';
+import DebugMetaV2 from 'app/components/events/interfaces/debugMeta-v2';
 import Exception from 'app/components/events/interfaces/exception';
 import Generic from 'app/components/events/interfaces/generic';
 import Message from 'app/components/events/interfaces/message';
@@ -71,6 +72,21 @@ function EventEntry({entry, event, projectSlug, organization}: Props) {
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
+      const hasImagesLoadedV2Feature = !!organization.features?.includes(
+        'images-loaded-v2'
+      );
+
+      if (hasImagesLoadedV2Feature) {
+        return (
+          <DebugMetaV2
+            event={event}
+            projectId={projectSlug}
+            organization={organization as Organization}
+            data={data as React.ComponentProps<typeof DebugMetaV2>['data']}
+          />
+        );
+      }
+
       return (
         <DebugMeta
           event={event}
@@ -79,6 +95,7 @@ function EventEntry({entry, event, projectSlug, organization}: Props) {
           data={data}
         />
       );
+
     case EntryType.SPANS:
       return (
         <Spans

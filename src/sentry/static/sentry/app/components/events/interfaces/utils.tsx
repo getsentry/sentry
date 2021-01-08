@@ -147,8 +147,8 @@ export function formatAddress(address: number, imageAddressLength: number | unde
   return `0x${address.toString(16).padStart(imageAddressLength ?? 0, '0')}`;
 }
 
-export function parseAddress(address: string | null) {
-  if (address === null) {
+export function parseAddress(address?: string | null) {
+  if (!address) {
     return 0;
   }
 
