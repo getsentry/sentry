@@ -79,7 +79,6 @@ describe('FormSource', function () {
     wrapper.update();
     expect(mock).toHaveBeenCalledWith({
       isLoading: false,
-      allResults: [],
       results: [],
     });
   });

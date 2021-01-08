@@ -78,7 +78,6 @@ class HelpSource extends React.Component<Props, State> {
   render() {
     return this.props.children({
       isLoading: this.state.loading,
-      allResults: this.state.results,
       results: this.state.results,
     });
   }
@@ -110,7 +109,7 @@ function mapSearchResults(results: SearchResult[]) {
         to: hit.url,
       };
 
-      return {item, matches: [title, description]};
+      return {item, matches: [title, description], score: 1};
     });
 
     // The first element should indicate the section.
@@ -131,7 +130,7 @@ function mapSearchResults(results: SearchResult[]) {
       empty: true,
     };
 
-    items.push({item: emptyHeaderItem});
+    items.push({item: emptyHeaderItem, score: 1});
   });
 
   return items;
