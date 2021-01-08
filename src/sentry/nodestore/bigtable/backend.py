@@ -40,11 +40,11 @@ def _compress_data(orig_data, data, compression):
         compression = compression(orig_data)
 
     if compression == "zstd":
-        flags |= BigtableNodeStorage._FLAG_COMPRESSED
+        flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZSTD
         cctx = zstandard.ZstdCompressor()
         data = cctx.compress(data)
     elif compression:
-        flags |= BigtableNodeStorage._FLAG_COMPRESSED
+        flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZLIB
         data = zlib.compress(data)
 
     return data, flags
@@ -53,16 +53,13 @@ def _compress_data(orig_data, data, compression):
 def _decompress_data(data, flags):
     # Check for a compression flag on, if so
     # decompress the data.
-    if flags & BigtableNodeStorage._FLAG_COMPRESSED:
-        # Magic bytes for zstd
-        # https://tools.ietf.org/id/draft-kucherawy-dispatch-zstd-00.html#rfc.section.2.1.1
-        if data.startswith(b"\x28\xb5\x2f\xfd"):
-            cctx = zstandard.ZstdDecompressor()
-            data = cctx.decompress(data)
-        else:
-            data = zlib.decompress(data)
-
-    return data
+    if flags & BigtableNodeStorage._FLAG_COMPRESSED_ZLIB:
+        return zlib.decompress(data)
+    elif flags & BigtableNodeStorage._FLAG_COMPRESSED_ZSTD:
+        cctx = zstandard.ZstdDecompressor()
+        return cctx.decompress(data)
+    else:
+        return data
 
 
 def get_connection(project, instance, table, options):
@@ -118,7 +115,8 @@ class BigtableNodeStorage(NodeStorage):
     flags_column = b"f"
     data_column = b"0"
 
-    _FLAG_COMPRESSED = 1 << 0
+    _FLAG_COMPRESSED_ZLIB = 1 << 0
+    _FLAG_COMPRESSED_ZSTD = 1 << 1
 
     def __init__(
         self,
