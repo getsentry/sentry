@@ -154,7 +154,6 @@ class SlackNotifyActionTest(RuleTestCase):
         self.assert_form_valid(form, "chan-id", "#my-channel")
 
     @responses.activate
-    @with_feature("organizations:slack-allow-workspace")
     def test_valid_bot_channel_selected(self):
         integration = Integration.objects.create(
             provider="slack",
