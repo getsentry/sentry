@@ -442,5 +442,5 @@ const WidgetGhost = styled('div')`
   cursor: grabbing;
   opacity: 0.8;
   box-shadow: 0px 3px 3px rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
+  border-radius: ${p => p.theme.borderRadius};
 `;
