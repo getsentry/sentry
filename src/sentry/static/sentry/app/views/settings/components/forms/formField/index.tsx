@@ -91,7 +91,7 @@ type Props = {
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
   /**
-   * Tranform input when a value is set to the model.
+   * Transform input when a value is set to the model.
    */
   transformInput?: (value: any) => any;
   /**
