@@ -104,22 +104,23 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    const histogramData = [];
+    const histogramData = {};
     const webVitals = Object.entries(WEB_VITAL_DETAILS)
       .filter(([, value]) => value.display)
       .map(([, detail]) => detail.slug);
 
-    for (let i = 0; i < 100; i++) {
-      for (const measurement of webVitals) {
-        histogramData.push({
-          key: measurement,
-          bin: i,
+    for (const measurement of webVitals) {
+      const data = [];
+      for (let i = 0; i < 100; i++) {
+        data.push({
+          histogram: i,
           count: i,
         });
       }
+      histogramData[`measurements.${measurement}`] = data;
     }
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-measurements-histogram/',
+      url: '/organizations/org-slug/events-histogram/',
       body: {
         meta: {key: 'string', bin: 'number', count: 'number'},
         data: histogramData,

@@ -18,8 +18,8 @@ function renderHistogram({isLoading, error, histograms}) {
           <React.Fragment key={name}>
             <p>{name}</p>
             <ul>
-              {histograms[name].map(bin => (
-                <li key={bin.histogram}>{`${bin.histogram} - ${bin.count}`}</li>
+              {histograms[name].map(bucket => (
+                <li key={bucket.bin}>{`${bucket.bin} - ${bucket.count}`}</li>
               ))}
             </ul>
           </React.Fragment>
@@ -49,12 +49,11 @@ describe('MeasurementsHistogramQuery', function () {
 
   it('fetches data on mount', async function () {
     const getMock = MockApiClient.addMockResponse({
-      url: '/organizations/test-org/events-measurements-histogram/',
+      url: '/organizations/test-org/events-histogram/',
       body: {
-        meta: {key: 'string', bin: 'number', count: 'number'},
-        data: Array(10)
+        'measurements.fp': Array(10)
           .fill(null)
-          .map((_, i) => ({key: 'fp', bin: i * 1000, count: i})),
+          .map((_, i) => ({bin: i * 1000, count: i})),
       },
     });
     const wrapper = mount(

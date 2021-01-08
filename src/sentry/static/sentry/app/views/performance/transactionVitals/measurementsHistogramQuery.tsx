@@ -10,16 +10,6 @@ import withApi from 'app/utils/withApi';
 
 import {HistogramData} from './types';
 
-type RawHistogramResponse = {
-  data: RawHistogramData[];
-};
-
-type RawHistogramData = {
-  key: string;
-  bin: number;
-  count: number;
-};
-
 type Histograms = Record<string, HistogramData[]>;
 
 type MeasurementsData = {
@@ -53,7 +43,7 @@ function getMeasurementsHistogramRequestPayload(props: any) {
     location,
   } = props;
   const baseApiPayload = {
-    measurement: measurements,
+    field: measurements,
     numBuckets,
     min,
     max,
@@ -73,28 +63,6 @@ function beforeFetch(api: Client) {
   api.clear();
 }
 
-function afterFetch(
-  response: RawHistogramResponse,
-  props: RequestProps
-): Record<string, HistogramData[]> {
-  const data = response.data;
-  const {measurements} = props;
-
-  const histogramData = measurements.reduce((record, measurement) => {
-    record[`measurements.${measurement}`] = [];
-    return record;
-  }, {});
-
-  data?.forEach(row => {
-    histogramData[`measurements.${row.key}`].push({
-      histogram: row.bin,
-      count: row.count,
-    });
-  });
-
-  return histogramData;
-}
-
 function MeasurementsHistogramQuery(props: Props) {
   const {children, measurements} = props;
   if (measurements.length === 0) {
@@ -112,10 +80,9 @@ function MeasurementsHistogramQuery(props: Props) {
 
   return (
     <GenericDiscoverQuery<Histograms, MeasurementsData>
-      route="events-measurements-histogram"
+      route="events-histogram"
       getRequestPayload={getMeasurementsHistogramRequestPayload}
       beforeFetch={beforeFetch}
-      afterFetch={afterFetch}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

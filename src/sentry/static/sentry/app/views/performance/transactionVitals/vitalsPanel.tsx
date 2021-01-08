@@ -45,7 +45,7 @@ class VitalsPanel extends React.Component<Props> {
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={zoomed ? [vitalDetails.slug] : []}
+        measurements={zoomed ? [vital] : []}
         min={min}
         max={max}
         precision={precision}
@@ -105,7 +105,7 @@ class VitalsPanel extends React.Component<Props> {
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        measurements={vitals}
         min={min}
         max={max}
         precision={precision}
