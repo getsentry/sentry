@@ -299,8 +299,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
   render() {
     const {filter, filteredImages: images, scrollbarSize} = this.state;
 
-    console.log('scrollbarSize', scrollbarSize);
-
     return (
       <StyledEventDataSection
         type="images-loaded"

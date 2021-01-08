@@ -20,13 +20,13 @@ function Status({image}: Props) {
     case ImageProcessingInfo.FETCHING_FAILED:
     case ImageProcessingInfo.MALFORMED:
     case ImageProcessingInfo.TIMEOUT: {
-      return <StyledTag type="warning">{t('Problem')}</StyledTag>;
+      return <StyledTag type="error">{t('Error')}</StyledTag>;
     }
     case ImageProcessingInfo.MISSING: {
       return <StyledTag type="error">{t('Missing')}</StyledTag>;
     }
     case ImageProcessingInfo.FOUND: {
-      return <StyledTag type="success">{t('Success')}</StyledTag>;
+      return <StyledTag type="success">{t('Ok')}</StyledTag>;
     }
     case ImageProcessingInfo.UNUSED: {
       return <StyledTag>{t('Unreferenced')}</StyledTag>;
