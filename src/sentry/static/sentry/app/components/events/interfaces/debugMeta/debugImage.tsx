@@ -2,20 +2,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
-import {openModal} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import DebugFileFeature from 'app/components/debugFileFeature';
 import {formatAddress, getImageRange} from 'app/components/events/interfaces/utils';
 import {PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconCircle, IconFlag, IconSearch, IconStack} from 'app/icons';
+import {IconCheckmark, IconCircle, IconFlag, IconSearch} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {Image} from 'app/types/debugImage';
 
-import DebugFileDetails, {modalCss} from './debugFileDetails';
 import {DebugImage as DebugImageType, DebugStatus} from './types';
 import {combineStatus, getFileName} from './utils';
 
@@ -164,29 +161,6 @@ const DebugImage = React.memo(
       <Formatted>{formatAddress(endAddress, IMAGE_ADDR_LEN)}</Formatted>
     ) : null;
 
-    const handleOpenDebugFileDetails = () => {
-      openModal(
-        modalProps => (
-          <DebugFileDetails
-            {...modalProps}
-            image={image as Image}
-            title={codeFile}
-            organization={organization}
-            projectId={projectId}
-            imageStartAddress={formattedImageStartAddress}
-            imageEndAddress={formattedImageEndAddress}
-          />
-        ),
-        {
-          modalCss,
-        }
-      );
-    };
-
-    const hasImagesLoadedV2Feature = !!organization.features?.includes(
-      'images-loaded-v2'
-    );
-
     return (
       <DebugImageItem style={style}>
         <ImageInfoGroup>{renderIconElement()}</ImageInfoGroup>
@@ -273,23 +247,13 @@ const DebugImage = React.memo(
 
             return (
               <ImageActions>
-                {hasImagesLoadedV2Feature ? (
+                <Tooltip title={t('Search for debug files in settings')}>
                   <Button
                     size="xsmall"
-                    icon={<IconStack size="xs" />}
-                    onClick={handleOpenDebugFileDetails}
-                  >
-                    {t('View')}
-                  </Button>
-                ) : (
-                  <Tooltip title={t('Search for debug files in settings')}>
-                    <Button
-                      size="xsmall"
-                      icon={<IconSearch size="xs" />}
-                      to={settingsUrl}
-                    />
-                  </Tooltip>
-                )}
+                    icon={<IconSearch size="xs" />}
+                    to={settingsUrl}
+                  />
+                </Tooltip>
               </ImageActions>
             );
           }}

@@ -6,7 +6,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
+from sentry.api.exceptions import InvalidRepository, ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ListField,
@@ -14,7 +14,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
     ReleaseHeadCommitSerializerDeprecated,
 )
-from sentry.models import Activity, Release, Project
+from sentry.models import Activity, Release, ReleaseCommitError, Project
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
@@ -152,12 +152,15 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
             commit_list = result.get("commits")
             if commit_list:
                 # TODO(dcramer): handle errors with release payloads
-                release.set_commits(commit_list)
-                self.track_set_commits_local(
-                    request,
-                    organization_id=organization.id,
-                    project_ids=[project.id for project in projects],
-                )
+                try:
+                    release.set_commits(commit_list)
+                    self.track_set_commits_local(
+                        request,
+                        organization_id=organization.id,
+                        project_ids=[project.id for project in projects],
+                    )
+                except ReleaseCommitError:
+                    raise ConflictError("Release commits are currently being processed")
 
             refs = result.get("refs")
             if not refs:
