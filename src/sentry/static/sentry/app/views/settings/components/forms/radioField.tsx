@@ -5,10 +5,8 @@ import InputField, {onEvent} from 'app/views/settings/components/forms/inputFiel
 
 type RadioGroupProps = React.ComponentProps<typeof RadioGroup>;
 
-type Props = Omit<InputField['props'], 'type'> & {
-  choices: RadioGroupProps['choices'];
-  orientInline: RadioGroupProps['orientInline'];
-};
+type Props = Omit<InputField['props'], 'type'> &
+  Pick<RadioGroupProps, 'choices' | 'orientInline'>;
 
 class RadioField extends React.Component<Props> {
   onChange = (
