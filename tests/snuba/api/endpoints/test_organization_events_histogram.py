@@ -147,7 +147,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def test_bad_params_missing_num_buckets(self):
         query = {
             "project": [self.project.id],
-            "field": ["foo", "bar"],
+            "field": ["foo"],
         }
         response = self.do_request(query)
         assert response.status_code == 400
