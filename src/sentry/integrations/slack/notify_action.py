@@ -92,7 +92,7 @@ class SlackNotifyServiceForm(forms.Form):
             except DeprecatedIntegrationError:
                 raise forms.ValidationError(
                     _(
-                        'Workspace "%(workspace)s" is using the deprecated Slack integration. Please upgrade your integration to enable Slack alerting again.',
+                        'Workspace "%(workspace)s" is using the deprecated Slack integration. Please re-install your integration to enable Slack alerting again.',
                     ),
                     code="invalid",
                     params={

@@ -1269,7 +1269,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
     # XXX(meredith): Will be removed when we rip out workspace app support completely.
     except DeprecatedIntegrationError:
         raise InvalidTriggerActionError(
-            "This workspace is using the deprecated Slack integration. Please upgrade your integration to enable Slack alerting again."
+            "This workspace is using the deprecated Slack integration. Please re-install your integration to enable Slack alerting again."
         )
 
     except DuplicateDisplayNameError as e:
