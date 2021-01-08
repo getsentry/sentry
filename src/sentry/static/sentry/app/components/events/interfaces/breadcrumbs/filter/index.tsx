@@ -104,6 +104,7 @@ class Filter extends React.Component<Props, State> {
     return (
       <Wrapper>
         <DropdownControl
+          priority="form"
           menuWidth="240px"
           blendWithActor
           button={({isOpen, getActorProps}) => (
