@@ -135,7 +135,7 @@ class MonitorContextType(ContextType):
 @contexttype
 class TraceContextType(ContextType):
     type = "trace"
-    indexed_fields = {"": u"{trace_id}", "span": u"{span_id}", "ctx": u"{trace_id}-{span_id}"}
+    indexed_fields = {}
 
 
 class Contexts(Interface):
