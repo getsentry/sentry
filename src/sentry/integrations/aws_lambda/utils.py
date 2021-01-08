@@ -50,6 +50,7 @@ def get_cache_options():
 
 
 def get_option_value(runtime, option):
+    # currently only supporting node runtimes
     if runtime.startswith("nodejs"):
         prefix = "node"
     else:
@@ -150,6 +151,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn,
     name = function["FunctionName"]
     # update the env variables
     env_variables = function.get("Environment", {}).get("Variables", {})
+    # note the env variables would be different for non-Node runtimes
     env_variables.update(
         {
             "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
