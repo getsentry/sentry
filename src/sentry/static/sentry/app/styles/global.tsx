@@ -66,6 +66,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
           border-top-color: ${theme.border};
         }
 
+        .saved-search-tab {
+          border-bottom-color: ${theme.active} !important;
+        }
+
         .nav-tabs {
           & > li {
             &.active {

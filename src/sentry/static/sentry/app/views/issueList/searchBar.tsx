@@ -53,7 +53,7 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   tagValueLoader: TagValueLoader;
   projectIds?: string[];
   savedSearch?: SavedSearch;
-  isOpen?: boolean;
+  isInbox?: boolean;
 };
 
 type State = {
@@ -124,7 +124,13 @@ class IssueListSearchBar extends React.Component<Props, State> {
   };
 
   render() {
-    const {tagValueLoader: _, savedSearch, onSidebarToggle, ...props} = this.props;
+    const {
+      tagValueLoader: _,
+      savedSearch,
+      onSidebarToggle,
+      isInbox,
+      ...props
+    } = this.props;
 
     return (
       <SmartSearchBarNoLeftCorners
@@ -139,17 +145,17 @@ class IssueListSearchBar extends React.Component<Props, State> {
         onSavedRecentSearch={this.handleSavedRecentSearch}
         onSidebarToggle={onSidebarToggle}
         pinnedSearch={savedSearch?.isPinned ? savedSearch : undefined}
+        isInbox={isInbox}
         {...props}
       />
     );
   }
 }
 
-const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)<{isOpen?: boolean}>`
+const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)<{isInbox?: boolean}>`
   border-radius: ${p =>
-    p.isOpen
-      ? `0 ${p.theme.borderRadius} 0 0`
-      : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+    p.isInbox ? null : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+
   flex-grow: 1;
 `;
 

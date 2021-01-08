@@ -1,5 +1,5 @@
 import React from 'react';
-import {InjectedRouter} from 'react-router';
+import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -16,6 +16,7 @@ import {Organization, Project} from 'app/types';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
+import SavedSearchTab from './savedSearchTab';
 import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
@@ -28,9 +29,8 @@ type Props = {
   projectIds: Array<string>;
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
-  onTabChange: (query: string) => void;
   displayReprocessingTab: boolean;
-};
+} & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
   organization,
@@ -39,8 +39,10 @@ function IssueListHeader({
   orgSlug,
   projectIds,
   realtimeActive,
-  onTabChange,
   onRealtimeChange,
+  onSavedSearchSelect,
+  onSavedSearchDelete,
+  savedSearchList,
   projects,
   router,
   displayReprocessingTab,
@@ -53,10 +55,10 @@ function IssueListHeader({
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
 
   const tabs = getTabs(organization);
-
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
+  const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -116,7 +118,12 @@ function IssueListHeader({
         <Layout.HeaderNavTabs underlined>
           {visibleTabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-              <a onClick={() => onTabChange(tabQuery)}>
+              <Link
+                to={{
+                  query: {...router?.location?.query, query: tabQuery},
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                }}
+              >
                 {queryName}{' '}
                 {queryCounts[tabQuery] && (
                   <StyledQueryCount
@@ -130,9 +137,17 @@ function IssueListHeader({
                     }
                   />
                 )}
-              </a>
+              </Link>
             </li>
           ))}
+          <SavedSearchTab
+            organization={organization}
+            query={query}
+            savedSearchList={savedSearchList}
+            onSavedSearchSelect={onSavedSearchSelect}
+            onSavedSearchDelete={onSavedSearchDelete}
+            isActive={savedSearchTabActive}
+          />
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>
     </React.Fragment>

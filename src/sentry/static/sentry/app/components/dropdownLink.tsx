@@ -57,6 +57,7 @@ type Props = Omit<
      * Anchors menu to the right
      */
     anchorRight?: boolean;
+    anchorMiddle?: boolean;
     /**
      * Always render children of dropdown menu, this is included to support menu
      * items that open a confirm modal. Otherwise when dropdown menu hides, the
@@ -71,6 +72,7 @@ type Props = Omit<
 const DropdownLink = withTheme(
   ({
     anchorRight,
+    anchorMiddle,
     disabled,
     title,
     customTitle,
@@ -95,6 +97,7 @@ const DropdownLink = withTheme(
         const topLevelCx = classNames('dropdown', topLevelClasses, {
           'pull-right': anchorRight,
           'anchor-right': anchorRight,
+          'anchor-middle': anchorMiddle,
           open: isOpen,
         });
 
@@ -113,7 +116,7 @@ const DropdownLink = withTheme(
               {customTitle || (
                 <div className="dropdown-actor-title">
                   <span>{title}</span>
-                  {caret && <IconChevron direction="down" size="xs" />}
+                  {caret && <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                 </div>
               )}
             </a>

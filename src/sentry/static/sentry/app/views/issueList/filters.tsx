@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import Feature from 'app/components/acl/feature';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
@@ -35,6 +34,7 @@ type Props = {
   onSavedSearchDelete: (search: SavedSearch) => void;
   tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
+  isInbox?: boolean;
 };
 
 class IssueListFilters extends React.Component<Props> {
@@ -74,58 +74,58 @@ class IssueListFilters extends React.Component<Props> {
       onSortChange,
       tagValueLoader,
       tags,
+      isInbox,
     } = this.props;
 
     return (
-      <Feature features={['organizations:inbox']}>
-        {({hasFeature}) => (
-          <PageHeader>
-            {!hasFeature && (
-              <PageHeading>
-                {t('Issues')} <QueryCount count={queryCount} max={queryMaxCount} />
-              </PageHeading>
+      <PageHeader>
+        {!isInbox && (
+          <PageHeading>
+            {t('Issues')} <QueryCount count={queryCount} max={queryMaxCount} />
+          </PageHeading>
+        )}
+
+        <SearchContainer isInbox={isInbox}>
+          <IssueListSortOptions sort={sort} onSelect={onSortChange} />
+
+          <SearchSelectorContainer isInbox={isInbox}>
+            {!isInbox && (
+              <SavedSearchSelector
+                key={query}
+                organization={organization}
+                savedSearchList={savedSearchList}
+                onSavedSearchSelect={this.handleSavedSearchSelect}
+                onSavedSearchDelete={onSavedSearchDelete}
+                query={query}
+              />
             )}
 
-            <SearchContainer isInbox={hasFeature}>
-              <IssueListSortOptions sort={sort} onSelect={onSortChange} />
-
-              <SearchSelectorContainer isInbox={hasFeature}>
-                <SavedSearchSelector
-                  key={query}
-                  organization={organization}
-                  savedSearchList={savedSearchList}
-                  onSavedSearchSelect={this.handleSavedSearchSelect}
-                  onSavedSearchDelete={onSavedSearchDelete}
-                  query={query}
-                />
-
-                <IssueListSearchBar
-                  organization={organization}
-                  query={query || ''}
-                  onSearch={onSearch}
-                  disabled={isSearchDisabled}
-                  excludeEnvironment
-                  supportedTags={tags}
-                  tagValueLoader={tagValueLoader}
-                  savedSearch={savedSearch}
-                  onSidebarToggle={onSidebarToggle}
-                />
-              </SearchSelectorContainer>
-            </SearchContainer>
-          </PageHeader>
-        )}
-      </Feature>
+            <IssueListSearchBar
+              organization={organization}
+              query={query || ''}
+              onSearch={onSearch}
+              disabled={isSearchDisabled}
+              excludeEnvironment
+              supportedTags={tags}
+              tagValueLoader={tagValueLoader}
+              savedSearch={savedSearch}
+              onSidebarToggle={onSidebarToggle}
+              isInbox={isInbox}
+            />
+          </SearchSelectorContainer>
+        </SearchContainer>
+      </PageHeader>
     );
   }
 }
 
-const SearchContainer = styled('div')<{isInbox: boolean}>`
+const SearchContainer = styled('div')<{isInbox?: boolean}>`
   display: flex;
   width: ${p => (p.isInbox ? '100%' : '70%')};
   flex-direction: ${p => (p.isInbox ? 'row-reverse' : 'row')};
 `;
 
-const SearchSelectorContainer = styled('div')<{isInbox: boolean}>`
+const SearchSelectorContainer = styled('div')<{isInbox?: boolean}>`
   display: flex;
   flex-grow: 1;
 
