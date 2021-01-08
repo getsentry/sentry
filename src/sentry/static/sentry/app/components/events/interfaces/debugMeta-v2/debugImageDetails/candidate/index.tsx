@@ -78,7 +78,7 @@ Candidate.propTypes = {
   candidate: PropTypes.shape({
     download: PropTypes.shape({
       status: PropTypes.string.isRequired,
-      features: PropTypes.object.isRequired,
+      features: PropTypes.object,
     }),
   }),
 };
