@@ -30,19 +30,17 @@ function Features({download}: Props) {
 
   return (
     <Wrapper>
-      {Object.entries(download.features)
-        .filter(([_key, value]) => value)
-        .map(([key]) => {
-          const {label, description} = getCandidateFeatureLabel(
-            key as keyof CandidateFeatures
-          );
-          return (
-            <Feature key={key}>
-              {label}
-              <QuestionTooltip title={description} size="xs" />
-            </Feature>
-          );
-        })}
+      {features.map(([key]) => {
+        const {label, description} = getCandidateFeatureLabel(
+          key as keyof CandidateFeatures
+        );
+        return (
+          <Feature key={key}>
+            {label}
+            <QuestionTooltip title={description} size="xs" />
+          </Feature>
+        );
+      })}
     </Wrapper>
   );
 }
