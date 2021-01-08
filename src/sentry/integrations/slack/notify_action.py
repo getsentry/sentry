@@ -168,7 +168,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             return
 
         # XXX:(meredith) No longer support sending workspace app notifications unless explicitly
-        # flagged in. Flag is temporary and will be taken out Jan 31, 2021
+        # flagged in. Flag is temporary and will be taken out shortly
         if get_integration_type(integration) == "workspace_app" and not features.has(
             "organizations:slack-allow-workspace", event.group.project.organization
         ):

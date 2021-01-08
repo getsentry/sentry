@@ -425,7 +425,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
     # once eveyone is migrated we can remove this check and usages of channels.list
 
     # XXX(meredith): Prevent anyone from creating new rules or editing existing rules that
-    # have workspace app integrations. For them to either remove slack action or re-install
+    # have workspace app integrations. Force them to either remove slack action or re-install
     # their integration.
     integration_type = get_integration_type(integration)
     if integration_type == "workspace_app" and not any(
