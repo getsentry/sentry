@@ -6,6 +6,7 @@ from datetime import datetime
 import pytz
 from django.core.urlresolvers import reverse
 
+from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import (
     Activity,
@@ -316,13 +317,9 @@ class UpdateReleaseDetailsTest(APITestCase):
         org.save()
 
         team = self.create_team(organization=org)
-
         project = self.create_project(teams=[team], organization=org)
-
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-
         release.add_project(project)
-
         self.create_member(teams=[team], user=user, organization=org)
 
         self.login_as(user=user)
@@ -343,6 +340,34 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id == org.id
+
+    def test_commits_lock_conflict(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        release = self.create_release(project, self.user, version="1.2.1")
+        release.add_project(project)
+
+        # Simulate a concurrent request by using an existing release
+        # that has its commit lock taken out.
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock.acquire()
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(url, data={"commits": [{"id": "a" * 40}, {"id": "b" * 40}]})
+        assert response.status_code == 409, (response.status_code, response.content)
+        assert "Release commits" in response.data["detail"]
 
     def test_release_archiving(self):
         user = self.create_user(is_staff=False, is_superuser=False)
