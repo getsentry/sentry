@@ -101,6 +101,7 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   text-align: center;
   /* TODO(scttcper): Replace hex color when nav-tabs is replaced */
   color: ${p => (p.isActive ? p.theme.textColor : '#7c6a8e')};
+  user-select: none;
 
   :hover {
     color: #2f2936;
