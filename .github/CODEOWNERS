@@ -180,8 +180,8 @@ build-utils/        @getsentry/owners-js-build
 /src/sentry/models/project.py                 @getsentry/data
 /src/sentry/models/projectoption.py           @getsentry/data
 /src/sentry/models/release.py                 @getsentry/data
-/src/sentry/models/sentryapp.py               @getsentry/data
-/src/sentry/models/sentryappinstallation.py   @getsentry/data
+/src/sentry/models/sentryapp.py               @getsentry/data @getsentry/ecosystem
+/src/sentry/models/sentryappinstallation.py   @getsentry/data @getsentry/ecosystem
 /src/sentry/models/user.py                    @getsentry/data
 
 ### End of Data ###
