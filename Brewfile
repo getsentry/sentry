@@ -9,6 +9,7 @@ brew 'watchman'
 
 # required to build some of sentry's dependencies
 brew 'pkgconfig'
+brew 'libxslt'
 brew 'libxmlsec1'
 brew 'geoip'
 
