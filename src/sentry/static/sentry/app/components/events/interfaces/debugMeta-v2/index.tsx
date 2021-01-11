@@ -5,7 +5,6 @@ import {
   CellMeasurerCache,
   List,
   ListRowProps,
-  ScrollbarPresenceParams,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
@@ -49,8 +48,9 @@ type Props = DefaultProps & {
 type State = {
   filter: string;
   filteredImages: Array<Image>;
+  isLoading: boolean;
   panelTableHeight?: number;
-  scrollbarSize?: number;
+  innerListWidth?: number;
 };
 
 const cache = new CellMeasurerCache({
@@ -66,6 +66,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   state: State = {
     filter: '',
     filteredImages: [],
+    isLoading: false,
   };
 
   componentDidMount() {
@@ -82,6 +83,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
       this.getPanelBodyHeight();
     }
+
+    if (this.state.isLoading) {
+      this.getInnerListWidth();
+    }
   }
 
   componentWillUnmount() {
@@ -94,6 +99,23 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
+
+  getInnerListWidth() {
+    const innerListWidth = this.panelTableRef?.current?.querySelector(
+      '.ReactVirtualized__Grid__innerScrollContainer'
+    )?.clientWidth;
+
+    if (innerListWidth !== this.state.innerListWidth) {
+      this.setState({innerListWidth, isLoading: false});
+      return;
+    }
+
+    this.setState({isLoading: false});
+  }
+
+  onListResize = () => {
+    this.setState({isLoading: true}, this.updateGrid);
+  };
 
   updateGrid = () => {
     if (this.listRef) {
@@ -111,10 +133,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     this.setState({panelTableHeight});
   }
-
-  setScrollbarSize = ({size}: ScrollbarPresenceParams) => {
-    this.setState({scrollbarSize: size});
-  };
 
   onStoreChange = (store: {filter: string}) => {
     this.setState({filter: store.filter});
@@ -276,7 +294,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     return (
-      <AutoSizer disableHeight onResize={this.updateGrid}>
+      <AutoSizer disableHeight onResize={this.onListResize}>
         {({width}) => (
           <StyledList
             ref={(el: List | null) => {
@@ -288,8 +306,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
             rowCount={images.length}
             rowHeight={cache.rowHeight}
             rowRenderer={this.renderRow}
-            onScrollbarPresenceChange={this.setScrollbarSize}
             width={width}
+            isScrolling={false}
           />
         )}
       </AutoSizer>
@@ -297,7 +315,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {filter, filteredImages: images, scrollbarSize} = this.state;
+    const {filter, filteredImages: images, innerListWidth} = this.state;
 
     return (
       <StyledEventDataSection
@@ -330,8 +348,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
         wrapTitle={false}
         isCentered
       >
-        <Panel>
-          <StyledPanelHeader scrollbarSize={scrollbarSize}>
+        <StyledPanel innerListWidth={innerListWidth}>
+          <StyledPanelHeader>
             <div>{t('Status')}</div>
             <div>{t('Image')}</div>
             <div>{t('Processing')}</div>
@@ -344,26 +362,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
           ) : (
             <div ref={this.panelTableRef}>{this.renderList()}</div>
           )}
-        </Panel>
+        </StyledPanel>
       </StyledEventDataSection>
     );
   }
 }
 
 export default DebugMeta;
-
-const StyledPanelHeader = styled(PanelHeader)<{scrollbarSize?: number}>`
-  padding: 0;
-  > * {
-    padding: ${space(2)};
-    ${overflowEllipsis};
-  }
-  ${p => layout(p.theme)};
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    ${p => p.scrollbarSize && `padding-right: ${p.scrollbarSize}px;`}
-  }
-`;
 
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(4)};
@@ -372,6 +377,25 @@ const StyledEventDataSection = styled(EventDataSection)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
   }
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  padding: 0;
+  > * {
+    padding: ${space(2)};
+    ${overflowEllipsis};
+  }
+  ${p => layout(p.theme)};
+`;
+
+const StyledPanel = styled(Panel)<{innerListWidth?: number}>`
+  ${p =>
+    p.innerListWidth &&
+    `
+        ${StyledPanelHeader} {
+          padding-right: calc(100% - ${p.innerListWidth}px);
+        }
+    `};
 `;
 
 // Section Title
