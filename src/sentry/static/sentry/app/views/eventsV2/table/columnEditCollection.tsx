@@ -4,16 +4,14 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
-import {
-  setBodyUserSelect,
-  UserSelectValues,
-} from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
+import {getPointerPosition} from 'app/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 import {generateFieldOptions} from '../utils';
 
@@ -47,31 +45,6 @@ const MAX_COL_COUNT = 20;
 enum PlaceholderPosition {
   TOP,
   BOTTOM,
-}
-
-function isReactEvent(
-  maybe: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent
-): maybe is React.MouseEvent | React.TouchEvent {
-  return 'nativeEvent' in maybe;
-}
-
-/**
- * Handle getting position out of both React and Raw DOM events
- * as both are handled here due to mousedown/mousemove events
- * working differently.
- */
-function getPointerPosition(
-  event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent,
-  property: 'pageX' | 'pageY'
-): number {
-  const actual = isReactEvent(event) ? event.nativeEvent : event;
-  if (window.TouchEvent && actual instanceof TouchEvent) {
-    return actual.targetTouches[0][property];
-  }
-  if (actual instanceof MouseEvent) {
-    return actual[property];
-  }
-  return 0;
 }
 
 class ColumnEditCollection extends React.Component<Props, State> {
