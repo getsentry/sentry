@@ -12,8 +12,8 @@ import {HistogramData} from './types';
 
 type Histograms = Record<string, HistogramData[]>;
 
-type MeasurementsData = {
-  measurements: string[];
+type HistogramProps = {
+  fields: string[];
   numBuckets: number;
   min?: number;
   max?: number;
@@ -21,9 +21,9 @@ type MeasurementsData = {
   dataFilter?: string;
 };
 
-type RequestProps = DiscoverQueryProps & MeasurementsData;
+type RequestProps = DiscoverQueryProps & HistogramProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<MeasurementsData>, 'tableData'> & {
+type ChildrenProps = Omit<GenericChildrenProps<HistogramProps>, 'tableData'> & {
   histograms: Histograms | null;
 };
 
@@ -31,9 +31,9 @@ type Props = RequestProps & {
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
-function getMeasurementsHistogramRequestPayload(props: any) {
+function getHistogramRequestPayload(props: RequestProps) {
   const {
-    measurements,
+    fields,
     numBuckets,
     min,
     max,
@@ -43,7 +43,7 @@ function getMeasurementsHistogramRequestPayload(props: any) {
     location,
   } = props;
   const baseApiPayload = {
-    field: measurements,
+    field: fields,
     numBuckets,
     min,
     max,
@@ -63,9 +63,9 @@ function beforeFetch(api: Client) {
   api.clear();
 }
 
-function MeasurementsHistogramQuery(props: Props) {
-  const {children, measurements} = props;
-  if (measurements.length === 0) {
+function HistogramQuery(props: Props) {
+  const {children, fields} = props;
+  if (fields.length === 0) {
     return (
       <React.Fragment>
         {children({
@@ -79,9 +79,9 @@ function MeasurementsHistogramQuery(props: Props) {
   }
 
   return (
-    <GenericDiscoverQuery<Histograms, MeasurementsData>
+    <GenericDiscoverQuery<Histograms, HistogramProps>
       route="events-histogram"
-      getRequestPayload={getMeasurementsHistogramRequestPayload}
+      getRequestPayload={getHistogramRequestPayload}
       beforeFetch={beforeFetch}
       {...omit(props, 'children')}
     >
@@ -92,4 +92,4 @@ function MeasurementsHistogramQuery(props: Props) {
   );
 }
 
-export default withApi(MeasurementsHistogramQuery);
+export default withApi(HistogramQuery);

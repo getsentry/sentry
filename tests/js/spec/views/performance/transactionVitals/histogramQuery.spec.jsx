@@ -4,7 +4,7 @@ import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
-import MeasurementsHistogramQuery from 'app/views/performance/transactionVitals/measurementsHistogramQuery';
+import HistogramQuery from 'app/views/performance/transactionVitals/histogramQuery';
 
 function renderHistogram({isLoading, error, histograms}) {
   if (isLoading) {
@@ -29,7 +29,7 @@ function renderHistogram({isLoading, error, histograms}) {
   }
 }
 
-describe('MeasurementsHistogramQuery', function () {
+describe('HistogramQuery', function () {
   let api, eventView, location;
   beforeEach(() => {
     api = new Client();
@@ -57,18 +57,18 @@ describe('MeasurementsHistogramQuery', function () {
       },
     });
     const wrapper = mount(
-      <MeasurementsHistogramQuery
+      <HistogramQuery
         api={api}
         location={location}
         eventView={eventView}
         orgSlug="test-org"
         numBuckets={10}
-        measurements={['fp']}
+        fields={['fp']}
         min={0}
         max={10000}
       >
         {renderHistogram}
-      </MeasurementsHistogramQuery>
+      </HistogramQuery>
     );
     await tick();
     wrapper.update();
