@@ -17,7 +17,7 @@ import {getImageRange, parseAddress} from 'app/components/events/interfaces/util
 import {Panel, PanelHeader} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import SearchBar from 'app/components/searchBar';
-import {IconWarning} from 'app/icons/iconWarning';
+import {IconSearch} from 'app/icons/iconSearch';
 import {t} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -426,7 +426,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       const hasActiveFilter = filterOptions.find(filterOption => filterOption.isChecked);
       return (
         <EmptyMessage
-          icon={<IconWarning size="xl" />}
+          icon={<IconSearch size="xl" />}
           action={
             hasActiveFilter ? (
               <Button onClick={this.handleResetFilter} priority="primary">
