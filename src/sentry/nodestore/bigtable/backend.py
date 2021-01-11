@@ -43,9 +43,13 @@ def _compress_data(orig_data, data, compression):
         flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZSTD
         cctx = zstandard.ZstdCompressor()
         data = cctx.compress(data)
-    elif compression:
+    elif compression is True or compression == "zlib":
         flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZLIB
         data = zlib.compress(data)
+    elif compression is False:
+        pass
+    else:
+        raise ValueError("invalid argument for compression: {!r}".format(compression))
 
     return data, flags
 
