@@ -2,8 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import ClipboardTooltip from 'app/components/clipboardTooltip';
-import TextOverflow from 'app/components/textOverflow';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -38,9 +36,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <Status image={image} />
       </StatusColumn>
       <ImageColumn>
-        <ClipboardTooltip title={code_file} containerDisplayMode="inline-flex">
-          <FileName>{fileName}</FileName>
-        </ClipboardTooltip>
+        <FileName>{fileName}</FileName>
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
       <ProcessingColumn>
@@ -88,11 +84,12 @@ const StatusColumn = styled(Column)`
   overflow: hidden;
 `;
 
-const FileName = styled(TextOverflow)`
+const FileName = styled('div')`
   color: ${p => p.theme.textColor};
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
-  width: 100%;
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 // Image Column
@@ -105,8 +102,9 @@ const ImageColumn = styled(Column)`
   align-items: flex-start;
 `;
 
-const ImageAddress = styled(TextOverflow)`
-  width: 100%;
+const ImageAddress = styled('div')`
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 // Processing Column
