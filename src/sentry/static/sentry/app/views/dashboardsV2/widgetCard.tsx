@@ -193,6 +193,7 @@ class WidgetCard extends React.Component<Props> {
             onTouchStart={event => startWidgetDrag(event)}
           />
           <IconClick
+            data-test-id="widget-edit"
             onClick={() => {
               onEdit();
             }}
@@ -200,6 +201,7 @@ class WidgetCard extends React.Component<Props> {
             <IconEdit color="gray500" size="lg" />
           </IconClick>
           <IconClick
+            data-test-id="widget-delete"
             onClick={() => {
               onDelete();
             }}
