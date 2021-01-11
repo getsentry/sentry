@@ -1934,3 +1934,8 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   enabled: boolean;
 };
+
+/**
+ * File storage service options for debug files
+ */
+export type DebugFileSource = 'http' | 's3' | 'gcs';

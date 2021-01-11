@@ -1,6 +1,6 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import ExternalLink from 'app/components/links/externalLink';
 import {
   AWS_REGIONS,
@@ -9,15 +9,18 @@ import {
   getDebugSourceName,
 } from 'app/data/debugFileSources';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {DebugFileSource} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
+import {Field} from 'app/views/settings/components/forms/type';
 
-function objectToChoices(obj) {
+function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
   return Object.entries(obj).map(([key, value]) => [key, t(value)]);
 }
 
-const commonFields = {
+type FieldMap = Record<string, Field>;
+
+const commonFields: FieldMap = {
   id: {
     name: 'id',
     type: 'hidden',
@@ -57,11 +60,12 @@ const commonFields = {
     help: t('The path at which files are located within this repository.'),
   },
   separator: {
+    name: '',
     type: 'separator',
   },
 };
 
-const httpFields = {
+const httpFields: FieldMap = {
   url: {
     name: 'url',
     type: 'url',
@@ -72,7 +76,7 @@ const httpFields = {
   },
 };
 
-const s3Fields = {
+const s3Fields: FieldMap = {
   bucket: {
     name: 'bucket',
     type: 'string',
@@ -120,7 +124,7 @@ const s3Fields = {
   },
 };
 
-const gcsFields = {
+const gcsFields: FieldMap = {
   bucket: {
     name: 'bucket',
     type: 'string',
@@ -156,7 +160,7 @@ const gcsFields = {
   },
 };
 
-function getFormFields(type) {
+function getFormFields(type: DebugFileSource) {
   switch (type) {
     case 'http':
       return [
@@ -199,29 +203,23 @@ function getFormFields(type) {
   }
 }
 
-class DebugFileSourceModal extends React.Component {
-  static propTypes = {
-    /**
-     * Callback invoked with the updated config value.
-     */
-    onSave: PropTypes.func.isRequired,
+type Props = {
+  /**
+   * Callback invoked with the updated config value.
+   */
+  onSave: (config: Record<string, string>) => void;
+  /**
+   * Type of this source.
+   */
+  sourceType: DebugFileSource;
+  /**
+   * The sourceConfig. May be empty to create a new one.
+   */
+  sourceConfig?: Record<string, string>;
+} & Pick<ModalRenderProps, 'closeModal' | 'Header'>;
 
-    /**
-     * Type of this source.
-     */
-    sourceType: SentryTypes.DebugSourceType.isRequired,
-
-    /**
-     * The sourceConfig. May be empty to create a new one.
-     */
-    sourceConfig: SentryTypes.DebugSourceConfig,
-
-    // Injected by the modal parent
-    closeModal: PropTypes.func.isRequired,
-    Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
-  };
-
-  handleSave = data => {
+class DebugFileSourceModal extends React.Component<Props> {
+  handleSave = (data: Record<string, string>) => {
     const {sourceType, onSave, closeModal} = this.props;
     onSave({...data, type: sourceType});
     closeModal();
