@@ -211,6 +211,8 @@ def create_issue(event, futures):
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
 
+    form_cls = IntegrationNotifyServiceForm
+
     def __init__(self, *args, **kwargs):
         super(IntegrationEventAction, self).__init__(*args, **kwargs)
         integration_choices = [
@@ -225,6 +227,7 @@ class TicketEventAction(IntegrationEventAction):
                 "choices": integration_choices,
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
+                "resetsForm": True,
                 "updatesForm": True,
             }
         }
@@ -232,6 +235,9 @@ class TicketEventAction(IntegrationEventAction):
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
+
+    def render_label(self):
+        return self.label.format(integration=self.get_integration_name())
 
     def get_dynamic_form_fields(self):
         """

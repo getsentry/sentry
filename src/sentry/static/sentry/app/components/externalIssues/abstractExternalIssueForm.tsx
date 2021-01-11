@@ -77,6 +77,13 @@ export default class AbstractExternalIssueForm<
     }
   };
 
+  /**
+   * Convert IntegrationIssueConfig to an object that maps field names to the
+   * values of fields where `updatesFrom` is true. This function prefers to read
+   * configs from its parameters and otherwise falls back to reading from state.
+   * @param integrationDetailsParam
+   * @returns Object of field names to values.
+   */
   getDynamicFields = (
     integrationDetailsParam?: IntegrationIssueConfig
   ): {[key: string]: FieldValue | null} => {

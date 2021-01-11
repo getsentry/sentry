@@ -46,7 +46,10 @@ type BaseField = {
   disabled?: boolean | ((props: any) => boolean);
   disabledReason?: string;
   defaultValue?: FieldValue;
+  /** Does editing this field require the Form to load new configs? */
   updatesForm?: boolean;
+  /** Does editing this field need to clear all other fields? */
+  resetsForm?: boolean;
   confirm?: {[key in ConfirmKeyType]?: string};
   autosize?: boolean;
   maxRows?: number;
