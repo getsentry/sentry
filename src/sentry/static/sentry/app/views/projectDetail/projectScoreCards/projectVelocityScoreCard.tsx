@@ -181,7 +181,9 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   renderTrend() {
-    if (!defined(this.trend) || this.state.currentReleases?.length === API_LIMIT) {
+    const {loading, currentReleases} = this.state;
+
+    if (loading || !defined(this.trend) || currentReleases?.length === API_LIMIT) {
       return null;
     }
 
