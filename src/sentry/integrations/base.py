@@ -102,6 +102,7 @@ class IntegrationFeatures(Enum):
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
     DEPLOYMENT = "deployment"
+    TICKET_RULES = "ticket-rules"
 
 
 class IntegrationProvider(PipelineProvider):

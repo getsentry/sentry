@@ -77,6 +77,12 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Azure DevOps work items based on Alert Rule conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 metadata = IntegrationMetadata(
