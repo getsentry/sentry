@@ -19,6 +19,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
+import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -81,11 +82,16 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   componentDidMount() {
+    this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
     cache.clearAll();
     this.getRelevantImages();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.searchTerm !== this.state.searchTerm) {
+      this.filterImagesBySearchTerm();
+    }
+
     if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
       this.getPanelBodyHeight();
     }
@@ -95,8 +101,24 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
   }
 
+  componentWillUnmount() {
+    if (this.unsubscribeFromStore) {
+      this.unsubscribeFromStore();
+    }
+  }
+
+  unsubscribeFromStore: any;
+
   panelTableRef = React.createRef<HTMLDivElement>();
   listRef: List | null = null;
+
+  onStoreChange = (store: {filter: string}) => {
+    const {searchTerm} = this.state;
+
+    if (store.filter !== searchTerm) {
+      this.setState({searchTerm: store.filter});
+    }
+  };
 
   getInnerListWidth() {
     const innerListWidth = this.panelTableRef?.current?.querySelector(
@@ -159,6 +181,26 @@ class DebugMeta extends React.PureComponent<Props, State> {
       // Any match for file paths
       (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
       (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
+    );
+  }
+
+  filterImagesBySearchTerm() {
+    const {filteredImages, filterOptions, searchTerm} = this.state;
+    const filteredImagesBySearch = filteredImages.filter(image =>
+      this.filterImage(image, searchTerm)
+    );
+
+    const filteredImagesByFilter = this.getFilteredImagesByFilter(
+      filteredImagesBySearch,
+      filterOptions
+    );
+
+    this.setState(
+      {
+        filteredImagesBySearch,
+        filteredImagesByFilter,
+      },
+      this.updateGrid
     );
   }
 
@@ -276,24 +318,11 @@ class DebugMeta extends React.PureComponent<Props, State> {
   };
 
   handleChangeSearchTerm = (searchTerm = '') => {
-    const {filteredImages, filterOptions} = this.state;
-    const filteredImagesBySearch = filteredImages.filter(image =>
-      this.filterImage(image, searchTerm)
-    );
-    const filteredImagesByFilter = this.getFilteredImagesByFilter(
-      filteredImagesBySearch,
-      filterOptions
-    );
-
-    this.setState({
-      searchTerm,
-      filteredImagesBySearch,
-      filteredImagesByFilter,
-    });
+    DebugMetaActions.updateFilter(searchTerm);
   };
 
   handleResetFilter = () => {
-    const {searchTerm, filterOptions} = this.state;
+    const {filterOptions} = this.state;
     this.setState(
       {
         filterOptions: filterOptions.map(filterOption => ({
@@ -301,7 +330,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
           isChecked: false,
         })),
       },
-      () => this.handleChangeSearchTerm(searchTerm)
+      this.filterImagesBySearchTerm
     );
   };
 
@@ -493,7 +522,9 @@ const StyledPanelHeader = styled(PanelHeader)`
   ${p => layout(p.theme)};
 `;
 
-const StyledPanel = styled(Panel)<{innerListWidth?: number}>`
+const StyledPanel = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'innerListWidth',
+})<{innerListWidth?: number}>`
   ${p =>
     p.innerListWidth &&
     `

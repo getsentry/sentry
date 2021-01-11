@@ -180,7 +180,7 @@ export class Line extends React.Component<Props, State> {
         makeFilter(instructionAddr, addrMode, this.props.image)
       );
     }
-    scrollToElement('#packages');
+    scrollToElement('#images-loaded');
   };
 
   preventCollapse = evt => {
