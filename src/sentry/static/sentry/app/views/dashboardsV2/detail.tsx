@@ -287,7 +287,12 @@ const StyledPageHeader = styled('div')`
   color: ${p => p.theme.textColor};
   height: 40px;
   margin-bottom: ${space(1)};
-  white-space: nowrap;
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+  }
 `;
 
 export default withApi(withOrganization(DashboardDetail));

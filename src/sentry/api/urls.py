@@ -118,6 +118,9 @@ from .endpoints.organization_integration_repository_project_path_configs import 
 from .endpoints.organization_integration_repository_project_path_config_details import (
     OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint,
 )
+from .endpoints.organization_integration_serverless_functions import (
+    OrganizationIntegrationServerlessFunctionsEndpoint,
+)
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
@@ -907,6 +910,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repo-project-path-configs/(?P<config_id>[^\/]+)/$",
                     OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-integration-repository-project-path-config-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
+                    OrganizationIntegrationServerlessFunctionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-serverless-functions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/members/$",

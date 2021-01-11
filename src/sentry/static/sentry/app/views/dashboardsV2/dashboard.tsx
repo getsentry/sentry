@@ -1,4 +1,5 @@
 import React from 'react';
+import LazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
@@ -93,14 +94,16 @@ class Dashboard extends React.Component<Props, State> {
     const {isEditing} = this.props;
     // TODO add drag state and drag re-sorting.
     return (
-      <WidgetWrapper key={`${widget.id}:${index}`}>
-        <WidgetCard
-          widget={widget}
-          isEditing={isEditing}
-          onDelete={this.handleDeleteWidget(index)}
-          onEdit={this.handleEditWidget(widget, index)}
-        />
-      </WidgetWrapper>
+      <LazyLoad key={`${widget.id}:${index}`} once height={240} offset={100}>
+        <WidgetWrapper>
+          <WidgetCard
+            widget={widget}
+            isEditing={isEditing}
+            onDelete={this.handleDeleteWidget(index)}
+            onEdit={this.handleEditWidget(widget, index)}
+          />
+        </WidgetWrapper>
+      </LazyLoad>
     );
   }
 
@@ -128,6 +131,10 @@ const WidgetContainer = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-gap: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const WidgetWrapper = styled('div')`

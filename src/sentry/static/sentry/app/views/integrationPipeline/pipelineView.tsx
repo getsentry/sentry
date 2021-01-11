@@ -1,5 +1,6 @@
 import React from 'react';
 
+import Indicators from 'app/components/indicators';
 import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
 
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
@@ -10,10 +11,10 @@ import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
  * This component is a wrapper for specific pipeline views for integrations
  */
 
-const pipelineMapper = {
-  awsLambdaProjectSelect: AwsLambdaProjectSelect,
-  awsLambdaFunctionSelect: AwsLambdaFunctionSelect,
-  awsLambdaFailureDetails: AwsLambdaFailureDetails,
+const pipelineMapper: Record<string, [React.ElementType, string]> = {
+  awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
+  awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
+  awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
 };
 
 type Props = {
@@ -21,17 +22,27 @@ type Props = {
   [key: string]: any;
 };
 
-const PipelineView = (props: Props) => {
-  const {pipelineName, ...rest} = props;
-  const Component = pipelineMapper[pipelineName];
-  if (!Component) {
-    throw new Error(`Invalid pipeline name ${pipelineName}`);
+export default class PipelineView extends React.Component<Props> {
+  componentDidMount() {
+    // update the title based on our mappings
+    const title = this.mapping[1];
+    document.title = title;
   }
-  return (
-    <ThemeAndStyleProvider>
-      <Component {...rest} />
-    </ThemeAndStyleProvider>
-  );
-};
-
-export default PipelineView;
+  get mapping() {
+    const {pipelineName} = this.props;
+    const mapping = pipelineMapper[pipelineName];
+    if (!mapping) {
+      throw new Error(`Invalid pipeline name ${pipelineName}`);
+    }
+    return mapping;
+  }
+  render() {
+    const Component = this.mapping[0];
+    return (
+      <ThemeAndStyleProvider>
+        <Indicators className="indicators-container" />
+        <Component {...this.props} />
+      </ThemeAndStyleProvider>
+    );
+  }
+}

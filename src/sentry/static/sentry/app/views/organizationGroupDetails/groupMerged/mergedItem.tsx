@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import GroupingActions from 'app/actions/groupingActions';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import FlowLayout from 'app/components/flowLayout';
 import {IconChevron} from 'app/icons';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 
 type Props = {
   event: Event;
@@ -94,21 +94,19 @@ class MergedItem extends React.Component<Props, State> {
     return (
       <MergedGroup busy={busy}>
         <Controls expanded={!collapsed}>
-          <FlowLayout onClick={this.handleToggle}>
-            <ActionColumn>
-              <Checkbox
-                id={fingerprint}
-                value={fingerprint}
-                checked={checked}
-                disabled={checkboxDisabled}
-                onChange={this.handleCheckClick}
-              />
-            </ActionColumn>
+          <ActionWrapper onClick={this.handleToggle}>
+            <Checkbox
+              id={fingerprint}
+              value={fingerprint}
+              checked={checked}
+              disabled={checkboxDisabled}
+              onChange={this.handleCheckClick}
+            />
 
             <Fingerprint onClick={this.handleLabelClick} htmlFor={fingerprint}>
               {fingerprint}
             </Fingerprint>
-          </FlowLayout>
+          </ActionWrapper>
 
           <div>
             <Collapse onClick={this.handleToggleEvents}>
@@ -121,14 +119,12 @@ class MergedItem extends React.Component<Props, State> {
           <MergedEventList className="event-list">
             {event && (
               <EventDetails className="event-details">
-                <FlowLayout>
-                  <EventOrGroupHeader
-                    data={event}
-                    organization={organization}
-                    hideIcons
-                    hideLevel
-                  />
-                </FlowLayout>
+                <EventOrGroupHeader
+                  data={event}
+                  organization={organization}
+                  hideIcons
+                  hideLevel
+                />
               </EventDetails>
             )}
           </MergedEventList>
@@ -142,12 +138,14 @@ const MergedGroup = styled('div')<{busy: boolean}>`
   ${p => p.busy && 'opacity: 0.2'};
 `;
 
-const ActionColumn = styled('div')`
-  display: flex;
-  padding: 0 ${space(1)};
+const ActionWrapper = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
+  gap: ${space(1)};
 
-  input {
+  /* Can't use styled components for this because of broad selector */
+  input[type='checkbox'] {
     margin: 0;
   }
 `;
@@ -157,7 +155,7 @@ const Controls = styled('div')<{expanded: boolean}>`
   justify-content: space-between;
   border-top: 1px solid ${p => p.theme.innerBorder};
   background-color: ${p => p.theme.gray100};
-  padding: ${space(0.5)} 0;
+  padding: ${space(0.5)} ${space(1)};
   ${p => p.expanded && `border-bottom: 1px solid ${p.theme.innerBorder}`};
 
   ${MergedGroup} {
@@ -182,7 +180,6 @@ const Fingerprint = styled('label')`
 
 const Collapse = styled('span')`
   cursor: pointer;
-  padding: 0 ${space(1)};
 `;
 
 const MergedEventList = styled('div')`

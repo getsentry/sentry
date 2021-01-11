@@ -1,13 +1,12 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Pagination from 'app/components/pagination';
-import {Panel} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
 import {Fingerprint} from 'app/stores/groupingStore';
-import {Organization, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import MergedItem from './mergedItem';
@@ -23,6 +22,7 @@ type Props = {
    */
   onToggleCollapse: () => void;
   organization: Organization;
+  groupId: Group['id'];
   project: Project;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
@@ -34,6 +34,7 @@ function MergedList({
   onToggleCollapse,
   onUnmerge,
   organization,
+  groupId,
   project,
 }: Props) {
   const fingerprintsWithLatestEvent = fingerprints.filter(
@@ -58,32 +59,30 @@ function MergedList({
         <QueryCount count={fingerprintsWithLatestEvent.length} />
       </h2>
 
-      <MergedToolbar
-        onToggleCollapse={onToggleCollapse}
-        onUnmerge={onUnmerge}
-        orgId={organization.slug}
-        project={project}
-      />
+      <Panel>
+        <MergedToolbar
+          onToggleCollapse={onToggleCollapse}
+          onUnmerge={onUnmerge}
+          orgId={organization.slug}
+          project={project}
+          groupId={groupId}
+        />
 
-      <MergedItems>
-        {fingerprintsWithLatestEvent.map(({id, latestEvent}) => (
-          <MergedItem
-            key={id}
-            organization={organization}
-            disabled={fingerprintsWithLatestEvent.length === 1}
-            event={latestEvent}
-            fingerprint={id}
-          />
-        ))}
-      </MergedItems>
+        <PanelBody>
+          {fingerprintsWithLatestEvent.map(({id, latestEvent}) => (
+            <MergedItem
+              key={id}
+              organization={organization}
+              disabled={fingerprintsWithLatestEvent.length === 1}
+              event={latestEvent}
+              fingerprint={id}
+            />
+          ))}
+        </PanelBody>
+      </Panel>
       {pageLinks && <Pagination pageLinks={pageLinks} />}
     </React.Fragment>
   );
 }
 
 export default withOrganization(MergedList);
-
-const MergedItems = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-top: none;
-`;

@@ -1,5 +1,5 @@
 import React from 'react';
-import {InjectedRouter} from 'react-router';
+import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
@@ -16,9 +16,11 @@ import {Organization, Project} from 'app/types';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
-import {Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import SavedSearchTab from './savedSearchTab';
+import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
+  organization: Organization;
   query: string;
   queryCounts: QueryCounts;
   realtimeActive: boolean;
@@ -27,28 +29,23 @@ type Props = {
   projectIds: Array<string>;
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
-  onTabChange: (query: string) => void;
-  hasReprocessingV2Feature?: boolean;
-};
-
-const queries = [
-  [Query.NEEDS_REVIEW, t('Needs Review')],
-  [Query.UNRESOLVED, t('All Unresolved')],
-  [Query.IGNORED, t('Ignored')],
-  [Query.REPROCESSING, t('Reprocessing')],
-];
+  displayReprocessingTab: boolean;
+} & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
+  organization,
   query,
   queryCounts,
   orgSlug,
   projectIds,
   realtimeActive,
-  onTabChange,
   onRealtimeChange,
+  onSavedSearchSelect,
+  onSavedSearchDelete,
+  savedSearchList,
   projects,
   router,
-  hasReprocessingV2Feature,
+  displayReprocessingTab,
 }: Props) {
   const selectedProjectSlugs = projectIds
     .map(projectId => projects.find(project => project.id === projectId)?.slug)
@@ -57,9 +54,11 @@ function IssueListHeader({
   const selectedProjectSlug =
     selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
 
-  const tabs = hasReprocessingV2Feature
-    ? queries
-    : queries.filter(([tabQuery]) => tabQuery !== Query.REPROCESSING);
+  const tabs = getTabs(organization);
+  const visibleTabs = displayReprocessingTab
+    ? tabs
+    : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
+  const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -117,23 +116,38 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {tabs.map(([tabQuery, queryName]) => (
+          {visibleTabs.map(([tabQuery, {name: queryName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-              <a onClick={() => onTabChange(tabQuery)}>
+              <Link
+                to={{
+                  query: {...router?.location?.query, query: tabQuery},
+                  pathname: `/organizations/${organization.slug}/issues/`,
+                }}
+              >
                 {queryName}{' '}
                 {queryCounts[tabQuery] && (
                   <StyledQueryCount
                     count={queryCounts[tabQuery].count}
                     max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
                     backgroundColor={
-                      (tabQuery === Query.NEEDS_REVIEW && theme.yellow300) ||
+                      ((tabQuery === Query.NEEDS_REVIEW_OWNER ||
+                        tabQuery === Query.NEEDS_REVIEW) &&
+                        theme.yellow300) ||
                       theme.gray100
                     }
                   />
                 )}
-              </a>
+              </Link>
             </li>
           ))}
+          <SavedSearchTab
+            organization={organization}
+            query={query}
+            savedSearchList={savedSearchList}
+            onSavedSearchSelect={onSavedSearchSelect}
+            onSavedSearchDelete={onSavedSearchDelete}
+            isActive={savedSearchTabActive}
+          />
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>
     </React.Fragment>

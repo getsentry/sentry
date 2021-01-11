@@ -27,7 +27,6 @@ describe('getFieldRenderer', function () {
       numeric: 1.23,
       createdAt: new Date(2019, 9, 3, 12, 13, 14),
       url: '/example',
-      latest_event: 'deadbeef',
       project: project.slug,
       release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
       user,

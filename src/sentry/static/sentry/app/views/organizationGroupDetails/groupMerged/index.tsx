@@ -85,7 +85,7 @@ class GroupMergedView extends React.Component<Props, State> {
     return `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`;
   }
 
-  fetchData() {
+  fetchData = () => {
     GroupingActions.fetch([
       {
         endpoint: this.getEndpoint(),
@@ -93,23 +93,20 @@ class GroupMergedView extends React.Component<Props, State> {
         queryParams: this.props.location.query,
       },
     ]);
-  }
+  };
 
-  handleCollapse() {
-    GroupingActions.collapseFingerprints();
-  }
-
-  handleUnmerge() {
+  handleUnmerge = () => {
     GroupingActions.unmerge({
       groupId: this.props.params.groupId,
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
       errorMessage: t('Unable to queue events for unmerging.'),
     });
-  }
+  };
 
   render() {
-    const {project} = this.props;
+    const {project, params} = this.props;
+    const {groupId} = params;
     const {loading: isLoading, error, mergedItems, mergedLinks} = this.state;
     const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
@@ -135,6 +132,7 @@ class GroupMergedView extends React.Component<Props, State> {
             project={project}
             fingerprints={mergedItems}
             pageLinks={mergedLinks}
+            groupId={groupId}
             onUnmerge={this.handleUnmerge}
             onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
           />

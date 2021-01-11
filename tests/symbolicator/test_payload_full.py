@@ -119,7 +119,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         )
 
         path = get_fixture_path("windows.sym")
-        with open(path) as f:
+        with open(path, "rb") as f:
             file.putfile(f)
 
         ProjectDebugFile.objects.create(

@@ -57,11 +57,11 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
 
 type OpenDiffModalOptions = {
   targetIssueId: string;
-  targetEventId?: string;
   project: Project;
   baseIssueId: Group['id'];
   orgId: Organization['id'];
   baseEventId?: Event['id'];
+  targetEventId?: string;
 };
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
@@ -165,12 +165,12 @@ export async function redirectToProject(newProjectSlug: string) {
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
-type HelpSearchModalOptipons = {
-  organization: Organization;
+type HelpSearchModalOptions = {
+  organization?: Organization;
   placeholder?: string;
 };
 
-export async function openHelpSearchModal(options: HelpSearchModalOptipons) {
+export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   const mod = await import(
     /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
   );

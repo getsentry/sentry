@@ -69,6 +69,7 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
 MAINTENANCE = False
 
 ADMINS = ()
@@ -933,6 +934,10 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
+    # Add `owner:me_or_none` to inbox tab query
+    "organizations:inbox-owners-query": False,
+    # Enable the new alert details ux design
+    "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
@@ -1341,6 +1346,7 @@ SENTRY_ROLES = (
                 "member:read",
                 "team:read",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1366,8 +1372,8 @@ SENTRY_ROLES = (
                 "team:write",
                 "team:admin",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1394,8 +1400,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "org:write",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1424,8 +1430,8 @@ SENTRY_ROLES = (
                 "event:read",
                 "event:write",
                 "event:admin",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },

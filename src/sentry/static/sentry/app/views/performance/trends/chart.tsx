@@ -68,7 +68,7 @@ function getLegend(trendFunction: string) {
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left',
+    align: 'left' as const,
     textStyle: {
       verticalAlign: 'top',
       fontSize: 11,
@@ -312,12 +312,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-      >
+      <ChartZoom router={router} period={statsPeriod}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {

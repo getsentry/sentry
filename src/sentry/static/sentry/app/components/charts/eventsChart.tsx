@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
-import ChartZoom from 'app/components/charts/chartZoom';
+import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -28,8 +28,7 @@ import EventsRequest from './eventsRequest';
 type ChartProps = {
   loading: boolean;
   reloading: boolean;
-  // TODO(mark) Update this when components/charts/chartZoom is updated.
-  zoomRenderProps: any;
+  zoomRenderProps: ZoomRenderProps;
   timeseriesData: Series[];
   showLegend?: boolean;
   legendOptions?: EChartOption.Legend;
@@ -46,6 +45,7 @@ type ChartProps = {
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
+  stacked: boolean;
   colors?: string[];
   /**
    * By default, only the release series is disableable. This adds
@@ -73,6 +73,7 @@ class Chart extends React.Component<ChartProps, State> {
     seriesNameTransformer: PropTypes.func,
     showDaily: PropTypes.bool,
     yAxis: PropTypes.string,
+    stacked: PropTypes.bool,
     colors: PropTypes.array,
     disableableSeries: PropTypes.array,
     legendOptions: PropTypes.object,
@@ -172,29 +173,33 @@ class Chart extends React.Component<ChartProps, State> {
       data.push(t('Releases'));
     }
 
-    const legend = showLegend && {
-      right: 16,
-      top: 12,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        color: theme.textColor,
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
-      data,
-      selected: seriesSelection,
-      ...(legendOptions ?? {}),
-    };
+    const legend = showLegend
+      ? {
+          right: 16,
+          top: 12,
+          icon: 'circle',
+          itemHeight: 8,
+          itemWidth: 8,
+          itemGap: 12,
+          align: 'left' as const,
+          textStyle: {
+            color: theme.textColor,
+            verticalAlign: 'top',
+            fontSize: 11,
+            fontFamily: 'Rubik',
+          },
+          data,
+          selected: seriesSelection,
+          ...(legendOptions ?? {}),
+        }
+      : undefined;
 
     const chartOptions = {
-      colors:
-        colors?.slice(0, timeseriesData.length) ??
-        theme.charts.getColorPalette(timeseriesData.length - 2),
+      colors: timeseriesData.length
+        ? colors?.slice(0, timeseriesData.length) ?? [
+            ...theme.charts.getColorPalette(timeseriesData.length - 2),
+          ]
+        : undefined,
       grid: {
         left: '24px',
         right: '24px',
@@ -205,7 +210,7 @@ class Chart extends React.Component<ChartProps, State> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         truncate: 80,
         valueFormatter: (value: number) => tooltipFormatter(value, yAxis),
       },
@@ -237,7 +242,7 @@ class Chart extends React.Component<ChartProps, State> {
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
+        previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : undefined}
       />
     );
   }
@@ -335,8 +340,7 @@ type Props = {
 >;
 
 type ChartDataProps = {
-  // TODO(mark) Update this when components/charts/chartZoom is updated.
-  zoomRenderProps: any;
+  zoomRenderProps: ZoomRenderProps;
   errored: boolean;
   loading: boolean;
   reloading: boolean;
@@ -440,10 +444,6 @@ class EventsChart extends React.Component<Props> {
       }
       const seriesData = results ? results : timeseriesData;
 
-      // Stack the toolbox under the legend.
-      // so all series names are clickable.
-      zoomRenderProps.toolBox.z = -1;
-
       return (
         <TransitionChart loading={loading} reloading={reloading}>
           <TransparentLoadingMask visible={reloading} />
@@ -451,13 +451,12 @@ class EventsChart extends React.Component<Props> {
           {React.isValidElement(chartHeader) && chartHeader}
 
           <Chart
-            {...zoomRenderProps}
+            zoomRenderProps={zoomRenderProps}
             loading={loading}
             reloading={reloading}
-            utc={utc}
             showLegend={showLegend}
             releaseSeries={releaseSeries || []}
-            timeseriesData={seriesData}
+            timeseriesData={seriesData ?? []}
             previousTimeseriesData={previousTimeseriesData}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
@@ -493,14 +492,7 @@ class EventsChart extends React.Component<Props> {
     }
 
     return (
-      <ChartZoom
-        router={router}
-        period={period}
-        utc={utc}
-        projects={projects}
-        environments={environments}
-        {...props}
-      >
+      <ChartZoom router={router} period={period} utc={utc} {...props}>
         {zoomRenderProps => (
           <EventsRequest
             {...props}
