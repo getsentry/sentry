@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import {IconClose, IconMenu} from 'app/icons';
@@ -32,14 +31,7 @@ type State = {
 };
 
 class SettingsLayout extends React.Component<Props, State> {
-  static propTypes = {
-    renderNavigation: PropTypes.func,
-    route: PropTypes.object,
-    router: PropTypes.object,
-    routes: PropTypes.array,
-  };
-
-  state = {
+  state: State = {
     navVisible: false,
     navOffsetTop: 0,
   };
@@ -76,7 +68,7 @@ class SettingsLayout extends React.Component<Props, State> {
   }
 
   render() {
-    const {params, routes, route, router, renderNavigation, children} = this.props;
+    const {params, routes, route, renderNavigation, children} = this.props;
     const {navVisible, navOffsetTop} = this.state;
 
     // We want child's view's props
@@ -103,7 +95,7 @@ class SettingsLayout extends React.Component<Props, State> {
               routes={childRoutes}
               route={childRoute}
             />
-            <SettingsSearch routes={routes} router={router} params={params} />
+            <SettingsSearch />
           </HeaderContent>
         </SettingsHeader>
 
