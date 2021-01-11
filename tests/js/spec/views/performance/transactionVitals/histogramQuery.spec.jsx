@@ -18,8 +18,8 @@ function renderHistogram({isLoading, error, histograms}) {
           <React.Fragment key={name}>
             <p>{name}</p>
             <ul>
-              {histograms[name].map(bucket => (
-                <li key={bucket.bin}>{`${bucket.bin} - ${bucket.count}`}</li>
+              {histograms[name].map(bar => (
+                <li key={bar.bin}>{`${bar.bin} - ${bar.count}`}</li>
               ))}
             </ul>
           </React.Fragment>

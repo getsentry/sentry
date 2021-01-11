@@ -6,10 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionVitals from 'app/views/performance/transactionVitals';
-import {
-  WEB_VITAL_DETAILS,
-  ZOOM_KEYS,
-} from 'app/views/performance/transactionVitals/constants';
+import {VITAL_GROUPS, ZOOM_KEYS} from 'app/views/performance/transactionVitals/constants';
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['performance-view'];
@@ -105,9 +102,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const histogramData = {};
-    const webVitals = Object.entries(WEB_VITAL_DETAILS)
-      .filter(([, value]) => value.display)
-      .map(([, detail]) => detail.slug);
+    const webVitals = VITAL_GROUPS.reduce((vs, group) => vs.concat(group.vitals), []);
 
     for (const measurement of webVitals) {
       const data = [];
@@ -121,10 +116,7 @@ describe('Performance > Web Vitals', function () {
     }
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-histogram/',
-      body: {
-        meta: {key: 'string', bin: 'number', count: 'number'},
-        data: histogramData,
-      },
+      body: histogramData,
     });
   });
 
