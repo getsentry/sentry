@@ -84,18 +84,15 @@ class TransactionSummaryCharts extends React.Component<Props> {
       trendDisplay = TrendFunctionField.P50;
     }
 
-    let releaseQueryExtra = {};
-    if (organization.features.includes('release-performance-views')) {
-      releaseQueryExtra = {
-        yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_LCP : YAxis.COUNT_DURATION,
-        showTransactions:
-          display === DisplayModes.VITALS
-            ? TransactionsListOption.SLOW_LCP
-            : display === DisplayModes.DURATION
-            ? TransactionsListOption.SLOW
-            : undefined,
-      };
-    }
+    const releaseQueryExtra = {
+      yAxis: display === DisplayModes.VITALS ? YAxis.COUNT_VITAL : YAxis.COUNT_DURATION,
+      showTransactions:
+        display === DisplayModes.VITALS
+          ? TransactionsListOption.SLOW_LCP
+          : display === DisplayModes.DURATION
+          ? TransactionsListOption.SLOW
+          : undefined,
+    };
 
     return (
       <Panel>

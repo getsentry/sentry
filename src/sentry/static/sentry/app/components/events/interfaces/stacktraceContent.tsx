@@ -5,7 +5,8 @@ import PlatformIcon from 'platformicons';
 import Line from 'app/components/events/interfaces/frame/line';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
-import {Event, Frame, PlatformType} from 'app/types';
+import {Frame, PlatformType} from 'app/types';
+import {Event} from 'app/types/event';
 import {StacktraceType} from 'app/types/stacktrace';
 
 const defaultProps = {
@@ -19,7 +20,7 @@ type Props = {
   event: Event;
   newestFirst?: boolean;
   className?: string;
-  hideStacktraceLink?: boolean;
+  isHoverPreviewed?: boolean;
 } & typeof defaultProps;
 
 type State = {
@@ -86,10 +87,10 @@ export default class StacktraceContent extends React.Component<Props, State> {
       ? images.find((img, idx) => {
           if (!addrMode || addrMode === 'abs') {
             const [startAddress, endAddress] = getImageRange(img);
-            return address >= startAddress && address < endAddress;
-          } else {
-            return addrMode === `rel:${idx}`;
+            return address >= (startAddress as any) && address < (endAddress as any);
           }
+
+          return addrMode === `rel:${idx}`;
         })
       : null;
   }
@@ -127,7 +128,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
       expandFirstFrame,
       platform,
       includeSystemFrames,
-      hideStacktraceLink,
+      isHoverPreviewed,
     } = this.props;
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
 
@@ -218,7 +219,8 @@ export default class StacktraceContent extends React.Component<Props, State> {
             includeSystemFrames={includeSystemFrames}
             onFunctionNameToggle={this.handleToggleFunctionName}
             showCompleteFunctionName={showCompleteFunctionName}
-            hideStacktraceLink={hideStacktraceLink}
+            isHoverPreviewed={isHoverPreviewed}
+            isFirst={newestFirst ? frameIdx === lastFrameIdx : frameIdx === 0}
           />
         );
       }

@@ -4,7 +4,7 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
-import {SentryTransactionEvent} from 'app/types';
+import {EntryType, EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
@@ -422,15 +422,15 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 }
 
 export function getTraceContext(
-  event: Readonly<SentryTransactionEvent>
+  event: Readonly<EventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
 }
 
-export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
-  const spanEntry: SpanEntry | undefined = event.entries.find(
-    (entry: {type: string}) => entry.type === 'spans'
-  );
+export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
+  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+    return entry.type === EntryType.SPANS;
+  });
 
   const spans: Array<RawSpanType> = spanEntry?.data ?? [];
 
@@ -599,7 +599,7 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   return treeDepth;
 }
 
-export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): boolean {
+export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolean {
   const sdkName = event.sdk?.name;
   if (!sdkName) {
     return false;
@@ -644,9 +644,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   });
 }
 
-export function getMeasurements(
-  event: SentryTransactionEvent
-): Map<number, VerticalMark> {
+export function getMeasurements(event: EventTransaction): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }

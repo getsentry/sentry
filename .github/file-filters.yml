@@ -25,12 +25,19 @@ backend_lintable: &backend_lintable
 
 backend: &backend
   - *backend_lintable
+  - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
   - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+  - 'config/**/*'
+
+plugins:
+  - *backend
+  - 'src/sentry_plugins/**/*.html'
 
 api_docs:
   - *backend
   - 'api-docs/**'
+  - 'tests/apidocs/**'

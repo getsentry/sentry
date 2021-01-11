@@ -55,13 +55,20 @@ describe('withIssueTags HoC', function () {
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
     TeamStore.loadInitialData([
-      {slug: 'best-team-na', name: 'best-team-na', isMember: true},
+      {slug: 'best-team-na', name: 'Best Team NA', isMember: true},
     ]);
     MemberListStore.loadInitialData(users);
     await wrapper.update();
 
     tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned.values).toEqual([
+      'me',
+      'foo@example.com',
+      'joe@example.com',
+      '#best-team-na',
+    ]);
+    expect(tagsProp.owner.values).toEqual([
+      'me_or_none',
       'me',
       'foo@example.com',
       'joe@example.com',

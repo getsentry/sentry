@@ -73,19 +73,21 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
   getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
+    const isSuggestions = [
+      'resolved',
+      'unresolved',
+      'ignored',
+      'assigned',
+      'unassigned',
+      'linked',
+      'unlinked',
+    ];
     return {
       is: {
         key: 'is',
         name: 'Status',
-        values: [
-          'resolved',
-          'unresolved',
-          'ignored',
-          'assigned',
-          'unassigned',
-          'linked',
-          'unlinked',
-        ],
+        values: isSuggestions,
+        maxSuggestedValues: isSuggestions.length,
         predefined: true,
       },
       has: {
@@ -135,6 +137,13 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
         name: 'Times Seen',
         isInput: true,
         // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
+        values: [],
+        predefined: true,
+      },
+      owner: {
+        key: 'owner',
+        name: 'Owner',
+        isInput: true,
         values: [],
         predefined: true,
       },

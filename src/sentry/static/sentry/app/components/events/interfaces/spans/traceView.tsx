@@ -3,14 +3,17 @@ import pick from 'lodash/pick';
 
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import DragManager, {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
 import TraceViewHeader from './header';
+import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
 import {ParsedTraceType, RawSpanType} from './types';
 import {generateRootSpan, getSpanID, getTraceContext} from './utils';
@@ -37,7 +40,7 @@ export type FilterSpans = {
 type Props = {
   orgId: string;
   organization: Organization;
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
   spansWithErrors: TableData | null | undefined;
@@ -65,6 +68,8 @@ class TraceView extends React.PureComponent<Props, State> {
     }
   }
 
+  traceViewRef = React.createRef<HTMLDivElement>();
+  virtualScrollBarContainerRef = React.createRef<HTMLDivElement>();
   minimapInteractiveRef = React.createRef<HTMLDivElement>();
 
   async filterOnSpans(searchQuery: string | undefined) {
@@ -171,6 +176,8 @@ class TraceView extends React.PureComponent<Props, State> {
       minimapInteractiveRef={this.minimapInteractiveRef}
       dragProps={dragProps}
       trace={parsedTrace}
+      event={this.props.event}
+      virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
     />
   );
 
@@ -195,17 +202,32 @@ class TraceView extends React.PureComponent<Props, State> {
             dragProps={dragProps}
             trace={parsedTrace}
           >
-            {this.renderHeader(dragProps, parsedTrace)}
-            <SpanTree
-              event={event}
-              trace={parsedTrace}
-              dragProps={dragProps}
-              filterSpans={this.state.filterSpans}
-              orgId={orgId}
-              organization={organization}
-              spansWithErrors={spansWithErrors}
-              operationNameFilters={operationNameFilters}
-            />
+            <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
+              <DividerHandlerManager.Consumer>
+                {dividerHandlerChildrenProps => {
+                  return (
+                    <ScrollbarManager.Provider
+                      dividerPosition={dividerHandlerChildrenProps.dividerPosition}
+                      interactiveLayerRef={this.virtualScrollBarContainerRef}
+                      dragProps={dragProps}
+                    >
+                      {this.renderHeader(dragProps, parsedTrace)}
+                      <SpanTree
+                        traceViewRef={this.traceViewRef}
+                        event={event}
+                        trace={parsedTrace}
+                        dragProps={dragProps}
+                        filterSpans={this.state.filterSpans}
+                        orgId={orgId}
+                        organization={organization}
+                        spansWithErrors={spansWithErrors}
+                        operationNameFilters={operationNameFilters}
+                      />
+                    </ScrollbarManager.Provider>
+                  );
+                }}
+              </DividerHandlerManager.Consumer>
+            </DividerHandlerManager.Provider>
           </CursorGuideHandler.Provider>
         )}
       </DragManager>

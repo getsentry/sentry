@@ -22,7 +22,8 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import space from 'app/styles/space';
-import {Event, Frame, Organization, Project} from 'app/types';
+import {Frame, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import DebugImage from './debugImage';
@@ -41,7 +42,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   event: Event;
-  orgId: Organization['id'];
+  organization: Organization;
   projectId: Project['id'];
 };
 
@@ -174,8 +175,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     // the searchTerm ending at "!" is the end of the ID search.
-    const relMatch = normalizeId(searchTerm).match(/^\s*(.*?)!/);
-    const idSearchTerm = normalizeId((relMatch && relMatch[1]) || searchTerm);
+    const relMatch = searchTerm.match(/^\s*(.*?)!/); // debug_id!address
+    const idSearchTerm = normalizeId(relMatch?.[1] || searchTerm);
 
     return (
       // Prefix match for identifiers
@@ -223,8 +224,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
       return undefined;
     }
 
-    const searchTerm = normalizeId(this.state.filter.toLowerCase());
-    const relMatch = searchTerm.match(/^\s*(.*?)!(.*)$/);
+    const searchTerm = normalizeId(this.state.filter);
+    const relMatch = searchTerm.match(/^\s*(.*?)!(.*)$/); // debug_id!address
 
     if (relMatch) {
       const debugImages = this.getDebugImages().map(
@@ -232,18 +233,17 @@ class DebugMeta extends React.PureComponent<Props, State> {
       );
       const filteredImages = debugImages.filter(([_, image]) => this.filterImage(image));
       if (filteredImages.length === 1) {
-        return frames.find(frame => {
-          return (
+        return frames.find(
+          frame =>
             frame.addrMode === `rel:${filteredImages[0][0]}` &&
             frame.instructionAddr?.toLowerCase() === relMatch[2]
-          );
-        });
-      } else {
-        return undefined;
+        );
       }
-    } else {
-      return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
+
+      return undefined;
     }
+
+    return frames.find(frame => frame.instructionAddr?.toLowerCase() === searchTerm);
   }
 
   getDebugImages() {
@@ -312,7 +312,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   renderRow = ({index, key, parent, style}: ListRowProps) => {
-    const {orgId, projectId} = this.props;
+    const {organization, projectId} = this.props;
     const {filteredImages, showDetails} = this.state;
 
     return (
@@ -326,7 +326,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         <DebugImage
           style={style}
           image={filteredImages[index]}
-          orgId={orgId}
+          organization={organization}
           projectId={projectId}
           showDetails={showDetails}
         />
@@ -351,14 +351,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   renderImageList() {
     const {filteredImages, showDetails, panelBodyHeight} = this.state;
-    const {orgId, projectId} = this.props;
+    const {organization, projectId} = this.props;
 
     if (!panelBodyHeight) {
       return filteredImages.map(filteredImage => (
         <DebugImage
           key={filteredImage.debug_id}
           image={filteredImage}
-          orgId={orgId}
+          organization={organization}
           projectId={projectId}
           showDetails={showDetails}
         />
@@ -455,6 +455,7 @@ const Label = styled('label')`
   font-weight: normal;
   margin-right: 1em;
   margin-bottom: 0;
+  white-space: nowrap;
 
   > input {
     margin-right: 1ex;
@@ -485,13 +486,29 @@ const ToolbarWrapper = styled('div')`
     margin-top: ${space(1)};
   }
 `;
+
 const SearchInputWrapper = styled('div')`
-  max-width: 180px;
-  display: inline-block;
+  width: 100%;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     width: 100%;
     max-width: 100%;
     margin-top: ${space(1)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) and (max-width: ${p =>
+      p.theme.breakpoints[3]}) {
+    max-width: 180px;
+    display: inline-block;
+  }
+
+  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+    width: 330px;
+    max-width: none;
+  }
+
+  @media (min-width: 1550px) {
+    width: 510px;
   }
 `;
 // TODO(matej): remove this once we refactor SearchBar to not use css classes

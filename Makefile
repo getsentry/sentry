@@ -1,8 +1,12 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
-# Currently, this is only required to install black via pre-commit.
-REQUIRED_PY3_VERSION := $(shell grep "3.6" .python-version)
+UNAME := $(shell command -v uname 2> /dev/null)
+ifdef UNAME
+	ifeq ($(shell uname), Darwin)
+		BIG_SUR := $(shell sw_vers -productVersion | egrep "11\.")
+	endif
+endif
 
 bootstrap: develop init-config run-dependent-services create-db apply-migrations build-platform-assets
 
@@ -49,7 +53,16 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
+ifdef BIG_SUR
+	# NOTE: Once we have a new release of pyenv and once a newer Python version we can remove these
+	# https://github.com/pyenv/pyenv/pull/1711
+	# cat is used since pyenv would finish to soon when the Python version is already installed
+	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
+		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
+		pyenv install --skip-existing --patch 3.6.10
+else
 	@cat .python-version | xargs -n1 pyenv install --skip-existing
+endif
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
@@ -65,10 +78,10 @@ setup-git-config:
 setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
 	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
-	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
+	@python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
 	@# pre-commit loosely pins virtualenv, which has caused problems in the past.
 	$(PIP) install "pre-commit==1.18.2" "virtualenv==20.0.32"
-	@PYENV_VERSION=$(REQUIRED_PY3_VERSION) pre-commit install --install-hooks
+	@pre-commit install --install-hooks
 	@echo ""
 
 node-version-check:

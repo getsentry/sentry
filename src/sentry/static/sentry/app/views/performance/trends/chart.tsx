@@ -68,7 +68,7 @@ function getLegend(trendFunction: string) {
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left',
+    align: 'left' as const,
     textStyle: {
       verticalAlign: 'top',
       fontSize: 11,
@@ -236,7 +236,6 @@ class Chart extends React.Component<Props> {
       isLoading,
       location,
       projects,
-      organization,
     } = props;
     const lineColor = trendToColor[trendChangeType || ''];
 
@@ -253,10 +252,9 @@ class Chart extends React.Component<Props> {
       trendFunction.chartLabel
     );
 
-    const start = props.start ? getUtcToLocalDateObject(props.start) : undefined;
-
-    const end = props.end ? getUtcToLocalDateObject(props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = props.start ? getUtcToLocalDateObject(props.start) : null;
+    const end = props.end ? getUtcToLocalDateObject(props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const intervalRatio = getIntervalRatio(router.location);
     const seriesSelection = (
@@ -291,13 +289,10 @@ class Chart extends React.Component<Props> {
     const yDiff = yMax - yMin;
     const yMargin = yDiff * 0.1;
 
-    let queryExtra = {};
-    if (organization.features.includes('release-performance-views')) {
-      queryExtra = {
-        showTransactions: trendChangeType,
-        yAxis: YAxis.COUNT_DURATION,
-      };
-    }
+    const queryExtra = {
+      showTransactions: trendChangeType,
+      yAxis: YAxis.COUNT_DURATION,
+    };
 
     const chartOptions = {
       tooltip: {
@@ -317,12 +312,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-      >
+      <ChartZoom router={router} period={statsPeriod}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {

@@ -435,6 +435,7 @@ def get_connection(fail_silently=False):
         username=options.get("mail.username"),
         password=options.get("mail.password"),
         use_tls=options.get("mail.use-tls"),
+        use_ssl=options.get("mail.use-ssl"),
         timeout=options.get("mail.timeout"),
         fail_silently=fail_silently,
     )

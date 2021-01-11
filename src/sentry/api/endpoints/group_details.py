@@ -7,24 +7,18 @@ import logging
 from django.utils import timezone
 from rest_framework.response import Response
 
-import sentry_sdk
-
-from sentry import tsdb, tagstore
+from sentry import tsdb, tagstore, features
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize, GroupSerializer, GroupSerializerSnuba
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models import (
     Activity,
     Group,
-    GroupRelease,
     GroupSeen,
     Release,
-    ReleaseEnvironment,
-    ReleaseProject,
     User,
     UserReport,
 )
@@ -35,6 +29,7 @@ from sentry.signals import issue_deleted
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import zip
+from sentry.models.groupinbox import get_inbox_details
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -171,6 +166,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             organization = group.project.organization
             environments = get_environments(request, organization)
             environment_ids = [e.id for e in environments]
+            expand = request.GET.getlist("expand", [])
+            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
@@ -235,6 +232,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             )
 
+            if "inbox" in expand and has_inbox:
+                inbox_map = get_inbox_details([group])
+                inbox_reason = inbox_map.get(group.id)
+                data.update({"inbox": inbox_reason})
+
             data.update(
                 {
                     "firstRelease": first_release,
@@ -250,44 +252,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
                 }
             )
-
-            # the current release is the 'latest seen' release within the
-            # environment even if it hasn't affected this issue
-            if environments:
-                with sentry_sdk.start_span(op="GroupDetailsEndpoint.get.current_release") as span:
-                    span.set_data("Environment Count", len(environments))
-                    span.set_data(
-                        "Raw Parameters",
-                        {
-                            "group.id": group.id,
-                            "group.project_id": group.project_id,
-                            "group.project.organization_id": group.project.organization_id,
-                            "environments": [{"id": e.id, "name": e.name} for e in environments],
-                        },
-                    )
-
-                    try:
-                        current_release = GroupRelease.objects.filter(
-                            group_id=group.id,
-                            environment__in=[env.name for env in environments],
-                            release_id=(
-                                ReleaseEnvironment.objects.filter(
-                                    release_id__in=ReleaseProject.objects.filter(
-                                        project_id=group.project_id
-                                    ).values_list("release_id", flat=True),
-                                    organization_id=group.project.organization_id,
-                                    environment_id__in=environment_ids,
-                                )
-                                .order_by("-first_seen")
-                                .values_list("release_id", flat=True)
-                            )[:1],
-                        )[0]
-                    except IndexError:
-                        current_release = None
-
-                data["currentRelease"] = serialize(
-                    current_release, request.user, GroupReleaseWithStatsSerializer()
-                )
 
             metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
             return Response(data)

@@ -17,7 +17,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import tsdb
+from sentry import tsdb, analytics
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
@@ -275,6 +275,20 @@ class Endpoint(APIView):
     def respond(self, context=None, **kwargs):
         return Response(context, **kwargs)
 
+    def get_per_page(self, request, default_per_page=100, max_per_page=100):
+        try:
+            per_page = int(request.GET.get("per_page", default_per_page))
+        except ValueError:
+            raise ParseError(detail="Invalid per_page parameter.")
+
+        max_per_page = max(max_per_page, default_per_page)
+        if per_page > max_per_page:
+            raise ParseError(
+                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
+            )
+
+        return per_page
+
     def paginate(
         self,
         request,
@@ -287,10 +301,7 @@ class Endpoint(APIView):
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
-        try:
-            per_page = int(request.GET.get("per_page", default_per_page))
-        except ValueError:
-            raise ParseError(detail="Invalid per_page parameter.")
+        per_page = self.get_per_page(request, default_per_page, max_per_page)
 
         input_cursor = None
         if request.GET.get("cursor"):
@@ -298,12 +309,6 @@ class Endpoint(APIView):
                 input_cursor = Cursor.from_string(request.GET.get("cursor"))
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
-
-        max_per_page = max(max_per_page, default_per_page)
-        if per_page > max_per_page:
-            raise ParseError(
-                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
-            )
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
@@ -327,7 +332,9 @@ class Endpoint(APIView):
             results = cursor_result.results
 
         response = Response(results)
+
         self.add_cursor_headers(request, response, cursor_result)
+
         return response
 
 
@@ -368,23 +375,35 @@ class EnvironmentMixin(object):
 
 class StatsMixin(object):
     def _parse_args(self, request, environment_id=None):
-        resolution = request.GET.get("resolution")
-        if resolution:
-            resolution = self._parse_resolution(resolution)
-            assert resolution in tsdb.get_rollups()
+        try:
+            resolution = request.GET.get("resolution")
+            if resolution:
+                resolution = self._parse_resolution(resolution)
+                if resolution not in tsdb.get_rollups():
+                    raise ValueError
+        except ValueError:
+            raise ParseError(detail="Invalid resolution")
 
-        end = request.GET.get("until")
-        if end:
-            end = to_datetime(float(end))
-        else:
-            end = datetime.utcnow().replace(tzinfo=utc)
+        try:
+            end = request.GET.get("until")
+            if end:
+                end = to_datetime(float(end))
+            else:
+                end = datetime.utcnow().replace(tzinfo=utc)
+        except ValueError:
+            raise ParseError(detail="until must be a numeric timestamp.")
 
-        start = request.GET.get("since")
-        if start:
-            start = to_datetime(float(start))
-            assert start <= end, "start must be before or equal to end"
-        else:
-            start = end - timedelta(days=1, seconds=-1)
+        try:
+            start = request.GET.get("since")
+            if start:
+                start = to_datetime(float(start))
+                assert start <= end
+            else:
+                start = end - timedelta(days=1, seconds=-1)
+        except ValueError:
+            raise ParseError(detail="since must be a numeric timestamp")
+        except AssertionError:
+            raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
             resolution = tsdb.get_optimal_rollup(start, end)
@@ -407,3 +426,14 @@ class StatsMixin(object):
             return int(value[:-1])
         else:
             raise ValueError(value)
+
+
+class ReleaseAnalyticsMixin(object):
+    def track_set_commits_local(self, request, organization_id=None, project_ids=None):
+        analytics.record(
+            "release.set_commits_local",
+            user_id=request.user.id if request.user and request.user.id else None,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )

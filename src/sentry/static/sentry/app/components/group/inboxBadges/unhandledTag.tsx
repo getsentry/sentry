@@ -5,10 +5,11 @@ import Feature from 'app/components/acl/feature';
 import Tooltip from 'app/components/tooltip';
 import {IconFire} from 'app/icons';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 
 // TODO(matej): remove "unhandled-issue-flag" feature flag once testing is over (otherwise this won't ever be rendered in a shared event)
-const UnhandledTag = () => (
-  <Feature features={['unhandled-issue-flag']}>
+const UnhandledTag = ({organization}: {organization: Organization}) => (
+  <Feature organization={organization} features={['unhandled-issue-flag']}>
     <Tooltip title={t('An unhandled error was detected in this Issue.')}>
       <UnhandledTagWrapper>
         <StyledIconFire size="xs" color="red300" />
@@ -21,9 +22,10 @@ const UnhandledTag = () => (
 export default UnhandledTag;
 
 const UnhandledTagWrapper = styled('div')`
-  display: inline-flex;
+  display: flex;
   align-items: center;
   white-space: nowrap;
+  color: ${p => p.theme.red300};
 `;
 
 const StyledIconFire = styled(IconFire)`

@@ -6,6 +6,7 @@ import Feature from 'app/components/acl/feature';
 import {SectionHeading} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DeployBadge from 'app/components/deployBadge';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import QuestionTooltip from 'app/components/questionTooltip';
 import TimeSince from 'app/components/timeSince';
 import Tooltip from 'app/components/tooltip';
@@ -70,39 +71,41 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
         </div>
       </div>
 
-      <Feature features={['release-performance-views']}>
+      <div>
+        <SectionHeading>
+          {t('Apdex')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, 'apdex')}
+            size="sm"
+          />
+        </SectionHeading>
         <div>
-          <SectionHeading>
-            {t('Apdex')}
-            <QuestionTooltip
-              position="top"
-              title={getTermHelp(organization, 'apdex')}
-              size="sm"
-            />
-          </SectionHeading>
-          <div>
-            <Feature features={['performance-view']}>
-              {hasFeature =>
-                hasFeature ? (
-                  <DiscoverQuery
-                    eventView={getReleaseEventView(
-                      selection,
-                      release?.version,
-                      organization
-                    )}
-                    location={location}
-                    orgSlug={organization.slug}
-                  >
-                    {({isLoading, error, tableData}) => {
-                      if (
-                        isLoading ||
-                        error ||
-                        !tableData ||
-                        tableData.data.length === 0
-                      ) {
-                        return '\u2014';
-                      }
-                      return (
+          <Feature features={['performance-view']}>
+            {hasFeature =>
+              hasFeature ? (
+                <DiscoverQuery
+                  eventView={getReleaseEventView(
+                    selection,
+                    release?.version,
+                    organization
+                  )}
+                  location={location}
+                  orgSlug={organization.slug}
+                >
+                  {({isLoading, error, tableData}) => {
+                    if (isLoading || error || !tableData || tableData.data.length === 0) {
+                      return '\u2014';
+                    }
+                    return (
+                      <GlobalSelectionLink
+                        to={{
+                          pathname: `/organizations/${organization.slug}/performance/`,
+                          query: {
+                            query: `release:${release?.version}`,
+                          },
+                        }}
+                      >
                         <Count
                           value={
                             tableData.data[0][
@@ -110,21 +113,21 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                             ]
                           }
                         />
-                      );
-                    }}
-                  </DiscoverQuery>
-                ) : (
-                  <Tooltip
-                    title={t('This view is only available with Performance Monitoring.')}
-                  >
-                    {'\u2014'}
-                  </Tooltip>
-                )
-              }
-            </Feature>
-          </div>
+                      </GlobalSelectionLink>
+                    );
+                  }}
+                </DiscoverQuery>
+              ) : (
+                <Tooltip
+                  title={t('This view is only available with Performance Monitoring.')}
+                >
+                  {'\u2014'}
+                </Tooltip>
+              )
+            }
+          </Feature>
         </div>
-      </Feature>
+      </div>
 
       <div>
         <SectionHeading>
@@ -153,7 +156,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: 50% 50%;
   grid-row-gap: ${space(2)};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${space(3)};
 `;
 
 const DateStatWrapper = styled('div')`

@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {
@@ -10,7 +11,6 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
-import {t} from 'app/locale';
 
 import RuleNode from './ruleNode';
 
@@ -34,6 +34,7 @@ type Props = {
   selectType?: 'grouped';
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
+  onResetRow: (ruleIndex: number, name: string, value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
 };
 
@@ -52,6 +53,7 @@ class RuleNodeList extends React.Component<Props> {
   render() {
     const {
       onAddRow,
+      onResetRow,
       onDeleteRow,
       onPropertyChange,
       nodes,
@@ -113,8 +115,9 @@ class RuleNodeList extends React.Component<Props> {
               index={idx}
               node={this.getNode(item.id)}
               onDelete={onDeleteRow}
-              data={item}
               onPropertyChange={onPropertyChange}
+              onReset={onResetRow}
+              data={item}
               organization={organization}
               project={project}
               disabled={disabled}

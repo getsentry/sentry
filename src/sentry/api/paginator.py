@@ -99,7 +99,7 @@ class BasePaginator(object):
     def value_from_cursor(self, cursor):
         raise NotImplementedError
 
-    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None):
+    def get_result(self, limit=100, cursor=None, count_hits=False, known_hits=None, max_hits=None):
         # cursors are:
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
@@ -116,8 +116,12 @@ class BasePaginator(object):
 
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
+
+        # max_hits can be limited to speed up the query
+        if max_hits is None:
+            max_hits = MAX_HITS_LIMIT
         if count_hits:
-            hits = self.count_hits(MAX_HITS_LIMIT)
+            hits = self.count_hits(max_hits)
         elif known_hits is not None:
             hits = known_hits
         else:
@@ -157,7 +161,7 @@ class BasePaginator(object):
             results=results,
             limit=limit,
             hits=hits,
-            max_hits=MAX_HITS_LIMIT if count_hits else None,
+            max_hits=max_hits if count_hits else None,
             cursor=cursor,
             is_desc=self.desc,
             key=self.get_item_key,
@@ -359,7 +363,7 @@ class SequencePaginator(object):
         self.max_limit = max_limit
         self.on_results = on_results
 
-    def get_result(self, limit, cursor=None, count_hits=False, known_hits=None):
+    def get_result(self, limit, cursor=None, count_hits=False, known_hits=None, max_hits=None):
         limit = min(limit, self.max_limit)
 
         if cursor is None:
@@ -406,10 +410,13 @@ class SequencePaginator(object):
         if self.on_results:
             results = self.on_results(results)
 
+        # max_hits can be limited to speed up the query
+        if max_hits is None:
+            max_hits = MAX_HITS_LIMIT
         if known_hits is not None:
-            hits = min(known_hits, MAX_HITS_LIMIT)
+            hits = min(known_hits, max_hits)
         elif count_hits:
-            hits = min(len(self.scores), MAX_HITS_LIMIT)
+            hits = min(len(self.scores), max_hits)
         else:
             hits = None
 
@@ -418,7 +425,7 @@ class SequencePaginator(object):
             prev=prev_cursor,
             next=next_cursor,
             hits=hits,
-            max_hits=MAX_HITS_LIMIT if hits is not None else None,
+            max_hits=max_hits if hits is not None else None,
         )
 
 
@@ -637,3 +644,63 @@ class CombinedQuerysetPaginator(object):
             is_desc=self.desc,
             on_results=self.on_results,
         )
+
+
+class ChainPaginator(object):
+    """
+    Chain multiple datasources together and paginate them as one source.
+    The datasources should be provided in the order they should be used.
+
+    The `sources` should be a list of sliceable collections. It is also
+    assumed that sources have their data sorted already.
+    """
+
+    def __init__(self, sources, max_limit=MAX_LIMIT, max_offset=None, on_results=None):
+        self.sources = sources
+        self.max_limit = max_limit
+        self.max_offset = max_offset
+        self.on_results = on_results
+
+    def get_result(self, limit=100, cursor=None):
+        # offset is page #
+        # value is page limit
+        if cursor is None:
+            cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
+
+        page = cursor.offset
+        offset = cursor.offset * cursor.value
+
+        if self.max_offset is not None and offset >= self.max_offset:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
+
+        results = []
+        # Get an addition item so we can check for a next page.
+        remaining = limit + 1
+        for source in self.sources:
+            source_results = list(source[offset:remaining])
+            results.extend(source_results)
+            result_count = len(results)
+            if result_count == 0 and result_count < remaining:
+                # Advance the offset based on the rows we skipped.
+                offset = offset - len(source)
+            elif result_count > 0 and result_count < remaining:
+                # Start at the beginning of the next source
+                offset = 0
+                remaining = remaining - result_count
+            elif result_count >= limit:
+                break
+
+        next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        if next_cursor.has_results:
+            results.pop()
+
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)

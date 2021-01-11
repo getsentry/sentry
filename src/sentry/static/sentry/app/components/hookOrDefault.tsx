@@ -46,7 +46,7 @@ type State<H extends HookName> = {
  *   })
  *
  * Note, you will need to add the hookstore function in getsentry [0] first and
- * then register tye types [2] and validHookName [1] in sentry.
+ * then register the types [2] and validHookName [1] in sentry.
  *
  * [0] /getsentry/static/getsentry/gsApp/registerHooks.jsx
  * [1] /sentry/app/stores/hookStore.tsx

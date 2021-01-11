@@ -11,7 +11,8 @@ import EventErrorItem from 'app/components/events/errorItem';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Artifact, Event, Organization, Project} from 'app/types';
+import {Artifact, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 

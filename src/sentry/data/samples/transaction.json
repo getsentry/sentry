@@ -27,18 +27,6 @@
          "ip:127.0.0.1"
       ],
       [
-         "trace",
-         "a7d67cf796774551a95be6543cacd459"
-      ],
-      [
-         "trace.ctx",
-         "a7d67cf796774551a95be6543cacd459-babaae0d4b7512d9"
-      ],
-      [
-         "trace.span",
-         "babaae0d4b7512d9"
-      ],
-      [
          "transaction",
          "/country_by_code/"
       ],

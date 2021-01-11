@@ -20,7 +20,7 @@ type SelectOption = Record<'value' | 'label', string>;
 type Props = {
   api: Client;
   organization: Organization;
-  projectId?: string;
+  projectSlug?: string;
 };
 
 type State = {
@@ -34,8 +34,8 @@ class MissingProjectMembership extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    const {organization, projectId} = this.props;
-    const project = organization.projects.find(p => p.slug === projectId);
+    const {organization, projectSlug} = this.props;
+    const project = organization.projects?.find(p => p.slug === projectSlug);
 
     this.state = {
       loading: false,
@@ -116,7 +116,10 @@ class MissingProjectMembership extends React.Component<Props, State> {
     const teams = this.state.project?.teams ?? [];
     teams.forEach(({slug}) => {
       const team = TeamStore.getBySlug(slug);
-      team?.isPending ? pending.push(team!.slug) : request.push(team!.slug);
+      if (!team) {
+        return;
+      }
+      team.isPending ? pending.push(team.slug) : request.push(team.slug);
     });
 
     return [request, pending];

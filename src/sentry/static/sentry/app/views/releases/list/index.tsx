@@ -13,6 +13,7 @@ import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -220,7 +221,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderEmptyMessage() {
-    const {location, organization} = this.props;
+    const {location, organization, selection} = this.props;
     const {statsPeriod} = location.query;
     const searchQuery = this.getQuery();
     const activeSort = this.getSort();
@@ -266,7 +267,12 @@ class ReleasesList extends AsyncView<Props, State> {
       return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
     }
 
-    return <ReleaseLanding organization={organization} />;
+    return (
+      <ReleaseLanding
+        organization={organization}
+        projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
+      />
+    );
   }
 
   renderInnerBody(activeDisplay: DisplayOption) {
@@ -317,28 +323,28 @@ class ReleasesList extends AsyncView<Props, State> {
       >
         <PageContent>
           <LightWeightNoProjectMessage organization={organization}>
-            <StyledPageHeader>
+            <PageHeader>
               <PageHeading>{t('Releases')}</PageHeading>
-              <SortAndFilterWrapper>
-                <StyledSearchBar
-                  placeholder={t('Search')}
-                  onSearch={this.handleSearch}
-                  query={this.getQuery()}
-                />
-                <ReleaseListStatusOptions
-                  selected={activeStatus}
-                  onSelect={this.handleStatus}
-                />
-                <ReleaseListSortOptions
-                  selected={activeSort}
-                  onSelect={this.handleSortBy}
-                />
-                <ReleaseDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={this.handleDisplay}
-                />
-              </SortAndFilterWrapper>
-            </StyledPageHeader>
+            </PageHeader>
+            <SortAndFilterWrapper>
+              <SearchBar
+                placeholder={t('Search')}
+                onSearch={this.handleSearch}
+                query={this.getQuery()}
+              />
+              <ReleaseListStatusOptions
+                selected={activeStatus}
+                onSelect={this.handleStatus}
+              />
+              <ReleaseListSortOptions
+                selected={activeSort}
+                onSelect={this.handleSortBy}
+              />
+              <ReleaseDisplayOptions
+                selected={activeDisplay}
+                onSelect={this.handleDisplay}
+              />
+            </SortAndFilterWrapper>
 
             {!reloading &&
               activeStatus === StatusOption.ARCHIVED &&
@@ -352,25 +358,12 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    order: 4;
-  }
-`;
-
-const StyledPageHeader = styled(PageHeader)`
-  display: grid;
-  grid-gap: ${space(2)};
-  grid-template-columns: 1fr;
-  justify-content: flex-start;
-  margin-bottom: ${space(3)};
-`;
-
 const SortAndFilterWrapper = styled('div')`
   display: grid;
   grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr repeat(3, auto);
   }
 `;

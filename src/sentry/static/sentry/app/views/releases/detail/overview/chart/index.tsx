@@ -10,6 +10,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
+import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {getTermHelp} from 'app/views/performance/data';
@@ -31,8 +32,10 @@ type Props = Omit<ReleaseStatsRequestRenderProps, 'crashFreeTimeBreakdown'> & {
   platform: PlatformKey;
   yAxis: YAxis;
   eventType: EventType;
+  vitalType: WebVital;
   onYAxisChange: (yAxis: YAxis) => void;
   onEventTypeChange: (eventType: EventType) => void;
+  onVitalTypeChange: (vitalType: WebVital) => void;
   router: ReactRouter.InjectedRouter;
   organization: Organization;
   hasHealthData: boolean;
@@ -80,9 +83,9 @@ class ReleaseChartContainer extends React.Component<Props> {
           help: getTermHelp(organization, 'failureRate'),
         };
       case YAxis.COUNT_DURATION:
-        return {title: t('Slow Count (duration)')};
-      case YAxis.COUNT_LCP:
-        return {title: t('Slow Count (LCP)')};
+        return {title: t('Slow Duration Count')};
+      case YAxis.COUNT_VITAL:
+        return {title: t('Slow Vital Count')};
       case YAxis.EVENTS:
       default:
         return {title: t('Event Count')};
@@ -100,50 +103,6 @@ class ReleaseChartContainer extends React.Component<Props> {
     }
   }
 
-  // TODO(tonyx): Delete this else once the feature flags are removed
-  renderEventsChart() {
-    const {location, router, organization, api, yAxis, selection, version} = this.props;
-    const {projects, environments, datetime} = selection;
-    const {start, end, period, utc} = datetime;
-    const eventView = getReleaseEventView(
-      selection,
-      version,
-      yAxis,
-      undefined,
-      organization
-    );
-    const apiPayload = eventView.getEventsAPIPayload(location);
-    const {title, help} = this.getChartTitle();
-
-    return (
-      <EventsChart
-        router={router}
-        organization={organization}
-        showLegend
-        yAxis={eventView.getYAxis()}
-        query={apiPayload.query}
-        api={api}
-        projects={projects}
-        environments={environments}
-        start={start}
-        end={end}
-        period={period}
-        utc={utc}
-        disablePrevious
-        disableReleases
-        currentSeriesName={t('Events')}
-        chartHeader={
-          <HeaderTitleLegend>
-            {title}
-            {help && <QuestionTooltip size="sm" position="top" title={help} />}
-          </HeaderTitleLegend>
-        }
-        legendOptions={{right: 10, top: 0}}
-        chartOptions={{grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'}}}
-      />
-    );
-  }
-
   renderStackedChart() {
     const {
       location,
@@ -153,6 +112,7 @@ class ReleaseChartContainer extends React.Component<Props> {
       releaseMeta,
       yAxis,
       eventType,
+      vitalType,
       selection,
       version,
     } = this.props;
@@ -163,6 +123,7 @@ class ReleaseChartContainer extends React.Component<Props> {
       version,
       yAxis,
       eventType,
+      vitalType,
       organization
     );
     const apiPayload = eventView.getEventsAPIPayload(location);
@@ -172,6 +133,7 @@ class ReleaseChartContainer extends React.Component<Props> {
     const releaseQueryExtra = {
       showTransactions: location.query.showTransactions,
       eventType,
+      vitalType,
       yAxis,
     };
 
@@ -248,23 +210,19 @@ class ReleaseChartContainer extends React.Component<Props> {
     const {
       yAxis,
       eventType,
+      vitalType,
       hasDiscover,
       hasHealthData,
       hasPerformance,
       chartSummary,
       onYAxisChange,
       onEventTypeChange,
+      onVitalTypeChange,
       organization,
     } = this.props;
 
     let chart: React.ReactNode = null;
     if (
-      hasDiscover &&
-      yAxis === YAxis.EVENTS &&
-      !organization.features.includes('release-performance-views')
-    ) {
-      chart = this.renderEventsChart();
-    } else if (
       (hasDiscover && yAxis === YAxis.EVENTS) ||
       (hasPerformance && PERFORMANCE_AXIS.includes(yAxis))
     ) {
@@ -282,6 +240,8 @@ class ReleaseChartContainer extends React.Component<Props> {
           onYAxisChange={onYAxisChange}
           eventType={eventType}
           onEventTypeChange={onEventTypeChange}
+          vitalType={vitalType}
+          onVitalTypeChange={onVitalTypeChange}
           organization={organization}
           hasDiscover={hasDiscover}
           hasHealthData={hasHealthData}

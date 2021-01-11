@@ -13,7 +13,8 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
-import {AvatarProject, Event, Group, Organization, Project} from 'app/types';
+import {AvatarProject, Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getMessage, getTitle} from 'app/utils/events';
 import Projects from 'app/utils/projects';
@@ -22,7 +23,12 @@ import withApi from 'app/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader, {TAB} from './header';
-import {fetchGroupEvent, markEventSeen} from './utils';
+import {
+  fetchGroupEvent,
+  getGroupReprocessingStatus,
+  markEventSeen,
+  ReprocessingStatus,
+} from './utils';
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -137,6 +143,26 @@ class GroupDetails extends React.Component<Props, State> {
     }
   }
 
+  getCurrentRouteInfo(group: Group): {currentTab: keyof typeof TAB; baseUrl: string} {
+    const {routes, organization} = this.props;
+    const {event} = this.state;
+
+    // All the routes under /organizations/:orgId/issues/:groupId have a defined props
+    const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
+      currentTab: keyof typeof TAB;
+      isEventRoute: boolean;
+    };
+
+    const baseUrl =
+      isEventRoute && event
+        ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
+        : `/organizations/${organization.slug}/issues/${group.id}/`;
+
+    return {currentTab, baseUrl};
+  }
+
+  checkRedirectRoute() {}
+
   async fetchData() {
     const {
       environments,
@@ -145,6 +171,7 @@ class GroupDetails extends React.Component<Props, State> {
       params,
       routes,
       location,
+      organization,
     } = this.props;
 
     // Need to wait for global selection store to be ready before making request
@@ -157,16 +184,43 @@ class GroupDetails extends React.Component<Props, State> {
       if (this.canLoadEventEarly(this.props)) {
         eventPromise = this.getEvent();
       }
+
+      const queryParams: Record<string, string | string[]> = {
+        // Note, we do not want to include the environment key at all if there are no environments
+        ...(environments ? {environment: environments} : {}),
+      };
+      if (organization?.features?.includes('inbox')) {
+        queryParams.expand = 'inbox';
+      }
+
       const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
-        query: {
-          // Note, we do not want to include the environment key at all if there are no environments
-          ...(environments ? {environment: environments} : {}),
-        },
+        query: queryParams,
       });
       const [data] = await Promise.all([groupPromise, eventPromise]);
 
-      // TODO(billy): See if this is even in use and if not, can we just rip this out?
+      const projects = organization.projects;
+      const projectId = data.project.id;
+      const features = projects.find(proj => proj.id === projectId)?.features ?? [];
+      // Check for the reprocessing-v2 feature flag
+      const hasReprocessingV2Feature = features.includes('reprocessing-v2');
+      const reprocessingStatus = getGroupReprocessingStatus(data);
+      const {currentTab, baseUrl} = this.getCurrentRouteInfo(data);
+
       if (this.props.params.groupId !== data.id) {
+        if (hasReprocessingV2Feature) {
+          // Redirects to the Activities tab
+          if (
+            reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+            currentTab !== TAB.ACTIVITY
+          ) {
+            ReactRouter.browserHistory.push({
+              pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+              query: {...params, groupId: data.id},
+            });
+            return;
+          }
+        }
+
         ReactRouter.browserHistory.push(
           recreateRoute('', {
             routes,
@@ -176,6 +230,29 @@ class GroupDetails extends React.Component<Props, State> {
         );
         return;
       }
+
+      if (hasReprocessingV2Feature) {
+        if (
+          reprocessingStatus === ReprocessingStatus.REPROCESSING &&
+          currentTab !== TAB.DETAILS
+        ) {
+          ReactRouter.browserHistory.push({
+            pathname: baseUrl,
+            query: params,
+          });
+        }
+
+        if (
+          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
+          (currentTab !== TAB.ACTIVITY || currentTab !== TAB.USER_FEEDBACK)
+        ) {
+          ReactRouter.browserHistory.push({
+            pathname: `${baseUrl}${TAB.ACTIVITY}/`,
+            query: params,
+          });
+        }
+      }
+
       const project = data.project;
       markEventSeen(api, params.orgId, project.slug, params.groupId);
 
@@ -226,7 +303,7 @@ class GroupDetails extends React.Component<Props, State> {
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
     if (itemIds.has(id)) {
-      const group = GroupStore.get(id);
+      const group = GroupStore.get(id) as Group;
       if (group) {
         // TODO(ts) This needs a better approach. issueActions is splicing attributes onto
         // group objects to cheat here.
@@ -262,7 +339,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderError() {
     const {organization, location} = this.props;
-    const projects = organization.projects;
+    const projects = organization.projects ?? [];
     const projectId = location.query.project;
 
     const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
@@ -277,7 +354,7 @@ class GroupDetails extends React.Component<Props, State> {
         return (
           <MissingProjectMembership
             organization={this.props.organization}
-            projectId={projectSlug}
+            projectSlug={projectSlug}
           />
         );
       default:
@@ -286,23 +363,14 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   renderContent(project: AvatarProject) {
-    const {children, environments, organization, routes} = this.props;
+    const {children, environments} = this.props;
     const {loadingEvent, eventError} = this.state;
-
-    // all the routes under /organizations/:orgId/issues/:groupId have a defined props
-    const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
-      currentTab: keyof typeof TAB;
-      isEventRoute: boolean;
-    };
 
     // At this point group and event have to be defined
     const group = this.state.group!;
     const event = this.state.event;
 
-    const baseUrl =
-      isEventRoute && event
-        ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
-        : `/organizations/${organization.slug}/issues/${group.id}/`;
+    const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
 
     let childProps: Record<string, any> = {
       environments,
@@ -363,7 +431,7 @@ class GroupDetails extends React.Component<Props, State> {
             ) : (
               <Projects
                 orgId={organization.slug}
-                slugs={[project!.slug]}
+                slugs={[project?.slug ?? '']}
                 data-test-id="group-projects-container"
               >
                 {({projects, initiallyLoaded, fetchError}) =>

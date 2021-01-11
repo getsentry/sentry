@@ -8,7 +8,8 @@ import {getMeta} from 'app/components/events/meta/metaProxy';
 import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {EventUser, Meta} from 'app/types';
+import {AvatarUser, Meta} from 'app/types';
+import {EventUser} from 'app/types/event';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
@@ -24,7 +25,7 @@ type UserTitle = {
 
 type UserDetails = {
   subject: string;
-  value: string;
+  value?: string;
   meta?: Meta;
 };
 
@@ -95,7 +96,12 @@ const ContextSummaryUser = ({data}: Props) => {
   }
 
   const icon = userTitle ? (
-    <UserAvatar user={user} size={48} className="context-item-icon" gravatar={false} />
+    <UserAvatar
+      user={user as AvatarUser}
+      size={48}
+      className="context-item-icon"
+      gravatar={false}
+    />
   ) : (
     <span className="context-item-icon" />
   );

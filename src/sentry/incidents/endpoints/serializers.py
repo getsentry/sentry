@@ -68,6 +68,9 @@ dataset_valid_event_types = {
     QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
 }
 
+# TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
+unsupported_queries = {"release:latest"}
+
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     """
@@ -288,8 +291,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     environment = EnvironmentField(required=False, allow_null=True)
     # TODO: These might be slow for many projects, since it will query for each
     # individually. If we find this to be a problem then we can look into batching.
-    projects = serializers.ListField(child=ProjectField(), required=False)
-    excluded_projects = serializers.ListField(child=ProjectField(), required=False)
+    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
+    excluded_projects = serializers.ListField(
+        child=ProjectField(scope="project:read"), required=False
+    )
     triggers = serializers.ListField(required=True)
     dataset = serializers.CharField(required=False)
     event_types = serializers.ListField(child=serializers.CharField(), required=False)
@@ -324,6 +329,15 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
+
+    def validate_query(self, query):
+        query_terms = query.split()
+        for query_term in query_terms:
+            if query_term in unsupported_queries:
+                raise serializers.ValidationError(
+                    "Unsupported Query: We do not currently support the {} query".format(query_term)
+                )
+        return query
 
     def validate_aggregate(self, aggregate):
         try:

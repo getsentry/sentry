@@ -6,7 +6,12 @@ import GenericDiscoverQuery, {
 } from 'app/utils/discover/genericDiscoverQuery';
 import withApi from 'app/utils/withApi';
 
-import {vitalsBaseFields, vitalsThresholdFields} from './utils';
+import {
+  vitalsBaseFields,
+  vitalsMehFields,
+  vitalsP75Fields,
+  vitalsPoorFields,
+} from './utils';
 
 export type TableDataRow = {
   id: string;
@@ -25,9 +30,19 @@ function getRequestPayload(props: Props) {
   const {eventView, onlyVital} = props;
   const apiPayload = eventView?.getEventsAPIPayload(props.location);
   const vitalFields = onlyVital
-    ? [vitalsThresholdFields[onlyVital], vitalsBaseFields[onlyVital]]
-    : [...Object.values(vitalsThresholdFields), ...Object.values(vitalsBaseFields)];
-  apiPayload.field = ['count()', ...vitalFields];
+    ? [
+        vitalsPoorFields[onlyVital],
+        vitalsBaseFields[onlyVital],
+        vitalsMehFields[onlyVital],
+        vitalsP75Fields[onlyVital],
+      ]
+    : [
+        ...Object.values(vitalsPoorFields),
+        ...Object.values(vitalsMehFields),
+        ...Object.values(vitalsBaseFields),
+        ...Object.values(vitalsP75Fields),
+      ];
+  apiPayload.field = [...vitalFields];
   delete apiPayload.sort;
   return apiPayload;
 }
@@ -37,6 +52,7 @@ function VitalsCardDiscoverQuery(props: Props) {
     <GenericDiscoverQuery<TableData, {}>
       getRequestPayload={getRequestPayload}
       route="eventsv2"
+      noPagination
       {...props}
     />
   );

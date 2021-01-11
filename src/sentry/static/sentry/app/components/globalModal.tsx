@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
+import {Modal} from 'react-bootstrap';
 import {browserHistory} from 'react-router';
 import {ClassNames} from '@emotion/core';
 import createReactClass from 'create-react-class';

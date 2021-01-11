@@ -26,6 +26,7 @@ describe('ProjectFilters', function () {
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
+          project={project}
         />,
         TestStubs.routerContext()
       );
@@ -202,6 +203,7 @@ describe('ProjectFilters', function () {
         <ProjectFilters
           params={{projectId: project.slug, orgId: org.slug}}
           location={{}}
+          project={project}
         />,
         {
           context: {
@@ -218,6 +220,9 @@ describe('ProjectFilters', function () {
 
     expect(wrapper.find('TextArea[name="filters:releases"]')).toHaveLength(1);
     expect(wrapper.find('TextArea[name="filters:error_messages"]')).toHaveLength(1);
+    expect(
+      wrapper.find('PanelAlert[data-test-id="error-message-disclaimer"]').exists()
+    ).toBeFalsy();
 
     const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
@@ -247,11 +252,42 @@ describe('ProjectFilters', function () {
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         location={{}}
+        project={project}
       />,
       TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
     );
 
     expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
     expect(wrapper.find('LegacyBrowserFilterRow[disabled=false]')).toHaveLength(0);
+  });
+
+  it('shows disclaimer if error message filter is populated', function () {
+    wrapper = mountWithTheme(
+      <ProjectFilters
+        params={{projectId: project.slug, orgId: org.slug}}
+        project={{
+          ...project,
+          options: {
+            'filters:error_messages': 'test',
+          },
+        }}
+      />,
+      {
+        context: {
+          ...TestStubs.routerContext().context,
+          project: {
+            ...project,
+            features: ['custom-inbound-filters'],
+          },
+        },
+        childContextTypes: TestStubs.routerContext().childContextTypes,
+      }
+    );
+
+    expect(
+      wrapper.find('PanelAlert[data-test-id="error-message-disclaimer"]').text()
+    ).toBe(
+      "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+    );
   });
 });

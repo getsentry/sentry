@@ -9,7 +9,7 @@ import {t} from 'app/locale';
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
 
-type Props = React.ComponentProps<typeof Search>;
+type Props = {};
 
 class SettingsSearch extends React.Component<Props> {
   searchInput = React.createRef<HTMLInputElement>();
@@ -30,7 +30,6 @@ class SettingsSearch extends React.Component<Props> {
   render() {
     return (
       <Search
-        {...this.props}
         entryPoint="settings_search"
         minSearch={MIN_SEARCH_LENGTH}
         maxResults={MAX_RESULTS}
@@ -69,6 +68,8 @@ const SearchInputIcon = styled(IconSearch)`
 `;
 
 const SearchInput = styled('input')`
+  color: ${p => p.theme.formText};
+  background-color: ${p => p.theme.background};
   transition: border-color 0.15s ease;
   font-size: 14px;
   width: 260px;

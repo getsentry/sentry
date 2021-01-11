@@ -4,15 +4,19 @@ import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import EventAnnotation from 'app/components/events/eventAnnotation';
+import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
+import TimesTag from 'app/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'app/components/group/inboxBadges/unhandledTag';
 import Times from 'app/components/group/times';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import Placeholder from 'app/components/placeholder';
 import ShortId from 'app/components/shortId';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Group, Organization} from 'app/types';
+import {Group, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
@@ -35,6 +39,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
     project,
     lifetime,
     isUnhandled,
+    inbox,
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
@@ -42,7 +47,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {isUnhandled && hasInbox && <UnhandledTag />}
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
@@ -65,12 +70,21 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {!hasInbox && (
+      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {!lifetime && !firstSeen && !lastSeen ? (
+        <Placeholder height="14px" width="100px" />
+      ) : hasInbox ? (
+        <TimesTag
+          lastSeen={lifetime?.lastSeen || lastSeen}
+          firstSeen={lifetime?.firstSeen || firstSeen}
+        />
+      ) : (
         <StyledTimes
           lastSeen={lifetime?.lastSeen || lastSeen}
           firstSeen={lifetime?.firstSeen || firstSeen}
         />
       )}
+      {/* Always display comment count on inbox */}
       {numComments > 0 && (
         <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
           <IconChat
@@ -128,6 +142,12 @@ const GroupExtra = styled('div')<{hasInbox: boolean}>`
   }
 `;
 
+const ShadowlessProjectBadge = styled(ProjectBadge)`
+  * > img {
+    box-shadow: none;
+  }
+`;
+
 const StyledTimes = styled(Times)`
   margin-right: 0;
 `;
@@ -162,12 +182,6 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasInbox: boolean}>`
 
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
-`;
-
-const ShadowlessProjectBadge = styled(ProjectBadge)`
-  * > img {
-    box-shadow: none;
-  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupExtraDetails));

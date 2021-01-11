@@ -213,7 +213,8 @@ class ProjectCharts extends React.Component<Props, State> {
               router={router}
               organization={organization}
               onTotalValuesChange={this.handleTotalValuesChange}
-              colors={[theme.purple300, theme.purple200]}
+              colors={[theme.yellow300, theme.purple200]}
+              disablePrevious
             />
           )}
           {displayMode === DisplayModes.ERRORS && (

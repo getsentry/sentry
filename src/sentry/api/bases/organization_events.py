@@ -248,11 +248,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # column aliases as it straddles both versions of events/discover.
                 # We will need these aliases until discover2 flags are enabled for all
                 # users.
+                # We need these rollup columns to generate correct events-stats results
                 column_map = {
                     "user_count": "count_unique(user)",
                     "event_count": "count()",
                     "epm()": "epm(%d)" % rollup,
                     "eps()": "eps(%d)" % rollup,
+                    "tpm()": "tpm(%d)" % rollup,
+                    "tps()": "tps(%d)" % rollup,
                 }
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
@@ -261,7 +264,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
-            if top_events:
+            # When top_events mode is True, result can be a SnubaTSResult in the event that
+            # there were no top events found. In this case, result contains a zerofilled series
+            # that acts as a placeholder.
+            if top_events and isinstance(result, dict):
                 results = {}
                 for key, event_result in six.iteritems(result):
                     if len(query_columns) > 1:

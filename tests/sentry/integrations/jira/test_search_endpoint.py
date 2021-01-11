@@ -9,40 +9,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
-
-SAMPLE_SEARCH_RESPONSE = """
-{
-  "expand": "names,schema",
-  "startAt": 0,
-  "maxResults": 50,
-  "total": 1,
-  "issues": [
-    {
-      "expand": "",
-      "id": "10001",
-      "self": "http://www.example.com/jira/rest/api/2/issue/10001",
-      "key": "HSP-1",
-      "fields": {
-        "summary": "this is a test issue summary"
-      }
-    }
-  ],
-  "warningMessages": [
-    "The value 'splat' does not exist for the field 'Foo'."
-  ]
-}
-"""
-
-SAMPLE_USER_SEARCH_RESPONSE = """
-[
-    {
-        "accountId": "deadbeef123",
-        "displayName": "Bobby",
-        "emailAddress": "bob@example.org"
-    }
-]
-"""
+from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraSearchEndpointTest(APITestCase):
@@ -66,7 +33,7 @@ class JiraSearchEndpointTest(APITestCase):
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/search/",
-            body=SAMPLE_SEARCH_RESPONSE,
+            body=StubService.get_stub_json("jira", "search_response.json"),
             content_type="json",
             match_querystring=False,
         )
@@ -84,7 +51,8 @@ class JiraSearchEndpointTest(APITestCase):
         def responder(request):
             query = parse_qs(urlparse(request.url).query)
             assert 'id="hsp-1"' == query["jql"][0]
-            return (200, {}, SAMPLE_SEARCH_RESPONSE)
+            data = StubService.get_stub_json("jira", "search_response.json")
+            return 200, {}, data
 
         responses.add_callback(
             responses.GET,
@@ -98,9 +66,12 @@ class JiraSearchEndpointTest(APITestCase):
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
         # queries come through from the front end lowercased, so HSP-1 -> hsp-1
-        resp = self.client.get("%s?field=externalIssue&query=hsp-1" % (path,))
-        assert resp.status_code == 200
-        assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
+        for field in ("externalIssue", "parent"):
+            resp = self.client.get("%s?field=%s&query=hsp-1" % (path, field))
+            assert resp.status_code == 200
+            assert resp.data == [
+                {"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}
+            ]
 
     @responses.activate
     def test_issue_search_error(self):
@@ -116,9 +87,12 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?field=externalIssue&query=test" % (path,))
-        assert resp.status_code == 400
-        assert resp.data == {"detail": "Error Communicating with Jira (HTTP 500): unknown error"}
+        for field in ("externalIssue", "parent"):
+            resp = self.client.get("%s?field=%s&query=test" % (path, field))
+            assert resp.status_code == 400
+            assert resp.data == {
+                "detail": "Error Communicating with Jira (HTTP 500): unknown error"
+            }
 
     @responses.activate
     def test_assignee_search(self):
@@ -133,7 +107,8 @@ class JiraSearchEndpointTest(APITestCase):
             query = parse_qs(urlparse(request.url).query)
             assert "HSP" == query["project"][0]
             assert "bob" == query["query"][0]
-            return (200, {}, SAMPLE_USER_SEARCH_RESPONSE)
+            data = StubService.get_stub_json("jira", "user_search_response.json")
+            return 200, {}, data
 
         responses.add_callback(
             responses.GET,
@@ -173,3 +148,47 @@ class JiraSearchEndpointTest(APITestCase):
 
         resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
         assert resp.status_code == 400
+
+    @responses.activate
+    def test_customfield_search(self):
+        def responder(request):
+            query = parse_qs(urlparse(request.url).query)
+            assert "cf[0123]" == query["fieldName"][0]
+            assert "sp" == query["fieldValue"][0]
+            return 200, {}, '{"results": [{"displayName": "<b>Sp</b>rint 1 (1)", "value": "1"}]}'
+
+        responses.add_callback(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            callback=responder,
+            content_type="application/json",
+            match_querystring=False,
+        )
+        org = self.organization
+        self.login_as(self.user)
+
+        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
+
+        resp = self.client.get("%s?field=customfield_0123&query=sp" % (path,))
+        assert resp.status_code == 200
+        assert resp.data == [{"label": "Sprint 1 (1)", "value": "1"}]
+
+    @responses.activate
+    def test_customfield_search_error(self):
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/jql/autocompletedata/suggestions",
+            status=500,
+            body="Totally broken",
+            match_querystring=False,
+        )
+        org = self.organization
+        self.login_as(self.user)
+
+        path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
+
+        resp = self.client.get("%s?field=customfield_0123&query=sp" % (path,))
+        assert resp.status_code == 400
+        assert resp.data == {
+            "detail": "Unable to fetch autocomplete for customfield_0123 from Jira"
+        }

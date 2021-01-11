@@ -8,7 +8,8 @@ import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import globalTheme from 'app/utils/theme';
@@ -20,7 +21,6 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
-import * as MeasurementsManager from './measurementsManager';
 import SpanDetail from './spanDetail';
 import {
   getHatchPattern,
@@ -203,7 +203,7 @@ export const getBackgroundColor = ({
 };
 
 type SpanBarProps = {
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   orgId: string;
   organization: Organization;
   trace: Readonly<ParsedTraceType>;
@@ -363,8 +363,6 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return (
       <React.Fragment>
         {Array.from(measurements).map(([timestamp, verticalMark]) => {
-          const names = Object.keys(verticalMark.marks);
-
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -373,30 +371,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             return null;
           }
 
-          const measurementName = names.join('');
-
           return (
-            <MeasurementsManager.Consumer key={String(timestamp)}>
-              {({hoveringMeasurement, notHovering}) => {
-                return (
-                  <MeasurementMarker
-                    style={{
-                      left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
-                    }}
-                    failedThreshold={verticalMark.failedThreshold}
-                    onMouseEnter={() => {
-                      hoveringMeasurement(measurementName);
-                    }}
-                    onMouseLeave={() => {
-                      notHovering();
-                    }}
-                    onMouseOver={() => {
-                      hoveringMeasurement(measurementName);
-                    }}
-                  />
-                );
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
               }}
-            </MeasurementsManager.Consumer>
+              failedThreshold={verticalMark.failedThreshold}
+            />
           );
         })}
       </React.Fragment>
@@ -802,9 +784,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderHeader(
-    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-  ) {
+  renderHeader({
+    dividerHandlerChildrenProps,
+  }: {
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+  }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
@@ -822,6 +806,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           showDetail={this.state.showDetail}
           style={{
             width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+            paddingTop: 0,
           }}
           onClick={() => {
             this.toggleDisplayDetail();
@@ -906,7 +891,11 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerHandlerManager.Consumer>
           {(
             dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) => this.renderHeader(dividerHandlerChildrenProps)}
+          ) =>
+            this.renderHeader({
+              dividerHandlerChildrenProps,
+            })
+          }
         </DividerHandlerManager.Consumer>
         {this.renderDetail({isVisible: isSpanVisible})}
       </SpanRow>
@@ -932,6 +921,9 @@ export const SpanRowCellContainer = styled('div')<SpanRowCellProps>`
   display: flex;
   position: relative;
   height: ${SPAN_ROW_HEIGHT}px;
+
+  /* for virtual scrollbar */
+  overflow: hidden;
 
   user-select: none;
 
@@ -993,7 +985,7 @@ export const DividerLineGhostContainer = styled('div')`
 export const SpanBarTitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  height: 100%;
+  height: ${SPAN_ROW_HEIGHT}px;
   position: absolute;
   left: 0;
   top: 0;

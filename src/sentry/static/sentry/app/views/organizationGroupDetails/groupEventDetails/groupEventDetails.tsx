@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -12,14 +13,28 @@ import {withMeta} from 'app/components/events/meta/metaProxy';
 import GroupSidebar from 'app/components/group/sidebar';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
+import ReprocessedBox from 'app/components/reprocessedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import SentryTypes from 'app/sentryTypes';
-import {Environment, Event, Group, Organization, Project} from 'app/types';
+import {
+  Environment,
+  Group,
+  GroupActivityReprocess,
+  Organization,
+  Project,
+} from 'app/types';
+import {Event} from 'app/types/event';
 import {metric} from 'app/utils/analytics';
 import fetchSentryAppInstallations from 'app/utils/fetchSentryAppInstallations';
 
 import GroupEventToolbar from '../eventToolbar';
-import {getEventEnvironment} from '../utils';
+import ReprocessingProgress from '../reprocessingProgress';
+import {
+  getEventEnvironment,
+  getGroupMostRecentActivity,
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from '../utils';
 
 type Props = RouteComponentProps<
   {orgId: string; groupId: string; eventId?: string},
@@ -30,10 +45,10 @@ type Props = RouteComponentProps<
   project: Project;
   organization: Organization;
   environments: Environment[];
-  event?: Event;
   loadingEvent: boolean;
   eventError: boolean;
   onRetry: () => void;
+  event?: Event;
   className?: string;
 };
 
@@ -134,7 +149,17 @@ class GroupEventDetails extends React.Component<Props, State> {
       `/projects/${orgSlug}/${projSlug}/releases/completion/`
     );
     fetchSentryAppInstallations(api, orgSlug);
-    fetchSentryAppComponents(api, orgSlug, projectId);
+
+    // TODO(marcos): Sometimes GlobalSelectionStore cannot pick a project.
+    if (projectId) {
+      fetchSentryAppComponents(api, orgSlug, projectId);
+    } else {
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('Project ID was not set');
+      });
+    }
 
     const releasesCompletion = await releasesCompletionPromise;
     this.setState({releasesCompletion});
@@ -150,6 +175,39 @@ class GroupEventDetails extends React.Component<Props, State> {
     );
   }
 
+  renderContent(eventWithMeta?: Event) {
+    const {
+      group,
+      project,
+      organization,
+      environments,
+      location,
+      loadingEvent,
+      onRetry,
+      eventError,
+    } = this.props;
+
+    if (loadingEvent) {
+      return <LoadingIndicator />;
+    }
+
+    if (eventError) {
+      return (
+        <GroupEventDetailsLoadingError environments={environments} onRetry={onRetry} />
+      );
+    }
+
+    return (
+      <EventEntries
+        group={group}
+        event={eventWithMeta}
+        organization={organization}
+        project={project}
+        location={location}
+        showExampleCommit={this.showExampleCommit}
+      />
+    );
+  }
   render() {
     const {
       className,
@@ -159,57 +217,69 @@ class GroupEventDetails extends React.Component<Props, State> {
       environments,
       location,
       event,
-      loadingEvent,
-      eventError,
-      onRetry,
     } = this.props;
-    const evt = withMeta(event);
+
+    const eventWithMeta = withMeta(event) as Event;
+
+    // reprocessing
+    const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
+    const {activity: activities, count} = group;
+    const groupCount = Number(count);
+    const mostRecentActivity = getGroupMostRecentActivity(activities);
+    const reprocessStatus = getGroupReprocessingStatus(group, mostRecentActivity);
 
     return (
       <div className={className}>
         <div className="event-details-container">
-          <div className="primary">
-            {evt && (
-              <GroupEventToolbar
-                group={group}
-                event={evt}
-                orgId={organization.slug}
-                location={location}
-              />
-            )}
-            {group.status === 'ignored' && (
-              <MutedBox statusDetails={group.statusDetails} />
-            )}
-            {group.status === 'resolved' && (
-              <ResolutionBox statusDetails={group.statusDetails} projectId={project.id} />
-            )}
-            {loadingEvent ? (
-              <LoadingIndicator />
-            ) : eventError ? (
-              <GroupEventDetailsLoadingError
-                environments={environments}
-                onRetry={onRetry}
-              />
-            ) : (
-              <EventEntries
-                group={group}
-                event={evt}
-                organization={organization}
-                project={project}
-                location={location}
-                showExampleCommit={this.showExampleCommit}
-              />
-            )}
-          </div>
-          <div className="secondary">
-            <GroupSidebar
-              organization={organization}
-              project={project}
-              group={group}
-              event={evt}
-              environments={environments}
+          {hasReprocessingV2Feature &&
+          reprocessStatus === ReprocessingStatus.REPROCESSING &&
+          group.status === 'reprocessing' ? (
+            <ReprocessingProgress
+              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+              pendingEvents={group.statusDetails.pendingEvents}
             />
-          </div>
+          ) : (
+            <React.Fragment>
+              <div className="primary">
+                {eventWithMeta && (
+                  <GroupEventToolbar
+                    group={group}
+                    event={eventWithMeta}
+                    orgId={organization.slug}
+                    location={location}
+                  />
+                )}
+                {group.status === 'ignored' && (
+                  <MutedBox statusDetails={group.statusDetails} />
+                )}
+                {group.status === 'resolved' && (
+                  <ResolutionBox
+                    statusDetails={group.statusDetails}
+                    projectId={project.id}
+                  />
+                )}
+                {hasReprocessingV2Feature &&
+                  (reprocessStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
+                    reprocessStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
+                    <ReprocessedBox
+                      reprocessActivity={mostRecentActivity as GroupActivityReprocess}
+                      groupCount={groupCount}
+                      orgSlug={organization.slug}
+                    />
+                  )}
+                {this.renderContent(eventWithMeta)}
+              </div>
+              <div className="secondary">
+                <GroupSidebar
+                  organization={organization}
+                  project={project}
+                  group={group}
+                  event={eventWithMeta}
+                  environments={environments}
+                />
+              </div>
+            </React.Fragment>
+          )}
         </div>
       </div>
     );

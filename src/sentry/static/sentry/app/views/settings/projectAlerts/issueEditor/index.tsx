@@ -2,7 +2,9 @@ import React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
+import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
+import set from 'lodash/set';
 
 import {
   addErrorMessage,
@@ -32,7 +34,6 @@ import {
 import {getDisplayName} from 'app/utils/environment';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
-import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
@@ -88,10 +89,11 @@ type RuleTaskResponse = {
 type Props = {
   project: Project;
   organization: Organization;
+  onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}>;
 
 type State = AsyncView['state'] & {
-  rule: UnsavedIssueAlertRule | IssueAlertRule | null;
+  rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   detailedError: null | {
     [key: string]: string[];
   };
@@ -133,6 +135,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
 
     return endpoints as [string, string][];
+  }
+
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey === 'rule' && data.name) {
+      this.props.onChangeTitle?.(data.name);
+    }
   }
 
   pollHandler = async (quitTime: number) => {
@@ -297,10 +305,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleChange = <T extends keyof IssueAlertRule>(prop: T, val: IssueAlertRule[T]) => {
-    this.setState(state => {
-      const rule = {...state.rule} as IssueAlertRule;
-      rule[prop] = val;
-      return {rule, detailedError: omit(state.detailedError, prop)};
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
+      set(clonedState, `rule[${prop}]`, val);
+      return {...clonedState, detailedError: omit(prevState.detailedError, prop)};
     });
   };
 
@@ -310,61 +318,77 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     prop: T,
     val: IssueAlertRuleAction[T]
   ) => {
-    this.setState(state => {
-      const rule = {...state.rule} as IssueAlertRule;
-      rule[type][idx][prop] = val;
-      return {rule};
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
+      set(clonedState, `rule[${type}][${idx}][${prop}]`, val);
+      return clonedState;
+    });
+  };
+
+  getInitialValue = (type: ConditionOrActionProperty, id: string) => {
+    const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+    return configuration?.formFields
+      ? Object.fromEntries(
+          Object.entries(configuration.formFields)
+            // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
+            .map(([key, formField]: [string, any]) => [
+              key,
+              formField?.initial ?? formField?.choices?.[0]?.[0],
+            ])
+            .filter(([, initial]) => !!initial)
+        )
+      : {};
+  };
+
+  handleResetRow = <T extends keyof IssueAlertRuleAction>(
+    type: ConditionOrActionProperty,
+    idx: number,
+    prop: T,
+    val: IssueAlertRuleAction[T]
+  ) => {
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
+
+      // Set initial configuration, but also set
+      const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
+      const newRule = {
+        ...this.getInitialValue(type, id),
+        id,
+        [prop]: val,
+      };
+
+      set(clonedState, `rule[${type}][${idx}]`, newRule);
+      return clonedState;
     });
   };
 
   handleAddRow = (type: ConditionOrActionProperty, id: string) => {
-    this.setState(state => {
-      const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+    this.setState(prevState => {
+      const clonedState = cloneDeep(prevState);
 
       // Set initial configuration
-      const initialValue = configuration?.formFields
-        ? Object.fromEntries(
-            Object.entries(configuration.formFields)
-              // TODO(ts): Doesn't work if I cast formField as IssueAlertRuleFormField
-              .map(([key, formField]: [string, any]) => [
-                key,
-                formField?.initial ?? formField?.choices?.[0]?.[0],
-              ])
-              .filter(([, initial]) => !!initial)
-          )
-        : {};
       const newRule = {
+        ...this.getInitialValue(type, id),
         id,
-        ...initialValue,
       };
+      const newTypeList = prevState.rule ? prevState.rule[type] : [];
 
-      const rule = {
-        ...state.rule,
-        [type]: [...(state.rule ? state.rule[type] : []), newRule],
-      } as IssueAlertRule;
-
-      return {
-        rule,
-      };
+      set(clonedState, `rule[${type}]`, [...newTypeList, newRule]);
+      return clonedState;
     });
   };
 
   handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
     this.setState(prevState => {
-      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      const clonedState = cloneDeep(prevState);
 
+      const newTypeList = prevState.rule ? prevState.rule[type] : [];
       if (prevState.rule) {
         newTypeList.splice(idx, 1);
       }
 
-      const rule = {
-        ...prevState.rule,
-        [type]: newTypeList,
-      } as IssueAlertRule;
-
-      return {
-        rule,
-      };
+      set(clonedState, `rule[${type}]`, newTypeList);
+      return clonedState;
     });
   };
 
@@ -381,6 +405,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     this.handlePropertyChange('actions', ruleIndex, prop, val);
   handleChangeFilterProperty = (ruleIndex: number, prop: string, val: string) =>
     this.handlePropertyChange('filters', ruleIndex, prop, val);
+  handleResetCondition = (ruleIndex: number, prop: string, value: string) =>
+    this.handleResetRow('conditions', ruleIndex, prop, value);
+  handleResetAction = (ruleIndex: number, prop: string, value: string) =>
+    this.handleResetRow('actions', ruleIndex, prop, value);
+  handleResetFilter = (ruleIndex: number, prop: string, value: string) =>
+    this.handleResetRow('filters', ruleIndex, prop, value);
 
   handleValidateRuleName = () => {
     const isRuleNameEmpty = !this.state.rule?.name.trim();
@@ -429,7 +459,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Access access={['project:write']}>
+      <Access access={['alerts:write']}>
         {({hasAccess}) => (
           <StyledForm
             key={isSavedAlertRule(rule) ? rule.id : undefined}
@@ -567,6 +597,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             }
                             onPropertyChange={this.handleChangeConditionProperty}
                             onAddRow={this.handleAddCondition}
+                            onResetRow={this.handleResetCondition}
                             onDeleteRow={this.handleDeleteCondition}
                             organization={organization}
                             project={project}
@@ -641,6 +672,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           placeholder={t('Add optional filter...')}
                           onPropertyChange={this.handleChangeFilterProperty}
                           onAddRow={this.handleAddFilter}
+                          onResetRow={this.handleResetFilter}
                           onDeleteRow={this.handleDeleteFilter}
                           organization={organization}
                           project={project}
@@ -682,6 +714,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         placeholder={t('Add action...')}
                         onPropertyChange={this.handleChangeActionProperty}
                         onAddRow={this.handleAddAction}
+                        onResetRow={this.handleResetAction}
                         onDeleteRow={this.handleDeleteAction}
                         organization={organization}
                         project={project}
@@ -724,7 +757,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 }
 
-export default withProject(withOrganization(IssueRuleEditor));
+export default withOrganization(IssueRuleEditor);
 
 const StyledForm = styled(Form)`
   position: relative;

@@ -1,8 +1,8 @@
 import React from 'react';
-import {ModalBody} from 'react-bootstrap';
 import {ClassNames, css} from '@emotion/core';
 import styled from '@emotion/styled';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import Search from 'app/components/search';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -10,11 +10,7 @@ import {analytics} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import Input from 'app/views/settings/components/forms/controls/input';
 
-type Props = {
-  Body: typeof ModalBody;
-};
-
-class CommandPalette extends React.Component<Props> {
+class CommandPalette extends React.Component<ModalRenderProps> {
   componentDidMount() {
     analytics('omnisearch.open', {});
   }
@@ -27,7 +23,6 @@ class CommandPalette extends React.Component<Props> {
         <ClassNames>
           {({css: injectedCss}) => (
             <Search
-              isOpen
               entryPoint="command_palette"
               minSearch={1}
               maxResults={10}

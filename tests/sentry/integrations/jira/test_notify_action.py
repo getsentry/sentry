@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
 import responses
+from collections import namedtuple
 
 from sentry.integrations.jira.notify_action import JiraCreateTicketAction
 from sentry.models import Integration, ExternalIssue, GroupLink, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json
+from tests.fixtures.integrations.mock_service import StubService
 
-from .test_integration import SAMPLE_CREATE_META_RESPONSE, SAMPLE_GET_ISSUE_RESPONSE
+RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
 class JiraCreateTicketActionTest(RuleTestCase):
@@ -30,6 +32,21 @@ class JiraCreateTicketActionTest(RuleTestCase):
     @responses.activate
     def test_creates_issue(self):
         event = self.get_event()
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            body=StubService.get_stub_json("jira", "project_list_response.json"),
+            content_type="application/json",
+            match_querystring=False,
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+            match_querystring=False,
+        )
         jira_rule = self.get_rule(
             data={
                 "issuetype": "1",
@@ -37,22 +54,17 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "customfield_10200": "sad",
                 "customfield_10300": ["Feature 1", "Feature 2"],
                 "project": "10000",
-                "jira_integration": self.integration.id,
+                "integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
             }
         )
         jira_rule.rule = Rule.objects.create(project=self.project, label="test rule",)
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/issue/createmeta",
-            body=SAMPLE_CREATE_META_RESPONSE,
-            content_type="json",
-            match_querystring=False,
-        )
 
         jira_rule.data["key"] = "APP-123"
+
+        # Add two mocks: one for POSTing the issue and a GET to confirm it's there.
         responses.add(
             method=responses.POST,
             url="https://example.atlassian.net/rest/api/2/issue",
@@ -63,8 +75,8 @@ class JiraCreateTicketActionTest(RuleTestCase):
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/APP-123",
-            body=SAMPLE_GET_ISSUE_RESPONSE,
-            content_type="json",
+            body=StubService.get_stub_json("jira", "get_issue_response.json"),
+            content_type="application/json",
             match_querystring=False,
         )
 
@@ -72,10 +84,11 @@ class JiraCreateTicketActionTest(RuleTestCase):
         assert len(results) == 1
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        rule_future = RuleFuture(rule=jira_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
 
-        # Make assertions about what would be sent.
-        data = json.loads(responses.calls[2].request.body)
+        # Make assertions about what would be POSTed to api/2/issue.
+        data = json.loads(responses.calls[1].request.body)
         assert data["fields"]["summary"] == event.title
         assert event.message in data["fields"]["description"]
         assert data["fields"]["issuetype"]["id"] == "1"
@@ -112,7 +125,7 @@ class JiraCreateTicketActionTest(RuleTestCase):
                 "customfield_10200": "sad",
                 "customfield_10300": ["Feature 1", "Feature 2"],
                 "labels": "bunnies",
-                "jira_integration": self.integration.id,
+                "integration": self.integration.id,
                 "jira_project": "10000",
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
@@ -123,12 +136,14 @@ class JiraCreateTicketActionTest(RuleTestCase):
         results = list(jira_rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
         results[0].callback(event, futures=[])
-        assert len(responses.calls) == 1
+
+        # Assert that we don't POST to create the issue.
+        assert len(responses.calls) == 0
 
     def test_render_label(self):
         rule = self.get_rule(
             data={
-                "jira_integration": self.integration.id,
+                "integration": self.integration.id,
                 "issuetype": 1,
                 "project": 10000,
                 "dynamic_form_fields": {
@@ -143,20 +158,20 @@ class JiraCreateTicketActionTest(RuleTestCase):
         deleted_id = self.integration.id
         self.integration.delete()
 
-        rule = self.get_rule(data={"jira_integration": deleted_id})
+        rule = self.get_rule(data={"integration": deleted_id})
 
         assert rule.render_label() == "Create a Jira issue in [removed] with these "
 
     @responses.activate
     def test_invalid_integration(self):
-        rule = self.get_rule(data={"jira_integration": self.integration.id})
+        rule = self.get_rule(data={"integration": self.integration.id})
 
         form = rule.get_form_instance()
         assert form.is_valid()
 
     @responses.activate
     def test_invalid_project(self):
-        rule = self.get_rule(data={"jira_integration": self.integration.id})
+        rule = self.get_rule(data={"integration": self.integration.id})
 
         form = rule.get_form_instance()
         assert form.is_valid()

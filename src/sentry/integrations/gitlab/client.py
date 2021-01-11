@@ -127,15 +127,25 @@ class GitLabApiClient(ApiClient):
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
         """
-        # simple param returns limited fields for the project.
-        # Really useful, because we often don't need most of the project information
-        return self.get(
-            GitLabApiClientPath.group_projects.format(group=group),
-            params={
+
+        def gen_params(page_number, page_size):
+            # simple param returns limited fields for the project.
+            # Really useful, because we often don't need most of the project information
+            return {
                 "search": query,
                 "simple": simple,
                 "include_subgroups": self.metadata.get("include_subgroups", False),
-            },
+                "page": page_number + 1,  # page starts at 1
+                "per_page": page_size,
+            }
+
+        def get_results(resp):
+            return resp
+
+        return self.get_with_pagination(
+            GitLabApiClientPath.group_projects.format(group=group),
+            gen_params=gen_params,
+            get_results=get_results,
         )
 
     def get_project(self, project_id):

@@ -2,9 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import {EventTransaction} from 'app/types/event';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
+import MeasurementsPanel from './measurementsPanel';
 import {zIndex} from './styles';
 import {
   ParsedTraceType,
@@ -24,17 +27,21 @@ import {
   toPercent,
 } from './utils';
 
-export const MINIMAP_CONTAINER_HEIGHT = 106;
 export const MINIMAP_SPAN_BAR_HEIGHT = 4;
 const MINIMAP_HEIGHT = 120;
 export const NUM_OF_SPANS_FIT_IN_MINI_MAP = MINIMAP_HEIGHT / MINIMAP_SPAN_BAR_HEIGHT;
 const TIME_AXIS_HEIGHT = 20;
 const VIEW_HANDLE_HEIGHT = 18;
+const SECONDARY_HEADER_HEIGHT = 20;
+export const MINIMAP_CONTAINER_HEIGHT =
+  MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + SECONDARY_HEADER_HEIGHT + 1;
 
 type PropType = {
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
+  event: EventTransaction;
 };
 
 class TraceViewHeader extends React.Component<PropType> {
@@ -266,6 +273,51 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   }
 
+  generateBounds() {
+    const {dragProps, trace} = this.props;
+
+    return boundsGenerator({
+      traceStartTimestamp: trace.traceStartTimestamp,
+      traceEndTimestamp: trace.traceEndTimestamp,
+      viewStart: dragProps.viewWindowStart,
+      viewEnd: dragProps.viewWindowEnd,
+    });
+  }
+
+  renderSecondaryHeader() {
+    const {event} = this.props;
+
+    const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
+
+    return (
+      <DividerHandlerManager.Consumer>
+        {dividerHandlerChildrenProps => {
+          const {dividerPosition} = dividerHandlerChildrenProps;
+
+          return (
+            <SecondaryHeader>
+              <ScrollBarContainer
+                ref={this.props.virtualScrollBarContainerRef}
+                style={{
+                  // the width of this component is shrunk to compensate for half of the width of the divider line
+                  width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                }}
+              />
+              <DividerSpacer />
+              {hasMeasurements ? (
+                <MeasurementsPanel
+                  event={event}
+                  generateBounds={this.generateBounds()}
+                  dividerPosition={dividerPosition}
+                />
+              ) : null}
+            </SecondaryHeader>
+          );
+        }}
+      </DividerHandlerManager.Consumer>
+    );
+  }
+
   render() {
     return (
       <HeaderContainer>
@@ -322,6 +374,7 @@ class TraceViewHeader extends React.Component<PropType> {
             </div>
           )}
         </CursorGuideHandler.Consumer>
+        {this.renderSecondaryHeader()}
       </HeaderContainer>
     );
   }
@@ -484,7 +537,7 @@ const TimeAxis = styled('div')`
   width: 100%;
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: ${MINIMAP_HEIGHT}px;
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
@@ -580,7 +633,7 @@ const HeaderContainer = styled('div')`
   z-index: ${zIndex.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
-  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 1}px;
+  height: ${MINIMAP_CONTAINER_HEIGHT}px;
 `;
 
 const MinimapBackground = styled('div')`
@@ -681,6 +734,35 @@ const WindowSelection = styled('div')`
   top: 0;
   height: ${MINIMAP_HEIGHT}px;
   background-color: rgba(69, 38, 80, 0.1);
+`;
+
+const SecondaryHeader = styled('div')`
+  position: absolute;
+  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  left: 0;
+  height: ${TIME_AXIS_HEIGHT}px;
+  width: 100%;
+  background-color: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  border-top: 1px solid ${p => p.theme.border};
+`;
+
+const DividerSpacer = styled('div')`
+  width: 1px;
+  background-color: ${p => p.theme.gray200};
+`;
+
+const ScrollBarContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: ${SECONDARY_HEADER_HEIGHT}px;
+  left: 0;
+  bottom: 0;
+  & > div[data-type='virtual-scrollbar'].dragging > div {
+    background-color: ${p => p.theme.gray500};
+    cursor: grabbing;
+  }
 `;
 
 export default TraceViewHeader;

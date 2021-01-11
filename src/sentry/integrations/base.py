@@ -97,6 +97,7 @@ class IntegrationFeatures(Enum):
     CHAT_UNFURL = "chat-unfurl"
     ALERT_RULE = "alert-rule"
     MOBILE = "mobile"
+    SERVERLESS = "serverless"
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
@@ -368,3 +369,7 @@ class IntegrationInstallation(object):
             six.reraise(
                 IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
             )
+
+    @property
+    def metadata(self):
+        return self.model.metadata

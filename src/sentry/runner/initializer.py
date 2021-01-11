@@ -4,6 +4,7 @@ import click
 import logging
 import os
 import six
+import sys
 
 from django.conf import settings
 
@@ -130,6 +131,7 @@ options_mapper = {
     "mail.username": "EMAIL_HOST_USER",
     "mail.password": "EMAIL_HOST_PASSWORD",
     "mail.use-tls": "EMAIL_USE_TLS",
+    "mail.use-ssl": "EMAIL_USE_SSL",
     "mail.from": "SERVER_EMAIL",
     "mail.subject-prefix": "EMAIL_SUBJECT_PREFIX",
     "github-login.client-id": "GITHUB_APP_ID",
@@ -273,6 +275,10 @@ def configure_structlog():
 
 def initialize_app(config, skip_service_validation=False):
     settings = config["settings"]
+
+    if settings.DEBUG:
+        # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
+        sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
 
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and

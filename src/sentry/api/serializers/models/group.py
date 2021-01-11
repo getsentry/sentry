@@ -56,7 +56,7 @@ from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
 from sentry.utils.compat import map, zip
 from sentry.utils.snuba import Dataset, raw_query
-from sentry.reprocessing2 import get_num_pending_events
+from sentry.reprocessing2 import get_progress
 
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: "commented",
@@ -83,6 +83,31 @@ def merge_list_dictionaries(dict1, dict2):
 
 
 class GroupSerializerBase(Serializer):
+    def __init__(
+        self, collapse=None, expand=None, has_inbox=False, has_workflow_owners=False,
+    ):
+        self.collapse = collapse
+        self.expand = expand
+        self.has_inbox = has_inbox
+        self.has_workflow_owners = has_workflow_owners
+
+    def _expand(self, key):
+        if self.expand is None:
+            return False
+
+        if key == "inbox" and not self.has_inbox:
+            return False
+
+        if key == "owners" and not self.has_workflow_owners:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key):
+        if self.collapse is None:
+            return False
+        return key in self.collapse
+
     def _get_seen_stats(self, item_list, user):
         """
         Returns a dictionary keyed by item that includes:
@@ -422,7 +447,9 @@ class GroupSerializerBase(Serializer):
                         "ignoreUntil": snooze.until,
                         "ignoreUserCount": (
                             snooze.user_count - (attrs["user_count"] - snooze.state["users_seen"])
-                            if snooze.user_count and not snooze.user_window
+                            if snooze.user_count
+                            and not snooze.user_window
+                            and not self._collapse("stats")
                             else snooze.user_count
                         ),
                         "ignoreUserWindow": snooze.user_window,
@@ -454,7 +481,7 @@ class GroupSerializerBase(Serializer):
             status_label = "pending_merge"
         elif status == GroupStatus.REPROCESSING:
             status_label = "reprocessing"
-            status_details["pendingEvents"] = get_num_pending_events(attrs["id"])
+            status_details["pendingEvents"], status_details["info"] = get_progress(attrs["id"])
         else:
             status_label = "unresolved"
         return status_details, status_label
@@ -555,6 +582,7 @@ class GroupSerializerBase(Serializer):
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
     def __init__(self, environment_func=None):
+        GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _get_seen_stats(self, item_list, user):
@@ -752,7 +780,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "status",
         "bookmarked_by",
         "assigned_to",
-        "inbox",
+        "needs_review",
+        "owner",
         "unassigned",
         "linked",
         "subscribed_by",
@@ -765,7 +794,23 @@ class GroupSerializerSnuba(GroupSerializerBase):
         # condition
     }
 
-    def __init__(self, environment_ids=None, start=None, end=None, search_filters=None):
+    def __init__(
+        self,
+        environment_ids=None,
+        start=None,
+        end=None,
+        search_filters=None,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
+        has_workflow_owners=False,
+    ):
+        super(GroupSerializerSnuba, self).__init__(
+            collapse=collapse,
+            expand=expand,
+            has_inbox=has_inbox,
+            has_workflow_owners=has_workflow_owners,
+        )
         from sentry.search.snuba.executors import get_search_filter
 
         self.environment_ids = environment_ids
@@ -880,7 +925,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         has_workflow_owners=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
-            environment_ids, start, end, search_filters
+            environment_ids,
+            start,
+            end,
+            search_filters,
+            collapse=collapse,
+            expand=expand,
+            has_inbox=has_inbox,
+            has_workflow_owners=has_workflow_owners,
         )
 
         if stats_period is not None:
@@ -892,28 +944,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
-
-        self.collapse = collapse
-        self.expand = expand
-        self.has_inbox = has_inbox
-        self.has_workflow_owners = has_workflow_owners
-
-    def _expand(self, key):
-        if self.expand is None:
-            return False
-
-        if key == "inbox" and not self.has_inbox:
-            return False
-
-        if key == "owners" and not self.has_workflow_owners:
-            return False
-
-        return key in self.expand
-
-    def _collapse(self, key):
-        if self.collapse is None:
-            return False
-        return key in self.collapse
 
     def _get_seen_stats(self, item_list, user):
         if not self._collapse("stats"):

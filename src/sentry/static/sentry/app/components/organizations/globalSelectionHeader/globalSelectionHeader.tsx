@@ -14,7 +14,9 @@ import HeaderItemPosition from 'app/components/organizations/headerItemPosition'
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import TimeRangeSelector, {
+  ChangeData,
+} from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconArrow} from 'app/icons';
@@ -252,7 +254,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     callIfFunction(this.props.onChangeEnvironments, environments);
   };
 
-  handleChangeTime = ({start, end, relative: period, utc}) => {
+  handleChangeTime = ({start, end, relative: period, utc}: ChangeData) => {
     callIfFunction(this.props.onChangeTime, {start, end, period, utc});
   };
 
@@ -372,7 +374,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
               limit={PROJECTS_PER_PAGE}
               slugs={specificProjectSlugs}
             >
-              {({projects, initiallyLoaded, hasMore, onSearch, fetching}) => {
+              {({projects, hasMore, onSearch, fetching}) => {
                 const paginatedProjectSelectorCallbacks = {
                   onScroll: ({clientHeight, scrollHeight, scrollTop}) => {
                     // check if no new projects are being fetched and the user has
@@ -398,10 +400,8 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                     organization={organization}
                     shouldForceProject={shouldForceProject}
                     forceProject={forceProject}
-                    projects={loadingProjects ? projects : memberProjects}
-                    selectedProjects={selectedProjects}
+                    projects={loadingProjects ? (projects as Project[]) : memberProjects}
                     isGlobalSelectionReady={isGlobalSelectionReady}
-                    isLoadingProjects={!initiallyLoaded}
                     nonMemberProjects={nonMemberProjects}
                     value={this.state.projects || this.props.selection.projects}
                     onChange={this.handleChangeProjects}

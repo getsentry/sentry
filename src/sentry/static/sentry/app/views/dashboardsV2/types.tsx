@@ -14,32 +14,25 @@ export type Widget = {
   queries: WidgetQuery[];
 };
 
-export type PrebuiltDashboard = {
-  type: 'prebuilt';
-  title: string;
-  widgets: Widget[];
-};
-
-export type OrgDashboard = {
-  type: 'org';
-} & OrgDashboardResponse;
-
-export type DashboardListItem = PrebuiltDashboard | OrgDashboard;
-
-export type DashboardState = 'view' | 'edit' | 'create';
-
-// POST response when creating a new dashboard
-export type OrgDashboardResponse = {
+/**
+ * The response shape from dashboard list endpoint
+ */
+export type DashboardListItem = {
+  id: string;
   title: string;
   dateCreated: string;
   createdBy: string;
-  widgets: Widget[];
-  organization: string;
-  id: string;
 };
 
-// PUT body for updating a dashboard
-export type OrgDashboardUpdate = {
+/**
+ * Saved dashboard with widgets
+ */
+export type DashboardDetails = {
   title: string;
   widgets: Widget[];
+  id: string;
+  dateCreated: string;
+  createdBy: string;
 };
+
+export type DashboardState = 'view' | 'edit' | 'create' | 'pending_delete';

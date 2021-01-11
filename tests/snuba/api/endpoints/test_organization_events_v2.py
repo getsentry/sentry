@@ -2376,7 +2376,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             for (field, exp) in zip(fields, expected):
                 assert results[0][field] == exp, field + six.text_type(datum)
 
-    def test_histogram_function(self):
+    def test_histogram_deprecated_deprecated_function(self):
         project = self.create_project()
         start = before_now(minutes=2).replace(microsecond=0)
         latencies = [
@@ -2400,9 +2400,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
-            "field": ["histogram(transaction.duration, 10)", "count()"],
+            "field": ["histogram_deprecated(transaction.duration, 10)", "count()"],
             "query": "event.type:transaction",
-            "sort": "histogram_transaction_duration_10",
+            "sort": "histogram_deprecated_transaction_duration_10",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2423,10 +2423,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             (bucket_size * 10, 1),
         ]
         for idx, datum in enumerate(data):
-            assert datum["histogram_transaction_duration_10"] == expected[idx][0]
+            assert datum["histogram_deprecated_transaction_duration_10"] == expected[idx][0]
             assert datum["count"] == expected[idx][1]
 
-    def test_histogram_function_with_filters(self):
+    def test_histogram_deprecated_function_with_filters(self):
         project = self.create_project()
         start = before_now(minutes=2).replace(microsecond=0)
         latencies = [
@@ -2456,9 +2456,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
 
         query = {
-            "field": ["histogram(transaction.duration, 10)", "count()"],
+            "field": ["histogram_deprecated(transaction.duration, 10)", "count()"],
             "query": "event.type:transaction transaction:/failure_rate/sleepy_gary*",
-            "sort": "histogram_transaction_duration_10",
+            "sort": "histogram_deprecated_transaction_duration_10",
         }
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         response = self.do_request(query, features=features)
@@ -2481,7 +2481,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             (bucket_size * 10, 1),
         ]
         for idx, datum in enumerate(data):
-            assert datum["histogram_transaction_duration_10"] == expected[idx][0]
+            assert datum["histogram_deprecated_transaction_duration_10"] == expected[idx][0]
             assert datum["count"] == expected[idx][1]
 
     def test_failure_count_alias_field(self):
@@ -2958,3 +2958,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
+
+    def test_no_pagination_param(self):
+        self.store_event(
+            data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id", "project.id"], "project": [self.project.id], "noPagination": True}
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert "Link" not in response

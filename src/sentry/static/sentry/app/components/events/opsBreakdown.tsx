@@ -12,7 +12,7 @@ import {pickSpanBarColour} from 'app/components/events/interfaces/spans/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, SentryTransactionEvent} from 'app/types';
+import {EntryType, Event, EventTransaction} from 'app/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;
@@ -45,11 +45,11 @@ type Props = {
 };
 
 class OpsBreakdown extends React.Component<Props> {
-  getTransactionEvent(): SentryTransactionEvent | undefined {
+  getTransactionEvent(): EventTransaction | undefined {
     const {event} = this.props;
 
     if (event.type === 'transaction') {
-      return event as SentryTransactionEvent;
+      return event as EventTransaction;
     }
 
     return undefined;
@@ -68,9 +68,9 @@ class OpsBreakdown extends React.Component<Props> {
       return [];
     }
 
-    const spanEntry: SpanEntry | undefined = event.entries.find(
-      (entry: {type: string}) => entry.type === 'spans'
-    );
+    const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+      return entry.type === EntryType.SPANS;
+    });
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];
 

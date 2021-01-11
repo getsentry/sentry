@@ -14,11 +14,17 @@ from sentry.models import (
     Release,
     GroupEnvironment,
     Group,
+    GroupAssignee,
     GroupInbox,
     GroupLink,
+    GroupOwner,
     GroupStatus,
     GroupSubscription,
+    OrganizationMember,
+    OrganizationMemberTeam,
     PlatformExternalIssue,
+    Team,
+    User,
 )
 from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
@@ -28,26 +34,34 @@ def assigned_to_filter(actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
-        return Q(assignee_set__team=actor)
+        return Q(
+            id__in=GroupAssignee.objects.filter(
+                team=actor, project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        )
 
-    teams = Team.objects.filter(
-        id__in=OrganizationMemberTeam.objects.filter(
-            organizationmember__in=OrganizationMember.objects.filter(
-                user=actor, organization_id=projects[0].organization_id
+    assigned_to_user = Q(
+        id__in=GroupAssignee.objects.filter(
+            user=actor, project_id__in=[p.id for p in projects]
+        ).values_list("group_id", flat=True)
+    )
+    assigned_to_team = Q(
+        id__in=GroupAssignee.objects.filter(
+            project_id__in=[p.id for p in projects],
+            team_id__in=Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user=actor, organization_id=projects[0].organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
             ),
-            is_active=True,
-        ).values("team")
+        ).values_list("group_id", flat=True)
     )
-
-    return Q(
-        Q(assignee_set__user=actor, assignee_set__project__in=projects)
-        | Q(assignee_set__team__in=teams)
-    )
+    return assigned_to_user | assigned_to_team
 
 
 def unassigned_filter(unassigned, projects):
-    from sentry.models.groupassignee import GroupAssignee
-
     query = Q(
         id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
             "group_id", flat=True
@@ -120,6 +134,57 @@ def inbox_filter(inbox, projects):
     if not inbox:
         query = ~query
     return query
+
+
+def owner_filter(owner, projects):
+    organization_id = projects[0].organization_id
+    project_ids = [p.id for p in projects]
+    if isinstance(owner, Team):
+        return Q(
+            id__in=GroupOwner.objects.filter(
+                team=owner, project_id__in=project_ids, organization_id=organization_id
+            )
+            .values_list("group_id", flat=True)
+            .distinct()
+        ) | assigned_to_filter(owner, projects)
+    elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
+        include_none = False
+        if isinstance(owner, list) and owner[0] == "me_or_none":
+            include_none = True
+            owner = owner[1]
+
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__in=OrganizationMember.objects.filter(
+                    user=owner, organization_id=organization_id
+                ),
+                is_active=True,
+            ).values("team")
+        )
+        owned_by_me = Q(
+            id__in=GroupOwner.objects.filter(
+                Q(user_id=owner.id) | Q(team__in=teams),
+                Q(group__assignee_set__isnull=True),
+                project_id__in=[p.id for p in projects],
+                organization_id=organization_id,
+            )
+            .values_list("group_id", flat=True)
+            .distinct()
+        )
+
+        owner_query = owned_by_me | assigned_to_filter(owner, projects)
+
+        if include_none:
+            no_owner = unassigned_filter(True, projects) & ~Q(
+                id__in=GroupOwner.objects.filter(
+                    project_id__in=[p.id for p in projects]
+                ).values_list("group_id", flat=True)
+            )
+            return no_owner | owner_query
+        else:
+            return owner_query
+
+    raise InvalidSearchQuery(u"Unsupported owner type.")
 
 
 class Condition(object):
@@ -204,6 +269,7 @@ class SnubaSearchBackendBase(SearchBackend):
         search_filters=None,
         date_from=None,
         date_to=None,
+        max_hits=None,
     ):
         search_filters = search_filters if search_filters is not None else []
 
@@ -256,6 +322,7 @@ class SnubaSearchBackendBase(SearchBackend):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
+            max_hits=max_hits,
         )
 
     def _build_group_queryset(
@@ -336,7 +403,8 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 )
             ),
             "active_at": ScalarCondition("active_at"),
-            "inbox": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "needs_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
         }
 
         if environments is not None:
