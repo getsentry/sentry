@@ -7,7 +7,7 @@ import sentry_sdk
 from sentry import features
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
-from sentry.signals import event_processed, issue_unignored, inbox_in
+from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -246,13 +246,6 @@ def post_process_group(
 
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
-            inbox_in.send_robust(
-                project=event.group.project,
-                user=None,
-                group=event.group,
-                sender="post_process_group",
-                reason="reprocessed",
-            )
 
         if event.group_id and not is_reprocessed:
             # we process snoozes before rules as it might create a regression
@@ -261,22 +254,8 @@ def post_process_group(
             if not has_reappeared:  # If true, we added the .UNIGNORED reason already
                 if is_new:
                     add_group_to_inbox(event.group, GroupInboxReason.NEW)
-                    inbox_in.send_robust(
-                        project=event.group.project,
-                        user=None,
-                        group=event.group,
-                        sender="post_process_group",
-                        reason="new_issue",
-                    )
                 elif is_regression:
                     add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
-                    inbox_in.send_robust(
-                        project=event.group.project,
-                        user=None,
-                        group=event.group,
-                        sender="post_process_group",
-                        reason="regression",
-                    )
 
             handle_owner_assignment(event.project, event.group, event)
 
@@ -403,13 +382,6 @@ def process_snoozes(group):
             group=group,
             transition_type="automatic",
             sender="process_snoozes",
-        )
-        inbox_in.send_robust(
-            project=group.project,
-            user=None,
-            group=group,
-            sender="process_snoozes",
-            reason="unignored",
         )
         return True
 

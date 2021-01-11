@@ -52,6 +52,6 @@ class SignalsTest(TestCase, SnubaTestCase):
             group=self.group,
             user=None,
             sender="test_mark_reviewed",
-            reason="new_issue",
+            reason="new",
         )
         assert mock_record.called
