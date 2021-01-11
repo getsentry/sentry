@@ -137,7 +137,11 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'choice_mapper':
         return <ChoiceMapperField {...props} />;
       case 'radio':
-        return <RadioField {...props} />;
+        const choices = props.choices;
+        if (!Array.isArray(choices)) {
+          throw new Error('Invalid `choices` type. Use an array of options');
+        }
+        return <RadioField {...props} choices={choices} />;
       case 'rich_list':
         return <RichListField {...props} />;
       case 'table':
