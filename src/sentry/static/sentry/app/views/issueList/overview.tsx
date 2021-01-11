@@ -841,10 +841,6 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
-  handleTabClick = (query: string) => {
-    this.transitionTo({query}, null);
-  };
-
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
@@ -918,10 +914,12 @@ class IssueListOverview extends React.Component<Props, State> {
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
-                onTabChange={this.handleTabClick}
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
+                savedSearchList={savedSearches}
+                onSavedSearchSelect={this.onSavedSearchSelect}
+                onSavedSearchDelete={this.onSavedSearchDelete}
                 displayReprocessingTab={showReprocessingTab}
               />
             )}
@@ -943,6 +941,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   savedSearchList={savedSearches}
                   tagValueLoader={this.tagValueLoader}
                   tags={tags}
+                  isInbox={hasFeature}
                 />
 
                 <Panel>
