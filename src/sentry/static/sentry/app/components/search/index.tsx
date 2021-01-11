@@ -1,8 +1,7 @@
 import React from 'react';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -20,62 +19,92 @@ import space from 'app/styles/space';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
+import {Result} from './sources/types';
+
+type InputProps = {
+  // TODO(ts) Improve this type when AutoComplete has types.
+  getInputProps: (options: any) => Record<string, any>;
+};
+
+/**
+ * Render prop for search results
+ *
+ * Args: {
+ *  item: Search Item
+ *  index: item's index in results
+ *  highlighted: is item highlighted
+ *  itemProps: props that should be spread for root item
+ * }
+ */
+type ItemProps = {
+  item: Result['item'];
+  matches: Result['matches'];
+  index: number;
+  highlighted: boolean;
+  itemProps: React.ComponentProps<typeof SearchResultWrapper>;
+};
+
+// Not using typeof defaultProps because of the wrapping HOC which
+// causes defaultProp magic to fall off.
+const defaultProps = {
+  renderItem: ({
+    item,
+    matches,
+    itemProps,
+    highlighted,
+  }: ItemProps): React.ReactElement => (
+    <SearchResultWrapper {...itemProps} highlighted={highlighted}>
+      <SearchResult highlighted={highlighted} item={item} matches={matches} />
+    </SearchResultWrapper>
+  ),
+  sources: [ApiSource, FormSource, RouteSource, CommandSource] as React.ComponentType[],
+  closeOnSelect: true,
+};
+
+type Props = WithRouterProps<{orgId: string}> & {
+  /**
+   * For analytics
+   */
+  entryPoint: 'settings_search' | 'command_palette' | 'sidebar_help';
+  /**
+   * Render prop for the main input for the search
+   */
+  renderInput: (props: InputProps) => React.ReactNode;
+  /**
+   * Maximum number of results to display
+   */
+  maxResults: number;
+  /**
+   * Minimum number of characters before search activates
+   */
+  minSearch: number;
+
+  searchOptions?: Fuse.FuseOptions<any>;
+  /**
+   * Additional CSS for the dropdown menu.
+   */
+  dropdownStyle?: string;
+  /**
+   * Adds a footer below the results when the search is complete
+   */
+  resultFooter?: React.ReactElement;
+  /**
+   * Render an item in the search results.
+   */
+  renderItem?: (props: ItemProps) => React.ReactElement;
+  /**
+   * Passed to the underlying AutoComplete component
+   */
+  closeOnSelect?: boolean;
+  /**
+   * The sources to query
+   */
+  sources?: React.ComponentType[];
+};
+
 // "Omni" search
-class Search extends React.Component {
-  static propTypes = {
-    // For analytics
-    entryPoint: PropTypes.oneOf(['settings_search', 'command_palette', 'sidebar_help'])
-      .isRequired,
-
-    sources: PropTypes.array.isRequired,
-
-    router: PropTypes.object,
-    /**
-     * Render prop for the main input for the search
-     */
-    renderInput: PropTypes.func.isRequired,
-
-    /**
-     * Maximum number of results to display
-     */
-    maxResults: PropTypes.number,
-
-    /**
-     * Minimum number of characters before search activates
-     */
-    minSearch: PropTypes.number,
-
-    /**
-     * Render prop for search results
-     *
-     * Args: {
-     *  item: Search Item
-     *  index: item's index in results
-     *  highlighted: is item highlighted
-     *  itemProps: props that should be spread for root item
-     * }
-     */
-    renderItem: PropTypes.func,
-    dropdownStyle: PropTypes.string,
-    searchOptions: PropTypes.object,
-    // Passed to the underlying AutoComplete component
-    closeOnSelect: PropTypes.bool,
-    /**
-     * Adds a footer below the results when the search is complete
-     */
-    resultFooter: PropTypes.node,
-  };
-
-  static defaultProps = {
-    // Default Search result rendering
-    renderItem: ({item, matches, itemProps, highlighted}) => (
-      <SearchResultWrapper {...itemProps} highlighted={highlighted}>
-        <SearchResult highlighted={highlighted} item={item} matches={matches} />
-      </SearchResultWrapper>
-    ),
-    sources: [ApiSource, FormSource, RouteSource, CommandSource],
-    closeOnSelect: true,
-  };
+class Search extends React.Component<Props> {
+  static defaultProps = defaultProps;
 
   componentDidMount() {
     trackAnalyticsEvent({
@@ -84,7 +113,8 @@ class Search extends React.Component {
     });
   }
 
-  handleSelect = (item, state) => {
+  // TODO(ts) Improve the state type when AutoComplete has types.
+  handleSelect = (item: Result['item'], state: any) => {
     if (!item) {
       return;
     }
@@ -120,7 +150,7 @@ class Search extends React.Component {
       }
 
       open.opener = null;
-      open.location = to;
+      open.location.href = to;
       return;
     }
 
@@ -189,15 +219,7 @@ class Search extends React.Component {
         onSelect={this.handleSelect}
         closeOnSelect={closeOnSelect}
       >
-        {({
-          getInputProps,
-          getItemProps,
-          isOpen,
-          inputValue,
-          selectedItem: _selectedItem,
-          highlightedIndex,
-          onChange: _onChange,
-        }) => {
+        {({getInputProps, getItemProps, isOpen, inputValue, highlightedIndex}) => {
           const searchQuery = inputValue.toLowerCase().trim();
           const isValidSearch = inputValue.length >= minSearch;
 
@@ -214,7 +236,7 @@ class Search extends React.Component {
                   searchOptions={searchOptions}
                   query={searchQuery}
                   params={params}
-                  sources={sources}
+                  sources={sources ?? defaultProps.sources}
                 >
                   {({isLoading, results, hasAnyResults}) => (
                     <DropdownBox className={dropdownStyle}>

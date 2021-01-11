@@ -10,9 +10,11 @@ type ChildProps = {
 };
 
 type Props = {
-  sources: React.ComponentClass[];
+  sources: React.ComponentType[];
   query: string;
   children: (props: ChildProps) => React.ReactElement;
+  params: {orgId: string};
+  searchOptions?: Fuse.FuseOptions<any>;
 };
 
 type SourceResult = {
