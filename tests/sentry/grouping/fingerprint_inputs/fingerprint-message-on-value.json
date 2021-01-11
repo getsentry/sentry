@@ -8,7 +8,8 @@
         ]
       ],
       "fingerprint": [
-        "what-is-love"
+        "what-is-love",
+        "{{ message }}"
       ]
     }
   ],
