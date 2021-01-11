@@ -22,7 +22,7 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {Image} from 'app/types/debugImage';
+import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -197,7 +197,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const unusedImages: Images = [];
 
     const usedImages = relevantImages.filter(image => {
-      if (image.debug_status === ImageProcessingInfo.UNUSED) {
+      if (image.debug_status === ImageStatus.UNUSED) {
         unusedImages.push(image as Images[0]);
         return false;
       }

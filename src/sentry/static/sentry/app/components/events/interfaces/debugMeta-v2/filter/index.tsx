@@ -7,12 +7,12 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {ImageProcessingInfo} from 'app/types/debugImage';
+import {ImageStatus} from 'app/types/debugImage';
 
 import DropDownButton from './dropDownButton';
 
 type Option = {
-  id: ImageProcessingInfo;
+  id: ImageStatus;
   symbol: React.ReactElement;
   isChecked: boolean;
 };
