@@ -47,6 +47,7 @@ function Actions({candidate, organization, baseUrl, projectId, onDelete}: Props)
           <Tooltip
             disabled={hasRole}
             title={t('You do not have permission to download debug files.')}
+            containerDisplayMode="block"
           >
             <MenuItemActionLink
               shouldConfirm={false}
@@ -70,6 +71,7 @@ function Actions({candidate, organization, baseUrl, projectId, onDelete}: Props)
           <Tooltip
             disabled={hasAccess}
             title={t('You do not have permission to delete debug files.')}
+            containerDisplayMode="block"
           >
             <MenuItemActionLink
               onAction={() => onDelete(debugFileId)}
