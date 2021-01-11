@@ -2,26 +2,26 @@ import React from 'react';
 
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconClose, IconWarning} from 'app/icons';
-import {CandidateStacktraceInfo, CandidateStacktraceStatus} from 'app/types/debugImage';
+import {CandidateProcessingInfo, CandidateProcessingStatus} from 'app/types/debugImage';
 
 type Props = {
-  stacktraceInfo: CandidateStacktraceInfo;
+  processingInfo: CandidateProcessingInfo;
 };
 
-function StacktraceStatusIcon({stacktraceInfo}: Props) {
-  switch (stacktraceInfo.status) {
-    case CandidateStacktraceStatus.OK:
+function ProcessingIcon({processingInfo}: Props) {
+  switch (processingInfo.status) {
+    case CandidateProcessingStatus.OK:
       return <IconCheckmark color="green300" size="xs" />;
-    case CandidateStacktraceStatus.ERROR: {
-      const {details} = stacktraceInfo;
+    case CandidateProcessingStatus.ERROR: {
+      const {details} = processingInfo;
       return (
         <Tooltip title={details} disabled={!details}>
           <IconClose color="red300" size="xs" />
         </Tooltip>
       );
     }
-    case CandidateStacktraceStatus.MALFORMED: {
-      const {details} = stacktraceInfo;
+    case CandidateProcessingStatus.MALFORMED: {
+      const {details} = processingInfo;
       return (
         <Tooltip title={details} disabled={!details}>
           <IconWarning color="yellow300" size="xs" />
@@ -33,4 +33,4 @@ function StacktraceStatusIcon({stacktraceInfo}: Props) {
   }
 }
 
-export default StacktraceStatusIcon;
+export default ProcessingIcon;

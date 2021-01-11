@@ -777,6 +777,7 @@ def get_facets(query, params, limit=10, referrer=None):
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
     # Exclude tracing tags as they are noisy and generally not helpful.
+    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
     excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
 
     # Sampling keys for multi-project results as we don't need accuracy

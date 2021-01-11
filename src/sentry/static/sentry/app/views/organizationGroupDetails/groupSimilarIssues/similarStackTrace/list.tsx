@@ -90,42 +90,42 @@ class List extends React.Component<Props, State> {
     }
 
     return (
-      <Wrapper className="similar-list-container">
+      <React.Fragment>
         <Header>
           <SimilarSpectrum />
         </Header>
-        <Toolbar v2={v2} onMerge={onMerge} />
-        <div className="similar-list">
-          {itemsWithFiltered.map(item => (
-            <Item
-              key={item.issue.id}
-              orgId={orgId}
-              v2={v2}
-              groupId={groupId}
-              project={project}
-              {...item}
-            />
-          ))}
 
-          {hasHiddenItems && !showAllItems && (
-            <Footer>
-              <Button onClick={this.handleShowAll}>
-                {t('Show %s issues below threshold', filteredItems.length)}
-              </Button>
-            </Footer>
-          )}
-        </div>
+        <Panel>
+          <Toolbar v2={v2} onMerge={onMerge} />
+
+          <PanelBody>
+            {itemsWithFiltered.map(item => (
+              <Item
+                key={item.issue.id}
+                orgId={orgId}
+                v2={v2}
+                groupId={groupId}
+                project={project}
+                {...item}
+              />
+            ))}
+
+            {hasHiddenItems && !showAllItems && (
+              <Footer>
+                <Button onClick={this.handleShowAll}>
+                  {t('Show %s issues below threshold', filteredItems.length)}
+                </Button>
+              </Footer>
+            )}
+          </PanelBody>
+        </Panel>
         <Pagination pageLinks={pageLinks} />
-      </Wrapper>
+      </React.Fragment>
     );
   }
 }
 
 export default List;
-
-const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 const Header = styled('div')`
   display: flex;

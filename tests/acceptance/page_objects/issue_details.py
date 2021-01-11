@@ -21,7 +21,7 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until(".group-detail")
 
     def visit_tag_values(self, org, groupid, tag):
-        self.browser.get(u"/organizations/{}/issues/{}/tags/{}/".format(org, groupid, tag))
+        self.browser.get(u"/organizations/{}/issues/{}/tags/{}".format(org, groupid, tag))
         self.browser.wait_until_not(".loading-indicator")
 
     def get_environment(self):

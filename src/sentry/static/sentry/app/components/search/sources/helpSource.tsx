@@ -78,7 +78,6 @@ class HelpSource extends React.Component<Props, State> {
   render() {
     return this.props.children({
       isLoading: this.state.loading,
-      allResults: this.state.results,
       results: this.state.results,
     });
   }
@@ -103,14 +102,14 @@ function mapSearchResults(results: SearchResult[]) {
       const item: ResultItem = {
         ...hit,
         sourceType: 'help',
-        resultType: `help-${hit.site}`,
+        resultType: `help-${hit.site}` as ResultItem['resultType'],
         title: dompurify.sanitize(hit.title ?? ''),
         extra: hit.context.context1,
         description: hit.text ? dompurify.sanitize(hit.text) : undefined,
         to: hit.url,
       };
 
-      return {item, matches: [title, description]};
+      return {item, matches: [title, description], score: 1};
     });
 
     // The first element should indicate the section.
@@ -125,13 +124,13 @@ function mapSearchResults(results: SearchResult[]) {
     // If we didn't have any results for this section mark it as empty
     const emptyHeaderItem: ResultItem = {
       sourceType: 'help',
-      resultType: `help-${section.site}`,
+      resultType: `help-${section.site}` as ResultItem['resultType'],
       title: `No results in ${section.name}`,
       sectionHeading: section.name,
       empty: true,
     };
 
-    items.push({item: emptyHeaderItem});
+    items.push({item: emptyHeaderItem, score: 1});
   });
 
   return items;

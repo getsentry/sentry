@@ -13,11 +13,36 @@ export type ResultItem = {
   /**
    * The source that created the result.
    */
-  sourceType: string;
+  sourceType:
+    | 'organization'
+    | 'project'
+    | 'command'
+    | 'team'
+    | 'member'
+    | 'field'
+    | 'route'
+    | 'event'
+    | 'issue'
+    | 'plugin'
+    | 'integration'
+    | 'sentryApp'
+    | 'docIntegration'
+    | 'help';
   /**
    * The type of result eg. settings, help-docs
    */
-  resultType: string;
+  resultType:
+    | 'settings'
+    | 'command'
+    | 'route'
+    | 'field'
+    | 'issue'
+    | 'event'
+    | 'integration'
+    | 'help-docs'
+    | 'help-develop'
+    | 'help-help-center'
+    | 'help-blog';
   /**
    * The description text to display
    */
@@ -30,12 +55,14 @@ export type ResultItem = {
    * A handler to call when the result is clicked,
    * and the result doesn't have a URL.
    */
-  action?: () => void;
+  action?: (item: ResultItem, autocompleteState: any) => void;
 
   sectionHeading?: string;
   sectionCount?: number;
   extra?: any;
   empty?: boolean;
+  // Used to store groups and events
+  model?: any;
 };
 
 /**
@@ -44,6 +71,7 @@ export type ResultItem = {
 export type Result = {
   item: ResultItem;
   matches?: MarkedText[];
+  score: number;
 };
 
 /**
@@ -59,9 +87,4 @@ export type ChildProps = {
    * Matched results
    */
   results: Result[];
-  /**
-   * All potential results if available.
-   * @deprecated This isn't used by source consumers and will be removed soon.
-   */
-  allResults: Result[];
 };
