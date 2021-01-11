@@ -3,18 +3,13 @@ import styled from '@emotion/styled';
 
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import {Image, ImageProcessingInfo} from 'app/types/debugImage';
-
-import {combineStatus} from '../utils';
+import {ImageProcessingInfo} from 'app/types/debugImage';
 
 type Props = {
-  image: Image;
+  status: ImageProcessingInfo;
 };
 
-function Status({image}: Props) {
-  const {debug_status, unwind_status} = image;
-  const status = combineStatus(debug_status, unwind_status);
-
+function Status({status}: Props) {
   switch (status) {
     case ImageProcessingInfo.OTHER:
     case ImageProcessingInfo.FETCHING_FAILED:
