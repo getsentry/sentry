@@ -195,9 +195,11 @@ class Chart extends React.Component<ChartProps, State> {
       : undefined;
 
     const chartOptions = {
-      colors: colors?.slice(0, timeseriesData.length) ?? [
-        ...theme.charts.getColorPalette(timeseriesData.length - 2),
-      ],
+      colors: timeseriesData.length
+        ? colors?.slice(0, timeseriesData.length) ?? [
+            ...theme.charts.getColorPalette(timeseriesData.length - 2),
+          ]
+        : undefined,
       grid: {
         left: '24px',
         right: '24px',
