@@ -18,11 +18,11 @@ Light.defaultProps = {
   },
   animate: {
     rotate: [-5, 8, -5],
-    transition: {
+    transition: testableTransition({
       duration: 3,
       repeat: Infinity,
       repeatType: 'loop',
-    },
+    }),
   },
 };
 
