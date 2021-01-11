@@ -35,4 +35,4 @@ export type DashboardDetails = {
   createdBy: string;
 };
 
-export type DashboardState = 'view' | 'edit' | 'create';
+export type DashboardState = 'view' | 'edit' | 'create' | 'pending_delete';
