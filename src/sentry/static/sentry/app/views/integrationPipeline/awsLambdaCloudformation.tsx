@@ -81,6 +81,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
           required: true,
           label: t('ARN'),
           inline: false,
+          placeholder:
+            'arn:aws:iam::XXXXXXXXXXXX:role/SentryMonitoringStack-XXXXXXXXXXXXX',
         },
       ],
     };
