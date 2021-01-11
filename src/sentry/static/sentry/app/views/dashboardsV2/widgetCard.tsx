@@ -40,22 +40,21 @@ type Props = ReactRouter.WithRouterProps & {
   onDelete: () => void;
   onEdit: () => void;
   renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
+  isDragging: boolean;
+  hideToolbar?: boolean;
+  startWidgetDrag: (
+    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
+  ) => void;
 };
 
-type State = {
-  hovering: boolean;
-};
-
-class WidgetCard extends React.Component<Props, State> {
-  state: State = {
-    hovering: false,
-  };
-
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+class WidgetCard extends React.Component<Props> {
+  shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
       !isEqual(nextProps.selection, this.props.selection) ||
-      nextState.hovering !== this.state.hovering
+      this.props.isEditing !== nextProps.isEditing ||
+      this.props.isDragging !== nextProps.isDragging ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
@@ -173,18 +172,28 @@ class WidgetCard extends React.Component<Props, State> {
     );
   }
 
-  renderEditPanel() {
-    if (!this.state.hovering || !this.props.isEditing) {
+  renderToolbar() {
+    if (!this.props.isEditing) {
       return null;
     }
 
-    const {onEdit, onDelete} = this.props;
+    if (this.props.hideToolbar) {
+      return <ToolbarPanel />;
+    }
+
+    const {onEdit, onDelete, startWidgetDrag} = this.props;
 
     return (
-      <EditPanel>
-        <IconContainer>
-          <IconGrabbable color="gray500" size="lg" />
+      <ToolbarPanel>
+        <IconContainer data-component="icon-container">
+          <StyledIconGrabbable
+            color="gray500"
+            size="lg"
+            onMouseDown={event => startWidgetDrag(event)}
+            onTouchStart={event => startWidgetDrag(event)}
+          />
           <IconClick
+            data-test-id="widget-edit"
             onClick={() => {
               onEdit();
             }}
@@ -192,6 +201,7 @@ class WidgetCard extends React.Component<Props, State> {
             <IconEdit color="gray500" size="lg" />
           </IconClick>
           <IconClick
+            data-test-id="widget-delete"
             onClick={() => {
               onDelete();
             }}
@@ -199,32 +209,24 @@ class WidgetCard extends React.Component<Props, State> {
             <IconDelete color="gray500" size="lg" />
           </IconClick>
         </IconContainer>
-      </EditPanel>
+      </ToolbarPanel>
     );
   }
 
   render() {
-    const {widget, api, organization, selection, renderErrorMessage} = this.props;
+    const {
+      widget,
+      isDragging,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+    } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel
-          onMouseLeave={() => {
-            if (this.state.hovering) {
-              this.setState({
-                hovering: false,
-              });
-            }
-          }}
-          onMouseOver={() => {
-            if (!this.state.hovering) {
-              this.setState({
-                hovering: true,
-              });
-            }
-          }}
-        >
+        <StyledPanel isDragging={isDragging}>
           <WidgetQueries
             api={api}
             organization={organization}
@@ -240,7 +242,7 @@ class WidgetCard extends React.Component<Props, State> {
                   <ChartContainer>
                     <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
                     {this.renderVisual({results, errorMessage, loading})}
-                    {this.renderEditPanel()}
+                    {this.renderToolbar()}
                   </ChartContainer>
                 </React.Fragment>
               );
@@ -267,11 +269,16 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'isDragging',
+})<{
+  isDragging: boolean;
+}>`
   margin: 0;
+  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
 `;
 
-const EditPanel = styled('div')`
+const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
@@ -298,5 +305,11 @@ const IconContainer = styled('div')`
 const IconClick = styled('div')`
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
   }
 `;

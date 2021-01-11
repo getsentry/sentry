@@ -1,5 +1,5 @@
 ---
-created: '2021-01-11T19:06:27.995697Z'
+created: '2021-01-11T19:06:29.175447Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -7,16 +7,14 @@ config:
   rules:
   - attributes: {}
     fingerprint:
-    - what-is-love
-    - '{{ message }}'
+    - '{{ stack.abs_path }}'
     matchers:
-    - - message
-      - '*love*'
+    - - type
+      - DatabaseUnavailable
   version: 1
 fingerprint:
-- what-is-love
-- '{{ message }}'
-title: 'NoLove: something has no love.'
+- '{{ stack.abs_path }}'
+title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
     component:
@@ -25,11 +23,10 @@ variants:
       hint: custom fingerprint takes precedence
     type: component
   custom-fingerprint:
-    matched_rule: message:"*love*" -> "what-is-love{{ message }}"
+    matched_rule: type:"DatabaseUnavailable" -> "{{ stack.abs_path }}"
     type: custom-fingerprint
     values:
-    - what-is-love
-    - something has no love.
+    - /foo/Application.cpp
   system:
     component:
       contributes: false

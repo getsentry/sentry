@@ -1,8 +1,9 @@
 ---
-created: '2020-10-23T11:19:17.553494Z'
+created: '2020-12-07T11:45:47.152147Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
+similarity:2020-07-23:fingerprint:ident-shingle: "something went WRONG"
 similarity:2020-07-23:fingerprint:ident-shingle: "something-went-wrong"
 similarity:2020-07-23:stacktrace:frames-ident: [["filename","application.java"],["function","main"],["module","io.sentry.example.Application"]]
 similarity:2020-07-23:type:ident-shingle: "EndOfWorld"
