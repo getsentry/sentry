@@ -14,7 +14,7 @@ type RadioGroupProps<C extends string> = {
    */
   choices: [C, React.ReactNode, React.ReactNode?][];
   value: string | number | null;
-  onChange: (id: C, e: React.FormEvent) => void;
+  onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   /**
    * Switch the radio items to flow left to right, instead of vertically.
    */
@@ -51,7 +51,9 @@ const RadioGroup = <C extends string>({
           aria-label={id}
           disabled={disabled}
           checked={value === id}
-          onChange={(e: React.FormEvent) => !disabled && onChange(id, e)}
+          onChange={(e: React.FormEvent<HTMLInputElement>) =>
+            !disabled && onChange(id, e)
+          }
         />
         <RadioLineText disabled={disabled}>{name}</RadioLineText>
         {description && (
