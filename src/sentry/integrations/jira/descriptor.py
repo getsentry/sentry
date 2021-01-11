@@ -53,6 +53,25 @@ class JiraDescriptorEndpoint(Endpoint):
                             "url": "/extensions/jira/issue/{issue.key}/",
                         },
                     ],
+                    "jiraIssueGlances": [
+                        {
+                            "icon": {
+                                "width": 24,
+                                "height": 24,
+                                "url": "https://s1.sentry-cdn.com/_static/cf8c64922056acb651b70a00197520e2/sentry/images/logos/logo-sentry.svg",
+                            },
+                            "content": {
+                                "type": "label",
+                                "label": {"value": "Related Sentry Issues"},
+                            },
+                            "target": {
+                                "type": "web_panel",
+                                "url": "/extensions/jira/issue/{issue.key}/",
+                            },
+                            "name": {"value": "Related Sentry Issues "},
+                            "key": "sentry-issues-glance",
+                        }
+                    ],
                     "webhooks": [
                         {
                             "event": "jira:issue_updated",
