@@ -6,8 +6,6 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
-import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -15,8 +13,9 @@ import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
-import NotAvailable from './notAvailable';
-import Table from './table';
+import NotAvailable from '../notAvailable';
+
+import Candidates from './candidates';
 import {INTERNAL_SOURCE} from './utils';
 
 type Candidates = Image['candidates'];
@@ -26,8 +25,7 @@ type Props = AsyncComponent['props'] &
     projectId: Project['id'];
     organization: Organization;
     image: Image;
-    imageStartAddress: React.ReactElement | null;
-    imageEndAddress: React.ReactElement | null;
+    imageAddress: React.ReactElement | null;
     title?: string;
   };
 
@@ -151,17 +149,15 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       Header,
       Body,
       Footer,
-      closeModal,
-      title,
       image,
-      imageStartAddress,
-      imageEndAddress,
+      title,
+      imageAddress,
       organization,
       projectId,
     } = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, arch: architecture, code_file, code_id} = image;
+    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image;
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
@@ -173,31 +169,24 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
           <Content>
             <GeneralInfo>
               <Label>{t('Address Range')}</Label>
-              <Value>
-                {imageStartAddress && imageEndAddress ? (
-                  <React.Fragment>
-                    {imageStartAddress}
-                    {' \u2013 '}
-                    {imageEndAddress}
-                  </React.Fragment>
-                ) : (
-                  <NotAvailable />
-                )}
-              </Value>
+              <Value>{imageAddress ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Debug ID')}</Label>
-              <Value coloredBg>{debug_id}</Value>
+              <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
 
-              <Label>{t('Code ID')}</Label>
-              <Value>{code_id}</Value>
+              <Label>{t('Debug File')}</Label>
+              <Value>{debug_file}</Value>
 
-              <Label coloredBg>{t('Code File')}</Label>
-              <Value coloredBg>{code_file}</Value>
+              <Label coloredBg>{t('Code ID')}</Label>
+              <Value coloredBg>{code_id}</Value>
 
-              <Label>{t('Architecture')}</Label>
-              <Value>{architecture ?? <NotAvailable />}</Value>
+              <Label>{t('Code File')}</Label>
+              <Value>{code_file}</Value>
+
+              <Label coloredBg>{t('Architecture')}</Label>
+              <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
             </GeneralInfo>
-            <Table
+            <Candidates
               candidates={candidates}
               organization={organization}
               projectId={projectId}
@@ -209,15 +198,12 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
           </Content>
         </Body>
         <Footer>
-          <ButtonBar gap={1}>
-            <Button
-              href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
-              external
-            >
-              {'Read the docs'}
-            </Button>
-            <Button onClick={closeModal}>{t('Close')}</Button>
-          </ButtonBar>
+          <Button
+            href="https://docs.sentry.io/platforms/native/data-management/debug-files/"
+            external
+          >
+            {t('Read the docs')}
+          </Button>
         </Footer>
       </React.Fragment>
     );
@@ -238,16 +224,18 @@ const GeneralInfo = styled('div')`
 `;
 
 const Label = styled('div')<{coloredBg?: boolean}>`
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.textColor};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
 `;
 
-const Value = styled(TextOverflow)<{coloredBg?: boolean}>`
+const Value = styled(Label)`
   color: ${p => p.theme.gray400};
   ${p => p.coloredBg && `background-color: ${p.theme.backgroundSecondary};`}
   padding: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 export const modalCss = css`
@@ -257,8 +245,8 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 60%;
-      margin-left: -30%;
+      width: 40%;
+      margin-left: -20%;
     }
   }
 `;

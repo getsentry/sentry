@@ -19,9 +19,3 @@ export async function createFuzzySearch<
   };
   return new Fuse(objects, opts);
 }
-
-export function isResultWithMatches<T>(
-  maybe: T | Fuse.FuseResultWithMatches<T>
-): maybe is Fuse.FuseResultWithMatches<T> {
-  return (maybe as Fuse.FuseResultWithMatches<T>).matches !== undefined;
-}

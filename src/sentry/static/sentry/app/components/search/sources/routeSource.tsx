@@ -1,6 +1,6 @@
 import React from 'react';
 import {WithRouterProps} from 'react-router';
-import {FuseOptions, FuseResultWithMatches} from 'fuse.js';
+import {FuseOptions} from 'fuse.js';
 import flattenDepth from 'lodash/flattenDepth';
 
 import {Organization, Project} from 'app/types';
@@ -11,6 +11,8 @@ import accountSettingsNavigation from 'app/views/settings/account/navigationConf
 import organizationSettingsNavigation from 'app/views/settings/organization/navigationConfiguration';
 import projectSettingsNavigation from 'app/views/settings/project/navigationConfiguration';
 import {NavigationItem} from 'app/views/settings/types';
+
+import {ChildProps, Result} from './types';
 
 type Config =
   | typeof accountSettingsNavigation
@@ -46,30 +48,6 @@ const mapFunc = (config: Config, context: Context | null = null) =>
     )
   );
 
-type ItemProps = {
-  resultType: 'route';
-  sourceType: 'route';
-  to: string;
-};
-
-type Result = {
-  item: NavigationItem & ItemProps;
-  matches: FuseResultWithMatches<NavigationItem>['matches'];
-  score: number;
-};
-
-type RenderProps = {
-  isLoading: boolean;
-  /**
-   * Unused in this source
-   */
-  allResults: object[];
-  /**
-   * Matched results
-   */
-  results: Result[];
-};
-
 type DefaultProps = {
   /**
    * Fuse configuration for searching NavigationItem's
@@ -88,7 +66,7 @@ type Props = WithRouterProps &
     /**
      * Render function that renders the route matches
      */
-    children: (props: RenderProps) => React.ReactNode;
+    children: (props: ChildProps) => React.ReactNode;
   };
 
 type State = {
@@ -152,24 +130,21 @@ class RouteSource extends React.Component<Props, State> {
 
   render() {
     const {query, params, children} = this.props;
-
-    const results =
-      this.state.fuzzy?.search<NavigationItem, true, true>(query).map(
-        ({item, ...rest}) =>
-          ({
-            item: {
-              ...item,
-              sourceType: 'route',
-              resultType: 'route',
-              to: replaceRouterParams(item.path, params),
-            },
-            ...rest,
-          } as Result)
-      ) ?? [];
+    const results: Result[] =
+      this.state.fuzzy
+        ?.search<NavigationItem, true, true>(query)
+        .map(({item, ...rest}) => ({
+          item: {
+            ...item,
+            sourceType: 'route',
+            resultType: 'route',
+            to: replaceRouterParams(item.path, params),
+          },
+          ...rest,
+        })) ?? [];
 
     return children({
       isLoading: this.state.fuzzy === undefined,
-      allResults: [],
       results,
     });
   }

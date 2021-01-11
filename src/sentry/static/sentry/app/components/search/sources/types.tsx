@@ -36,6 +36,8 @@ export type ResultItem = {
   sectionCount?: number;
   extra?: any;
   empty?: boolean;
+  // Used to store groups and events
+  model?: any;
 };
 
 /**
@@ -44,6 +46,7 @@ export type ResultItem = {
 export type Result = {
   item: ResultItem;
   matches?: MarkedText[];
+  score: number;
 };
 
 /**
@@ -59,9 +62,4 @@ export type ChildProps = {
    * Matched results
    */
   results: Result[];
-  /**
-   * All potential results if available.
-   * @deprecated This isn't used by source consumers and will be removed soon.
-   */
-  allResults: Result[];
 };

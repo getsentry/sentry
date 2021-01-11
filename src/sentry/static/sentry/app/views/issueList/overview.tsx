@@ -779,7 +779,11 @@ class IssueListOverview extends React.Component<Props, State> {
   };
 
   renderLoading(): React.ReactNode {
-    return <LoadingIndicator />;
+    return (
+      <StyledPageContent>
+        <LoadingIndicator />
+      </StyledPageContent>
+    );
   }
 
   renderStreamBody(): React.ReactNode {
@@ -835,10 +839,6 @@ class IssueListOverview extends React.Component<Props, State> {
         () => this.transitionTo({}, null)
       );
     });
-  };
-
-  handleTabClick = (query: string) => {
-    this.transitionTo({query}, null);
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -914,10 +914,12 @@ class IssueListOverview extends React.Component<Props, State> {
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
-                onTabChange={this.handleTabClick}
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
+                savedSearchList={savedSearches}
+                onSavedSearchSelect={this.onSavedSearchSelect}
+                onSavedSearchDelete={this.onSavedSearchDelete}
                 displayReprocessingTab={showReprocessingTab}
               />
             )}
@@ -939,6 +941,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   savedSearchList={savedSearches}
                   tagValueLoader={this.tagValueLoader}
                   tags={tags}
+                  isInbox={hasFeature}
                 />
 
                 <Panel>
@@ -1020,7 +1023,7 @@ export default withApi(
 export {IssueListOverview};
 
 // TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)<{isInbox: boolean}>`
+const StyledPageContent = styled(PageContent)<{isInbox?: boolean}>`
   display: flex;
   flex-direction: row;
   ${p =>
