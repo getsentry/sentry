@@ -24,6 +24,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Image} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 
 import DebugImage from './debugImage';
 import DebugImageDetails, {modalCss} from './debugImageDetails';
@@ -48,6 +49,7 @@ type Props = DefaultProps & {
 type State = {
   filter: string;
   filteredImages: Array<Image>;
+  isLoading: boolean;
   panelTableHeight?: number;
   innerListWidth?: number;
 };
@@ -65,6 +67,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   state: State = {
     filter: '',
     filteredImages: [],
+    isLoading: false,
   };
 
   componentDidMount() {
@@ -82,7 +85,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
       this.getPanelBodyHeight();
     }
 
-    this.getInnerListWidth();
+    if (this.state.isLoading) {
+      this.getInnerListWidth();
+    }
   }
 
   componentWillUnmount() {
@@ -102,13 +107,15 @@ class DebugMeta extends React.PureComponent<Props, State> {
     )?.clientWidth;
 
     if (innerListWidth !== this.state.innerListWidth) {
-      this.setState({innerListWidth});
+      this.setState({innerListWidth, isLoading: false});
+      return;
     }
+
+    this.setState({isLoading: false});
   }
 
   onListResize = () => {
-    this.getInnerListWidth();
-    this.updateGrid();
+    this.setState({isLoading: true}, this.updateGrid);
   };
 
   updateGrid = () => {
@@ -342,8 +349,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
         wrapTitle={false}
         isCentered
       >
-        <Panel>
-          <StyledPanelHeader innerListWidth={innerListWidth}>
+        <StyledPanel innerListWidth={innerListWidth}>
+          <StyledPanelHeader>
             <div>{t('Status')}</div>
             <div>{t('Image')}</div>
             <div>{t('Processing')}</div>
@@ -356,23 +363,13 @@ class DebugMeta extends React.PureComponent<Props, State> {
           ) : (
             <div ref={this.panelTableRef}>{this.renderList()}</div>
           )}
-        </Panel>
+        </StyledPanel>
       </StyledEventDataSection>
     );
   }
 }
 
 export default DebugMeta;
-
-const StyledPanelHeader = styled(PanelHeader)<{innerListWidth?: number}>`
-  padding: 0;
-  > * {
-    padding: ${space(2)};
-    ${overflowEllipsis};
-  }
-  ${p => layout(p.theme)};
-  ${p => p.innerListWidth && `padding-right: calc(100% - ${p.innerListWidth}px)`}
-`;
 
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(4)};
@@ -381,6 +378,25 @@ const StyledEventDataSection = styled(EventDataSection)`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
   }
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  padding: 0;
+  > * {
+    padding: ${space(2)};
+    ${overflowEllipsis};
+  }
+  ${p => layout(p.theme)};
+`;
+
+const StyledPanel = styled(Panel)<{innerListWidth?: number}>`
+  ${p =>
+    p.innerListWidth &&
+    `
+        ${StyledPanelHeader} {
+          padding-right: calc(100% - ${p.innerListWidth}px);
+        }
+    `};
 `;
 
 // Section Title
