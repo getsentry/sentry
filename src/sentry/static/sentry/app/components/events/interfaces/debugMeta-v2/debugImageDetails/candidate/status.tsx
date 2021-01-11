@@ -23,7 +23,7 @@ function Status({candidate}: Props) {
           description={location}
           disabled={!location || source === INTERNAL_SOURCE}
         >
-          <Tag type="success">{t('Success')}</Tag>
+          <Tag type="success">{t('Ok')}</Tag>
         </StatusTooltip>
       );
     }
