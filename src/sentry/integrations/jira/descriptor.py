@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
+from sentry.utils.assets import get_asset_url
 
 from .client import JIRA_KEY
 
@@ -21,6 +22,7 @@ class JiraDescriptorEndpoint(Endpoint):
     permission_classes = ()
 
     def get(self, request):
+        sentry_logo = absolute_uri(get_asset_url("sentry", "images/logos/logo-sentry.svg"))
         return self.respond(
             {
                 "name": "Sentry",
@@ -55,11 +57,7 @@ class JiraDescriptorEndpoint(Endpoint):
                     ],
                     "jiraIssueGlances": [
                         {
-                            "icon": {
-                                "width": 24,
-                                "height": 24,
-                                "url": "https://s1.sentry-cdn.com/_static/cf8c64922056acb651b70a00197520e2/sentry/images/logos/logo-sentry.svg",
-                            },
+                            "icon": {"width": 24, "height": 24, "url": sentry_logo},
                             "content": {
                                 "type": "label",
                                 "label": {"value": "Related Sentry Issues"},
