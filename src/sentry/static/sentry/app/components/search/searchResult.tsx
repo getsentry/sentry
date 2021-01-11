@@ -1,7 +1,6 @@
 import React from 'react';
-import {withRouter} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import IdBadge from 'app/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'app/icons';
@@ -10,64 +9,25 @@ import space from 'app/styles/space';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 import SettingsSearch from 'app/views/settings/components/settingsSearch';
 
-class SearchResult extends React.Component {
-  static propTypes = {
-    highlighted: PropTypes.bool,
-    item: PropTypes.shape({
-      /**
-       * The source of the search result (i.e. a model type)
-       */
-      sourceType: PropTypes.oneOf([
-        'organization',
-        'project',
-        'command',
-        'team',
-        'member',
-        'field',
-        'route',
-        'issue',
-        'event',
-        'plugin',
-        'integration',
-        'docIntegration',
-        'help',
-      ]),
-      /**
-       * The type of result this is, for example:
-       * - can be a setting route,
-       * - an application route (e.g. org dashboard)
-       * - form field
-       */
-      resultType: PropTypes.oneOf([
-        'settings',
-        'command',
-        'route',
-        'field',
-        'issue',
-        'event',
-        'integration',
-        'help-docs',
-        'help-develop',
-        'help-help-center',
-        'help-blog',
-      ]),
+import {Result} from './sources/types';
 
-      resultIcon: PropTypes.node,
-      title: PropTypes.node,
-      description: PropTypes.node,
-      extra: PropTypes.node,
-      model: PropTypes.object,
-    }),
-    matches: PropTypes.array,
-  };
+type Props = WithRouterProps<{orgId: string}> & {
+  highlighted: boolean;
+  item: Result['item'];
+  matches: Result['matches'];
+};
 
+class SearchResult extends React.Component<Props> {
   renderContent() {
     const {highlighted, item, matches, params} = this.props;
     const {sourceType, model, extra} = item;
     let {title, description} = item;
 
     if (matches) {
-      const HighlightedMarker = p => <HighlightMarker highlighted={highlighted} {...p} />;
+      // TODO(ts) Type this better.
+      const HighlightedMarker = (p: any) => (
+        <HighlightMarker highlighted={highlighted} {...p} />
+      );
 
       const matchedTitle = matches && matches.find(({key}) => key === 'title');
       const matchedDescription =
@@ -112,16 +72,12 @@ class SearchResult extends React.Component {
 
   renderResultType() {
     const {item} = this.props;
-    const {resultIcon, resultType, model} = item;
+    const {resultType, model} = item;
 
     const isSettings = resultType === 'settings';
     const isField = resultType === 'field';
     const isRoute = resultType === 'route';
     const isIntegration = resultType === 'integration';
-
-    if (resultIcon) {
-      return resultIcon;
-    }
 
     if (isSettings) {
       return <IconSettings />;
@@ -170,7 +126,7 @@ const ExtraDetail = styled('div')`
   margin-top: ${space(0.5)};
 `;
 
-const BadgeDetail = styled('div')`
+const BadgeDetail = styled('div')<{highlighted: boolean}>`
   line-height: 1.3;
   color: ${p => (p.highlighted ? p.theme.purple300 : null)};
 `;
