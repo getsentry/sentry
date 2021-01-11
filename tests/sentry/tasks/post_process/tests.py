@@ -183,7 +183,7 @@ class PostProcessGroupTest(TestCase):
 
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(self, mock_processor, issue_unignored):
+    def test_invalidates_snooze(self, mock_processor, send_robust):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
         cache_key = write_event_to_cache(event)
 
@@ -222,7 +222,7 @@ class PostProcessGroupTest(TestCase):
         assert GroupInbox.objects.filter(
             group=group, reason=GroupInboxReason.UNIGNORED.value
         ).exists()
-        assert issue_unignored.called
+        assert send_robust.called
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_maintains_valid_snooze(self, mock_processor):
