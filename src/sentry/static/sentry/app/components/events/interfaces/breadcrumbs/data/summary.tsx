@@ -42,7 +42,10 @@ class Summary extends React.Component<Props, State> {
       .filter(key => defined(kvData[key]) && !!kvData[key])
       .map(key => {
         const value =
-          typeof kvData[key] === 'object' ? JSON.stringify(kvData[key]) : kvData[key];
+          typeof kvData[key] === 'object'
+            ? JSON.stringify(kvData[key])
+            : String(kvData[key]);
+
         return (
           <Data key={key}>
             <StyledPre>
