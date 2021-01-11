@@ -1,7 +1,6 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {
@@ -17,44 +16,46 @@ import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {t, tct} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
+import {Organization, Project} from 'app/types';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
+import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {FieldValue} from 'app/views/settings/components/forms/model';
 import TextField from 'app/views/settings/components/forms/textField';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
-class ProjectGeneralSettings extends AsyncView {
-  static propTypes = {
-    onChangeSlug: PropTypes.func,
+type Props = AsyncView['props'] &
+  WithRouterProps<{orgId: string; projectId: string}> & {
+    organization: Organization;
+    onChangeSlug: (slug: string) => void;
   };
 
-  static contextTypes = {
-    organization: PropTypes.object.isRequired,
-  };
+type State = AsyncView['state'] & {
+  data: Project;
+};
 
-  constructor(...args) {
-    super(...args);
-    this._form = {};
-  }
+class ProjectGeneralSettings extends AsyncView<Props, State> {
+  private _form: Record<string, FieldValue> = {};
 
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {orgId, projectId} = this.props.params;
 
     return [['data', `/projects/${orgId}/${projectId}/`]];
   }
 
-  handleTransferFieldChange = (id, value) => {
+  handleTransferFieldChange = (id: string, value: FieldValue) => {
     this._form[id] = value;
   };
 
@@ -77,7 +78,7 @@ class ProjectGeneralSettings extends AsyncView {
     if (!project) {
       return;
     }
-    if (!this._form.email) {
+    if (!this._form.email || typeof this._form.email !== 'string') {
       return;
     }
 
@@ -87,7 +88,7 @@ class ProjectGeneralSettings extends AsyncView {
     }, handleXhrErrorResponse('Unable to transfer project'));
   };
 
-  isProjectAdmin = () => new Set(this.context.organization.access).has('project:admin');
+  isProjectAdmin = () => new Set(this.props.organization.access).has('project:admin');
 
   renderRemoveProject() {
     const project = this.state.data;
@@ -117,7 +118,6 @@ class ProjectGeneralSettings extends AsyncView {
           <Confirm
             onConfirm={this.handleRemoveProject}
             priority="danger"
-            title={t('Remove project?')}
             confirmText={t('Remove project')}
             message={
               <div>
@@ -171,7 +171,6 @@ class ProjectGeneralSettings extends AsyncView {
           <Confirm
             onConfirm={this.handleTransferProject}
             priority="danger"
-            title={`${t('Transfer project')}?`}
             confirmText={t('Transfer project')}
             renderMessage={({confirm}) => (
               <div>
@@ -220,7 +219,7 @@ class ProjectGeneralSettings extends AsyncView {
   }
 
   renderBody() {
-    const {organization} = this.context;
+    const {organization} = this.props;
     const project = this.state.data;
     const {orgId, projectId} = this.props.params;
     const endpoint = `/projects/${orgId}/${projectId}/`;
@@ -233,6 +232,7 @@ class ProjectGeneralSettings extends AsyncView {
       access,
       disabled: !access.has('project:write'),
     };
+    const team = project.teams.length ? project.teams[0] : undefined;
 
     return (
       <div>
@@ -244,7 +244,7 @@ class ProjectGeneralSettings extends AsyncView {
           allowUndo
           initialData={{
             ...project,
-            team: project.team && project.team.slug,
+            team,
           }}
           apiMethod="PUT"
           apiEndpoint={endpoint}
@@ -335,9 +335,16 @@ class ProjectGeneralSettings extends AsyncView {
   }
 }
 
-const ProjectGeneralSettingsContainer = createReactClass({
-  mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate')],
-  onProjectsUpdate(_projects) {
+type ContainerProps = {
+  organization: Organization;
+};
+
+const ProjectGeneralSettingsContainer = createReactClass<ContainerProps>({
+  mixins: [Reflux.listenTo(ProjectsStore, 'onProjectsUpdate') as any],
+
+  changedSlug: undefined,
+
+  onProjectsUpdate() {
     if (!this.changedSlug) {
       return;
     }
@@ -368,4 +375,4 @@ const ProjectGeneralSettingsContainer = createReactClass({
   },
 });
 
-export default ProjectGeneralSettingsContainer;
+export default withOrganization(ProjectGeneralSettingsContainer);

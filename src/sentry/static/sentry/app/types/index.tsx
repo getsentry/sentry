@@ -218,6 +218,7 @@ export type Project = {
   organization: Organization;
 
   isBookmarked: boolean;
+  isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
