@@ -62,6 +62,12 @@ FEATURE_DESCRIPTIONS = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Alert Rule conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 INSTALL_NOTICE_TEXT = """
