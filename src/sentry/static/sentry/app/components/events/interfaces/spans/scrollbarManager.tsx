@@ -1,15 +1,10 @@
 import React from 'react';
 
 import getDisplayName from 'app/utils/getDisplayName';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
-import {
-  clamp,
-  rectOfContent,
-  setBodyUserSelect,
-  toPercent,
-  UserSelectValues,
-} from './utils';
+import {clamp, rectOfContent, toPercent} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateScrollableSpanBarRef: () => (instance: HTMLDivElement | null) => void;
