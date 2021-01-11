@@ -34,6 +34,7 @@ type Props = {
   selectType?: 'grouped';
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onAddRow: (value: string) => void;
+  onResetRow: (ruleIndex: number, name: string, value: string) => void;
   onDeleteRow: (ruleIndex: number) => void;
 };
 
@@ -52,6 +53,7 @@ class RuleNodeList extends React.Component<Props> {
   render() {
     const {
       onAddRow,
+      onResetRow,
       onDeleteRow,
       onPropertyChange,
       nodes,
@@ -113,8 +115,9 @@ class RuleNodeList extends React.Component<Props> {
               index={idx}
               node={this.getNode(item.id)}
               onDelete={onDeleteRow}
-              data={item}
               onPropertyChange={onPropertyChange}
+              onReset={onResetRow}
+              data={item}
               organization={organization}
               project={project}
               disabled={disabled}

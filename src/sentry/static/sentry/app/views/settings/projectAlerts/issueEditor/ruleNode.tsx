@@ -38,6 +38,7 @@ type Props = {
   organization: Organization;
   disabled: boolean;
   onDelete: (rowIndex: number) => void;
+  onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
@@ -54,11 +55,11 @@ class RuleNode extends React.Component<Props> {
   };
 
   getChoiceField = (name: string, fieldConfig: FormField) => {
+    const {data, disabled, index, onPropertyChange, onReset} = this.props;
+
     // Select the first item on this list
     // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-    const {data, index, onPropertyChange, disabled} = this.props;
     let initialVal;
-
     if (data) {
       if (data[name] === undefined && !!fieldConfig.choices.length) {
         if (fieldConfig.initial) {
@@ -79,6 +80,14 @@ class RuleNode extends React.Component<Props> {
     // when the integration configuration gets saved, it gets saved and returned as a string
     const choices = fieldConfig.choices.map(([key, value]) => [`${key}`, value]);
 
+    const handleChange = ({value}) => {
+      if (fieldConfig.resetsForm) {
+        onReset(index, name, value);
+      } else {
+        onPropertyChange(index, name, value);
+      }
+    };
+
     return (
       <InlineSelectControl
         isClearable={false}
@@ -93,7 +102,7 @@ class RuleNode extends React.Component<Props> {
         }}
         disabled={disabled}
         choices={choices}
-        onChange={({value}) => onPropertyChange(index, name, value)}
+        onChange={handleChange}
       />
     );
   };
