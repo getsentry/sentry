@@ -24,7 +24,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Image} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
-import {defined} from 'app/utils';
 
 import DebugImage from './debugImage';
 import DebugImageDetails, {modalCss} from './debugImageDetails';
