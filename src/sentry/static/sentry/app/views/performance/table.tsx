@@ -47,11 +47,16 @@ type Props = {
   summaryConditions: string;
 
   projects: Project[];
+  columnTitles?: string[];
 };
 
 type State = {
   widths: number[];
 };
+
+function getColumnTitles(props: Props) {
+  return props.columnTitles || COLUMN_TITLES;
+}
 
 class Table extends React.Component<Props, State> {
   state = {
@@ -205,7 +210,7 @@ class Table extends React.Component<Props, State> {
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, COLUMN_TITLES[index]);
+      this.renderHeadCell(tableMeta, column, getColumnTitles(this.props)[index]);
   };
 
   renderPrependCellWithData = (tableData: TableData | null) => {
@@ -265,6 +270,7 @@ class Table extends React.Component<Props, State> {
 
   render() {
     const {eventView, organization, location} = this.props;
+
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()

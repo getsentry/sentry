@@ -397,7 +397,6 @@ class VitalCard extends React.Component<Props, State> {
       return vitalStateColors[VitalState.GOOD];
     }
   }
-  d;
 
   getBaselineSeries() {
     const {chartData, summary} = this.props;

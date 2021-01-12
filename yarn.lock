@@ -13276,6 +13276,11 @@ react-prop-types@^0.4.0:
   dependencies:
     warning "^3.0.0"
 
+react-range@^1.8.5:
+  version "1.8.5"
+  resolved "https://registry.yarnpkg.com/react-range/-/react-range-1.8.5.tgz#c5a1ceb3cd34d9830fe980f761b1d80c2e52fdcd"
+  integrity sha512-xWHMyq30lSxNnMMkUBrAvxSJUfxVCyQr/k0WI6aFFljCDq8obmu8zeHj1dODRBk2dV4QCmSD3Sszbc1b1U35hQ==
+
 react-redux@^7.0.2:
   version "7.1.3"
   resolved "https://registry.yarnpkg.com/react-redux/-/react-redux-7.1.3.tgz#717a3d7bbe3a1b2d535c94885ce04cdc5a33fc79"
