@@ -29,12 +29,40 @@ PII_CONFIG = """
 """
 
 
+def _dyn_sampling_config():
+    return [
+        {
+            "projectIds": [1, 2],
+            "conditions": [
+                {
+                    "operator": "globMatch",
+                    "name": "event.release",
+                    "value": ["FirstSegment", "SeCoNd"],
+                },
+                {
+                    "operator": "strEqualNoCase",
+                    "name": "event.environment",
+                    "value": ["dev", "prod"],
+                },
+                {
+                    "operator": "strEqualNoCase",
+                    "name": "event.user_segment",
+                    "value": ["FirstSegment", "SeCoNd"],
+                },
+            ],
+            "sampleRate": 0.8,
+            "ty": "error",
+        }
+    ]
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True])
 def test_get_project_config(default_project, insta_snapshot, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
+    default_project.organization.update_option("sentry:dynamic_sampling", _dyn_sampling_config())
     keys = ProjectKey.objects.filter(project=default_project)
 
     cfg = get_project_config(default_project, full_config=full, project_keys=keys)

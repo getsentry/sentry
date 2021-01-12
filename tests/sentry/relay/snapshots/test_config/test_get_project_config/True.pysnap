@@ -1,5 +1,5 @@
 ---
-created: '2020-07-08T19:22:25.717243Z'
+created: '2021-01-12T16:53:18.221897Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -12,6 +12,28 @@ config:
     scrubDefaults: true
     scrubIpAddresses: false
     sensitiveFields: []
+  dynamicSampling:
+  - conditions:
+    - name: event.release
+      operator: globMatch
+      value:
+      - FirstSegment
+      - SeCoNd
+    - name: event.environment
+      operator: strEqualNoCase
+      value:
+      - dev
+      - prod
+    - name: event.user_segment
+      operator: strEqualNoCase
+      value:
+      - FirstSegment
+      - SeCoNd
+    projectIds:
+    - 1
+    - 2
+    sampleRate: 0.8
+    ty: error
   eventRetention: null
   filterSettings:
     browserExtensions:
