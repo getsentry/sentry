@@ -704,7 +704,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
-        "schedule": timedelta(seconds=5),
+        "schedule": timedelta(minutes=5),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {

@@ -14,7 +14,7 @@ SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
 DEFAULT_NUM_RETRIES = 3
 
-OPTION_VERSION = "version"
+OPTION_VERSION = "layer-version"
 OPTION_LAYER_NAME = "layer-name"
 OPTION_ACCOUNT_NUMBER = "account-number"
 

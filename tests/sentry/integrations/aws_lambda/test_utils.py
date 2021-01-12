@@ -8,10 +8,14 @@ from sentry.integrations.aws_lambda.utils import (
     get_latest_layer_version,
     get_index_of_sentry_layer,
     get_function_layer_arns,
+    get_option_value,
+    OPTION_VERSION,
+    OPTION_LAYER_NAME,
+    OPTION_ACCOUNT_NUMBER,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.utils.compat.mock import MagicMock
+from sentry.utils.compat.mock import patch, MagicMock
 
 
 class ParseArnTest(TestCase):
@@ -112,3 +116,48 @@ class GetSupportedFunctionsTest(TestCase):
     ]
 
     mock_client.get_paginator.assert_called_once_with("list_functions")
+
+
+class GetOptionValueTest(TestCase):
+    node_fn = {
+        "Runtime": "nodejs10.x",
+        "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaB",
+    }
+
+    cache_value = {
+        "aws-layer:node": {
+            "name": "AWS Lambda Node Layer",
+            "canonical": "aws-layer:node",
+            "sdk_version": "5.29.3",
+            "account_number": "943013980633",
+            "layer_name": "SentryNodeServerlessSDK",
+            "repo_url": "https://github.com/getsentry/sentry-javascript",
+            "main_docs_url": "https://docs.sentry.io/platforms/node/guides/aws-lambda",
+            "regions": [
+                {"region": "us-east-2", "version": "19"},
+                {"region": "us-west-1", "version": "17"},
+            ],
+        }
+    }
+
+    def test_no_cache(self):
+        assert get_option_value(self.node_fn, OPTION_VERSION) == "3"
+        assert get_option_value(self.node_fn, OPTION_LAYER_NAME) == "my-layer"
+        assert get_option_value(self.node_fn, OPTION_ACCOUNT_NUMBER) == "1234"
+
+    @patch("sentry.integrations.aws_lambda.utils.get_cache_options")
+    def test_with_cache(self, mock_get_cache_options):
+        mock_get_cache_options.return_value = self.cache_value
+        assert get_option_value(self.node_fn, OPTION_VERSION) == "19"
+        assert get_option_value(self.node_fn, OPTION_LAYER_NAME) == "SentryNodeServerlessSDK"
+        assert get_option_value(self.node_fn, OPTION_ACCOUNT_NUMBER) == "943013980633"
+
+    @patch("sentry.integrations.aws_lambda.utils.get_cache_options")
+    def test_invalid_region(self, mock_get_cache_options):
+        fn = {
+            "Runtime": "nodejs10.x",
+            "FunctionArn": "arn:aws:lambda:us-gov-east-1:599817902985:function:lambdaB",
+        }
+        mock_get_cache_options.return_value = self.cache_value
+        with self.assertRaises(Exception, expected_regex="Invalid region us-gov-east-1"):
+            get_option_value(fn, OPTION_VERSION)
