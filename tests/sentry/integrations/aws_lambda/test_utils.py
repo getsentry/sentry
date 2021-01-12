@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from django.core.cache import cache
+from django.test import override_settings
+
 from sentry.integrations.aws_lambda.utils import (
     parse_arn,
     get_supported_functions,
@@ -13,6 +16,7 @@ from sentry.integrations.aws_lambda.utils import (
     OPTION_LAYER_NAME,
     OPTION_ACCOUNT_NUMBER,
 )
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import Mock
 from sentry.utils.compat.mock import patch, MagicMock
@@ -145,19 +149,30 @@ class GetOptionValueTest(TestCase):
         assert get_option_value(self.node_fn, OPTION_LAYER_NAME) == "my-layer"
         assert get_option_value(self.node_fn, OPTION_ACCOUNT_NUMBER) == "1234"
 
-    @patch("sentry.integrations.aws_lambda.utils.get_cache_options")
-    def test_with_cache(self, mock_get_cache_options):
-        mock_get_cache_options.return_value = self.cache_value
-        assert get_option_value(self.node_fn, OPTION_VERSION) == "19"
-        assert get_option_value(self.node_fn, OPTION_LAYER_NAME) == "SentryNodeServerlessSDK"
-        assert get_option_value(self.node_fn, OPTION_ACCOUNT_NUMBER) == "943013980633"
+    @patch.object(cache, "get")
+    def test_with_cache(self, mock_get):
+        mock_get.return_value = self.cache_value
+        with override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="http://localhost:5000"):
+            assert get_option_value(self.node_fn, OPTION_VERSION) == "19"
+            assert get_option_value(self.node_fn, OPTION_LAYER_NAME) == "SentryNodeServerlessSDK"
+            assert get_option_value(self.node_fn, OPTION_ACCOUNT_NUMBER) == "943013980633"
 
-    @patch("sentry.integrations.aws_lambda.utils.get_cache_options")
-    def test_invalid_region(self, mock_get_cache_options):
+    @patch.object(cache, "get")
+    def test_invalid_region(self, mock_get):
         fn = {
             "Runtime": "nodejs10.x",
             "FunctionArn": "arn:aws:lambda:us-gov-east-1:599817902985:function:lambdaB",
         }
-        mock_get_cache_options.return_value = self.cache_value
-        with self.assertRaises(Exception, expected_regex="Invalid region us-gov-east-1"):
-            get_option_value(fn, OPTION_VERSION)
+        mock_get.return_value = self.cache_value
+        with override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="http://localhost:5000"):
+            with self.assertRaisesRegex(IntegrationError, "Unsupported region us-gov-east-1"):
+                get_option_value(fn, OPTION_VERSION)
+
+    @patch.object(cache, "get")
+    def test_cache_miss(self, mock_get):
+        mock_get.return_value = {}
+        with override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="http://localhost:5000"):
+            with self.assertRaisesRegex(
+                IntegrationError, "Could not find cache value wiith key aws-layer:node",
+            ):
+                get_option_value(self.node_fn, OPTION_VERSION)

@@ -39,16 +39,6 @@ def parse_arn(arn):
     return result
 
 
-def get_cache_options():
-    """
-    The cache is filled by a regular background task (see sentry/tasks/release_registry)
-    """
-    if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
-        return {}
-
-    return cache.get(LAYER_INDEX_CACHE_KEY) or {}
-
-
 def get_option_value(function, option):
     region = parse_arn(function["FunctionArn"])["region"]
     runtime = function["Runtime"]
@@ -59,16 +49,23 @@ def get_option_value(function, option):
     else:
         raise Exception("Unsupported runtime")
 
-    cache_options = get_cache_options()
-
-    key = u"aws-layer:{}".format(prefix)
-    cache_value = cache_options.get(key) or {}
-
     # account number doesn't depend on the runtime prefix
     if option == OPTION_ACCOUNT_NUMBER:
         option_field = "aws-lambda.account-number"
     else:
         option_field = u"aws-lambda.{}.{}".format(prefix, option)
+
+    # if we don't have the settings set, read from our options
+    if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
+        return options.get(option_field)
+
+    # otherwise, read from the cache
+    cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
+    key = u"aws-layer:{}".format(prefix)
+    cache_value = cache_options.get(key)
+
+    if cache_value is None:
+        raise IntegrationError(u"Could not find cache value wiith key {}".format(key))
 
     # special lookup for the version since it depends on the region
     if option == OPTION_VERSION:
@@ -78,19 +75,14 @@ def get_option_value(function, option):
         if matched_regions:
             version = matched_regions[0]["version"]
             return version
-
-        # if we provided a region list but we have no match, throw an error
-        if region_release_list:
-            raise Exception(u"Unsupported region {}".format(region))
-
-        # return the value in options otherwise
-        return options.get(option_field)
+        else:
+            raise IntegrationError(u"Unsupported region {}".format(region))
 
     # we use - in options but _ in the registry
     registry_field = option.replace("-", "_")
 
-    # use the cache value as a primary
-    return cache_value.get(registry_field) or options.get(option_field)
+    # return the value out of the cache
+    return cache_value.get(registry_field)
 
 
 def _get_arn_without_version(arn):
