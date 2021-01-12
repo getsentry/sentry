@@ -78,7 +78,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     if (!project) {
       return;
     }
-    if (!this._form.email || typeof this._form.email !== 'string') {
+    if (typeof this._form.email !== 'string' || this._form.email.length < 1) {
       return;
     }
 
@@ -232,7 +232,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       access,
       disabled: !access.has('project:write'),
     };
-    const team = project.teams.length ? project.teams[0] : undefined;
+    const team = project.teams.length ? project.teams?.[0] : undefined;
 
     return (
       <div>
