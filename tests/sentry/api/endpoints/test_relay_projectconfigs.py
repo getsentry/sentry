@@ -88,11 +88,39 @@ def call_endpoint(client, relay, private_key, default_project):
     return inner
 
 
+def _dyn_sampling_config():
+    return [
+        {
+            "projectIds": [1, 2],
+            "conditions": [
+                {
+                    "operator": "globMatch",
+                    "name": "event.release",
+                    "value": ["FirstSegment", "SeCoNd"],
+                },
+                {
+                    "operator": "strEqualNoCase",
+                    "name": "event.environment",
+                    "value": ["dev", "prod"],
+                },
+                {
+                    "operator": "strEqualNoCase",
+                    "name": "event.user_segment",
+                    "value": ["FirstSegment", "SeCoNd"],
+                },
+            ],
+            "sampleRate": 0.8,
+            "ty": "error",
+        }
+    ]
+
+
 @pytest.fixture
 def add_org_key(default_organization, relay):
     default_organization.update_option(
         "sentry:trusted-relays", [{"public_key": relay.public_key, "name": "main-relay"}]
     )
+    default_organization.update_option("sentry:dynamic_sampling", _dyn_sampling_config())
 
 
 @pytest.fixture
@@ -122,7 +150,7 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
 
 @pytest.mark.django_db
 def test_internal_relays_should_receive_full_configs(
-    call_endpoint, default_project, default_projectkey
+    call_endpoint, default_project, default_projectkey, add_org_key
 ):
     result, status_code = call_endpoint(full_config=True)
 
@@ -150,7 +178,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "slug") == default_project.slug
     assert safe.get_path(cfg, "rev") is not None
 
-    assert safe.get_path(cfg, "config", "trustedRelays") == []
+    assert safe.get_path(cfg, "config", "trustedRelays") is not None
     assert safe.get_path(cfg, "config", "filterSettings") is not None
     assert safe.get_path(cfg, "config", "groupingConfig", "enhancements") is not None
     assert safe.get_path(cfg, "config", "groupingConfig", "id") is not None
@@ -161,6 +189,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") == []
+    assert safe.get_path(cfg, "config", "dynamicSampling") == _dyn_sampling_config()
 
     # Event retention depends on settings, so assert the actual value. Likely
     # `None` in dev, but must not be missing.
@@ -233,6 +262,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "organizationId") == default_project.organization.id
     assert safe.get_path(cfg, "projectId") == default_project.id
     assert safe.get_path(cfg, "slug") == default_project.slug
+    assert safe.get_path(cfg, "config", "dynamicSampling") == _dyn_sampling_config()
     assert safe.get_path(cfg, "rev") is not None
     assert safe.get_path(cfg, "config", "trustedRelays") == [relay.public_key]
     assert safe.get_path(cfg, "config", "filterSettings") is None

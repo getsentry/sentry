@@ -294,6 +294,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),
+                "dynamicSampling": obj.get_option("sentry:dynamic_sampling", []),
             }
         )
 

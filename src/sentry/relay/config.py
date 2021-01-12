@@ -128,6 +128,7 @@ def get_project_config(project, full_config=True, project_keys=None):
                 ],
                 "piiConfig": get_pii_config(project),
                 "datascrubbingSettings": get_datascrubbing_settings(project),
+                "dynamicSampling": project.organization.get_option("sentry:dynamic_sampling"),
             },
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store

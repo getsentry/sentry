@@ -15,7 +15,12 @@ from django.core import mail
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.auth.authenticators import TotpInterface
-from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
+from sentry.api.endpoints.organization_details import (
+    ERR_NO_2FA,
+    ERR_SSO_ENABLED,
+    TrustedRelaySerializer,
+    DynamicSamplingSerializer,
+)
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
@@ -198,6 +203,55 @@ class OrganizationDetailsTest(APITestCase):
             # check that created is in the correct range
             created = dateutil.parser.parse(response_data[i][u"created"])
             assert start_time < created < end_time
+
+    def test_dynamic_sampling(self):
+        """
+        Test the dynamic sampling configuration serialisation
+        """
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
+
+        sampling_config = [
+            {
+                "projectIds": [1, 2],
+                "conditions": [
+                    {"operator": "globMatch", "name": "releases", "value": ["1.1.1", "1.1.2"]},
+                ],
+                "sampleRate": 0.7,
+                "ty": "trace",
+            },
+            {
+                "projectIds": [3],
+                "conditions": [
+                    {
+                        "operator": "strEqualNoCase",
+                        "name": "environments",
+                        "value": ["dev", "prod"],
+                    },
+                    {
+                        "operator": "strEqualNoCase",
+                        "name": "userSegements",
+                        "value": ["FirstSegment", "SeCoNd"],
+                    },
+                ],
+                "sampleRate": 0.8,
+                "ty": "error",
+            },
+        ]
+
+        data = {"dynamicSampling": sampling_config}
+
+        response = self.client.put(url, data=data)
+        assert response.status_code == 200
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+        response_data = response.data.get("dynamicSampling")
+
+        assert response_data is not None
+        # check some basic info
+        assert response_data == sampling_config
 
 
 class OrganizationUpdateTest(APITestCase):
@@ -901,9 +955,6 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.assert_can_access_org_details(self.path)
 
 
-from sentry.api.endpoints.organization_details import TrustedRelaySerializer
-
-
 def test_trusted_relays_option_serialization():
     # incoming raw data
     data = {
@@ -983,3 +1034,17 @@ def test_trusted_relays_option_deserialization():
     }
     # check outgoing deserialization (all info in camelCase)
     assert serializer.data == expected_outgoing
+
+
+def test_dynamic_sampling_seialization():
+    sampling_config = {
+        "projectIds": [1, 2],
+        "conditions": [{"operator": "globMatch", "name": "releases", "value": ["1.1.1", "1.1.2"]}, ],
+        "sampleRate": 0.7,
+        "ty": "trace",
+    }
+
+    serializer = DynamicSamplingSerializer(data=sampling_config)
+    assert serializer.is_valid()
+    # validated data has the same format as the data (the serializer only does validation)
+    assert serializer.validated_data == sampling_config

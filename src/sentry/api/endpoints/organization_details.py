@@ -109,6 +109,7 @@ ORG_OPTIONS = (
     ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
+    ("dynamicSampling", "sentry:dynamic_sampling", list, []),
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -116,6 +117,45 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 DELETION_STATUSES = frozenset(
     [OrganizationStatus.PENDING_DELETION, OrganizationStatus.DELETION_IN_PROGRESS]
 )
+
+
+class DynamicSamplingConditionSerializer(serializers.Serializer):
+    # set the expected types for fields (None means Any)
+    _valid_keys = {"operator": six.string_types, "name": six.string_types, "value": None}
+
+    def to_representation(self, instance):
+        return instance
+
+    def to_internal_value(self, data):
+        return data
+
+    def validate(self, data):
+        for key, val in six.iteritems(data):
+            if key not in self._valid_keys:
+                raise serializers.ValidationError(
+                    "Invalid key:{} in sampling condition".format(key)
+                )
+            ty = self._valid_keys.get(key)
+            if ty is not None and not isinstance(val, ty):
+                raise serializers.ValidationError(
+                    "Wrong type for key:{} expected:{} received:{} in sampling condition".format(
+                        key, ty, type(val)
+                    )
+                )
+
+        return data
+
+
+class DynamicSamplingSerializer(serializers.Serializer):
+    projectIds = serializers.ListSerializer(child=serializers.IntegerField(), required=False)
+    sampleRate = serializers.FloatField(min_value=0, max_value=1, required=True)
+    ty = serializers.ChoiceField(
+        choices=(("trace", "trace"), ("transaction", "transaction"), ("error", "error")),
+        required=True,
+    )
+    conditions = serializers.ListSerializer(
+        child=DynamicSamplingConditionSerializer(), required=False
+    )
 
 
 class OrganizationSerializer(serializers.Serializer):
@@ -154,6 +194,7 @@ class OrganizationSerializer(serializers.Serializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    dynamicSampling = ListField(child=DynamicSamplingSerializer(), required=False)
 
     @memoize
     def _has_legacy_rate_limits(self):
