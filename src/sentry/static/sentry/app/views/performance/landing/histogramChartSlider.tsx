@@ -32,12 +32,12 @@ export function getHistogramColors() {
  * This component is using react-range to provide a multi-thumb slider as this pattern may be temporary.
  * If we move this to our standard components we should re-evaluate using our own or another lib.
  */
-export function DurationHistogramSlider(props: Props) {
+export function HistogramChartSlider(props: Props) {
   const primaryChartColor = getHistogramColors().primary;
   const values = [props.minValue, props.maxValue];
 
-  const rangeMin = props.min || MIN_DEFAULT;
-  const rangeMax = props.max || MAX_DEFAULT;
+  const rangeMin = props.min ?? MIN_DEFAULT;
+  const rangeMax = props.max ?? MAX_DEFAULT;
 
   return (
     <Range

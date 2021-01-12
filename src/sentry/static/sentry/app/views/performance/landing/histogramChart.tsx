@@ -18,7 +18,7 @@ import {getDuration} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 
 import {DoubleHeaderContainer, HeaderTitleLegend} from '../styles';
-import MeasurementsHistogramQuery from '../transactionVitals/measurementsHistogramQuery';
+import HistogramQuery from '../transactionVitals/histogramQuery';
 import {Rectangle} from '../transactionVitals/types';
 import {
   asPixelRect,
@@ -27,7 +27,7 @@ import {
   mapPoint,
 } from '../transactionVitals/utils';
 
-import {DurationHistogramSlider, getHistogramColors} from './durationHistogramSlider';
+import {getHistogramColors, HistogramChartSlider} from './histogramChartSlider';
 import {getChartWidth} from './utils';
 
 const NUM_BUCKETS = 100;
@@ -37,7 +37,7 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
-  measurement: string;
+  field: string;
   title: string;
   titleTooltip: string;
   onFilterChange: (minValue: number, maxValue: number, measurement: string) => void;
@@ -76,14 +76,14 @@ function getBucketWidth(chartData) {
   // We can assume that all buckets are of equal width, use the first two
   // buckets to get the width. The value of each histogram function indicates
   // the beginning of the bucket.
-  return chartData.length >= 2 ? chartData[1].histogram - chartData[0].histogram : 0;
+  return chartData.length >= 2 ? chartData[1].bin - chartData[0].bin : 0;
 }
 
 function computeBuckets(chartData) {
   const bucketWidth = getBucketWidth(chartData);
 
   return chartData.map(item => {
-    const bucket = item.histogram;
+    const bucket = item.bin;
     return {
       start: bucket,
       end: bucket + bucketWidth,
@@ -103,7 +103,7 @@ function getSeries(chartData, minValue, maxValue) {
   const bucketWidth = getBucketWidth(chartData);
 
   const seriesData = chartData.map(item => {
-    const bucket = item.histogram;
+    const bucket = item.bin;
     const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
     const name = formatDuration(midPoint);
 
@@ -140,8 +140,8 @@ function getShadedAreas(
   minValue,
   maxValue
 ) {
-  const minChartData = chartData[0].histogram;
-  const maxChartData = chartData[chartData.length - 1].histogram;
+  const minChartData = chartData[0].bin;
+  const maxChartData = chartData[chartData.length - 1].bin;
   const minBucket = findNearestBucketIndex(chartData, bucketWidth, minValue);
   const maxBucket = findNearestBucketIndex(chartData, bucketWidth, maxValue);
   const minChartBucket = findNearestBucketIndex(chartData, bucketWidth, minChartData);
@@ -281,7 +281,7 @@ function getShadedAreas(
   ];
 }
 
-class DurationHistogram extends React.Component<Props, State> {
+class HistogramChart extends React.Component<Props, State> {
   state: State = {
     minPercent: 1 / 12,
     maxPercent: 9 / 12,
@@ -311,11 +311,11 @@ class DurationHistogram extends React.Component<Props, State> {
   handleUpdatedRange = throttle(
     (minChartData, maxChartData) => {
       const {minPercent, maxPercent} = this.state;
-      const {onFilterChange} = this.props;
+      const {field, onFilterChange} = this.props;
       const chartDiff = maxChartData - minChartData;
       const minValue = minChartData + minPercent * chartDiff;
       const maxValue = minChartData + maxPercent * chartDiff;
-      onFilterChange(minValue, maxValue, this.getTagName());
+      onFilterChange(minValue, maxValue, field);
     },
     200,
     {leading: false}
@@ -346,22 +346,9 @@ class DurationHistogram extends React.Component<Props, State> {
     return getChartWidth(chartData, refPixelRect);
   }
 
-  getTagName() {
-    return `measurements.${this.props.measurement}`;
-  }
-
   render() {
-    const {
-      location,
-      organization,
-      eventView,
-      measurement,
-      title,
-      titleTooltip,
-    } = this.props;
+    const {location, organization, eventView, field, title, titleTooltip} = this.props;
     const {minPercent, maxPercent, refPixelRect} = this.state;
-
-    const slug = measurement; //TODO: Change this once backend display exists
 
     const xAxis = {
       type: 'category' as const,
@@ -374,25 +361,25 @@ class DurationHistogram extends React.Component<Props, State> {
 
     return (
       <HistogramContainer>
-        <MeasurementsHistogramQuery
+        <HistogramQuery
           location={location}
           orgSlug={organization.slug}
           eventView={eventView}
           numBuckets={NUM_BUCKETS}
-          measurements={[slug]}
+          fields={[field]}
           dataFilter="exclude_outliers"
         >
           {results => {
             const loading = results.isLoading;
             const errored = results.error !== null;
-            const chartData = results.histograms?.[this.getTagName()];
+            const chartData = results.histograms?.[field];
 
             if (!chartData) {
               return null;
             }
 
-            const minChartData = chartData[0].histogram;
-            const maxChartData = chartData[chartData.length - 1].histogram;
+            const minChartData = chartData[0].bin;
+            const maxChartData = chartData[chartData.length - 1].bin;
             const chartDiff = maxChartData - minChartData;
             const minValue = minChartData + minPercent * chartDiff;
             const maxValue = minChartData + maxPercent * chartDiff;
@@ -441,8 +428,8 @@ class DurationHistogram extends React.Component<Props, State> {
                 <BarChartZoom
                   minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
                   location={location}
-                  paramStart={`${slug}Start`}
-                  paramEnd={`${slug}End`}
+                  paramStart={`${field}Start`}
+                  paramEnd={`${field}End`}
                   xAxisIndex={[0]}
                   buckets={computeBuckets(chartData)}
                 >
@@ -467,7 +454,7 @@ class DurationHistogram extends React.Component<Props, State> {
                   )}
                 </BarChartZoom>
                 <SliderContainer>
-                  <DurationHistogramSlider
+                  <HistogramChartSlider
                     width={this.getHistogramWidth(chartData)}
                     min={minChartData}
                     max={maxChartData}
@@ -483,7 +470,7 @@ class DurationHistogram extends React.Component<Props, State> {
               </React.Fragment>
             );
           }}
-        </MeasurementsHistogramQuery>
+        </HistogramQuery>
       </HistogramContainer>
     );
   }
@@ -502,4 +489,4 @@ const SliderContainer = styled('div')`
   padding-top: 0px;
 `;
 
-export default DurationHistogram;
+export default HistogramChart;

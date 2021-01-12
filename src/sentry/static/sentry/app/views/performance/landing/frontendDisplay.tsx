@@ -7,7 +7,7 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
-import DurationHistogram from './durationHistogram';
+import HistogramChart from './histogramChart';
 
 type Props = {
   location: Location;
@@ -29,8 +29,8 @@ function FrontendDisplay(props: Props) {
   };
   return (
     <Panel>
-      <DurationHistogram
-        measurement="lcp"
+      <HistogramChart
+        field="measurements.lcp"
         {...props}
         onFilterChange={onFilterChange}
         title={t('LCP Histogram')}
