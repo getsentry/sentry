@@ -9,7 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
-from sentry.signals import inbox_in
+from sentry.signals import inbox_in, inbox_out
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -83,10 +83,19 @@ def add_group_to_inbox(group, reason, reason_details=None):
     return group_inbox
 
 
-def remove_group_from_inbox(group):
+def remove_group_from_inbox(group, user=None, action=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
+
+        inbox_out.send_robust(
+            project=group.project,
+            user=user,
+            group=group,
+            sender="remove_group_from_inbox",
+            action=action,
+            inbox_date_added=group_inbox.date_added,
+        )
     except GroupInbox.DoesNotExist:
         pass
 
