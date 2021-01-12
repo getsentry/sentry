@@ -53,10 +53,7 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
   },
 
   loadInitialData(config): void {
-    // TODO(dark): Remove staff requirement and add dark mode user preference
-    const shouldUseDarkMode =
-      // @ts-ignore
-      config.user?.isStaff && config.user?.options.theme === 'dark';
+    const shouldUseDarkMode = config.user?.options.theme === 'dark';
 
     this.config = {
       ...config,

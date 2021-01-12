@@ -10,7 +10,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
 
-    /* TODO(dark): Move this to base.less when ready */
     color: ${theme.textColor};
     background: ${theme.backgroundSecondary};
   }
