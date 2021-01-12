@@ -3,6 +3,7 @@ import React from 'react';
 import Indicators from 'app/components/indicators';
 import ThemeAndStyleProvider from 'app/themeAndStyleProvider';
 
+import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
 import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
@@ -14,6 +15,7 @@ import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
 const pipelineMapper: Record<string, [React.ElementType, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
   awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
+  awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
 };
 
