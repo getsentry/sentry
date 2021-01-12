@@ -8,6 +8,7 @@ import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
+import LoadingPanel from 'app/components/charts/loadingPanel';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -29,7 +30,6 @@ import {
 
 import {getHistogramColors, HistogramChartSlider} from './histogramChartSlider';
 import {getChartWidth} from './utils';
-import LoadingPanel from 'app/components/charts/loadingPanel';
 
 const NUM_BUCKETS = 100;
 const PRECISION = 0;
@@ -47,6 +47,12 @@ type Props = {
 type State = {
   minPercent: number;
   maxPercent: number;
+
+  /**
+   * Using a container ref so we can build position the slider as an offset to avoid issues with animation and resizing.
+   */
+  containerRef: React.RefObject<HTMLDivElement>;
+
   /**
    * This is a pair of reference points on the graph that we can use to map any
    * other points to their pixel coordinates on the graph.
@@ -284,6 +290,7 @@ function getShadedAreas(
 
 class HistogramChart extends React.Component<Props, State> {
   state: State = {
+    containerRef: React.createRef<HTMLDivElement>(),
     minPercent: 1 / 12,
     maxPercent: 9 / 12,
     refDataRect: null,
@@ -343,13 +350,13 @@ class HistogramChart extends React.Component<Props, State> {
   };
 
   getHistogramWidth(chartData) {
-    const {refPixelRect} = this.state;
-    return getChartWidth(chartData, refPixelRect);
+    const {refPixelRect, containerRef} = this.state;
+    return getChartWidth(chartData, refPixelRect, containerRef);
   }
 
   render() {
     const {location, organization, eventView, field, title, titleTooltip} = this.props;
-    const {minPercent, maxPercent, refPixelRect} = this.state;
+    const {minPercent, maxPercent, refPixelRect, containerRef} = this.state;
 
     const xAxis = {
       type: 'category' as const,
@@ -361,7 +368,7 @@ class HistogramChart extends React.Component<Props, State> {
     };
 
     return (
-      <HistogramContainer>
+      <HistogramContainer ref={containerRef}>
         <HistogramQuery
           location={location}
           orgSlug={organization.slug}
@@ -424,6 +431,8 @@ class HistogramChart extends React.Component<Props, State> {
               },
             };
 
+            const sliderPositions = this.getHistogramWidth(chartData);
+
             return (
               <React.Fragment>
                 <DoubleHeaderContainer>
@@ -462,7 +471,8 @@ class HistogramChart extends React.Component<Props, State> {
                 </BarChartZoom>
                 <SliderContainer>
                   <HistogramChartSlider
-                    width={this.getHistogramWidth(chartData)}
+                    width={sliderPositions.chartWidth}
+                    offset={sliderPositions.chartOffset}
                     min={minChartData}
                     max={maxChartData}
                     minValue={minValue}

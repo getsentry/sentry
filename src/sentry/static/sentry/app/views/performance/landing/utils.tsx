@@ -2,6 +2,8 @@ import {Location} from 'history';
 
 import {decodeScalar} from 'app/utils/queryString';
 
+import {HistogramData, Rectangle} from '../transactionVitals/types';
+
 type LandingDisplay = {
   label: string;
   field: LandingDisplayField;
@@ -24,9 +26,26 @@ export function getCurrentLandingDisplay(location: Location): LandingDisplay {
   return display || LANDING_DISPLAYS[0];
 }
 
-export function getChartWidth(chartData, refPixelRect) {
+export function getChartWidth(
+  chartData: HistogramData[],
+  refPixelRect: Rectangle | null,
+  containerRef: React.RefObject<HTMLElement>
+) {
   const distance = refPixelRect ? refPixelRect.point2.x - refPixelRect.point1.x : 0;
-  return chartData.length * distance;
+  const chartWidth = chartData.length * distance;
+
+  const containerWidth = containerRef?.current?.offsetWidth;
+  if (containerWidth && chartWidth) {
+    const chartOffset = containerWidth - chartWidth;
+    return {
+      chartWidth,
+      chartOffset,
+    };
+  }
+
+  return {
+    chartWidth,
+  };
 }
 
 export function getAdditionalTableQuery(location: Location): string {
