@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -16,8 +17,13 @@ function Item({type, icon}: Props) {
         return t('Stack Unwinding');
       case 'symbolication':
         return t('Symbolication');
-      default:
-        return null; // this shall not happen
+      default: {
+        Sentry.withScope(scope => {
+          scope.setLevel(Sentry.Severity.Warning);
+          Sentry.captureException(new Error("Unknown Item's type"));
+        });
+        return null; // This shall not happen
+      }
     }
   }
 

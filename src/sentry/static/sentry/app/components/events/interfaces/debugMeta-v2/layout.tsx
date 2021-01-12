@@ -10,7 +10,7 @@ const layout = (theme: Theme) => `
     display: none;
   }
 
-  grid-template-columns: 0.4fr 0.6fr 0.3fr;
+  grid-template-columns: 0.5fr 0.6fr 0.3fr;
 
   @media (min-width: ${theme.breakpoints[0]}) {
     > *:nth-child(4n-1) {
@@ -25,7 +25,7 @@ const layout = (theme: Theme) => `
 
   @media (min-width: ${theme.breakpoints[3]}) {
 
-    grid-template-columns: 0.4fr 1.5fr 1.4fr 0.4fr;
+    grid-template-columns: 0.5fr 1.5fr 1.4fr 0.4fr;
   }
 `;
 

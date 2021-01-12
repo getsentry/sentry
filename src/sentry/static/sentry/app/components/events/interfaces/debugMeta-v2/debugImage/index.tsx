@@ -5,7 +5,7 @@ import Button from 'app/components/button';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Image} from 'app/types/debugImage';
+import {Image, ImageStatus} from 'app/types/debugImage';
 
 import layout from '../layout';
 import {getFileName} from '../utils';
@@ -14,10 +14,12 @@ import Address from './address';
 import Processings from './processings';
 import Status from './status';
 
+type ImageWithStatus = Image & {status: ImageStatus};
+
 type Props = {
-  image: Image;
+  image: ImageWithStatus;
   onOpenImageDetailsModal: (
-    image: Image,
+    image: ImageWithStatus,
     imageAddress: React.ReactElement | null,
     fileName?: string
   ) => void;
@@ -25,7 +27,7 @@ type Props = {
 };
 
 function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
-  const {unwind_status, debug_status, code_file} = image;
+  const {unwind_status, debug_status, code_file, status} = image;
 
   const fileName = getFileName(code_file);
   const imageAddress = <Address image={image} />;
@@ -33,7 +35,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
   return (
     <Wrapper style={style}>
       <StatusColumn>
-        <Status image={image} />
+        <Status status={status} />
       </StatusColumn>
       <ImageColumn>
         <FileName>{fileName}</FileName>
