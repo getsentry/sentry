@@ -63,17 +63,13 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
 
     if (period && canIncludePreviousPeriod(true, period)) {
       const {start: previousStart} = parseStatsPeriod(
-        (getPeriod(
-          {period, start: undefined, end: undefined},
-          {shouldDoublePeriod: true}
-        ) as {statsPeriod: string}).statsPeriod
+        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
+          .statsPeriod!
       );
 
       const {start: previousEnd} = parseStatsPeriod(
-        (getPeriod(
-          {period, start: undefined, end: undefined},
-          {shouldDoublePeriod: false}
-        ) as {statsPeriod: string}).statsPeriod
+        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
+          .statsPeriod!
       );
 
       endpoints.push([

@@ -20,7 +20,7 @@ type Options = {shouldDoublePeriod?: boolean};
 export const getPeriod = (
   {period, start, end},
   {shouldDoublePeriod}: Options = {}
-): {start: string; end: string} | {statsPeriod: string} => {
+): {start?: string; end?: string; statsPeriod?: string} => {
   if (!period && !start && !end) {
     period = DEFAULT_STATS_PERIOD;
   }
