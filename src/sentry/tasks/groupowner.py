@@ -94,5 +94,5 @@ def process_suspect_commits(event, **kwargs):
                 except Release.DoesNotExist:
                     logger.info(
                         "process_suspect_commits.skipped",
-                        extra={"event": event.id, "reason": "no_release"},
+                        extra={"event": event.event_id, "reason": "no_release"},
                     )
