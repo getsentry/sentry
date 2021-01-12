@@ -11,6 +11,8 @@ export enum Query {
 
 type OverviewTab = {
   name: string;
+  /** Emitted analytics event tab name  */
+  analyticsName: string;
   /** Will fetch a count to display on this tab */
   count: boolean;
   /** Tabs can be disabled via flag */
@@ -26,6 +28,7 @@ export function getTabs(organization: Organization) {
       Query.NEEDS_REVIEW_OWNER,
       {
         name: t('Needs Review'),
+        analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
       },
@@ -34,6 +37,7 @@ export function getTabs(organization: Organization) {
       Query.NEEDS_REVIEW,
       {
         name: t('Needs Review'),
+        analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
       },
@@ -42,6 +46,7 @@ export function getTabs(organization: Organization) {
       Query.UNRESOLVED,
       {
         name: t('All Unresolved'),
+        analyticsName: 'unresolved',
         count: true,
         enabled: true,
       },
@@ -50,6 +55,7 @@ export function getTabs(organization: Organization) {
       Query.IGNORED,
       {
         name: t('Ignored'),
+        analyticsName: 'ignored',
         count: true,
         enabled: true,
       },
@@ -58,6 +64,7 @@ export function getTabs(organization: Organization) {
       Query.REPROCESSING,
       {
         name: t('Reprocessing'),
+        analyticsName: 'reprocessing',
         count: true,
         enabled: organization.features.includes('reprocessing-v2'),
       },

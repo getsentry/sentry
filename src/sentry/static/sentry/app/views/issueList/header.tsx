@@ -13,6 +13,7 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
@@ -84,6 +85,16 @@ function IssueListHeader({
     };
   }
 
+  function trackTabClick(tabName: string, count: number | undefined) {
+    trackAnalyticsEvent({
+      eventKey: 'issues_tab.viewed',
+      eventName: 'Viewed Issues Tab',
+      organization_id: organization.id,
+      tab: tabName,
+      num_issues: count ?? null,
+    });
+  }
+
   return (
     <React.Fragment>
       <BorderlessHeader>
@@ -116,13 +127,14 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {visibleTabs.map(([tabQuery, {name: queryName}]) => (
+          {visibleTabs.map(([tabQuery, {name: queryName, analyticsName}]) => (
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <Link
                 to={{
                   query: {...router?.location?.query, query: tabQuery},
                   pathname: `/organizations/${organization.slug}/issues/`,
                 }}
+                onClick={() => trackTabClick(analyticsName, queryCounts[tabQuery]?.count)}
               >
                 {queryName}{' '}
                 {queryCounts[tabQuery] && (
