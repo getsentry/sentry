@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 import pytest
 
-from sentry.utils.compat.mock import patch
+from django.test.utils import override_settings
 
+from sentry.utils.compat.mock import patch
 from sentry.tasks.relay import schedule_update_config_cache
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
@@ -89,6 +90,9 @@ def test_debounce(monkeypatch, default_project, default_organization, redis_cach
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("entire_organization", (True, False))
+@override_settings(
+    JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.invalid/%s/bundle.min.js"
+)
 def test_generate(
     monkeypatch,
     default_project,
@@ -106,7 +110,8 @@ def test_generate(
         kwargs = {"organization_id": default_organization.id}
 
     with task_runner():
-        schedule_update_config_cache(generate=True, **kwargs)
+        with patch("sentry.loader.browsersdkversion.get_browser_sdk_version", return_value="1.2.3"):
+            schedule_update_config_cache(generate=True, **kwargs)
 
     cfg = redis_cache.get(default_project.id)
 
@@ -118,6 +123,7 @@ def test_generate(
             "isEnabled": True,
             "numericId": default_projectkey.id,
             "quotas": [],
+            "jsSdkUrl": "https://browser.sentry-cdn.invalid/1.2.3/bundle.min.js",
         }
     ]
 
