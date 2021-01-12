@@ -121,6 +121,7 @@ def get_project_config(project, full_config=True, project_keys=None):
             "publicKeys": public_keys,
             "config": {
                 "allowedDomains": list(get_origins(project)),
+                "dsnEndpoint": project.get_dsn_endpoint(),
                 "trustedRelays": [
                     r["public_key"]
                     for r in project.organization.get_option("sentry:trusted-relays", [])

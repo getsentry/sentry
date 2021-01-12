@@ -14,7 +14,6 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from six.moves.urllib.parse import urlparse
 
-from sentry import options, features
 from sentry.db.models import (
     Model,
     BaseManager,
@@ -224,27 +223,7 @@ class ProjectKey(Model):
             )
 
     def get_endpoint(self, public=True):
-        if public:
-            endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        else:
-            endpoint = settings.SENTRY_ENDPOINT
-
-        if not endpoint:
-            endpoint = options.get("system.url-prefix")
-
-        if features.has("organizations:org-subdomains", self.project.organization):
-            urlparts = urlparse(endpoint)
-            if urlparts.scheme and urlparts.netloc:
-                endpoint = "%s://%s.%s%s" % (
-                    urlparts.scheme,
-                    settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
-                        organization_id=self.project.organization_id
-                    ),
-                    urlparts.netloc,
-                    urlparts.path,
-                )
-
-        return endpoint
+        return self.project.get_dsn_endpoint(public=public)
 
     def get_allowed_origins(self):
         from sentry.utils.http import get_origins

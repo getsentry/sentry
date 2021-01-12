@@ -5,6 +5,7 @@ import warnings
 from collections import defaultdict
 
 import six
+from six.moves.urllib.parse import urlparse
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -14,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.http import urlencode
 from uuid import uuid1
 
-from sentry import projectoptions
+from sentry import projectoptions, options, features
 from sentry.app import locks
 from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
@@ -156,6 +157,32 @@ class Project(Model, PendingDeletionMixin):
         if params:
             url = url + "?" + urlencode(params)
         return absolute_uri(url)
+
+    def get_dsn_endpoint(self, public=True):
+        """Returns the right endpoint for a project.  This is the base of the DSN
+        without any actual API path appended.
+        """
+        if public:
+            endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+        else:
+            endpoint = settings.SENTRY_ENDPOINT
+
+        if not endpoint:
+            endpoint = options.get("system.url-prefix")
+
+        if features.has("organizations:org-subdomains", self.organization):
+            urlparts = urlparse(endpoint)
+            if urlparts.scheme and urlparts.netloc:
+                endpoint = "%s://%s.%s%s" % (
+                    urlparts.scheme,
+                    settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
+                        organization_id=self.organization.id
+                    ),
+                    urlparts.netloc,
+                    urlparts.path,
+                )
+
+        return endpoint
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
