@@ -66,6 +66,9 @@ class JiraIssueHookView(JiraBaseHook):
                 )
             )
 
+        def get_group_url(group):
+            return group.get_absolute_url(params={"referrer": "sentry-issues-glance"})
+
         result, stats_24hr = get_serialized_and_stats("24h")
         _, stats_14d = get_serialized_and_stats("14d")
 
@@ -84,8 +87,9 @@ class JiraIssueHookView(JiraBaseHook):
             last_release_url = get_release_url(last_release)
 
         context = {
-            "type": result.get("metadata", {}).get("type", "Unkown Error"),
+            "type": result.get("metadata", {}).get("type", "Unknown Error"),
             "title": group.title,
+            "title_url": get_group_url(group),
             "first_seen": result["firstSeen"],
             "last_seen": result["lastSeen"],
             "first_release": first_release,
