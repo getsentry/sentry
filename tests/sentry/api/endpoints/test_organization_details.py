@@ -1039,7 +1039,7 @@ def test_trusted_relays_option_deserialization():
 def test_dynamic_sampling_seialization():
     sampling_config = {
         "projectIds": [1, 2],
-        "conditions": [{"operator": "globMatch", "name": "releases", "value": ["1.1.1", "1.1.2"]}, ],
+        "conditions": [{"operator": "globMatch", "name": "releases", "value": ["1.1.1", "1.1.2"]},],
         "sampleRate": 0.7,
         "ty": "trace",
     }
