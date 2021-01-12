@@ -19,9 +19,8 @@ const formGroups: JsonFormObject[] = [
         name: 'theme',
         type: 'choice',
         label: t('Theme'),
-        visible: ({user}) => user.isStaff,
         help: t(
-          "Select your theme preference. It can be synced to your system's theme, always Light mode, or always Dark mode."
+          "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
         ),
         choices: [
           ['light', t('Light')],
