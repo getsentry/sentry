@@ -90,9 +90,6 @@ def test_debounce(monkeypatch, default_project, default_organization, redis_cach
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("entire_organization", (True, False))
-@override_settings(
-    JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.invalid/%s/bundle.min.js"
-)
 def test_generate(
     monkeypatch,
     default_project,
@@ -110,8 +107,13 @@ def test_generate(
         kwargs = {"organization_id": default_organization.id}
 
     with task_runner():
-        with patch("sentry.loader.browsersdkversion.get_browser_sdk_version", return_value="1.2.3"):
-            schedule_update_config_cache(generate=True, **kwargs)
+        with override_settings(
+            JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.invalid/%s/bundle.min.js"
+        ):
+            with patch(
+                "sentry.loader.browsersdkversion.get_browser_sdk_version", return_value="1.2.3"
+            ):
+                schedule_update_config_cache(generate=True, **kwargs)
 
     cfg = redis_cache.get(default_project.id)
 
