@@ -1,10 +1,9 @@
 import React from 'react';
 import sortBy from 'lodash/sortBy';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {openModal} from 'app/actionCreators/modal';
-import GlobalModal from 'app/components/globalModal';
 import convertRelayPiiConfig from 'app/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Edit from 'app/views/settings/components/dataScrubbing/modals/edit';
 import submitRules from 'app/views/settings/components/dataScrubbing/submitRules';
@@ -31,7 +30,7 @@ const api = new MockApiClient();
 jest.mock('app/views/settings/components/dataScrubbing/submitRules');
 
 async function renderComponent() {
-  const wrapper = mountWithTheme(<GlobalModal />);
+  const modal = await mountGlobalModal();
 
   openModal(modalProps => (
     <Edit
@@ -48,9 +47,9 @@ async function renderComponent() {
 
   // @ts-expect-error
   await tick();
-  wrapper.update();
+  modal.update();
 
-  return wrapper;
+  return modal;
 }
 
 describe('Edit Modal', () => {

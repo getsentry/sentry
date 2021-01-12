@@ -1,11 +1,11 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
-import PropTypes from 'prop-types';
 
+import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 
-type MessageRenderProps = {
+export type ConfirmMessageRenderProps = {
   /**
    * Confirms the modal
    */
@@ -14,257 +14,247 @@ type MessageRenderProps = {
    * Closes the modal, if `bypass` is true, will call `onConfirm` callback
    */
   close: (e: React.MouseEvent) => void;
+  /**
+   * Set the disabled state of the confirm button
+   */
+  disableConfirmButton: (disable: boolean) => void;
+  /**
+   * When the modal is confirmed the function registered will be called.
+   *
+   * Useful if your rendered message contains some functionality that should be
+   * triggered upon the modal being confirmed.
+   *
+   * This should be called in the components componentDidMount.
+   */
+  setConfirmCallback: (cb: () => void) => void;
 };
 
 type ChildrenRenderProps = {
   open: () => void;
-  close: () => void;
-};
-
-const defaultProps = {
-  /**
-   * Button priority
-   */
-  priority: 'primary' as React.ComponentProps<typeof Button>['priority'],
-  /**
-   * Disables the confirm button
-   */
-  disableConfirmButton: false,
-  /**
-   * Text to show in the cancel button
-   */
-  cancelText: t('Cancel') as React.ReactNode,
-  /**
-   * Text to show in the confirmation button
-   */
-  confirmText: t('Confirm') as React.ReactNode,
-  // Stop event propagation when opening the confirm modal
-  stopPropagation: false,
 };
 
 type Props = {
   /**
    * Callback when user confirms
    */
-  onConfirm: () => void;
-
+  onConfirm?: () => void;
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
   bypass?: boolean;
-
   /**
    * Message to display to user when asking for confirmation
    */
   message?: React.ReactNode;
   /**
-   * Renderer that passes:
-   * `confirm`: Allows renderer to perform confirm action
-   * `close`: Allows renderer to toggle confirm modal
+   * Used to render a message instead of using the static `message` prop.
    */
-  renderMessage?: (renderProps: MessageRenderProps) => React.ReactNode;
-
+  renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
   /**
    * Render props to control rendering of the modal in its entirety
    */
   children?:
     | ((renderProps: ChildrenRenderProps) => React.ReactNode)
     | React.ReactElement<{disabled: boolean; onClick: (e: React.MouseEvent) => void}>;
-
   /**
    * Passed to `children` render function
    */
   disabled?: boolean;
-
   /**
-   * Callback function when user is in the confirming state
-   * called when the confirm modal is opened
+   * Callback function when user is in the confirming state called when the
+   * confirm modal is opened
    */
   onConfirming?: () => void;
-
   /**
    * User cancels the modal
    */
   onCancel?: () => void;
-
   /**
    * Header of modal
    */
   header?: React.ReactNode;
-} & typeof defaultProps;
-
-type State = {
   /**
-   * Is modal open
+   * Stop event propagation when opening the confirm modal
    */
-  isModalOpen: boolean;
-
+  stopPropagation?: boolean;
   /**
-   * Is confirm button disabled
+   * Disables the confirm button.
+   *
+   * XXX: Once the modal has been opened mutating this property will _not_
+   * propagate into the modal.
+   *
+   * If you need the confirm buttons disabled state to be reactively
+   * controlled, consider using the renderMessage prop, which receives a
+   * `disableConfirmButton` function that you may use to control the state of it.
    */
-  disableConfirmButton: boolean;
+  disableConfirmButton?: boolean;
+  /**
+   * Button priority
+   */
+  priority?: React.ComponentProps<typeof Button>['priority'];
+  /**
+   * Text to show in the cancel button
+   */
+  cancelText?: React.ReactNode;
+  /**
+   * Text to show in the confirmation button
+   */
+  confirmText?: React.ReactNode;
 };
 
-class Confirm extends React.PureComponent<Props, State> {
-  static propTypes = {
-    onConfirm: PropTypes.func.isRequired,
-    confirmText: PropTypes.string.isRequired,
-    cancelText: PropTypes.string.isRequired,
-    priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
-    /**
-     * If true, will skip the confirmation modal and call `onConfirm`
-     */
-    bypass: PropTypes.bool,
-    message: PropTypes.node,
-    /**
-     * Renderer that passes:
-     * `confirm`: Allows renderer to perform confirm action
-     * `close`: Allows renderer to toggle confirm modal
-     */
-    renderMessage: PropTypes.func,
-    disabled: PropTypes.bool,
-    disableConfirmButton: PropTypes.bool,
-    onConfirming: PropTypes.func,
-    onCancel: PropTypes.func,
-    header: PropTypes.node,
-
-    // Stop event propagation when opening the confirm modal
-    stopPropagation: PropTypes.bool,
-  };
-
-  static defaultProps = defaultProps;
-
-  state: State = {
-    isModalOpen: false,
-    disableConfirmButton: this.props.disableConfirmButton,
-  };
-
-  static getDerivedStateFromProps(props: Props, state: State) {
-    // Reset the state to handle prop changes from ConfirmDelete
-    if (props.disableConfirmButton !== state.disableConfirmButton) {
-      return {
-        disableConfirmButton: props.disableConfirmButton,
-      };
-    }
-    return null;
-  }
-
-  confirming: boolean = false;
-
-  openModal = () => {
-    const {onConfirming, disableConfirmButton} = this.props;
-    if (typeof onConfirming === 'function') {
-      onConfirming();
+function Confirm({
+  bypass,
+  renderMessage,
+  message,
+  header,
+  disabled,
+  children,
+  onConfirm,
+  onConfirming,
+  onCancel,
+  priority = 'primary',
+  cancelText = t('Cancel'),
+  confirmText = t('Confirm'),
+  stopPropagation = false,
+  disableConfirmButton = false,
+}: Props) {
+  const triggerModal = (e?: React.MouseEvent) => {
+    if (stopPropagation) {
+      e?.stopPropagation();
     }
 
-    this.setState({
-      isModalOpen: true,
-      disableConfirmButton: disableConfirmButton || false,
-    });
-
-    // always reset `confirming` when modal visibility changes
-    this.confirming = false;
-  };
-
-  closeModal = () => {
-    const {onCancel, disableConfirmButton} = this.props;
-    if (typeof onCancel === 'function') {
-      onCancel();
-    }
-    this.setState({
-      isModalOpen: false,
-      disableConfirmButton: disableConfirmButton || false,
-    });
-
-    // always reset `confirming` when modal visibility changes
-    this.confirming = false;
-  };
-
-  handleConfirm = () => {
-    // `confirming` is used to make sure `onConfirm` is only called once
-    if (!this.confirming) {
-      this.props.onConfirm();
-    }
-
-    // Close modal
-    this.setState({
-      isModalOpen: false,
-      disableConfirmButton: true,
-    });
-    this.confirming = true;
-  };
-
-  handleToggle = (e: React.MouseEvent): void => {
-    const {disabled, bypass, stopPropagation, onConfirm} = this.props;
     if (disabled) {
       return;
     }
 
-    if (e && stopPropagation) {
-      e.stopPropagation();
-    }
-
     if (bypass) {
-      onConfirm();
+      onConfirm?.();
       return;
     }
 
-    // Current state is closed, means it will toggle open
-    if (!this.state.isModalOpen) {
-      this.openModal();
-    } else {
-      this.closeModal();
-    }
-  };
+    onConfirming?.();
 
-  render() {
-    const {
-      disabled,
-      message,
-      renderMessage,
+    const modalProps = {
       priority,
+      renderMessage,
+      message,
       confirmText,
       cancelText,
-      children,
       header,
-    } = this.props;
+      onConfirm,
+      onCancel,
+      disableConfirmButton,
+    };
 
-    let confirmMessage: React.ReactNode;
+    openModal(renderProps => <ConfirmModal {...renderProps} {...modalProps} />);
+  };
+
+  if (typeof children === 'function') {
+    return children({open: triggerModal});
+  }
+
+  if (!React.isValidElement(children)) {
+    return null;
+  }
+
+  // TODO(ts): Understand why the return type of `cloneElement` is strange
+  return React.cloneElement(children, {disabled, onClick: triggerModal}) as any;
+}
+
+type ModalProps = ModalRenderProps &
+  Pick<
+    Props,
+    | 'priority'
+    | 'renderMessage'
+    | 'message'
+    | 'confirmText'
+    | 'cancelText'
+    | 'header'
+    | 'onConfirm'
+    | 'onCancel'
+    | 'disableConfirmButton'
+  >;
+
+type ModalState = {
+  /**
+   * Is confirm button disabled
+   */
+  disableConfirmButton: boolean;
+  /**
+   * The callback registered from the rendered message to call
+   */
+  confirmCallback: null | (() => void);
+};
+
+class ConfirmModal extends React.Component<ModalProps, ModalState> {
+  state: ModalState = {
+    disableConfirmButton: !!this.props.disableConfirmButton,
+    confirmCallback: null,
+  };
+
+  confirming: boolean = false;
+
+  handleClose = () => {
+    const {disableConfirmButton, onCancel, closeModal} = this.props;
+
+    onCancel?.();
+    this.setState({disableConfirmButton: disableConfirmButton ?? false});
+
+    // always reset `confirming` when modal visibility changes
+    this.confirming = false;
+    closeModal();
+  };
+
+  handleConfirm = () => {
+    const {onConfirm, closeModal} = this.props;
+
+    // `confirming` is used to ensure `onConfirm` or the confirm callback is
+    // only called once
+    if (!this.confirming) {
+      onConfirm?.();
+      this.state.confirmCallback?.();
+    }
+
+    this.setState({disableConfirmButton: true});
+    this.confirming = true;
+    closeModal();
+  };
+
+  get confirmMessage() {
+    const {message, renderMessage} = this.props;
 
     if (typeof renderMessage === 'function') {
-      confirmMessage = renderMessage({
+      return renderMessage({
         confirm: this.handleConfirm,
-        close: this.handleToggle,
+        close: this.handleClose,
+        disableConfirmButton: (state: boolean) =>
+          this.setState({disableConfirmButton: state}),
+        setConfirmCallback: (confirmCallback: () => void) =>
+          this.setState({confirmCallback}),
       });
-    } else {
-      confirmMessage = React.isValidElement(message) ? (
-        message
-      ) : (
-        <p>
-          <strong>{message}</strong>
-        </p>
-      );
+    }
+
+    if (React.isValidElement(message)) {
+      return message;
     }
 
     return (
+      <p>
+        <strong>{message}</strong>
+      </p>
+    );
+  }
+
+  render() {
+    const {Header, Body, Footer, priority, confirmText, cancelText, header} = this.props;
+
+    return (
       <React.Fragment>
-        {typeof children === 'function'
-          ? children({
-              close: this.closeModal,
-              open: this.openModal,
-            })
-          : React.isValidElement(children) &&
-            React.cloneElement(children, {
-              disabled,
-              onClick: this.handleToggle,
-            })}
-        <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
-          {header && <Modal.Header>{header}</Modal.Header>}
-          <Modal.Body>{confirmMessage}</Modal.Body>
-          <Modal.Footer>
-            <Button style={{marginRight: 10}} onClick={this.handleToggle}>
-              {cancelText}
-            </Button>
+        {header && <Header>{header}</Header>}
+        <Body>{this.confirmMessage}</Body>
+        <Footer>
+          <ButtonBar gap={2}>
+            <Button onClick={this.handleClose}>{cancelText}</Button>
             <Button
               data-test-id="confirm-button"
               disabled={this.state.disableConfirmButton}
@@ -274,8 +264,8 @@ class Confirm extends React.PureComponent<Props, State> {
             >
               {confirmText}
             </Button>
-          </Modal.Footer>
-        </Modal>
+          </ButtonBar>
+        </Footer>
       </React.Fragment>
     );
   }

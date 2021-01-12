@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
@@ -60,7 +61,7 @@ describe('TableField', function () {
         expect(wrapper.find('HeaderLabel').at(1).text()).toBe('Column 2');
       });
 
-      it('handles removing a row', function () {
+      it('handles removing a row', async function () {
         // add a couple new rows for funsies
         wrapper.find('button[aria-label="Add Thing"]').simulate('click');
         wrapper.find('button[aria-label="Add Thing"]').simulate('click');
@@ -69,7 +70,9 @@ describe('TableField', function () {
         wrapper.find('button[aria-label="delete"]').last().simulate('click');
 
         // click through confirmation
-        wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
+        const modal = await mountGlobalModal();
+        modal.find('Button[data-test-id="confirm-button"]').simulate('click');
+        wrapper.update();
 
         expect(wrapper.find('RowContainer[data-test-id="field-row"]')).toHaveLength(1);
       });

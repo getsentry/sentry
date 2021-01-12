@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -248,7 +249,9 @@ describe('OrganizationRequestsView', function () {
     );
 
     wrapper.find('button[aria-label="Approve"]').simulate('click');
-    wrapper.find('button[aria-label="Confirm"]').simulate('click');
+
+    const modal = await mountGlobalModal();
+    modal.find('button[aria-label="Confirm"]').simulate('click');
 
     await tick();
     wrapper.update();
@@ -344,7 +347,8 @@ describe('OrganizationRequestsView', function () {
     selectByValue(wrapper, 'admin', {name: 'role', control: true});
 
     wrapper.find('button[aria-label="Approve"]').simulate('click');
-    wrapper.find('button[aria-label="Confirm"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('button[aria-label="Confirm"]').simulate('click');
 
     await tick();
     wrapper.update();

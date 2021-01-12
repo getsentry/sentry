@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
 import App from 'app/views/app';
@@ -80,8 +81,10 @@ describe('Organization Developer Settings', function () {
       expect(wrapper.find(deleteButtonSelector).prop('disabled')).toEqual(false);
       wrapper.find(deleteButtonSelector).simulate('click');
       // confirm deletion by entering in app slug
-      wrapper.find('input').simulate('change', {target: {value: 'sample-app'}});
-      wrapper.find('ConfirmDelete Button').last().simulate('click');
+      const modal = await mountGlobalModal();
+      modal.find('input').simulate('change', {target: {value: 'sample-app'}});
+      modal.find('Button[priority="danger"]').simulate('click');
+
       await tick();
       wrapper.update();
       expect(wrapper.text()).toMatch('No public integrations have been created yet');

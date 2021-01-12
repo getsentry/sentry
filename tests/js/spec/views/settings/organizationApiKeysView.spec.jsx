@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationApiKeys from 'app/views/settings/organizationApiKeys';
 
@@ -47,7 +48,7 @@ describe('OrganizationApiKeys', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('can delete a key', function () {
+  it('can delete a key', async function () {
     const wrapper = mountWithTheme(
       <OrganizationApiKeys
         location={TestStubs.location()}
@@ -59,7 +60,12 @@ describe('OrganizationApiKeys', function () {
 
     expect(deleteMock).toHaveBeenCalledTimes(0);
     wrapper.find('Confirm[aria-label="Remove API Key"]').simulate('click');
-    wrapper.find('button[aria-label="Confirm"]').simulate('click');
+
+    const modal = await mountGlobalModal();
+    modal.find('button[aria-label="Confirm"]').simulate('click');
+
+    wrapper.update();
+
     expect(deleteMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('AutoSelectText')).toHaveLength(0);
   });

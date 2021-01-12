@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import ReleaseActions from 'app/views/releases/detail/releaseActions';
 
@@ -42,12 +43,13 @@ describe('ReleaseActions', function () {
     expect(archiveAction.text()).toBe('Archive');
 
     archiveAction.simulate('click');
+    const modal = await mountGlobalModal();
 
-    const affectedProjects = wrapper.find('ProjectBadge');
+    const affectedProjects = modal.find('ProjectBadge');
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    modal.find('ModalDialog Button[priority="primary"]').simulate('click');
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),
@@ -89,12 +91,13 @@ describe('ReleaseActions', function () {
     expect(restoreAction.text()).toBe('Restore');
 
     restoreAction.simulate('click');
+    const modal = await mountGlobalModal();
 
-    const affectedProjects = wrapper.find('ProjectBadge');
+    const affectedProjects = modal.find('ProjectBadge');
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    modal.find('Button[priority="primary"]').simulate('click');
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),

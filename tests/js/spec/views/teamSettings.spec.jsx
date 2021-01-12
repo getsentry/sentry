@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import TeamStore from 'app/stores/teamStore';
 import TeamSettings from 'app/views/settings/organizationTeams/teamSettings';
@@ -102,7 +103,9 @@ describe('TeamSettings', function () {
     TeamStore.trigger.mockReset();
 
     // Wait for modal
-    wrapper.find('ModalDialog Button[priority="danger"] button').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="danger"] button').simulate('click');
+
     expect(deleteMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
       expect.objectContaining({

@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import ProjectSourceMapsDetail from 'app/views/settings/projectSourceMaps/detail';
 import ProjectSourceMaps from 'app/views/settings/projectSourceMaps/list';
@@ -47,7 +48,7 @@ describe('ProjectSourceMaps', function () {
     );
   });
 
-  it('deletes the archive', function () {
+  it('deletes the archive', async function () {
     const archive = TestStubs.SourceMapArchive();
 
     MockApiClient.addMockResponse({
@@ -65,7 +66,8 @@ describe('ProjectSourceMaps', function () {
     wrapper.find('button[aria-label="Remove All Artifacts"]').simulate('click');
 
     // Confirm Modal
-    wrapper.find('Modal Button[data-test-id="confirm-button"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalledWith(
       endpoint,
@@ -161,7 +163,7 @@ describe('ProjectSourceMapsDetail', function () {
     );
   });
 
-  it('deletes all artifacts', function () {
+  it('deletes all artifacts', async function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -177,7 +179,8 @@ describe('ProjectSourceMapsDetail', function () {
     wrapper.find('button[aria-label="Remove All Artifacts"]').simulate('click');
 
     // Confirm Modal
-    wrapper.find('Modal Button[data-test-id="confirm-button"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalledWith(
       archiveDeleteEndpoint,
@@ -219,7 +222,7 @@ describe('ProjectSourceMapsDetail', function () {
     });
   });
 
-  it('deletes single artifact', function () {
+  it('deletes single artifact', async function () {
     const artifact = TestStubs.SourceMapArtifact();
 
     MockApiClient.addMockResponse({
@@ -239,7 +242,8 @@ describe('ProjectSourceMapsDetail', function () {
       .simulate('click');
 
     // Confirm Modal
-    wrapper.find('Modal Button[data-test-id="confirm-button"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
   });

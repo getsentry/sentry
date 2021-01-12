@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
 import AccountSecurity from 'app/views/settings/account/accountSecurity';
@@ -111,7 +112,8 @@ describe('AccountSecurity', function () {
     wrapper.find('button[aria-label="delete"]').simulate('click');
 
     // Confirm
-    wrapper.find('Modal Button').last().simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button').last().simulate('click');
 
     await tick();
     wrapper.update();
@@ -127,7 +129,7 @@ describe('AccountSecurity', function () {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
-  it('can remove one of multiple 2fa methods when org requires 2fa', function () {
+  it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -165,7 +167,9 @@ describe('AccountSecurity', function () {
     wrapper.find('button[aria-label="delete"]').first().simulate('click');
 
     // Confirm
-    wrapper.find('Modal Button').last().simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button').last().simulate('click');
+
     expect(deleteMock).toHaveBeenCalled();
   });
 

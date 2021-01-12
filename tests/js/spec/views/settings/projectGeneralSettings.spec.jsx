@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select';
 
 import ProjectsStore from 'app/stores/projectsStore';
@@ -98,7 +99,7 @@ describe('projectGeneralSettings', function () {
     expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeFalsy();
   });
 
-  it('project admins can remove project', function () {
+  it('project admins can remove project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
@@ -117,12 +118,13 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    wrapper.find('Modal Button[priority="danger"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('project admins can transfer project', function () {
+  it('project admins can transfer project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/transfer/`,
       method: 'POST',
@@ -141,10 +143,11 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    wrapper
+    const modal = await mountGlobalModal();
+    modal
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
-    wrapper.find('Modal Button[priority="danger"]').simulate('click');
+    modal.find('Modal Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/transfer/`,
