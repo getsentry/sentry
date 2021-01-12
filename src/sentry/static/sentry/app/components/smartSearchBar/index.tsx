@@ -629,10 +629,11 @@ class SmartSearchBar extends React.Component<Props, State> {
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
-      .map(value => ({
+      .map((value, i) => ({
         value,
         desc: value,
         type: 'tag-value',
+        ignoreMaxSearchItems: tag.maxSuggestedValues ? i < tag.maxSuggestedValues : false,
       }));
 
   /**

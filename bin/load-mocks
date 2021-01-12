@@ -565,6 +565,9 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     )
 
             if load_transactions:
+                if not project.flags.has_transactions:
+                    project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
                 for day in range(14):
                     for hour in range(24):
                         timestamp = timezone.now() - timedelta(days=day, hours=hour)

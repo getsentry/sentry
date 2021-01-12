@@ -4,7 +4,8 @@ import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
-import {Event, Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {DebugFileSource, Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {Event} from 'app/types/event';
 
 export type ModalRenderProps = {
   closeModal: () => void;
@@ -56,11 +57,11 @@ export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
 
 type OpenDiffModalOptions = {
   targetIssueId: string;
-  targetEventId?: string;
   project: Project;
   baseIssueId: Group['id'];
   orgId: Organization['id'];
   baseEventId?: Event['id'];
+  targetEventId?: string;
 };
 
 export async function openDiffModal(options: OpenDiffModalOptions) {
@@ -164,12 +165,12 @@ export async function redirectToProject(newProjectSlug: string) {
   openModal(deps => <Modal {...deps} slug={newProjectSlug} />, {});
 }
 
-type HelpSearchModalOptipons = {
-  organization: Organization;
+type HelpSearchModalOptions = {
+  organization?: Organization;
   placeholder?: string;
 };
 
-export async function openHelpSearchModal(options: HelpSearchModalOptipons) {
+export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   const mod = await import(
     /* webpackChunkName: "HelpSearchModal" */ 'app/components/modals/helpSearchModal'
   );
@@ -186,7 +187,12 @@ export type SentryAppDetailsModalOptions = {
   onCloseModal?: () => void; //used for analytics
 };
 
-export async function openDebugFileSourceModal(options: ModalOptions = {}) {
+type DebugFileSourceModalOptions = {
+  sourceType: DebugFileSource;
+  onSave: (data: Record<string, string>) => void;
+};
+
+export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
   const mod = await import(
     /* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal'
   );

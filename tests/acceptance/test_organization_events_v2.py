@@ -452,11 +452,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Open the save as drawer
-            self.browser.element('[data-test-id="button-save-as"]').click()
+            self.browser.element('[aria-label="Save as"]').click()
 
             # Fill out name and submit form.
             self.browser.element('input[name="query_name"]').send_keys(query_name)
-            self.browser.element('[data-test-id="button-save-query"]').click()
+            self.browser.element('[aria-label="Save"]').click()
 
             self.browser.wait_until(
                 'div[name="discover2-query-name"][value="{}"]'.format(query_name)

@@ -4,7 +4,8 @@ import DeviceName from 'app/components/deviceName';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import Link from 'app/components/links/link';
 import Version from 'app/components/version';
-import {EventTag, Meta} from 'app/types';
+import {Meta} from 'app/types';
+import {EventTag} from 'app/types/event';
 import {defined} from 'app/utils';
 
 type Props = {

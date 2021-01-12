@@ -83,7 +83,7 @@ def find_histogram_buckets(field, params, conditions):
 
     if len(columns) != 2:
         raise InvalidSearchQuery(
-            u"histogram(...) expects 2 column arguments, received {:g} arguments".format(
+            u"histogram_deprecated(...) expects 2 column arguments, received {:g} arguments".format(
                 len(columns)
             )
         )
@@ -92,7 +92,7 @@ def find_histogram_buckets(field, params, conditions):
     # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
     if column != "transaction.duration":
         raise InvalidSearchQuery(
-            "histogram(...) can only be used with the transaction.duration column"
+            "histogram_deprecated(...) can only be used with the transaction.duration column"
         )
 
     try:
@@ -101,7 +101,9 @@ def find_histogram_buckets(field, params, conditions):
             raise Exception()
     except Exception:
         raise InvalidSearchQuery(
-            u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
+            u"histogram_deprecated(...) requires a bucket value between 1 and 500, not {}".format(
+                columns[1]
+            )
         )
 
     max_alias = u"max_{}".format(column)
@@ -128,7 +130,7 @@ def find_histogram_buckets(field, params, conditions):
     )
     if len(results["data"]) != 1:
         # If there are no transactions, so no max duration, return one empty bucket
-        return "histogram({}, 1, 1, 0)".format(column)
+        return "histogram_deprecated({}, 1, 1, 0)".format(column)
 
     bucket_min = results["data"][0][min_alias]
     bucket_max = results["data"][0][max_alias]
@@ -142,7 +144,9 @@ def find_histogram_buckets(field, params, conditions):
     # zerofill correctly.
     offset = int(floor(bucket_min / bucket_size) * bucket_size)
 
-    return "histogram({}, {:g}, {:.0f}, {:.0f})".format(column, num_buckets, bucket_size, offset)
+    return "histogram_deprecated({}, {:g}, {:.0f}, {:.0f})".format(
+        column, num_buckets, bucket_size, offset
+    )
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
@@ -295,7 +299,7 @@ def transform_data(result, translated_columns, snuba_filter, selected_columns=No
             )
 
     for col in result["meta"]:
-        if col["name"].startswith("histogram"):
+        if col["name"].startswith("histogram_deprecated"):
             # The column name here has been translated, we need the original name
             for snuba_name, sentry_name in six.iteritems(translated_columns):
                 if sentry_name == col["name"]:
@@ -377,7 +381,7 @@ def query(
     idx = 0
     function_translations = {}
     for col in selected_columns:
-        if col.startswith("histogram("):
+        if col.startswith("histogram_deprecated("):
             with sentry_sdk.start_span(
                 op="discover.discover", description="query.histogram_calculation"
             ) as span:
@@ -772,6 +776,7 @@ def get_facets(query, params, limit=10, referrer=None):
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
     # Exclude tracing tags as they are noisy and generally not helpful.
+    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
     excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
 
     # Sampling keys for multi-project results as we don't need accuracy
@@ -977,7 +982,7 @@ def measurements_histogram_query(
         referrer=referrer,
         auto_fields=True,
         use_aggregate_conditions=True,
-        functions_acl=["array_join", "measurements_histogram"],
+        functions_acl=["array_join", "histogram"],
     )
 
     return normalize_measurements_histogram(
@@ -986,7 +991,9 @@ def measurements_histogram_query(
 
 
 def get_measurements_histogram_col(params):
-    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
+    return u"histogram(measurements_value, {:d}, {:d}, {:d})".format(
+        params.bucket_size, params.start_offset, params.multiplier
+    )
 
 
 def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):

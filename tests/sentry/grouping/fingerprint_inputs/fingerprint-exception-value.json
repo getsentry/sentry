@@ -4,7 +4,7 @@
       "matchers": [
         ["value", "*went wrong*"]
       ],
-      "fingerprint": ["something-went-wrong"]
+      "fingerprint": ["something-went-wrong", "{{ error.value }}"]
     }
   ],
   "fingerprint": ["{{ default }}"],
