@@ -360,3 +360,28 @@ export function loadDocs(
 export function fetchProjectsCount(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
 }
+
+/**
+ * Check if there are any releases in the last 90 days.
+ * Used for checking if project is using releases.
+ *
+ * @param api API Client
+ * @param orgSlug Organization Slug
+ * @param projectId Project Id
+ */
+export async function fetchAnyReleaseExistence(
+  api: Client,
+  orgSlug: string,
+  projectId: number | string
+) {
+  const data = await api.requestPromise(`/organizations/${orgSlug}/releases/stats/`, {
+    method: 'GET',
+    query: {
+      statsPeriod: '90d',
+      project: projectId,
+      per_page: 1,
+    },
+  });
+
+  return data.length > 0;
+}

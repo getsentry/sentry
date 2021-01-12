@@ -8,6 +8,7 @@ import {GlobalSelection, Organization} from 'app/types';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ProjectApdexScoreCard from './projectApdexScoreCard';
+import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 
 type Props = {
   organization: Organization;
@@ -24,13 +25,8 @@ function ProjectScoreCards({organization, selection}: Props) {
         trend="+13.5%"
         trendStyle="good"
       />
-      <ScoreCard
-        title={t('Velocity Score')}
-        help={t('Velocity score is used to // TODO(project-detail)')}
-        score="16"
-        trend="-2 releases / 2 wks"
-        trendStyle="bad"
-      />
+
+      <ProjectVelocityScoreCard organization={organization} selection={selection} />
 
       <ProjectApdexScoreCard organization={organization} selection={selection} />
     </CardWrapper>
