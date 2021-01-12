@@ -341,10 +341,6 @@ class DurationHistogram extends React.Component<Props, State> {
     };
   };
 
-  bucketWidth(chartData) {
-    return chartData.length >= 2 ? chartData[1].histogram - chartData[0].histogram : 0;
-  }
-
   getHistogramWidth(chartData) {
     const {refPixelRect} = this.state;
     return getChartWidth(chartData, refPixelRect);
@@ -409,7 +405,7 @@ class DurationHistogram extends React.Component<Props, State> {
               refDataRect,
               refPixelRect,
               chartData,
-              this.bucketWidth(chartData),
+              getBucketWidth(chartData),
               minValue,
               maxValue
             );
