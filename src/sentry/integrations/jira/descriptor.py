@@ -47,26 +47,15 @@ class JiraDescriptorEndpoint(Endpoint):
                         "name": {"value": "Configure Sentry Add-on"},
                         "key": "configure-sentry",
                     },
-                    "webPanels": [
-                        {
-                            "key": "sentry-issues",
-                            "location": "atl.jira.view.issue.right.context",
-                            "name": {"value": "Related Sentry Issues"},
-                            "url": "/extensions/jira/issue/{issue.key}/",
-                        },
-                    ],
                     "jiraIssueGlances": [
                         {
                             "icon": {"width": 24, "height": 24, "url": sentry_logo},
-                            "content": {
-                                "type": "label",
-                                "label": {"value": "Related Sentry Issues"},
-                            },
+                            "content": {"type": "label", "label": {"value": "Linked Issues"}},
                             "target": {
                                 "type": "web_panel",
                                 "url": "/extensions/jira/issue/{issue.key}/",
                             },
-                            "name": {"value": "Related Sentry Issues "},
+                            "name": {"value": "Sentry "},
                             "key": "sentry-issues-glance",
                         }
                     ],
