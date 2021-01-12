@@ -4,7 +4,7 @@ import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
-import MeasurementsHistogramQuery from 'app/views/performance/transactionVitals/measurementsHistogramQuery';
+import HistogramQuery from 'app/views/performance/transactionVitals/histogramQuery';
 
 function renderHistogram({isLoading, error, histograms}) {
   if (isLoading) {
@@ -18,8 +18,8 @@ function renderHistogram({isLoading, error, histograms}) {
           <React.Fragment key={name}>
             <p>{name}</p>
             <ul>
-              {histograms[name].map(bin => (
-                <li key={bin.histogram}>{`${bin.histogram} - ${bin.count}`}</li>
+              {histograms[name].map(bar => (
+                <li key={bar.bin}>{`${bar.bin} - ${bar.count}`}</li>
               ))}
             </ul>
           </React.Fragment>
@@ -29,7 +29,7 @@ function renderHistogram({isLoading, error, histograms}) {
   }
 }
 
-describe('MeasurementsHistogramQuery', function () {
+describe('HistogramQuery', function () {
   let api, eventView, location;
   beforeEach(() => {
     api = new Client();
@@ -49,27 +49,26 @@ describe('MeasurementsHistogramQuery', function () {
 
   it('fetches data on mount', async function () {
     const getMock = MockApiClient.addMockResponse({
-      url: '/organizations/test-org/events-measurements-histogram/',
+      url: '/organizations/test-org/events-histogram/',
       body: {
-        meta: {key: 'string', bin: 'number', count: 'number'},
-        data: Array(10)
+        'measurements.fp': Array(10)
           .fill(null)
-          .map((_, i) => ({key: 'fp', bin: i * 1000, count: i})),
+          .map((_, i) => ({bin: i * 1000, count: i})),
       },
     });
     const wrapper = mount(
-      <MeasurementsHistogramQuery
+      <HistogramQuery
         api={api}
         location={location}
         eventView={eventView}
         orgSlug="test-org"
         numBuckets={10}
-        measurements={['fp']}
+        fields={['fp']}
         min={0}
         max={10000}
       >
         {renderHistogram}
-      </MeasurementsHistogramQuery>
+      </HistogramQuery>
     );
     await tick();
     wrapper.update();

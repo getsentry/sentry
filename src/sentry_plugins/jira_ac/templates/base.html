@@ -85,7 +85,8 @@
 
   </style>
   {% script src=ac_js_src %}{% endscript %}
-  {% script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" %}{% endscript %}
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
   {% script src="//aui-cdn.atlassian.com/aui-adg/5.10.1/js/aui.min.js" %}{% endscript %}
   {% script type="text/javascript" %}
     <script>

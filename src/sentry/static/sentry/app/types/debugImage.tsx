@@ -82,7 +82,7 @@ export type ImageCandidate = {
 };
 
 // Debug Status
-export enum ImageProcessingInfo {
+export enum ImageStatus {
   FOUND = 'found',
   UNUSED = 'unused',
   MISSING = 'missing',
@@ -101,8 +101,8 @@ export type Image = {
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
   debug_id?: string;
-  debug_status?: ImageProcessingInfo | null;
-  unwind_status?: ImageProcessingInfo | null;
+  debug_status?: ImageStatus | null;
+  unwind_status?: ImageStatus | null;
   arch?: string;
   image_addr?: string;
 };
