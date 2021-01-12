@@ -2,14 +2,12 @@ from __future__ import absolute_import
 
 import time
 
-from django.conf import settings
-
 from sentry.relay import config
 from sentry.utils import metrics
 from sentry.models import ProjectKey, Project
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
-from sentry.loader.browsersdkversion import get_browser_sdk_version
+from sentry.loader.browsersdkversion import get_js_sdk_url, get_browser_sdk_version
 
 
 CACHE_CONTROL = (
@@ -26,17 +24,11 @@ class JavaScriptSdkLoader(BaseView):
             return ({}, None, None)
 
         sdk_version = get_browser_sdk_version(key)
-        try:
-            if "%s" in settings.JS_SDK_LOADER_DEFAULT_SDK_URL:
-                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version,)
-            else:
-                sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
-        except TypeError:
-            sdk_url = ""  # It fails if it cannot inject the version in the string
-
+        sdk_url = get_js_sdk_url(key, sdk_version=sdk_version) or ""
         return (
             {
                 "config": config.get_project_key_config(key),
+                # It fails if it cannot inject the version in the string
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
             },

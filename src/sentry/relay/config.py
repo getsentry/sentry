@@ -23,6 +23,7 @@ from sentry.utils.sdk import configure_scope
 from sentry.relay.utils import to_camel_case_name
 from sentry.datascrubbing import get_pii_config, get_datascrubbing_settings
 from sentry.models.projectkey import ProjectKeyStatus
+from sentry.loader.browsersdkversion import get_js_sdk_url
 
 
 def get_project_key_config(project_key):
@@ -38,6 +39,7 @@ def get_public_key_configs(project, full_config, project_keys=None):
             "publicKey": project_key.public_key,
             "numericId": project_key.id,
             "isEnabled": project_key.status == ProjectKeyStatus.ACTIVE,
+            "jsSdkUrl": get_js_sdk_url(project_key),
         }
 
         if full_config:

@@ -78,6 +78,22 @@ def get_browser_sdk_version(project_key):
         return settings.JS_SDK_LOADER_SDK_VERSION
 
 
+def get_js_sdk_url(project_key=None, sdk_version=None):
+    if sdk_version is None:
+        if project_key is None:
+            raise TypeError("Project key needed if SDK version is not set")
+        sdk_version = get_browser_sdk_version(project_key)
+    try:
+        if "%s" in settings.JS_SDK_LOADER_DEFAULT_SDK_URL:
+            sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL % (sdk_version,)
+        else:
+            sdk_url = settings.JS_SDK_LOADER_DEFAULT_SDK_URL
+    except TypeError:
+        # Ignore misconfiguration here and disable the URL in that case
+        sdk_url = None
+    return sdk_url
+
+
 def get_selected_browser_sdk_version(project_key):
     return project_key.data.get("browserSdkVersion") or get_default_sdk_version_for_project(
         project_key.project
