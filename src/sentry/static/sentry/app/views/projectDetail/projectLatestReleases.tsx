@@ -4,6 +4,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
+import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
@@ -66,27 +67,22 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {releases} = this.state;
-    const {organization, projectSlug} = this.props;
+    const {organization, projectId} = this.props;
 
-    if ((releases ?? []).length !== 0) {
+    if ((releases ?? []).length !== 0 || !projectId) {
       this.setState({hasOlderReleases: true});
       return;
     }
 
     this.setState({loading: true});
 
-    const oldReleases = await this.api.requestPromise(
-      `/projects/${organization.slug}/${projectSlug}/releases/`,
-      {
-        method: 'GET',
-        query: {
-          statsPeriod: '90d',
-          per_page: 1,
-        },
-      }
+    const hasOlderReleases = await fetchAnyReleaseExistence(
+      this.api,
+      organization.slug,
+      projectId
     );
 
-    this.setState({hasOlderReleases: oldReleases.length > 0, loading: false});
+    this.setState({hasOlderReleases, loading: false});
   }
 
   handleTourAdvance = (index: number) => {
