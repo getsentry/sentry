@@ -14,8 +14,7 @@ __all__ = (
 
 
 class BoundedIntegerField(models.IntegerField):
-    # HACK: This value is wrong
-    MAX_VALUE = 9223372036854775807
+    MAX_VALUE = 2147483647
 
     def get_prep_value(self, value):
         if value:
@@ -25,8 +24,7 @@ class BoundedIntegerField(models.IntegerField):
 
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField):
-    # HACK: This value is wrong
-    MAX_VALUE = 9223372036854775807
+    MAX_VALUE = 2147483647
 
     def get_prep_value(self, value):
         if value:
@@ -36,8 +34,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
 
 
 class BoundedAutoField(models.AutoField):
-    # HACK: This value is wrong
-    MAX_VALUE = 9223372036854775807
+    MAX_VALUE = 2147483647
 
     def get_prep_value(self, value):
         if value:
