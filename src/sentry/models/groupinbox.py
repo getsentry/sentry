@@ -83,15 +83,15 @@ def add_group_to_inbox(group, reason, reason_details=None):
     return group_inbox
 
 
-def remove_group_from_inbox(group, user=None, action=None):
+def remove_group_from_inbox(group, action=None, user=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
 
         inbox_out.send_robust(
-            project=group.project,
+            group=group_inbox.group,
+            project=group_inbox.group.project,
             user=user,
-            group=group,
             sender="remove_group_from_inbox",
             action=action,
             inbox_date_added=group_inbox.date_added,
