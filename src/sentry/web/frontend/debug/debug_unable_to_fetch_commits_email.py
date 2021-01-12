@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 from django.views.generic import View
 
-from sentry.models import Release, Repository
+from sentry.models import Release, Repository, Organization
 from sentry.tasks.commits import generate_fetch_commits_error_email
 
 from .mail import MailPreview
@@ -10,7 +10,8 @@ from .mail import MailPreview
 
 class DebugUnableToFetchCommitsEmailView(View):
     def get(self, request):
-        release = Release(version="abcdef")
+        org = Organization(slug="myorg")
+        release = Release(version="abcdef", organization=org)
         repo = Repository(name="repo_name")
 
         email = generate_fetch_commits_error_email(

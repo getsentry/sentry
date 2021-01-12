@@ -4,6 +4,7 @@ import click
 import logging
 import os
 import six
+import sys
 
 from django.conf import settings
 
@@ -275,6 +276,10 @@ def configure_structlog():
 def initialize_app(config, skip_service_validation=False):
     settings = config["settings"]
 
+    if settings.DEBUG:
+        # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
+        sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
+
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and
     # integration.
@@ -318,7 +323,7 @@ def initialize_app(config, skip_service_validation=False):
 
     for key in settings.CACHES:
         if not hasattr(settings.CACHES[key], "VERSION"):
-            settings.CACHES[key]["VERSION"] = settings.CACHE_VERSION
+            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)

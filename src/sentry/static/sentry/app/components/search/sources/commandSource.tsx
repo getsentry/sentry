@@ -5,9 +5,9 @@ import {openHelpSearchModal, openSudo} from 'app/actionCreators/modal';
 import Access from 'app/components/acl/access';
 import {toggleLocaleDebug} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import {createFuzzySearch, isResultWithMatches} from 'app/utils/createFuzzySearch';
+import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
-import {Result} from './types';
+import {ChildProps, Result} from './types';
 
 type Action = {
   title: string;
@@ -62,21 +62,6 @@ const ACTIONS: Action[] = [
   },
 ];
 
-type ChildProps = {
-  /**
-   * Whether or not results are being loaded.
-   */
-  isLoading: boolean;
-  /**
-   * Unused. Only present to be conformant with other search sources.
-   * */
-  allResults: Result[];
-  /**
-   * Results with the filter query applied.
-   */
-  results: Result[];
-};
-
 type Props = {
   /**
    * search term
@@ -128,31 +113,26 @@ class CommandSource extends React.Component<Props, State> {
   render() {
     const {searchMap, query, isSuperuser, children} = this.props;
 
-    const results: Result[] = [];
+    let results: Result[] = [];
     if (this.state.fuzzy) {
-      const rawResults = this.state.fuzzy.search(query);
-      rawResults.forEach(value => {
-        if (!isResultWithMatches(value)) {
-          return;
-        }
-        const {item, ...rest} = value;
-        if (value.item.requiresSuperuser && !isSuperuser) {
-          return;
-        }
-        results.push({
-          item: {
-            ...item,
-            sourceType: 'command',
-            resultType: 'command',
-          },
-          ...rest,
+      const rawResults = this.state.fuzzy.search<Action, true, true>(query);
+      results = rawResults
+        .filter(({item}) => !item.requiresSuperuser || isSuperuser)
+        .map<Result>(value => {
+          const {item, ...rest} = value;
+          return {
+            item: {
+              ...item,
+              sourceType: 'command',
+              resultType: 'command',
+            },
+            ...rest,
+          };
         });
-      });
     }
 
     return children({
       isLoading: searchMap === null,
-      allResults: [],
       results,
     });
   }

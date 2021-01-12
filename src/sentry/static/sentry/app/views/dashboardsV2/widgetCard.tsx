@@ -39,22 +39,22 @@ type Props = ReactRouter.WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
+  isDragging: boolean;
+  hideToolbar?: boolean;
+  startWidgetDrag: (
+    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
+  ) => void;
 };
 
-type State = {
-  hovering: boolean;
-};
-
-class WidgetCard extends React.Component<Props, State> {
-  state: State = {
-    hovering: false,
-  };
-
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+class WidgetCard extends React.Component<Props> {
+  shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
       !isEqual(nextProps.selection, this.props.selection) ||
-      nextState.hovering !== this.state.hovering
+      this.props.isEditing !== nextProps.isEditing ||
+      this.props.isDragging !== nextProps.isDragging ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
@@ -73,8 +73,12 @@ class WidgetCard extends React.Component<Props, State> {
     }
   }
 
-  renderVisual() {
-    const {location, router, selection, api, organization, widget} = this.props;
+  renderVisual({
+    results,
+    errorMessage,
+    loading,
+  }: Pick<WidgetQueries['state'], 'results' | 'errorMessage' | 'loading'>) {
+    const {location, router, selection, widget} = this.props;
 
     const {start, end, period} = selection.datetime;
 
@@ -131,68 +135,65 @@ class WidgetCard extends React.Component<Props, State> {
     return (
       <ChartZoom router={router} period={period} start={start} end={end}>
         {zoomRenderProps => {
+          if (errorMessage) {
+            return (
+              <ErrorPanel>
+                <IconWarning color="gray500" size="lg" />
+              </ErrorPanel>
+            );
+          }
+
+          const colors = results ? theme.charts.getColorPalette(results.length - 2) : [];
+
+          // Create a list of series based on the order of the fields,
+          const series = results
+            ? results.map((values, i: number) => ({
+                ...values,
+                color: colors[i],
+              }))
+            : [];
+
           return (
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({results, error, loading}) => {
-                if (error) {
-                  return (
-                    <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
-                    </ErrorPanel>
-                  );
-                }
-
-                const colors = results
-                  ? theme.charts.getColorPalette(results.length - 2)
-                  : [];
-
-                // Create a list of series based on the order of the fields,
-                const series = results
-                  ? results.map((values, i: number) => ({
-                      ...values,
-                      color: colors[i],
-                    }))
-                  : [];
-
-                return (
-                  <TransitionChart loading={loading} reloading={loading}>
-                    <TransparentLoadingMask visible={loading} />
-                    {getDynamicText({
-                      value: this.chartComponent({
-                        ...zoomRenderProps,
-                        ...chartOptions,
-                        legend,
-                        series,
-                      }),
-                      fixed: 'Widget Chart',
-                    })}
-                  </TransitionChart>
-                );
-              }}
-            </WidgetQueries>
+            <TransitionChart loading={loading} reloading={loading}>
+              <TransparentLoadingMask visible={loading} />
+              {getDynamicText({
+                value: this.chartComponent({
+                  ...zoomRenderProps,
+                  ...chartOptions,
+                  legend,
+                  series,
+                }),
+                fixed: 'Widget Chart',
+              })}
+            </TransitionChart>
           );
         }}
       </ChartZoom>
     );
   }
 
-  renderEditPanel() {
-    if (!this.state.hovering || !this.props.isEditing) {
+  renderToolbar() {
+    if (!this.props.isEditing) {
       return null;
     }
 
-    const {onEdit, onDelete} = this.props;
+    if (this.props.hideToolbar) {
+      return <ToolbarPanel />;
+    }
+
+    const {onEdit, onDelete, startWidgetDrag} = this.props;
 
     return (
-      <EditPanel>
-        <IconContainer>
-          <IconGrabbable color="gray500" size="lg" />
+      <ToolbarPanel>
+        <IconContainer data-component="icon-container">
+          <StyledIconGrabbable
+            color="gray500"
+            size="lg"
+            onMouseDown={event => startWidgetDrag(event)}
+            onTouchStart={event => startWidgetDrag(event)}
+          />
           <IconClick
+            data-test-id="widget-edit"
             onClick={() => {
               onEdit();
             }}
@@ -200,6 +201,7 @@ class WidgetCard extends React.Component<Props, State> {
             <IconEdit color="gray500" size="lg" />
           </IconClick>
           <IconClick
+            data-test-id="widget-delete"
             onClick={() => {
               onDelete();
             }}
@@ -207,37 +209,45 @@ class WidgetCard extends React.Component<Props, State> {
             <IconDelete color="gray500" size="lg" />
           </IconClick>
         </IconContainer>
-      </EditPanel>
+      </ToolbarPanel>
     );
   }
 
   render() {
-    const {widget} = this.props;
+    const {
+      widget,
+      isDragging,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+    } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel
-          onMouseLeave={() => {
-            if (this.state.hovering) {
-              this.setState({
-                hovering: false,
-              });
-            }
-          }}
-          onMouseOver={() => {
-            if (!this.state.hovering) {
-              this.setState({
-                hovering: true,
-              });
-            }
-          }}
-        >
-          <ChartContainer>
-            <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-            {this.renderVisual()}
-            {this.renderEditPanel()}
-          </ChartContainer>
+        <StyledPanel isDragging={isDragging}>
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={widget}
+            selection={selection}
+          >
+            {({results, errorMessage, loading}) => {
+              return (
+                <React.Fragment>
+                  {typeof renderErrorMessage === 'function'
+                    ? renderErrorMessage(errorMessage)
+                    : null}
+                  <ChartContainer>
+                    <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
+                    {this.renderVisual({results, errorMessage, loading})}
+                    {this.renderToolbar()}
+                  </ChartContainer>
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -259,11 +269,16 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'isDragging',
+})<{
+  isDragging: boolean;
+}>`
   margin: 0;
+  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
 `;
 
-const EditPanel = styled('div')`
+const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
@@ -290,5 +305,11 @@ const IconContainer = styled('div')`
 const IconClick = styled('div')`
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
   }
 `;

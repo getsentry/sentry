@@ -9,19 +9,44 @@ export type ResultItem = {
   /**
    * The title to display in result options.
    */
-  title: string;
+  title: React.ReactNode;
   /**
    * The source that created the result.
    */
-  sourceType: string;
+  sourceType:
+    | 'organization'
+    | 'project'
+    | 'command'
+    | 'team'
+    | 'member'
+    | 'field'
+    | 'route'
+    | 'event'
+    | 'issue'
+    | 'plugin'
+    | 'integration'
+    | 'sentryApp'
+    | 'docIntegration'
+    | 'help';
   /**
    * The type of result eg. settings, help-docs
    */
-  resultType: string;
+  resultType:
+    | 'settings'
+    | 'command'
+    | 'route'
+    | 'field'
+    | 'issue'
+    | 'event'
+    | 'integration'
+    | 'help-docs'
+    | 'help-develop'
+    | 'help-help-center'
+    | 'help-blog';
   /**
    * The description text to display
    */
-  description?: string;
+  description?: React.ReactNode;
   /**
    * The path to visit when the result is clicked.
    */
@@ -30,12 +55,14 @@ export type ResultItem = {
    * A handler to call when the result is clicked,
    * and the result doesn't have a URL.
    */
-  action?: () => void;
+  action?: (item: ResultItem, autocompleteState: any) => void;
 
   sectionHeading?: string;
   sectionCount?: number;
   extra?: any;
   empty?: boolean;
+  // Used to store groups and events
+  model?: any;
 };
 
 /**
@@ -44,4 +71,20 @@ export type ResultItem = {
 export type Result = {
   item: ResultItem;
   matches?: MarkedText[];
+  score: number;
+};
+
+/**
+ * Common type send to child function
+ * by search source components.
+ */
+export type ChildProps = {
+  /**
+   * Whether or not results have been loaded
+   */
+  isLoading: boolean;
+  /**
+   * Matched results
+   */
+  results: Result[];
 };

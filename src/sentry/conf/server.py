@@ -16,7 +16,6 @@ import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
-import six
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
 
@@ -70,6 +69,7 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
 MAINTENANCE = False
 
 ADMINS = ()
@@ -936,6 +936,8 @@ SENTRY_FEATURES = {
     "organizations:inbox-tab-default": False,
     # Add `owner:me_or_none` to inbox tab query
     "organizations:inbox-owners-query": False,
+    # Enable the new alert details ux design
+    "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
@@ -1142,7 +1144,7 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
-CACHE_VERSION = 2 if six.PY3 else 1
+CACHE_VERSION = 1
 
 # Digests backend
 SENTRY_DIGESTS = "sentry.digests.backends.dummy.DummyBackend"
