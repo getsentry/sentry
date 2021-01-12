@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
@@ -91,8 +92,13 @@ function Status({candidate}: Props) {
         </StatusTooltip>
       );
     }
-    default:
-      return <Tag>{t('Unknown')}</Tag>; // This should not happen
+    default: {
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error("Unknown Image's candidate download status"));
+      });
+      return <Tag>{t('Unknown')}</Tag>; // This shall not happen
+    }
   }
 }
 

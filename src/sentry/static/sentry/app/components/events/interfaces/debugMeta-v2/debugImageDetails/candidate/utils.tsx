@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {t} from 'app/locale';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
 import {CandidateFeatures} from 'app/types/debugImage';
@@ -34,8 +36,13 @@ export function getCandidateFeatureLabel(type: keyof CandidateFeatures) {
           'Stack unwinding information improves the quality of stack traces extracted from minidumps'
         ),
       };
-    default:
+    default: {
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error("Unknown Image's candidate feature"));
+      });
       return {}; // this shall not happen
+    }
   }
 }
 

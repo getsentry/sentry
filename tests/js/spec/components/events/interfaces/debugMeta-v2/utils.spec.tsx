@@ -3,17 +3,17 @@ import {
   getFileName,
   getStatusWeight,
 } from 'app/components/events/interfaces/debugMeta-v2/utils';
-import {ImageProcessingInfo} from 'app/types/debugImage';
+import {ImageStatus} from 'app/types/debugImage';
 
 describe('DebugMeta  - utils', () => {
   describe('getStatusWeight function', () => {
     const data = [
       {
-        parameter: ImageProcessingInfo.FOUND,
+        parameter: ImageStatus.FOUND,
         result: 1,
       },
       {
-        parameter: ImageProcessingInfo.UNUSED,
+        parameter: ImageStatus.UNUSED,
         result: 0,
       },
       {
@@ -21,23 +21,23 @@ describe('DebugMeta  - utils', () => {
         result: 0,
       },
       {
-        parameter: ImageProcessingInfo.MISSING,
+        parameter: ImageStatus.MISSING,
         result: 2,
       },
       {
-        parameter: ImageProcessingInfo.MALFORMED,
+        parameter: ImageStatus.MALFORMED,
         result: 2,
       },
       {
-        parameter: ImageProcessingInfo.FETCHING_FAILED,
+        parameter: ImageStatus.FETCHING_FAILED,
         result: 2,
       },
       {
-        parameter: ImageProcessingInfo.TIMEOUT,
+        parameter: ImageStatus.TIMEOUT,
         result: 2,
       },
       {
-        parameter: ImageProcessingInfo.OTHER,
+        parameter: ImageStatus.OTHER,
         result: 2,
       },
     ];
@@ -73,39 +73,39 @@ describe('DebugMeta  - utils', () => {
   describe('combineStatus function', () => {
     const status = [
       {
-        debugStatus: ImageProcessingInfo.MISSING,
-        unwindStatus: ImageProcessingInfo.UNUSED,
-        combinedStatus: ImageProcessingInfo.MISSING,
+        debugStatus: ImageStatus.MISSING,
+        unwindStatus: ImageStatus.UNUSED,
+        combinedStatus: ImageStatus.MISSING,
       },
       {
-        debugStatus: ImageProcessingInfo.FOUND,
-        unwindStatus: ImageProcessingInfo.MISSING,
-        combinedStatus: ImageProcessingInfo.MISSING,
+        debugStatus: ImageStatus.FOUND,
+        unwindStatus: ImageStatus.MISSING,
+        combinedStatus: ImageStatus.MISSING,
       },
       {
-        debugStatus: ImageProcessingInfo.FOUND,
-        unwindStatus: ImageProcessingInfo.UNUSED,
-        combinedStatus: ImageProcessingInfo.FOUND,
+        debugStatus: ImageStatus.FOUND,
+        unwindStatus: ImageStatus.UNUSED,
+        combinedStatus: ImageStatus.FOUND,
       },
       {
-        debugStatus: ImageProcessingInfo.FOUND,
+        debugStatus: ImageStatus.FOUND,
         unwindStatus: null,
-        combinedStatus: ImageProcessingInfo.FOUND,
+        combinedStatus: ImageStatus.FOUND,
       },
       {
         debugStatus: undefined,
         unwindStatus: undefined,
-        combinedStatus: ImageProcessingInfo.UNUSED,
+        combinedStatus: ImageStatus.UNUSED,
       },
       {
         debugStatus: undefined,
         unwindStatus: null,
-        combinedStatus: ImageProcessingInfo.UNUSED,
+        combinedStatus: ImageStatus.UNUSED,
       },
       {
         debugStatus: null,
         unwindStatus: null,
-        combinedStatus: ImageProcessingInfo.UNUSED,
+        combinedStatus: ImageStatus.UNUSED,
       },
     ];
 

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {ImageProcessingInfo} from 'app/types/debugImage';
+import {ImageStatus} from 'app/types/debugImage';
 
 import ProcessingItem from '../processing/item';
 import ProcessingList from '../processing/list';
@@ -8,8 +8,8 @@ import ProcessingList from '../processing/list';
 import ProcessingIcon from './processingIcon';
 
 type Props = {
-  unwind_status?: ImageProcessingInfo | null;
-  debug_status?: ImageProcessingInfo | null;
+  unwind_status?: ImageStatus | null;
+  debug_status?: ImageStatus | null;
 };
 
 function Processings({unwind_status, debug_status}: Props) {

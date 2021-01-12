@@ -4,11 +4,12 @@ import styled from '@emotion/styled';
 type Props = {
   children?: React.ReactNode;
   symbol?: React.ReactElement;
+  onClick?: () => void;
   className?: string;
 };
 
-const ListItem = styled(({children, className, symbol}: Props) => (
-  <li className={className}>
+const ListItem = styled(({children, className, symbol, onClick}: Props) => (
+  <li className={className} onClick={onClick}>
     {symbol && <Symbol>{symbol}</Symbol>}
     {children}
   </li>
