@@ -29,6 +29,7 @@ import {
 
 import {getHistogramColors, HistogramChartSlider} from './histogramChartSlider';
 import {getChartWidth} from './utils';
+import LoadingPanel from 'app/components/charts/loadingPanel';
 
 const NUM_BUCKETS = 100;
 const PRECISION = 0;
@@ -373,6 +374,12 @@ class HistogramChart extends React.Component<Props, State> {
             const loading = results.isLoading;
             const errored = results.error !== null;
             const chartData = results.histograms?.[field];
+
+            if (loading) {
+              return (
+                <LoadingPanel height="250px" data-test-id="histogram-request-loading" />
+              );
+            }
 
             if (!chartData) {
               return null;
