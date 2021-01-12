@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
 import AsyncComponent from 'app/components/asyncComponent';
 import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -102,19 +103,13 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
 
     this.setState({loading: true});
 
-    const oldReleases = await this.api.requestPromise(
-      `/organizations/${organization.slug}/releases/stats/`,
-      {
-        method: 'GET',
-        query: {
-          statsPeriod: '90d',
-          project: selection.projects[0],
-          per_page: 1,
-        },
-      }
+    const hasOlderReleases = await fetchAnyReleaseExistence(
+      this.api,
+      organization.slug,
+      selection.projects[0]
     );
 
-    this.setState({noReleaseEver: oldReleases.length === 0, loading: false});
+    this.setState({noReleaseEver: !hasOlderReleases, loading: false});
   }
 
   get cardTitle() {
