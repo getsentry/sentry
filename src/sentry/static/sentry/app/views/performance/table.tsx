@@ -209,8 +209,9 @@ class Table extends React.Component<Props, State> {
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
+    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, getColumnTitles(this.props)[index]);
+      this.renderHeadCell(tableMeta, column, columnTitles[index]);
   };
 
   renderPrependCellWithData = (tableData: TableData | null) => {
