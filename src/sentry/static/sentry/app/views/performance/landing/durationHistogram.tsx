@@ -59,7 +59,7 @@ type State = {
    */
   refDataRect: Rectangle | null;
   /**
-   * This is the cooresponding pixel coordinate of the references points from refDataRect.
+   * This is the coresponding pixel coordinate of the references points from refDataRect.
    *
    * ECharts' pixel coordinates are relative to the top left whereas the axis coordinates
    * used here are relative to the bottom right. Because of this and the invariances imposed
