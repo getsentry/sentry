@@ -79,7 +79,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Automatically create Azure DevOps work items based on Alert Rule conditions.
+        Automatically create Azure DevOps work items based on Issue Alert conditions.
         """,
         IntegrationFeatures.TICKET_RULES,
     ),

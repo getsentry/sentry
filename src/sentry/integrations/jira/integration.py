@@ -64,7 +64,7 @@ FEATURE_DESCRIPTIONS = [
     ),
     FeatureDescription(
         """
-        Automatically create Jira tickets based on Alert Rule conditions.
+        Automatically create Jira tickets based on Issue Alert conditions.
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
