@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
-import pytz
-from datetime import datetime
-
 from django.utils import timezone
 
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
 from sentry.signals import issue_unignored, issue_mark_reviewed, inbox_in, inbox_out
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils.compat.mock import patch
@@ -57,12 +55,13 @@ class SignalsTest(TestCase, SnubaTestCase):
 
     @patch("sentry.analytics.record")
     def test_inbox_out(self, mock_record):
+        group_inbox = add_group_to_inbox(self.group, reason=GroupInboxReason.NEW)
         inbox_out.send(
             project=self.project,
             group=self.group,
-            user=None,
+            user=self.owner,
             sender="test_inbox_out",
             action="mark_reviewed",
-            inbox_date_added=datetime.now(pytz.utc),
+            inbox_date_added=group_inbox.date_added,
         )
         assert mock_record.called

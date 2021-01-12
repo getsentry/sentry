@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import time
+
 from django.db.models.signals import post_save
 
 from sentry import analytics
@@ -489,7 +491,7 @@ def record_inbox_out(project, user, group, action, inbox_date_added, **kwargs):
         organization_id=project.organization_id,
         group_id=group.id,
         action=action,
-        inbox_in_ts=int(inbox_date_added.total_seconds()),
+        inbox_in_ts=int(time.mktime(inbox_date_added.timetuple())),
     )
 
 
