@@ -5,6 +5,7 @@ import sentry_sdk
 
 
 from sentry import features
+from sentry.app import locks
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
@@ -273,12 +274,10 @@ def post_process_group(
                     safe_execute(callback, event, futures)
 
             try:
-                group_lock_key = "workflow-owners-ingestion:org-{}-has-group-lock".format(
-                    event.group_id
-                )
-                group_lock = cache.get(group_lock_key)
-                if group_lock is None:
-                    cache.set(group_lock_key, True, 3600)
+                lock_key = "workflow-owners-ingestion:org-{}-has-group-lock".format(event.group_id)
+                lock = locks.get(lock_key, duration=10)
+                if not lock.locked():
+                    cache.set(lock_key, True, 3600)
                     has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
                         event.project.organization_id
                     )
