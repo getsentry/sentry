@@ -33,6 +33,7 @@ function SavedSearchTab({
   return (
     <TabWrapper isActive={isActive} className="saved-search-tab">
       <StyledDropdownLink
+        alwaysRenderMenu={false}
         anchorMiddle
         caret
         title={<TitleWrapper>{title}</TitleWrapper>}
@@ -87,6 +88,7 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
 const TitleWrapper = styled('span')`
   margin-right: ${space(0.5)};
   max-width: 150px;
+  user-select: none;
   ${overflowEllipsis};
 `;
 
@@ -94,11 +96,10 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   position: relative;
   display: block;
   padding: ${space(1)} 0;
-  border: 0;
-  background: none;
-  border-radius: 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  /* Important to override a media query from .nav-tabs */
+  font-size: ${p => p.theme.fontSizeLarge} !important;
   text-align: center;
+  text-transform: capitalize;
   /* TODO(scttcper): Replace hex color when nav-tabs is replaced */
   color: ${p => (p.isActive ? p.theme.textColor : '#7c6a8e')};
 
