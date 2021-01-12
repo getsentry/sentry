@@ -23,16 +23,15 @@ const StyledActionLink = styled(ActionLink)`
     color: ${p => p.theme.textColor};
   }
 
-  .dropdown-menu > li > & ,
+  .dropdown-menu > li > &,
   .dropdown-menu > span > li > & {
     padding: ${space(1)};
 
     &.disabled:hover {
       background: ${p => p.theme.white};
-      // color not in the theme
       color: #7a8188;
     }
-
+  }
 `;
 
 const MenuItemActionLink = styled(MenuItemActionLinkBase)`
