@@ -38,6 +38,7 @@ Depending on the metric *type*, we can query different things:
 The Session data can be grouped by a set of tags, which can only appear in the
 `groupBy` of the query.
 
+- `project`
 - `environment`
 - `release`:
   TODO: describe specific release filters such as `release.major`, etc
@@ -168,17 +169,18 @@ COLUMN_MAP = {
 
 
 class SimpleGroupBy(object):
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, row_name, name=None):
+        self.row_name = row_name
+        self.name = name or row_name
 
     def get_snuba_columns(self):
-        return [self.name]
+        return [self.row_name]
 
     def get_snuba_groupby(self):
-        return [self.name]
+        return [self.row_name]
 
     def get_keys_for_row(self, row):
-        return [(self.name, row[self.name])]
+        return [(self.name, row[self.row_name])]
 
 
 class SessionStatusGroupBy(object):
@@ -193,6 +195,7 @@ class SessionStatusGroupBy(object):
 
 
 GROUPBY_MAP = {
+    "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
     "release": SimpleGroupBy("release"),
     "session.status": SessionStatusGroupBy(),
