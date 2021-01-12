@@ -1,10 +1,10 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
-import GlobalModal from 'app/components/globalModal';
 import IntegrationCodeMappings from 'app/views/organizationIntegrations/integrationCodeMappings';
 
 const mockResponse = mocks => {
@@ -76,10 +76,7 @@ describe('IntegrationCodeMappings', function () {
     ]);
 
     wrapper = mountWithTheme(
-      <React.Fragment>
-        <GlobalModal />
-        <IntegrationCodeMappings organization={org} integration={integration} />
-      </React.Fragment>
+      <IntegrationCodeMappings organization={org} integration={integration} />
     );
   });
 
@@ -90,13 +87,15 @@ describe('IntegrationCodeMappings', function () {
   });
 
   it('opens modal', async () => {
-    expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(0);
+    const modal = await mountGlobalModal();
+
+    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
 
     await tick();
-    wrapper.update();
+    modal.update();
 
-    expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(1);
+    expect(modal.find('input[name="stackRoot"]')).toHaveLength(1);
   });
 
   it('create new config', async () => {
@@ -115,22 +114,21 @@ describe('IntegrationCodeMappings', function () {
     });
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
 
-    await tick();
-    wrapper.update();
+    const modal = await mountGlobalModal();
 
-    selectByValue(wrapper, projects[1].id, {control: true, name: 'projectId'});
-    selectByValue(wrapper, repos[1].id, {name: 'repositoryId'});
+    selectByValue(modal, projects[1].id, {control: true, name: 'projectId'});
+    selectByValue(modal, repos[1].id, {name: 'repositoryId'});
 
-    wrapper
+    modal
       .find('input[name="stackRoot"]')
       .simulate('change', {target: {value: stackRoot}});
-    wrapper
+    modal
       .find('input[name="sourceRoot"]')
       .simulate('change', {target: {value: sourceRoot}});
-    wrapper
+    modal
       .find('input[name="defaultBranch"]')
       .simulate('change', {target: {value: defaultBranch}});
-    wrapper.find('form').simulate('submit');
+    modal.find('form').simulate('submit');
 
     expect(createMock).toHaveBeenCalledWith(
       url,
@@ -162,13 +160,12 @@ describe('IntegrationCodeMappings', function () {
     });
     wrapper.find('button[aria-label="edit"]').first().simulate('click');
 
-    await tick();
-    wrapper.update();
+    const modal = await mountGlobalModal();
 
-    wrapper
+    modal
       .find('input[name="stackRoot"]')
       .simulate('change', {target: {value: stackRoot}});
-    wrapper.find('form').simulate('submit');
+    modal.find('form').simulate('submit');
 
     expect(editMock).toHaveBeenCalledWith(
       url,

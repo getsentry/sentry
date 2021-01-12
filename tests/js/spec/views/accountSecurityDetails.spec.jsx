@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
 import AccountSecurityDetails from 'app/views/settings/account/accountSecurity/accountSecurityDetails';
@@ -57,19 +58,21 @@ describe('AccountSecurityDetails', function () {
       expect(wrapper.find('AuthenticatorDate')).toHaveLength(2);
     });
 
-    it('can remove method', function () {
+    it('can remove method', async function () {
       const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}15/`,
         method: 'DELETE',
       });
 
       wrapper.find('RemoveConfirm Button').simulate('click');
-      wrapper.find('Modal Button').last().simulate('click');
+
+      const modal = await mountGlobalModal();
+      modal.find('Button[priority="primary"]').simulate('click');
 
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can remove one of multiple 2fa methods when org requires 2fa', function () {
+    it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
       Client.addMockResponse({
         url: ORG_ENDPOINT,
         body: TestStubs.Organizations({require2FA: true}),
@@ -87,12 +90,13 @@ describe('AccountSecurityDetails', function () {
       );
 
       wrapper.find('RemoveConfirm Button').simulate('click');
-      wrapper.find('Modal Button').last().simulate('click');
+      const modal = await mountGlobalModal();
+      modal.find('Button[priority="primary"]').simulate('click');
 
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can not remove last 2fa method when org requires 2fa', function () {
+    it('can not remove last 2fa method when org requires 2fa', async function () {
       Client.addMockResponse({
         url: ORG_ENDPOINT,
         body: TestStubs.Organizations({require2FA: true}),
@@ -114,7 +118,9 @@ describe('AccountSecurityDetails', function () {
       );
 
       wrapper.find('RemoveConfirm Button').simulate('click');
-      expect(wrapper.find('Modal Button')).toHaveLength(0);
+      const modal = await mountGlobalModal();
+      expect(modal.find('Modal[show=true]').exists()).toBe(false);
+
       expect(deleteMock).not.toHaveBeenCalled();
     });
   });
