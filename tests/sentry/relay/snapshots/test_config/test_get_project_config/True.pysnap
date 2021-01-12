@@ -1,5 +1,5 @@
 ---
-created: '2020-07-08T19:22:25.717243Z'
+created: '2021-01-12T10:01:58.073215Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -12,6 +12,7 @@ config:
     scrubDefaults: true
     scrubIpAddresses: false
     sensitiveFields: []
+  dsnEndpoint: http://testserver
   eventRetention: null
   filterSettings:
     browserExtensions:
