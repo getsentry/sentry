@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -32,11 +32,11 @@ type Props = {
   organization: Organization;
   eventView: EventView;
   location: Location;
-  router: InjectedRouter;
   projects: Project[];
   setError: (msg: string | undefined) => void;
   handleSearch: (searchQuery: string) => void;
-};
+} & WithRouterProps;
+
 type State = {};
 class LandingContent extends React.Component<Props, State> {
   getSummaryConditions(query: string) {
@@ -153,7 +153,7 @@ class LandingContent extends React.Component<Props, State> {
                     organization={organization}
                     location={location}
                     setError={setError}
-                    summaryConditions={`${summaryConditions} ${additionalSummaryConditions}`}
+                    summaryConditions={frontendEventView.query}
                     columnTitles={FRONTEND_COLUMN_TITLES}
                   />
                 </React.Fragment>
@@ -216,4 +216,4 @@ const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
 
-export default LandingContent;
+export default withRouter(LandingContent);
