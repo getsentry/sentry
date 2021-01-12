@@ -116,16 +116,6 @@ def _match_commits_path(commit_file_changes, path):
     return list(matching_commits.values())
 
 
-def _get_commits_committer(commits, author_id):
-    result = serialize(
-        [commit for commit, score in commits if commit.author.id == author_id],
-        serializer=CommitSerializer(exclude=["author"]),
-    )
-    for idx, row in enumerate(result):
-        row["score"] = commits[idx][1]
-    return result
-
-
 def _get_committers(annotated_frames, commits):
     # extract the unique committers and return their serialized sentry accounts
     committers = defaultdict(int)
@@ -135,7 +125,9 @@ def _get_committers(annotated_frames, commits):
         if limit == 0:
             break
         for commit, score in annotated_frame["commits"]:
-            committers[commit.author.id] += limit
+            if not commit.author_id:
+                continue
+            committers[commit.author_id] += limit
             limit -= 1
             if limit == 0:
                 break
@@ -148,7 +140,7 @@ def _get_committers(annotated_frames, commits):
         {
             "author": users_by_author.get(six.text_type(author_id)),
             "commits": [
-                (commit, score) for (commit, score) in commits if commit.author.id == author_id
+                (commit, score) for (commit, score) in commits if commit.author_id == author_id
             ],
         }
         for author_id in sorted_committers
