@@ -98,7 +98,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             sentry_layer = layers[sentry_layer_index]
 
             # determine the version and if it's out of date
-            latest_version = get_latest_layer_version(function["Runtime"])
+            latest_version = get_latest_layer_version(function)
             current_version = get_version_of_arn(sentry_layer)
             out_of_date = latest_version > current_version
         else:

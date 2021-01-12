@@ -41,7 +41,11 @@ class GetLatestLayerForFunctionTest(TestCase):
 
 class GetLatestLayerVersionTest(TestCase):
     def test_simple(self):
-        assert get_latest_layer_version("nodejs10.x") == 3
+        fn = {
+            "Runtime": "nodejs10.x",
+            "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaB",
+        }
+        assert get_latest_layer_version(fn) == 3
 
 
 class GetIndexOfSentryLayerTest(TestCase):

@@ -49,7 +49,10 @@ def get_cache_options():
     return cache.get(LAYER_INDEX_CACHE_KEY) or {}
 
 
-def get_option_value(runtime, option):
+def get_option_value(function, option):
+    region = parse_arn(function["FunctionArn"])["region"]
+    runtime = function["Runtime"]
+
     # currently only supporting node runtimes
     if runtime.startswith("nodejs"):
         prefix = "node"
@@ -61,14 +64,30 @@ def get_option_value(runtime, option):
     key = u"aws-layer:{}".format(prefix)
     cache_value = cache_options.get(key) or {}
 
-    # we use - in options but _ in the registry
-    registry_field = option.replace("-", "_")
-
     # account number doesn't depend on the runtime prefix
     if option == OPTION_ACCOUNT_NUMBER:
         option_field = "aws-lambda.account-number"
     else:
         option_field = u"aws-lambda.{}.{}".format(prefix, option)
+
+    # special lookup for the version since it depends on the region
+    if option == OPTION_VERSION:
+        region_release_list = cache_value.get("regions", [])
+        matched_regions = filter(lambda x: x["region"] == region, region_release_list)
+        # see if there is the specific region in our list
+        if matched_regions:
+            version = matched_regions[0]["version"]
+            return version
+
+        # if we provided a region list but we have no match, throw an error
+        if region_release_list:
+            raise Exception(u"Unsupported region {}".format(region))
+
+        # return the value in options otherwise
+        return options.get(option_field)
+
+    # we use - in options but _ in the registry
+    registry_field = option.replace("-", "_")
 
     # use the cache value as a primary
     return cache_value.get(registry_field) or options.get(option_field)
@@ -96,17 +115,16 @@ def get_function_layer_arns(function):
 
 def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
-    runtime = function["Runtime"]
     return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
-        get_option_value(runtime, OPTION_ACCOUNT_NUMBER),
-        get_option_value(runtime, OPTION_LAYER_NAME),
-        get_option_value(runtime, OPTION_VERSION),
+        get_option_value(function, OPTION_ACCOUNT_NUMBER),
+        get_option_value(function, OPTION_LAYER_NAME),
+        get_option_value(function, OPTION_VERSION),
     )
 
 
-def get_latest_layer_version(runtime):
-    return int(get_option_value(runtime, OPTION_VERSION))
+def get_latest_layer_version(function):
+    return int(get_option_value(function, OPTION_VERSION))
 
 
 def get_index_of_sentry_layer(layers, arn_to_match):
