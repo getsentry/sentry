@@ -11,11 +11,11 @@ type DateObject = {
   /**
    * Starting date object
    */
-  start?: string;
+  start?: string | Date | null;
   /**
    * Ending date object
    */
-  end?: string;
+  end?: string | Date | null;
 };
 
 type Options = {
