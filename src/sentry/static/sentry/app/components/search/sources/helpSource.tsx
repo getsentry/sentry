@@ -102,7 +102,7 @@ function mapSearchResults(results: SearchResult[]) {
       const item: ResultItem = {
         ...hit,
         sourceType: 'help',
-        resultType: `help-${hit.site}`,
+        resultType: `help-${hit.site}` as ResultItem['resultType'],
         title: dompurify.sanitize(hit.title ?? ''),
         extra: hit.context.context1,
         description: hit.text ? dompurify.sanitize(hit.text) : undefined,
@@ -124,7 +124,7 @@ function mapSearchResults(results: SearchResult[]) {
     // If we didn't have any results for this section mark it as empty
     const emptyHeaderItem: ResultItem = {
       sourceType: 'help',
-      resultType: `help-${section.site}`,
+      resultType: `help-${section.site}` as ResultItem['resultType'],
       title: `No results in ${section.name}`,
       sectionHeading: section.name,
       empty: true,

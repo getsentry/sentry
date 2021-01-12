@@ -214,6 +214,20 @@ RELEASE_ALIAS = "release"
 USER_DISPLAY_ALIAS = "user.display"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 KEY_TRANSACTION_ALIAS = "key_transaction"
+ARRAY_FIELDS = {
+    "error.mechanism",
+    "error.type",
+    "error.value",
+    "stack.abs_path",
+    "stack.colno",
+    "stack.filename",
+    "stack.function",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.module",
+    "stack.package",
+    "stack.stack_level",
+}
 
 
 class InvalidSearchQuery(Exception):
@@ -896,6 +910,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         raise InvalidSearchQuery(
             "Invalid value for key_transaction condition. Accepted values are 1, 0"
         )
+    elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+        return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
         value = (
             int(to_timestamp(value)) * 1000
@@ -1610,7 +1626,17 @@ class NumericColumn(FunctionArg):
 
 
 class NumericColumnNoLookup(NumericColumn):
+    def __init__(self, name, allow_measurements_value=False):
+        super(NumericColumnNoLookup, self).__init__(name)
+        self.allow_measurements_value = allow_measurements_value
+
     def normalize(self, value, params):
+        # `measurement_value` is actually an array of Float64s. But when used
+        # in this context, we always want to expand it using `arrayJoin`. The
+        # resulting column will be a numeric column of type Float64.
+        if self.allow_measurements_value and value == "measurements_value":
+            return ["arrayJoin", ["measurements_value"]]
+
         super(NumericColumnNoLookup, self).normalize(value, params)
         return value
 
@@ -2021,8 +2047,9 @@ FUNCTIONS = {
             private=True,
         ),
         Function(
-            "measurements_histogram",
+            "histogram",
             required_args=[
+                NumericColumnNoLookup("column", allow_measurements_value=True),
                 # the bucket_size and start_offset should already be adjusted
                 # using the multiplier before it is passed here
                 NumberRange("bucket_size", 0, None),
@@ -2048,7 +2075,7 @@ FUNCTIONS = {
                                                     [
                                                         "multiply",
                                                         [
-                                                            ["arrayJoin", ["measurements_value"]],
+                                                            ArgValue("column"),
                                                             ArgValue("multiplier"),
                                                         ],
                                                     ],
@@ -2074,7 +2101,7 @@ FUNCTIONS = {
         # Internally, snuba.discover.query() expands the user request into this value by
         # calculating the bucket size and start_offset.
         Function(
-            "histogram",
+            "histogram_deprecated",
             required_args=[
                 DurationColumnNoLookup("column"),
                 NumberRange("num_buckets", 1, 500),
@@ -2685,8 +2712,11 @@ def resolve_field_list(
         raise InvalidSearchQuery("You cannot use rollup without an aggregate field.")
 
     orderby = snuba_filter.orderby
-    if orderby:
+    # Only sort if there are columns. When there are only aggregates there's no need to sort
+    if orderby and len(columns) > 0:
         orderby = resolve_orderby(orderby, columns, aggregations)
+    else:
+        orderby = None
 
     # If aggregations are present all columns
     # need to be added to the group by so that the query is valid.

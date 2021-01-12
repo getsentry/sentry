@@ -218,6 +218,7 @@ export type Project = {
   organization: Organization;
 
   isBookmarked: boolean;
+  isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
@@ -1934,3 +1935,8 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   enabled: boolean;
 };
+
+/**
+ * File storage service options for debug files
+ */
+export type DebugFileSource = 'http' | 's3' | 'gcs';

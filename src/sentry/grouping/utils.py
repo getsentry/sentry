@@ -42,13 +42,31 @@ def get_rule_bool(value):
 def get_fingerprint_value(var, data):
     if var == "transaction":
         return data.get("transaction") or "<no-transaction>"
+    elif var == "message":
+        message = (
+            get_path(data, "logentry", "formatted")
+            or get_path(data, "logentry", "message")
+            or get_path(data, "exception", "values", -1, "value")
+        )
+        return message or "<no-message>"
     elif var in ("type", "error.type"):
         ty = get_path(data, "exception", "values", -1, "type")
         return ty or "<no-type>"
+    elif var in ("value", "error.value"):
+        value = get_path(data, "exception", "values", -1, "value")
+        return value or "<no-value>"
     elif var in ("function", "stack.function"):
         frame = get_crash_frame_from_event_data(data)
         func = frame.get("function") if frame else None
         return func or "<no-function>"
+    elif var in ("path", "stack.abs_path"):
+        frame = get_crash_frame_from_event_data(data)
+        func = frame.get("abs_path") or frame.get("filename") if frame else None
+        return func or "<no-abs-path>"
+    elif var == "stack.filename":
+        frame = get_crash_frame_from_event_data(data)
+        func = frame.get("filename") or frame.get("abs_path") if frame else None
+        return func or "<no-filename>"
     elif var in ("module", "stack.module"):
         frame = get_crash_frame_from_event_data(data)
         mod = frame.get("module") if frame else None

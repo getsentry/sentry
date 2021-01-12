@@ -19,7 +19,6 @@ from sentry.integrations import (
 from sentry.integrations.serverless import ServerlessMixin
 from sentry.models import Project, OrganizationIntegration
 from sentry.pipeline import PipelineView
-from sentry.web.helpers import render_to_response
 from sentry.utils.compat import map
 from sentry.utils import json
 
@@ -211,6 +210,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
         # if we have the project_id, go to the next step
         if "project_id" in request.GET:
+            pipeline.bind_state("project_id", request.GET["project_id"])
             return pipeline.next_step()
 
         organization = pipeline.organization
@@ -226,14 +226,17 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
         if request.method == "POST":
-            # load parameters from query param and post request
-            project_id = request.GET["project_id"]
-            arn = request.POST["arn"]
-            aws_external_id = request.POST["aws_external_id"]
+            # accept form data or json data
+            data = request.POST or json.loads(request.body)
+
+            # load parameters post request
+            arn = data["arn"]
+            aws_external_id = data["awsExternalId"]
+
+            # TODO: add arn validation
 
             pipeline.bind_state("arn", arn)
             pipeline.bind_state("aws_external_id", aws_external_id)
-            pipeline.bind_state("project_id", project_id)
             return pipeline.next_step()
 
         template_url = options.get("aws-lambda.cloudformation-url")
@@ -248,10 +251,10 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             % (template_url, aws_external_id)
         )
 
-        return render_to_response(
-            template="sentry/integrations/aws-lambda-cloudformation.html",
-            request=request,
-            context={"cloudformation_url": cloudformation_url, "aws_external_id": aws_external_id},
+        return self.render_react_view(
+            request,
+            "awsLambdaCloudformation",
+            {"cloudformationUrl": cloudformation_url, "awsExternalId": aws_external_id},
         )
 
 
