@@ -1,6 +1,5 @@
 import React from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -18,7 +17,6 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
-import space from 'app/styles/space';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
