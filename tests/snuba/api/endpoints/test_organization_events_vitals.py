@@ -106,7 +106,6 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         self.query.update({"vital": ["measurements.lcp"]})
         response = self.do_request()
         assert response.status_code == 200
-        print(response.data)
         assert response.data["measurements.lcp"] == {
             "good": 2,
             "meh": 3,
