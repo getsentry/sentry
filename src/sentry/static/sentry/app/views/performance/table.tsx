@@ -53,11 +53,6 @@ type Props = {
 type State = {
   widths: number[];
 };
-
-function getColumnTitles(props: Props) {
-  return props.columnTitles || COLUMN_TITLES;
-}
-
 class Table extends React.Component<Props, State> {
   state = {
     widths: [],
