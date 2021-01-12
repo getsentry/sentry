@@ -51,3 +51,14 @@ export function selectByValue(wrapper, value, options = {}) {
     .at(options.at || 0)
     .simulate('mouseDown');
 }
+
+export function selectByQuery(wrapper, query, options = {}) {
+  openMenu(wrapper, options);
+  const selector = getSelector({...options, control: true});
+
+  wrapper
+    .find(`${selector} input`)
+    .simulate('change', {target: {value: query}})
+    .getDOMNode()
+    .setSelectionRange(query.length, query.length);
+}
