@@ -16,10 +16,11 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
+import RelatedIssues from 'app/views/alerts/details/relatedIssues';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
@@ -39,6 +40,7 @@ import Chart from './chart';
 type Props = {
   incident?: Incident;
   stats?: IncidentStats;
+  organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -209,7 +211,8 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   render() {
-    const {params, incident, stats} = this.props;
+    const {params, incident, stats, organization} = this.props;
+    const alertDetailsRedesign = organization.features.includes('alert-details-redesign');
 
     return (
       <StyledPageContent>
@@ -246,28 +249,40 @@ export default class DetailsBody extends React.Component<Props> {
             </ChartPanel>
           </PageContent>
           <DetailWrapper>
-            <ActivityPageContent>
-              <StyledNavTabs underlined>
-                <li className="active">
-                  <Link to="">{t('Activity')}</Link>
-                </li>
+            <ActivitiesWrapper>
+              {alertDetailsRedesign && incident && stats && (
+                <ActivityPageContent>
+                  <RelatedIssues
+                    organization={organization}
+                    incident={incident}
+                    start={incident.dateStarted}
+                    end={incident.dateClosed || undefined}
+                  />
+                </ActivityPageContent>
+              )}
+              <ActivityPageContent>
+                <StyledNavTabs underlined>
+                  <li className="active">
+                    <Link to="">{t('Activity')}</Link>
+                  </li>
 
-                <SeenByTab>
-                  {incident && (
-                    <StyledSeenByList
-                      iconPosition="right"
-                      seenBy={incident.seenBy}
-                      iconTooltip={t('People who have viewed this alert')}
-                    />
-                  )}
-                </SeenByTab>
-              </StyledNavTabs>
-              <Activity
-                incident={incident}
-                params={params}
-                incidentStatus={!!incident ? incident.status : null}
-              />
-            </ActivityPageContent>
+                  <SeenByTab>
+                    {incident && (
+                      <StyledSeenByList
+                        iconPosition="right"
+                        seenBy={incident.seenBy}
+                        iconTooltip={t('People who have viewed this alert')}
+                      />
+                    )}
+                  </SeenByTab>
+                </StyledNavTabs>
+                <Activity
+                  incident={incident}
+                  params={params}
+                  incidentStatus={!!incident ? incident.status : null}
+                />
+              </ActivityPageContent>
+            </ActivitiesWrapper>
             <Sidebar>
               <SidebarHeading>
                 <span>{t('Alert Rule')}</span>
@@ -308,6 +323,11 @@ const DetailWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     flex-direction: column-reverse;
   }
+`;
+
+const ActivitiesWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 const ActivityPageContent = styled(PageContent)`
