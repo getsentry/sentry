@@ -168,8 +168,8 @@ function getShadedAreas(
       x: minChartBucket - 0.5,
       y: 0,
     },
-    refDataRect!,
-    refPixelRect!
+    refDataRect,
+    refPixelRect
   );
 
   if (minAreaBottomLeft === null) {
@@ -181,8 +181,8 @@ function getShadedAreas(
       x: minBucket - 0.5,
       y: Math.max(...chartData.map(data => data.count)) || 1,
     },
-    refDataRect!,
-    refPixelRect!
+    refDataRect,
+    refPixelRect
   );
 
   const minAreaBottomRight = mapPoint(
@@ -190,8 +190,8 @@ function getShadedAreas(
       x: minBucket - 0.5,
       y: 0,
     },
-    refDataRect!,
-    refPixelRect!
+    refDataRect,
+    refPixelRect
   );
 
   const maxAreaBottomLeft = mapPoint(
@@ -199,8 +199,8 @@ function getShadedAreas(
       x: Math.min(maxChartBucket + 0.5, maxBucket + 1.5),
       y: 0,
     },
-    refDataRect!,
-    refPixelRect!
+    refDataRect,
+    refPixelRect
   );
 
   const maxAreaTopLeft = mapPoint(
@@ -208,8 +208,8 @@ function getShadedAreas(
       x: Math.min(maxChartBucket + 0.5, maxBucket + 1.5),
       y: Math.max(...chartData.map(data => data.count)) || 1,
     },
-    refDataRect!,
-    refPixelRect!
+    refDataRect,
+    refPixelRect
   );
 
   if (minAreaBottomLeft === null) {
@@ -221,8 +221,8 @@ function getShadedAreas(
       x: maxChartBucket + 0.5,
       y: Math.max(...chartData.map(data => data.count)) || 1,
     },
-    refDataRect!,
-    refPixelRect!
+    refDataRect,
+    refPixelRect
   );
 
   if (minAreaTopRight === null) {
