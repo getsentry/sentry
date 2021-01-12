@@ -1,18 +1,19 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 
 import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import {ImageProcessingInfo} from 'app/types/debugImage';
+import {ImageStatus} from 'app/types/debugImage';
 
 type Props = {
-  status: ImageProcessingInfo;
+  status: ImageStatus;
 };
 
 function ProcessingIcon({status}: Props) {
   switch (status) {
-    case ImageProcessingInfo.TIMEOUT:
-    case ImageProcessingInfo.FETCHING_FAILED: {
+    case ImageStatus.TIMEOUT:
+    case ImageStatus.FETCHING_FAILED: {
       return (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -22,7 +23,7 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-    case ImageProcessingInfo.MALFORMED: {
+    case ImageStatus.MALFORMED: {
       return (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -32,7 +33,7 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-    case ImageProcessingInfo.MISSING: {
+    case ImageStatus.MISSING: {
       return (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -42,7 +43,7 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-    case ImageProcessingInfo.FOUND: {
+    case ImageStatus.FOUND: {
       return (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -54,7 +55,7 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-    case ImageProcessingInfo.UNUSED: {
+    case ImageStatus.UNUSED: {
       return (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -64,7 +65,7 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-    case ImageProcessingInfo.OTHER: {
+    case ImageStatus.OTHER: {
       return (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -74,8 +75,14 @@ function ProcessingIcon({status}: Props) {
         </Tooltip>
       );
     }
-    default:
-      return null; // This should not happen
+
+    default: {
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error("Unknown Image's ProcessingIcon status"));
+      });
+      return null; // This shall not happen
+    }
   }
 }
 
