@@ -88,10 +88,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (prevState.searchTerm !== this.state.searchTerm) {
-      this.filterImagesBySearchTerm();
-    }
-
     if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
       this.getPanelBodyHeight();
     }
@@ -116,7 +112,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const {searchTerm} = this.state;
 
     if (store.filter !== searchTerm) {
-      this.setState({searchTerm: store.filter});
+      this.setState({searchTerm: store.filter}, this.filterImagesBySearchTerm);
     }
   };
 
@@ -187,7 +183,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   filterImagesBySearchTerm() {
     const {filteredImages, filterOptions, searchTerm} = this.state;
     const filteredImagesBySearch = filteredImages.filter(image =>
-      this.filterImage(image, searchTerm)
+      this.filterImage(image, searchTerm.toLowerCase())
     );
 
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
@@ -480,7 +476,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
             <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
             <StyledSearchBar
               query={searchTerm}
-              onChange={value => this.handleChangeSearchTerm(value.trim().toLowerCase())}
+              onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search images\u2026')}
             />
           </Search>
