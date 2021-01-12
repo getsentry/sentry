@@ -77,7 +77,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
         project=group.project,
         user=None,
         group=group,
-        sender="post_process_group",
+        sender="add_group_to_inbox",
         reason=reason.name.lower(),
     )
     return group_inbox
