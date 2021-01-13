@@ -1109,7 +1109,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_has_unhandled_flag_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
-        with self.feature(["organizations:unhandled-issue-flag", "organizations:inbox"]):
+        with self.feature(["organizations:inbox"]):
             self.test_collapse_stats()
 
     def test_collapse_stats_group_snooze_bug(self):

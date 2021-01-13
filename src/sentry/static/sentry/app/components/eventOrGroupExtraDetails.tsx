@@ -70,7 +70,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
+      {isUnhandled && hasInbox && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />
       ) : hasInbox ? (

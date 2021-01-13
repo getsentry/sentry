@@ -830,8 +830,6 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -940,8 +938,6 @@ SENTRY_FEATURES = {
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": False,
     # Enable "owner"/"suggested assignee" features.
     "organizations:workflow-owners": False,
     # Adds additional filters and a new section to issue alert rules.

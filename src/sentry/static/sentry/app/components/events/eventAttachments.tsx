@@ -4,7 +4,6 @@ import {Location} from 'history';
 import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'app/components/events/attachmentViewers/logFileViewer';
@@ -213,17 +212,15 @@ class EventAttachments extends React.Component<Props, State> {
                     </div>
                   )}
                 </AttachmentUrl>
-                <Feature features={['event-attachments-viewer']}>
-                  {this.renderInlineAttachment(attachment)}
+                {this.renderInlineAttachment(attachment)}
 
-                  {/* XXX: hack to deal with table grid borders */}
-                  {lastAttachmentPreviewed && (
-                    <React.Fragment>
-                      <div style={{display: 'none'}} />
-                      <div style={{display: 'none'}} />
-                    </React.Fragment>
-                  )}
-                </Feature>
+                {/* XXX: hack to deal with table grid borders */}
+                {lastAttachmentPreviewed && (
+                  <React.Fragment>
+                    <div style={{display: 'none'}} />
+                    <div style={{display: 'none'}} />
+                  </React.Fragment>
+                )}
               </React.Fragment>
             ))}
           </StyledPanelTable>
