@@ -329,7 +329,6 @@ class PerformanceLanding extends React.Component<Props, State> {
                   eventView={eventView}
                   projects={projects}
                   organization={organization}
-                  location={location}
                   setError={this.setError}
                   handleSearch={this.handleSearch}
                 />
