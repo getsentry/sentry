@@ -1,15 +1,16 @@
 from __future__ import absolute_import, print_function
 
+import six
 import logging
 import sentry_sdk
+import random
 
-
-from sentry import features
+from sentry import features, options
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -243,6 +244,7 @@ def post_process_group(
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
+        _spawn_capture_nodestore_stats(event)
 
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
@@ -408,3 +410,62 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         expected_errors=(PluginError,),
         **kwargs
     )
+
+
+def _spawn_capture_nodestore_stats(event):
+    rate = options.get("store.nodestore-stats-sample-rate") or 0
+    metrics.timing("eventstore.compressor.sample_rate", rate)
+
+    if not rate:
+        return
+
+    if random.random() >= rate:
+        return
+
+    capture_nodestore_stats.delay(project_id=event.project_id, event_id=event.event_id)
+
+
+@instrumented_task(name="sentry.tasks.post_process.capture_nodestore_stats")
+def capture_nodestore_stats(project_id, event_id):
+    set_current_project(project_id)
+
+    from sentry import nodestore
+    from sentry.eventstore.compressor import deduplicate
+    from sentry.eventstore.models import Event
+
+    event = Event(project_id=project_id, event_id=event_id)
+    old_event_size = len(json.dumps(dict(event.data)).encode("utf8"))
+
+    if not event.data:
+        metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
+        return
+
+    platform = event.platform
+
+    for key, value in six.iteritems(event.interfaces):
+        len_value = len(json.dumps(value.to_json()).encode("utf8"))
+        metrics.timing(
+            "events.size.interface", len_value, tags={"interface": key, "platform": platform}
+        )
+
+    new_data, extra_keys = deduplicate(dict(event.data))
+
+    total_size = event_size = len(json.dumps(new_data).encode("utf8"))
+
+    for key, value in six.iteritems(extra_keys):
+        if nodestore.get(key) is not None:
+            metrics.incr("eventstore.compressor.hits")
+            # do not continue, nodestore.set() should bump TTL
+        else:
+            metrics.incr("eventstore.compressor.misses")
+            total_size += len(json.dumps(value).encode("utf8"))
+
+        # key is md5sum of content
+        # do not store actual value to keep prod impact to a minimum
+        nodestore.set(key, {})
+
+    metrics.timing("events.size.deduplicated", event_size)
+    metrics.timing("events.size.deduplicated.total_written", total_size)
+
+    metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size)
+    metrics.timing("events.size.deduplicated.total_written.ratio", total_size / old_event_size)

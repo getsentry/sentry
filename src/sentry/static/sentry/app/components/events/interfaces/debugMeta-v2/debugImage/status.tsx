@@ -1,38 +1,39 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import {Image, ImageProcessingInfo} from 'app/types/debugImage';
-
-import {combineStatus} from '../utils';
+import {ImageStatus} from 'app/types/debugImage';
 
 type Props = {
-  image: Image;
+  status: ImageStatus;
 };
 
-function Status({image}: Props) {
-  const {debug_status, unwind_status} = image;
-  const status = combineStatus(debug_status, unwind_status);
-
+function Status({status}: Props) {
   switch (status) {
-    case ImageProcessingInfo.OTHER:
-    case ImageProcessingInfo.FETCHING_FAILED:
-    case ImageProcessingInfo.MALFORMED:
-    case ImageProcessingInfo.TIMEOUT: {
+    case ImageStatus.OTHER:
+    case ImageStatus.FETCHING_FAILED:
+    case ImageStatus.MALFORMED:
+    case ImageStatus.TIMEOUT: {
       return <StyledTag type="error">{t('Error')}</StyledTag>;
     }
-    case ImageProcessingInfo.MISSING: {
+    case ImageStatus.MISSING: {
       return <StyledTag type="error">{t('Missing')}</StyledTag>;
     }
-    case ImageProcessingInfo.FOUND: {
+    case ImageStatus.FOUND: {
       return <StyledTag type="success">{t('Ok')}</StyledTag>;
     }
-    case ImageProcessingInfo.UNUSED: {
+    case ImageStatus.UNUSED: {
       return <StyledTag>{t('Unreferenced')}</StyledTag>;
     }
-    default:
-      return <StyledTag>{t('Unknown')}</StyledTag>; // This should not happen
+    default: {
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error("Unknown Image's status"));
+      });
+      return <StyledTag>{t('Unknown')}</StyledTag>; // This shall not happen
+    }
   }
 }
 

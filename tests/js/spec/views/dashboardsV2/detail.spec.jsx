@@ -4,7 +4,12 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import DashboardDetail from 'app/views/dashboardsV2/detail';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openAddDashboardWidgetModal: jest.fn(),
+}));
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
@@ -31,29 +36,13 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [
-          {
-            id: 'default-overview',
-            title: 'Default',
-            createdBy: '',
-            dateCreated: '',
-          },
-          {
-            id: '1',
-            title: 'Custom Errors',
-            createdBy: '',
-            dateCreated: '',
-          },
+          TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
+          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
         ],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: {
-          id: 'default-overview',
-          title: 'Default',
-          widgets: [],
-          createdBy: '',
-          dateCreated: '',
-        },
+        body: TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
       });
     });
 
@@ -90,11 +79,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         method: 'PUT',
-        body: {
-          id: 8,
-          title: 'Updated prebuilt',
-          widgets: [],
-        },
+        body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
         <DashboardDetail
@@ -134,5 +119,136 @@ describe('Dashboards > Detail', function () {
     });
   });
 
-  describe('custom dashboards', function () {});
+  describe('custom dashboards', function () {
+    let wrapper;
+    let initialData;
+    let widgets;
+    const route = {};
+
+    beforeEach(function () {
+      initialData = initializeOrg({organization});
+      widgets = [
+        TestStubs.Widget([{conditions: 'event.type:error', fields: ['count()']}], {
+          title: 'Errors',
+          interval: '1d',
+        }),
+        TestStubs.Widget([{conditions: 'event.type:transaction', fields: ['count()']}], {
+          title: 'Transactions',
+          interval: '1d',
+        }),
+      ];
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [TestStubs.Project()],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [
+          TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
+          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+    });
+
+    afterEach(function () {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('can remove widgets', async function () {
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+      });
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          route={route}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('StyledPanel').simulate('mouseOver');
+
+      // Remove the first widget
+      wrapper
+        .find('WidgetCard')
+        .first()
+        .find('IconClick[data-test-id="widget-delete"]')
+        .simulate('click');
+
+      // Save changes
+      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
+
+      expect(updateMock).toHaveBeenCalled();
+      expect(updateMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: 'Custom Errors',
+            widgets: [widgets[1]],
+          }),
+        })
+      );
+    });
+
+    it('can enter edit mode for widgets', async function () {
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          route={route}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Enter edit mode.
+      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+
+      const card = wrapper.find('WidgetCard').first();
+      card.find('StyledPanel').simulate('mouseOver');
+
+      // Edit the first widget
+      wrapper
+        .find('WidgetCard')
+        .first()
+        .find('IconClick[data-test-id="widget-edit"]')
+        .simulate('click');
+
+      await tick();
+      wrapper.update();
+
+      expect(openAddDashboardWidgetModal).toHaveBeenCalled();
+      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: widgets[0],
+        })
+      );
+    });
+  });
 });

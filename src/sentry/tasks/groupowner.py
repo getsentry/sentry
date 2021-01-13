@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry.models import Project, Release
+from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
@@ -91,8 +91,13 @@ def process_suspect_commits(event, **kwargs):
                                 owner_count += 1
                                 if owner_count > PREFERRED_GROUP_OWNERS:
                                     owners.first().delete()
+                except Commit.DoesNotExist:
+                    logger.info(
+                        "process_suspect_commits.skipped",
+                        extra={"event": event.event_id, "reason": "no_commit"},
+                    )
                 except Release.DoesNotExist:
                     logger.info(
                         "process_suspect_commits.skipped",
-                        extra={"event": event.id, "reason": "no_release"},
+                        extra={"event": event.event_id, "reason": "no_release"},
                     )
