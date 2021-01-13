@@ -209,11 +209,11 @@ class QueryDefinition(object):
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, params):
+    def __init__(self, query, project_ids=None):
         # self.request = request
         # self.params = params
 
-        self.query = query.get("query")
+        self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
 
@@ -238,13 +238,11 @@ class QueryDefinition(object):
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        params["start"] = start
-        params["end"] = end
+        params = {"project_id": project_ids or []}
         snuba_filter = get_filter(self.query, params)
 
         self.aggregations = snuba_filter.aggregations
         self.conditions = snuba_filter.conditions
-
         self.filter_keys = snuba_filter.filter_keys
 
 
@@ -367,7 +365,7 @@ def massage_sessions_result(query, result_totals, result_timeseries):
         groups.append(group)
 
     return {
-        # "query": query.query,
+        "query": query.query,
         "intervals": timestamps,
         "groups": groups,
     }

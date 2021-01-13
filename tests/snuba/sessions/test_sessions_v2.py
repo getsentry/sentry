@@ -85,6 +85,7 @@ def test_massage_simple_timeseries():
     ]
 
     expected_result = {
+        "query": "",
         "intervals": [
             "2020-12-17T12:00:00Z",
             "2020-12-17T18:00:00Z",
@@ -129,6 +130,7 @@ def test_massage_groupby_timeseries():
     ]
 
     expected_result = {
+        "query": "",
         "intervals": [
             "2020-12-17T12:00:00Z",
             "2020-12-17T18:00:00Z",
@@ -198,6 +200,7 @@ def test_massage_virtual_groupby_timeseries():
     ]
 
     expected_result = {
+        "query": "",
         "intervals": [
             "2020-12-17T18:00:00Z",
             "2020-12-18T00:00:00Z",

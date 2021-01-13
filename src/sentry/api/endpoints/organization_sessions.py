@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 import sentry_sdk
 
-from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.bases import OrganizationEndpoint
 from sentry.snuba.sessions_v2 import (
     QueryDefinition,
     run_sessions_query,
@@ -12,7 +12,7 @@ from sentry.snuba.sessions_v2 import (
 )
 
 
-class OrganizationSessionsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSessionsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
         # with self.handle_query_errors():
         query = self.build_sessions_query(request, organization)
@@ -26,6 +26,8 @@ class OrganizationSessionsEndpoint(OrganizationEventsV2EndpointBase):
 
     def build_sessions_query(self, request, organization):
         with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            # validate and default all `project` params.
+            projects = self.get_projects(request, organization)
+            project_ids = [p.id for p in projects]
 
-            return QueryDefinition(request.GET, params)
+            return QueryDefinition(request.GET, project_ids)
