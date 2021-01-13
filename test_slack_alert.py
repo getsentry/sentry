@@ -1,10 +1,19 @@
 import sentry.integrations.slack.utils as util
 from sentry.models import Integration, Organization
 from sentry.snuba.models import QueryAggregations
-from sentry.incidents.models import Incident, AlertRule, IncidentStatus, AlertRuleTrigger, TriggerStatus, AlertRuleTriggerAction, IncidentTrigger
+from sentry.incidents.models import (
+    Incident,
+    AlertRule,
+    IncidentStatus,
+    AlertRuleTrigger,
+    TriggerStatus,
+    AlertRuleTriggerAction,
+    IncidentTrigger,
+)
 from datetime import datetime
 import pytz
 import time
+
 # integration = Integration.objects.get(id=1)
 # incident = Incident.objects.get(id=16)
 
@@ -30,7 +39,9 @@ alert_rule_trigger2 = AlertRuleTrigger.objects.all().last()
 # alert_rule_trigger.threshold_type = 1
 # alert_rule_trigger.save()
 
-alert_rule_trigger_action =  AlertRuleTriggerAction.objects.filter(alert_rule_trigger=alert_rule_trigger).first()
+alert_rule_trigger_action = AlertRuleTriggerAction.objects.filter(
+    alert_rule_trigger=alert_rule_trigger
+).first()
 
 incident = Incident.objects.create(
     organization=org,
@@ -73,16 +84,12 @@ incident3 = Incident.objects.create(
 
 
 incident_trigger = IncidentTrigger.objects.create(
-    incident=incident,
-    alert_rule_trigger=alert_rule_trigger,
-    status=TriggerStatus.RESOLVED.value,
+    incident=incident, alert_rule_trigger=alert_rule_trigger, status=TriggerStatus.RESOLVED.value,
 )
 
 
 incident_trigger2 = IncidentTrigger.objects.create(
-    incident=incident,
-    alert_rule_trigger=alert_rule_trigger2,
-    status=TriggerStatus.ACTIVE.value,
+    incident=incident, alert_rule_trigger=alert_rule_trigger2, status=TriggerStatus.ACTIVE.value,
 )
 
 
@@ -91,20 +98,20 @@ incident_trigger2 = IncidentTrigger.objects.create(
 # time.sleep(2)
 # incident_trigger.status=0
 # incident_trigger.save()
-print("incident_trigger id:",incident_trigger.id)
-print("incident_trigger2 id:",incident_trigger2.id)
-print("alert_rule_trigger_action:",alert_rule_trigger_action)
+print("incident_trigger id:", incident_trigger.id)
+print("incident_trigger2 id:", incident_trigger2.id)
+print("alert_rule_trigger_action:", alert_rule_trigger_action)
 
 util.send_incident_alert_notification(alert_rule_trigger_action, incident)
 
 print("sleeping...")
 time.sleep(2)
-print("Updating trigger..",incident_trigger.date_modified)
-incident_trigger.status=TriggerStatus.ACTIVE.value
-incident_trigger.save();
-incident_trigger.status=TriggerStatus.RESOLVED.value
-incident_trigger.save();
-print("Update complete.",incident_trigger.date_modified)
+print("Updating trigger..", incident_trigger.date_modified)
+incident_trigger.status = TriggerStatus.ACTIVE.value
+incident_trigger.save()
+incident_trigger.status = TriggerStatus.RESOLVED.value
+incident_trigger.save()
+print("Update complete.", incident_trigger.date_modified)
 
 util.send_incident_alert_notification(alert_rule_trigger_action, incident)
 
