@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
+import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -31,15 +31,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     );
   }
   handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
-  handleSubmitError = () => addErrorMessage(t('Unexpected error ocurred!'));
-  handleSubmitSuccess = () => {
-    this.model.setFormSaving();
-    const {
-      location: {origin},
-    } = window;
-    const newUrl = `${origin}/extensions/aws_lambda/setup/`;
-    window.location.replace(newUrl);
-  };
   render = () => {
     const model = this.model;
     const formFields: JsonFormObject = {
@@ -60,7 +51,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
         model={model}
         apiEndpoint="/extensions/aws_lambda/setup/"
         onPreSubmit={this.handlePreSubmit}
-        onSubmitError={this.handleSubmitError}
       >
         <JsonForm forms={[formFields]} />
       </StyledForm>

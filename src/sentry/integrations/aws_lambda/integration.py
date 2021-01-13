@@ -232,14 +232,14 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        def render_response():
+        def render_response(error=None):
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": template_url,
                 "stackName": "Sentry-Monitoring-Stack-Filter",
                 "arn": pipeline.fetch_state("arn"),
-                "error": pipeline.fetch_state("error"),
+                "error": error,
             }
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 
@@ -255,27 +255,21 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             pipeline.bind_state("aws_external_id", aws_external_id)
 
             if not check_arn_is_valid_cloudformation_stack(arn):
-                # store the error in state so a page refresh shows error
-                pipeline.bind_state("error", "Invalid ARN")
-                return render_response()
+                return render_response("Invalid ARN")
 
             # now validate the arn works
             try:
                 gen_aws_client(arn, aws_external_id)
             except ClientError:
-                pipeline.bind_state(
-                    "error", "Please validate the Cloudformation stack was created successfully.",
+                return render_response(
+                    "Please validate the Cloudformation stack was created successfully"
                 )
-                return render_response()
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": six.text_type(e)},
                 )
-                pipeline.bind_state(
-                    "error", "Unkown errror",
-                )
-                return render_response()
+                return render_response("Unkown errror")
 
             # if no error, continue
             return pipeline.next_step()

@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 
+from botocore.exceptions import ClientError
 from django.http import HttpResponse
+from six.moves.urllib.parse import urlencode
 
 from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
@@ -38,6 +40,59 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         serialized_projects = map(lambda x: serialize(x, self.user), [self.projectA, self.projectB])
         mock_react_view.assert_called_with(
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
+        )
+
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_one_project(self, mock_react_view):
+        self.projectB.delete()
+        resp = self.client.get(self.setup_path)
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(ANY, "awsLambdaCloudformation", ANY)
+
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_render_cloudformation_view(self, mock_react_view):
+        self.pipeline.state.step_index = 1
+        resp = self.client.get(self.setup_path)
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(
+            ANY,
+            "awsLambdaCloudformation",
+            {
+                "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+                "templateUrl": "https://example.com/file.json",
+                "stackName": "Sentry-Monitoring-Stack-Filter",
+                "arn": None,
+                "error": None,
+            },
+        )
+
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_set_valid_arn(self, mock_react_view, mock_gen_aws_client):
+        self.pipeline.state.step_index = 1
+        data = {"arn": arn, "awsExternalId": "my-id"}
+        resp = self.client.get(self.setup_path + "?" + urlencode(data))
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(ANY, "awsLambdaFunctionSelect", ANY)
+
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_set_arn_with_error(self, mock_react_view, mock_gen_aws_client):
+        self.pipeline.state.step_index = 1
+        mock_gen_aws_client.side_effect = ClientError({"Error": {}}, "assume_role")
+        data = {"arn": arn, "awsExternalId": "my-id"}
+        resp = self.client.get(self.setup_path + "?" + urlencode(data))
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(
+            ANY,
+            "awsLambdaCloudformation",
+            {
+                "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+                "templateUrl": "https://example.com/file.json",
+                "stackName": "Sentry-Monitoring-Stack-Filter",
+                "arn": arn,
+                "error": "Please validate the Cloudformation stack was created successfully",
+            },
         )
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
