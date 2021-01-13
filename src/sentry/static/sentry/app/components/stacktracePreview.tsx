@@ -121,7 +121,20 @@ class StacktracePreview extends React.Component<Props, State> {
 
     return (
       <span onMouseEnter={this.fetchData}>
-        <StyledHovercard body={this.renderHovercardBody(stacktrace)} position="right">
+        <StyledHovercard
+          body={this.renderHovercardBody(stacktrace)}
+          position="right"
+          modifiers={{
+            flip: {
+              enabled: false,
+            },
+            preventOverflow: {
+              padding: 20,
+              enabled: true,
+              boundariesElement: 'viewport',
+            },
+          }}
+        >
           {children}
         </StyledHovercard>
       </span>
@@ -134,6 +147,7 @@ const StyledHovercard = styled(Hovercard)`
 
   ${Body} {
     padding: 0;
+    min-height: 150px;
     max-height: 300px;
     overflow-y: auto;
     border-bottom-left-radius: ${p => p.theme.borderRadius};

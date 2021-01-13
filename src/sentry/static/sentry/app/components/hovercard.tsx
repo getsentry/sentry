@@ -58,6 +58,10 @@ type Props = DefaultProps & {
    * Offset for the arrow
    */
   offset?: string;
+  /**
+   * Popper Modifiers
+   */
+  modifiers?: PopperProps['modifiers'];
 };
 
 type State = {
@@ -141,6 +145,7 @@ class Hovercard extends React.Component<Props, State> {
         enabled: true,
         boundariesElement: 'viewport',
       },
+      ...(this.props.modifiers || {}),
     };
 
     const visible = show !== undefined ? show : this.state.visible;
