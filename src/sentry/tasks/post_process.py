@@ -6,6 +6,7 @@ import sentry_sdk
 import random
 
 from sentry import features, options
+from sentry.app import locks
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
