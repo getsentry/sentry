@@ -5,7 +5,12 @@ import datetime
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.api.utils import get_date_range_from_params, InvalidParams, MAX_STATS_PERIOD
+from sentry.api.utils import (
+    get_date_range_from_params,
+    get_date_range_rollup_from_params,
+    InvalidParams,
+    MAX_STATS_PERIOD,
+)
 from sentry.testutils import TestCase
 
 
@@ -54,3 +59,39 @@ class GetDateRangeFromParamsTest(TestCase):
 
         with self.assertRaises(InvalidParams):
             start, end = get_date_range_from_params({"statsPeriodStart": "14d"})
+
+
+class GetDateRangeRollupFromParamsTest(TestCase):
+    def test_intervals(self):
+        # defaults to 1h
+        start, end, interval = get_date_range_rollup_from_params({})
+        assert interval == 3600
+
+        # rounds up to a multiple of the minimum
+        start, end, interval = get_date_range_rollup_from_params(
+            {"statsPeriod": "14h", "interval": "8m"}, minimum_interval="5m"
+        )
+        assert interval == 600
+
+    @freeze_time("2018-12-11 03:21:34")
+    def test_round_range(self):
+        start, end, interval = get_date_range_rollup_from_params(
+            {"statsPeriod": "2d"}, round_range=True
+        )
+        assert start == datetime.datetime(2018, 12, 9, 4, tzinfo=timezone.utc)
+        assert end == datetime.datetime(2018, 12, 11, 4, tzinfo=timezone.utc)
+
+        start, end, interval = get_date_range_rollup_from_params(
+            {"statsPeriod": "2d", "interval": "1d"}, round_range=True
+        )
+        assert start == datetime.datetime(2018, 12, 10, tzinfo=timezone.utc)
+        assert end == datetime.datetime(2018, 12, 12, tzinfo=timezone.utc)
+
+    def test_invalid_interval(self):
+        with self.assertRaises(InvalidParams):
+            start, end, interval = get_date_range_rollup_from_params({"interval": "0d"})
+        with self.assertRaises(InvalidParams):
+            # defaults stats period is 90d
+            start, end, interval = get_date_range_rollup_from_params(
+                {"interval": "1d"}, max_points=80
+            )
