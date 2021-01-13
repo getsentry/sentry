@@ -288,7 +288,7 @@ class PerformanceLanding extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, projects} = this.props;
+    const {organization, location, projects} = this.props;
     const currentView = this.getCurrentView();
     const isTrendsView = currentView === FilterViews.TRENDS;
     const eventView = isTrendsView
