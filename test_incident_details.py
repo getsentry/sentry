@@ -1,4 +1,11 @@
-from sentry.incidents.models import AlertRule, Incident, IncidentType, IncidentSnapshot, TimeSeriesSnapshot, IncidentSeen
+from sentry.incidents.models import (
+    AlertRule,
+    Incident,
+    IncidentType,
+    IncidentSnapshot,
+    TimeSeriesSnapshot,
+    IncidentSeen,
+)
 from sentry.incidents.logic import create_incident
 from sentry.models import Organization, Project, User
 from datetime import datetime
@@ -14,16 +21,16 @@ user = User.objects.all().first()
 projects = Project.objects.filter(organization=org, slug="fire")
 
 rule = AlertRule.objects.all().last()
-rule.dataset="events"
+rule.dataset = "events"
 rule.aggregate = "count()"
-rule.query=""
-rule.name="testing activity"
+rule.query = ""
+rule.name = "testing activity"
 # rule.query="transaction:/api/0/organizations/{organization_slug}/eventsv2/"
 rule.save()
 incident = create_incident(
-    organization = org,
-    type_ = IncidentType.ALERT_TRIGGERED,
-    title = rule.name,
+    organization=org,
+    type_=IncidentType.ALERT_TRIGGERED,
+    title=rule.name,
     date_started=start_date,
     date_detected=detected_date,
     alert_rule=rule,
@@ -91,12 +98,11 @@ print("incident.identifier:", incident.identifier)
 
 # Senior devs don't cooperate - they've actually formed two companies (MiniBC and Be a Part Of) and sometimes have competing interest.
 
-# "Kitchen area" has no running water, a really dirty toaster oven and old microwave, and two fridges usually full with some gross leftovers from management. I'm not sure if many employees were actually using this. 
+# "Kitchen area" has no running water, a really dirty toaster oven and old microwave, and two fridges usually full with some gross leftovers from management. I'm not sure if many employees were actually using this.
 
 # I've seen (and heard) management yell and swear at employees. Very disrespectful.
 
 # Treated like robots, not humans.
-
 
 
 # I'm sure this isn't the worst place to work at, but I've worked at a number of companies and it is by far the  the worst place to be employed that I've ever personally encountered. I just want to warn people what they're getting into! Join at your own risk knowing this!
