@@ -58,6 +58,10 @@ type Props = DefaultProps & {
    * Offset for the arrow
    */
   offset?: string;
+  /**
+   * Popper Modifiers
+   */
+  modifiers?: PopperProps['modifiers'];
 };
 
 type State = {
@@ -128,11 +132,12 @@ class Hovercard extends React.Component<Props, State> {
       show,
       tipColor,
       offset,
+      modifiers,
     } = this.props;
 
     // Maintain the hovercard class name for BC with less styles
     const cx = classNames('hovercard', className);
-    const modifiers: PopperProps['modifiers'] = {
+    const popperModifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },
@@ -141,6 +146,7 @@ class Hovercard extends React.Component<Props, State> {
         enabled: true,
         boundariesElement: 'viewport',
       },
+      ...(modifiers || {}),
     };
 
     const visible = show !== undefined ? show : this.state.visible;
@@ -166,7 +172,7 @@ class Hovercard extends React.Component<Props, State> {
         {visible &&
           (header || body) &&
           ReactDOM.createPortal(
-            <Popper placement={position} modifiers={modifiers}>
+            <Popper placement={position} modifiers={popperModifiers}>
               {({ref, style, placement, arrowProps}) => (
                 <StyledHovercard
                   id={this.tooltipId}
