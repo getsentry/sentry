@@ -14,8 +14,8 @@ import {
 } from 'app/views/organizationIntegrations/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 
+import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
-import {DynamicSamplingRules} from './filtersAndSampling';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {

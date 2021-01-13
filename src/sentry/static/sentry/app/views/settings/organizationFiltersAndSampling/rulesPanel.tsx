@@ -6,7 +6,7 @@ import ButtonBar from 'app/components/buttonBar';
 import {Panel, PanelFooter, PanelTable} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Rule} from 'app/types/filtersAndSampling';
+import {Rule} from 'app/types/dynamicSampling';
 
 type Props = {
   rules: Array<Rule>;
