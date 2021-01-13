@@ -83,7 +83,7 @@ const TitleWrapper = styled('div')`
 
 const Title = styled('div')<TitleProps & React.HTMLProps<HTMLDivElement>>`
   ${p => !p.styled && `font-size: 20px; font-weight: 600;`};
-  margin: ${space(4)} ${space(2)} ${space(4)} 0;
+  margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
 const Subtitle = styled('div')`
   color: ${p => p.theme.gray400};
