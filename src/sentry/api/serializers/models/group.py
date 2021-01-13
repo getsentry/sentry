@@ -15,7 +15,7 @@ from django.utils import timezone
 
 import sentry_sdk
 
-from sentry import tagstore, tsdb, features
+from sentry import tagstore, tsdb
 from sentry.app import env
 from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
@@ -45,7 +45,6 @@ from sentry.models import (
     User,
     UserOption,
     UserOptionValue,
-    Organization,
 )
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
@@ -335,7 +334,6 @@ class GroupSerializerBase(Serializer):
 
         # should only have 1 org at this point
         organization_id = organization_id_list[0]
-        organization = Organization.objects.get_from_cache(id=organization_id)
 
         # find all the integration installs that have issue tracking
         for integration in Integration.objects.filter(organizations=organization_id):
